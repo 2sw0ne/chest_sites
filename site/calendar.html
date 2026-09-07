@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendrier économique — Chesting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
+<style>
+  /* Drapeaux reels (SVG) plutot que des emoji "indicateur regional" - sur
+     Windows, ces emoji s'affichent comme du texte ("US","EU"...) au lieu
+     d'un drapeau, faute de police dediee. */
+  .flag-ic{ display:inline-block; border-radius:2px; vertical-align:middle; }
+
+  .cal-state{ border:1px dashed var(--line2); border-radius:var(--radius); padding:60px 24px; text-align:center; color:var(--muted); }
+  .cal-state code{ background:var(--panel); padding:2px 8px; border-radius:6px; color:var(--ink); }
+
+  /* ---------- Ticker (bandeau plein écran) ---------- */
+  .ticker-wrap{
+    width:100vw; position:relative; left:50%; right:50%; margin-left:-50vw; margin-right:-50vw;
+    background:var(--panel); border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    overflow:hidden; margin-bottom:clamp(28px,5vh,44px);
+  }
+  .ticker-track{ display:flex; gap:0; width:max-content; will-change:transform; }
+  .ticker-item{
+    display:flex; align-items:baseline; gap:9px; padding:12px 26px; border-right:1px solid var(--line);
+    font-size:13px; white-space:nowrap;
+  }
+  .ticker-item b{ font-weight:700; letter-spacing:-.01em; }
+  .ticker-item .px{ color:var(--ink-dim,var(--muted)); font-variant-numeric:tabular-nums; }
+  .ticker-item .chg{ font-weight:700; font-variant-numeric:tabular-nums; }
+  .ticker-item .chg.pos{ color:var(--green); } .ticker-item .chg.neg{ color:var(--red); }
+  .ticker-meta{ padding:12px 26px; font-size:11px; color:var(--faint); white-space:nowrap; }
+
+  /* ---------- Bubbles (aujourd'hui) ---------- */
+  .bubble-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-bottom:clamp(30px,5vh,46px); }
+  .bubble{
+    border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel);
+    padding:16px 18px; cursor:pointer; transition:border-color .2s;
+  }
+  .bubble:hover{ border-color:var(--acc); }
+  .bubble.is-open{ border-color:var(--acc); }
+  .bubble__top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .bubble__country{ display:flex; align-items:center; gap:7px; font-size:18px; font-weight:700; color:var(--muted); }
+  .bubble__country .flag-ic{ width:24px; height:18px; }
+  .bubble__time{ font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .bubble__event{ font-size:14.5px; font-weight:600; margin:0 0 12px; line-height:1.35; }
+  .bubble__stats{ display:flex; gap:16px; font-size:12px; }
+  .bubble__stats div{ display:flex; flex-direction:column; gap:2px; }
+  .bubble__stats span{ color:var(--faint); font-size:10px; text-transform:uppercase; letter-spacing:.06em; }
+  .bubble__stats b{ font-variant-numeric:tabular-nums; }
+  .bubble__badge{ font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
+  .bubble__badge.pending{ background:rgba(255,61,127,.14); color:var(--acc); }
+  .bubble__badge.released{ background:rgba(51,230,166,.14); color:var(--green); }
+
+  .bubble__detail{ max-height:0; overflow:hidden; transition:max-height .35s var(--ease); }
+  .bubble__detail-inner{ padding-top:14px; margin-top:14px; border-top:1px solid var(--line); }
+  .compare-row{ display:flex; gap:10px; margin-bottom:12px; }
+  .compare-cell{ flex:1; text-align:center; padding:10px 6px; border-radius:12px; background:var(--bg); }
+  .compare-cell span{ display:block; font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; }
+  .compare-cell b{ font-size:16px; font-variant-numeric:tabular-nums; }
+  .hypothesis{ font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:12px; background:var(--bg); }
+  .hypothesis.pos{ color:var(--green); } .hypothesis.neg{ color:var(--red); } .hypothesis.neutral{ color:var(--muted); }
+
+  /* ---------- Liste des prochains jours ---------- */
+  .upcoming-day{ margin-bottom:18px; }
+  .upcoming-day__label{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .upcoming-row{
+    display:grid; grid-template-columns:70px 50px 1fr 110px; gap:12px; align-items:center;
+    padding:11px 16px; border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .upcoming-table{ border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel); overflow:hidden; }
+  .upcoming-row:last-child{ border-bottom:none; }
+  .upcoming-row .t{ color:var(--faint); font-variant-numeric:tabular-nums; }
+  .upcoming-row .c{ font-weight:700; font-size:17px; }
+  .upcoming-row .c .flag-ic{ width:22px; height:16px; }
+  .upcoming-row .cons{ text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+  @media (max-width: 640px){ .upcoming-row{ grid-template-columns:56px 40px 1fr; } .upcoming-row .cons{ display:none; } }
+
+  /* ---------- Filtre d'importance (étoiles) ---------- */
+  .imp-filter{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:18px 0 28px; }
+
+  /* ---------- Navigateur de jour (aujourd'hui / hier / a venir) ---------- */
+  .day-nav-head{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+  .day-nav-head .eyebrow{ flex:1; min-width:160px; margin-bottom:0; }
+  .day-nav{ display:inline-flex; align-items:center; gap:6px; flex-shrink:0; }
+  .day-nav__btn{
+    width:32px; height:32px; border-radius:999px; border:1px solid var(--line2); background:var(--panel);
+    color:var(--ink); cursor:pointer; font-size:12px; font:inherit; display:flex; align-items:center; justify-content:center;
+  }
+  .day-nav__btn:disabled{ opacity:.3; cursor:default; }
+  .day-nav__btn:not(:disabled):hover{ border-color:var(--acc); }
+  .day-nav__today{
+    border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:7px 14px;
+    font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer; font:inherit;
+  }
+  .day-nav__today.is-active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .imp-filter__label{ font-size:12px; color:var(--faint); margin-right:2px; }
+  .imp-pill{
+    display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:999px;
+    border:1px solid var(--line2); background:var(--panel); color:var(--muted);
+    font-size:12.5px; font-weight:600; cursor:pointer; transition:border-color .15s, color .15s, background .15s;
+  }
+  .imp-pill .stars{ letter-spacing:-1px; opacity:.55; color:var(--amber); }
+  .imp-pill:hover{ border-color:var(--acc); }
+  .imp-pill.is-active{ background:rgba(255,61,127,.1); border-color:var(--acc); color:var(--ink); }
+  .imp-pill.is-active .stars{ opacity:1; }
+  .imp-dot{ font-size:10px; letter-spacing:-1px; color:var(--amber); opacity:.85; margin-left:4px; }
+
+  /* ---------- Valeurs colorees (positif/negatif/neutre) ---------- */
+  .val{ font-variant-numeric:tabular-nums; font-weight:700; }
+  .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
+
+  /* ---------- Sentiment de marche (page de garde, plein ecran) ----------
+     Meme logique de debordement que .ticker-wrap : pleine largeur d'ecran
+     quel que soit le conteneur. Fond toujours sombre (independant du theme
+     clair/sombre du site, comme la page SWYPER) avec une lueur radiale
+     coloree selon le biais - pas d'encadre, pas de remplissage plein rouge. */
+  .sentiment-hero{
+    width:100vw; position:relative; left:50%; right:50%; margin-left:-50vw; margin-right:-50vw;
+    background:#07070a; overflow:hidden; text-align:center;
+    padding:clamp(48px,8vh,76px) 24px clamp(40px,6vh,56px); margin-bottom:clamp(28px,5vh,44px);
+  }
+  .sentiment-hero::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 55% 65% at 50% 18%, var(--glow, rgba(255,61,127,.32)), transparent 72%);
+    transition:background .5s;
+  }
+  .sentiment-hero[data-tone="pos"]{ --glow: rgba(51,230,166,.45); }
+  .sentiment-hero[data-tone="neg"]{ --glow: rgba(255,77,94,.45); }
+  .sentiment-hero__inner{ position:relative; max-width:760px; margin:0 auto; }
+  .sentiment-hero__badge{
+    display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    padding:7px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.7); margin-bottom:24px;
+  }
+  .sentiment-hero__badge::before{ content:''; width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .sentiment-hero[data-tone="pos"] .sentiment-hero__badge{ color:var(--green); border-color:rgba(51,230,166,.35); }
+  .sentiment-hero[data-tone="neg"] .sentiment-hero__badge{ color:var(--red); border-color:rgba(255,77,94,.35); }
+  .sentiment-hero__code{
+    font-size:clamp(46px,7vw,78px); font-weight:800; letter-spacing:-.03em; line-height:1; margin:0 0 10px;
+    background:linear-gradient(180deg,#fff,rgba(255,255,255,.55)); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sentiment-hero__label{ font-size:13.5px; color:rgba(255,255,255,.5); margin-bottom:32px; }
+  .sentiment-hero__weekly{ font-size:clamp(32px,5vw,50px); font-weight:800; letter-spacing:-.02em; line-height:1; margin-bottom:6px; color:rgba(255,255,255,.9); }
+  .sentiment-hero[data-tone="pos"] .sentiment-hero__weekly{ color:var(--green); }
+  .sentiment-hero[data-tone="neg"] .sentiment-hero__weekly{ color:var(--red); }
+  .sentiment-hero__weekly-label{ font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.4); margin-bottom:28px; }
+  .sentiment-hero__text{ font-size:14.5px; line-height:1.6; margin:0 0 28px; color:rgba(255,255,255,.75); }
+
+  /* Cartes cote a cote pour chaque annonce motrice */
+  .sentiment-hero__drivers{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:24px; text-align:left; }
+  .driver-card{
+    display:flex; flex-direction:column; gap:8px; padding:14px 16px; border-radius:14px;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  }
+  .driver-card__top{ display:flex; align-items:center; gap:8px; }
+  .driver-card__top .flag-ic{ width:20px; height:15px; flex-shrink:0; }
+  .driver-card__logo{ width:20px; height:20px; border-radius:50%; flex-shrink:0; }
+  .driver-card__top .tag{ font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:rgba(255,255,255,.4); white-space:nowrap; margin-left:auto; }
+  .driver-card__name{ font-size:12.5px; font-weight:600; line-height:1.3; flex:1; min-width:0; color:rgba(255,255,255,.92); }
+  .driver-card__value{ font-size:24px; font-weight:800; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .driver-card__estimates{ display:flex; gap:14px; font-size:11px; }
+  .driver-card__estimates b{ font-variant-numeric:tabular-nums; font-size:12.5px; }
+  .driver-card__estimates span{ display:block; opacity:.7; text-transform:uppercase; letter-spacing:.04em; font-size:9.5px; margin-bottom:2px; color:rgba(255,255,255,.55); }
+  .sentiment-hero .val.neutral{ color:rgba(255,255,255,.55); }
+
+  .sentiment-hero__disclaimer{ font-size:11px; color:rgba(255,255,255,.38); margin:0; line-height:1.5; }
+  .sentiment-hero__disclaimer a{ color:rgba(255,255,255,.6); text-decoration:underline; }
+
+  /* ---------- Compte a rebours (evenements sans donnee chiffree) ---------- */
+  .countdown{ font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; background:var(--panel-2); color:var(--muted); font-variant-numeric:tabular-nums; }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+</head>
+<body data-page="calendar">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+  </div>
+</header>
+
+<div class="ticker-wrap">
+  <div class="ticker-track" id="tickerTrack">
+    <div class="ticker-meta" id="tickerMeta">Chargement…</div>
+  </div>
+</div>
+
+<main class="container">
+  <section class="sentiment-hero" id="sentimentHero" data-tone="neutral">
+    <div class="sentiment-hero__inner">
+      <span class="sentiment-hero__badge" id="sentimentBadge">Neutre</span>
+      <h2 class="sentiment-hero__code" id="sentimentCode">XAU/USD</h2>
+      <div class="sentiment-hero__label" id="sentimentLabel">Or / Dollar</div>
+
+      <div id="sentimentEconMode">
+        <div class="sentiment-hero__weekly" id="sentimentWeekly">—</div>
+        <div class="sentiment-hero__weekly-label">Estimation indicative sur la semaine</div>
+        <p class="sentiment-hero__text" id="sentimentText">Chargement de l'analyse…</p>
+        <div class="sentiment-hero__drivers" id="sentimentDrivers"></div>
+        <p class="sentiment-hero__disclaimer">Heuristique statistique basée sur les surprises économiques récentes et les prévisions à venir (US/EU/UK/JP) — pas une prédiction garantie. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
+      </div>
+
+      <div id="sentimentCryptoMode" hidden>
+        <div class="sentiment-hero__weekly" id="cryptoWeekly">—</div>
+        <div class="sentiment-hero__weekly-label">Estimation indicative sur la semaine</div>
+        <p class="sentiment-hero__text" id="cryptoText">Chargement…</p>
+        <div class="sentiment-hero__drivers" id="cryptoCards"></div>
+        <p class="sentiment-hero__disclaimer">Combine calendrier macro US, Fear &amp; Greed (alternative.me) et momentum 24h (CoinGecko) — une heuristique de tendance, pas une prédiction de prix. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-head">
+    <h1>Calendrier économique</h1>
+    <p>US, zone euro, UK, Japon. Aujourd'hui et cette semaine viennent directement d'investing.com (leurs étoiles, leurs prévisions) ; au-delà, tradingeconomics.com prend le relais — leur notation diffère parfois de celle d'investing.com pour un même évènement, à toi de vérifier au cas par cas. Mis à jour par <code style="background:var(--panel);padding:2px 6px;border-radius:5px">fetch_calendar.py</code>, usage strictement personnel.</p>
+  </div>
+
+  <div class="imp-filter" id="importanceFilter">
+    <span class="imp-filter__label">Importance affichée :</span>
+    <button class="imp-pill" data-imp="high" type="button"><span class="stars">✯✯✯</span> Élevée</button>
+    <button class="imp-pill" data-imp="medium" type="button"><span class="stars">✯✯☆</span> Moyenne</button>
+    <button class="imp-pill" data-imp="low" type="button"><span class="stars">✯☆☆</span> Faible</button>
+  </div>
+
+  <div class="day-nav-head">
+    <div class="eyebrow" id="dayZoneLabel">Aujourd'hui</div>
+    <div class="day-nav">
+      <button type="button" id="dayPrev" class="day-nav__btn" aria-label="Jour précédent">◀</button>
+      <button type="button" id="dayToday" class="day-nav__today is-active">Aujourd'hui</button>
+      <button type="button" id="dayNext" class="day-nav__btn" aria-label="Jour suivant">▶</button>
+    </div>
+  </div>
+  <div id="bubbleZone">
+    <div class="cal-state">Chargement…</div>
+  </div>
+
+  <div class="eyebrow">Prochains jours</div>
+  <div id="upcomingZone">
+    <div class="cal-state">Chargement…</div>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+
+<script src="js/nav.js"></script>
+<script src="js/config.js"></script>
+<script src="js/calendar.js"></script>
+</body>
+</html>

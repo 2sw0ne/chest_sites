@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backtest — Chesting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  .val{ font-variant-numeric:tabular-nums; font-weight:700; }
+  .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
+
+  /* ---------- Flèche retour (pastille sombre, façon SWYPER) ----------
+     Ancrée dans le hero (position:relative) plutôt qu'en fixed sur le
+     viewport, pour ne pas chevaucher le topbar sticky du site. */
+  .chesting-back{
+    position:absolute; top:20px; left:24px; z-index:5;
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'Instrument Sans',system-ui,sans-serif; font-size:12.5px; font-weight:600;
+    text-decoration:none; color:#f6f6f7; background:rgba(255,255,255,.08); backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 14px 8px 10px;
+  }
+  .chesting-back:hover{ background:rgba(255,255,255,.14); }
+
+  /* ---------- Page de garde : hero plein écran, toujours sombre (identité SWYPER) ---------- */
+  .bt-hero-glow{
+    width:100vw; position:relative; left:50%; right:50%; margin-left:-50vw; margin-right:-50vw;
+    background:#050505; overflow:hidden; text-align:center;
+    padding:clamp(64px,10vh,96px) 24px clamp(44px,7vh,64px); margin-bottom:clamp(36px,6vh,56px);
+  }
+  .bt-hero-glow::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 60% 60% at 50% 15%, rgba(255,61,127,.32), transparent 72%);
+  }
+  .bt-hero-glow__inner{ position:relative; max-width:820px; margin:0 auto; }
+  .bt-hero-glow__badge{
+    display:inline-flex; align-items:center; gap:8px; font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    padding:7px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.7); margin-bottom:26px;
+  }
+  .bt-hero-glow__badge .dot{ width:7px; height:7px; border-radius:50%; background:var(--acc); box-shadow:0 0 10px var(--acc); display:inline-block; }
+  .bt-hero-glow__title{
+    font-size:clamp(44px,9vw,104px); line-height:.95; font-weight:800; letter-spacing:-.03em; margin:0 0 18px; word-break:break-word;
+    background:linear-gradient(180deg,#fff,color-mix(in srgb,#fff 55%,var(--acc))); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .bt-hero-glow__desc{ font-size:15px; line-height:1.6; color:rgba(255,255,255,.65); max-width:56ch; margin:0 auto 30px; }
+  .bt-hero-glow__cta{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:20px; }
+  .bt-hero-glow__cta .btn-secondary{ background:rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.18); }
+  .bt-hero-glow__actions{ display:flex; gap:18px; justify-content:center; margin-bottom:40px; }
+  .bt-hero-glow__linkbtn{ background:none; border:none; font:inherit; cursor:pointer; font-size:12.5px; font-weight:600; color:rgba(255,255,255,.55); text-decoration:underline; }
+  .bt-hero-glow__linkbtn:hover{ color:#fff; }
+  .bt-hero-glow__linkbtn--danger{ color:rgba(255,120,130,.75); }
+  .bt-hero-glow__linkbtn--danger:hover{ color:#ff8b96; }
+  .bt-hero-glow__stats{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:20px; max-width:640px; margin:0 auto;
+    padding-top:28px; border-top:1px solid rgba(255,255,255,.12);
+  }
+  .bt-hero-glow__stats span{ display:block; font-size:19px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; }
+  .bt-hero-glow__stats label{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.4); margin-top:5px; }
+
+  /* ---------- En-tête de section (eyebrow + filtre) ---------- */
+  .section-head{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+  .section-head .eyebrow{ flex:1; min-width:200px; margin-bottom:0; }
+  .eyebrow__account{ color:var(--ink); font-weight:700; text-transform:none; letter-spacing:0; }
+  .pill-group--wrap{ flex-wrap:wrap; }
+
+  /* ---------- Deux possibilités : cartes de money management côte à côte ---------- */
+  .mm-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin-bottom:8px; }
+  .mm-card{
+    border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel);
+    padding:26px 24px; display:flex; flex-direction:column; gap:14px; position:relative; overflow:hidden;
+  }
+  .mm-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--mm-color); }
+  .mm-card__tag{ font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--mm-color); }
+  .mm-card__perf{ font-size:40px; font-weight:800; letter-spacing:-.02em; line-height:1; }
+  .mm-card__capital{ font-size:13px; color:var(--muted); }
+  .mm-card__capital b{ color:var(--ink); font-weight:700; }
+  .mm-card__counts{ display:flex; gap:8px; flex-wrap:wrap; }
+  .mm-card__mini{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding-top:6px; border-top:1px solid var(--line); }
+  .mm-card__mini-label{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); margin-bottom:4px; }
+  .mm-card__mini-value{ font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .mm-card__extra{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); flex-wrap:wrap; gap:6px; }
+  .mm-card__extra b{ color:var(--ink); }
+  .mm-card__toggle{
+    margin-top:4px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font:inherit;
+    font-size:13px; font-weight:700; color:var(--ink); background:var(--bg); border:1px solid var(--line2); border-radius:var(--radius-pill);
+    padding:11px 16px; transition:.2s;
+  }
+  .mm-card__toggle .plus{ font-size:16px; line-height:1; }
+  .mm-card__toggle.is-selected{ background:var(--mm-color); border-color:var(--mm-color); color:#fff; }
+
+  /* ---------- Stats du compte selectionne (grands chiffres, style d'origine) ---------- */
+  .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:28px; }
+  .stat-card{ padding:18px 20px; }
+  .stat-card__label{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); margin-bottom:8px; }
+  .stat-card__value{ font-size:24px; font-weight:800; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+
+  /* ---------- Zones de drawdown : carres (meme style que les mini-stats) ---------- */
+  .dd-squares{ display:flex; flex-wrap:wrap; gap:14px; margin-bottom:28px; }
+  .dd-square{
+    min-width:130px; padding:16px 14px; border-radius:15px; background:var(--bg); border:1px solid var(--line2); flex-shrink:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center;
+  }
+  .dd-square__date{ font-size:10.5px; color:var(--muted); line-height:1.3; }
+  .dd-square__pct{ font-size:22px; font-weight:800; color:var(--red); font-variant-numeric:tabular-nums; }
+
+  .chart-card{ padding:22px 24px; margin-bottom:28px; }
+  .chart-wrap{ height:280px; position:relative; }
+
+  /* ---------- Mois par mois : tableau comparatif ---------- */
+  .monthly-table{ border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel); overflow-x:auto; margin-bottom:28px; }
+  .monthly-row{ display:grid; grid-template-columns:1fr 90px 110px 110px 130px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); font-size:13px; gap:8px; min-width:560px; }
+  .monthly-row--3col{ grid-template-columns:1fr 90px 110px; min-width:0; }
+  .monthly-row:last-child{ border-bottom:none; }
+  .monthly-row.head{ color:var(--faint); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; background:var(--bg); }
+  .monthly-row .best{ display:flex; flex-direction:column; }
+  .monthly-row .best small{ font-size:10px; color:var(--faint); font-weight:600; }
+
+  /* ---------- Journal ---------- */
+  .journal-head{ margin-bottom:18px; }
+  .journal-head__row{ display:flex; align-items:baseline; gap:8px; }
+  .journal-head__count{ font-size:34px; font-weight:800; letter-spacing:-.02em; }
+  .journal-head__count-label{ font-size:15px; font-weight:600; color:var(--muted); }
+  .journal-head__sub{ font-size:13px; color:var(--muted); margin:4px 0 0; }
+  .journal-filters{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; }
+
+  .journal-wrap{ border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel); overflow-x:auto; margin-bottom:24px; }
+  .journal-table{ width:100%; border-collapse:collapse; font-size:13px; white-space:nowrap; }
+  .journal-table th, .journal-table td{ padding:10px 14px; text-align:left; border-bottom:1px solid var(--line); }
+  .journal-table tbody tr:last-child td{ border-bottom:none; }
+  .journal-table th{ color:var(--faint); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; background:var(--bg); font-weight:600; position:sticky; top:0; }
+  .journal-table td.idx{ color:var(--faint); font-variant-numeric:tabular-nums; }
+  .journal-table td.num{ font-variant-numeric:tabular-nums; text-align:right; }
+  .journal-table td.extra-col{ color:var(--muted); font-size:12.5px; }
+  .journal-table tr.month-sep td{
+    background:var(--bg); font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink); font-weight:700;
+    padding:11px 14px; border-bottom:1px solid var(--line2); border-top:1px solid var(--line2);
+  }
+  .month-sep__stats{ margin-left:12px; text-transform:none; letter-spacing:0; font-size:11.5px; color:var(--faint); font-weight:500; }
+
+  .result-badge{ font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; }
+  .result-badge.tp{ background:rgba(51,230,166,.14); color:var(--green); }
+  .result-badge.sl{ background:rgba(255,77,94,.14); color:var(--red); }
+  .result-badge.be{ background:var(--line2); color:var(--muted); }
+
+  .empty-note{ border:1px dashed var(--line2); border-radius:var(--radius); padding:40px 24px; text-align:center; color:var(--muted); }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+</head>
+<body data-page="backtesting">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+  </div>
+</header>
+
+<main class="container" id="mainZone">
+  <div class="empty-note" id="emptyNote" style="display:none">Backtest introuvable. <a href="backtesting.html">Retour au hub</a>.</div>
+
+  <div id="reportZone" style="display:none">
+
+    <section class="bt-hero-glow">
+      <a href="backtesting.html" class="chesting-back">← Backtesting</a>
+      <div class="bt-hero-glow__inner">
+        <span class="bt-hero-glow__badge" id="heroBadge"></span>
+        <h1 class="bt-hero-glow__title" id="heroTitle"></h1>
+        <p class="bt-hero-glow__desc" id="heroDesc"></p>
+        <div class="bt-hero-glow__cta">
+          <a href="#mmSection" class="btn btn-primary">Voir les comptes</a>
+          <a href="#journalSection" class="btn btn-secondary">Ouvrir le journal</a>
+        </div>
+        <div class="bt-hero-glow__actions">
+          <button type="button" id="editLink" class="bt-hero-glow__linkbtn">Modifier ce backtest</button>
+          <button type="button" id="deleteBtn" class="bt-hero-glow__linkbtn bt-hero-glow__linkbtn--danger">Supprimer</button>
+        </div>
+        <div class="bt-hero-glow__stats">
+          <div><span id="heroCapital"></span><label>Capital initial</label></div>
+          <div><span id="heroTrades"></span><label>Trades</label></div>
+          <div><span id="heroPeriod"></span><label>Période</label></div>
+          <div><span id="heroGrade"></span><label>Note</label></div>
+        </div>
+      </div>
+    </section>
+
+    <div id="mmSection">
+      <div class="section-head">
+        <div class="eyebrow">01 — Deux possibilités</div>
+        <div class="pill-group" id="yearFilter"></div>
+      </div>
+      <div class="mm-grid" id="mmGrid"></div>
+    </div>
+
+    <div id="detailSection" style="margin-top:36px">
+      <div class="eyebrow">02 — Détail · <span class="eyebrow__account" id="detailLabel"></span></div>
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="card chart-card">
+        <div class="eyebrow">Courbe d'équity</div>
+        <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
+      </div>
+
+      <div class="eyebrow">Zones de drawdown supérieures à 10%</div>
+      <div class="dd-squares" id="ddSquares"></div>
+
+      <div class="eyebrow">03 — Mensuel</div>
+      <div class="monthly-table" id="monthlyTable"></div>
+    </div>
+
+    <div id="journalSection">
+      <div class="eyebrow">04 — Journal</div>
+      <div class="journal-head">
+        <div class="journal-head__row"><span class="journal-head__count" id="journalCount">0</span><span class="journal-head__count-label">positions</span></div>
+        <p class="journal-head__sub">Historique complet des positions, regroupé par mois.</p>
+      </div>
+      <div class="journal-filters">
+        <div class="pill-group" id="journalAccountGroup" style="display:none"></div>
+        <div class="pill-group" id="journalResultGroup"></div>
+        <div class="pill-group pill-group--wrap" id="journalMonthGroup"></div>
+      </div>
+      <div class="journal-wrap"><table class="journal-table" id="journalTable"></table></div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel. Résultats de backtest, aucune garantie de performance future.</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/backtest-store.js"></script>
+<script src="js/backtest-engine.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  const record = id ? window.ChestingBacktests.get(id) : null;
+
+  if (!record) {
+    document.getElementById('emptyNote').style.display = '';
+    return;
+  }
+  document.getElementById('reportZone').style.display = '';
+
+  const hasPf = !!record.pf;
+  const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  const MONTHS_FR_SHORT = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+
+  function fmtMoney(v) { return '$' + Math.round(v).toLocaleString('fr-FR'); }
+  function fmtMoneySigned(v) { return (v >= 0 ? '+' : '−') + Math.round(Math.abs(v)).toLocaleString('fr-FR'); }
+  function fmtPct(v) { return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; }
+  function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('fr-FR') : '—'; }
+  function fmtDateTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return `${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  function dateCellHtml(t) {
+    if (t.open && t.close) return `${fmtDateTime(t.open)} → ${fmtDateTime(t.close)}`;
+    return fmtDateTime(t.close || t.open || t.date);
+  }
+  function resultBadgeHtml(result) {
+    const r = String(result).toUpperCase();
+    const cls = r === 'TP' ? 'tp' : (r === 'SL' ? 'sl' : 'be');
+    return `<span class="result-badge ${cls}">${result}</span>`;
+  }
+  const FIELD_LABELS = { source: 'Source', confirmation: 'Confirmation', order: 'Ordre' };
+  function collectOptionalColumns(trades) {
+    const cols = [];
+    Object.keys(FIELD_LABELS).forEach((f) => {
+      if (trades.some((t) => t[f])) cols.push({ label: FIELD_LABELS[f], getValue: (t) => t[f] || '—' });
+    });
+    const extraLabels = [];
+    trades.forEach((t) => { if (t.extra) Object.keys(t.extra).forEach((k) => { if (!extraLabels.includes(k)) extraLabels.push(k); }); });
+    extraLabels.forEach((label) => cols.push({ label, getValue: (t) => (t.extra && t.extra[label]) || '—' }));
+    return cols;
+  }
+  function tradeDate(t) { return new Date(t.close || t.open || t.date); }
+  function monthLabel(key) { const [y, m] = key.split('-'); return `${MONTHS_FR[Number(m) - 1]} ${y}`; }
+  function monthLabelShort(key) { const [y, m] = key.split('-'); return `${MONTHS_FR_SHORT[Number(m) - 1]} ${y}`; }
+  function maxConsecutiveSl(trades) {
+    const ordered = window.ChestingBacktestEngine.sortedTrades(trades);
+    let max = 0, cur = 0;
+    ordered.forEach((t) => {
+      if (String(t.result).toUpperCase() === 'SL') { cur += 1; if (cur > max) max = cur; } else { cur = 0; }
+    });
+    return max;
+  }
+  // Note synthetique E->S a partir des resultats du backtesting (heuristique
+  // transparente, pas un vrai systeme de certification) : combine retour,
+  // drawdown max, profit factor et taux de reussite en un score sur 100.
+  function computeGrade(stats) {
+    const perfPts = Math.max(0, Math.min(stats.performancePct, 200)) / 200 * 40;
+    const ddPts = Math.max(0, Math.min(30, 30 - stats.maxDrawdownPct * 0.75));
+    const pfPts = stats.profitFactor != null ? Math.max(0, Math.min(stats.profitFactor, 3)) / 3 * 20 : 0;
+    const wrPts = Math.max(0, Math.min(stats.winRatePct, 70)) / 70 * 10;
+    const score = perfPts + ddPts + pfPts + wrPts;
+    if (score >= 90) return 'S';
+    if (score >= 80) return 'A+';
+    if (score >= 70) return 'A';
+    if (score >= 55) return 'B';
+    if (score >= 40) return 'C';
+    if (score >= 25) return 'D';
+    return 'E';
+  }
+
+  // ---- Page de garde : identité complète du backtest, non filtrée par année ----
+  const allYears = [...new Set(record.trades.map((t) => tradeDate(t).getFullYear()))].sort();
+  let selectedYears = new Set(allYears);
+
+  document.getElementById('heroTitle').textContent = record.title;
+  document.getElementById('heroDesc').textContent = record.description || 'Backtest ajouté depuis un fichier Excel personnel.';
+  document.getElementById('heroCapital').textContent = fmtMoney(record.capital);
+  document.getElementById('heroTrades').textContent = record.trades.length;
+
+  const sortedAll = window.ChestingBacktestEngine.sortedTrades(record.trades);
+  const firstDate = sortedAll.length ? tradeDate(sortedAll[0]) : null;
+  const lastDate = sortedAll.length ? tradeDate(sortedAll[sortedAll.length - 1]) : null;
+  function periodPoint(d) { return d ? `${MONTHS_FR_SHORT[d.getMonth()]} ${d.getFullYear()}` : '—'; }
+  const isRecent = lastDate && (Date.now() - lastDate.getTime()) < 1000 * 60 * 60 * 24 * 14;
+  const periodText = `${periodPoint(firstDate)} → ${isRecent ? "Aujourd'hui" : periodPoint(lastDate)}`;
+  const monthCount = new Set(record.trades.map((t) => tradeDate(t).toISOString().slice(0, 7))).size;
+  document.getElementById('heroPeriod').textContent = monthCount;
+  document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}`;
+
+  const heroReport = window.ChestingBacktestEngine.computeReport(record.trades, record.capital, { risk: record.cp.risk, tiers: record.cp.tiers || [] });
+  document.getElementById('heroGrade').textContent = computeGrade(heroReport.stats);
+
+  let mmDetailAccount = 'cp';
+  let journalAccount = 'cp';
+  let journalResultFilter = 'ALL';
+  let journalMonth = 'ALL';
+  let chart = null;
+
+  function filteredTrades() {
+    return record.trades.filter((t) => selectedYears.has(tradeDate(t).getFullYear()));
+  }
+
+  function renderYearFilter() {
+    const el = document.getElementById('yearFilter');
+    if (allYears.length <= 1) { el.style.display = 'none'; return; }
+    el.innerHTML = allYears.map((y) => `<button type="button" data-year="${y}" class="${selectedYears.has(y) ? 'is-active' : ''}">${y}</button>`).join('');
+    el.querySelectorAll('button').forEach((b) => {
+      b.addEventListener('click', () => {
+        const y = Number(b.dataset.year);
+        if (selectedYears.has(y)) {
+          if (selectedYears.size === 1) return; // au moins une annee doit rester selectionnee
+          selectedYears.delete(y);
+        } else {
+          selectedYears.add(y);
+        }
+        renderYearFilter();
+        renderAll();
+      });
+    });
+  }
+
+  function mmCardHtml(account, report, label, color, slStreak, counts, tradesTotal) {
+    const s = report.stats;
+    const isSelected = mmDetailAccount === account;
+    return `
+      <div class="mm-card" style="--mm-color:${color}">
+        <span class="mm-card__tag">${label}</span>
+        <div class="mm-card__perf val ${s.performancePct >= 0 ? 'pos' : 'neg'}">${fmtPct(s.performancePct)}</div>
+        <div class="mm-card__capital">Capital final <b>${fmtMoney(s.finalCapital)}</b></div>
+        <div class="mm-card__counts">
+          <span class="result-badge tp">${counts.TP} TP</span>
+          <span class="result-badge sl">${counts.SL} SL</span>
+          <span class="result-badge be">${counts.BE} BE</span>
+        </div>
+        <div class="mm-card__mini">
+          <div><div class="mm-card__mini-label">Win rate</div><div class="mm-card__mini-value">${s.winRatePct.toFixed(1)}%</div></div>
+          <div><div class="mm-card__mini-label">Max DD</div><div class="mm-card__mini-value">-${s.maxDrawdownPct.toFixed(1)}%</div></div>
+          <div><div class="mm-card__mini-label">Profit factor</div><div class="mm-card__mini-value">${s.profitFactor != null ? s.profitFactor.toFixed(2) : '—'}</div></div>
+        </div>
+        <div class="mm-card__extra">
+          <span>Trades total <b>${tradesTotal}</b></span>
+          <span>SL consécutifs max <b>${slStreak}</b></span>
+        </div>
+        <button type="button" class="mm-card__toggle ${isSelected ? 'is-selected' : ''}" data-mm-account="${account}">
+          ${isSelected ? 'Détails affichés ci-dessous' : 'Money management'} <span class="plus">${isSelected ? '−' : '+'}</span>
+        </button>
+      </div>`;
+  }
+
+  function renderMmCards(cpReport, pfReport, slStreak, counts, tradesTotal) {
+    const grid = document.getElementById('mmGrid');
+    let html = mmCardHtml('cp', cpReport, 'Compte propre', '#e35728', slStreak, counts, tradesTotal);
+    if (hasPf) html += mmCardHtml('pf', pfReport, 'Propfirm', '#5470c2', slStreak, counts, tradesTotal);
+    grid.innerHTML = html;
+    grid.querySelectorAll('[data-mm-account]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        mmDetailAccount = btn.dataset.mmAccount;
+        renderAll();
+        document.getElementById('detailSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  function renderDetail(report) {
+    document.getElementById('detailLabel').textContent = mmDetailAccount === 'pf' ? 'Propfirm' : 'Compte propre';
+    const s = report.stats;
+
+    document.getElementById('statsGrid').innerHTML = [
+      ['Performance totale', fmtPct(s.performancePct), s.performancePct >= 0 ? 'pos' : 'neg'],
+      ['Capital final', fmtMoney(s.finalCapital), 'neutral'],
+      ['Positions', s.totalTrades, 'neutral'],
+      ['Taux de réussite', s.winRatePct.toFixed(1) + '%', 'neutral'],
+      ['Drawdown max', '-' + s.maxDrawdownPct.toFixed(1) + '%', 'neg'],
+      ['Profit factor', s.profitFactor != null ? s.profitFactor.toFixed(2) : '—', 'neutral'],
+    ].map(([label, value, tone]) => `
+      <div class="card stat-card">
+        <div class="stat-card__label">${label}</div>
+        <div class="stat-card__value val ${tone}">${value}</div>
+      </div>`).join('');
+
+    const ddSquares = document.getElementById('ddSquares');
+    if (!report.drawdownEpisodes.length) {
+      ddSquares.innerHTML = `<div class="empty-note">Aucune zone de drawdown supérieure à 10% sur cet historique.</div>`;
+    } else {
+      ddSquares.innerHTML = report.drawdownEpisodes.map((ep) => `
+        <div class="dd-square">
+          <span class="dd-square__date">${fmtDate(ep.from)} → ${fmtDate(ep.to)}</span>
+          <span class="dd-square__pct">-${ep.depthPct.toFixed(1)}%</span>
+        </div>`).join('');
+    }
+
+    const isDark = !document.documentElement.hasAttribute('data-theme') || document.documentElement.getAttribute('data-theme') !== 'light';
+    const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
+    const tick = isDark ? '#9b9ba1' : '#65656b';
+    const series = report.curve.map((pt) => pt.capital);
+    const ctx = document.getElementById('equityChart');
+    if (chart) chart.destroy();
+    if (window.Chart && ctx) {
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: series.map((_, i) => i), datasets: [{ data: series, borderColor: '#ff3d7f', borderWidth: 2, pointRadius: 0, tension: .25, fill: true, backgroundColor: 'rgba(255,61,127,.08)' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { grid: { color: gridColor }, ticks: { color: tick, callback: (v) => fmtMoney(v) } },
+            x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8 } },
+          },
+        },
+      });
+    }
+  }
+
+  function renderMonthly(cpReport, pfReport) {
+    const el = document.getElementById('monthlyTable');
+    if (!hasPf) {
+      el.innerHTML = `<div class="monthly-row monthly-row--3col head"><span>Mois</span><span>Trades</span><span>Performance</span></div>` +
+        cpReport.monthly.map((m) => `
+          <div class="monthly-row monthly-row--3col">
+            <span>${monthLabelShort(m.key)}</span>
+            <span>${m.trades}</span>
+            <span class="val ${m.pct >= 0 ? 'pos' : 'neg'}">${fmtPct(m.pct)}</span>
+          </div>`).join('');
+      return;
+    }
+    const pfByKey = new Map(pfReport.monthly.map((m) => [m.key, m]));
+    el.innerHTML = `<div class="monthly-row head"><span>Mois</span><span>Trades</span><span>Compte propre</span><span>Propfirm</span><span>Meilleur</span></div>` +
+      cpReport.monthly.map((m) => {
+        const pf = pfByKey.get(m.key);
+        const pfPct = pf ? pf.pct : 0;
+        const better = m.pct >= pfPct ? 'Compte propre' : 'Propfirm';
+        const betterPct = Math.max(m.pct, pfPct);
+        return `
+          <div class="monthly-row">
+            <span>${monthLabelShort(m.key)}</span>
+            <span>${m.trades}</span>
+            <span class="val ${m.pct >= 0 ? 'pos' : 'neg'}">${fmtPct(m.pct)}</span>
+            <span class="val ${pfPct >= 0 ? 'pos' : 'neg'}">${fmtPct(pfPct)}</span>
+            <span class="best"><span class="val ${betterPct >= 0 ? 'pos' : 'neg'}">${fmtPct(betterPct)}</span><small>${better}</small></span>
+          </div>`;
+      }).join('');
+  }
+
+  function renderJournal(trades, cpReport, pfReport) {
+    const report = (journalAccount === 'pf' && pfReport) ? pfReport : cpReport;
+
+    const accountGroup = document.getElementById('journalAccountGroup');
+    if (hasPf) {
+      accountGroup.style.display = '';
+      accountGroup.innerHTML = `
+        <button type="button" data-jaccount="cp" class="${journalAccount === 'cp' ? 'is-active' : ''}">Compte propre</button>
+        <button type="button" data-jaccount="pf" class="${journalAccount === 'pf' ? 'is-active' : ''}">Propfirm</button>`;
+      accountGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalAccount = b.dataset.jaccount; renderAll(); }));
+    } else {
+      accountGroup.style.display = 'none';
+    }
+
+    const resultGroup = document.getElementById('journalResultGroup');
+    resultGroup.innerHTML = ['ALL', 'TP', 'SL', 'BE'].map((r) => `<button type="button" data-jresult="${r}" class="${journalResultFilter === r ? 'is-active' : ''}">${r === 'ALL' ? 'Tous' : r}</button>`).join('');
+    resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; renderAll(); }));
+
+    const optionalCols = collectOptionalColumns(trades);
+    const rowsAll = report.curve.slice(1).map((pt, i) => {
+      const prevCapital = report.curve[i].capital;
+      const t = pt.trade;
+      const pctChange = prevCapital > 0 ? (pt.capital / prevCapital - 1) * 100 : 0;
+      const variation = pt.capital - prevCapital;
+      return { idx: i + 1, trade: t, capital: pt.capital, pctChange, variation, monthKey: pt.date ? pt.date.toISOString().slice(0, 7) : 'inconnu' };
+    });
+
+    document.getElementById('journalCount').textContent = rowsAll.length;
+
+    const monthsPresent = [...new Set(rowsAll.map((r) => r.monthKey))].sort();
+    const monthGroup = document.getElementById('journalMonthGroup');
+    monthGroup.innerHTML = `<button type="button" data-jmonth="ALL" class="${journalMonth === 'ALL' ? 'is-active' : ''}">Tous les mois</button>` +
+      monthsPresent.map((k) => `<button type="button" data-jmonth="${k}" class="${journalMonth === k ? 'is-active' : ''}">${monthLabelShort(k)}</button>`).join('');
+    monthGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalMonth = b.dataset.jmonth; renderAll(); }));
+
+    const byMonth = new Map();
+    rowsAll.forEach((r) => {
+      if (!byMonth.has(r.monthKey)) byMonth.set(r.monthKey, []);
+      byMonth.get(r.monthKey).push(r);
+    });
+
+    const headCells = ['#', 'Date', ...optionalCols.map((c) => c.label), 'Résultat', '%', 'Capital après', 'Variation $'];
+    const colCount = headCells.length;
+
+    const groupKeys = [...byMonth.keys()].filter((k) => journalMonth === 'ALL' || k === journalMonth);
+    let bodyHtml = '';
+    groupKeys.forEach((key) => {
+      const rows = byMonth.get(key);
+      const tpCount = rows.filter((r) => String(r.trade.result).toUpperCase() === 'TP').length;
+      const slCount = rows.filter((r) => String(r.trade.result).toUpperCase() === 'SL').length;
+      const beCount = rows.filter((r) => String(r.trade.result).toUpperCase() === 'BE').length;
+      const visibleRows = rows.filter((r) => journalResultFilter === 'ALL' || String(r.trade.result).toUpperCase() === journalResultFilter);
+      if (!visibleRows.length) return;
+      bodyHtml += `<tr class="month-sep"><td colspan="${colCount}">${key === 'inconnu' ? 'Date inconnue' : monthLabel(key)}<span class="month-sep__stats">${rows.length} position${rows.length > 1 ? 's' : ''} · ${tpCount} TP · ${slCount} SL · ${beCount} BE</span></td></tr>`;
+      bodyHtml += visibleRows.map((r) => {
+        const tone = r.pctChange > 1e-9 ? 'pos' : (r.pctChange < -1e-9 ? 'neg' : 'neutral');
+        const cells = [
+          `<td class="idx">${r.idx}</td>`,
+          `<td>${dateCellHtml(r.trade)}</td>`,
+          ...optionalCols.map((c) => `<td class="extra-col">${c.getValue(r.trade)}</td>`),
+          `<td>${resultBadgeHtml(r.trade.result)}</td>`,
+          `<td class="num val ${tone}">${fmtPct(r.pctChange)}</td>`,
+          `<td class="num">${fmtMoney(r.capital)}</td>`,
+          `<td class="num val ${tone}">${fmtMoneySigned(r.variation)}</td>`,
+        ];
+        return `<tr>${cells.join('')}</tr>`;
+      }).join('');
+    });
+
+    document.getElementById('journalTable').innerHTML = `<thead><tr>${headCells.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${bodyHtml || `<tr><td colspan="${colCount}" style="text-align:center;color:var(--muted);padding:24px">Aucune position pour ce filtre.</td></tr>`}</tbody>`;
+  }
+
+  function renderAll() {
+    const trades = filteredTrades();
+    const cpReport = window.ChestingBacktestEngine.computeReport(trades, record.capital, { risk: record.cp.risk, tiers: record.cp.tiers || [] });
+    const pfReport = hasPf ? window.ChestingBacktestEngine.computeReport(trades, record.capital, { risk: record.pf.risk, tiers: record.pf.tiers || [] }) : null;
+    const slStreak = maxConsecutiveSl(trades);
+    const counts = { TP: 0, SL: 0, BE: 0 };
+    trades.forEach((t) => { const r = String(t.result).toUpperCase(); if (counts[r] != null) counts[r] += 1; });
+
+    renderMmCards(cpReport, pfReport, slStreak, counts, trades.length);
+    renderDetail(mmDetailAccount === 'pf' && pfReport ? pfReport : cpReport);
+    renderMonthly(cpReport, pfReport);
+    renderJournal(trades, cpReport, pfReport);
+  }
+
+  document.getElementById('editLink').addEventListener('click', () => {
+    window.location.href = `backtest-add.html?edit=${encodeURIComponent(record.id)}`;
+  });
+  document.getElementById('deleteBtn').addEventListener('click', () => {
+    if (!window.confirm('Supprimer définitivement ce backtest ?')) return;
+    window.ChestingBacktests.remove(record.id);
+    window.location.href = 'backtesting.html';
+  });
+
+  renderYearFilter();
+  renderAll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ajouter un backtest — Chesting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  .wizard{ display:flex; flex-direction:column; gap:20px; max-width:760px; }
+  .wz-card{ padding:26px; }
+  .wz-card h2{ font-size:16px; font-weight:700; letter-spacing:-.01em; margin:0 0 6px; display:flex; align-items:center; gap:10px; }
+  .wz-card h2 .step{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:var(--acc); color:#fff; font-size:12px; font-weight:800; }
+  .wz-card p.hint{ font-size:13px; color:var(--muted); margin:0 0 18px; line-height:1.55; }
+  .form-stack{ display:flex; flex-direction:column; gap:14px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:640px){ .row2{ grid-template-columns:1fr; } }
+
+  .prompt-box{ background:var(--bg); border:1px solid var(--line2); border-radius:var(--radius-sm); padding:16px; font-size:12.5px; line-height:1.6; color:var(--muted); white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; max-height:220px; overflow-y:auto; }
+  .copy-btn{ margin-top:12px; }
+
+  .dropzone{
+    border:1px dashed var(--line2); border-radius:var(--radius-sm); padding:28px; text-align:center; cursor:pointer;
+    color:var(--muted); font-size:13.5px; transition:border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.is-drag{ border-color:var(--acc); background:rgba(255,61,127,.05); }
+  .dropzone strong{ color:var(--ink); }
+  .dropzone.is-filled{ border-style:solid; border-color:var(--green); background:rgba(51,230,166,.06); cursor:pointer; }
+  .dropzone__filled{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .dropzone__check{ width:30px; height:30px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; margin-bottom:6px; }
+  .dropzone__filename{ color:var(--ink); font-weight:700; font-size:13.5px; word-break:break-all; }
+  .dropzone__replace{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .import-result{ margin-top:14px; font-size:13px; }
+  .import-result.ok{ color:var(--green); }
+  .import-result.err{ color:var(--red); }
+  .import-errors{ margin-top:8px; font-size:12px; color:var(--muted); max-height:140px; overflow-y:auto; background:var(--bg); border-radius:10px; padding:10px 12px; }
+  .import-errors div{ margin-bottom:4px; }
+
+  .mm-block{ border:1px solid var(--line2); border-radius:var(--radius-sm); padding:18px; }
+  .mm-block + .mm-block{ margin-top:14px; }
+  .mm-block__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .mm-block__head h3{ font-size:14px; margin:0; }
+  .mode-toggle{ display:inline-flex; gap:3px; padding:3px; border:1px solid var(--line2); border-radius:var(--radius-pill); background:var(--bg); }
+  .mode-toggle button{ border:none; background:transparent; padding:6px 14px; border-radius:999px; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; font:inherit; }
+  .mode-toggle button.is-active{ background:var(--ink); color:var(--bg); }
+  .tiers-list{ display:flex; flex-direction:column; gap:8px; margin:10px 0; }
+  .tier-row{ display:flex; align-items:center; gap:8px; font-size:13px; }
+  .tier-row input{ width:70px; }
+  .tier-row button{ margin-left:auto; }
+  .auto-result{ margin-top:12px; padding:12px 14px; border-radius:10px; background:var(--bg); font-size:12.5px; line-height:1.6; }
+  .auto-result b{ font-variant-numeric:tabular-nums; }
+  .auto-result .warn{ color:var(--amber); }
+
+  .pf-enable{ display:flex; align-items:center; gap:10px; font-size:13.5px; margin-bottom:14px; }
+
+  .gen-actions{ display:flex; justify-content:flex-end; }
+  .gen-error{ color:var(--red); font-size:13px; margin-top:10px; text-align:right; }
+
+  .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; margin-bottom:16px; }
+  .back-link:hover{ color:var(--ink); }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+</head>
+<body data-page="backtesting">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+  </div>
+</header>
+
+<main class="container">
+  <a href="backtesting.html" class="back-link">← Backtesting</a>
+  <div class="page-head">
+    <h1 id="pageTitle">Ajouter un backtest</h1>
+    <p id="pageSubtitle">Génère un rapport complet (courbe d'équity, drawdown, mois par mois, journal) à partir de ton propre historique de trades — sans coder une nouvelle page.</p>
+  </div>
+
+  <div class="wizard">
+
+    <div class="card wz-card">
+      <h2><span class="step">1</span>Prépare ton fichier Excel</h2>
+      <p class="hint">Tu as déjà un fichier ou un journal de ton backtesting, dans n'importe quel format. Colle ce prompt dans n'importe quelle IA (ChatGPT, Claude...) et donne-lui ton fichier original en pièce jointe — l'IA va le restructurer exactement comme le site l'attend. <strong>Les noms de colonnes indiqués dans le prompt sont ceux que le site reconnaît</strong> : si l'IA en met d'autres, le site ne saura pas les identifier.</p>
+      <div class="prompt-box" id="promptBox">Voici mon fichier de backtesting original (en pièce jointe ou collé ci-dessous), dans son format actuel. Restructure-le en un nouveau fichier Excel (.xlsx) que je vais réimporter ailleurs, avec EXACTEMENT cette structure — c'est un système automatique qui lit les colonnes par position et par nom, donc respecte-la à la lettre :
+
+Une ligne d'en-tête en première ligne, puis une ligne par position, avec :
+- Colonne A : "Date" → la date de la position (obligatoire, toujours en 1ère colonne)
+- Colonne B : "Résultat" → uniquement "TP", "SL" ou "BE" (obligatoire, toujours en 2e colonne)
+- Colonne C : "RR" → le ratio risque/récompense en nombre, négatif si c'est une perte (ex. -1 pour un SL) (obligatoire, toujours en 3e colonne)
+
+Colonnes suivantes, dans l'ordre de ton choix, à ajouter UNIQUEMENT si l'information existe dans mon fichier original (mets exactement ces noms d'en-tête, c'est comme ça que le système les reconnaît) :
+- "Ouverture" → date et heure d'ouverture de la position, si connue
+- "Clôture" → date et heure de clôture de la position, si connue
+- "Source" → source ou nom du signal, si connu
+- "Confirmation" → note de confirmation du setup, si connue
+- "Ordre" → sens de la position, "Buy" ou "Sell", si connu
+
+Si mon fichier original contient d'autres informations utiles qui ne correspondent à aucune de ces catégories, garde-les quand même : ajoute-les dans des colonnes supplémentaires nommées "Facultatif" (ou "Facultatif 2", "Facultatif 3"... s'il y en a plusieurs) plutôt que de les supprimer.
+
+Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
+[colle ou attache ton fichier ici]</div>
+      <button class="btn btn-secondary copy-btn" id="copyPromptBtn" type="button">Copier le prompt</button>
+    </div>
+
+    <div class="card wz-card">
+      <h2><span class="step">2</span>Informations générales</h2>
+      <div class="form-stack">
+        <div>
+          <label for="btTitle">Titre</label>
+          <input id="btTitle" class="field" type="text" placeholder="Ex. Ma stratégie breakout" required>
+        </div>
+        <div>
+          <label for="btDesc">Description</label>
+          <input id="btDesc" class="field" type="text" placeholder="Une phrase pour résumer la logique de la stratégie">
+        </div>
+        <div>
+          <label for="btCapital">Capital de départ</label>
+          <input id="btCapital" class="field" type="number" inputmode="numeric" min="1" step="1" value="10000" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="card wz-card">
+      <h2><span class="step">3</span>Ton fichier Excel</h2>
+      <p class="hint">Formats acceptés : .xlsx, .xls. Rien n'est envoyé nulle part — tout est lu directement dans ton navigateur.</p>
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone__default" id="dropzoneDefault"><strong>Clique pour choisir un fichier</strong> ou glisse-le ici</div>
+        <div class="dropzone__filled" id="dropzoneFilled" style="display:none">
+          <span class="dropzone__check">✓</span>
+          <div class="dropzone__filename" id="dropzoneFilename"></div>
+          <div class="dropzone__replace">Fichier ajouté — clique ou glisse-en un autre pour le remplacer</div>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+      </div>
+      <div class="import-result" id="importResult"></div>
+      <div class="import-errors" id="importErrors" style="display:none"></div>
+    </div>
+
+    <div class="card wz-card">
+      <h2><span class="step">4</span>Gestion du risque</h2>
+      <p class="hint">Choisis un risque fixe (avec paliers optionnels après une série de SL), ou laisse l'algorithme chercher le meilleur réglage sur ton historique — importe d'abord ton fichier pour activer le mode automatique.</p>
+
+      <div class="mm-block" id="cpBlock" data-account="cp">
+        <div class="mm-block__head">
+          <h3>Compte propre</h3>
+          <div class="mode-toggle" data-target="cp">
+            <button type="button" data-mode="manual" class="is-active">Manuel</button>
+            <button type="button" data-mode="auto">Automatique</button>
+          </div>
+        </div>
+        <div class="mm-manual" data-account="cp">
+          <label>Risque par position (%)</label>
+          <input class="field risk-input" type="number" min="0.1" max="20" step="0.1" value="1">
+          <div class="tiers-list" data-tiers="cp"></div>
+          <button type="button" class="btn btn-ghost add-tier-btn" data-account="cp">+ Ajouter un palier</button>
+        </div>
+        <div class="mm-auto" data-account="cp" style="display:none">
+          <p class="hint" style="margin:0 0 10px">Cherche le meilleur retour avec un risque idéalement ≤3% (jusqu'à 5% si besoin) et un drawdown max visé ≤30%.</p>
+          <button type="button" class="btn btn-secondary run-auto-btn" data-account="cp">Calculer le meilleur réglage</button>
+          <div class="auto-result" data-account="cp" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="mm-block" id="pfBlock">
+        <div class="mm-block__head">
+          <div class="pf-enable">
+            <input type="checkbox" id="pfEnable">
+            <label for="pfEnable" style="margin:0">Ajouter une config Propfirm</label>
+          </div>
+        </div>
+        <div id="pfInner" style="display:none">
+          <div class="mode-toggle" data-target="pf" style="margin-bottom:14px">
+            <button type="button" data-mode="manual" class="is-active">Manuel</button>
+            <button type="button" data-mode="auto">Automatique</button>
+          </div>
+          <div class="mm-manual" data-account="pf">
+            <label>Risque par position (%)</label>
+            <input class="field risk-input" type="number" min="0.1" max="20" step="0.1" value="0.5">
+            <div class="tiers-list" data-tiers="pf"></div>
+            <button type="button" class="btn btn-ghost add-tier-btn" data-account="pf">+ Ajouter un palier</button>
+          </div>
+          <div class="mm-auto" data-account="pf" style="display:none">
+            <p class="hint" style="margin:0 0 10px">Contrainte stricte : jamais plus de 5% de drawdown journalier ni 10% de drawdown max. Nécessite les heures de clôture pour un résultat fiable.</p>
+            <button type="button" class="btn btn-secondary run-auto-btn" data-account="pf">Calculer le meilleur réglage</button>
+            <div class="auto-result" data-account="pf" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wz-card">
+      <div class="gen-actions">
+        <button type="button" class="btn btn-primary" id="generateBtn">Générer le rapport</button>
+      </div>
+      <div class="gen-error" id="genError"></div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+
+<script src="js/nav.js"></script>
+<script src="js/backtest-store.js"></script>
+<script src="js/backtest-engine.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/xlsx-import.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  document.getElementById('copyPromptBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(document.getElementById('promptBox').textContent);
+      showToast('Prompt copié ✓');
+    } catch (e) {
+      showToast("Impossible de copier automatiquement — sélectionne le texte manuellement.");
+    }
+  });
+
+  // ---- Import Xlsx ----
+  let parsedTrades = null;
+  const dropzone = document.getElementById('dropzone');
+  const dropzoneDefault = document.getElementById('dropzoneDefault');
+  const dropzoneFilled = document.getElementById('dropzoneFilled');
+  const dropzoneFilename = document.getElementById('dropzoneFilename');
+  const fileInput = document.getElementById('fileInput');
+  const importResult = document.getElementById('importResult');
+  const importErrors = document.getElementById('importErrors');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('is-drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('is-drag'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('is-drag');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+  async function handleFile(file) {
+    dropzoneFilename.textContent = file.name;
+    dropzoneDefault.style.display = 'none';
+    dropzoneFilled.style.display = 'flex';
+    dropzone.classList.add('is-filled');
+    importResult.textContent = 'Lecture en cours…';
+    importResult.className = 'import-result';
+    importErrors.style.display = 'none';
+    try {
+      const { trades, errors, hasHeader, optionalColumnsFound, extraLabels } = await window.ChestingXlsxImport.parseXlsxFile(file);
+      parsedTrades = trades;
+      if (!trades.length) {
+        importResult.textContent = "Aucune ligne exploitable trouvée dans ce fichier.";
+        importResult.className = 'import-result err';
+        dropzone.classList.remove('is-filled');
+      } else {
+        const labels = window.ChestingXlsxImport.FIELD_LABELS;
+        const recognized = optionalColumnsFound.map((f) => labels[f] || f);
+        const allExtra = [...recognized, ...extraLabels];
+        const extra = allExtra.length ? ` — colonnes détectées en plus : ${allExtra.join(', ')}` : '';
+        importResult.textContent = `${trades.length} position(s) importée(s)${extra}.`;
+        importResult.className = 'import-result ok';
+      }
+      if (errors.length) {
+        importErrors.style.display = 'block';
+        importErrors.innerHTML = errors.slice(0, 30).map((e) => `<div>${e}</div>`).join('');
+      }
+    } catch (e) {
+      parsedTrades = null;
+      importResult.textContent = `Erreur de lecture : ${e.message}`;
+      importResult.className = 'import-result err';
+      dropzone.classList.remove('is-filled');
+    }
+  }
+
+  // ---- Mode manuel / automatique + paliers ----
+  function setupAccountBlock(account) {
+    const toggle = document.querySelector(`.mode-toggle[data-target="${account}"]`);
+    const manualEl = document.querySelector(`.mm-manual[data-account="${account}"]`);
+    const autoEl = document.querySelector(`.mm-auto[data-account="${account}"]`);
+    toggle.querySelectorAll('button').forEach((b) => {
+      b.addEventListener('click', () => {
+        toggle.querySelectorAll('button').forEach((x) => x.classList.toggle('is-active', x === b));
+        const isAuto = b.dataset.mode === 'auto';
+        manualEl.style.display = isAuto ? 'none' : '';
+        autoEl.style.display = isAuto ? '' : 'none';
+      });
+    });
+
+    document.querySelector(`.add-tier-btn[data-account="${account}"]`).addEventListener('click', () => {
+      const list = document.querySelector(`.tiers-list[data-tiers="${account}"]`);
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.innerHTML = `Après <input type="number" min="1" step="1" class="field tier-after" value="3"> SL consécutifs → risque <input type="number" min="0.1" step="0.1" class="field tier-risk" value="0.5"> % <button type="button" class="btn btn-ghost tier-remove">✕</button>`;
+      row.querySelector('.tier-remove').addEventListener('click', () => row.remove());
+      list.appendChild(row);
+    });
+
+    document.querySelector(`.run-auto-btn[data-account="${account}"]`).addEventListener('click', () => {
+      const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
+      if (!parsedTrades || !parsedTrades.length) {
+        resultEl.style.display = 'block';
+        resultEl.innerHTML = `<span class="warn">Importe d'abord un fichier Excel valide (étape 3).</span>`;
+        return;
+      }
+      const capital = Number(document.getElementById('btCapital').value) || 10000;
+      const best = account === 'cp'
+        ? window.ChestingBacktestEngine.optimizeCp(parsedTrades, capital)
+        : window.ChestingBacktestEngine.optimizePf(parsedTrades, capital);
+      resultEl.style.display = 'block';
+      if (!best) {
+        resultEl.innerHTML = `<span class="warn">Aucun réglage de risque ne respecte les contraintes propfirm (5% DD journalier / 10% DD max) sur cet historique, même au risque minimal.</span>`;
+        return;
+      }
+      const s = best.report.stats;
+      const dailyNote = (account === 'pf' && !parsedTrades.some((t) => t.close))
+        ? `<div class="warn">Valeur non garantie : aucune heure de clôture fournie, le drawdown journalier est estimé à partir de la date seule.</div>` : '';
+      const relaxedNote = best.relaxedNote ? `<div class="warn">${best.relaxedNote}</div>` : '';
+      resultEl.innerHTML = `Risque retenu : <b>${best.risk}%</b> — performance totale <b>${s.performancePct.toFixed(1)}%</b>, drawdown max <b>${s.maxDrawdownPct.toFixed(1)}%</b>${account === 'pf' ? `, DD journalier max <b>${best.report.maxDailyDrawdownPct.toFixed(1)}%</b>` : ''}.${relaxedNote}${dailyNote}`;
+      resultEl.dataset.risk = best.risk;
+    });
+  }
+  setupAccountBlock('cp');
+  setupAccountBlock('pf');
+
+  document.getElementById('pfEnable').addEventListener('change', (e) => {
+    document.getElementById('pfInner').style.display = e.target.checked ? '' : 'none';
+  });
+
+  // ---- Prefill d'un réglage de risque existant (mode édition) ----
+  function applyRiskConfig(account, cfg) {
+    if (!cfg) return;
+    const toggle = document.querySelector(`.mode-toggle[data-target="${account}"]`);
+    const manualEl = document.querySelector(`.mm-manual[data-account="${account}"]`);
+    const autoEl = document.querySelector(`.mm-auto[data-account="${account}"]`);
+    const isAuto = cfg.mode === 'auto';
+    toggle.querySelectorAll('button').forEach((b) => b.classList.toggle('is-active', b.dataset.mode === cfg.mode));
+    manualEl.style.display = isAuto ? 'none' : '';
+    autoEl.style.display = isAuto ? '' : 'none';
+    if (isAuto) {
+      const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `Réglage automatique précédemment calculé : risque retenu <b>${cfg.risk}%</b>. Relance le calcul si tu as changé le fichier importé.`;
+      resultEl.dataset.risk = cfg.risk;
+    } else {
+      manualEl.querySelector('.risk-input').value = cfg.risk;
+      const list = document.querySelector(`.tiers-list[data-tiers="${account}"]`);
+      (cfg.tiers || []).forEach((t) => {
+        document.querySelector(`.add-tier-btn[data-account="${account}"]`).click();
+        const row = list.lastElementChild;
+        row.querySelector('.tier-after').value = t.afterSl;
+        row.querySelector('.tier-risk').value = t.newRisk;
+      });
+    }
+  }
+
+  // ---- Mode édition (?edit=<id>) ----
+  let editingRecord = null;
+  const editId = new URLSearchParams(window.location.search).get('edit');
+  if (editId) {
+    editingRecord = window.ChestingBacktests.get(editId);
+    if (editingRecord) {
+      document.getElementById('pageTitle').textContent = 'Modifier le backtest';
+      document.getElementById('pageSubtitle').textContent = "Modifie les informations de ce backtest. Le fichier déjà importé reste utilisé sauf si tu en glisses un nouveau.";
+      document.getElementById('btTitle').value = editingRecord.title || '';
+      document.getElementById('btDesc').value = editingRecord.description || '';
+      document.getElementById('btCapital').value = editingRecord.capital;
+      parsedTrades = editingRecord.trades;
+      dropzoneFilename.textContent = `Fichier déjà importé (${editingRecord.trades.length} position${editingRecord.trades.length > 1 ? 's' : ''})`;
+      dropzoneDefault.style.display = 'none';
+      dropzoneFilled.style.display = 'flex';
+      dropzone.classList.add('is-filled');
+      importResult.textContent = `${editingRecord.trades.length} position(s) actuellement enregistrée(s) — glisse un nouveau fichier pour les remplacer.`;
+      importResult.className = 'import-result ok';
+      applyRiskConfig('cp', editingRecord.cp);
+      if (editingRecord.pf) {
+        document.getElementById('pfEnable').checked = true;
+        document.getElementById('pfInner').style.display = '';
+        applyRiskConfig('pf', editingRecord.pf);
+      }
+      document.getElementById('generateBtn').textContent = 'Enregistrer les modifications';
+    }
+  }
+
+  function readRiskConfig(account) {
+    const toggle = document.querySelector(`.mode-toggle[data-target="${account}"]`);
+    const mode = toggle.querySelector('button.is-active').dataset.mode;
+    if (mode === 'auto') {
+      const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
+      const risk = Number(resultEl.dataset.risk);
+      if (!risk) return null; // pas encore calcule
+      return { mode: 'auto', risk, tiers: [] };
+    }
+    const manualEl = document.querySelector(`.mm-manual[data-account="${account}"]`);
+    const risk = Number(manualEl.querySelector('.risk-input').value) || 1;
+    const tiers = [...manualEl.querySelectorAll('.tier-row')].map((row) => ({
+      afterSl: Number(row.querySelector('.tier-after').value) || 1,
+      newRisk: Number(row.querySelector('.tier-risk').value) || risk,
+    }));
+    return { mode: 'manual', risk, tiers };
+  }
+
+  document.getElementById('generateBtn').addEventListener('click', () => {
+    const errEl = document.getElementById('genError');
+    errEl.textContent = '';
+
+    const title = document.getElementById('btTitle').value.trim();
+    const description = document.getElementById('btDesc').value.trim();
+    const capital = Number(document.getElementById('btCapital').value);
+
+    if (!title) { errEl.textContent = 'Le titre est obligatoire.'; return; }
+    if (!capital || capital <= 0) { errEl.textContent = 'Capital invalide.'; return; }
+    if (!parsedTrades || !parsedTrades.length) { errEl.textContent = "Importe d'abord un fichier Excel valide (étape 3)."; return; }
+
+    const cp = readRiskConfig('cp');
+    if (!cp) { errEl.textContent = "Calcule d'abord le réglage automatique du compte propre (étape 4), ou passe en mode manuel."; return; }
+
+    let pf = null;
+    if (document.getElementById('pfEnable').checked) {
+      pf = readRiskConfig('pf');
+      if (!pf) { errEl.textContent = "Calcule d'abord le réglage automatique propfirm (étape 4), ou passe en mode manuel."; return; }
+    }
+
+    if (editingRecord) {
+      window.ChestingBacktests.update(editingRecord.id, { title, description, capital, cp, pf, trades: parsedTrades });
+      window.location.href = `backtest-view.html?id=${encodeURIComponent(editingRecord.id)}`;
+    } else {
+      const record = window.ChestingBacktests.add({ title, description, capital, cp, pf, trades: parsedTrades });
+      window.location.href = `backtest-view.html?id=${encodeURIComponent(record.id)}`;
+    }
+  });
+})();
+</script>
+</body>
+</html>

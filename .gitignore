@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# Debug snapshots du scraper (screenshots/HTML/erreurs, voir calendar-bridge/README.md)
+calendar-bridge/debug/
+
+# Donnees generees localement (recreees par fetch_calendar.py / export_mt5.py)
+site/data/*.json
+
+# OS
+.DS_Store
+Thumbs.db

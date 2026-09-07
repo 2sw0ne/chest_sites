@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALLIN — Backtesting — Chesting</title>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+<script src="./support.js"></script>
+<style>
+  .chesting-back{
+    position:fixed; top:14px; left:14px; z-index:999;
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'Instrument Sans',system-ui,sans-serif; font-size:12.5px; font-weight:600;
+    text-decoration:none; color:#f6f6f7; background:rgba(12,12,14,.85); backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 14px 8px 10px;
+  }
+</style>
+</head>
+<body>
+<a href="backtesting.html" class="chesting-back">← Chesting</a>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SWYPER — Backtest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+html{scroll-behavior:smooth}
+body{margin:0;background:#050505;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:#ff3d7f;color:#fff}
+@keyframes floatGlow{0%,100%{transform:translate(-50%,0) scale(1)}50%{transform:translate(-50%,-18px) scale(1.06)}}
+@keyframes spinSlow{to{transform:rotate(360deg)}}
+@keyframes marq{to{transform:translateX(-50%)}}
+</style>
+</helmet>
+
+<div style="--bg:#050505;--panel:#0c0c0e;--ink:#f6f6f7;--muted:#9b9ba1;--faint:#5c5c63;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);--navbg:rgba(5,5,5,.72);--acc:#ff3d7f;--acc2:#c04dff;overflow-x:hidden">
+<div style="--bg:{{ tBg }};--panel:{{ tPanel }};--ink:{{ tInk }};--muted:{{ tMuted }};--faint:{{ tFaint }};--line:{{ tLine }};--line2:{{ tLine2 }};--navbg:{{ tNav }};background:var(--bg);color:var(--ink);min-height:100vh;transition:background .55s ease,color .55s ease">
+
+  <nav style="position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px clamp(18px,4vw,44px);background:var(--navbg);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);border-bottom:1px solid var(--line);transition:background .55s ease">
+    <a href="#top" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)">
+      <span style="position:relative;width:26px;height:26px;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(255,61,127,.45)">
+        <span style="display:block;width:12px;height:2px;background:#fff;border-radius:2px;transform:rotate(-38deg) translateY(-2px)"></span>
+        <span style="position:absolute;display:block;width:12px;height:2px;background:rgba(255,255,255,.55);border-radius:2px;transform:rotate(-38deg) translateY(4px)"></span>
+      </span>
+      <span style="font-weight:700;letter-spacing:-.02em;font-size:15px">{{ brand }}<sup style="font-size:.5em;opacity:.5;margin-left:1px">®</sup></span>
+    </a>
+    <div style="display:flex;gap:clamp(12px,2vw,26px);flex-wrap:wrap;font-size:13.5px;color:var(--muted)">
+      <a href="#modeles" style="color:var(--muted);text-decoration:none">Modèles</a>
+      <a href="#drawdown" style="color:var(--muted);text-decoration:none">Drawdown</a>
+      <a href="#mensuel" style="color:var(--muted);text-decoration:none">Mois par mois</a>
+      <a href="#equity" style="color:var(--muted);text-decoration:none">Equity</a>
+      <a href="#journal" style="color:var(--muted);text-decoration:none">Journal</a>
+    </div>
+    <div style="display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid var(--line2);border-radius:999px;background:var(--panel)">
+      <button onClick="{{ setSwyper }}" style="border:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;letter-spacing:.06em;padding:8px 16px;border-radius:999px;transition:.25s;background:{{ swBg }};color:{{ swFg }}">SWYPER</button>
+      <button onClick="{{ setAllin }}" style="border:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;letter-spacing:.06em;padding:8px 16px;border-radius:999px;transition:.25s;background:{{ alBg }};color:{{ alFg }}">ALLIN</button>
+    </div>
+  </nav>
+
+  <header id="top" style="position:relative;text-align:center;padding:clamp(64px,12vh,140px) clamp(20px,5vw,56px) clamp(40px,8vh,80px);overflow:hidden">
+    <div style="position:absolute;left:50%;top:-6%;width:min(900px,120vw);height:520px;border-radius:50%;filter:blur(120px);background:radial-gradient(ellipse,rgba(255,61,127,.42),rgba(192,77,255,.22) 45%,transparent 72%);animation:floatGlow 9s ease-in-out infinite;pointer-events:none"></div>
+    <div style="position:relative;z-index:2;max-width:1000px;margin:0 auto">
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;border:1px solid var(--line2);border-radius:999px;background:var(--panel);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:clamp(22px,4vh,34px)">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc)"></span>{{ badge }}
+      </div>
+      <h1 style="font-size:clamp(56px,13vw,164px);line-height:.88;font-weight:700;letter-spacing:-.045em;margin:0;background:linear-gradient(180deg,var(--ink),color-mix(in srgb,var(--ink) 55%,var(--acc)));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">{{ title }}</h1>
+      <p style="max-width:620px;margin:clamp(20px,3vh,28px) auto 0;font-size:clamp(15px,1.5vw,18.5px);line-height:1.55;color:var(--muted);text-wrap:pretty">{{ heroSub }}</p>
+      <p style="max-width:680px;margin:14px auto 0;font-size:14.5px;line-height:1.7;color:var(--muted);text-wrap:pretty">{{ heroInfo }}</p>
+      <p style="max-width:660px;margin:14px auto 0;font-size:13.5px;line-height:1.7;color:var(--faint);text-wrap:pretty">Cette page contient les deux modèles de risque, les zones de drawdown supérieures à 10 %, le comparatif mois par mois, les courbes d'equity en échelle log et le journal complet des positions.</p>
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:clamp(26px,4vh,38px)">
+        <a href="#modeles" style="text-decoration:none;font-size:14px;font-weight:600;padding:13px 26px;border-radius:999px;color:#fff;background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 14px 40px rgba(255,61,127,.35)">Voir les deux modèles</a>
+        <a href="#journal" style="text-decoration:none;font-size:14px;font-weight:600;padding:13px 26px;border-radius:999px;color:var(--ink);background:var(--panel);border:1px solid var(--line2)">Ouvrir le journal</a>
+      </div>
+      <div style="display:flex;justify-content:center;gap:clamp(20px,5vw,56px);flex-wrap:wrap;margin-top:clamp(34px,6vh,60px);padding-top:26px;border-top:1px solid var(--line)">
+        <div><div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">Capital initial</div><div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:5px">$10 000</div></div>
+        <div><div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">Trades</div><div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:5px">{{ heroTrades }}</div></div>
+        <div><div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">Période</div><div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:5px">{{ heroRange }}</div></div>
+        <div><div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">Modèles</div><div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:5px">2</div></div>
+      </div>
+    </div>
+  </header>
+
+  <section id="modeles" style="max-width:1180px;margin:0 auto;padding:clamp(50px,9vh,110px) clamp(20px,5vw,56px)">
+    <div style="display:flex;align-items:center;gap:16px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">01 — Modèles<span style="flex:1;height:1px;background:var(--line)"></span></div>
+    <h2 style="font-size:clamp(30px,4.6vw,58px);font-weight:700;letter-spacing:-.035em;line-height:1.02;margin:0 0 10px">Deux possibilités.</h2>
+    <p style="max-width:560px;color:var(--muted);font-size:15px;line-height:1.6;margin:0 0 30px">{{ modelsIntro }}</p>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
+      <button onClick="{{ toggleW }}" style="cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:9px 17px;border-radius:999px;background:var(--panel);border:1px solid {{ sigW.border }};color:{{ sigW.color }}">Wolfx</button>
+      <button onClick="{{ toggleP }}" style="cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:9px 17px;border-radius:999px;background:var(--panel);border:1px solid {{ sigP.border }};color:{{ sigP.color }}">Putrajaya</button>
+      <button onClick="{{ toggleL }}" style="cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:9px 17px;border-radius:999px;background:var(--panel);border:1px solid {{ sigL.border }};color:{{ sigL.color }}">Legacy</button>
+      <span style="flex:1"></span>
+      <button onClick="{{ toggleX2 }}" title="Multiplie tout le money management par 2" style="cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:9px 17px;border-radius:999px;background:{{ x2Bg }};border:1px solid {{ x2Border }};color:{{ x2Fg }};transition:.25s">×2</button>
+      <div style="display:inline-flex;gap:3px;padding:3px;border:1px solid var(--line2);border-radius:999px;background:var(--panel)">
+        <button onClick="{{ setAll }}" style="border:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;background:{{ pAllBg }};color:{{ pAllFg }}">2025 (complet)</button>
+        <button onClick="{{ set2026 }}" style="border:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;background:{{ p26Bg }};color:{{ p26Fg }}">2026</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px">
+      <div style="position:relative;border-radius:26px;padding:2px;background:linear-gradient(135deg,#e35728,#034854,#e35728);box-shadow:0 30px 70px rgba(0,0,0,.45)">
+        <div style="border-radius:24px;background:var(--panel);padding:28px 26px 26px;height:100%;transition:background .55s ease">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">{{ cp.name }}</div>
+              <div style="font-size:12.5px;color:var(--muted);margin-top:3px">{{ cp.sub }}</div>
+            </div>
+            <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px;border-radius:999px;border:1px solid rgba(227,87,40,.5);color:#e35728;background:rgba(227,87,40,.12);text-align:center;max-width:190px">{{ cp.tag }}</span>
+          </div>
+          <div style="font-size:clamp(44px,6vw,66px);font-weight:700;letter-spacing:-.045em;line-height:1;margin-top:22px;text-shadow:0 0 30px rgba(227,87,40,.45)">{{ cp.figure }}</div>
+          <div style="font-size:12.5px;color:var(--faint);margin-top:6px">Capital final {{ cp.capital }}</div>
+          <div style="display:flex;gap:10px;align-items:baseline;font-size:14.5px;font-weight:600;margin:22px 0 18px">
+            <span style="color:#33e6a6">{{ cp.tp }} TP</span><span style="color:var(--line2)">|</span>
+            <span style="color:#4d8dff">{{ cp.be }} BE</span><span style="color:var(--line2)">|</span>
+            <span style="color:#ff4d5e">{{ cp.sl }} SL</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px">
+            <div style="padding:13px 11px;border-radius:15px;background:var(--bg);border:1px solid var(--line2)"><div style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Win rate</div><div style="font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:6px">{{ cp.wr }}</div></div>
+            <div style="padding:13px 11px;border-radius:15px;background:var(--bg);border:1px solid var(--line2)"><div style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Max DD</div><div style="font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:6px">{{ cp.dd }}</div></div>
+            <div style="padding:13px 11px;border-radius:15px;background:var(--bg);border:1px solid var(--line2)"><div style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Profit factor</div><div style="font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:6px">{{ cp.pf }}</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px">
+            <div style="display:flex;justify-content:space-between"><span>Trades total</span><b style="color:var(--ink)">{{ cp.n }}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>SL consécutifs max</span><b style="color:var(--ink)">{{ cp.consec }}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Règle BE / TP1</span><b style="color:var(--ink)">TP1 = SL, BE = 0%</b></div>
+            <button onClick="{{ toggleCp }}" style="margin-top:6px;align-self:flex-start;display:flex;align-items:center;gap:7px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:transparent;border:1px solid var(--line2);border-radius:999px;padding:8px 15px;white-space:nowrap">Money management <span style="font-size:14px;line-height:1;transition:transform .25s;transform:rotate({{ cp.rot }})">+</span></button>
+            <div style="overflow:hidden;transition:max-height .35s ease;max-height:{{ cp.h }};font-size:12.5px;line-height:1.7;color:var(--muted)">{{ cp.explain }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:relative;border-radius:26px;padding:2px;background:linear-gradient(135deg,#5470c2,#59f594,#5470c2);box-shadow:0 30px 70px rgba(0,0,0,.45)">
+        <div style="border-radius:24px;background:var(--panel);padding:28px 26px 26px;height:100%;transition:background .55s ease">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-size:18px;font-weight:700;letter-spacing:-.02em">{{ pf.name }}</div>
+              <div style="font-size:12.5px;color:var(--muted);margin-top:3px">{{ pf.sub }}</div>
+            </div>
+            <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px;border-radius:999px;border:1px solid rgba(84,112,194,.5);color:#5470c2;background:rgba(84,112,194,.12);text-align:center;max-width:190px">{{ pf.tag }}</span>
+          </div>
+          <div style="font-size:clamp(44px,6vw,66px);font-weight:700;letter-spacing:-.045em;line-height:1;margin-top:22px;text-shadow:0 0 30px rgba(84,112,194,.45)">{{ pf.figure }}</div>
+          <div style="font-size:12.5px;color:var(--faint);margin-top:6px">Capital final {{ pf.capital }}</div>
+          <div style="display:flex;gap:10px;align-items:baseline;font-size:14.5px;font-weight:600;margin:22px 0 18px">
+            <span style="color:#33e6a6">{{ pf.tp }} TP</span><span style="color:var(--line2)">|</span>
+            <span style="color:#4d8dff">{{ pf.be }} BE</span><span style="color:var(--line2)">|</span>
+            <span style="color:#ff4d5e">{{ pf.sl }} SL</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px">
+            <div style="padding:13px 11px;border-radius:15px;background:var(--bg);border:1px solid var(--line2)"><div style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Win rate</div><div style="font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:6px">{{ pf.wr }}</div></div>
+            <div style="padding:13px 11px;border-radius:15px;background:var(--bg);border:1px solid var(--line2)"><div style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Max DD</div><div style="font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:6px">{{ pf.dd }}</div></div>
+            <div style="padding:13px 11px;border-radius:15px;background:var(--bg);border:1px solid var(--line2)"><div style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Profit factor</div><div style="font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:6px">{{ pf.pf }}</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px">
+            <div style="display:flex;justify-content:space-between"><span>Trades total</span><b style="color:var(--ink)">{{ pf.n }}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>SL consécutifs max</span><b style="color:var(--ink)">{{ pf.consec }}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Règle BE / TP1</span><b style="color:var(--ink)">TP1 = SL, BE = 0%</b></div>
+            <button onClick="{{ togglePf }}" style="margin-top:6px;align-self:flex-start;display:flex;align-items:center;gap:7px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:transparent;border:1px solid var(--line2);border-radius:999px;padding:8px 15px;white-space:nowrap">Money management <span style="font-size:14px;line-height:1;transition:transform .25s;transform:rotate({{ pf.rot }})">+</span></button>
+            <div style="overflow:hidden;transition:max-height .35s ease;max-height:{{ pf.h }};font-size:12.5px;line-height:1.7;color:var(--muted)">{{ pf.explain }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drawdown" style="max-width:1180px;margin:0 auto;padding:clamp(30px,6vh,70px) clamp(20px,5vw,56px)">
+    <div style="display:flex;align-items:center;gap:16px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">02 — Drawdown<span style="flex:1;height:1px;background:var(--line)"></span></div>
+    <h2 style="font-size:clamp(28px,4vw,50px);font-weight:700;letter-spacing:-.035em;margin:0 0 26px">Zones supérieures à 10 %</h2>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ ddGroups }}" as="g" hint-placeholder-count="2">
+        <div style="border:1px solid var(--line2);border-radius:20px;background:var(--panel);overflow:hidden;transition:background .55s ease">
+          <button onClick="{{ g.toggle }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;font:inherit;text-align:left;background:transparent;border:none;color:var(--ink);padding:20px 22px">
+            <span style="font-size:16px;font-weight:600;letter-spacing:-.01em">{{ g.name }}</span>
+            <span style="display:flex;align-items:center;gap:14px">
+              <span style="font-size:12px;color:var(--muted)">{{ g.count }}</span>
+              <span style="font-size:18px;line-height:1;color:var(--muted);transition:transform .25s;transform:rotate({{ g.rot }})">+</span>
+            </span>
+          </button>
+          <div style="overflow:hidden;transition:max-height .4s ease;max-height:{{ g.h }}">
+            <div style="padding:0 22px 20px;display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
+                <div style="border:1px solid rgba(255,77,94,.24);background:rgba(255,77,94,.06);border-radius:13px;padding:13px 16px;font-size:12.5px;color:var(--muted)"><b style="color:var(--ink)">{{ r.head }}</b> {{ r.detail }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="mensuel" style="max-width:1180px;margin:0 auto;padding:clamp(30px,6vh,70px) clamp(20px,5vw,56px)">
+    <div style="display:flex;align-items:center;gap:16px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">03 — Mensuel<span style="flex:1;height:1px;background:var(--line)"></span></div>
+    <h2 style="font-size:clamp(28px,4vw,50px);font-weight:700;letter-spacing:-.035em;margin:0 0 26px">Mois par mois</h2>
+    <div style="border:1px solid var(--line2);border-radius:20px;background:var(--panel);overflow:hidden;margin-bottom:20px;transition:background .55s ease">
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr>
+            <th style="text-align:left;padding:13px 16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg)">Mois</th>
+            <th style="text-align:right;padding:13px 16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg)">Trades</th>
+            <th style="text-align:right;padding:13px 16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg)">Compte propre</th>
+            <th style="text-align:right;padding:13px 16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg)">Propfirm</th>
+            <th style="text-align:right;padding:13px 16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg)">Meilleur</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ monthRows }}" as="m" hint-placeholder-count="6">
+              <tr style="border-bottom:1px solid var(--line)">
+                <td style="padding:11px 16px;font-weight:600">{{ m.label }}</td>
+                <td style="padding:11px 16px;text-align:right;color:var(--muted)">{{ m.n }}</td>
+                <td style="padding:11px 16px;text-align:right;color:{{ m.cpColor }}">{{ m.cp }}</td>
+                <td style="padding:11px 16px;text-align:right;color:{{ m.pfColor }}">{{ m.pf }}</td>
+                <td style="padding:11px 12px;text-align:right;color:var(--muted);white-space:nowrap">{{ m.best }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="border:1px solid var(--line2);border-radius:20px;background:var(--panel);padding:24px;transition:background .55s ease">
+      <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:18px">Return % par mois</div>
+      <div style="position:relative;width:100%;height:230px"><canvas ref="{{ barRef }}" style="width:100%;height:100%"></canvas></div>
+    </div>
+  </section>
+
+  <section id="equity" style="max-width:1180px;margin:0 auto;padding:clamp(30px,6vh,70px) clamp(20px,5vw,56px)">
+    <div style="display:flex;align-items:center;gap:16px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">04 — Equity<span style="flex:1;height:1px;background:var(--line)"></span></div>
+    <h2 style="font-size:clamp(28px,4vw,50px);font-weight:700;letter-spacing:-.035em;margin:0 0 26px">Courbes en échelle log</h2>
+    <div style="border:1px solid var(--line2);border-radius:20px;background:var(--panel);padding:24px;transition:background .55s ease">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:18px">
+        <span>Évolution du capital</span>
+        <span style="display:flex;gap:18px;font-weight:600;letter-spacing:.04em;text-transform:none;font-size:12px"><span style="color:#e35728">— Compte propre</span><span style="color:#5470c2">— Propfirm</span></span>
+      </div>
+      <div style="position:relative;width:100%;height:320px"><canvas ref="{{ eqRef }}" style="width:100%;height:100%"></canvas></div>
+    </div>
+  </section>
+
+  <section id="journal" style="max-width:1180px;margin:0 auto;padding:clamp(30px,6vh,70px) clamp(20px,5vw,56px)">
+    <div style="display:flex;align-items:center;gap:16px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">05 — Journal<span style="flex:1;height:1px;background:var(--line)"></span></div>
+    <h2 style="font-size:clamp(28px,4vw,50px);font-weight:700;letter-spacing:-.035em;margin:0 0 8px">{{ journalCount }} trades</h2>
+    <p style="color:var(--muted);font-size:14.5px;margin:0 0 24px">Chaque clôture, son résultat et l'effet exact sur le capital.</p>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div style="display:inline-flex;gap:3px;padding:3px;border:1px solid var(--line2);border-radius:999px;background:var(--panel)">
+        <button onClick="{{ srcCp }}" style="border:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;background:{{ srcCpBg }};color:{{ srcCpFg }}">{{ cp.name }}</button>
+        <button onClick="{{ srcPf }}" style="border:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;background:{{ srcPfBg }};color:{{ srcPfFg }}">{{ pf.name }}</button>
+      </div>
+      <div style="display:inline-flex;gap:3px;padding:3px;border:1px solid var(--line2);border-radius:999px;background:var(--panel)">
+        <sc-for list="{{ resFilters }}" as="f" hint-placeholder-count="4">
+          <button onClick="{{ f.click }}" style="border:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;background:{{ f.bg }};color:{{ f.fg }}">{{ f.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
+      <sc-for list="{{ monthFilters }}" as="mf" hint-placeholder-count="6">
+        <button onClick="{{ mf.click }}" style="cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;padding:7px 14px;border-radius:999px;background:{{ mf.bg }};border:1px solid {{ mf.border }};color:{{ mf.fg }}">{{ mf.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="border:1px solid var(--line2);border-radius:20px;background:var(--panel);overflow:hidden;transition:background .55s ease">
+      <div style="overflow-x:auto;max-height:70vh;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+          <thead><tr>
+            <th style="text-align:left;padding:12px 15px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg);position:sticky;top:0">#</th>
+            <th style="text-align:left;padding:12px 15px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg);position:sticky;top:0">Clôture</th>
+            <th style="text-align:left;padding:12px 15px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg);position:sticky;top:0">Source</th>
+            <th style="text-align:right;padding:12px 15px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg);position:sticky;top:0">Résultat</th>
+            <th style="text-align:right;padding:12px 15px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg);position:sticky;top:0">%</th>
+            <th style="text-align:right;padding:12px 15px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg);position:sticky;top:0">Capital après</th>
+            <th style="text-align:right;padding:12px 15px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line2);background:var(--bg);position:sticky;top:0">Variation $</th>
+          </tr></thead>
+          <sc-for list="{{ journalMonths }}" as="jm" hint-placeholder-count="2">
+            <tbody>
+              <tr>
+                <td colspan="7" style="padding:11px 15px;background:var(--bg);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase">{{ jm.label }}<span style="margin-left:12px;letter-spacing:0;text-transform:none;font-size:11px;color:var(--faint)">{{ jm.stats }}</span></td>
+              </tr>
+              <sc-for list="{{ jm.rows }}" as="r" hint-placeholder-count="4">
+                <tr style="border-bottom:1px solid var(--line)">
+                  <td style="padding:10px 15px;color:var(--faint)">{{ r.i }}</td>
+                  <td style="padding:10px 15px;color:var(--muted)">{{ r.date }}</td>
+                  <td style="padding:10px 15px;font-weight:600">{{ r.source }}</td>
+                  <td style="padding:10px 15px;text-align:right"><span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.08em;background:{{ r.badgeBg }};color:{{ r.badgeFg }}">{{ r.result }}</span></td>
+                  <td style="padding:10px 15px;text-align:right;color:{{ r.color }}">{{ r.pct }}</td>
+                  <td style="padding:10px 15px;text-align:right">{{ r.cap }}</td>
+                  <td style="padding:10px 15px;text-align:right;color:{{ r.color }}">{{ r.varAmt }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </sc-for>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid var(--line);margin-top:clamp(40px,8vh,90px)">
+    <div style="max-width:1180px;margin:0 auto;padding:clamp(40px,7vh,80px) clamp(20px,5vw,56px);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:34px">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <span style="position:relative;width:26px;height:26px;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center">
+            <span style="display:block;width:12px;height:2px;background:#fff;border-radius:2px;transform:rotate(-38deg) translateY(-2px)"></span>
+            <span style="position:absolute;display:block;width:12px;height:2px;background:rgba(255,255,255,.55);border-radius:2px;transform:rotate(-38deg) translateY(4px)"></span>
+          </span>
+          <span style="font-weight:700;letter-spacing:-.02em;font-size:15px">{{ brand }}</span>
+        </div>
+        <p style="font-size:13px;line-height:1.65;color:var(--muted);max-width:300px;margin:0">Backtest des signaux Wolfx, Putrajaya et Legacy. Capital de départ 10 000 $, BE à 0 %, simulation event-driven.</p>
+      </div>
+      <div>
+        <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-bottom:14px">Sections</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:13.5px">
+          <a href="#modeles" style="color:var(--muted);text-decoration:none">Modèles</a>
+          <a href="#drawdown" style="color:var(--muted);text-decoration:none">Drawdown</a>
+          <a href="#mensuel" style="color:var(--muted);text-decoration:none">Mois par mois</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-bottom:14px">Données</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:13.5px">
+          <a href="#equity" style="color:var(--muted);text-decoration:none">Courbes equity</a>
+          <a href="#journal" style="color:var(--muted);text-decoration:none">Journal complet</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-bottom:14px">Vue</div>
+        <div style="font-size:13.5px;color:var(--muted);line-height:1.7">Journal actif<br><b style="color:var(--ink)">{{ title }}</b><br>{{ riskNote }}</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--line);padding:20px clamp(20px,5vw,56px);font-size:12px;color:var(--faint);text-align:center">© Swyper 2026 — résultats de backtest, aucune garantie de performance future.</div>
+  </footer>
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    mode: 'be', period: 'all', sigs: ['W', 'P', 'L'], x2: false,
+    cards: null, openCp: false, openPf: false, openDd: {},
+    logSrc: 'cp', logFilter: 'all', logMonth: 'latest'
+  };
+
+  rootRef = React.createRef();
+  barRef = React.createRef();
+  eqRef = React.createRef();
+
+  componentDidMount() {
+    import('./allin-engine.js').then(m => { this.eng = m; this.recompute(); });
+    this._waitChart = setInterval(() => {
+      if (window.Chart) { clearInterval(this._waitChart); this.draw(); }
+    }, 250);
+  }
+
+  componentWillUnmount() { clearInterval(this._waitChart); }
+
+  componentDidUpdate(pp, ps) {
+    if (ps.cards !== this.state.cards || ps.mode !== this.state.mode) this.draw();
+  }
+
+  recompute() {
+    if (!this.eng) return;
+    this.setState({ cards: this.eng.compute(this.state.mode, this.state.period, this.state.sigs, this.state.x2) }, () => this.draw());
+  }
+
+  themeVars(m) {
+    return m === 'be'
+      ? { '--bg': '#ffffff', '--panel': '#f5f5f6', '--ink': '#0a0a0b', '--muted': '#65656b', '--faint': '#77777e', '--line': 'rgba(0,0,0,.08)', '--line2': 'rgba(0,0,0,.14)', '--navbg': 'rgba(255,255,255,.74)' }
+      : { '--bg': '#050505', '--panel': '#0c0c0e', '--ink': '#f6f6f7', '--muted': '#9b9ba1', '--faint': '#5c5c63', '--line': 'rgba(255,255,255,.08)', '--line2': 'rgba(255,255,255,.16)', '--navbg': 'rgba(5,5,5,.72)' };
+  }
+
+  setMode(m) {
+    if (m === this.state.mode) return;
+    this.setState({ mode: m, logMonth: 'latest' }, () => this.recompute());
+  }
+
+  setPeriod(p) { this.setState({ period: p, logMonth: 'latest' }, () => this.recompute()); }
+
+  toggleSig(k) {
+    const s = this.state.sigs.slice();
+    const i = s.indexOf(k);
+    if (i >= 0) { if (s.length === 1) return; s.splice(i, 1); } else s.push(k);
+    this.setState({ sigs: s, logMonth: 'latest' }, () => this.recompute());
+  }
+
+  title() {
+    const s = this.state.sigs;
+    const only = (...k) => s.length === k.length && k.every(x => s.indexOf(x) >= 0);
+    if (only('W')) return 'WOLFX';
+    if (only('P')) return 'PUTRAJAYA';
+    if (only('L')) return 'LEGACY';
+    if (only('P', 'L')) return 'ALGOMNI';
+    return this.state.mode === 'be' ? 'ALLIN' : 'SWYPER';
+  }
+
+  card(k) {
+    const eng = this.eng, c = this.state.cards;
+    const meta = eng ? eng.labels(this.state.mode)[k] : null;
+    const strip = t => (t || '').replace(/<[^>]+>/g, '');
+    const open = k === 'cp' ? this.state.openCp : this.state.openPf;
+    const base = {
+      name: meta ? meta.label : (k === 'cp' ? 'Compte propre' : 'Propfirm'),
+      sub: meta ? meta.sub : '', tag: meta ? meta.tag : '',
+      explain: strip(meta && meta.explain), rot: open ? '45deg' : '0deg', h: open ? '260px' : '0px'
+    };
+    const d = c && c[k];
+    if (!d || !d.available) return Object.assign(base, { figure: '—', capital: '—', tp: '0', be: '0', sl: '0', wr: '—', dd: '—', pf: '—', n: '0', consec: '0' });
+    return Object.assign(base, {
+      figure: eng.fmtPct(d.perf_pct), capital: eng.fmtMoney(d.final_cap),
+      tp: String(d.n_tp), be: String(d.n_be), sl: String(d.n_sl),
+      wr: d.winrate.toFixed(1) + '%', dd: '-' + d.max_dd.toFixed(2) + '%',
+      pf: isFinite(d.profit_factor) ? d.profit_factor.toFixed(2) : '∞',
+      n: String(d.n), consec: String(d.max_consec_sl)
+    });
+  }
+
+  draw() {
+    const eng = this.eng, c = this.state.cards;
+    if (!eng || !c || !window.Chart) return;
+    const dark = this.state.mode !== 'be';
+    const grid = dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
+    const tick = dark ? '#9b9ba1' : '#65656b';
+    const sample = eq => { const st = Math.max(1, Math.floor(eq.length / 300)); return eq.filter((_, i) => i % st === 0 || i === eq.length - 1); };
+
+    if (this.eqRef.current) {
+      if (this._eq) this._eq.destroy();
+      const ds = [];
+      if (c.cp.available) ds.push({ label: 'Compte propre', data: sample(c.cp.equity).map(p => ({ x: p.dt.toISOString().slice(0, 10), y: p.cap })), borderColor: '#e35728', borderWidth: 2, pointRadius: 0, tension: .05 });
+      if (c.pf.available) ds.push({ label: 'Propfirm', data: sample(c.pf.equity).map(p => ({ x: p.dt.toISOString().slice(0, 10), y: p.cap })), borderColor: '#5470c2', borderWidth: 2, pointRadius: 0, tension: .05 });
+      this._eq = new window.Chart(this.eqRef.current, {
+        type: 'line', data: { datasets: ds },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { type: 'logarithmic', grid: { color: grid }, ticks: { color: tick } }, x: { type: 'category', grid: { display: false }, ticks: { color: tick, maxTicksLimit: 10 } } } }
+      });
+    }
+    if (this.barRef.current) {
+      if (this._bar) this._bar.destroy();
+      const ref = c.cp.available ? c.cp : c.pf;
+      const labels = ref.available ? ref.months.map(m => m.label) : [];
+      const ds = [];
+      if (c.cp.available) ds.push({ label: 'Compte propre', data: c.cp.months.map(m => m.perf_pct), backgroundColor: 'rgba(227,87,40,.7)', borderRadius: 4 });
+      if (c.pf.available) ds.push({ label: 'Propfirm', data: c.pf.months.map(m => m.perf_pct), backgroundColor: 'rgba(84,112,194,.7)', borderRadius: 4 });
+      this._bar = new window.Chart(this.barRef.current, {
+        type: 'bar', data: { labels, datasets: ds },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: tick, font: { family: "'Instrument Sans'" } } } }, scales: { y: { grid: { color: grid }, ticks: { color: tick } }, x: { grid: { display: false }, ticks: { color: tick } } } }
+      });
+    }
+  }
+
+  renderVals() {
+    const eng = this.eng, c = this.state.cards, st = this.state;
+    const dark = st.mode !== 'be';
+    const onBg = dark ? '#f6f6f7' : '#0a0a0b';
+    const onFg = dark ? '#050505' : '#ffffff';
+    const pill = on => ({ bg: on ? onBg : 'transparent', fg: on ? onFg : (dark ? '#9b9ba1' : '#65656b') });
+    const sig = (k, col) => st.sigs.indexOf(k) >= 0
+      ? { color: col, border: col }
+      : { color: dark ? '#8a8a91' : '#77777e', border: dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)' };
+
+    const cp = this.card('cp'), pf = this.card('pf');
+    const green = '#33e6a6', red = '#ff4d5e', mut = dark ? '#9b9ba1' : '#65656b';
+
+    const ddGroups = ['cp', 'pf'].map(k => {
+      const d = c && c[k], open = !!st.openDd[k];
+      const eps = d && d.available ? d.dd_over_10 : [];
+      return {
+        name: k === 'cp' ? cp.name : pf.name,
+        count: eps.length ? eps.length + (eps.length > 1 ? ' zones' : ' zone') : 'aucune zone',
+        rot: open ? '45deg' : '0deg',
+        h: open ? (eps.length ? (eps.length * 60 + 30) + 'px' : '80px') : '0px',
+        toggle: () => this.setState({ openDd: Object.assign({}, st.openDd, { [k]: !open }) }),
+        rows: eps.length ? eps.map((e, i) => ({
+          head: '#' + (i + 1) + ' : -' + e.dd_pct.toFixed(2) + '%',
+          detail: '— pic ' + eng.fmtDate(e.peak_date) + ' (' + eng.fmtMoney(e.peak_val) + ') → creux ' + eng.fmtDate(e.trough_date) + ' (' + eng.fmtMoney(e.trough_val) + ')'
+        })) : [{ head: 'Aucun drawdown supérieur à 10 %', detail: 'sur cette sélection.' }]
+      };
+    });
+
+    let monthRows = [];
+    if (c && (c.cp.available || c.pf.available)) {
+      const a = c.cp.available ? c.cp.months : [], b = c.pf.available ? c.pf.months : [];
+      const n = Math.max(a.length, b.length);
+      for (let i = 0; i < n; i++) {
+        const m1 = a[i], m2 = b[i], ref = m1 || m2;
+        if (!ref) continue;
+        monthRows.push({
+          label: ref.label, n: String(ref.n),
+          cp: m1 ? eng.fmtPct(m1.perf_pct) : '—', pf: m2 ? eng.fmtPct(m2.perf_pct) : '—',
+          cpColor: m1 ? (m1.perf_pct >= 0 ? green : red) : mut,
+          pfColor: m2 ? (m2.perf_pct >= 0 ? green : red) : mut,
+          best: (m1 && m2) ? (m2.perf_pct >= m1.perf_pct ? pf.name : cp.name) : (m2 ? pf.name : cp.name)
+        });
+      }
+    }
+
+    const d = c && c[st.logSrc];
+    let rows = d && d.available ? d.log : [];
+    if (st.logFilter !== 'all') rows = rows.filter(r => r.result === st.logFilter);
+    const monthKeys = [];
+    const seen = {};
+    rows.forEach(r => { if (!seen[r.month_key]) { seen[r.month_key] = r.month_label; monthKeys.push(r.month_key); } });
+    const effMonth = st.logMonth === 'latest' ? (monthKeys.length ? monthKeys[monthKeys.length - 1] : 'all') : st.logMonth;
+    const shown = effMonth === 'all' ? rows : rows.filter(r => r.month_key === effMonth);
+    const groups = [];
+    const gi = {};
+    shown.forEach(r => {
+      if (!(r.month_key in gi)) { gi[r.month_key] = groups.length; groups.push({ label: r.month_label, rows: [] }); }
+      groups[gi[r.month_key]].rows.push({
+        i: String(r.i), date: eng.fmtDate(r.close), source: r.source, result: r.result,
+        pct: eng.fmtPct(r.pct), cap: eng.fmtMoney(r.cap),
+        varAmt: (r.varAmt >= 0 ? '+' : '') + Math.round(r.varAmt).toLocaleString('fr-FR'),
+        color: r.pct > 0 ? green : (r.pct < 0 ? red : mut),
+        badgeBg: r.result === 'TP' ? 'rgba(51,230,166,.14)' : (r.result === 'SL' ? 'rgba(255,77,94,.14)' : 'rgba(77,141,255,.14)'),
+        badgeFg: r.result === 'TP' ? green : (r.result === 'SL' ? red : '#4d8dff')
+      });
+    });
+    groups.forEach(g => {
+      const t = g.rows.filter(r => r.result === 'TP').length, s = g.rows.filter(r => r.result === 'SL').length;
+      g.stats = g.rows.length + ' positions · ' + t + ' TP / ' + s + ' SL / ' + (g.rows.length - t - s) + ' BE';
+    });
+
+    const mf = [{ key: 'all', label: 'Tous les mois' }].concat(monthKeys.map(k => ({ key: k, label: seen[k] })));
+
+    const tv = this.themeVars(st.mode);
+    return {
+      tBg: tv['--bg'], tPanel: tv['--panel'], tInk: tv['--ink'], tMuted: tv['--muted'],
+      tFaint: tv['--faint'], tLine: tv['--line'], tLine2: tv['--line2'], tNav: tv['--navbg'],
+      brand: 'SWYPER',
+      title: this.title(),
+      x2Bg: st.x2 ? '#ff3d7f' : 'transparent',
+      x2Fg: st.x2 ? '#ffffff' : mut,
+      x2Border: st.x2 ? '#ff3d7f' : (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)'),
+      toggleX2: () => this.setState({ x2: !st.x2 }, () => this.recompute()),
+      riskNote: st.x2 ? 'Risque ×2 sur les deux modèles' : 'Risque nominal',
+      badge: (eng ? eng.counts(st.mode) : 0) + ' positions · Jan 2025 → aujourd\'hui',
+      heroSub: dark
+        ? 'Swyper est la V2 de ALLIN. Le traitement du TP et du SL y est entièrement repensé : les niveaux ne sont plus fixes, ils sont établis à partir de la structure du marché au moment de l\'entrée.'
+        : 'ALLIN est la première version de l\'algorithme, en production depuis le 23 octobre 2025. Elle a été révisée plusieurs fois, notamment par l\'intégration de Wolfx, l\'une de ses versions retravaillées.',
+      heroInfo: dark
+        ? 'Chaque position est calibrée sur son propre contexte plutôt que sur un ratio commun : une adaptation spécifique au marché, là où ALLIN appliquait une logique unique. Le journal ci-dessous rejoue tout l\'historique 2025 et 2026 avec ce fonctionnement.'
+        : 'Après ces itérations, ALLIN est aujourd\'hui une version applicable d\'un algorithme poussé, technique et rentable. C\'est la base sur laquelle Swyper a été construit.',
+      heroTrades: cp.n, heroRange: st.period === '2026' ? '2026' : '2025 →',
+      modelsIntro: 'Le même flux de positions, deux gestions du risque. Sélectionne les signaux, la période et le multiplicateur de risque, tout se recalcule.',
+      swBg: dark ? onBg : 'transparent', swFg: dark ? onFg : mut,
+      alBg: dark ? 'transparent' : onBg, alFg: dark ? mut : onFg,
+      setSwyper: () => this.setMode('allin20'), setAllin: () => this.setMode('be'),
+      sigW: sig('W', '#4d8dff'), sigP: sig('P', '#ff4d5e'), sigL: sig('L', '#33e6a6'),
+      toggleW: () => this.toggleSig('W'), toggleP: () => this.toggleSig('P'), toggleL: () => this.toggleSig('L'),
+      pAllBg: pill(st.period === 'all').bg, pAllFg: pill(st.period === 'all').fg,
+      p26Bg: pill(st.period === '2026').bg, p26Fg: pill(st.period === '2026').fg,
+      setAll: () => this.setPeriod('all'), set2026: () => this.setPeriod('2026'),
+      cp, pf,
+      toggleCp: () => this.setState({ openCp: !st.openCp }), togglePf: () => this.setState({ openPf: !st.openPf }),
+      ddGroups, monthRows,
+      barRef: this.barRef, eqRef: this.eqRef, rootRef: this.rootRef,
+      journalCount: String(rows.length),
+      srcCpBg: pill(st.logSrc === 'cp').bg, srcCpFg: pill(st.logSrc === 'cp').fg,
+      srcPfBg: pill(st.logSrc === 'pf').bg, srcPfFg: pill(st.logSrc === 'pf').fg,
+      srcCp: () => this.setState({ logSrc: 'cp', logMonth: 'latest' }), srcPf: () => this.setState({ logSrc: 'pf', logMonth: 'latest' }),
+      resFilters: ['all', 'TP', 'SL', 'BE'].map(f => ({
+        label: f === 'all' ? 'Tous' : f, bg: pill(st.logFilter === f).bg, fg: pill(st.logFilter === f).fg,
+        click: () => this.setState({ logFilter: f })
+      })),
+      monthFilters: mf.map(m => {
+        const on = effMonth === m.key;
+        return {
+          label: m.label, bg: on ? onBg : 'transparent', fg: on ? onFg : mut,
+          border: on ? onBg : (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)'),
+          click: () => this.setState({ logMonth: m.key })
+        };
+      }),
+      journalMonths: groups
+    };
+  }
+}
+
+</script>
+</body>
+</html>

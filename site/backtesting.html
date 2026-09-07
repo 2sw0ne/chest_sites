@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backtesting — Chesting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  .bt-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
+  .bt-card{
+    position:relative; overflow:hidden; border-radius:22px; padding:2px; text-decoration:none; color:var(--ink);
+    background:linear-gradient(135deg,#e35728,#034854,#5470c2); transition:transform .25s var(--ease);
+  }
+  .bt-card:hover{ transform:translateY(-3px); }
+  .bt-card__inner{ border-radius:20px; background:var(--panel); padding:24px 22px; height:100%; }
+  .bt-card__tag{ font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; padding:5px 10px; border-radius:999px; background:rgba(255,61,127,.14); color:var(--acc); border:1px solid rgba(255,61,127,.35); }
+  .bt-card__title{ font-size:20px; font-weight:700; letter-spacing:-.02em; margin:16px 0 6px; }
+  .bt-card__desc{ font-size:13px; color:var(--muted); line-height:1.6; margin:0 0 16px; }
+  .bt-card__meta{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--faint); border-top:1px solid var(--line); padding-top:14px; }
+  .bt-card__meta b{ color:var(--ink); }
+  .bt-card--add{ background:var(--line2); }
+  .bt-card--add .bt-card__inner{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:10px; min-height:180px; border:1px dashed var(--line2); background:transparent; }
+  .bt-card--add .plus{ font-size:26px; color:var(--muted); }
+
+  .bt-card--custom{ display:block; overflow:visible; }
+  .bt-card__hit{ position:absolute; inset:0; z-index:1; border-radius:inherit; }
+  .bt-card__top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .bt-card__menu{ position:relative; z-index:2; flex-shrink:0; }
+  .bt-card__menu-btn{
+    width:28px; height:28px; border-radius:50%; border:1px solid var(--line2); background:var(--bg);
+    color:var(--muted); font-size:15px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .bt-card__menu-btn:hover{ color:var(--ink); border-color:var(--muted); }
+  .bt-card__menu-list{
+    position:absolute; top:34px; right:0; min-width:150px; background:var(--panel); border:1px solid var(--line2);
+    border-radius:12px; box-shadow:0 14px 34px rgba(0,0,0,.18); overflow:hidden; padding:5px;
+  }
+  .bt-card__menu-list a, .bt-card__menu-list button{
+    display:block; width:100%; text-align:left; padding:9px 11px; border-radius:8px; border:none; background:transparent;
+    color:var(--ink); font-size:13px; font-family:inherit; text-decoration:none; cursor:pointer;
+  }
+  .bt-card__menu-list a:hover, .bt-card__menu-list button:hover{ background:var(--bg); }
+  .bt-card__menu-list .danger{ color:var(--red); }
+
+  .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; margin-bottom:16px; }
+  .back-link:hover{ color:var(--ink); }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+</head>
+<body data-page="backtesting">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+  </div>
+</header>
+
+<main class="container">
+  <a href="dashboard.html" class="back-link">← Dashboard</a>
+  <div class="page-head">
+    <h1>Backtesting</h1>
+    <p>Choisis l'algorithme à explorer. La liste s'agrandit à mesure que de nouveaux backtests sont ajoutés.</p>
+  </div>
+
+  <div class="bt-grid">
+    <a href="backtesting-swyper.html" class="bt-card">
+      <div class="bt-card__inner">
+        <span class="bt-card__tag">Actif</span>
+        <div class="bt-card__title">SWYPER</div>
+        <p class="bt-card__desc">V2 de l'algorithme — TP/SL dynamiques établis à partir de la structure du marché au moment de l'entrée, sur les signaux Wolfx, Putrajaya et Legacy.</p>
+        <div class="bt-card__meta">
+          <span><b>871</b> positions</span>
+          <span><b>$10 000</b> capital initial</span>
+          <span><b>Jan 2025 →</b> aujourd'hui</span>
+        </div>
+      </div>
+    </a>
+
+    <a href="backtesting-allin.html" class="bt-card">
+      <div class="bt-card__inner">
+        <span class="bt-card__tag">Actif</span>
+        <div class="bt-card__title">ALLIN</div>
+        <p class="bt-card__desc">V1 de l'algorithme, en production depuis le 23/10/2025 — niveaux de TP/SL fixes, base sur laquelle SWYPER a été construit.</p>
+        <div class="bt-card__meta">
+          <span><b>843</b> positions</span>
+          <span><b>$10 000</b> capital initial</span>
+          <span><b>Jan 2025 →</b> aujourd'hui</span>
+        </div>
+      </div>
+    </a>
+
+    <div id="customBacktests"></div>
+
+    <a href="backtest-add.html" class="bt-card bt-card--add">
+      <div class="bt-card__inner">
+        <span class="plus">+</span>
+        <strong>Ajouter un backtest</strong>
+        <span style="font-size:12.5px;color:var(--muted)">Depuis ton propre journal de trading (Excel)</span>
+      </div>
+    </a>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+
+<script src="js/nav.js"></script>
+<script src="js/backtest-store.js"></script>
+<script>
+(() => {
+  'use strict';
+  // Les cartes personnalisees doivent apparaitre comme cellules propres de
+  // .bt-grid (une div englobante casserait le layout grid) : on remplace le
+  // conteneur temporaire du HTML par un simple marqueur, et chaque rendu
+  // reinsere les cartes juste avant ce marqueur (donc avant la carte "+ Ajouter").
+  const zone = document.getElementById('customBacktests');
+  const grid = zone.parentElement;
+  const anchor = document.createComment('custom-backtests');
+  grid.replaceChild(anchor, zone);
+
+  function closeAllMenus() {
+    document.querySelectorAll('[data-menu-list]').forEach((l) => { l.hidden = true; });
+  }
+  document.addEventListener('click', closeAllMenus);
+
+  function renderCards() {
+    grid.querySelectorAll('.bt-card--custom').forEach((el) => el.remove());
+    const items = window.ChestingBacktests.list();
+    const wrap = document.createElement('div');
+    wrap.innerHTML = items.map((b) => `
+      <div class="bt-card bt-card--custom">
+        <a class="bt-card__hit" href="backtest-view.html?id=${encodeURIComponent(b.id)}" aria-label="Ouvrir ${b.title}"></a>
+        <div class="bt-card__inner">
+          <div class="bt-card__top">
+            <span class="bt-card__tag">Ajouté</span>
+            <div class="bt-card__menu">
+              <button type="button" class="bt-card__menu-btn" data-menu-toggle aria-label="Options du backtest">⋮</button>
+              <div class="bt-card__menu-list" data-menu-list hidden>
+                <a href="backtest-add.html?edit=${encodeURIComponent(b.id)}">Modifier</a>
+                <button type="button" class="danger" data-delete-id="${b.id}">Supprimer</button>
+              </div>
+            </div>
+          </div>
+          <div class="bt-card__title">${b.title}</div>
+          <p class="bt-card__desc">${b.description || 'Backtest ajouté depuis un fichier Excel personnel.'}</p>
+          <div class="bt-card__meta">
+            <span><b>${b.trades.length}</b> positions</span>
+            <span><b>$${Math.round(b.capital).toLocaleString('fr-FR')}</b> capital initial</span>
+          </div>
+        </div>
+      </div>`).join('');
+    const frag = document.createDocumentFragment();
+    while (wrap.firstChild) frag.appendChild(wrap.firstChild);
+    grid.insertBefore(frag, anchor);
+
+    grid.querySelectorAll('.bt-card--custom [data-menu-toggle]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const list = btn.nextElementSibling;
+        const isOpen = !list.hidden;
+        closeAllMenus();
+        list.hidden = isOpen;
+      });
+    });
+    grid.querySelectorAll('.bt-card--custom [data-delete-id]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (confirm('Supprimer définitivement ce backtest ?')) {
+          window.ChestingBacktests.remove(btn.dataset.deleteId);
+          renderCards();
+        }
+      });
+    });
+    grid.querySelectorAll('.bt-card--custom .bt-card__menu-list a').forEach((a) => {
+      a.addEventListener('click', (e) => e.stopPropagation());
+    });
+  }
+
+  renderCards();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Compte — Chesting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
+<style>
+  /* Vrais drapeaux SVG - les emoji "indicateur regional" s'affichent en
+     texte ("US","EU") sur Windows, faute de police dediee. */
+  .flag-ic{ display:inline-block; border-radius:2px; vertical-align:middle; width:22px; height:16px; }
+  .settings-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+  .settings-card{ padding:26px; }
+  .settings-card h2{ font-size:16px; font-weight:700; letter-spacing:-.01em; margin:0 0 6px; }
+  .settings-card p.hint{ font-size:13px; color:var(--muted); margin:0 0 20px; line-height:1.5; }
+  .theme-choice{ display:flex; gap:10px; }
+  .theme-choice button{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg);
+    padding:16px; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600; color:var(--muted);
+    transition:.2s;
+  }
+  .theme-choice button.is-active{ border-color:var(--acc); color:var(--ink); box-shadow:0 0 0 1px var(--acc); }
+  .theme-choice .swatch{ width:100%; height:36px; border-radius:8px; }
+  .swatch--dark{ background:linear-gradient(135deg,#0c0c0e,#050505); border:1px solid rgba(255,255,255,.1); }
+  .swatch--light{ background:linear-gradient(135deg,#ffffff,#f5f5f6); border:1px solid rgba(0,0,0,.08); }
+  .form-stack{ display:flex; flex-direction:column; gap:14px; }
+  .email-note{
+    display:flex; gap:10px; align-items:flex-start; margin-top:16px; padding:12px 14px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg);
+    font-size:12.5px; color:var(--muted); line-height:1.55;
+  }
+  .email-note b{ color:var(--ink); }
+  @media (max-width: 760px){ .settings-grid{ grid-template-columns:1fr; } }
+  .pair-group__label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:18px 0 8px; }
+  .pair-group__label:first-of-type{ margin-top:0; }
+  .pair-select{
+    width:100%; font:inherit; font-size:14px; color:var(--ink);
+    background:var(--bg); border:1px solid var(--line2); border-radius:var(--radius-sm);
+    padding:12px 14px; cursor:pointer; transition:border-color .2s;
+  }
+  .pair-select.is-active{ border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
+  .pair-select:focus{ outline:none; border-color:var(--acc); }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+</head>
+<body data-page="account">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="page-head">
+    <h1>Compte</h1>
+    <p>Apparence et sécurité de ton espace Chesting.</p>
+  </div>
+
+  <div class="settings-grid">
+    <div class="card settings-card">
+      <h2>Apparence</h2>
+      <p class="hint">Le thème s'applique immédiatement et est mémorisé sur cet appareil.</p>
+      <div class="theme-choice" id="themeChoice">
+        <button type="button" data-value="dark"><span class="swatch swatch--dark"></span>Sombre</button>
+        <button type="button" data-value="light"><span class="swatch swatch--light"></span>Clair</button>
+      </div>
+    </div>
+
+    <div class="card settings-card" style="grid-column:1 / -1;">
+      <h2>Paire suivie</h2>
+      <p class="hint">Pilote la couleur et l'analyse de la page de garde du calendrier économique (haussier/baissier), ou l'indice Fear &amp; Greed pour les cryptos. Une seule paire suivie à la fois — choisis-la dans le menu de sa catégorie.</p>
+
+      <div class="pair-group__label">Forex</div>
+      <select class="pair-select" id="pairSelectForex" data-category="forex">
+        <option value="">— Choisir une paire —</option>
+        <optgroup label="AUD / XXX">
+          <option value="AUDCHF">AUD/CHF — Dollar australien / Franc suisse</option>
+          <option value="AUDUSD">AUD/USD — Dollar australien / Dollar</option>
+          <option value="AUDCAD">AUD/CAD — Dollar australien / Dollar canadien</option>
+          <option value="AUDNZD">AUD/NZD — Dollar australien / Dollar néo-zélandais</option>
+          <option value="AUDJPY">AUD/JPY — Dollar australien / Yen</option>
+        </optgroup>
+        <optgroup label="EUR / XXX">
+          <option value="EURGBP">EUR/GBP — Euro / Livre</option>
+          <option value="EURCHF">EUR/CHF — Euro / Franc suisse</option>
+          <option value="EURUSD">EUR/USD — Euro / Dollar</option>
+          <option value="EURCAD">EUR/CAD — Euro / Dollar canadien</option>
+          <option value="EURAUD">EUR/AUD — Euro / Dollar australien</option>
+          <option value="EURNZD">EUR/NZD — Euro / Dollar néo-zélandais</option>
+          <option value="EURJPY">EUR/JPY — Euro / Yen</option>
+        </optgroup>
+        <optgroup label="GBP / XXX">
+          <option value="GBPCHF">GBP/CHF — Livre / Franc suisse</option>
+          <option value="GBPUSD">GBP/USD — Livre / Dollar</option>
+          <option value="GBPCAD">GBP/CAD — Livre / Dollar canadien</option>
+          <option value="GBPAUD">GBP/AUD — Livre / Dollar australien</option>
+          <option value="GBPNZD">GBP/NZD — Livre / Dollar néo-zélandais</option>
+          <option value="GBPJPY">GBP/JPY — Livre / Yen</option>
+        </optgroup>
+        <optgroup label="USD / XXX">
+          <option value="USDCHF">USD/CHF — Dollar / Franc suisse</option>
+          <option value="USDCAD">USD/CAD — Dollar / Dollar canadien</option>
+          <option value="USDJPY">USD/JPY — Dollar / Yen</option>
+        </optgroup>
+        <optgroup label="NZD / XXX">
+          <option value="NZDCHF">NZD/CHF — Dollar néo-zélandais / Franc suisse</option>
+          <option value="NZDUSD">NZD/USD — Dollar néo-zélandais / Dollar</option>
+          <option value="NZDCAD">NZD/CAD — Dollar néo-zélandais / Dollar canadien</option>
+          <option value="NZDJPY">NZD/JPY — Dollar néo-zélandais / Yen</option>
+        </optgroup>
+        <optgroup label="CAD / XXX">
+          <option value="CADCHF">CAD/CHF — Dollar canadien / Franc suisse</option>
+          <option value="CADJPY">CAD/JPY — Dollar canadien / Yen</option>
+        </optgroup>
+        <optgroup label="CHF / XXX">
+          <option value="CHFJPY">CHF/JPY — Franc suisse / Yen</option>
+        </optgroup>
+      </select>
+
+      <div class="pair-group__label">Matières premières</div>
+      <select class="pair-select" id="pairSelectCommo" data-category="commo">
+        <option value="">— Choisir —</option>
+        <option value="XAUUSD">🪙 Or (XAU/USD)</option>
+        <option value="XAGUSD">🥈 Argent (XAG/USD)</option>
+        <option value="USOIL">🛢️ Pétrole WTI (WTI/USD)</option>
+        <option value="XPTUSD">⚪ Platine (XPT/USD)</option>
+        <option value="DXY">💵 Indice dollar (DXY)</option>
+      </select>
+
+      <div class="pair-group__label">Crypto</div>
+      <select class="pair-select" id="pairSelectCrypto" data-category="crypto">
+        <option value="">— Choisir —</option>
+        <option value="BTCUSD">₿ Bitcoin (BTC/USD)</option>
+        <option value="ETHUSD">Ξ Ethereum (ETH/USD)</option>
+        <option value="SOLUSD">◎ Solana (SOL/USD)</option>
+        <option value="XRPUSD">✕ XRP (XRP/USD)</option>
+        <option value="TRXUSD">T Tron (TRX/USD)</option>
+        <option value="HYPEUSD">H Hyperliquid (HYPE/USD)</option>
+        <option value="DOGEUSD">Ð Dogecoin (DOGE/USD)</option>
+        <option value="LINKUSD">⬡ Chainlink (LINK/USD)</option>
+        <option value="ADAUSD">₳ Cardano (ADA/USD)</option>
+        <option value="UNIUSD">🦄 Uniswap (UNI/USD)</option>
+        <option value="AVAXUSD">▲ Avalanche (AVAX/USD)</option>
+      </select>
+    </div>
+
+    <div class="card settings-card" style="grid-column:1 / -1;">
+      <h2>Code d'accès</h2>
+      <p class="hint">Change le code qui protège l'accès à Chesting sur cet appareil.</p>
+      <form id="codeForm" class="form-stack" autocomplete="off">
+        <div>
+          <label for="currentCode">Code actuel</label>
+          <input id="currentCode" class="field" type="password" required>
+        </div>
+        <div>
+          <label for="newCode">Nouveau code</label>
+          <input id="newCode" class="field" type="password" minlength="4" required>
+        </div>
+        <div>
+          <label for="confirmCode">Confirmer le nouveau code</label>
+          <input id="confirmCode" class="field" type="password" minlength="4" required>
+        </div>
+        <p class="gate__error" id="codeError" style="margin:0;"></p>
+        <button type="submit" class="btn btn-secondary">Mettre à jour le code</button>
+      </form>
+      <div class="email-note">
+        <span>✉️</span>
+        <span><b>Confirmation par email — à venir.</b> Pour l'instant le changement de code est appliqué directement sur cet appareil, sans email de confirmation réel (nécessite de brancher un service d'envoi plus tard).</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+
+<script src="js/nav.js"></script>
+<script>
+(() => {
+  const choiceWrap = document.getElementById('themeChoice');
+  const buttons = [...choiceWrap.querySelectorAll('button')];
+  function reflect() {
+    const t = ChestingTheme.current();
+    buttons.forEach((b) => b.classList.toggle('is-active', b.dataset.value === t));
+  }
+  reflect();
+  buttons.forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.value !== ChestingTheme.current()) ChestingTheme.toggle();
+    reflect();
+  }));
+  document.addEventListener('chesting:theme', reflect);
+
+  const PAIR_KEY = 'chesting_sentiment_pair';
+  const pairSelects = [...document.querySelectorAll('.pair-select')];
+  function currentPair() {
+    try { return localStorage.getItem(PAIR_KEY) || 'XAUUSD'; } catch (e) { return 'XAUUSD'; }
+  }
+  function reflectPairSelects() {
+    const value = currentPair();
+    pairSelects.forEach((sel) => {
+      const hasIt = [...sel.options].some((o) => o.value === value);
+      sel.value = hasIt ? value : '';
+      sel.classList.toggle('is-active', hasIt);
+    });
+  }
+  reflectPairSelects();
+  pairSelects.forEach((sel) => sel.addEventListener('change', () => {
+    if (!sel.value) return;
+    try { localStorage.setItem(PAIR_KEY, sel.value); } catch (e) { /* tant pis */ }
+    reflectPairSelects();
+    showToast(`Paire suivie : ${sel.value} ✓`);
+  }));
+  const form = document.getElementById('codeForm');
+  const errEl = document.getElementById('codeError');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errEl.textContent = '';
+    const current = document.getElementById('currentCode').value;
+    const next = document.getElementById('newCode').value;
+    const confirm = document.getElementById('confirmCode').value;
+
+    if (!(await ChestingAuth.checkCode(current))) { errEl.textContent = 'Code actuel incorrect.'; return; }
+    if (next.length < 4) { errEl.textContent = 'Le nouveau code doit faire au moins 4 caractères.'; return; }
+    if (next !== confirm) { errEl.textContent = 'La confirmation ne correspond pas.'; return; }
+
+    await ChestingAuth.setCode(next);
+    form.reset();
+    showToast('Code d\'accès mis à jour ✓');
+  });
+})();
+</script>
+</body>
+</html>

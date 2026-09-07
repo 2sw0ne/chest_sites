@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — Chesting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  .example-badge{
+    font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--amber); background:rgba(245,166,35,.13); border:1px solid rgba(245,166,35,.35);
+    padding:4px 10px; border-radius:var(--radius-pill); white-space:nowrap;
+  }
+  /* ---------- Account switcher ---------- */
+  .acc-bar{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .acc-switcher{ position:relative; }
+  .acc-switcher__btn{
+    display:flex; align-items:center; gap:12px; border:1px solid var(--line2); background:var(--panel);
+    border-radius:var(--radius-sm); padding:10px 14px; cursor:pointer; color:var(--ink); font:inherit;
+  }
+  .acc-switcher__btn .avatar{ width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,var(--acc),var(--acc2)); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
+  .acc-switcher__btn .meta{ text-align:left; }
+  .acc-switcher__btn .meta strong{ display:block; font-size:13.5px; font-weight:700; }
+  .acc-switcher__btn .meta span{ display:block; font-size:11px; color:var(--muted); }
+  .acc-switcher__btn .chev{ margin-left:6px; color:var(--muted); font-size:11px; }
+  .acc-menu{
+    position:absolute; top:calc(100% + 8px); left:0; z-index:40; width:280px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
+    box-shadow:0 24px 60px rgba(0,0,0,.4); padding:8px; display:none;
+  }
+  .acc-menu.is-open{ display:block; }
+  .acc-menu__item{
+    display:flex; align-items:center; gap:10px; width:100%; border:none; background:transparent; cursor:pointer;
+    padding:9px 10px; border-radius:9px; color:var(--ink); font:inherit; text-align:left;
+  }
+  .acc-menu__item:hover{ background:var(--panel-2); }
+  .acc-menu__item .avatar{ width:26px; height:26px; border-radius:8px; background:var(--bg); border:1px solid var(--line2); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex-shrink:0; }
+  .acc-menu__item.is-active .avatar{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; border-color:transparent; }
+  .acc-menu__item strong{ display:block; font-size:13px; }
+  .acc-menu__item span{ display:block; font-size:10.5px; color:var(--muted); }
+  .acc-menu__divider{ height:1px; background:var(--line); margin:6px 4px; }
+  .acc-menu__add{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--acc); }
+
+  /* ---------- Current results (FTMO-style header) ---------- */
+  .results-card{ border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel); padding:22px 24px; margin-bottom:24px; }
+  .results-card__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .results-card__head h2{ font-size:15px; font-weight:700; margin:0; }
+  .sync-line{ font-size:11.5px; color:var(--faint); margin-top:2px; }
+  .sync-line code{ background:var(--bg); padding:1px 6px; border-radius:5px; }
+  .results-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  .results-grid div{ border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--bg); padding:14px 16px; }
+  .results-grid span{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; }
+  .results-grid strong{ display:block; font-size:18px; font-weight:700; }
+  .results-grid strong.pos{ color:var(--green); } .results-grid strong.neg{ color:var(--red); }
+
+  .kpi-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:28px; }
+  .kpi-card{ position:relative; overflow:hidden; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel); padding:18px 18px 16px; }
+  .kpi-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .kpi-card--green::before{ background:var(--green); } .kpi-card--blue::before{ background:var(--blue); }
+  .kpi-card--acc::before{ background:linear-gradient(90deg,var(--acc),var(--acc2)); } .kpi-card--red::before{ background:var(--red); }
+  .kpi-card__label{ font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+  .kpi-card__value{ font-size:26px; font-weight:700; letter-spacing:-.02em; }
+  .kpi-card__sub{ font-size:11.5px; color:var(--faint); margin-top:4px; }
+
+  .chart-card{ padding:22px 24px 26px; margin-bottom:16px; }
+  .chart-card__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; gap:12px; flex-wrap:wrap; }
+  .unit-toggle{ display:inline-flex; gap:3px; padding:3px; border:1px solid var(--line2); border-radius:999px; background:var(--bg); }
+  .unit-toggle button{ border:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700; padding:6px 13px; border-radius:999px; background:transparent; color:var(--muted); }
+  .unit-toggle button.is-active{ background:var(--ink); color:var(--bg); }
+
+  /* ---------- Expandable "more" panel ---------- */
+  .more-toggle{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    border:1px solid var(--line2); background:var(--panel); color:var(--muted); cursor:pointer; font:inherit;
+    font-size:13px; font-weight:600; padding:12px; border-radius:var(--radius-sm); margin-bottom:0;
+  }
+  .more-toggle:hover{ color:var(--ink); }
+  .more-toggle .chev{ transition:transform .25s var(--ease); }
+  .more-toggle.is-open .chev{ transform:rotate(180deg); }
+  .more-panel{ max-height:0; overflow:hidden; transition:max-height .4s var(--ease); }
+  .more-panel__inner{ padding-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+
+  .objectives{ display:flex; flex-direction:column; gap:2px; }
+  .objective-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 4px; border-bottom:1px solid var(--line); }
+  .objective-row:last-child{ border-bottom:none; }
+  .objective-row .label{ font-size:12.5px; color:var(--muted); }
+  .objective-row .label b{ display:block; font-size:13.5px; color:var(--ink); font-weight:700; }
+  .objective-row .value{ text-align:right; font-size:13px; font-weight:700; }
+  .objective-row .value.pos{ color:var(--green); } .objective-row .value.neg{ color:var(--red); }
+  .objective-row .check{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-left:10px; }
+  .objective-row .check.ok{ background:rgba(51,230,166,.16); color:var(--green); }
+  .objective-row .check.ko{ background:rgba(255,77,94,.16); color:var(--red); }
+  .objective-row__wrap{ display:flex; align-items:center; }
+
+  .mini-cal{ }
+  .mini-cal__head{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .mini-cal__grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
+  .mini-cal__cell{ aspect-ratio:1; border-radius:8px; background:var(--bg); border:1px solid var(--line); padding:5px; display:flex; flex-direction:column; justify-content:space-between; }
+  .mini-cal__cell.pos{ background:rgba(51,230,166,.1); border-color:rgba(51,230,166,.3); }
+  .mini-cal__cell.neg{ background:rgba(255,77,94,.1); border-color:rgba(255,77,94,.3); }
+  .mini-cal__cell .d{ font-size:10px; color:var(--faint); }
+  .mini-cal__cell .p{ font-size:9.5px; font-weight:700; }
+  .mini-cal__cell.pos .p{ color:var(--green); } .mini-cal__cell.neg .p{ color:var(--red); }
+
+  @media (max-width: 900px){ .kpi-grid,.results-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } .more-panel__inner{ grid-template-columns:1fr; } }
+  @media (max-width: 560px){ .kpi-grid,.results-grid{ grid-template-columns:1fr; } }
+
+  /* ---------- Top/flop crypto (top 100 par capitalisation) ---------- */
+  .mover-cols{ display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+  @media (max-width: 640px){ .mover-cols{ grid-template-columns:1fr; } }
+  .mover-col__label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); margin-bottom:10px; }
+  .mover-row{ display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .mover-row:last-child{ border-bottom:none; }
+  .mover-row img{ width:26px; height:26px; border-radius:50%; flex-shrink:0; }
+  .mover-row .name{ flex:1; min-width:0; }
+  .mover-row .name b{ display:block; font-size:13.5px; font-weight:700; }
+  .mover-row .name span{ display:block; font-size:10.5px; color:var(--muted); text-transform:uppercase; }
+  .mover-row .price{ text-align:right; font-size:13px; font-variant-numeric:tabular-nums; color:var(--muted); white-space:nowrap; }
+  .mover-row .chg{ text-align:right; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; min-width:64px; }
+  .mover-row .chg.pos{ color:var(--green); } .mover-row .chg.neg{ color:var(--red); }
+  p.hint{ font-size:12.5px; color:var(--muted); line-height:1.5; }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+</head>
+<body data-page="dashboard">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="page-head">
+    <h1>Dashboard</h1>
+    <p>Vue d'ensemble de tes comptes — profit, ratio, winrate, drawdown et courbe d'equity, façon FTMO.</p>
+  </div>
+
+  <div class="acc-bar">
+    <div class="acc-switcher" id="accSwitcher">
+      <button class="acc-switcher__btn" id="accSwitcherBtn">
+        <span class="avatar" id="accAvatar">—</span>
+        <span class="meta"><strong id="accName">—</strong><span id="accSub">—</span></span>
+        <span class="chev">▾</span>
+      </button>
+      <div class="acc-menu" id="accMenu">
+        <div id="accMenuList"></div>
+        <div class="acc-menu__divider"></div>
+        <button class="acc-menu__item acc-menu__add" id="accAddBtn"><span>＋</span> Ajouter un compte</button>
+      </div>
+    </div>
+    <span class="example-badge">Exemple — données de démonstration</span>
+  </div>
+
+  <div class="results-card">
+    <div class="results-card__head">
+      <div>
+        <h2>Current Results</h2>
+        <div class="sync-line" id="accSync">Dernière synchro il y a 2 min · pont local <code>export_mt5.py</code></div>
+      </div>
+    </div>
+    <div class="results-grid">
+      <div><span>Balance</span><strong id="resBalance">—</strong></div>
+      <div><span>Equity</span><strong id="resEquity">—</strong></div>
+      <div><span>Unrealized PnL</span><strong id="resPnl">—</strong></div>
+      <div><span>Profit du jour</span><strong id="resToday">—</strong></div>
+    </div>
+  </div>
+
+  <div class="eyebrow">Période</div>
+  <div class="pill-group" id="periodPills" style="margin-bottom:24px">
+    <button data-period="day">Jour</button>
+    <button data-period="week">Semaine</button>
+    <button data-period="month" class="is-active">Mois</button>
+    <button data-period="all">Tout</button>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-card--green">
+      <div class="kpi-card__label">Profit</div>
+      <div class="kpi-card__value" id="kpiProfit">—</div>
+      <div class="kpi-card__sub" id="kpiProfitSub">—</div>
+    </div>
+    <div class="kpi-card kpi-card--blue">
+      <div class="kpi-card__label">R:R moyen</div>
+      <div class="kpi-card__value" id="kpiRR">—</div>
+      <div class="kpi-card__sub">reward ÷ risk</div>
+    </div>
+    <div class="kpi-card kpi-card--acc">
+      <div class="kpi-card__label">Winrate</div>
+      <div class="kpi-card__value" id="kpiWinrate">—</div>
+      <div class="kpi-card__sub" id="kpiWinrateSub">—</div>
+    </div>
+    <div class="kpi-card kpi-card--red">
+      <div class="kpi-card__label">Max Drawdown</div>
+      <div class="kpi-card__value" id="kpiDD">—</div>
+      <div class="kpi-card__sub" id="kpiDDSub">—</div>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <div class="chart-card__head">
+      <span class="eyebrow" style="margin:0">Courbe d'equity</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="unit-toggle" id="unitToggle">
+          <button data-unit="dollar" class="is-active">$</button>
+          <button data-unit="percent">%</button>
+        </div>
+        <span class="example-badge">Exemple</span>
+      </div>
+    </div>
+    <div style="position:relative;width:100%;height:320px">
+      <canvas id="equityChart"></canvas>
+    </div>
+  </div>
+
+  <button class="more-toggle" id="moreToggle">Objectifs &amp; calendrier de performance <span class="chev">▾</span></button>
+  <div class="more-panel" id="morePanel">
+    <div class="more-panel__inner">
+      <div class="card" style="padding:20px 22px">
+        <div class="eyebrow">Trading Objectives</div>
+        <div class="objectives" id="objectivesList"></div>
+      </div>
+      <div class="card" style="padding:20px 22px">
+        <div class="mini-cal__head"><span>14 derniers jours</span><span id="calTotal">—</span></div>
+        <div class="mini-cal__grid" id="miniCalGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="eyebrow" style="margin-top:28px">Marché crypto — top 100</div>
+  <div class="card" style="padding:22px 24px">
+    <div class="mover-cols">
+      <div>
+        <div class="mover-col__label">Meilleure performance (24h)</div>
+        <div id="moversTop"><div class="mover-row">Chargement…</div></div>
+      </div>
+      <div>
+        <div class="mover-col__label">Moins bonne performance (24h)</div>
+        <div id="moversBottom"><div class="mover-row">Chargement…</div></div>
+      </div>
+    </div>
+    <p class="hint" style="margin:16px 0 0">Parmi les 100 plus grandes capitalisations (hors stablecoins) — données CoinGecko en direct, indépendant de tes comptes.</p>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/crypto-movers.js"></script>
+</body>
+</html>

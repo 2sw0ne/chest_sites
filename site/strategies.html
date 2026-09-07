@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stratégies — Chesting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  .strat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
+  .strat-card{ text-decoration:none; color:var(--ink); padding:22px 20px; display:flex; flex-direction:column; gap:14px; }
+  .strat-card__top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .strat-card__icon{ font-size:22px; }
+  .tonal-badge{ font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:4px 9px; border-radius:6px; white-space:nowrap; }
+  .tonal-badge--blue{ background:rgba(41,98,255,.15); color:#5b8dff; }
+  .tonal-badge--gray{ background:rgba(150,150,150,.15); color:var(--muted); }
+  .strat-card__title{ font-size:16px; font-weight:700; letter-spacing:-.01em; margin:0; }
+  .strat-card__desc{ font-size:13px; color:var(--muted); line-height:1.55; margin:0; flex:1; }
+  .strat-card__tags{ display:flex; gap:6px; flex-wrap:wrap; }
+  .strat-card__tags span{ font-size:11px; padding:4px 9px; border-radius:6px; background:var(--panel-2); color:var(--blue); }
+  .strat-card--add{ align-items:center; justify-content:center; text-align:center; border:1px dashed var(--line2); background:transparent; min-height:170px; }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+</head>
+<body data-page="strategies">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="page-head">
+    <h1>Stratégies</h1>
+    <p>Tes scanners et indicateurs, chacun avec son script et son explication complète — façon fiche TradingView.</p>
+  </div>
+
+  <div class="strat-grid">
+    <a href="strategy-example.html" class="strat-card card">
+      <div class="strat-card__top">
+        <span class="strat-card__icon">📍</span>
+        <span class="tonal-badge tonal-badge--blue">Publique</span>
+      </div>
+      <h2 class="strat-card__title">Pivot Scanner S/R</h2>
+      <p class="strat-card__desc">Repère automatiquement les niveaux de support et résistance formés par les pivots récents et les trace sur le graphique.</p>
+      <div class="strat-card__tags"><span>Support &amp; Résistance</span><span>Pivots</span></div>
+    </a>
+
+    <div class="strat-card card strat-card--add">
+      <span style="font-size:24px;color:var(--muted)">+</span>
+      <strong style="margin-top:8px">Ajouter un scanner</strong>
+      <span style="font-size:12.5px;color:var(--muted);margin-top:4px">Prochaine stratégie à documenter</span>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+
+<script src="js/nav.js"></script>
+</body>
+</html>

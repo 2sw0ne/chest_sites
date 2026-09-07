@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pivot Scanner S/R — Chesting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  .strat{ max-width:1180px; }
+  .strat-head{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin:32px 0 6px; }
+  .strat-head .updated{ font-size:13px; color:var(--muted); }
+  .strat h1{ font-size:clamp(26px,4vw,36px); font-weight:700; letter-spacing:-.02em; margin:6px 0 24px; }
+
+  .media{ border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel); overflow:hidden; margin-bottom:32px; }
+  .media__tabs{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid var(--line); }
+  .tabbar{ display:inline-flex; gap:4px; background:var(--bg); padding:4px; border-radius:999px; }
+  .tabbar button{ border:none; cursor:pointer; font:inherit; font-size:13px; font-weight:600; padding:8px 16px; border-radius:999px; background:transparent; color:var(--muted); }
+  .tabbar button.is-active{ background:var(--ink); color:var(--bg); }
+  .media__body{ padding:0; }
+  .media__panel{ display:none; }
+  .media__panel.is-active{ display:block; }
+  .chart-wrap{ position:relative; width:100%; height:380px; padding:18px; box-sizing:border-box; }
+
+  .pine{ }
+  .pine__head{ display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); }
+  .pine__head span{ font-size:13px; font-weight:600; color:var(--muted); display:flex; align-items:center; gap:8px; }
+  .pine__copy{ border:1px solid var(--line2); background:var(--bg); color:var(--muted); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+  .pine__copy:hover{ color:var(--ink); }
+  .pine-code{ display:flex; overflow-x:auto; max-height:420px; overflow-y:auto; font-family:Menlo,'Ubuntu Mono',Consolas,monospace; font-size:12.5px; line-height:22px; }
+  .pine-lines{ padding:16px 14px 16px 18px; text-align:right; color:#6b6b72; user-select:none; border-right:1px solid var(--line); }
+  .pine-body{ padding:16px 18px; white-space:pre; }
+  .tok-kw{ color:#5b8dff; } .tok-fn{ color:#7aa6ff; } .tok-str{ color:#57c785; }
+  .tok-num{ color:#f5a623; } .tok-com{ color:#6b6b72; } .tok-var{ color:#c586ff; }
+
+  .strat-grid{ display:grid; grid-template-columns:2fr 1fr; gap:40px; }
+  .actions-bar{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid var(--line); }
+  .actions-bar span{ display:flex; align-items:center; gap:6px; }
+
+  .timeline{ display:flex; flex-direction:column; gap:22px; margin-bottom:26px; }
+  .timeline-item{ display:grid; grid-template-columns:100px 1fr; gap:18px; }
+  .timeline-item .date{ font-size:12.5px; color:var(--faint); padding-top:2px; }
+  .timeline-item .body strong.kicker{ display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .timeline-item .body p{ font-size:14.5px; line-height:1.65; color:var(--ink); margin:0 0 10px; }
+  .timeline-item .body ul{ margin:0 0 10px; padding-left:20px; font-size:14.5px; line-height:1.65; }
+
+  .tag-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  .tag-chip{ font-size:12.5px; padding:5px 11px; border-radius:6px; background:var(--panel-2); color:var(--blue); }
+
+  .side-block{ padding:20px; margin-bottom:16px; }
+  .author{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .author__avatar{ width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,var(--acc),var(--acc2)); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:15px; }
+  .author__name{ font-weight:700; font-size:14.5px; }
+  .follow-btn{ margin-left:auto; background:var(--ink); color:var(--bg); border:none; border-radius:8px; padding:7px 13px; font-size:12.5px; font-weight:700; cursor:pointer; }
+  .disclaimer{ font-size:12px; color:var(--faint); line-height:1.6; }
+  .disclaimer h3{ font-size:13px; color:var(--muted); margin:0 0 6px; }
+
+  @media (max-width: 900px){ .strat-grid{ grid-template-columns:1fr; } }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>ChestingAuth.guard();</script>
+</head>
+<body data-page="strategies">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+  </div>
+</header>
+
+<main class="container strat">
+  <div class="strat-head">
+    <span class="tonal-badge tonal-badge--blue">Publique</span>
+    <span class="updated">Mis à jour il y a 3 jours</span>
+  </div>
+  <h1>Pivot Scanner S/R</h1>
+
+  <div class="media">
+    <div class="media__tabs">
+      <div class="tabbar" id="mediaTabs">
+        <button data-tab="chart" class="is-active">Graphique</button>
+        <button data-tab="code">Code source</button>
+      </div>
+      <button class="icon-btn" title="Ajouter aux favoris" style="width:auto;padding:0 14px;font-size:12.5px;font-weight:600">☆ Favoris</button>
+    </div>
+    <div class="media__body">
+      <div class="media__panel is-active" id="panelChart">
+        <div class="chart-wrap"><canvas id="stratChart"></canvas></div>
+      </div>
+      <div class="media__panel pine" id="panelCode">
+        <div class="pine__head">
+          <span>📄 Pine Script®</span>
+          <button class="pine__copy" id="copyPine">Copier</button>
+        </div>
+        <div class="pine-code">
+          <div class="pine-lines" id="pineLines"></div>
+          <div class="pine-body" id="pineBody"><span class="tok-com">//@version=5</span>
+<span class="tok-kw">indicator</span>(<span class="tok-str">"Pivot Scanner S/R"</span>, overlay=<span class="tok-kw">true</span>, max_lines_count=<span class="tok-num">200</span>)
+
+<span class="tok-var">leftBars</span> = <span class="tok-fn">input.int</span>(<span class="tok-num">15</span>, <span class="tok-str">"Barres à gauche"</span>)
+<span class="tok-var">rightBars</span> = <span class="tok-fn">input.int</span>(<span class="tok-num">15</span>, <span class="tok-str">"Barres à droite"</span>)
+<span class="tok-var">lineColor</span> = <span class="tok-fn">input.color</span>(<span class="tok-fn">color.new</span>(<span class="tok-fn">color.orange</span>, <span class="tok-num">0</span>), <span class="tok-str">"Couleur des niveaux"</span>)
+
+<span class="tok-var">ph</span> = <span class="tok-fn">ta.pivothigh</span>(high, <span class="tok-var">leftBars</span>, <span class="tok-var">rightBars</span>)
+<span class="tok-var">pl</span> = <span class="tok-fn">ta.pivotlow</span>(low, <span class="tok-var">leftBars</span>, <span class="tok-var">rightBars</span>)
+
+<span class="tok-kw">var</span> line[] <span class="tok-var">resLines</span> = <span class="tok-fn">array.new_line</span>()
+<span class="tok-kw">var</span> line[] <span class="tok-var">supLines</span> = <span class="tok-fn">array.new_line</span>()
+
+<span class="tok-kw">if</span> <span class="tok-kw">not</span> <span class="tok-fn">na</span>(<span class="tok-var">ph</span>)
+    <span class="tok-var">newLine</span> = <span class="tok-fn">line.new</span>(bar_index[<span class="tok-var">rightBars</span>], <span class="tok-var">ph</span>, bar_index, <span class="tok-var">ph</span>, extend=extend.right, color=<span class="tok-var">lineColor</span>, width=<span class="tok-num">1</span>)
+    <span class="tok-fn">array.push</span>(<span class="tok-var">resLines</span>, <span class="tok-var">newLine</span>)
+
+<span class="tok-kw">if</span> <span class="tok-kw">not</span> <span class="tok-fn">na</span>(<span class="tok-var">pl</span>)
+    <span class="tok-var">newLine</span> = <span class="tok-fn">line.new</span>(bar_index[<span class="tok-var">rightBars</span>], <span class="tok-var">pl</span>, bar_index, <span class="tok-var">pl</span>, extend=extend.right, color=<span class="tok-fn">color.new</span>(<span class="tok-fn">color.blue</span>, <span class="tok-num">0</span>), width=<span class="tok-num">1</span>)
+    <span class="tok-fn">array.push</span>(<span class="tok-var">supLines</span>, <span class="tok-var">newLine</span>)
+
+<span class="tok-fn">alertcondition</span>(<span class="tok-kw">not</span> <span class="tok-fn">na</span>(<span class="tok-var">ph</span>), title=<span class="tok-str">"Nouvelle résistance"</span>, message=<span class="tok-str">"Un nouveau pivot haut a été détecté."</span>)
+<span class="tok-fn">alertcondition</span>(<span class="tok-kw">not</span> <span class="tok-fn">na</span>(<span class="tok-var">pl</span>), title=<span class="tok-str">"Nouveau support"</span>, message=<span class="tok-str">"Un nouveau pivot bas a été détecté."</span>)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="strat-grid">
+    <div>
+      <div class="actions-bar">
+        <span>📌 Utiliser sur le graphique</span>
+        <span>💬 Commentaire</span>
+        <span>👁 214 vues</span>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="date">3 jours</div>
+          <div class="body">
+            <strong class="kicker">Notes de version</strong>
+            <p><strong>Comment ça marche</strong><br>Le scanner détecte les pivots hauts et bas sur une fenêtre glissante (par défaut 15 barres de chaque côté) et trace automatiquement une ligne horizontale prolongée à chaque nouveau niveau détecté — orange pour les résistances, bleu pour les supports.</p>
+            <strong class="kicker" style="margin-top:14px;display:block">Points clés</strong>
+            <ul>
+              <li>Entièrement automatique, aucun tracé manuel</li>
+              <li>Style visuel épuré, pensé pour rester lisible sur tous les timeframes</li>
+              <li>Alertes intégrées à la détection d'un nouveau pivot</li>
+            </ul>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="date">2 semaines</div>
+          <div class="body">
+            <p>Publication initiale du scanner.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tag-row">
+        <span class="tag-chip">Support et Résistance</span>
+        <span class="tag-chip">Pivots</span>
+        <span class="tag-chip">Analyse technique</span>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card side-block">
+        <div class="author">
+          <div class="author__avatar">CH</div>
+          <div class="author__name">Chesting</div>
+          <button class="follow-btn">Suivre</button>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+        <div class="tag-row">
+          <span class="tag-chip">Support et Résistance</span>
+          <span class="tag-chip">Pivots</span>
+        </div>
+      </div>
+      <div class="card side-block disclaimer">
+        <h3>Avertissement</h3>
+        Ce script est fourni à titre éducatif et personnel. Il ne constitue pas un conseil en investissement — utilise-le comme un outil d'aide à la décision, pas comme un signal automatique de trading.
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="js/nav.js"></script>
+<script>
+(() => {
+  // Line numbers for the Pine viewer.
+  const body = document.getElementById('pineBody');
+  const lineCount = body.textContent.split('\n').length;
+  document.getElementById('pineLines').innerHTML = Array.from({ length: lineCount }, (_, i) => i + 1).join('<br>');
+
+  // Copy button.
+  document.getElementById('copyPine').addEventListener('click', () => {
+    navigator.clipboard.writeText(body.textContent).then(() => showToast('Script copié ✓'));
+  });
+
+  // Tabs.
+  const tabs = document.querySelectorAll('#mediaTabs button');
+  tabs.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tabs.forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      document.getElementById('panelChart').classList.toggle('is-active', btn.dataset.tab === 'chart');
+      document.getElementById('panelCode').classList.toggle('is-active', btn.dataset.tab === 'code');
+    });
+  });
+
+  // Illustrative price chart with sample S/R levels.
+  const isDark = () => !document.documentElement.hasAttribute('data-theme') || document.documentElement.getAttribute('data-theme') !== 'light';
+  function drawChart() {
+    const grid = isDark() ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
+    const tick = isDark() ? '#9b9ba1' : '#65656b';
+    const price = [1.082, 1.084, 1.083, 1.086, 1.089, 1.087, 1.09, 1.093, 1.091, 1.095, 1.094, 1.097, 1.096, 1.099, 1.098];
+    const res = new Array(price.length).fill(1.097);
+    const sup = new Array(price.length).fill(1.084);
+    if (window.__stratChart) window.__stratChart.destroy();
+    window.__stratChart = new Chart(document.getElementById('stratChart'), {
+      type: 'line',
+      data: {
+        labels: price.map((_, i) => i + 1),
+        datasets: [
+          { data: price, borderColor: '#f6f6f7', borderWidth: 2, pointRadius: 0, tension: .25 },
+          { data: res, borderColor: '#f5a623', borderDash: [6, 4], borderWidth: 1.4, pointRadius: 0 },
+          { data: sup, borderColor: '#5b8dff', borderDash: [6, 4], borderWidth: 1.4, pointRadius: 0 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { grid: { color: grid }, ticks: { color: tick } }, x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8 } } }
+      }
+    });
+  }
+  drawChart();
+  document.addEventListener('chesting:theme', drawChart);
+})();
+</script>
+</body>
+</html>
