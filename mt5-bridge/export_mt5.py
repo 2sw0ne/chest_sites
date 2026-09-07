@@ -1,5 +1,5 @@
 """
-Chesting - pont local MT5 -> Dashboard.
+STASH - pont local MT5 -> Dashboard.
 
 Lit les données du compte MT5 actuellement connecté sur cette machine
 (le terminal MT5 doit être ouvert et loggé) et écrit un data.json que

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Backtesting — Chesting</title>
+<title>Backtesting — STASH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
@@ -50,14 +50,14 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>ChestingAuth.guard();</script>
+<script>STASHAuth.guard();</script>
 </head>
 <body data-page="backtesting">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
@@ -76,7 +76,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
   </div>
 </header>
 
@@ -126,7 +126,7 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
 <script src="js/backtest-store.js"></script>
@@ -149,7 +149,7 @@
 
   function renderCards() {
     grid.querySelectorAll('.bt-card--custom').forEach((el) => el.remove());
-    const items = window.ChestingBacktests.list();
+    const items = window.STASHBacktests.list();
     const wrap = document.createElement('div');
     wrap.innerHTML = items.map((b) => `
       <div class="bt-card bt-card--custom">
@@ -192,7 +192,7 @@
         e.preventDefault();
         e.stopPropagation();
         if (confirm('Supprimer définitivement ce backtest ?')) {
-          window.ChestingBacktests.remove(btn.dataset.deleteId);
+          window.STASHBacktests.remove(btn.dataset.deleteId);
           renderCards();
         }
       });

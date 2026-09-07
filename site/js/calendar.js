@@ -16,7 +16,7 @@
   const IMP_STARS = { high: '✯✯✯', medium: '✯✯☆', low: '✯☆☆' };
   const IMPORTANCE_WEIGHT = { high: 3, medium: 2, low: 1 };
 
-  const IMPORTANCE_KEY = 'chesting_cal_importance';
+  const IMPORTANCE_KEY = 'stash_cal_importance';
   let allEvents = [];
 
   // ---------------------------------------------------------------
@@ -91,7 +91,7 @@
     UNIUSD: { code: 'UNI/USD', label: 'Uniswap', geckoId: 'uniswap', symbol: '🦄' },
     AVAXUSD: { code: 'AVAX/USD', label: 'Avalanche', geckoId: 'avalanche-2', symbol: '▲' },
   };
-  const PAIR_KEY = 'chesting_sentiment_pair';
+  const PAIR_KEY = 'stash_sentiment_pair';
 
   function loadPair() {
     try {
@@ -627,7 +627,7 @@
   async function load() {
     setupImportanceFilter();
     setupDayNav();
-    const apiUrl = (window.CHESTING_CONFIG && window.CHESTING_CONFIG.calendarApiUrl) || '';
+    const apiUrl = (window.STASH_CONFIG && window.STASH_CONFIG.calendarApiUrl) || '';
     const url = apiUrl || 'data/calendar.json';
     try {
       const res = await fetch(url, { cache: 'no-store' });

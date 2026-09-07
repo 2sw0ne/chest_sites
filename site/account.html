@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Compte — Chesting</title>
+<title>Compte — STASH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
@@ -48,14 +48,14 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>ChestingAuth.guard();</script>
+<script>STASHAuth.guard();</script>
 </head>
 <body data-page="account">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
@@ -74,14 +74,14 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
   </div>
 </header>
 
 <main class="container">
   <div class="page-head">
     <h1>Compte</h1>
-    <p>Apparence et sécurité de ton espace Chesting.</p>
+    <p>Apparence et sécurité de ton espace STASH.</p>
   </div>
 
   <div class="settings-grid">
@@ -174,7 +174,7 @@
 
     <div class="card settings-card" style="grid-column:1 / -1;">
       <h2>Code d'accès</h2>
-      <p class="hint">Change le code qui protège l'accès à Chesting sur cet appareil.</p>
+      <p class="hint">Change le code qui protège l'accès à STASH sur cet appareil.</p>
       <form id="codeForm" class="form-stack" autocomplete="off">
         <div>
           <label for="currentCode">Code actuel</label>
@@ -199,7 +199,7 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
 <script>
@@ -207,17 +207,17 @@
   const choiceWrap = document.getElementById('themeChoice');
   const buttons = [...choiceWrap.querySelectorAll('button')];
   function reflect() {
-    const t = ChestingTheme.current();
+    const t = STASHTheme.current();
     buttons.forEach((b) => b.classList.toggle('is-active', b.dataset.value === t));
   }
   reflect();
   buttons.forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.value !== ChestingTheme.current()) ChestingTheme.toggle();
+    if (b.dataset.value !== STASHTheme.current()) STASHTheme.toggle();
     reflect();
   }));
-  document.addEventListener('chesting:theme', reflect);
+  document.addEventListener('stash:theme', reflect);
 
-  const PAIR_KEY = 'chesting_sentiment_pair';
+  const PAIR_KEY = 'stash_sentiment_pair';
   const pairSelects = [...document.querySelectorAll('.pair-select')];
   function currentPair() {
     try { return localStorage.getItem(PAIR_KEY) || 'XAUUSD'; } catch (e) { return 'XAUUSD'; }
@@ -246,11 +246,11 @@
     const next = document.getElementById('newCode').value;
     const confirm = document.getElementById('confirmCode').value;
 
-    if (!(await ChestingAuth.checkCode(current))) { errEl.textContent = 'Code actuel incorrect.'; return; }
+    if (!(await STASHAuth.checkCode(current))) { errEl.textContent = 'Code actuel incorrect.'; return; }
     if (next.length < 4) { errEl.textContent = 'Le nouveau code doit faire au moins 4 caractères.'; return; }
     if (next !== confirm) { errEl.textContent = 'La confirmation ne correspond pas.'; return; }
 
-    await ChestingAuth.setCode(next);
+    await STASHAuth.setCode(next);
     form.reset();
     showToast('Code d\'accès mis à jour ✓');
   });

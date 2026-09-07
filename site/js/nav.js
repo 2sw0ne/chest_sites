@@ -27,15 +27,15 @@
 
     // Theme toggle button(s) — there may be one in the topbar.
     document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
-      const setIcon = () => { btn.textContent = ChestingTheme.current() === 'light' ? '🌙' : '☀️'; };
+      const setIcon = () => { btn.textContent = STASHTheme.current() === 'light' ? '🌙' : '☀️'; };
       setIcon();
-      btn.addEventListener('click', () => { ChestingTheme.toggle(); setIcon(); });
+      btn.addEventListener('click', () => { STASHTheme.toggle(); setIcon(); });
     });
 
     // Lock / logout button(s).
     document.querySelectorAll('[data-logout]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        ChestingAuth.lock();
+        STASHAuth.lock();
         window.location.href = 'index.html';
       });
     });

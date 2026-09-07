@@ -1,11 +1,11 @@
 """
-Chesting - calendrier economique, service Railway.
+STASH - calendrier economique, service Railway.
 
 Enveloppe HTTP minimale autour de fetch_calendar.build_calendar_data() :
 tourne en continu, relance le scraping une fois par jour en tache de fond,
 garde le dernier resultat en memoire et l'expose en lecture sur /calendar.json.
 
-Le reste du site Chesting reste local pour le moment (voir README.md) - ce
+Le reste du site STASH reste local pour le moment (voir README.md) - ce
 service ne fait que remplacer l'execution locale du script, pour que la
 fenetre Chrome (necessaire pour passer le blocage anti-bot d'investing.com,
 voir fetch_calendar.py) s'ouvre sur un ecran virtuel (Xvfb) que personne ne
@@ -27,7 +27,7 @@ from flask import Flask, jsonify, send_file
 
 import fetch_calendar
 
-REFRESH_SECONDS = int(os.environ.get("CHESTING_CALENDAR_REFRESH_SECONDS", 24 * 3600))
+REFRESH_SECONDS = int(os.environ.get("STASH_CALENDAR_REFRESH_SECONDS", 24 * 3600))
 
 app = Flask(__name__)
 state = {"data": None, "error": None}

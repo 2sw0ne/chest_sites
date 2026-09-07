@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const ACCOUNTS_KEY = 'chesting_accounts';
-  const ACTIVE_KEY = 'chesting_active_account';
+  const ACCOUNTS_KEY = 'stash_accounts';
+  const ACTIVE_KEY = 'stash_active_account';
 
   // Exemple de données — partagées par les comptes de démonstration.
   const SAMPLE_PERIODS = {
@@ -266,6 +266,6 @@
       morePanel.style.maxHeight = isOpen ? morePanel.scrollHeight + 'px' : '0px';
     });
 
-    document.addEventListener('chesting:theme', () => render(document.querySelector('#periodPills .is-active').dataset.period));
+    document.addEventListener('stash:theme', () => render(document.querySelector('#periodPills .is-active').dataset.period));
   });
 })();

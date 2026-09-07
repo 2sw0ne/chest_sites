@@ -8,7 +8,7 @@
 (() => {
   'use strict';
 
-  const KEY = 'chesting_backtests';
+  const KEY = 'stash_backtests';
 
   function list() {
     try {
@@ -49,5 +49,5 @@
     persist(list().filter((b) => b.id !== id));
   }
 
-  window.ChestingBacktests = { list, get, add, update, remove };
+  window.STASHBacktests = { list, get, add, update, remove };
 })();

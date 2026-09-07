@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pivot Scanner S/R — Chesting</title>
+<title>Pivot Scanner S/R — STASH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
@@ -61,14 +61,14 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>ChestingAuth.guard();</script>
+<script>STASHAuth.guard();</script>
 </head>
 <body data-page="strategies">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
@@ -87,7 +87,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
   </div>
 </header>
 
@@ -186,7 +186,7 @@
       <div class="card side-block">
         <div class="author">
           <div class="author__avatar">CH</div>
-          <div class="author__name">Chesting</div>
+          <div class="author__name">STASH</div>
           <button class="follow-btn">Suivre</button>
         </div>
         <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
@@ -203,7 +203,7 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="js/nav.js"></script>
@@ -257,7 +257,7 @@
     });
   }
   drawChart();
-  document.addEventListener('chesting:theme', drawChart);
+  document.addEventListener('stash:theme', drawChart);
 })();
 </script>
 </body>

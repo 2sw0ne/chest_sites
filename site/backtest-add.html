@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ajouter un backtest — Chesting</title>
+<title>Ajouter un backtest — STASH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
@@ -63,14 +63,14 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>ChestingAuth.guard();</script>
+<script>STASHAuth.guard();</script>
 </head>
 <body data-page="backtesting">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
@@ -89,7 +89,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>Chesting</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
   </div>
 </header>
 
@@ -222,7 +222,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">Chesting — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
 <script src="js/backtest-store.js"></script>
@@ -271,14 +271,14 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
     importResult.className = 'import-result';
     importErrors.style.display = 'none';
     try {
-      const { trades, errors, hasHeader, optionalColumnsFound, extraLabels } = await window.ChestingXlsxImport.parseXlsxFile(file);
+      const { trades, errors, hasHeader, optionalColumnsFound, extraLabels } = await window.STASHXlsxImport.parseXlsxFile(file);
       parsedTrades = trades;
       if (!trades.length) {
         importResult.textContent = "Aucune ligne exploitable trouvée dans ce fichier.";
         importResult.className = 'import-result err';
         dropzone.classList.remove('is-filled');
       } else {
-        const labels = window.ChestingXlsxImport.FIELD_LABELS;
+        const labels = window.STASHXlsxImport.FIELD_LABELS;
         const recognized = optionalColumnsFound.map((f) => labels[f] || f);
         const allExtra = [...recognized, ...extraLabels];
         const extra = allExtra.length ? ` — colonnes détectées en plus : ${allExtra.join(', ')}` : '';
@@ -329,8 +329,8 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
       }
       const capital = Number(document.getElementById('btCapital').value) || 10000;
       const best = account === 'cp'
-        ? window.ChestingBacktestEngine.optimizeCp(parsedTrades, capital)
-        : window.ChestingBacktestEngine.optimizePf(parsedTrades, capital);
+        ? window.STASHBacktestEngine.optimizeCp(parsedTrades, capital)
+        : window.STASHBacktestEngine.optimizePf(parsedTrades, capital);
       resultEl.style.display = 'block';
       if (!best) {
         resultEl.innerHTML = `<span class="warn">Aucun réglage de risque ne respecte les contraintes propfirm (5% DD journalier / 10% DD max) sur cet historique, même au risque minimal.</span>`;
@@ -382,7 +382,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
   let editingRecord = null;
   const editId = new URLSearchParams(window.location.search).get('edit');
   if (editId) {
-    editingRecord = window.ChestingBacktests.get(editId);
+    editingRecord = window.STASHBacktests.get(editId);
     if (editingRecord) {
       document.getElementById('pageTitle').textContent = 'Modifier le backtest';
       document.getElementById('pageSubtitle').textContent = "Modifie les informations de ce backtest. Le fichier déjà importé reste utilisé sauf si tu en glisses un nouveau.";
@@ -446,10 +446,10 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
     }
 
     if (editingRecord) {
-      window.ChestingBacktests.update(editingRecord.id, { title, description, capital, cp, pf, trades: parsedTrades });
+      window.STASHBacktests.update(editingRecord.id, { title, description, capital, cp, pf, trades: parsedTrades });
       window.location.href = `backtest-view.html?id=${encodeURIComponent(editingRecord.id)}`;
     } else {
-      const record = window.ChestingBacktests.add({ title, description, capital, cp, pf, trades: parsedTrades });
+      const record = window.STASHBacktests.add({ title, description, capital, cp, pf, trades: parsedTrades });
       window.location.href = `backtest-view.html?id=${encodeURIComponent(record.id)}`;
     }
   });

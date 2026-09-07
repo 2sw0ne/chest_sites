@@ -1,5 +1,5 @@
 """
-Chesting - calendrier economique (US / EU / UK / JP, impact eleve).
+STASH - calendrier economique (US / EU / UK / JP, impact eleve).
 
 Deux sources combinees, chacune pour ce qu'elle fait de mieux :
 
@@ -609,7 +609,7 @@ def fetch_investing_week():
             # avec le vrai Chrome installe (verifie le 2026-09-07) - seul un
             # lancement "visible" passe. En local (Windows), on utilise le
             # vrai Chrome installe (channel="chrome") ; sur Railway (Linux,
-            # via Xvfb - voir server.py), CHESTING_CHROME_CHANNEL="" fait
+            # via Xvfb - voir server.py), STASH_CHROME_CHANNEL="" fait
             # retomber sur le Chromium embarque par Playwright, pas besoin
             # d'installer Chrome dans le conteneur.
             #
@@ -623,7 +623,7 @@ def fetch_investing_week():
                 "headless": False,
                 "args": ["--disable-dev-shm-usage", "--disable-gpu"],
             }
-            chrome_channel = os.environ.get("CHESTING_CHROME_CHANNEL", "chrome")
+            chrome_channel = os.environ.get("STASH_CHROME_CHANNEL", "chrome")
             if chrome_channel:
                 launch_kwargs["channel"] = chrome_channel
             browser = p.chromium.launch(**launch_kwargs)
