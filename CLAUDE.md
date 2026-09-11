@@ -42,7 +42,7 @@ Hérité de l'outil de backtest existant de l'utilisateur (voir historique compl
 - Thème sombre par défaut : `#050505` (fond), `#0c0c0e` (panel) ; miroir clair : blanc/gris clair. Toggle persistant.
 - Dégradé de marque : rose `#ff3d7f` → violet `#c04dff`.
 - Police : Instrument Sans (Google Fonts).
-- Convention "eyebrow" numérotée pour les sections : `01 — Titre ————` (voir `.eyebrow` dans `tokens.css`).
+- Convention "eyebrow" numérotée pour les sections : `01 — Titre` (voir `.eyebrow` dans `tokens.css`) — la ligne qui suit est dessinée automatiquement par `.eyebrow::after`, ne jamais taper de tirets à la main dans le texte.
 - Convention couleur `.val`/`.val.pos` (vert `--green`)/`.val.neg` (rouge `--red`)/`.val.neutral` (gris `--muted`) — réutilisée partout (calendrier, backtest, dashboard).
 - Hero "plein écran toujours sombre" (breakout `width:100vw; margin-left:-50vw`, même trick que `.ticker-wrap`) utilisé pour la page de garde du calendrier ET celle d'un backtest — délibérément **non lié au thème du site** (reste sombre même en thème clair), pour matcher l'identité visuelle de SWYPER.
 - **Honnêteté radicale sur toute heuristique** : chaque estimation/biais/note affichée est explicitement labellisée "heuristique statistique, pas une prédiction garantie" (ou équivalent). Ne jamais présenter un calcul maison comme un vrai modèle prédictif entraîné.

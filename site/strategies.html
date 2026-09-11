@@ -64,7 +64,7 @@
   .pine__copy{ border:1px solid var(--line2); background:var(--bg); color:var(--muted); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
   .pine__copy:hover{ color:var(--ink); }
   .pine-code{ display:flex; overflow-x:auto; max-height:560px; overflow-y:auto; font-family:Menlo,'Ubuntu Mono',Consolas,monospace; font-size:12.5px; line-height:22px; }
-  .pine-lines{ padding:16px 14px 16px 18px; text-align:right; color:#6b6b72; user-select:none; border-right:1px solid var(--line); }
+  .pine-lines{ padding:16px 14px 16px 18px; text-align:right; color:var(--faint); user-select:none; border-right:1px solid var(--line); }
   .pine-body{ padding:16px 18px; white-space:pre; }
 
   .scnr-desc{ font-size:13px; color:var(--muted); line-height:1.6; padding:14px 18px 18px; }
@@ -158,7 +158,7 @@
   </div>
 
   <div class="card scnr-form" id="scnrForm" hidden>
-    <div class="eyebrow" style="margin-bottom:14px" id="scnrFormTitle">Nouveau scanner ————</div>
+    <div class="eyebrow" style="margin-bottom:14px" id="scnrFormTitle">Nouveau scanner</div>
     <div class="row2">
       <div><label for="sfName">Nom du scanner</label><input id="sfName" class="field" type="text" placeholder="ex. BE FR€E, Trend Wave…"></div>
       <div><label for="sfTags">Tags <span style="color:var(--faint);font-weight:500;text-transform:none">(séparés par une virgule)</span></label><input id="sfTags" class="field" type="text" placeholder="EMA, Momentum…"></div>
@@ -359,7 +359,7 @@
   // ================= Formulaire d'ajout / édition =================
   function openScannerForm(scanner) {
     editingId = scanner ? scanner.id : null;
-    document.getElementById('scnrFormTitle').textContent = scanner ? 'Modifier le scanner ————' : 'Nouveau scanner ————';
+    document.getElementById('scnrFormTitle').textContent = scanner ? 'Modifier le scanner' : 'Nouveau scanner';
     document.getElementById('sfName').value = scanner ? scanner.name : '';
     document.getElementById('sfTags').value = scanner ? (scanner.tags || []).join(', ') : '';
     document.getElementById('sfDesc').value = scanner ? scanner.description || '' : '';

@@ -533,7 +533,7 @@ if barstate.islast and showJournal
     // bloquer le reste : un souci ici ne doit pas empêcher le scanner de s'afficher.
     try {
       chart.renderer.applyConfig({
-        candles: { upColor: '#089981', downColor: '#ffffff', wickUpColor: '#089981', wickDownColor: '#ffffff' },
+        candles: { upColor: '#089981', downColor: '#f23645', wickUpColor: '#089981', wickDownColor: '#f23645' },
       });
     } catch (e) {
       console.warn('BERICH: couleurs de bougies non appliquées', e);

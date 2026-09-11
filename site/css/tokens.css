@@ -45,7 +45,8 @@ button,input{ font-family:inherit; }
 
 .container{ max-width:var(--container); margin:0 auto; padding:0 clamp(20px,5vw,56px); }
 
-/* eyebrow numbered section label, e.g. "01 — Modèles ————" */
+/* eyebrow numbered section label, e.g. "01 — Modèles" - the trailing line
+   is drawn automatically by ::after below, never type dashes in the text. */
 .eyebrow{
   display:flex; align-items:center; gap:16px;
   font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--muted);

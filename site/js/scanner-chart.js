@@ -75,6 +75,16 @@
 
     chart.registerEngine('pine', new PineEngine());
     await chart.addIndicator(pineSource);
+
+    // Memes couleurs de bougies que BERICH (berich-chart.js) - un seul et
+    // meme moteur de graphique, doit rendre pareil partout sur le site.
+    try {
+      chart.renderer.applyConfig({
+        candles: { upColor: '#089981', downColor: '#f23645', wickUpColor: '#089981', wickDownColor: '#f23645' },
+      });
+    } catch (e) {
+      console.warn('Scanner: couleurs de bougies non appliquees', e);
+    }
   }
 
   window.STASHScannerChart = { render };

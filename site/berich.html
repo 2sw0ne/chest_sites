@@ -108,8 +108,8 @@
   .side-pill-lg.sell{ color:var(--red); background:rgba(255,77,94,.16); }
   .big-trade-btn{ width:100%; max-width:270px; padding:20px; font-size:17px; font-weight:800; border-radius:var(--radius); border:none; cursor:pointer; color:#fff; letter-spacing:-.005em; transition:transform .15s; }
   .big-trade-btn:active{ transform:scale(.97); }
-  .big-trade-btn.buy{ background:linear-gradient(135deg,#1fbd88,#33e6a6); box-shadow:0 16px 36px rgba(51,230,166,.3); }
-  .big-trade-btn.sell{ background:linear-gradient(135deg,#ff4d5e,#ff7a86); box-shadow:0 16px 36px rgba(255,77,94,.3); }
+  .big-trade-btn.buy{ background:linear-gradient(135deg,#1fbd88,var(--green)); box-shadow:0 16px 36px rgba(51,230,166,.3); }
+  .big-trade-btn.sell{ background:linear-gradient(135deg,var(--red),#ff7a86); box-shadow:0 16px 36px rgba(255,77,94,.3); }
   .signal-hero__confirmed{ font-size:13px; font-weight:700; color:var(--green); text-align:center; }
 
   .signal-hero__info{ padding:26px 28px; border-left:1px solid var(--line); display:flex; flex-direction:column; gap:16px; }
@@ -220,7 +220,7 @@
       <a href="account.html#connexion" class="btn btn-secondary" style="padding:9px 18px;font-size:12.5px">Modifier la connexion</a>
     </div>
 
-    <div class="eyebrow">01 — Graphique ————</div>
+    <div class="eyebrow">01 — Graphique</div>
     <div class="card chart-wrap">
       <div class="chart-wrap__head">
         <span class="eyebrow" style="margin:0">Vue marché</span>
@@ -229,11 +229,14 @@
       <p class="chart-note" id="chartNote">XAU/USD uniquement pour l'instant — ton vrai script <b>BE FR€E</b> tourne réellement ici (PineTS + Vela, données Twelve Data), pas une recréation approximative. Seul le tableau de tendance multi-timeframe (cosmétique) est désactivé — trop lent à calculer sur des timeframes courts. La vraie détection de trade reste le webhook TradingView ci-dessous, pas ce graphique.</p>
     </div>
 
-    <div class="eyebrow" style="margin-top:28px">02 — Position ————</div>
+    <div class="eyebrow" style="margin-top:28px">02 — Position</div>
     <div class="card signal-hero" id="signalHero"></div>
 
     <div id="historyWrap" hidden>
-      <div class="eyebrow">Historique ————</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div class="eyebrow" style="margin-bottom:0;flex:1">Historique</div>
+        <a href="journal.html" style="font-size:12px;font-weight:600;color:var(--acc);text-decoration:none;white-space:nowrap">Journal complet →</a>
+      </div>
       <div class="card signal-card">
         <div id="signalHistoryList"></div>
       </div>
