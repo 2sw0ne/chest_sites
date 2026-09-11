@@ -45,6 +45,24 @@
   }
   .pair-select.is-active{ border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
   .pair-select:focus{ outline:none; border-color:var(--acc); }
+
+  .risk-mode-toggle{ margin-bottom:16px; }
+  .preset-list{ display:flex; flex-direction:column; gap:14px; margin-bottom:14px; }
+  .preset-card{ border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg); padding:16px; transition:border-color .2s, box-shadow .2s; }
+  .preset-card.is-active{ border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
+  .preset-card__radio{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .preset-card__radio input[type=radio]{ width:16px; height:16px; accent-color:var(--acc); flex-shrink:0; }
+  .preset-name{ flex:1; font-weight:700; font-size:14.5px; border:none; background:transparent; padding:4px 0; color:var(--ink); }
+  .preset-name:focus{ outline:none; border-bottom:1px solid var(--acc); }
+  .preset-card__risk{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .preset-card__risk label{ margin:0; white-space:nowrap; font-size:12.5px; }
+  .preset-card__risk .field{ max-width:90px; padding:8px 10px; }
+  .tiers-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+  .tier-row{ display:flex; align-items:center; gap:8px; font-size:12.5px; flex-wrap:wrap; color:var(--muted); }
+  .tier-row .field{ width:56px; padding:7px 8px; text-align:center; }
+  .tier-row .tier-remove{ margin-left:auto; padding:5px 9px; font-size:12px; }
+  .preset-card__actions{ display:flex; gap:10px; }
+  .preset-card__actions .btn{ padding:8px 14px; font-size:12px; }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
@@ -63,6 +81,7 @@
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
     <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
   </nav>
   <div class="sidebar__foot">
@@ -172,6 +191,49 @@
       </select>
     </div>
 
+    <div class="card settings-card" style="grid-column:1 / -1;" id="connexion">
+      <h2>Connexion trading (BERICH)</h2>
+      <p class="hint">Réglages de ton compte broker/propfirm pour BERICH — la première connexion se fait via l'assistant sur la page <a href="berich.html" style="color:var(--acc)">BERICH</a> (étape par étape), cette section sert seulement à modifier ce qui a déjà été renseigné. Le mot de passe reste stocké uniquement en local sur cet appareil, jamais envoyé nulle part.</p>
+      <form id="berichForm" class="form-stack" autocomplete="off">
+        <div>
+          <label for="berichBroker">Broker / Propfirm</label>
+          <select id="berichBroker" class="field"></select>
+          <input id="berichBrokerOther" class="field" type="text" placeholder="Nom du broker/propfirm" style="margin-top:8px;display:none">
+        </div>
+        <div>
+          <label for="berichServer">Serveur MT5</label>
+          <select id="berichServer" class="field"></select>
+          <input id="berichServerOther" class="field" type="text" placeholder="Nom exact du serveur" style="margin-top:8px;display:none">
+        </div>
+        <div>
+          <label for="berichLogin">Numéro de compte</label>
+          <input id="berichLogin" class="field" type="text" placeholder="ex. 5012345">
+        </div>
+        <div>
+          <label for="berichPassword">Mot de passe</label>
+          <input id="berichPassword" class="field" type="password">
+        </div>
+        <div>
+          <label>Gestion du risque</label>
+          <div class="pill-group risk-mode-toggle" id="riskModeToggle">
+            <button type="button" data-mode="manual" class="is-active">Manuel</button>
+            <button type="button" data-mode="preset">Préréglages</button>
+          </div>
+
+          <div id="riskManualBlock">
+            <label for="berichRisk">% de risque par trade</label>
+            <input id="berichRisk" class="field" type="number" min="0.1" max="20" step="0.1" value="1">
+          </div>
+
+          <div id="riskPresetBlock" style="display:none">
+            <div class="preset-list" id="presetList"></div>
+            <button type="button" class="btn btn-ghost" id="addPresetBtn">+ Ajouter un préréglage</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-secondary">Enregistrer la connexion</button>
+      </form>
+    </div>
+
     <div class="card settings-card" style="grid-column:1 / -1;">
       <h2>Code d'accès</h2>
       <p class="hint">Change le code qui protège l'accès à STASH sur cet appareil.</p>
@@ -202,6 +264,8 @@
 <footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
+<script src="js/berich-brokers.js"></script>
+<script src="js/berich-store.js"></script>
 <script>
 (() => {
   const choiceWrap = document.getElementById('themeChoice');
@@ -253,6 +317,169 @@
     await STASHAuth.setCode(next);
     form.reset();
     showToast('Code d\'accès mis à jour ✓');
+  });
+
+  const berichForm = document.getElementById('berichForm');
+  const berichBroker = document.getElementById('berichBroker');
+  const berichBrokerOther = document.getElementById('berichBrokerOther');
+  const berichServer = document.getElementById('berichServer');
+  const berichServerOther = document.getElementById('berichServerOther');
+  const berichLogin = document.getElementById('berichLogin');
+  const berichPassword = document.getElementById('berichPassword');
+  const berichRisk = document.getElementById('berichRisk');
+  const riskModeToggle = document.getElementById('riskModeToggle');
+  const riskManualBlock = document.getElementById('riskManualBlock');
+  const riskPresetBlock = document.getElementById('riskPresetBlock');
+  const presetList = document.getElementById('presetList');
+  const addPresetBtn = document.getElementById('addPresetBtn');
+
+  // ---------- Préréglages de risque (paliers après N SL — même logique que le backtesting) ----------
+  function buildTierRow(afterSl, newRisk) {
+    const row = document.createElement('div');
+    row.className = 'tier-row';
+    row.innerHTML = `Après <input type="number" min="1" step="1" class="field tier-after" value="${afterSl}"> SL consécutifs → risque <input type="number" min="0.1" step="0.1" class="field tier-risk" value="${newRisk}"> % <button type="button" class="btn btn-ghost tier-remove">✕</button>`;
+    row.querySelector('.tier-remove').addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  function buildPresetCard(preset, isActive) {
+    const card = document.createElement('div');
+    card.className = 'preset-card' + (isActive ? ' is-active' : '');
+    card.dataset.presetId = preset.id;
+    card.innerHTML = `
+      <label class="preset-card__radio">
+        <input type="radio" name="activePreset" value="${preset.id}" ${isActive ? 'checked' : ''}>
+        <input class="preset-name" type="text" value="${preset.name}">
+      </label>
+      <div class="preset-card__risk">
+        <label>Risque de base</label>
+        <input class="field preset-risk" type="number" min="0.1" step="0.1" value="${preset.risk}">
+        <span>%</span>
+      </div>
+      <div class="tiers-list" data-tiers="${preset.id}"></div>
+      <div class="preset-card__actions">
+        <button type="button" class="btn btn-ghost add-tier-btn">+ Ajouter un palier</button>
+        <button type="button" class="btn btn-ghost remove-preset-btn">Supprimer</button>
+      </div>`;
+
+    const tiersList = card.querySelector('.tiers-list');
+    (preset.tiers || []).forEach((t) => tiersList.appendChild(buildTierRow(t.afterSl, t.newRisk)));
+
+    card.querySelector('.add-tier-btn').addEventListener('click', () => {
+      tiersList.appendChild(buildTierRow(3, preset.risk));
+    });
+    card.querySelector('.remove-preset-btn').addEventListener('click', () => {
+      if (presetList.children.length <= 1) { showToast('Il faut garder au moins un préréglage.'); return; }
+      card.remove();
+    });
+    card.querySelector('input[type=radio]').addEventListener('change', () => {
+      [...presetList.querySelectorAll('.preset-card')].forEach((c) => c.classList.toggle('is-active', c === card));
+    });
+    return card;
+  }
+
+  function renderPresets(connection) {
+    presetList.innerHTML = '';
+    const presets = (connection && connection.presets && connection.presets.length) ? connection.presets : STASHBerich.defaultPresets();
+    const activeId = (connection && connection.activePresetId) || presets[0].id;
+    presets.forEach((p) => presetList.appendChild(buildPresetCard(p, p.id === activeId)));
+  }
+
+  addPresetBtn.addEventListener('click', () => {
+    const id = 'preset-' + Date.now();
+    presetList.appendChild(buildPresetCard({ id, name: 'Nouveau préréglage', risk: 1, tiers: [] }, false));
+  });
+
+  function readPresets() {
+    return [...presetList.querySelectorAll('.preset-card')].map((card) => ({
+      id: card.dataset.presetId,
+      name: card.querySelector('.preset-name').value.trim() || 'Préréglage',
+      risk: parseFloat(card.querySelector('.preset-risk').value) || 1,
+      tiers: [...card.querySelectorAll('.tier-row')].map((row) => ({
+        afterSl: parseInt(row.querySelector('.tier-after').value, 10) || 1,
+        newRisk: parseFloat(row.querySelector('.tier-risk').value) || 1,
+      })),
+    }));
+  }
+
+  function readActivePresetId() {
+    const checked = presetList.querySelector('input[type=radio]:checked');
+    return checked ? checked.value : null;
+  }
+
+  function setRiskMode(mode) {
+    [...riskModeToggle.querySelectorAll('button')].forEach((b) => b.classList.toggle('is-active', b.dataset.mode === mode));
+    riskManualBlock.style.display = mode === 'manual' ? '' : 'none';
+    riskPresetBlock.style.display = mode === 'preset' ? '' : 'none';
+  }
+
+  riskModeToggle.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => setRiskMode(b.dataset.mode)));
+
+  // ---------- Broker / serveur : liste guidée + "Autre" en secours ----------
+  function populateBrokerSelect(selectedName) {
+    const known = window.STASH_BROKERS.find((b) => b.name === selectedName);
+    berichBroker.innerHTML = window.STASH_BROKERS.map((b) => `<option value="${b.id}">${b.name}</option>`).join('')
+      + '<option value="other">Autre…</option>';
+    berichBroker.value = known ? known.id : 'other';
+    berichBrokerOther.style.display = known ? 'none' : 'block';
+    if (!known && selectedName) berichBrokerOther.value = selectedName;
+    populateServerSelect(known, known ? null : null);
+  }
+
+  function populateServerSelect(broker, selectedServer) {
+    const servers = broker ? broker.servers : [];
+    berichServer.innerHTML = servers.map((s) => `<option value="${s}">${s}</option>`).join('')
+      + '<option value="other">Autre…</option>';
+    const known = servers.includes(selectedServer);
+    berichServer.value = known ? selectedServer : 'other';
+    berichServerOther.style.display = known ? 'none' : 'block';
+    if (!known && selectedServer) berichServerOther.value = selectedServer;
+  }
+
+  berichBroker.addEventListener('change', () => {
+    const broker = window.STASH_BROKERS.find((b) => b.id === berichBroker.value);
+    berichBrokerOther.style.display = broker ? 'none' : 'block';
+    populateServerSelect(broker, null);
+  });
+  berichServer.addEventListener('change', () => {
+    berichServerOther.style.display = berichServer.value === 'other' ? 'block' : 'none';
+  });
+
+  function currentBrokerName() {
+    return berichBroker.value === 'other' ? berichBrokerOther.value.trim() : (window.STASH_BROKERS.find((b) => b.id === berichBroker.value) || {}).name;
+  }
+  function currentServerName() {
+    return berichServer.value === 'other' ? berichServerOther.value.trim() : berichServer.value;
+  }
+
+  const existingConn = STASHBerich.loadConnection();
+  populateBrokerSelect(existingConn ? existingConn.broker : null);
+  if (existingConn) {
+    const broker = window.STASH_BROKERS.find((b) => b.name === existingConn.broker);
+    if (broker) populateServerSelect(broker, existingConn.server);
+    berichLogin.value = existingConn.login || '';
+    berichPassword.value = existingConn.password || '';
+    berichRisk.value = existingConn.riskPercent || 1;
+  }
+  setRiskMode((existingConn && existingConn.riskMode) || 'manual');
+  renderPresets(existingConn);
+
+  berichForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const brokerName = currentBrokerName();
+    if (!brokerName) { showToast('Renseigne au moins le nom du broker/propfirm.'); return; }
+    const riskMode = riskModeToggle.querySelector('button.is-active').dataset.mode;
+    STASHBerich.saveConnection({
+      broker: brokerName,
+      server: currentServerName(),
+      login: berichLogin.value.trim(),
+      password: berichPassword.value,
+      riskPercent: parseFloat(berichRisk.value) || 1,
+      riskMode,
+      presets: readPresets(),
+      activePresetId: readActivePresetId(),
+    });
+    showToast('Connexion BERICH enregistrée ✓');
   });
 })();
 </script>

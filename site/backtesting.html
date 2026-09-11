@@ -21,9 +21,6 @@
   .bt-card__desc{ font-size:13px; color:var(--muted); line-height:1.6; margin:0 0 16px; }
   .bt-card__meta{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--faint); border-top:1px solid var(--line); padding-top:14px; }
   .bt-card__meta b{ color:var(--ink); }
-  .bt-card--add{ background:var(--line2); }
-  .bt-card--add .bt-card__inner{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:10px; min-height:180px; border:1px dashed var(--line2); background:transparent; }
-  .bt-card--add .plus{ font-size:26px; color:var(--muted); }
 
   .bt-card--custom{ display:block; overflow:visible; }
   .bt-card__hit{ position:absolute; inset:0; z-index:1; border-radius:inherit; }
@@ -47,6 +44,18 @@
 
   .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; margin-bottom:16px; }
   .back-link:hover{ color:var(--ink); }
+
+  .jr-mini-card{ display:block; text-decoration:none; color:var(--ink); border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel); padding:16px 18px; margin-bottom:24px; transition:border-color .2s, transform .2s; }
+  .jr-mini-card:hover{ border-color:var(--muted); transform:translateY(-1px); }
+  .jr-mini-card__head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .jr-mini-card__title{ display:block; font-size:14.5px; font-weight:700; }
+  .jr-mini-card__sub{ display:block; font-size:12px; color:var(--muted); margin-top:2px; }
+  .jr-mini-card__cta{ font-size:12px; font-weight:700; color:var(--acc); white-space:nowrap; }
+  .jr-mini-card__stats{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; padding-top:12px; border-top:1px solid var(--line); }
+  .jr-mini-stat span{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); margin-bottom:3px; }
+  .jr-mini-stat strong{ display:block; font-size:14.5px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .jr-mini-stat strong.pos{ color:var(--green); } .jr-mini-stat strong.neg{ color:var(--red); }
+  @media (max-width:560px){ .jr-mini-card__stats{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
@@ -65,6 +74,7 @@
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
     <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
   </nav>
   <div class="sidebar__foot">
@@ -82,10 +92,29 @@
 
 <main class="container">
   <a href="dashboard.html" class="back-link">← Dashboard</a>
-  <div class="page-head">
-    <h1>Backtesting</h1>
-    <p>Choisis l'algorithme à explorer. La liste s'agrandit à mesure que de nouveaux backtests sont ajoutés.</p>
+  <div class="page-head" style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <div>
+      <h1>Backtesting</h1>
+      <p>Choisis l'algorithme à explorer. La liste s'agrandit à mesure que de nouveaux backtests sont ajoutés.</p>
+    </div>
+    <a href="backtest-add.html" class="btn btn-primary" style="white-space:nowrap">+ Nouveau backtesting</a>
   </div>
+
+  <a href="journal.html" class="jr-mini-card" id="jrMiniCard">
+    <div class="jr-mini-card__head">
+      <div>
+        <span class="jr-mini-card__title">📔 Journal de trading</span>
+        <span class="jr-mini-card__sub">Toutes tes positions — live, backtest et manuelles — en un coup d'œil</span>
+      </div>
+      <span class="jr-mini-card__cta">Ouvrir →</span>
+    </div>
+    <div class="jr-mini-card__stats" id="jrMiniStats">
+      <div class="jr-mini-stat"><span>Winrate</span><strong data-mini="winrate">—</strong></div>
+      <div class="jr-mini-stat"><span>RR moyen</span><strong data-mini="rr">—</strong></div>
+      <div class="jr-mini-stat"><span>P&amp;L total</span><strong data-mini="pnl">—</strong></div>
+      <div class="jr-mini-stat"><span>Trades</span><strong data-mini="count">—</strong></div>
+    </div>
+  </a>
 
   <div class="bt-grid">
     <a href="backtesting-swyper.html" class="bt-card">
@@ -115,14 +144,6 @@
     </a>
 
     <div id="customBacktests"></div>
-
-    <a href="backtest-add.html" class="bt-card bt-card--add">
-      <div class="bt-card__inner">
-        <span class="plus">+</span>
-        <strong>Ajouter un backtest</strong>
-        <span style="font-size:12.5px;color:var(--muted)">Depuis ton propre journal de trading (Excel)</span>
-      </div>
-    </a>
   </div>
 </main>
 
@@ -130,9 +151,28 @@
 
 <script src="js/nav.js"></script>
 <script src="js/backtest-store.js"></script>
+<script src="js/berich-store.js"></script>
+<script src="js/journal-store.js"></script>
 <script>
 (() => {
   'use strict';
+  // Aperçu compact du journal — mêmes chiffres que sa barre de stats, en
+  // plus discret, pour donner une vue d'ensemble sans quitter le hub.
+  async function renderMiniJournal() {
+    if (!window.STASHJournal) return;
+    const rows = await STASHJournal.allEntries();
+    const s = STASHJournal.computeStats(rows);
+    const money = (v) => v == null ? '—' : (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const card = document.getElementById('jrMiniCard');
+    card.querySelector('[data-mini="winrate"]').textContent = s.winRatePct == null ? '—' : s.winRatePct + '%';
+    card.querySelector('[data-mini="rr"]').textContent = s.avgRR == null ? '—' : s.avgRR;
+    const pnlEl = card.querySelector('[data-mini="pnl"]');
+    pnlEl.textContent = money(s.totalPnl);
+    pnlEl.className = s.totalPnl > 0 ? 'pos' : s.totalPnl < 0 ? 'neg' : '';
+    card.querySelector('[data-mini="count"]').textContent = s.total;
+  }
+  renderMiniJournal();
+
   // Les cartes personnalisees doivent apparaitre comme cellules propres de
   // .bt-grid (une div englobante casserait le layout grid) : on remplace le
   // conteneur temporaire du HTML par un simple marqueur, et chaque rendu
@@ -160,6 +200,7 @@
             <div class="bt-card__menu">
               <button type="button" class="bt-card__menu-btn" data-menu-toggle aria-label="Options du backtest">⋮</button>
               <div class="bt-card__menu-list" data-menu-list hidden>
+                <a href="backtest-view.html?id=${encodeURIComponent(b.id)}">📔 Journal</a>
                 <a href="backtest-add.html?edit=${encodeURIComponent(b.id)}">Modifier</a>
                 <button type="button" class="danger" data-delete-id="${b.id}">Supprimer</button>
               </div>

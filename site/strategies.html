@@ -9,18 +9,77 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
 <style>
-  .strat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
-  .strat-card{ text-decoration:none; color:var(--ink); padding:22px 20px; display:flex; flex-direction:column; gap:14px; }
-  .strat-card__top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
-  .strat-card__icon{ font-size:22px; }
-  .tonal-badge{ font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:4px 9px; border-radius:6px; white-space:nowrap; }
-  .tonal-badge--blue{ background:rgba(41,98,255,.15); color:#5b8dff; }
-  .tonal-badge--gray{ background:rgba(150,150,150,.15); color:var(--muted); }
-  .strat-card__title{ font-size:16px; font-weight:700; letter-spacing:-.01em; margin:0; }
-  .strat-card__desc{ font-size:13px; color:var(--muted); line-height:1.55; margin:0; flex:1; }
-  .strat-card__tags{ display:flex; gap:6px; flex-wrap:wrap; }
-  .strat-card__tags span{ font-size:11px; padding:4px 9px; border-radius:6px; background:var(--panel-2); color:var(--blue); }
-  .strat-card--add{ align-items:center; justify-content:center; text-align:center; border:1px dashed var(--line2); background:transparent; min-height:170px; }
+  [hidden]{ display:none !important; }
+
+  .page-head.is-compact{ padding-bottom:20px; }
+  .page-head.is-compact h1{ font-size:26px; margin-bottom:0; }
+
+  /* ================= Barre de contrôle façon exemple ================= */
+  .scnr-topbar{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; padding:16px 18px; margin-bottom:18px; }
+  .scnr-field{ min-width:150px; }
+  .scnr-field label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  .scnr-field select{
+    width:100%; height:38px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); color:var(--ink);
+    font:inherit; font-size:12.5px; padding:0 10px; cursor:pointer;
+  }
+  .scnr-tf{ display:flex; height:38px; border:1px solid var(--line2); border-radius:9px; overflow:hidden; background:var(--bg); }
+  .scnr-tf button{ flex:1; border:none; background:transparent; color:var(--muted); font:inherit; font-size:11px; font-weight:800; cursor:pointer; padding:0 8px; }
+  .scnr-tf button + button{ border-left:1px solid var(--line2); }
+  .scnr-tf button.is-active{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; }
+  .scnr-actions{ display:flex; gap:8px; margin-left:auto; }
+
+  /* Sélecteur de scanner — même famille visuelle que le switcher de compte */
+  .scnr-combo{ position:relative; min-width:200px; }
+  .scnr-combo__trigger{
+    width:100%; height:38px; display:flex; align-items:center; gap:8px; border:1px solid var(--line2); border-radius:9px;
+    background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px; font-weight:700; padding:0 12px; cursor:pointer;
+  }
+  .scnr-combo__trigger .chev{ margin-left:auto; color:var(--muted); font-size:11px; font-weight:400; }
+  .scnr-menu{
+    position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:260px; background:var(--panel);
+    border:1px solid var(--line2); border-radius:var(--radius-sm); box-shadow:0 20px 48px rgba(0,0,0,.3); padding:6px; display:none;
+  }
+  .scnr-menu.is-open{ display:block; }
+  .scnr-menu__item{ display:flex; flex-direction:column; align-items:flex-start; gap:1px; width:100%; border:none; background:transparent; cursor:pointer; padding:8px 10px; border-radius:8px; text-align:left; font:inherit; color:var(--ink); }
+  .scnr-menu__item:hover{ background:var(--panel-2); }
+  .scnr-menu__item.is-active{ background:var(--panel-2); }
+  .scnr-menu__item strong{ font-size:12.5px; }
+  .scnr-menu__item span{ font-size:10.5px; color:var(--muted); }
+  .scnr-menu__divider{ height:1px; background:var(--line); margin:6px 4px; }
+  .scnr-menu__add{ color:var(--acc); font-weight:700; }
+
+  /* ================= Média : graphique / code ================= */
+  .scnr-media{ overflow:hidden; }
+  .scnr-media__tabs{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-bottom:1px solid var(--line); }
+  .scnr-tabbar{ display:inline-flex; gap:4px; background:var(--bg); padding:4px; border-radius:999px; }
+  .scnr-tabbar button{ border:none; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600; padding:7px 15px; border-radius:999px; background:transparent; color:var(--muted); }
+  .scnr-tabbar button.is-active{ background:var(--ink); color:var(--bg); }
+  .scnr-panel{ display:none; }
+  .scnr-panel.is-active{ display:block; }
+  #scnrChart{ height:min(70vh,620px); min-height:420px; }
+  .scanner-empty{ display:flex; align-items:center; justify-content:center; height:100%; min-height:420px; color:var(--muted); font-size:13.5px; text-align:center; padding:20px; }
+
+  .pine__head{ display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); }
+  .pine__head span{ font-size:13px; font-weight:600; color:var(--muted); display:flex; align-items:center; gap:8px; }
+  .pine__copy{ border:1px solid var(--line2); background:var(--bg); color:var(--muted); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+  .pine__copy:hover{ color:var(--ink); }
+  .pine-code{ display:flex; overflow-x:auto; max-height:560px; overflow-y:auto; font-family:Menlo,'Ubuntu Mono',Consolas,monospace; font-size:12.5px; line-height:22px; }
+  .pine-lines{ padding:16px 14px 16px 18px; text-align:right; color:#6b6b72; user-select:none; border-right:1px solid var(--line); }
+  .pine-body{ padding:16px 18px; white-space:pre; }
+
+  .scnr-desc{ font-size:13px; color:var(--muted); line-height:1.6; padding:14px 18px 18px; }
+  .scnr-tags{ display:flex; gap:6px; flex-wrap:wrap; padding:0 18px 18px; }
+  .scnr-tags span{ font-size:11px; padding:4px 9px; border-radius:6px; background:var(--panel-2); color:var(--blue); }
+
+  /* ================= Formulaire d'ajout ================= */
+  .scnr-form{ padding:22px 24px; margin-bottom:20px; }
+  .scnr-form label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  .scnr-form .row2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  .scnr-form .row3{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  @media (max-width:640px){ .scnr-form .row2,.scnr-form .row3{ grid-template-columns:1fr; } }
+  .scnr-form textarea{ width:100%; min-height:260px; font-family:Menlo,'Ubuntu Mono',Consolas,monospace; font-size:12.5px; line-height:1.6; padding:14px; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg); color:var(--ink); resize:vertical; }
+  .scnr-form textarea:focus{ outline:none; border-color:var(--acc); }
+  .scnr-form__actions{ display:flex; align-items:center; gap:10px; margin-top:16px; }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
@@ -39,6 +98,7 @@
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
     <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
   </nav>
   <div class="sidebar__foot">
@@ -55,26 +115,93 @@
 </header>
 
 <main class="container">
-  <div class="page-head">
+  <div class="page-head" id="pageHead">
     <h1>Stratégies</h1>
-    <p>Tes scanners et indicateurs, chacun avec son script et son explication complète — façon fiche TradingView.</p>
+    <p id="pageDesc">Tes scanners en libre service — le vrai script Pine, affiché en direct sur de vraies données, comme sur BERICH.</p>
   </div>
 
-  <div class="strat-grid">
-    <a href="strategy-example.html" class="strat-card card">
-      <div class="strat-card__top">
-        <span class="strat-card__icon">📍</span>
-        <span class="tonal-badge tonal-badge--blue">Publique</span>
+  <div class="scnr-topbar card">
+    <div class="scnr-field" style="min-width:220px">
+      <label>Scanner</label>
+      <div class="scnr-combo" id="scnrCombo">
+        <button type="button" class="scnr-combo__trigger" id="scnrTrigger"><span id="scnrTriggerLabel">—</span><span class="chev">▾</span></button>
+        <div class="scnr-menu" id="scnrMenu">
+          <div id="scnrMenuList"></div>
+          <div class="scnr-menu__divider"></div>
+          <button type="button" class="scnr-menu__item scnr-menu__add" id="scnrAddBtn"><strong>＋ Ajouter un scanner</strong></button>
+        </div>
       </div>
-      <h2 class="strat-card__title">Pivot Scanner S/R</h2>
-      <p class="strat-card__desc">Repère automatiquement les niveaux de support et résistance formés par les pivots récents et les trace sur le graphique.</p>
-      <div class="strat-card__tags"><span>Support &amp; Résistance</span><span>Pivots</span></div>
-    </a>
+    </div>
+    <div class="scnr-field">
+      <label>Marché</label>
+      <select id="scnrMarket"></select>
+    </div>
+    <div class="scnr-field">
+      <label>Paire</label>
+      <select id="scnrSymbol"></select>
+    </div>
+    <div class="scnr-field" style="min-width:260px">
+      <label>Unité de temps</label>
+      <div class="scnr-tf" id="scnrTimeframe">
+        <button type="button" data-tf="1">1m</button>
+        <button type="button" data-tf="5">5m</button>
+        <button type="button" data-tf="15" class="is-active">15m</button>
+        <button type="button" data-tf="30">30m</button>
+        <button type="button" data-tf="60">1h</button>
+        <button type="button" data-tf="240">4h</button>
+        <button type="button" data-tf="D">1D</button>
+      </div>
+    </div>
+    <div class="scnr-actions">
+      <button type="button" class="btn btn-ghost" id="scnrEditBtn" style="padding:9px 16px;font-size:12.5px">✎ Modifier</button>
+    </div>
+  </div>
 
-    <div class="strat-card card strat-card--add">
-      <span style="font-size:24px;color:var(--muted)">+</span>
-      <strong style="margin-top:8px">Ajouter un scanner</strong>
-      <span style="font-size:12.5px;color:var(--muted);margin-top:4px">Prochaine stratégie à documenter</span>
+  <div class="card scnr-form" id="scnrForm" hidden>
+    <div class="eyebrow" style="margin-bottom:14px" id="scnrFormTitle">Nouveau scanner ————</div>
+    <div class="row2">
+      <div><label for="sfName">Nom du scanner</label><input id="sfName" class="field" type="text" placeholder="ex. BE FR€E, Trend Wave…"></div>
+      <div><label for="sfTags">Tags <span style="color:var(--faint);font-weight:500;text-transform:none">(séparés par une virgule)</span></label><input id="sfTags" class="field" type="text" placeholder="EMA, Momentum…"></div>
+    </div>
+    <div class="row2">
+      <div><label for="sfDesc">Description</label><input id="sfDesc" class="field" type="text" placeholder="Ce que fait le scanner, en une phrase."></div>
+      <div class="row3" style="margin-bottom:0">
+        <div><label for="sfMarket">Marché par défaut</label><select id="sfMarket" class="field"></select></div>
+        <div><label for="sfSymbol">Paire par défaut</label><select id="sfSymbol" class="field"></select></div>
+        <div><label for="sfTimeframe">Unité par défaut</label><select id="sfTimeframe" class="field"></select></div>
+      </div>
+    </div>
+    <label for="sfPine">Script Pine (v5/v6) — ton vrai script, tel quel</label>
+    <textarea id="sfPine" spellcheck="false" placeholder="//@version=5&#10;indicator(&quot;Mon scanner&quot;, overlay=true)&#10;…"></textarea>
+    <div class="scnr-form__actions">
+      <button type="button" class="btn btn-secondary" id="sfSave">Enregistrer le scanner</button>
+      <button type="button" class="btn btn-ghost" id="sfCancel">Annuler</button>
+      <button type="button" class="btn btn-ghost" id="sfDelete" style="color:var(--red);margin-left:auto" hidden>Supprimer ce scanner</button>
+    </div>
+  </div>
+
+  <div class="card scnr-media" id="scnrMediaCard">
+    <div class="scnr-media__tabs">
+      <div class="scnr-tabbar" id="scnrTabs">
+        <button type="button" data-tab="chart" class="is-active">Graphique</button>
+        <button type="button" data-tab="code">Code source</button>
+        <button type="button" data-tab="about">À propos</button>
+      </div>
+    </div>
+    <div class="scnr-panel is-active" id="scnrPanelChart"><div id="scnrChart"></div></div>
+    <div class="scnr-panel pine" id="scnrPanelCode">
+      <div class="pine__head">
+        <span>📄 Pine Script®</span>
+        <button class="pine__copy" id="scnrCopyPine">Copier</button>
+      </div>
+      <div class="pine-code">
+        <div class="pine-lines" id="scnrPineLines"></div>
+        <div class="pine-body" id="scnrPineBody"></div>
+      </div>
+    </div>
+    <div class="scnr-panel" id="scnrPanelAbout">
+      <p class="scnr-desc" id="scnrAboutDesc"></p>
+      <div class="scnr-tags" id="scnrAboutTags"></div>
     </div>
   </div>
 </main>
@@ -82,5 +209,215 @@
 <footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
+<script src="js/config.js"></script>
+<script src="js/config.local.js"></script>
+<script src="js/scanner-store.js"></script>
+<script src="js/scanner-chart.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  // ================= Marchés / paires — mêmes listes que le Journal, avec
+  // conversion vers le format Twelve Data (BASE/QUOTE). Seules les paires qui
+  // se convertissent proprement sont proposées (USOIL et DXY ne sont pas de
+  // simples paires de devises — exclues pour l'instant plutôt que de risquer
+  // un symbole invalide). =================
+  function toTwelveDataSymbol(code) {
+    if (code.length === 6) return code.slice(0, 3) + '/' + code.slice(3);
+    if (code.endsWith('USD') && code.length > 3) return code.slice(0, -3) + '/USD';
+    return null;
+  }
+
+  const RAW_MARKETS = {
+    forex: { label: 'Forex', codes: [
+      'AUDCHF','AUDUSD','AUDCAD','AUDNZD','AUDJPY','EURGBP','EURCHF','EURUSD','EURCAD','EURAUD','EURNZD','EURJPY',
+      'GBPCHF','GBPUSD','GBPCAD','GBPAUD','GBPNZD','GBPJPY','USDCHF','USDCAD','USDJPY','NZDCHF','NZDUSD','NZDCAD',
+      'NZDJPY','CADCHF','CADJPY','CHFJPY',
+    ] },
+    commodities: { label: 'Matières premières', codes: ['XAUUSD', 'XAGUSD', 'XPTUSD'] },
+    crypto: { label: 'Crypto', codes: ['BTCUSD', 'ETHUSD', 'SOLUSD', 'XRPUSD', 'TRXUSD', 'DOGEUSD', 'LINKUSD', 'ADAUSD', 'UNIUSD', 'AVAXUSD'] },
+  };
+  const MARKETS = {};
+  Object.entries(RAW_MARKETS).forEach(([id, m]) => {
+    MARKETS[id] = { label: m.label, pairs: m.codes.map((code) => [code, toTwelveDataSymbol(code)]).filter(([, td]) => td) };
+  });
+
+  function populateMarketSelect(sel) {
+    sel.innerHTML = Object.entries(MARKETS).map(([id, m]) => `<option value="${id}">${m.label}</option>`).join('');
+  }
+  function populateSymbolSelect(sel, marketId, selected) {
+    const pairs = MARKETS[marketId] ? MARKETS[marketId].pairs : [];
+    sel.innerHTML = pairs.map(([code]) => `<option value="${code}" ${code === selected ? 'selected' : ''}>${code}</option>`).join('');
+  }
+  function twelveDataSymbolFor(marketId, code) {
+    const pair = (MARKETS[marketId] ? MARKETS[marketId].pairs : []).find((p) => p[0] === code);
+    return pair ? pair[1] : null;
+  }
+
+  populateMarketSelect(document.getElementById('scnrMarket'));
+  populateMarketSelect(document.getElementById('sfMarket'));
+  ['1', '5', '15', '30', '60', '240', 'D'].forEach((tf) => {
+    const label = tf === 'D' ? '1D' : (tf >= 60 ? (tf / 60) + 'h' : tf + 'm');
+    document.getElementById('sfTimeframe').innerHTML += `<option value="${tf}">${label}</option>`;
+  });
+
+  // ================= État =================
+  let currentScannerId = null;
+  let currentMarket = 'forex';
+  let currentSymbol = 'EURUSD';
+  let currentTimeframe = '15';
+  let editingId = null;
+
+  function activeScanner() { return STASHScanners.get(currentScannerId); }
+
+  function renderScannerMenu() {
+    const scanners = STASHScanners.list();
+    document.getElementById('scnrMenuList').innerHTML = scanners.map((s) => `
+      <button type="button" class="scnr-menu__item ${s.id === currentScannerId ? 'is-active' : ''}" data-pick-scanner="${s.id}">
+        <strong>${s.name}</strong><span>${(s.tags || []).join(' · ') || 'Scanner personnalisé'}</span>
+      </button>`).join('');
+    document.querySelectorAll('[data-pick-scanner]').forEach((btn) => btn.addEventListener('click', () => {
+      selectScanner(btn.dataset.pickScanner);
+      document.getElementById('scnrMenu').classList.remove('is-open');
+    }));
+  }
+
+  function selectScanner(id) {
+    const scanner = STASHScanners.get(id);
+    if (!scanner) return;
+    currentScannerId = id;
+    currentMarket = scanner.market || 'forex';
+    currentSymbol = scanner.defaultSymbol || (MARKETS[currentMarket].pairs[0] || [])[0];
+    currentTimeframe = scanner.defaultTimeframe || '15';
+
+    document.getElementById('scnrTriggerLabel').textContent = scanner.name;
+    document.getElementById('scnrMarket').value = currentMarket;
+    populateSymbolSelect(document.getElementById('scnrSymbol'), currentMarket, currentSymbol);
+    document.querySelectorAll('#scnrTimeframe button').forEach((b) => b.classList.toggle('is-active', b.dataset.tf === currentTimeframe));
+
+    document.getElementById('scnrAboutDesc').textContent = scanner.description || 'Pas de description.';
+    document.getElementById('scnrAboutTags').innerHTML = (scanner.tags || []).map((t) => `<span>${t}</span>`).join('');
+    const pineBody = document.getElementById('scnrPineBody');
+    pineBody.textContent = scanner.pineSource;
+    document.getElementById('scnrPineLines').innerHTML = Array.from({ length: scanner.pineSource.split('\n').length }, (_, i) => i + 1).join('<br>');
+
+    renderScannerMenu();
+    renderChart();
+  }
+
+  function renderChart() {
+    const scanner = activeScanner();
+    if (!scanner) return;
+    const twelveDataSymbol = twelveDataSymbolFor(currentMarket, currentSymbol);
+    STASHScannerChart.render({
+      containerId: 'scnrChart',
+      pineSource: scanner.pineSource,
+      symbolDisplay: currentSymbol,
+      twelveDataSymbol,
+      timeframe: currentTimeframe,
+    });
+  }
+
+  document.getElementById('scnrTrigger').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('scnrMenu').classList.toggle('is-open');
+  });
+  document.addEventListener('click', () => document.getElementById('scnrMenu').classList.remove('is-open'));
+  document.getElementById('scnrMenu').addEventListener('click', (e) => e.stopPropagation());
+
+  document.getElementById('scnrMarket').addEventListener('change', (e) => {
+    currentMarket = e.target.value;
+    currentSymbol = (MARKETS[currentMarket].pairs[0] || [])[0];
+    populateSymbolSelect(document.getElementById('scnrSymbol'), currentMarket, currentSymbol);
+    renderChart();
+  });
+  document.getElementById('scnrSymbol').addEventListener('change', (e) => {
+    currentSymbol = e.target.value;
+    renderChart();
+  });
+  document.getElementById('scnrTimeframe').querySelectorAll('button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentTimeframe = btn.dataset.tf;
+      document.querySelectorAll('#scnrTimeframe button').forEach((b) => b.classList.toggle('is-active', b === btn));
+      renderChart();
+    });
+  });
+
+  // ================= Onglets Graphique / Code / À propos =================
+  document.getElementById('scnrTabs').querySelectorAll('button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.getElementById('scnrTabs').querySelectorAll('button').forEach((b) => b.classList.toggle('is-active', b === btn));
+      ['chart', 'code', 'about'].forEach((tab) => {
+        document.getElementById('scnrPanel' + tab[0].toUpperCase() + tab.slice(1)).classList.toggle('is-active', tab === btn.dataset.tab);
+      });
+    });
+  });
+  document.getElementById('scnrCopyPine').addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('scnrPineBody').textContent).then(() => showToast('Script copié ✓'));
+  });
+
+  // ================= Formulaire d'ajout / édition =================
+  function openScannerForm(scanner) {
+    editingId = scanner ? scanner.id : null;
+    document.getElementById('scnrFormTitle').textContent = scanner ? 'Modifier le scanner ————' : 'Nouveau scanner ————';
+    document.getElementById('sfName').value = scanner ? scanner.name : '';
+    document.getElementById('sfTags').value = scanner ? (scanner.tags || []).join(', ') : '';
+    document.getElementById('sfDesc').value = scanner ? scanner.description || '' : '';
+    document.getElementById('sfMarket').value = scanner ? scanner.market : 'forex';
+    populateSymbolSelect(document.getElementById('sfSymbol'), document.getElementById('sfMarket').value, scanner ? scanner.defaultSymbol : null);
+    document.getElementById('sfTimeframe').value = scanner ? scanner.defaultTimeframe : '15';
+    document.getElementById('sfPine').value = scanner ? scanner.pineSource : '';
+    document.getElementById('sfDelete').hidden = !scanner;
+    document.getElementById('scnrForm').hidden = false;
+    document.getElementById('scnrForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  document.getElementById('sfMarket').addEventListener('change', (e) => {
+    populateSymbolSelect(document.getElementById('sfSymbol'), e.target.value, null);
+  });
+  document.getElementById('scnrAddBtn').addEventListener('click', () => {
+    document.getElementById('scnrMenu').classList.remove('is-open');
+    openScannerForm(null);
+  });
+  document.getElementById('scnrEditBtn').addEventListener('click', () => {
+    const scanner = activeScanner();
+    if (scanner) openScannerForm(scanner);
+  });
+  document.getElementById('sfCancel').addEventListener('click', () => { document.getElementById('scnrForm').hidden = true; });
+  document.getElementById('sfDelete').addEventListener('click', () => {
+    if (!editingId) return;
+    if (!confirm('Supprimer ce scanner ?')) return;
+    STASHScanners.remove(editingId);
+    document.getElementById('scnrForm').hidden = true;
+    const remaining = STASHScanners.list();
+    if (remaining.length) selectScanner(remaining[0].id);
+  });
+  document.getElementById('sfSave').addEventListener('click', () => {
+    const name = document.getElementById('sfName').value.trim();
+    const pineSource = document.getElementById('sfPine').value.trim();
+    if (!name) { showToast('Donne un nom à ce scanner.'); return; }
+    if (!pineSource) { showToast('Colle le script Pine du scanner.'); return; }
+    const scanner = {
+      name,
+      description: document.getElementById('sfDesc').value.trim(),
+      tags: document.getElementById('sfTags').value.split(',').map((t) => t.trim()).filter(Boolean),
+      market: document.getElementById('sfMarket').value,
+      defaultSymbol: document.getElementById('sfSymbol').value,
+      defaultTimeframe: document.getElementById('sfTimeframe').value,
+      pineSource,
+    };
+    let record;
+    if (editingId) record = STASHScanners.update(editingId, scanner);
+    else record = STASHScanners.add(scanner);
+    document.getElementById('scnrForm').hidden = true;
+    showToast(editingId ? 'Scanner modifié ✓' : 'Scanner ajouté ✓');
+    selectScanner(record.id);
+  });
+
+  // ================= Démarrage =================
+  const scanners = STASHScanners.list();
+  renderScannerMenu();
+  if (scanners.length) selectScanner(scanners[0].id);
+})();
+</script>
 </body>
 </html>

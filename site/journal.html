@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Journal de trading — STASH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  /* Filet de sécurité : sans ça, une règle de classe qui fixe elle-même
+     `display` (ex. .jr-empty-view{display:flex}) a la même spécificité que
+     le [hidden]{display:none} par défaut du navigateur et, étant déclarée
+     après, l'emporte — l'élément reste visible même avec l'attribut hidden.
+     Vécu en vrai sur Safari : #jrEmptyView restait affiché sous le dashboard. */
+  [hidden]{ display:none !important; }
+
+  .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; margin-bottom:16px; }
+  .back-link:hover{ color:var(--ink); }
+
+  /* ================= Verrou : pas de compte = pas de journal ================= */
+  /* Page 1 — rien d'autre qu'un lien de création, pas de carte/texte en plus */
+  .jr-empty-view{ display:flex; justify-content:center; padding:min(18vh,140px) 20px; }
+
+  /* Une fois un compte actif (page 2/3), le gros bloc de titre n'a plus lieu
+     d'être — juste le titre, et le dashboard commence tout de suite après. */
+  .page-head.is-compact{ padding-bottom:20px; }
+  .page-head.is-compact h1{ font-size:26px; margin-bottom:0; }
+
+  /* ================= Sélecteur de compte (façon Dashboard) ================= */
+  .jr-acc-bar{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+  .jr-acc-switcher{ position:relative; }
+  .jr-acc-switcher__btn{
+    display:flex; align-items:center; gap:12px; border:1px solid var(--line2); background:var(--panel);
+    border-radius:var(--radius-sm); padding:10px 14px; cursor:pointer; color:var(--ink); font:inherit;
+  }
+  .jr-acc-avatar{ width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,var(--acc),var(--acc2)); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; overflow:hidden; }
+  .jr-acc-avatar img{ width:100%; height:100%; object-fit:contain; }
+  .jr-acc-meta{ text-align:left; }
+  .jr-acc-meta strong{ display:block; font-size:13.5px; font-weight:700; }
+  .jr-acc-meta span{ display:block; font-size:11px; color:var(--muted); }
+  .jr-acc-switcher__btn .chev{ margin-left:6px; color:var(--muted); font-size:11px; }
+  .jr-acc-menu{
+    position:absolute; top:calc(100% + 8px); left:0; z-index:40; width:280px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
+    box-shadow:0 24px 60px rgba(0,0,0,.4); padding:8px; display:none;
+  }
+  .jr-acc-menu.is-open{ display:block; }
+  .jr-acc-menu__item{
+    display:flex; align-items:center; gap:10px; width:100%; border:none; background:transparent; cursor:pointer;
+    padding:9px 10px; border-radius:9px; color:var(--ink); font:inherit; text-align:left;
+  }
+  .jr-acc-menu__item:hover{ background:var(--panel-2); }
+  .jr-acc-menu__item .jr-acc-avatar{ width:26px; height:26px; font-size:10.5px; }
+  .jr-acc-menu__item strong{ display:block; font-size:13px; }
+  .jr-acc-menu__item span{ display:block; font-size:10.5px; color:var(--muted); }
+  .jr-acc-menu__divider{ height:1px; background:var(--line); margin:6px 4px; }
+  .jr-acc-menu__add{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--acc); }
+
+  /* ================= Conditions (façon Trading Objectives du Dashboard) ================= */
+  .jr-cond-card{ padding:20px 22px; margin-bottom:20px; }
+  .jr-cond-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); }
+  .jr-cond-row:last-child{ border-bottom:none; }
+  .jr-cond-row .label{ font-size:12.5px; color:var(--muted); }
+  .jr-cond-row .label b{ display:block; font-size:13.5px; color:var(--ink); font-weight:700; }
+  .jr-cond-row .value{ text-align:right; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .jr-cond-row .value.pos{ color:var(--green); } .jr-cond-row .value.neg{ color:var(--red); }
+  .jr-cond-check{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-left:10px; }
+  .jr-cond-check.ok{ background:rgba(51,230,166,.16); color:var(--green); }
+  .jr-cond-check.ko{ background:rgba(255,77,94,.16); color:var(--red); }
+  .jr-cond-row__wrap{ display:flex; align-items:center; }
+
+  .jr-stats{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:20px; }
+  @media (max-width:700px){ .jr-stats{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .jr-stat{ position:relative; overflow:hidden; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel); padding:16px 18px; }
+  .jr-stat::before{ content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--line2); }
+  .jr-stat--win::before{ background:var(--green); } .jr-stat--rr::before{ background:var(--blue); }
+  .jr-stat--pnl::before{ background:linear-gradient(90deg,var(--acc),var(--acc2)); } .jr-stat--count::before{ background:var(--amber); }
+  .jr-stat span{ display:block; font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+  .jr-stat strong{ display:block; font-size:22px; font-weight:700; letter-spacing:-.01em; }
+  .jr-stat strong.pos{ color:var(--green); } .jr-stat strong.neg{ color:var(--red); }
+  .jr-stat .jr-stat__sub{ display:block; font-size:11.5px; color:var(--muted); font-weight:600; margin-top:3px; }
+
+  .jr-toolbar{ display:flex; align-items:center; justify-content:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+
+  /* ================= Formulaire — grille compacte, hauteur uniforme ================= */
+  .jr-form{ padding:22px 24px; margin-bottom:20px; }
+  .jr-form label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:5px; }
+  .jr-form__actions{ display:flex; align-items:center; gap:10px; margin-top:20px; }
+
+  .jr-cell input{ width:100%; height:38px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px; padding:0 11px; transition:border-color .15s, box-shadow .15s; }
+  .jr-cell input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(255,61,127,.14); }
+  .jr-readonly{ height:38px; display:flex; align-items:center; padding:0 11px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; transition:box-shadow .2s, border-color .2s; }
+  .jr-readonly.pos{ color:var(--green); border-color:rgba(51,230,166,.35); box-shadow:0 0 16px rgba(51,230,166,.12) inset; }
+  .jr-readonly.neg{ color:var(--red); border-color:rgba(255,77,94,.35); box-shadow:0 0 16px rgba(255,77,94,.12) inset; }
+
+  .jr-row-top{ display:grid; grid-template-columns:1fr .65fr .95fr 1fr 1.25fr; gap:10px; margin-bottom:14px; }
+  @media (max-width:860px){ .jr-row-top{ grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:520px){ .jr-row-top{ grid-template-columns:repeat(2,1fr); } }
+  .jr-row2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+  .jr-row2.is-single{ grid-template-columns:1fr; }
+  @media (max-width:560px){ .jr-row2{ grid-template-columns:1fr; } }
+
+  /* Segmenté générique (Reward, unité de risque, type de compte, connexion) */
+  .jr-segmented{ display:flex; height:38px; border:1px solid var(--line2); border-radius:9px; overflow:hidden; background:var(--bg); }
+  .jr-segmented button{ flex:1; border:none; background:transparent; color:var(--muted); font:inherit; font-size:11px; font-weight:800; letter-spacing:.02em; cursor:pointer; transition:.15s; white-space:nowrap; }
+  .jr-segmented button + button{ border-left:1px solid var(--line2); }
+  .jr-segmented button.is-active[data-reward="TP"]{ background:rgba(51,230,166,.18); color:var(--green); box-shadow:0 0 12px rgba(51,230,166,.18) inset; }
+  .jr-segmented button.is-active[data-reward="BE"]{ background:var(--panel-2); color:var(--ink); }
+  .jr-segmented button.is-active[data-reward="SL"]{ background:rgba(255,77,94,.18); color:var(--red); box-shadow:0 0 12px rgba(255,77,94,.18) inset; }
+  .jr-segmented button.is-active[data-unit], .jr-segmented button.is-active[data-type], .jr-segmented button.is-active[data-conn]{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; }
+
+  /* Interrupteur Direction — une "lumière" allumée d'un côté */
+  .jr-lightswitch{ display:flex; height:38px; border-radius:9px; overflow:hidden; border:1px solid var(--line2); background:var(--bg); }
+  .jr-lightswitch button{ flex:1; border:none; background:transparent; color:var(--faint); font:inherit; font-size:11.5px; font-weight:800; letter-spacing:.03em; cursor:pointer; transition:background .2s, color .2s, box-shadow .2s, opacity .2s; opacity:.5; }
+  .jr-lightswitch button.is-active{ opacity:1; }
+  .jr-lightswitch button.is-active[data-side="buy"]{ background:linear-gradient(135deg,#1fbd88,var(--green)); color:#052018; box-shadow:0 0 20px rgba(51,230,166,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+  .jr-lightswitch button.is-active[data-side="sell"]{ background:linear-gradient(135deg,#ff4d5e,#ff7a86); color:#2a0508; box-shadow:0 0 20px rgba(255,77,94,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+
+  /* Combobox générique (paire, confirmations, propfirm) */
+  .jr-combo{ position:relative; min-width:0; }
+  .jr-combo__trigger{
+    width:100%; height:38px; text-align:left; display:flex; align-items:center; gap:6px; overflow:hidden;
+    border:1px solid var(--line2); border-radius:9px; background:var(--bg); color:var(--ink);
+    font:inherit; font-size:12.5px; padding:0 11px; cursor:pointer; transition:border-color .15s;
+  }
+  .jr-combo__trigger:hover{ border-color:var(--muted); }
+  .jr-combo__trigger img{ width:16px; height:16px; border-radius:4px; flex-shrink:0; }
+  .jr-combo__trigger .placeholder{ color:var(--faint); }
+  .jr-combo__panel{
+    position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:100%; min-width:260px;
+    background:var(--panel); border:1px solid var(--line2); border-radius:var(--radius-sm);
+    box-shadow:0 20px 48px rgba(0,0,0,.28); overflow:hidden;
+  }
+  .jr-combo__search{ width:100%; border:none; border-bottom:1px solid var(--line); background:transparent; padding:10px 12px; font:inherit; font-size:12.5px; color:var(--ink); }
+  .jr-combo__search:focus{ outline:none; }
+  .jr-combo__list{ max-height:230px; overflow-y:auto; padding:6px; }
+  .jr-combo__group-label{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); padding:8px 8px 4px; }
+  .jr-combo__row{ display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; cursor:pointer; font-size:12.5px; }
+  .jr-combo__row:hover{ background:var(--panel-2); }
+  .jr-combo__row img{ width:18px; height:18px; border-radius:4px; flex-shrink:0; }
+  .jr-combo__row > span:first-of-type{ flex:1; }
+  .jr-combo__star{ flex-shrink:0; border:none; background:transparent; color:var(--faint); font-size:13px; cursor:pointer; padding:2px 4px; }
+  .jr-combo__star:hover{ color:var(--amber); }
+  .jr-combo__star.is-fav{ color:var(--amber); }
+  .jr-combo__row-check{ flex-shrink:0; width:14px; color:var(--acc); font-size:12px; }
+  .jr-combo__create{ display:flex; align-items:center; gap:6px; padding:8px; margin-top:2px; border-top:1px solid var(--line); color:var(--acc); font-size:12.5px; cursor:pointer; border-radius:8px; }
+  .jr-combo__create:hover{ background:var(--panel-2); }
+  .jr-combo__empty{ padding:12px 8px; color:var(--muted); font-size:12px; text-align:center; }
+
+  .jr-chip{ display:inline-flex; align-items:center; font-size:11px; font-weight:600; padding:3px 8px; border-radius:var(--radius-pill); background:var(--panel-2); color:var(--ink); border:1px solid var(--line2); }
+
+  .jr-plus-toggle{
+    display:inline-flex; align-items:center; gap:5px; background:transparent; border:none; color:var(--acc);
+    cursor:pointer; font:inherit; font-size:11.5px; font-weight:600; padding:2px 0; margin-bottom:12px;
+  }
+  .jr-plus-toggle .chev{ transition:transform .25s var(--ease); font-size:9px; }
+  .jr-plus-toggle.is-open .chev{ transform:rotate(180deg); }
+  .jr-collapse{ max-height:0; overflow:hidden; transition:max-height .3s var(--ease); }
+
+  .jr-rules-note{ font-size:12px; color:var(--muted); line-height:1.5; padding:10px 12px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); margin-bottom:12px; }
+  .jr-rules-note b{ color:var(--ink); }
+
+  /* ================= Sélecteur de date façon TradingView ================= */
+  .jr-date-combo, .jr-time-combo{ position:relative; min-width:0; }
+  .jr-date-trigger, .jr-time-trigger{ text-align:left; }
+  .jr-date-panel{
+    position:absolute; z-index:45; top:calc(100% + 6px); left:0; width:266px;
+    background:var(--panel); border:1px solid var(--line2); border-radius:var(--radius-sm);
+    box-shadow:0 20px 48px rgba(0,0,0,.32); padding:14px;
+  }
+  .jr-date-panel__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .jr-date-panel__title{ font-size:12.5px; font-weight:700; }
+  .jr-date-nav{ width:24px; height:24px; border-radius:7px; border:1px solid var(--line2); background:var(--bg); color:var(--muted); cursor:pointer; font-size:12px; line-height:1; }
+  .jr-date-nav:hover{ color:var(--ink); border-color:var(--muted); }
+  .jr-date-panel__weekdays, .jr-date-panel__grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .jr-date-panel__weekdays span{ text-align:center; font-size:9.5px; color:var(--faint); text-transform:uppercase; padding-bottom:6px; }
+  .jr-date-cell{ aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:12px; cursor:pointer; color:var(--ink); background:transparent; border:none; font:inherit; }
+  .jr-date-cell:not(:disabled):hover{ background:var(--panel-2); }
+  .jr-date-cell.is-muted{ color:var(--faint); cursor:default; }
+  .jr-date-cell.is-today{ box-shadow:inset 0 0 0 1px var(--line2); }
+  .jr-date-cell.is-selected{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; font-weight:700; box-shadow:0 0 14px rgba(255,61,127,.35); }
+
+  /* ================= Sélecteur d'heure façon roue iPhone ================= */
+  .jr-time-panel{
+    position:absolute; z-index:45; top:calc(100% + 6px); left:0; width:190px;
+    background:var(--panel); border:1px solid var(--line2); border-radius:var(--radius-sm);
+    box-shadow:0 20px 48px rgba(0,0,0,.32); padding:12px;
+  }
+  .jr-time-panel__wheels{ position:relative; display:flex; align-items:center; justify-content:center; gap:4px; height:180px; }
+  .jr-wheel{ width:60px; height:180px; overflow-y:scroll; scroll-snap-type:y mandatory; -ms-overflow-style:none; scrollbar-width:none; -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 34%, #000 66%, transparent 100%); mask-image:linear-gradient(to bottom, transparent 0, #000 34%, #000 66%, transparent 100%); }
+  .jr-wheel::-webkit-scrollbar{ display:none; }
+  .jr-wheel__pad{ height:72px; flex-shrink:0; }
+  .jr-wheel__item{ height:36px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center; font-size:15px; color:var(--faint); font-variant-numeric:tabular-nums; transition:color .15s, font-size .15s; cursor:pointer; }
+  .jr-wheel__item.is-active{ color:var(--ink); font-size:19px; font-weight:700; }
+  .jr-time-panel__colon{ font-size:18px; font-weight:700; color:var(--ink); flex-shrink:0; }
+  .jr-time-panel__sep{ position:absolute; left:4px; right:4px; top:72px; height:36px; pointer-events:none; border-top:1px solid var(--line2); border-bottom:1px solid var(--line2); background:rgba(255,61,127,.05); border-radius:8px; }
+  .jr-time-ok{ width:100%; margin-top:10px; padding:8px; font-size:12px; }
+
+  /* ================= Tableau ================= */
+  .jr-table-wrap{ overflow-x:auto; }
+  table.jr-table{ width:100%; border-collapse:collapse; font-size:13px; min-width:700px; }
+  table.jr-table th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:0 10px 10px; border-bottom:1px solid var(--line2); white-space:nowrap; }
+  table.jr-table td{ padding:12px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  table.jr-table tr:last-child td{ border-bottom:none; }
+  table.jr-table tbody tr{ transition:background .15s; }
+  table.jr-table tbody tr:hover{ background:var(--bg); }
+  .jr-side{ font-size:10.5px; font-weight:700; text-transform:uppercase; padding:3px 8px; border-radius:var(--radius-pill); white-space:nowrap; }
+  .jr-side.buy{ color:var(--green); background:rgba(51,230,166,.14); }
+  .jr-side.sell{ color:var(--red); background:rgba(255,77,94,.14); }
+  .jr-result{ font-size:11px; font-weight:700; padding:3px 8px; border-radius:var(--radius-pill); white-space:nowrap; }
+  .jr-result.tp{ color:var(--green); background:rgba(51,230,166,.14); }
+  .jr-result.sl{ color:var(--red); background:rgba(255,77,94,.14); }
+  .jr-result.be{ color:var(--muted); background:var(--panel-2); }
+  .jr-result.open{ color:var(--blue); background:rgba(77,141,255,.14); }
+  .jr-source{ font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+  .jr-rr{ font-weight:700; font-variant-numeric:tabular-nums; }
+  .jr-rr.pos{ color:var(--green); } .jr-rr.neg{ color:var(--red); }
+  .jr-pnl{ font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .jr-pnl.pos{ color:var(--green); font-weight:700; } .jr-pnl.neg{ color:var(--red); font-weight:700; }
+  .jr-tags{ display:flex; gap:4px; flex-wrap:wrap; max-width:180px; }
+  .jr-notes{ max-width:200px; color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .jr-chart-link{ color:var(--acc); text-decoration:none; font-size:14px; }
+  .jr-row-actions{ white-space:nowrap; }
+  .jr-row-actions button{ border:none; background:transparent; color:var(--muted); cursor:pointer; font-size:13px; padding:4px 6px; }
+  .jr-row-actions button:hover{ color:var(--red); }
+  .jr-empty{ text-align:center; padding:50px 20px; color:var(--muted); font-size:13.5px; }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>STASHAuth.guard();</script>
+</head>
+<body data-page="backtesting">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+  </div>
+</header>
+
+<main class="container">
+  <a href="backtesting.html" class="back-link">← Backtesting</a>
+  <div class="page-head" id="jrPageHead">
+    <h1>Journal de trading</h1>
+    <p id="jrPageDesc">Toutes tes positions au même endroit — prises via BERICH ou ajoutées à la main.</p>
+  </div>
+
+  <!-- ============ Page 1 : aucun compte — rien d'autre qu'un lien ============ -->
+  <div class="jr-empty-view" id="jrEmptyView">
+    <a href="#" class="btn btn-primary" id="jrEmptyLink">+ Créer un compte</a>
+  </div>
+
+  <!-- ============ Page 2 : création / édition de compte ============ -->
+  <div class="card jr-form" id="jrAccountForm" hidden>
+      <div class="eyebrow" style="margin-bottom:14px" id="jrAccFormTitle">Nouveau compte ————</div>
+
+      <div class="jr-row2">
+        <div class="jr-cell"><label for="jaName">Nom du compte</label><input id="jaName" type="text" placeholder="ex. FTMO 100K"></div>
+        <div class="jr-cell">
+          <label>Type</label>
+          <div class="jr-segmented" id="jaTypeToggle">
+            <button type="button" data-type="own" class="is-active">Compte propre</button>
+            <button type="button" data-type="propfirm">Propfirm</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="jaBalanceRow" class="jr-row2">
+        <div class="jr-combo" id="jaPropfirmCombo" hidden>
+          <label for="jaPropfirmTrigger">Propfirm</label>
+          <button type="button" class="jr-combo__trigger" id="jaPropfirmTrigger"><span class="placeholder">Choisir…</span></button>
+          <div class="jr-combo__panel" id="jaPropfirmPanel" hidden>
+            <div class="jr-combo__list" id="jaPropfirmList"></div>
+          </div>
+        </div>
+        <div class="jr-cell"><label for="jaBalance">Solde du compte ($)</label><input id="jaBalance" type="number" step="any" placeholder="10000"></div>
+      </div>
+
+      <div id="jaRulesNote" class="jr-rules-note" hidden></div>
+      <div id="jaRulesRow" class="jr-row-top" style="grid-template-columns:repeat(4,1fr)" hidden>
+        <div class="jr-cell"><label>Perte / jour max (%)</label><input id="jaDailyLoss" type="number" step="any"></div>
+        <div class="jr-cell"><label>Perte totale max (%)</label><input id="jaMaxLoss" type="number" step="any"></div>
+        <div class="jr-cell"><label>Objectif profit (%)</label><input id="jaProfitTarget" type="number" step="any"></div>
+        <div class="jr-cell"><label>Jours min.</label><input id="jaMinDays" type="number" step="1"></div>
+      </div>
+
+      <div class="jr-row2">
+        <div class="jr-cell">
+          <label>Risque par défaut</label>
+          <div style="display:flex;gap:6px">
+            <input id="jaRiskValue" type="number" step="any" style="flex:1" value="1">
+            <div class="jr-segmented" id="jaRiskUnitToggle" style="width:84px;flex-shrink:0">
+              <button type="button" data-unit="pct" class="is-active">%</button>
+              <button type="button" data-unit="usd">$</button>
+            </div>
+          </div>
+        </div>
+        <div class="jr-cell">
+          <label>Connexion</label>
+          <div class="jr-segmented" id="jaConnToggle">
+            <button type="button" data-conn="manual" class="is-active">Réel (manuel)</button>
+            <button type="button" data-conn="mt5">Auto (MT5)</button>
+          </div>
+        </div>
+      </div>
+      <p id="jaMt5Note" class="jr-rules-note" hidden>Bientôt — nécessitera un pont local dédié au journal (comme <code>mt5-bridge/export_mt5.py</code>, mais distinct de celui du Dashboard). En attendant, ce compte reste en saisie manuelle.</p>
+
+      <div class="jr-form__actions">
+        <button type="button" class="btn btn-secondary" id="jaSave">Enregistrer le compte</button>
+        <button type="button" class="btn btn-ghost" id="jaCancel">Annuler</button>
+        <button type="button" class="btn btn-ghost" id="jaDelete" style="color:var(--red);margin-left:auto" hidden>Supprimer ce compte</button>
+      </div>
+  </div>
+
+  <!-- ============ Page 3 : dashboard du compte ============ -->
+  <div id="jrDashboard" hidden>
+    <div class="jr-acc-bar">
+      <div class="jr-acc-switcher" id="jrAccSwitcher">
+        <button class="jr-acc-switcher__btn" id="jrAccSwitcherBtn">
+          <span class="jr-acc-avatar" id="jrAccAvatar">—</span>
+          <span class="jr-acc-meta"><strong id="jrAccName">—</strong><span id="jrAccSub">—</span></span>
+          <span class="chev">▾</span>
+        </button>
+        <div class="jr-acc-menu" id="jrAccMenu">
+          <div id="jrAccMenuList"></div>
+          <div class="jr-acc-menu__divider"></div>
+          <button class="jr-acc-menu__item jr-acc-menu__add" id="jrAccAddBtn"><span>＋</span> Ajouter un compte</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost" id="jrAccEditBtn" style="padding:9px 16px;font-size:12.5px">✎ Modifier ce compte</button>
+    </div>
+
+    <div class="card jr-cond-card" id="jrConditionsCard" hidden>
+      <div class="eyebrow" style="margin-bottom:6px">Conditions du compte ————</div>
+      <div id="jrConditionsList"></div>
+    </div>
+
+    <div class="jr-stats" id="jrStats"></div>
+
+    <div class="jr-toolbar">
+      <button type="button" class="btn btn-primary" id="jrAddBtn" style="padding:10px 20px;font-size:13px;margin-left:auto">+ Ajouter un trade</button>
+    </div>
+
+    <!-- ============ Formulaire : nouveau trade ============ -->
+    <div class="card jr-form" id="jrForm" hidden>
+      <div class="eyebrow" style="margin-bottom:14px">Nouveau trade ————</div>
+
+      <div class="jr-row-top">
+        <div class="jr-cell">
+          <label>Risque</label>
+          <div style="display:flex;gap:5px">
+            <input id="jrRisk" type="number" step="any">
+            <div class="jr-segmented" id="jrRiskUnitToggle" style="width:60px;flex-shrink:0">
+              <button type="button" data-unit="pct" class="is-active">%</button>
+              <button type="button" data-unit="usd">$</button>
+            </div>
+          </div>
+        </div>
+        <div class="jr-cell"><label for="jrRR">RR</label><input id="jrRR" type="number" step="any" placeholder="2.5"></div>
+        <div class="jr-cell"><label>P&amp;L</label><div class="jr-readonly" id="jrPnlDisplay">—</div></div>
+        <div class="jr-cell">
+          <label>Reward</label>
+          <div class="jr-segmented" id="jrRewardToggle">
+            <button type="button" data-reward="TP" class="is-active">TP</button>
+            <button type="button" data-reward="BE">BE</button>
+            <button type="button" data-reward="SL">SL</button>
+          </div>
+        </div>
+        <div class="jr-cell">
+          <label>Direction</label>
+          <div class="jr-lightswitch" id="jrSideSwitch">
+            <button type="button" data-side="buy" class="is-active">▲ BUY</button>
+            <button type="button" data-side="sell">▼ SELL</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="jr-row2">
+        <div class="jr-cell">
+          <label>Date</label>
+          <div class="jr-date-combo" id="jrDateCombo">
+            <button type="button" class="jr-combo__trigger jr-date-trigger" id="jrDateTrigger"><span class="placeholder">Choisir une date…</span></button>
+            <div class="jr-date-panel" id="jrDatePanel" hidden>
+              <div class="jr-date-panel__head">
+                <button type="button" class="jr-date-nav" data-nav="-1">‹</button>
+                <span class="jr-date-panel__title" id="jrDateTitle"></span>
+                <button type="button" class="jr-date-nav" data-nav="1">›</button>
+              </div>
+              <div class="jr-date-panel__weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+              <div class="jr-date-panel__grid" id="jrDateGrid"></div>
+            </div>
+          </div>
+        </div>
+        <div class="jr-cell">
+          <label>Heure</label>
+          <div class="jr-time-combo" id="jrTimeCombo">
+            <button type="button" class="jr-combo__trigger jr-time-trigger" id="jrTimeTrigger"><span class="placeholder">--:--</span></button>
+            <div class="jr-time-panel" id="jrTimePanel" hidden>
+              <div class="jr-time-panel__wheels">
+                <div class="jr-wheel" id="jrTimeHourWheel"></div>
+                <span class="jr-time-panel__colon">:</span>
+                <div class="jr-wheel" id="jrTimeMinWheel"></div>
+                <div class="jr-time-panel__sep"></div>
+              </div>
+              <button type="button" class="btn btn-secondary jr-time-ok" data-time-ok="jrTime">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="jr-plus-toggle" id="jrOpenCloseToggle"><span class="chev">▾</span> Horaires d'ouverture / clôture précis</button>
+      <div class="jr-collapse" id="jrOpenClosePanel">
+        <div class="jr-row2">
+          <div class="jr-cell">
+            <label>Ouverture</label>
+            <div style="display:flex;gap:6px">
+              <div class="jr-date-combo" id="jrOpenDateCombo" style="flex:1.3">
+                <button type="button" class="jr-combo__trigger jr-date-trigger" id="jrOpenDateTrigger"><span class="placeholder">Date…</span></button>
+                <div class="jr-date-panel" id="jrOpenDatePanel" hidden>
+                  <div class="jr-date-panel__head">
+                    <button type="button" class="jr-date-nav" data-nav="-1">‹</button>
+                    <span class="jr-date-panel__title" id="jrOpenDateTitle"></span>
+                    <button type="button" class="jr-date-nav" data-nav="1">›</button>
+                  </div>
+                  <div class="jr-date-panel__weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+                  <div class="jr-date-panel__grid" id="jrOpenDateGrid"></div>
+                </div>
+              </div>
+              <div class="jr-time-combo" id="jrOpenTimeCombo" style="flex:1">
+                <button type="button" class="jr-combo__trigger jr-time-trigger" id="jrOpenTimeTrigger"><span class="placeholder">--:--</span></button>
+                <div class="jr-time-panel" id="jrOpenTimePanel" hidden>
+                  <div class="jr-time-panel__wheels">
+                    <div class="jr-wheel" id="jrOpenTimeHourWheel"></div>
+                    <span class="jr-time-panel__colon">:</span>
+                    <div class="jr-wheel" id="jrOpenTimeMinWheel"></div>
+                    <div class="jr-time-panel__sep"></div>
+                  </div>
+                  <button type="button" class="btn btn-secondary jr-time-ok" data-time-ok="jrOpenTime">OK</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="jr-cell">
+            <label>Clôture</label>
+            <div style="display:flex;gap:6px">
+              <div class="jr-date-combo" id="jrCloseDateCombo" style="flex:1.3">
+                <button type="button" class="jr-combo__trigger jr-date-trigger" id="jrCloseDateTrigger"><span class="placeholder">Date…</span></button>
+                <div class="jr-date-panel" id="jrCloseDatePanel" hidden>
+                  <div class="jr-date-panel__head">
+                    <button type="button" class="jr-date-nav" data-nav="-1">‹</button>
+                    <span class="jr-date-panel__title" id="jrCloseDateTitle"></span>
+                    <button type="button" class="jr-date-nav" data-nav="1">›</button>
+                  </div>
+                  <div class="jr-date-panel__weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+                  <div class="jr-date-panel__grid" id="jrCloseDateGrid"></div>
+                </div>
+              </div>
+              <div class="jr-time-combo" id="jrCloseTimeCombo" style="flex:1">
+                <button type="button" class="jr-combo__trigger jr-time-trigger" id="jrCloseTimeTrigger"><span class="placeholder">--:--</span></button>
+                <div class="jr-time-panel" id="jrCloseTimePanel" hidden>
+                  <div class="jr-time-panel__wheels">
+                    <div class="jr-wheel" id="jrCloseTimeHourWheel"></div>
+                    <span class="jr-time-panel__colon">:</span>
+                    <div class="jr-wheel" id="jrCloseTimeMinWheel"></div>
+                    <div class="jr-time-panel__sep"></div>
+                  </div>
+                  <button type="button" class="btn btn-secondary jr-time-ok" data-time-ok="jrCloseTime">OK</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="jr-row2">
+        <div class="jr-combo" id="jrPairCombo">
+          <label for="jrPairTrigger">Paire</label>
+          <button type="button" class="jr-combo__trigger" id="jrPairTrigger"><span class="placeholder">Choisir une paire…</span></button>
+          <div class="jr-combo__panel" id="jrPairPanel" hidden>
+            <input type="text" class="jr-combo__search" id="jrPairSearch" placeholder="Rechercher une paire…">
+            <div class="jr-combo__list" id="jrPairList"></div>
+          </div>
+        </div>
+        <div class="jr-combo" id="jrTagCombo">
+          <label for="jrTagTrigger">Confirmations</label>
+          <button type="button" class="jr-combo__trigger" id="jrTagTrigger"><span class="placeholder">Ajouter des confirmations…</span></button>
+          <div class="jr-combo__panel" id="jrTagPanel" hidden>
+            <input type="text" class="jr-combo__search" id="jrTagSearch" placeholder="Rechercher ou créer…">
+            <div class="jr-combo__list" id="jrTagList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="jr-row2">
+        <div class="jr-cell"><label for="jrChart">Lien chart</label><input id="jrChart" type="url" placeholder="https://…"></div>
+        <div class="jr-cell"><label for="jrChartCorrection">Chart de correction <span style="color:var(--faint);font-weight:500;text-transform:none">(optionnel)</span></label><input id="jrChartCorrection" type="url" placeholder="https://…"></div>
+      </div>
+
+      <div class="jr-cell"><label for="jrNotes">Notes <span style="color:var(--faint);font-weight:500;text-transform:none">(optionnel)</span></label><textarea id="jrNotes" class="field" style="min-height:44px;font-size:12.5px;padding:8px 10px"></textarea></div>
+
+      <div class="jr-form__actions">
+        <button type="button" class="btn btn-secondary" id="jrSave">Enregistrer</button>
+        <button type="button" class="btn btn-ghost" id="jrCancel">Annuler</button>
+      </div>
+    </div>
+
+    <div class="card jr-table-wrap" id="jrTableWrap">
+      <table class="jr-table">
+        <thead>
+          <tr>
+            <th>Date</th><th>Paire</th><th>Sens</th><th>RR</th>
+            <th>Résultat</th><th>P&amp;L</th><th>Confirmations</th><th>Notes</th><th></th><th>Source</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="jrTbody"></tbody>
+      </table>
+      <div class="jr-empty" id="jrEmpty" hidden>Aucun trade pour l'instant — prends une position sur BERICH, ajoute un backtest, ou enregistre-en un manuellement.</div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+
+<script src="js/nav.js"></script>
+<script src="js/berich-store.js"></script>
+<script src="js/journal-store.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const PAIR_GROUPS = {
+    'Forex': [
+      ['AUDCHF','AUD/CHF'], ['AUDUSD','AUD/USD'], ['AUDCAD','AUD/CAD'], ['AUDNZD','AUD/NZD'], ['AUDJPY','AUD/JPY'],
+      ['EURGBP','EUR/GBP'], ['EURCHF','EUR/CHF'], ['EURUSD','EUR/USD'], ['EURCAD','EUR/CAD'], ['EURAUD','EUR/AUD'], ['EURNZD','EUR/NZD'], ['EURJPY','EUR/JPY'],
+      ['GBPCHF','GBP/CHF'], ['GBPUSD','GBP/USD'], ['GBPCAD','GBP/CAD'], ['GBPAUD','GBP/AUD'], ['GBPNZD','GBP/NZD'], ['GBPJPY','GBP/JPY'],
+      ['USDCHF','USD/CHF'], ['USDCAD','USD/CAD'], ['USDJPY','USD/JPY'],
+      ['NZDCHF','NZD/CHF'], ['NZDUSD','NZD/USD'], ['NZDCAD','NZD/CAD'], ['NZDJPY','NZD/JPY'],
+      ['CADCHF','CAD/CHF'], ['CADJPY','CAD/JPY'],
+      ['CHFJPY','CHF/JPY'],
+    ],
+    'Matières premières': [
+      ['XAUUSD','Or (XAU/USD)'], ['XAGUSD','Argent (XAG/USD)'], ['USOIL','Pétrole WTI'], ['XPTUSD','Platine (XPT/USD)'], ['DXY','Indice dollar (DXY)'],
+    ],
+    'Crypto': [
+      ['BTCUSD','Bitcoin'], ['ETHUSD','Ethereum'], ['SOLUSD','Solana'], ['XRPUSD','XRP'], ['TRXUSD','Tron'], ['HYPEUSD','Hyperliquid'],
+      ['DOGEUSD','Dogecoin'], ['LINKUSD','Chainlink'], ['ADAUSD','Cardano'], ['UNIUSD','Uniswap'], ['AVAXUSD','Avalanche'],
+    ],
+  };
+  const ALL_PAIRS = Object.values(PAIR_GROUPS).flat();
+  function pairLabel(code) { const p = ALL_PAIRS.find((x) => x[0] === code); return p ? p[1] : code; }
+  function money(v) { return v == null ? '—' : (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function initials(name) { return (name || '?').trim().slice(0, 2).toUpperCase(); }
+
+  let allRows = [];
+  let editingId = null;
+  let editingAccountId = null;
+  let currentSide = 'buy';
+  let currentReward = 'TP';
+  let currentRiskUnit = 'pct';
+  let selectedPair = null;
+  let selectedTags = [];
+
+  // ================= Machine à 3 états, un seul visible à la fois =================
+  // 'empty'     : aucun compte — juste le lien de création (page 1)
+  // 'accountForm' : création/édition d'un compte (page 2)
+  // 'dashboard' : compte actif — switcher, stats, conditions, trades (page 3)
+  function showView(view) {
+    document.getElementById('jrEmptyView').hidden = view !== 'empty';
+    document.getElementById('jrAccountForm').hidden = view !== 'accountForm';
+    document.getElementById('jrDashboard').hidden = view !== 'dashboard';
+    // Le grand titre + descriptif n'a de sens que sur l'écran vide — une fois
+    // un compte en jeu, on veut arriver direct sur le dashboard.
+    document.getElementById('jrPageHead').classList.toggle('is-compact', view !== 'empty');
+    document.getElementById('jrPageDesc').hidden = view !== 'empty';
+  }
+
+  function renderAccSwitcher() {
+    const accounts = STASHJournal.listAccounts();
+    const active = STASHJournal.getActiveAccount();
+    if (!active) return;
+    document.getElementById('jrAccAvatar').textContent = initials(active.name);
+    document.getElementById('jrAccName').textContent = active.name;
+    document.getElementById('jrAccSub').textContent = active.type === 'propfirm'
+      ? (STASHJournal.propfirms().find((p) => p.id === active.propfirmId) || {}).name || 'Propfirm'
+      : 'Compte propre';
+
+    document.getElementById('jrAccMenuList').innerHTML = accounts.map((a) => `
+      <button type="button" class="jr-acc-menu__item ${a.id === active.id ? 'is-active' : ''}" data-pick-acc="${a.id}">
+        <span class="jr-acc-avatar">${initials(a.name)}</span>
+        <span><strong>${a.name}</strong><span>${money(a.balance)}</span></span>
+      </button>`).join('');
+    document.querySelectorAll('[data-pick-acc]').forEach((btn) => btn.addEventListener('click', () => {
+      STASHJournal.setActiveAccountId(btn.dataset.pickAcc);
+      document.getElementById('jrAccMenu').classList.remove('is-open');
+      onAccountChanged();
+    }));
+  }
+
+  function renderConditions() {
+    const active = STASHJournal.getActiveAccount();
+    const card = document.getElementById('jrConditionsCard');
+    if (!active || !active.rules) { card.hidden = true; return; }
+    const conds = STASHJournal.accountConditions(active, allRows);
+    card.hidden = false;
+    document.getElementById('jrConditionsList').innerHTML = conds.map((c) => `
+      <div class="jr-cond-row">
+        <div class="label">${c.label}<b>Limite : ${c.limit}</b></div>
+        <div class="jr-cond-row__wrap">
+          <div class="value ${c.value > 0 ? 'pos' : c.value < 0 ? 'neg' : ''}">${c.isCount ? c.value : money(c.value)}</div>
+          <span class="jr-cond-check ${c.ok ? 'ok' : 'ko'}">${c.ok ? '✓' : '✗'}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  function onAccountChanged() {
+    renderAccSwitcher();
+    renderConditions();
+    const active = STASHJournal.getActiveAccount();
+    if (active) {
+      document.getElementById('jrRisk').value = active.riskValue;
+      currentRiskUnit = active.riskUnit;
+      reflectRiskUnit();
+      reflectPnl();
+    }
+  }
+
+  document.getElementById('jrAccSwitcherBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('jrAccMenu').classList.toggle('is-open');
+  });
+  document.addEventListener('click', () => document.getElementById('jrAccMenu').classList.remove('is-open'));
+  document.getElementById('jrAccMenu').addEventListener('click', (e) => e.stopPropagation());
+
+  // ================= Formulaire de compte =================
+  function reflectAccType(type) {
+    document.querySelectorAll('#jaTypeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.type === type));
+    const isPropfirm = type === 'propfirm';
+    document.getElementById('jaPropfirmCombo').hidden = !isPropfirm;
+    document.getElementById('jaBalanceRow').classList.toggle('is-single', !isPropfirm);
+    document.getElementById('jaBalance').placeholder = isPropfirm ? '100000' : '10000';
+    if (!isPropfirm) { document.getElementById('jaRulesNote').hidden = true; document.getElementById('jaRulesRow').hidden = true; }
+  }
+  document.querySelectorAll('#jaTypeToggle button').forEach((btn) => btn.addEventListener('click', () => reflectAccType(btn.dataset.type)));
+
+  let selectedPropfirm = null;
+  function renderPropfirmList() {
+    document.getElementById('jaPropfirmList').innerHTML = STASHJournal.propfirms().map((p) => `
+      <div class="jr-combo__row" data-pick-propfirm="${p.id}">
+        <img src="${STASHJournal.propfirmLogo(p.domain)}" alt="" onerror="this.remove()">
+        <span>${p.name}</span>
+      </div>`).join('');
+    document.querySelectorAll('[data-pick-propfirm]').forEach((row) => row.addEventListener('click', () => {
+      selectedPropfirm = row.dataset.pickPropfirm;
+      const p = STASHJournal.propfirms().find((x) => x.id === selectedPropfirm);
+      document.getElementById('jaPropfirmTrigger').innerHTML = `<img src="${STASHJournal.propfirmLogo(p.domain)}" alt="">${p.name}`;
+      document.getElementById('jaPropfirmPanel').hidden = true;
+      applyPropfirmPreset();
+    }));
+  }
+  renderPropfirmList();
+  document.getElementById('jaPropfirmTrigger').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('jaPropfirmPanel').hidden = !document.getElementById('jaPropfirmPanel').hidden;
+  });
+  document.getElementById('jaPropfirmPanel').addEventListener('click', (e) => e.stopPropagation());
+
+  function applyPropfirmPreset() {
+    const preset = STASHJournal.propfirmRulePreset(selectedPropfirm);
+    document.getElementById('jaRulesRow').hidden = false;
+    const note = document.getElementById('jaRulesNote');
+    if (preset) {
+      note.hidden = false;
+      note.innerHTML = `<b>Règles vérifiées :</b> ${preset.label}. Modifiables si ton offre diffère.`;
+      document.getElementById('jaDailyLoss').value = preset.dailyLossPct;
+      document.getElementById('jaMaxLoss').value = preset.maxLossPct;
+      document.getElementById('jaProfitTarget').value = preset.profitTargetPct;
+      document.getElementById('jaMinDays').value = preset.minDays;
+    } else {
+      note.hidden = false;
+      note.innerHTML = `<b>Pas de préréglage fiable pour ce propfirm</b> — plusieurs offres existent avec des paramètres différents. Renseigne les règles de TON offre précisément ci-dessous.`;
+      document.getElementById('jaDailyLoss').value = '';
+      document.getElementById('jaMaxLoss').value = '';
+      document.getElementById('jaProfitTarget').value = '';
+      document.getElementById('jaMinDays').value = '';
+    }
+  }
+
+  document.querySelectorAll('#jaRiskUnitToggle button').forEach((btn) => btn.addEventListener('click', () => {
+    document.querySelectorAll('#jaRiskUnitToggle button').forEach((b) => b.classList.toggle('is-active', b === btn));
+  }));
+  document.querySelectorAll('#jaConnToggle button').forEach((btn) => btn.addEventListener('click', () => {
+    document.querySelectorAll('#jaConnToggle button').forEach((b) => b.classList.toggle('is-active', b === btn));
+    document.getElementById('jaMt5Note').hidden = btn.dataset.conn !== 'mt5';
+  }));
+
+  function openAccountForm(account) {
+    editingAccountId = account ? account.id : null;
+    document.getElementById('jrAccFormTitle').textContent = account ? 'Modifier le compte ————' : 'Nouveau compte ————';
+    document.getElementById('jaName').value = account ? account.name : '';
+    const type = account ? account.type : 'own';
+    reflectAccType(type);
+    document.querySelectorAll('#jaTypeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.type === type));
+    selectedPropfirm = account && account.propfirmId ? account.propfirmId : null;
+    if (selectedPropfirm) {
+      const p = STASHJournal.propfirms().find((x) => x.id === selectedPropfirm);
+      document.getElementById('jaPropfirmTrigger').innerHTML = `<img src="${STASHJournal.propfirmLogo(p.domain)}" alt="">${p.name}`;
+      applyPropfirmPreset();
+      if (account) {
+        document.getElementById('jaDailyLoss').value = account.rules?.dailyLossPct ?? '';
+        document.getElementById('jaMaxLoss').value = account.rules?.maxLossPct ?? '';
+        document.getElementById('jaProfitTarget').value = account.rules?.profitTargetPct ?? '';
+        document.getElementById('jaMinDays').value = account.rules?.minDays ?? '';
+      }
+    } else {
+      document.getElementById('jaPropfirmTrigger').innerHTML = '<span class="placeholder">Choisir…</span>';
+      document.getElementById('jaRulesRow').hidden = true;
+      document.getElementById('jaRulesNote').hidden = true;
+    }
+    document.getElementById('jaBalance').value = account ? account.balance : '';
+    document.getElementById('jaRiskValue').value = account ? account.riskValue : 1;
+    const riskUnit = account ? account.riskUnit : 'pct';
+    document.querySelectorAll('#jaRiskUnitToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.unit === riskUnit));
+    const conn = account ? account.connectionMode : 'manual';
+    document.querySelectorAll('#jaConnToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.conn === conn));
+    document.getElementById('jaMt5Note').hidden = conn !== 'mt5';
+    document.getElementById('jaDelete').hidden = !account;
+
+    document.getElementById('jrForm').hidden = true;
+    showView('accountForm');
+  }
+
+  document.getElementById('jrEmptyLink').addEventListener('click', (e) => { e.preventDefault(); openAccountForm(null); });
+  document.getElementById('jrAccAddBtn').addEventListener('click', () => { document.getElementById('jrAccMenu').classList.remove('is-open'); openAccountForm(null); });
+  document.getElementById('jrAccEditBtn').addEventListener('click', () => openAccountForm(STASHJournal.getActiveAccount()));
+  document.getElementById('jaCancel').addEventListener('click', () => {
+    showView(STASHJournal.listAccounts().length ? 'dashboard' : 'empty');
+  });
+  document.getElementById('jaDelete').addEventListener('click', () => {
+    if (!editingAccountId) return;
+    if (!confirm('Supprimer ce compte ? Les trades manuels qui lui sont liés resteront dans le journal mais perdront leur rattachement.')) return;
+    STASHJournal.removeAccount(editingAccountId);
+    const hasAccounts = STASHJournal.listAccounts().length > 0;
+    showView(hasAccounts ? 'dashboard' : 'empty');
+    if (hasAccounts) onAccountChanged();
+  });
+
+  document.getElementById('jaSave').addEventListener('click', () => {
+    const name = document.getElementById('jaName').value.trim();
+    if (!name) { showToast('Donne un nom à ce compte.'); return; }
+    const type = document.querySelector('#jaTypeToggle button.is-active').dataset.type;
+    if (type === 'propfirm' && !selectedPropfirm) { showToast('Choisis un propfirm.'); return; }
+    const balance = parseFloat(document.getElementById('jaBalance').value) || 0;
+    const account = {
+      name, type,
+      propfirmId: type === 'propfirm' ? selectedPropfirm : null,
+      balance,
+      riskUnit: document.querySelector('#jaRiskUnitToggle button.is-active').dataset.unit,
+      riskValue: parseFloat(document.getElementById('jaRiskValue').value) || 1,
+      connectionMode: document.querySelector('#jaConnToggle button.is-active').dataset.conn,
+      rules: type === 'propfirm' ? {
+        dailyLossPct: parseFloat(document.getElementById('jaDailyLoss').value) || 0,
+        maxLossPct: parseFloat(document.getElementById('jaMaxLoss').value) || 0,
+        profitTargetPct: parseFloat(document.getElementById('jaProfitTarget').value) || 0,
+        minDays: parseInt(document.getElementById('jaMinDays').value, 10) || 0,
+      } : null,
+    };
+    if (editingAccountId) STASHJournal.updateAccount(editingAccountId, account);
+    else STASHJournal.addAccount(account);
+
+    showToast(editingAccountId ? 'Compte modifié ✓' : 'Compte ajouté ✓');
+    showView('dashboard');
+    onAccountChanged();
+  });
+
+  // ================= Combobox générique (ouverture/fermeture, clic-dehors) =================
+  function setupCombo(comboId, panelId, searchId) {
+    const combo = document.getElementById(comboId);
+    const panel = document.getElementById(panelId);
+    const trigger = combo.querySelector('.jr-combo__trigger');
+    const search = searchId ? document.getElementById(searchId) : null;
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = panel.hidden;
+      document.querySelectorAll('.jr-combo__panel').forEach((p) => { p.hidden = true; });
+      panel.hidden = !willOpen;
+      if (willOpen && search) { search.value = ''; search.dispatchEvent(new Event('input')); search.focus(); }
+    });
+    panel.addEventListener('click', (e) => e.stopPropagation());
+  }
+  document.addEventListener('click', () => document.querySelectorAll('.jr-combo__panel').forEach((p) => { p.hidden = true; }));
+
+  // ================= Paire =================
+  setupCombo('jrPairCombo', 'jrPairPanel', 'jrPairSearch');
+  function pairTriggerHtml() {
+    return selectedPair ? pairLabel(selectedPair) : '<span class="placeholder">Choisir une paire…</span>';
+  }
+  function renderPairList(query) {
+    const q = (query || '').trim().toLowerCase();
+    const favs = STASHJournal.favoritePairs();
+    const list = document.getElementById('jrPairList');
+    let html = '';
+    const groups = [['★ Favoris', favs.map((code) => [code, pairLabel(code)])], ...Object.entries(PAIR_GROUPS)];
+    let any = false;
+    groups.forEach(([label, pairs]) => {
+      const filtered = pairs.filter(([code, name]) => !q || name.toLowerCase().includes(q) || code.toLowerCase().includes(q));
+      if (!filtered.length) return;
+      any = true;
+      html += `<div class="jr-combo__group-label">${label}</div>`;
+      filtered.forEach(([code, name]) => {
+        const isFav = favs.includes(code);
+        html += `<div class="jr-combo__row" data-pick-pair="${code}">
+          <span>${name}</span>
+          <button type="button" class="jr-combo__star ${isFav ? 'is-fav' : ''}" data-star-pair="${code}">${isFav ? '★' : '☆'}</button>
+        </div>`;
+      });
+    });
+    list.innerHTML = any ? html : '<div class="jr-combo__empty">Aucune paire trouvée.</div>';
+    list.querySelectorAll('[data-star-pair]').forEach((btn) => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      STASHJournal.toggleFavoritePair(btn.dataset.starPair);
+      renderPairList(document.getElementById('jrPairSearch').value);
+    }));
+    list.querySelectorAll('[data-pick-pair]').forEach((row) => row.addEventListener('click', () => {
+      selectedPair = row.dataset.pickPair;
+      document.querySelector('#jrPairTrigger').innerHTML = pairTriggerHtml();
+      document.getElementById('jrPairPanel').hidden = true;
+    }));
+  }
+  document.getElementById('jrPairSearch').addEventListener('input', (e) => renderPairList(e.target.value));
+
+  // ================= Direction / Reward / Unité de risque =================
+  function reflectSide() { document.querySelectorAll('#jrSideSwitch button').forEach((b) => b.classList.toggle('is-active', b.dataset.side === currentSide)); }
+  document.querySelectorAll('#jrSideSwitch button').forEach((btn) => btn.addEventListener('click', () => { currentSide = btn.dataset.side; reflectSide(); }));
+
+  function reflectReward() { document.querySelectorAll('#jrRewardToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.reward === currentReward)); }
+  document.querySelectorAll('#jrRewardToggle button').forEach((btn) => btn.addEventListener('click', () => { currentReward = btn.dataset.reward; reflectReward(); }));
+
+  function reflectRiskUnit() { document.querySelectorAll('#jrRiskUnitToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.unit === currentRiskUnit)); }
+  document.querySelectorAll('#jrRiskUnitToggle button').forEach((btn) => btn.addEventListener('click', () => { currentRiskUnit = btn.dataset.unit; reflectRiskUnit(); reflectPnl(); }));
+
+  // ================= Confirmations (façon Notion : chercher ou créer) =================
+  setupCombo('jrTagCombo', 'jrTagPanel', 'jrTagSearch');
+  function tagTriggerHtml() {
+    if (!selectedTags.length) return '<span class="placeholder">Ajouter des confirmations…</span>';
+    return selectedTags.map((t) => `<span class="jr-chip">${t}</span>`).join('');
+  }
+  function renderTagList(query) {
+    const q = (query || '').trim();
+    const known = STASHJournal.knownTags();
+    const filtered = known.filter((t) => !q || t.toLowerCase().includes(q.toLowerCase()));
+    const exactMatch = known.some((t) => t.toLowerCase() === q.toLowerCase());
+    const list = document.getElementById('jrTagList');
+    let html = filtered.map((t) => {
+      const isSel = selectedTags.includes(t);
+      return `<div class="jr-combo__row" data-toggle-tag="${t}"><span>${t}</span><span class="jr-combo__row-check">${isSel ? '✓' : ''}</span></div>`;
+    }).join('');
+    if (!filtered.length) html += '<div class="jr-combo__empty">Aucune confirmation.</div>';
+    if (q && !exactMatch) html += `<div class="jr-combo__create" data-create-tag="${q}">+ Créer « ${q} »</div>`;
+    list.innerHTML = html;
+    list.querySelectorAll('[data-toggle-tag]').forEach((row) => row.addEventListener('click', () => {
+      const t = row.dataset.toggleTag;
+      if (selectedTags.includes(t)) selectedTags = selectedTags.filter((x) => x !== t);
+      else selectedTags.push(t);
+      document.getElementById('jrTagTrigger').innerHTML = tagTriggerHtml();
+      renderTagList(document.getElementById('jrTagSearch').value);
+    }));
+    list.querySelectorAll('[data-create-tag]').forEach((row) => row.addEventListener('click', () => {
+      const t = row.dataset.createTag;
+      STASHJournal.rememberTag(t);
+      selectedTags.push(t);
+      document.getElementById('jrTagTrigger').innerHTML = tagTriggerHtml();
+      document.getElementById('jrTagSearch').value = '';
+      renderTagList('');
+      document.getElementById('jrTagSearch').focus();
+    }));
+  }
+  document.getElementById('jrTagSearch').addEventListener('input', (e) => renderTagList(e.target.value));
+  document.getElementById('jrTagSearch').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); const c = document.querySelector('[data-create-tag]'); if (c) c.click(); }
+  });
+
+  // ================= Risque -> P&L auto =================
+  function effectiveRiskAmount() {
+    const val = parseFloat(document.getElementById('jrRisk').value) || 0;
+    const active = STASHJournal.getActiveAccount();
+    if (currentRiskUnit === 'pct') return active ? Math.round(active.balance * val) / 100 : 0;
+    return val;
+  }
+  function reflectPnl() {
+    const rr = document.getElementById('jrRR').value !== '' ? parseFloat(document.getElementById('jrRR').value) : null;
+    const pnl = rr != null ? Math.round(rr * effectiveRiskAmount() * 100) / 100 : null;
+    const el = document.getElementById('jrPnlDisplay');
+    el.textContent = pnl != null ? money(pnl) : '—';
+    el.className = 'jr-readonly' + (pnl > 0 ? ' pos' : pnl < 0 ? ' neg' : '');
+    return pnl;
+  }
+  document.getElementById('jrRR').addEventListener('input', reflectPnl);
+  document.getElementById('jrRisk').addEventListener('input', reflectPnl);
+
+  // ================= "+" Horaires d'ouverture/clôture =================
+  // overflow reste "hidden" pendant l'anim (collapse net) puis repasse en
+  // "visible" une fois ouvert, sinon les volets date/heure du bloc seraient
+  // rognés par le overflow:hidden de .jr-collapse.
+  const ocToggle = document.getElementById('jrOpenCloseToggle');
+  const ocPanel = document.getElementById('jrOpenClosePanel');
+  ocToggle.addEventListener('click', () => {
+    const opening = !ocToggle.classList.contains('is-open');
+    ocToggle.classList.toggle('is-open', opening);
+    ocPanel.style.overflow = 'hidden';
+    ocPanel.style.maxHeight = opening ? ocPanel.scrollHeight + 'px' : '0px';
+    if (opening) setTimeout(() => { if (ocToggle.classList.contains('is-open')) ocPanel.style.overflow = 'visible'; }, 320);
+  });
+
+  // ================= Sélecteur de date façon TradingView (volet calendrier) =================
+  const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const dateValues = {};
+  const dateViewMonth = {};
+
+  function closeAllPickerPanels() {
+    document.querySelectorAll('.jr-date-panel, .jr-time-panel').forEach((p) => { p.hidden = true; });
+  }
+  document.addEventListener('click', closeAllPickerPanels);
+
+  function dateDisplay(iso) {
+    if (!iso) return '<span class="placeholder">Choisir une date…</span>';
+    return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function setDateValue(prefix, iso) {
+    dateValues[prefix] = iso || '';
+    document.getElementById(prefix + 'Trigger').innerHTML = dateDisplay(dateValues[prefix]);
+  }
+  function getDateValue(prefix) { return dateValues[prefix] || ''; }
+
+  function setupDatePicker(prefix) {
+    const trigger = document.getElementById(prefix + 'Trigger');
+    const panel = document.getElementById(prefix + 'Panel');
+    const title = document.getElementById(prefix + 'Title');
+    const grid = document.getElementById(prefix + 'Grid');
+    dateValues[prefix] = '';
+    dateViewMonth[prefix] = { y: new Date().getFullYear(), m: new Date().getMonth() };
+
+    function render() {
+      const { y, m } = dateViewMonth[prefix];
+      title.textContent = `${MONTHS_FR[m]} ${y}`;
+      const startDow = (new Date(y, m, 1).getDay() + 6) % 7; // lundi = colonne 0
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const daysInPrevMonth = new Date(y, m, 0).getDate();
+      const todayIso = new Date().toISOString().slice(0, 10);
+      let html = '';
+      for (let i = 0; i < startDow; i++) html += `<button type="button" class="jr-date-cell is-muted" disabled>${daysInPrevMonth - startDow + 1 + i}</button>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const iso = `${y}-${pad2(m + 1)}-${pad2(d)}`;
+        const cls = ['jr-date-cell'];
+        if (iso === todayIso) cls.push('is-today');
+        if (iso === dateValues[prefix]) cls.push('is-selected');
+        html += `<button type="button" class="${cls.join(' ')}" data-pick-date="${iso}">${d}</button>`;
+      }
+      const trailing = (7 - ((startDow + daysInMonth) % 7)) % 7;
+      for (let d = 1; d <= trailing; d++) html += `<button type="button" class="jr-date-cell is-muted" disabled>${d}</button>`;
+      grid.innerHTML = html;
+      grid.querySelectorAll('[data-pick-date]').forEach((btn) => btn.addEventListener('click', () => {
+        setDateValue(prefix, btn.dataset.pickDate);
+        panel.hidden = true;
+      }));
+    }
+
+    panel.querySelectorAll('.jr-date-nav').forEach((btn) => btn.addEventListener('click', () => {
+      const dir = parseInt(btn.dataset.nav, 10);
+      let { y, m } = dateViewMonth[prefix];
+      m += dir;
+      if (m < 0) { m = 11; y -= 1; } else if (m > 11) { m = 0; y += 1; }
+      dateViewMonth[prefix] = { y, m };
+      render();
+    }));
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = panel.hidden;
+      closeAllPickerPanels();
+      if (willOpen) {
+        const base = dateValues[prefix] ? new Date(dateValues[prefix] + 'T00:00:00') : new Date();
+        dateViewMonth[prefix] = { y: base.getFullYear(), m: base.getMonth() };
+        render();
+      }
+      panel.hidden = !willOpen;
+    });
+    panel.addEventListener('click', (e) => e.stopPropagation());
+    render();
+  }
+
+  // ================= Sélecteur d'heure façon roue iPhone =================
+  const WHEEL_ITEM_H = 36;
+  const WHEEL_PAD_H = 72; // (hauteur visible 180 - hauteur d'un item 36) / 2
+  const timeValues = {};
+
+  function timeDisplay(hhmm) { return hhmm ? hhmm : '<span class="placeholder">--:--</span>'; }
+  function setTimeValue(prefix, hhmm) {
+    timeValues[prefix] = hhmm || '';
+    document.getElementById(prefix + 'Trigger').innerHTML = timeDisplay(timeValues[prefix]);
+  }
+  function getTimeValue(prefix) { return timeValues[prefix] || ''; }
+  function buildWheelItems(container, count) {
+    let html = `<div class="jr-wheel__pad"></div>`;
+    for (let i = 0; i < count; i++) html += `<div class="jr-wheel__item" data-val="${i}">${pad2(i)}</div>`;
+    html += `<div class="jr-wheel__pad"></div>`;
+    container.innerHTML = html;
+  }
+  function scrollWheelTo(wheel, index, smooth) { wheel.scrollTo({ top: index * WHEEL_ITEM_H, behavior: smooth ? 'smooth' : 'auto' }); }
+  function readWheelIndex(wheel) { return Math.round(wheel.scrollTop / WHEEL_ITEM_H); }
+  function highlightWheel(wheel, index) {
+    wheel.querySelectorAll('.jr-wheel__item').forEach((el, i) => el.classList.toggle('is-active', i === index));
+  }
+
+  function setupTimePicker(prefix) {
+    const trigger = document.getElementById(prefix + 'Trigger');
+    const panel = document.getElementById(prefix + 'Panel');
+    const hourWheel = document.getElementById(prefix + 'HourWheel');
+    const minWheel = document.getElementById(prefix + 'MinWheel');
+    timeValues[prefix] = '';
+    buildWheelItems(hourWheel, 24);
+    buildWheelItems(minWheel, 60);
+
+    let scrollTimer = null;
+    function onWheelSettle(wheel, max) {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        const idx = Math.max(0, Math.min(max - 1, readWheelIndex(wheel)));
+        scrollWheelTo(wheel, idx, true);
+        highlightWheel(wheel, idx);
+      }, 120);
+    }
+    hourWheel.addEventListener('scroll', () => onWheelSettle(hourWheel, 24));
+    minWheel.addEventListener('scroll', () => onWheelSettle(minWheel, 60));
+    hourWheel.querySelectorAll('.jr-wheel__item').forEach((el) => el.addEventListener('click', () => scrollWheelTo(hourWheel, Number(el.dataset.val), true)));
+    minWheel.querySelectorAll('.jr-wheel__item').forEach((el) => el.addEventListener('click', () => scrollWheelTo(minWheel, Number(el.dataset.val), true)));
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = panel.hidden;
+      closeAllPickerPanels();
+      panel.hidden = !willOpen;
+      if (willOpen) {
+        // Le volet doit déjà être visible (hidden=false ci-dessus) avant de
+        // fixer scrollTop, sinon le scroll sur un élément display:none ne
+        // "prend" pas et la roue se réinitialise à 0 à l'ouverture suivante.
+        const now = new Date();
+        const [h, m] = timeValues[prefix] ? timeValues[prefix].split(':').map(Number) : [now.getHours(), now.getMinutes()];
+        scrollWheelTo(hourWheel, h, false); scrollWheelTo(minWheel, m, false);
+        highlightWheel(hourWheel, h); highlightWheel(minWheel, m);
+      }
+    });
+    panel.addEventListener('click', (e) => e.stopPropagation());
+  }
+  function confirmTime(prefix) {
+    const h = readWheelIndex(document.getElementById(prefix + 'HourWheel'));
+    const m = readWheelIndex(document.getElementById(prefix + 'MinWheel'));
+    setTimeValue(prefix, `${pad2(h)}:${pad2(m)}`);
+    document.getElementById(prefix + 'Panel').hidden = true;
+  }
+  document.querySelectorAll('[data-time-ok]').forEach((btn) => btn.addEventListener('click', () => confirmTime(btn.dataset.timeOk)));
+
+  ['jrDate', 'jrOpenDate', 'jrCloseDate'].forEach(setupDatePicker);
+  ['jrTime', 'jrOpenTime', 'jrCloseTime'].forEach(setupTimePicker);
+
+  // ================= Stats =================
+  function renderStats(rows) {
+    const s = STASHJournal.computeStats(rows);
+    document.getElementById('jrStats').innerHTML = `
+      <div class="jr-stat jr-stat--win"><span>Winrate</span><strong>${s.winRatePct == null ? '—' : s.winRatePct + '%'}</strong></div>
+      <div class="jr-stat jr-stat--rr"><span>RR moyen</span><strong>${s.avgRR == null ? '—' : s.avgRR}</strong></div>
+      <div class="jr-stat jr-stat--pnl"><span>P&amp;L total</span><strong class="${s.totalPnl > 0 ? 'pos' : s.totalPnl < 0 ? 'neg' : ''}">${money(s.totalPnl)}</strong></div>
+      <div class="jr-stat jr-stat--count"><span>Trades</span><strong>${s.total}<span class="jr-stat__sub">${s.tp} TP · ${s.sl} SL · ${s.be} BE · ${s.open} en cours</span></strong></div>`;
+  }
+  function resultBadge(result) {
+    if (!result) return '<span class="jr-result open">En cours</span>';
+    return `<span class="jr-result ${result.toLowerCase()}">${result}</span>`;
+  }
+  function sourceLabel(row) {
+    return row.source === 'berich' ? 'Live' : 'Manuel';
+  }
+
+  function renderTable() {
+    const rows = allRows;
+    const tbody = document.getElementById('jrTbody');
+    document.getElementById('jrEmpty').hidden = rows.length > 0;
+    tbody.innerHTML = rows.map((r) => `
+      <tr data-id="${r.id}">
+        <td>${r.date ? new Date(r.date).toLocaleDateString('fr-FR') : '—'}</td>
+        <td><b>${r.pair || '—'}</b></td>
+        <td>${r.side ? `<span class="jr-side ${r.side}">${r.side === 'sell' ? 'Vente' : 'Achat'}</span>` : '—'}</td>
+        <td class="jr-rr ${r.rrActual > 0 ? 'pos' : r.rrActual < 0 ? 'neg' : ''}">${r.rrActual != null ? r.rrActual : (r.rrTarget != null ? r.rrTarget + ' (cible)' : '—')}</td>
+        <td>${resultBadge(r.result)}</td>
+        <td class="jr-pnl ${r.pnl > 0 ? 'pos' : r.pnl < 0 ? 'neg' : ''}">${r.pnl != null ? money(r.pnl) : '—'}</td>
+        <td><div class="jr-tags">${(r.tags || []).map((t) => `<span class="jr-chip">${t}</span>`).join('')}</div></td>
+        <td class="jr-notes" title="${(r.notes || '').replace(/"/g, '&quot;')}">${r.notes || (r.sourceLabel || '')}</td>
+        <td>${r.chartLink ? `<a class="jr-chart-link" href="${r.chartLink}" target="_blank" rel="noopener">📈</a>` : ''}</td>
+        <td class="jr-source">${sourceLabel(r)}</td>
+        <td class="jr-row-actions">
+          ${r.source === 'manual' ? `<button type="button" data-edit="${r.id}" title="Modifier">✎</button><button type="button" data-delete="${r.id}" title="Supprimer">✕</button>` : ''}
+        </td>
+      </tr>`).join('');
+
+    tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => {
+      if (confirm('Supprimer ce trade du journal ?')) { STASHJournal.remove(btn.dataset.delete); loadAndRender(); }
+    }));
+    tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(allRows.find((r) => r.id === btn.dataset.edit))));
+  }
+
+  function splitDateTime(iso) {
+    if (!iso) return ['', ''];
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, '0');
+    return [`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, `${pad(d.getHours())}:${pad(d.getMinutes())}`];
+  }
+  function combineDateTime(dateVal, timeVal) {
+    if (!dateVal) return null;
+    return new Date(`${dateVal}T${timeVal || '00:00'}`).toISOString();
+  }
+
+  function openForm(row) {
+    editingId = row ? row.id : null;
+    document.getElementById('jrAccountForm').hidden = true;
+    const active = STASHJournal.getActiveAccount();
+
+    if (row && row.rrActual) {
+      const histRisk = Math.abs(row.pnl / row.rrActual);
+      document.getElementById('jrRisk').value = Math.round(histRisk * 100) / 100;
+      currentRiskUnit = 'usd';
+    } else {
+      document.getElementById('jrRisk').value = active ? active.riskValue : 1;
+      currentRiskUnit = active ? active.riskUnit : 'pct';
+    }
+    reflectRiskUnit();
+    document.getElementById('jrRR').value = row ? row.rrActual ?? '' : '';
+
+    selectedPair = row ? row.pair : null;
+    document.getElementById('jrPairTrigger').innerHTML = pairTriggerHtml();
+
+    currentSide = row ? row.side || 'buy' : 'buy';
+    reflectSide();
+    currentReward = row ? row.result || 'TP' : 'TP';
+    reflectReward();
+
+    selectedTags = row ? (row.tags || []).slice() : [];
+    document.getElementById('jrTagTrigger').innerHTML = tagTriggerHtml();
+    document.getElementById('jrNotes').value = row ? row.notes || '' : '';
+    document.getElementById('jrChart').value = row ? row.chartLink || '' : '';
+    document.getElementById('jrChartCorrection').value = row ? row.correctionChartLink || '' : '';
+
+    const [d, t] = splitDateTime(row ? row.date : new Date().toISOString());
+    setDateValue('jrDate', d); setTimeValue('jrTime', t);
+    const [od, ot] = splitDateTime(row ? row.openAt : null);
+    setDateValue('jrOpenDate', od); setTimeValue('jrOpenTime', ot);
+    const [cd, ct] = splitDateTime(row ? row.closeAt : null);
+    setDateValue('jrCloseDate', cd); setTimeValue('jrCloseTime', ct);
+
+    reflectPnl();
+    ocToggle.classList.remove('is-open');
+    ocPanel.style.overflow = 'hidden';
+    ocPanel.style.maxHeight = '0px';
+
+    document.getElementById('jrForm').hidden = false;
+    document.getElementById('jrForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('jrAddBtn').addEventListener('click', () => openForm(null));
+  document.getElementById('jrCancel').addEventListener('click', () => { document.getElementById('jrForm').hidden = true; });
+
+  document.getElementById('jrSave').addEventListener('click', () => {
+    if (!selectedPair) { showToast('Choisis une paire.'); return; }
+    const rr = document.getElementById('jrRR').value !== '' ? parseFloat(document.getElementById('jrRR').value) : null;
+    const riskAmount = effectiveRiskAmount();
+    const active = STASHJournal.getActiveAccount();
+    const entry = {
+      date: combineDateTime(getDateValue('jrDate'), getTimeValue('jrTime')) || new Date().toISOString(),
+      openAt: combineDateTime(getDateValue('jrOpenDate'), getTimeValue('jrOpenTime')),
+      closeAt: combineDateTime(getDateValue('jrCloseDate'), getTimeValue('jrCloseTime')),
+      pair: selectedPair,
+      side: currentSide,
+      entry: null, sl: null, tp: null, rrTarget: null,
+      rrActual: rr,
+      result: rr == null ? null : currentReward,
+      pnl: rr != null ? Math.round(rr * riskAmount * 100) / 100 : null,
+      chartLink: document.getElementById('jrChart').value.trim() || null,
+      correctionChartLink: document.getElementById('jrChartCorrection').value.trim() || null,
+      tags: selectedTags.slice(),
+      notes: document.getElementById('jrNotes').value.trim(),
+      accountId: active ? active.id : null,
+    };
+
+    if (editingId) STASHJournal.update(editingId, entry);
+    else STASHJournal.add(entry);
+
+    document.getElementById('jrForm').hidden = true;
+    showToast(editingId ? 'Trade modifié ✓' : 'Trade ajouté ✓');
+    loadAndRender();
+  });
+
+  async function loadAndRender() {
+    if (!STASHJournal.listAccounts().length) { showView('empty'); return; }
+    showView('dashboard');
+    allRows = await STASHJournal.allEntries();
+    renderAccSwitcher();
+    renderConditions();
+    renderStats(allRows);
+    renderTable();
+  }
+
+  loadAndRender();
+})();
+</script>
+</body>
+</html>

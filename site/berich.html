@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BERICH — STASH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+  .conn-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    margin-bottom:24px; padding:14px 18px; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
+  }
+  .conn-bar__status{ display:flex; align-items:center; gap:10px; font-size:13.5px; }
+  .conn-dot{ width:9px; height:9px; border-radius:50%; background:var(--faint); flex-shrink:0; }
+  .conn-dot.is-on{ background:var(--green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .conn-bar__status b{ font-weight:700; }
+  .conn-bar__status span{ color:var(--muted); }
+
+  .chart-wrap{ padding:0; overflow:hidden; margin-bottom:16px; }
+  .chart-wrap__head{ display:flex; align-items:center; justify-content:space-between; padding:18px 22px 0; }
+  #tvChart{ width:100%; height:480px; position:relative; }
+  .scanner-empty{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--muted); font-size:13.5px; text-align:center; padding:0 24px; }
+  .chart-note{ padding:14px 22px 20px; font-size:12.5px; color:var(--muted); line-height:1.5; }
+
+  .signal-card{ padding:24px 26px; margin-bottom:16px; }
+  .signal-card__head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .signal-card__head h2{ font-size:16px; font-weight:700; margin:0; }
+  .signal-meta{ font-size:11.5px; color:var(--faint); }
+  .signal-empty{ text-align:center; padding:40px 20px; color:var(--muted); font-size:13.5px; }
+
+  .signal{ border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg); padding:18px 20px; margin-bottom:12px; }
+  .signal:last-child{ margin-bottom:0; }
+  .signal__top{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .signal__symbol{ display:flex; align-items:center; gap:10px; }
+  .signal__symbol b{ font-size:16px; font-weight:700; letter-spacing:-.01em; }
+  .side-pill{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:4px 10px; border-radius:var(--radius-pill); }
+  .side-pill.buy{ color:var(--green); background:rgba(51,230,166,.14); }
+  .side-pill.sell{ color:var(--red); background:rgba(255,77,94,.14); }
+  .signal__scanner{ font-size:11.5px; color:var(--muted); }
+
+  .levels{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+  .levels div{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel); }
+  .levels span{ display:block; font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+  .levels strong{ display:block; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .levels .entry strong{ color:var(--ink); }
+  .levels .sl strong{ color:var(--red); }
+  .levels .tp strong{ color:var(--green); }
+
+  .risk-line{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; font-size:12.5px; color:var(--muted); }
+  .risk-line b{ color:var(--ink); }
+
+  .signal__actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .signal.is-taken{ opacity:.6; }
+  .taken-badge{ font-size:12px; font-weight:700; color:var(--green); }
+  .result-badge{ font-size:12px; font-weight:700; }
+  .result-badge.win{ color:var(--green); }
+  .result-badge.loss{ color:var(--red); }
+
+
+  /* ---------- Assistant d'inscription (aucun compte relié) ---------- */
+  .wizard-card{ padding:36px 32px 32px; max-width:560px; margin:0 auto; }
+  .wizard-steps{ display:flex; gap:8px; margin-bottom:28px; }
+  .wizard-step{ flex:1; text-align:center; padding-bottom:10px; border-bottom:2px solid var(--line2); font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--faint); }
+  .wizard-step.is-active{ border-color:var(--acc); color:var(--ink); }
+  .wizard-step.is-done{ border-color:var(--acc); color:var(--muted); }
+  .wizard-panel h2{ font-size:17px; font-weight:700; margin:0 0 6px; }
+  .wizard-panel .hint{ font-size:12.5px; color:var(--muted); line-height:1.55; margin:0 0 20px; }
+  .wizard-actions{ display:flex; gap:10px; margin-top:20px; }
+
+  .broker-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  @media (max-width:520px){ .broker-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .broker-card{
+    display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 8px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg);
+    cursor:pointer; font:inherit; font-size:12px; font-weight:600; color:var(--ink); text-align:center; transition:.15s;
+  }
+  .broker-card:hover{ border-color:var(--acc); }
+  .broker-card img{ width:28px; height:28px; border-radius:6px; }
+  .broker-card__icon{ width:28px; height:28px; border-radius:6px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; font-size:14px; }
+
+  .server-list{ display:flex; flex-direction:column; gap:8px; }
+  .server-pill{
+    display:flex; align-items:center; justify-content:space-between; padding:12px 16px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg);
+    cursor:pointer; font:inherit; font-size:13.5px; color:var(--ink); text-align:left; transition:.15s;
+  }
+  .server-pill:hover{ border-color:var(--acc); }
+  .server-other-input{ margin-top:8px; }
+
+  /* ---------- Panneau position : attente / active ---------- */
+  .signal-hero{ padding:0; overflow:hidden; margin-bottom:16px; }
+  .signal-hero__waiting{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:56px 24px; text-align:center; }
+  .pulse-dot{ width:11px; height:11px; border-radius:50%; background:var(--acc); animation:pulseDot 1.8s infinite; }
+  @keyframes pulseDot{ 0%{box-shadow:0 0 0 0 rgba(255,61,127,.45);} 70%{box-shadow:0 0 0 16px rgba(255,61,127,0);} 100%{box-shadow:0 0 0 0 rgba(255,61,127,0);} }
+  .signal-hero__waiting p{ font-size:13.5px; color:var(--muted); margin:0; max-width:360px; }
+  .signal-hero__waiting .signal-meta{ margin-top:4px; }
+
+  .signal-hero__active{ display:grid; grid-template-columns:1fr 1.3fr; }
+  @media (max-width:760px){ .signal-hero__active{ grid-template-columns:1fr; } }
+  .signal-hero__cta{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:36px 24px; }
+  .signal-hero__cta.buy{ background:linear-gradient(160deg,rgba(51,230,166,.14),transparent); }
+  .signal-hero__cta.sell{ background:linear-gradient(160deg,rgba(255,77,94,.14),transparent); }
+  .side-pill-lg{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; padding:6px 16px; border-radius:var(--radius-pill); }
+  .side-pill-lg.buy{ color:var(--green); background:rgba(51,230,166,.16); }
+  .side-pill-lg.sell{ color:var(--red); background:rgba(255,77,94,.16); }
+  .big-trade-btn{ width:100%; max-width:270px; padding:20px; font-size:17px; font-weight:800; border-radius:var(--radius); border:none; cursor:pointer; color:#fff; letter-spacing:-.005em; transition:transform .15s; }
+  .big-trade-btn:active{ transform:scale(.97); }
+  .big-trade-btn.buy{ background:linear-gradient(135deg,#1fbd88,#33e6a6); box-shadow:0 16px 36px rgba(51,230,166,.3); }
+  .big-trade-btn.sell{ background:linear-gradient(135deg,#ff4d5e,#ff7a86); box-shadow:0 16px 36px rgba(255,77,94,.3); }
+  .signal-hero__confirmed{ font-size:13px; font-weight:700; color:var(--green); text-align:center; }
+
+  .signal-hero__info{ padding:26px 28px; border-left:1px solid var(--line); display:flex; flex-direction:column; gap:16px; }
+  @media (max-width:760px){ .signal-hero__info{ border-left:none; border-top:1px solid var(--line); } }
+  .signal-hero__symbol{ display:flex; align-items:center; justify-content:space-between; }
+  .signal-hero__symbol b{ font-size:20px; font-weight:800; letter-spacing:-.01em; }
+
+  .signal-hero__levels{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .signal-hero__levels div{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel); }
+  .signal-hero__levels span{ display:block; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+  .signal-hero__levels strong{ display:block; font-size:14.5px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .signal-hero__levels .entry strong{ color:var(--ink); }
+  .signal-hero__levels .sl strong{ color:var(--red); }
+  .signal-hero__levels .tp strong{ color:var(--green); }
+
+  .risk-box{ border:1px solid var(--line2); border-radius:var(--radius-sm); padding:12px 14px; font-size:12.5px; color:var(--muted); background:var(--bg); }
+  .risk-box b{ color:var(--ink); }
+  .risk-choice-group{ flex-wrap:wrap; }
+  .risk-choice-group button{ font-size:11.5px; }
+
+  /* ---------- Historique compact ---------- */
+  .history-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 4px; border-bottom:1px solid var(--line); font-size:13px; }
+  .history-row:last-child{ border-bottom:none; }
+  .history-row__left{ display:flex; align-items:center; gap:10px; color:var(--muted); }
+  .history-row__left b{ color:var(--ink); }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script>STASHAuth.guard();</script>
+</head>
+<body data-page="berich">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__head">
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <nav class="sidebar__nav">
+    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
+    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
+    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
+    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
+  </nav>
+  <div class="sidebar__foot">
+    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="page-head">
+    <h1>BERICH</h1>
+    <p>Graphique en direct, signaux détectés par ton scanner, et prise de position en un clic.</p>
+  </div>
+
+  <!-- Verrou : inscription en 3 étapes tant qu'aucun compte n'est relié.
+       Une fois fait, ces réglages restent modifiables dans Compte. -->
+  <div class="card wizard-card" id="berichWizard">
+    <div class="wizard-steps">
+      <span class="wizard-step is-active" data-step="1">1 · Broker</span>
+      <span class="wizard-step" data-step="2">2 · Serveur</span>
+      <span class="wizard-step" data-step="3">3 · Identifiants</span>
+    </div>
+
+    <div class="wizard-panel" data-panel="1">
+      <h2>Quel est ton broker ou ta propfirm ?</h2>
+      <p class="hint">Nécessaire pour calculer correctement le risque de chaque position. Pas dans la liste ? Choisis "Autre".</p>
+      <div class="broker-grid" id="brokerGrid"></div>
+    </div>
+
+    <div class="wizard-panel" data-panel="2" hidden>
+      <h2>Quel serveur MT5 ?</h2>
+      <p class="hint">Liste indicative, pas vérifiée en direct — si le tien n'apparaît pas, choisis "Autre" et tape son nom exact (visible dans MT5 à la connexion).</p>
+      <div class="server-list" id="serverList"></div>
+      <div class="wizard-actions"><button type="button" class="btn btn-ghost" data-wizard-back="1">← Retour</button></div>
+    </div>
+
+    <div class="wizard-panel" data-panel="3" hidden>
+      <h2>Identifiants du compte</h2>
+      <div class="form-stack">
+        <div><label for="wzLogin">Numéro de compte</label><input id="wzLogin" class="field" type="text" placeholder="ex. 5012345"></div>
+        <div><label for="wzPassword">Mot de passe</label><input id="wzPassword" class="field" type="password"></div>
+        <p class="hint">Stocké uniquement en local dans ce navigateur, jamais envoyé nulle part.</p>
+      </div>
+      <div class="wizard-actions">
+        <button type="button" class="btn btn-ghost" data-wizard-back="2">← Retour</button>
+        <button type="button" class="btn btn-primary" id="wizardFinish">Terminer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="berichContent" style="display:none">
+    <div class="conn-bar">
+      <div class="conn-bar__status">
+        <span class="conn-dot is-on"></span>
+        <span id="connLabel">—</span>
+      </div>
+      <a href="account.html#connexion" class="btn btn-secondary" style="padding:9px 18px;font-size:12.5px">Modifier la connexion</a>
+    </div>
+
+    <div class="eyebrow">01 — Graphique ————</div>
+    <div class="card chart-wrap">
+      <div class="chart-wrap__head">
+        <span class="eyebrow" style="margin:0">Vue marché</span>
+      </div>
+      <div id="tvChart"></div>
+      <p class="chart-note" id="chartNote">XAU/USD uniquement pour l'instant — ton vrai script <b>BE FR€E</b> tourne réellement ici (PineTS + Vela, données Twelve Data), pas une recréation approximative. Seul le tableau de tendance multi-timeframe (cosmétique) est désactivé — trop lent à calculer sur des timeframes courts. La vraie détection de trade reste le webhook TradingView ci-dessous, pas ce graphique.</p>
+    </div>
+
+    <div class="eyebrow" style="margin-top:28px">02 — Position ————</div>
+    <div class="card signal-hero" id="signalHero"></div>
+
+    <div id="historyWrap" hidden>
+      <div class="eyebrow">Historique ————</div>
+      <div class="card signal-card">
+        <div id="signalHistoryList"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+
+<script src="js/config.js"></script>
+<script src="js/config.local.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/berich-brokers.js"></script>
+<script src="js/berich-store.js"></script>
+<script src="js/berich-chart.js"></script>
+<script>
+(() => {
+  const ACCOUNTS_KEY = 'stash_accounts';
+  const ACTIVE_KEY = 'stash_active_account';
+
+  function activeAccount() {
+    try {
+      const accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
+      if (!accounts.length) return null;
+      const activeId = localStorage.getItem(ACTIVE_KEY) || accounts[0].id;
+      return accounts.find((a) => a.id === activeId) || accounts[0];
+    } catch (e) { return null; }
+  }
+
+  function money(v) { return v == null ? '—' : '$' + v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  // ---------- Assistant d'inscription (aucun compte relié pour l'instant) ----------
+  function initWizard() {
+    let step = 1;
+    let chosenBroker = null; // {id, name} ou {id:'other', name: <saisi>}
+    let chosenServer = null;
+
+    const panels = [...document.querySelectorAll('.wizard-panel')];
+    const stepEls = [...document.querySelectorAll('.wizard-step')];
+
+    function goToStep(n) {
+      step = n;
+      panels.forEach((p) => { p.hidden = Number(p.dataset.panel) !== n; });
+      stepEls.forEach((el) => {
+        const s = Number(el.dataset.step);
+        el.classList.toggle('is-active', s === n);
+        el.classList.toggle('is-done', s < n);
+      });
+    }
+
+    document.querySelectorAll('[data-wizard-back]').forEach((btn) => {
+      btn.addEventListener('click', () => goToStep(Number(btn.dataset.wizardBack)));
+    });
+
+    // ---- Étape 1 : broker ----
+    const brokerGrid = document.getElementById('brokerGrid');
+    brokerGrid.innerHTML = window.STASH_BROKERS.map((b) => `
+      <button type="button" class="broker-card" data-broker-id="${b.id}">
+        <img src="${stashBrokerLogo(b.domain)}" alt="" onerror="this.remove()">
+        <span>${b.name}</span>
+      </button>`).join('') + `
+      <button type="button" class="broker-card" data-broker-id="other">
+        <span class="broker-card__icon">✎</span>
+        <span>Autre</span>
+      </button>`;
+
+    brokerGrid.querySelectorAll('.broker-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.brokerId;
+        if (id === 'other') {
+          const name = prompt('Nom du broker / propfirm :');
+          if (!name) return;
+          chosenBroker = { id: 'other', name: name.trim() };
+        } else {
+          const b = window.STASH_BROKERS.find((x) => x.id === id);
+          chosenBroker = { id: b.id, name: b.name };
+        }
+        renderServerStep();
+        goToStep(2);
+      });
+    });
+
+    // ---- Étape 2 : serveur ----
+    function renderServerStep() {
+      const serverList = document.getElementById('serverList');
+      const broker = window.STASH_BROKERS.find((b) => b.id === chosenBroker.id);
+      const servers = broker ? broker.servers : [];
+      serverList.innerHTML = servers.map((s) => `<button type="button" class="server-pill" data-server="${s}">${s}</button>`).join('')
+        + `<button type="button" class="server-pill" data-server="__other__">Autre — je tape le nom exact</button>`;
+
+      serverList.querySelectorAll('.server-pill').forEach((pill) => {
+        pill.addEventListener('click', () => {
+          if (pill.dataset.server === '__other__') {
+            const name = prompt('Nom exact du serveur MT5 :');
+            if (!name) return;
+            chosenServer = name.trim();
+          } else {
+            chosenServer = pill.dataset.server;
+          }
+          goToStep(3);
+        });
+      });
+    }
+
+    // ---- Étape 3 : identifiants ----
+    document.getElementById('wizardFinish').addEventListener('click', () => {
+      const login = document.getElementById('wzLogin').value.trim();
+      const password = document.getElementById('wzPassword').value;
+      STASHBerich.saveConnection({
+        broker: chosenBroker.name,
+        server: chosenServer || '',
+        login, password,
+        riskPercent: 1,
+        riskMode: 'manual',
+        presets: STASHBerich.defaultPresets(),
+        activePresetId: null,
+      });
+      showToast('Connexion BERICH enregistrée ✓');
+      location.reload();
+    });
+  }
+
+  // ---------- Verrou d'accès : rien ne s'affiche sans connexion ----------
+  if (!STASHBerich.isConnected()) {
+    document.getElementById('berichWizard').style.display = '';
+    document.getElementById('berichContent').style.display = 'none';
+    initWizard();
+    return; // aucun appel réseau, aucun rendu tant qu'aucun compte n'est relié
+  }
+  document.getElementById('berichWizard').style.display = 'none';
+  document.getElementById('berichContent').style.display = '';
+  const conn = STASHBerich.loadConnection();
+  document.getElementById('connLabel').textContent = `${conn.broker} · MT5${conn.server ? ' · ' + conn.server : ''}`;
+
+  // ---------- Graphique — ton vrai script BE FR€E, exécuté en direct (XAU/USD uniquement) ----------
+  STASHBerichChart.render('tvChart').catch((e) => {
+    console.error('BERICH chart', e);
+    document.getElementById('tvChart').innerHTML = `<div class="scanner-empty">Erreur graphique : ${e.message}</div>`;
+  });
+
+  // ---------- Position : attente / active / historique ----------
+  function levelBlock(cls, label, value) {
+    return `<div class="${cls}"><span>${label}</span><strong>${value}</strong></div>`;
+  }
+
+  function renderWaiting(meta) {
+    document.getElementById('signalHero').innerHTML = `
+      <div class="signal-hero__waiting">
+        <span class="pulse-dot"></span>
+        <h3 style="margin:0;font-size:15px;font-weight:700">En attente d'une position</h3>
+        <p>Dès que ton scanner BE FR€E détecte un signal, il apparaît ici avec entrée/SL/TP et un bouton pour le confirmer.</p>
+        <span class="signal-meta">${meta}</span>
+      </div>`;
+  }
+
+  function riskBoxHtml(riskInfo, account) {
+    if (riskInfo.risk == null) return 'Configure ta connexion pour voir le montant à risquer.';
+    if (riskInfo.amount == null) return `Risque réglé à <b>${riskInfo.risk}%</b> (${riskInfo.source}) — aucun compte actif trouvé sur le Dashboard pour calculer le montant en $.`;
+    return `Risque réglé à <b>${riskInfo.risk}%</b> (${riskInfo.source}) → <b>${money(riskInfo.amount)}</b> à risquer sur ce trade.`;
+  }
+
+  function renderActive(s, taken) {
+    const account = activeAccount();
+    const takenMeta = taken.find((t) => t.id === s.id);
+    const isTaken = !!takenMeta;
+    const sideWord = s.side === 'sell' ? 'Vente' : 'Achat';
+    const choices = STASHBerich.riskChoices(conn);
+    const lastChoice = STASHBerich.loadLastRiskChoice();
+    let currentChoice = choices.find((c) => lastChoice && c.mode === lastChoice.mode && c.presetId === lastChoice.presetId) || choices[0];
+
+    // Une fois pris, le risque affiché est celui réellement choisi à ce
+    // moment-là (mémorisé sur le signal) — pas recalculé avec les réglages
+    // actuels, pour que l'historique/le journal reste exact.
+    const riskInfo = isTaken
+      ? { risk: takenMeta.riskPercent, source: takenMeta.riskSource }
+      : STASHBerich.effectiveRisk(conn, __allSignals, currentChoice);
+    const riskAmount = isTaken ? takenMeta.riskAmount : (account && riskInfo.risk != null ? account.balance * riskInfo.risk / 100 : null);
+
+    document.getElementById('signalHero').innerHTML = `
+      <div class="signal-hero__active">
+        <div class="signal-hero__cta ${s.side === 'sell' ? 'sell' : 'buy'}">
+          <span class="side-pill-lg ${s.side === 'sell' ? 'sell' : 'buy'}">${sideWord} · ${s.symbol}</span>
+          ${isTaken
+            ? '<div class="signal-hero__confirmed">✓ Trade confirmé</div>'
+            : `<button class="big-trade-btn ${s.side === 'sell' ? 'sell' : 'buy'}" id="bigTradeBtn">Prendre le trade</button>`}
+        </div>
+        <div class="signal-hero__info">
+          <div class="signal-hero__symbol">
+            <b>${s.symbol}</b>
+            <span class="signal-meta">${s.scanner || 'Scanner'} · ${new Date(s.time).toLocaleString('fr-FR')}</span>
+          </div>
+          <div class="signal-hero__levels">
+            ${levelBlock('entry', 'Entrée', s.entry)}
+            ${levelBlock('sl', 'Stop loss', s.sl)}
+            ${levelBlock('tp', 'Take profit', s.tp)}
+          </div>
+          ${isTaken ? '' : `
+          <div class="pill-group risk-choice-group" id="riskChoiceGroup">
+            ${choices.map((c, i) => `<button type="button" data-i="${i}" class="${c === currentChoice ? 'is-active' : ''}">${c.label}</button>`).join('')}
+          </div>`}
+          <div class="risk-box" id="riskBox">${riskBoxHtml({ risk: riskInfo.risk, source: riskInfo.source, amount: riskAmount }, account)}</div>
+        </div>
+      </div>`;
+
+    const choiceGroup = document.getElementById('riskChoiceGroup');
+    if (choiceGroup) {
+      choiceGroup.querySelectorAll('button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          currentChoice = choices[Number(btn.dataset.i)];
+          choiceGroup.querySelectorAll('button').forEach((b) => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          STASHBerich.saveLastRiskChoice(currentChoice);
+          const info = STASHBerich.effectiveRisk(conn, __allSignals, currentChoice);
+          const amount = account && info.risk != null ? account.balance * info.risk / 100 : null;
+          document.getElementById('riskBox').innerHTML = riskBoxHtml({ risk: info.risk, source: info.source, amount }, account);
+        });
+      });
+    }
+
+    const btn = document.getElementById('bigTradeBtn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        STASHBerich.saveLastRiskChoice(currentChoice);
+        const info = STASHBerich.effectiveRisk(conn, __allSignals, currentChoice);
+        const amount = account && info.risk != null ? account.balance * info.risk / 100 : null;
+        STASHBerich.markTaken(s.id, { riskPercent: info.risk, riskSource: info.source, riskAmount: amount, accountBalance: account ? account.balance : null });
+        showToast('Trade confirmé ✓');
+        renderActive(s, STASHBerich.loadTaken());
+      });
+    }
+  }
+
+  function renderHistory(signals) {
+    const wrap = document.getElementById('historyWrap');
+    const closed = signals.filter((s) => s.status === 'closed');
+    if (!closed.length) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    document.getElementById('signalHistoryList').innerHTML = closed.map((s) => `
+      <div class="history-row">
+        <div class="history-row__left">
+          <span class="side-pill ${s.side === 'sell' ? 'sell' : 'buy'}">${s.side === 'sell' ? 'Vente' : 'Achat'}</span>
+          <b>${s.symbol}</b>
+          <span>${new Date(s.time).toLocaleDateString('fr-FR')}</span>
+        </div>
+        <span class="result-badge ${s.result === 'TP' ? 'win' : 'loss'}">${s.result === 'TP' ? '✓ TP' : '✗ SL'}</span>
+      </div>`).join('');
+  }
+
+  let __allSignals = [];
+
+  async function loadAndRender() {
+    let data;
+    try {
+      data = await STASHBerich.fetchSignals();
+    } catch (e) {
+      renderWaiting('Impossible de charger les signaux.');
+      return;
+    }
+
+    __allSignals = data.signals || [];
+    const taken = STASHBerich.loadTaken();
+    const meta = data.example
+      ? 'Exemple — en attente d’un vrai signal webhook'
+      : `Mis à jour ${new Date(data.updatedAt).toLocaleString('fr-FR')}`;
+
+    const openUntaken = __allSignals.find((s) => s.status !== 'closed' && !taken.some((t) => t.id === s.id));
+    const openTaken = __allSignals.find((s) => s.status !== 'closed' && taken.some((t) => t.id === s.id));
+    const active = openUntaken || openTaken;
+
+    if (active) renderActive(active, taken);
+    else renderWaiting(meta);
+
+    renderHistory(__allSignals);
+  }
+
+  loadAndRender();
+})();
+</script>
+</body>
+</html>
