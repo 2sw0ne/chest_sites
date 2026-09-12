@@ -1,4 +1,4 @@
-# BERICH — scanner TradingView → STASH
+# BERICH — scanner TradingView → CHEST
 
 Service local qui reçoit les alertes de ton scanner Pine Script (webhook TradingView) et écrit `../site/data/berich-signal.json`, lu automatiquement par la page `berich.html`.
 
@@ -63,4 +63,4 @@ Le serveur écoute sur le port **5600**. TradingView doit pouvoir atteindre cett
 
 ## Déploiement (plus tard)
 
-Même logique que `calendar-bridge` : une fois prêt, ce dossier peut être déployé comme service Railway séparé, avec son URL renseignée dans `site/js/config.js` (`berichApiUrl`) pour que le site aille lire les signaux là-bas au lieu du fichier local. Pas fait pour l'instant — le reste de STASH reste 100% local.
+Même logique que `calendar-bridge` : une fois prêt, ce dossier peut être déployé comme service Railway séparé, avec son URL renseignée dans `site/js/config.js` (`berichApiUrl`) pour que le site aille lire les signaux là-bas au lieu du fichier local. Pas fait pour l'instant — le reste de CHEST reste 100% local.

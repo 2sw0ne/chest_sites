@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STASH — Accès</title>
+<title>CHEST — Accès</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <script src="js/theme.js"></script>
 </head>
 <body>
@@ -16,7 +16,7 @@
   <div class="gate__glow" aria-hidden="true"></div>
   <div class="gate__card">
     <div class="gate__mark" aria-hidden="true"></div>
-    <h1 id="gateTitle">STASH</h1>
+    <h1 id="gateTitle">CHEST</h1>
     <p id="gateSub">Entre ton code d'accès pour continuer.</p>
 
     <form id="gateForm" autocomplete="off">
@@ -37,10 +37,10 @@
   const formEl = document.getElementById('gateForm');
 
   (async () => {
-    if (!STASHAuth.hasCode()) {
-      await STASHAuth.setCode('2123'); // code par défaut, modifiable dans Compte
+    if (!CHESTAuth.hasCode()) {
+      await CHESTAuth.setCode('2123'); // code par défaut, modifiable dans Compte
     }
-    if (STASHAuth.isUnlocked()) {
+    if (CHESTAuth.isUnlocked()) {
       window.location.replace('dashboard.html');
     }
   })();
@@ -50,9 +50,9 @@
     const code = codeEl.value.trim();
     errEl.textContent = '';
 
-    const ok = await STASHAuth.checkCode(code);
+    const ok = await CHESTAuth.checkCode(code);
     if (ok) {
-      STASHAuth.unlock();
+      CHESTAuth.unlock();
       window.location.href = 'dashboard.html';
     } else {
       errEl.textContent = 'Code incorrect.';

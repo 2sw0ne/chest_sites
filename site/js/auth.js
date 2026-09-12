@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const HASH_KEY = 'stash_code_hash';
-  const SESSION_KEY = 'stash_unlocked';
+  const HASH_KEY = 'chest_code_hash';
+  const SESSION_KEY = 'chest_unlocked';
 
   async function sha256(text) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -30,5 +30,5 @@
     }
   }
 
-  window.STASHAuth = { hasCode, isUnlocked, setCode, checkCode, unlock, lock, guard };
+  window.CHESTAuth = { hasCode, isUnlocked, setCode, checkCode, unlock, lock, guard };
 })();

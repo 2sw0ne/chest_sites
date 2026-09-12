@@ -1,4 +1,4 @@
-// STASH · BERICH — exécute le VRAI script Pine "BE FR€E" (pas une recréation)
+// CHEST · BERICH — exécute le VRAI script Pine "BE FR€E" (pas une recréation)
 // via PineTS (transpileur/runtime Pine -> JS, github.com/LuxAlgo/PineTS) et le
 // dessine avec Vela (moteur de rendu du même éditeur), sur des données XAU/USD
 // réelles (Twelve Data). Scope volontairement limité à XAU/USD pour l'instant.
@@ -469,7 +469,7 @@ if barstate.islast and showJournal
 `;
 
   async function fetchXauCandles() {
-    const key = window.STASH_CONFIG && window.STASH_CONFIG.twelveDataApiKey;
+    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
     if (!key) throw new Error('Clé Twelve Data manquante — voir js/config.local.example.js');
     const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(SYMBOL_TWELVEDATA)}&interval=${TWELVEDATA_INTERVAL}&outputsize=1000&apikey=${key}`;
     const res = await fetch(url);
@@ -496,7 +496,7 @@ if barstate.islast and showJournal
 
   async function render(containerId) {
     const container = document.getElementById(containerId);
-    const key = window.STASH_CONFIG && window.STASH_CONFIG.twelveDataApiKey;
+    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
     if (!key) {
       container.innerHTML = '<div class="scanner-empty">Clé Twelve Data manquante — voir <code>js/config.local.example.js</code>.</div>';
       return;
@@ -523,7 +523,7 @@ if barstate.islast and showJournal
       symbol: SYMBOL_DISPLAY,
       timeframe: BASE_INTERVAL,
       data: candles,
-      theme: (window.STASHTheme && STASHTheme.current() === 'light') ? 'light' : 'dark',
+      theme: (window.CHESTTheme && CHESTTheme.current() === 'light') ? 'light' : 'dark',
     });
 
     chart.registerEngine('pine', new PineEngine());
@@ -533,12 +533,12 @@ if barstate.islast and showJournal
     // bloquer le reste : un souci ici ne doit pas empêcher le scanner de s'afficher.
     try {
       chart.renderer.applyConfig({
-        candles: { upColor: '#089981', downColor: '#f23645', wickUpColor: '#089981', wickDownColor: '#f23645' },
+        candles: { upColor: '#089981', downColor: '#ffffff', wickUpColor: '#089981', wickDownColor: '#ffffff' },
       });
     } catch (e) {
       console.warn('BERICH: couleurs de bougies non appliquées', e);
     }
   }
 
-  window.STASHBerichChart = { render };
+  window.CHESTBerichChart = { render };
 })();

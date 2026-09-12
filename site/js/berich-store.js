@@ -1,11 +1,11 @@
-// STASH · BERICH — réglages de connexion broker/propfirm (localStorage) et
+// CHEST · BERICH — réglages de connexion broker/propfirm (localStorage) et
 // lecture des signaux détectés par le scanner (webhook TradingView -> berich-bridge).
 (() => {
   'use strict';
 
-  const CONN_KEY = 'stash_berich_connection';
-  const TAKEN_KEY = 'stash_berich_taken';
-  const LAST_CHOICE_KEY = 'stash_berich_last_risk_choice';
+  const CONN_KEY = 'chest_berich_connection';
+  const TAKEN_KEY = 'chest_berich_taken';
+  const LAST_CHOICE_KEY = 'chest_berich_last_risk_choice';
   const LOCAL_SIGNAL_FILE = 'data/berich-signal.json';
 
   // Préréglages de risque par défaut — mêmes règles que le money management du
@@ -63,7 +63,7 @@
   }
 
   async function fetchSignals() {
-    const url = (window.STASH_CONFIG && window.STASH_CONFIG.berichApiUrl) || '';
+    const url = (window.CHEST_CONFIG && window.CHEST_CONFIG.berichApiUrl) || '';
     const target = url || `${LOCAL_SIGNAL_FILE}?nocache=${Date.now()}`;
     const res = await fetch(target);
     if (!res.ok) throw new Error('signal fetch failed');
@@ -129,7 +129,7 @@
     };
   }
 
-  window.STASHBerich = {
+  window.CHESTBerich = {
     loadConnection, saveConnection, clearConnection, isConnected,
     loadTaken, findTaken, markTaken, fetchSignals,
     defaultPresets, consecutiveLosses, effectiveRisk,

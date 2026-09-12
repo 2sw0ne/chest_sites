@@ -1,11 +1,11 @@
-// STASH · BERICH — liste indicative des brokers/propfirms les plus connus
+// CHEST · BERICH — liste indicative des brokers/propfirms les plus connus
 // (priorité aux européens/régulés) et leurs serveurs MT5 courants, pour
 // guider l'inscription (étape 1 et 2 de l'assistant). PAS une donnée
-// vérifiée en direct (contrairement au reste de STASH) — les noms de
+// vérifiée en direct (contrairement au reste de CHEST) — les noms de
 // serveurs exacts changent selon le broker/le pays/le type de compte.
 // "Autre" reste toujours disponible pour taper le nom exact affiché dans
 // MT5 si l'entrée attendue n'est pas dans la liste.
-window.STASH_BROKERS = [
+window.CHEST_BROKERS = [
   // Brokers — européens/régulés en priorité
   { id: 'ig', name: 'IG', domain: 'ig.com', servers: ['IG-Live', 'IG-Demo'] },
   { id: 'icmarkets', name: 'IC Markets', domain: 'icmarkets.com', servers: ['ICMarketsSC-Live01', 'ICMarketsSC-Live02', 'ICMarketsSC-Demo'] },
@@ -26,6 +26,6 @@ window.STASH_BROKERS = [
   { id: 'topstep', name: 'TopStep', domain: 'topstep.com', servers: ['TopStep-Live', 'TopStep-Demo'] },
 ];
 
-function stashBrokerLogo(domain) {
+function chestBrokerLogo(domain) {
   return `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`;
 }

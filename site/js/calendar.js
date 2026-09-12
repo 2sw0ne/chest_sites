@@ -16,8 +16,13 @@
   const IMP_STARS = { high: '✯✯✯', medium: '✯✯☆', low: '✯☆☆' };
   const IMPORTANCE_WEIGHT = { high: 3, medium: 2, low: 1 };
 
-  const IMPORTANCE_KEY = 'stash_cal_importance';
+  const IMPORTANCE_KEY = 'chest_cal_importance';
   let allEvents = [];
+  // Calibration reelle chargee depuis data/impact-calibration.json (voir
+  // calendar-bridge/calibrate_impact.py) - null tant qu'elle n'est pas
+  // chargee/disponible, auquel cas getCalibratedImpact() retourne null et
+  // l'appelant retombe sur l'heuristique forfaitaire (IMPACT_BASE).
+  let impactCalibration = null;
 
   // ---------------------------------------------------------------
   // Sentiment de marche par paire : chaque paire est pilotee par une ou
@@ -91,7 +96,7 @@
     UNIUSD: { code: 'UNI/USD', label: 'Uniswap', geckoId: 'uniswap', symbol: '🦄' },
     AVAXUSD: { code: 'AVAX/USD', label: 'Avalanche', geckoId: 'avalanche-2', symbol: '▲' },
   };
-  const PAIR_KEY = 'stash_sentiment_pair';
+  const PAIR_KEY = 'chest_sentiment_pair';
 
   function loadPair() {
     try {
@@ -118,6 +123,45 @@
     return bullish ? 'pos' : 'neg';
   }
 
+  // Ton du "previsionnel" seul (consensus vs precedent) - structurellement
+  // identique a valueTone mais ne bascule JAMAIS sur le reel, meme publie :
+  // sert a garder une colonne "Prevu" stable toute la semaine, a cote de la
+  // colonne "Reel" (valueTone) qui elle passe de neutre a coloree une fois
+  // l'evenement publie. Les deux coexistent sur chaque carte (voir driverCardHtml).
+  function forecastTone(ev) {
+    const shownNum = parseFloat(String(ev.consensus).replace(',', '.'));
+    const refNum = parseFloat(String(ev.previous).replace(',', '.'));
+    if (!ev.consensus || isNaN(shownNum) || isNaN(refNum) || !ev.directionBias) return 'neutral';
+    const diff = shownNum - refNum;
+    if (Math.abs(diff) < 1e-9) return 'neutral';
+    const beat = diff > 0;
+    const bullish = ev.directionBias === 'up' ? beat : !beat;
+    return bullish ? 'pos' : 'neg';
+  }
+
+  // Bornes lundi->dimanche de la semaine contenant `ref`. Utilise pour borner
+  // le cycle hebdomadaire du calendrier (voir renderSentimentHeader) : les
+  // annonces d'une semaine restent affichees du lundi au dimanche, meme une
+  // fois publiees, plutot que de disparaitre au fil des jours.
+  function getWeekBounds(ref) {
+    const d = new Date(ref);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay(); // 0 = dimanche ... 6 = samedi
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { monday, sunday };
+  }
+  function isWeekendNow() {
+    const day = new Date().getDay();
+    return day === 0 || day === 6;
+  }
+  function isoInRange(iso, monday, sunday) {
+    return iso >= isoDateLocal(monday) && iso <= isoDateLocal(sunday);
+  }
+
   // Estimation indicative (pas un vrai modele de pricing) de l'impact d'un
   // evenement sur un instrument donne : ampleur de base selon l'importance,
   // divisee de moitie si l'evenement n'est pas encore publie (anticipation),
@@ -141,6 +185,59 @@
     return `${sign}${Math.abs(v).toFixed(1).replace('.', ',')}%`;
   }
 
+  // Cherche une calibration REELLE (voir calendar-bridge/calibrate_impact.py,
+  // qui mesure le vrai mouvement historique de prix apres chaque publication
+  // passee d'un indicateur precis) pour cet evenement + cette paire cible.
+  // Jointure par investingEventId (l'id stable investing.com capture par
+  // fetch_calendar.py, ex. 69 pour "CPI (MoM)" US - verifie le 2026-09-12 :
+  // memes ids que ceux utilises dans calibrate_impact.py pour PIB EU/JP,
+  // BCE, PPI, inscriptions chomage). Retourne null si aucune calibration
+  // n'existe encore pour cette paire precise (calibration pas terminee, ou
+  // pas assez de points) - l'appelant retombe alors sur l'heuristique forfaitaire.
+  function getCalibratedImpact(ev, targetConfig) {
+    if (!impactCalibration || !ev.investingEventId) return null;
+    const indicator = impactCalibration.indicators && impactCalibration.indicators[String(ev.investingEventId)];
+    if (!indicator) return null;
+    const pairKey = Object.keys(PAIR_CONFIG).find((k) => PAIR_CONFIG[k] === targetConfig);
+    const calib = pairKey && indicator.pairs && indicator.pairs[pairKey];
+    return calib || null;
+  }
+
+  // Variante "previsionnelle" d'estimateMove : basee sur forecastTone (donc
+  // JAMAIS sur le resultat reel), sans demi-poids pour les evenements pas
+  // encore publies. C'est LA reference stable de la semaine (voir
+  // computeForecastSentiment) - contrairement a estimateMove (qui, une fois
+  // l'evenement publie, bascule sur la surprise reelle et peut donc changer
+  // de sens/ampleur du jour au lendemain), celle-ci ne bouge pas juste parce
+  // qu'une annonce est tombee.
+  //
+  // Ampleur : quand une calibration reelle existe pour cet indicateur+cette
+  // paire (voir getCalibratedImpact), utilise le VRAI coefficient mesure
+  // (beta x l'ecart Prevu/Precedent, dans les memes unites que celles
+  // affichees par investing.com) au lieu du forfait fixe par palier
+  // d'importance (IMPACT_BASE) - c'est tout le sens de la calibration :
+  // remplacer un chiffre devine par un chiffre mesure sur l'historique reel.
+  function estimateForecastMove(ev, targetConfig) {
+    if (!targetConfig) return null;
+    const driver = targetConfig.drivers.find((d) => d.country === ev.country);
+    if (!driver) return null;
+    const tone = forecastTone(ev);
+    if (tone === 'neutral') return 0;
+    const sign = (tone === 'pos' ? 1 : -1) * driver.weight;
+
+    const calib = getCalibratedImpact(ev, targetConfig);
+    if (calib) {
+      const consensusNum = parseFloat(String(ev.consensus).replace(',', '.'));
+      const prevNum = parseFloat(String(ev.previous).replace(',', '.'));
+      if (!isNaN(consensusNum) && !isNaN(prevNum)) {
+        const magnitude = Math.abs(calib.beta * (consensusNum - prevNum));
+        return sign * magnitude;
+      }
+    }
+    const base = IMPACT_BASE[ev.importance] || 0.2;
+    return sign * base;
+  }
+
   // pairKeyOrConfig accepte soit une cle de PAIR_CONFIG (usage normal), soit
   // directement un objet {drivers:[...]} (utilise par le sentiment crypto,
   // qui a besoin d'une config "macro US generique" sans entree dans PAIR_CONFIG).
@@ -158,6 +255,41 @@
         const rawSign = rawTone === 'pos' ? 1 : -1;
         const pairSign = rawSign * driver.weight;
         const weight = (IMPORTANCE_WEIGHT[ev.importance] || 1) * (ev.released ? 1 : 0.5);
+        score += pairSign * weight;
+        drivers.push({ ev, tone: pairSign > 0 ? 'pos' : 'neg' });
+      });
+    }
+    let tone = 'neutral';
+    if (score >= 2) tone = 'pos';
+    else if (score <= -2) tone = 'neg';
+    drivers.sort((a, b) => (a.ev.date + (a.ev.time || '')).localeCompare(b.ev.date + (b.ev.time || '')));
+    return { score, tone, drivers };
+  }
+
+  // Version "previsionnelle" de computeMarketSentiment : score et liste de
+  // cartes bases sur forecastTone pour TOUS les evenements (publies ou non),
+  // jamais sur le resultat reel. C'est la reference utilisee pour le %
+  // affiche en gros dans le hero et pour la liste des cartes de la semaine :
+  // determinee une fois par semaine (a partir des consensus), elle ne
+  // retombe pas vers 0%/neutre juste parce que des annonces sont publiees
+  // entre-temps - seul un changement de consensus avant publication (rare)
+  // la fait bouger. Le resultat REEL (une fois connu) est traite a part :
+  // couleur "Reel" de chaque carte (valueTone), comparateur Biais/Realise
+  // (renderWeekCompare) et indicateur de coherence (computeWeeklyConsistency).
+  function computeForecastSentiment(events, pairKeyOrConfig) {
+    const config = typeof pairKeyOrConfig === 'string' ? PAIR_CONFIG[pairKeyOrConfig] : pairKeyOrConfig;
+    const drivers = [];
+    let score = 0;
+    if (config) {
+      events.forEach((ev) => {
+        if (ev.importance === 'low') return;
+        const driver = config.drivers.find((d) => d.country === ev.country);
+        if (!driver) return;
+        const rawTone = forecastTone(ev);
+        if (rawTone === 'neutral') return;
+        const rawSign = rawTone === 'pos' ? 1 : -1;
+        const pairSign = rawSign * driver.weight;
+        const weight = IMPORTANCE_WEIGHT[ev.importance] || 1;
         score += pairSign * weight;
         drivers.push({ ev, tone: pairSign > 0 ? 'pos' : 'neg' });
       });
@@ -293,62 +425,372 @@
     document.getElementById('cryptoCards').innerHTML = cardsHtml;
   }
 
+  // Nom du jour (lundi/mardi/...) d'un evenement, ou "Aujourd'hui" - remplace
+  // l'ancien badge "Publié"/"À venir" sur les cartes : une fois la semaine
+  // entiere affichee (lundi->dimanche), ce badge etait ambigu (une annonce
+  // de lundi encore marquee "publiee" le vendredi n'apprend rien ; une
+  // annonce qualitative - discours, sans donnee chiffree - restait bloquee
+  // sur "a venir" pour toujours, meme apres avoir eu lieu). Savoir QUEL jour
+  // est la vraie information utile ici.
+  const WEEKDAY_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  function dayBadge(ev) {
+    if (!ev.date) return '';
+    if (ev.date === isoDateLocal(new Date())) return "Aujourd'hui";
+    const name = WEEKDAY_FR[new Date(ev.date + 'T00:00:00').getDay()];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }
+
+  // Carte d'annonce partagee entre la vue "semaine en cours" et les deux
+  // blocs du mode weekend (bilan passe / previsionnel a venir) : colonne
+  // "Prevu" (forecastTone, stable) a gauche, trait violet, colonne "Reel"
+  // (valueTone une fois publie, sinon "En attente") a droite. Avant
+  // publication, "Prevu" est la valeur mise en avant (grande) et "Reel"
+  // reste petit/attenue ("En attente") ; une fois publie, le rapport
+  // s'inverse - "Reel" devient la valeur mise en avant, "Prevu" reste
+  // visible mais petit, comme reference. Repond directement au "je vois
+  // des % je sais pas si c'est la prevision ou la realite".
+  function driverCardHtml(d) {
+    const ev = d.ev;
+    const badge = dayBadge(ev);
+    if (hasNoData(ev)) {
+      // Evenement qualitatif (discours, conference...) : jamais de valeur
+      // chiffree, meme une fois passe - inutile (et trompeur) de lui
+      // appliquer le badge "publie/a venir" ou le duo Prevu/Reel.
+      return `
+        <div class="driver-card">
+          <div class="driver-card__top">
+            ${flagIcon(ev.country)}
+            <span class="driver-card__name">${ev.event}</span>
+            <span class="tag">${badge}</span>
+          </div>
+          <p class="driver-empty" style="margin:0">Évènement qualitatif — pas de donnée chiffrée attendue.</p>
+        </div>`;
+    }
+    const forecastVal = ev.consensus || '—';
+    const realVal = ev.released ? (ev.actual || '—') : 'En attente';
+    const fTone = forecastTone(ev);
+    const rTone = ev.released ? valueTone(ev) : 'neutral';
+    // estimateForecastMove (pas estimateMove) : "Est. XAU/DXY" repond a "si
+    // la prevision se realise, quelle consequence sur XAU/DXY" - une
+    // question sur le PREVU, qui a une reponse meme apres publication et ne
+    // retombe pas a 0% juste parce que le reel a fini pile sur le consensus
+    // (aucune "surprise" ne veut pas dire "aucun impact attendu" : le
+    // consensus lui-meme pouvait deja impliquer un mouvement vs le
+    // precedent). Repond directement au retour "je veux savoir la
+    // consequence SI le % prevu arrive".
+    const xauMove = estimateForecastMove(ev, PAIR_CONFIG.XAUUSD);
+    const dxyMove = estimateForecastMove(ev, PAIR_CONFIG.DXY);
+    const xauCalib = getCalibratedImpact(ev, PAIR_CONFIG.XAUUSD);
+    const forecastMain = !ev.released;
+    // Quand le reel tombe pile sur le consensus, Prevu et Reel affichent le
+    // meme chiffre - volontaire (donnee reelle), mais ressemble a un bug
+    // d'affichage si rien ne le signale explicitement (retour utilisateur direct).
+    const exactMatch = ev.released && String(forecastVal) === String(realVal) && realVal !== '—';
+    return `
+      <div class="driver-card">
+        <div class="driver-card__top">
+          ${flagIcon(ev.country)}
+          <span class="driver-card__name">${ev.event}</span>
+          <span class="tag">${badge}</span>
+        </div>
+        <div class="driver-card__compare">
+          <div class="driver-card__compare-col ${forecastMain ? 'is-main' : 'is-ref'}"><span>Prévu</span><b class="val ${fTone}">${forecastVal}</b></div>
+          <div class="driver-card__divider"></div>
+          <div class="driver-card__compare-col ${forecastMain ? 'is-ref' : 'is-main'}"><span>Réel</span><b class="val ${rTone}">${realVal}</b></div>
+        </div>
+        ${exactMatch ? '<div class="driver-card__match">✓ Résultat exactement conforme au consensus</div>' : ''}
+        <div class="driver-card__estimates">
+          <div><span>Est. XAU</span><b class="val ${xauMove > 0 ? 'pos' : xauMove < 0 ? 'neg' : 'neutral'}">${fmtMove(xauMove)}</b></div>
+          <div><span>Est. DXY</span><b class="val ${dxyMove > 0 ? 'pos' : dxyMove < 0 ? 'neg' : 'neutral'}">${fmtMove(dxyMove)}</b></div>
+        </div>
+        ${xauCalib
+          ? `<div class="driver-card__calib">📊 Estimation XAU calibrée sur ${xauCalib.n} publications passées (confiance ${xauCalib.confidence}${xauCalib.confidence === 'faible' ? ' — à prendre avec prudence' : ''})</div>`
+          : `<div class="driver-card__calib is-heuristic">Estimation forfaitaire (pas encore calibrée sur l'historique réel)</div>`}
+      </div>`;
+  }
+
+  // "Coherence" de la semaine : parmi les annonces DEJA PUBLIEES cette
+  // semaine (hors neutres), la part dont le RESULTAT REEL (valueTone, pas
+  // le sens previsionnel qui a servi a fixer `tone`) confirme le biais
+  // previsionnel stable de la semaine. Repond a "le % de reussite par
+  // rapport a ce qui etait prevu". CE N'EST PAS un taux de reussite
+  // historique des previsions (ca demanderait de suivre des centaines
+  // d'annonces passees dans le temps - hors de portee avec l'historique
+  // glissant de 30 jours actuel) : juste une lecture honnete, calculable
+  // des maintenant, de "est-ce que ce qui est deja tombe confirme le biais
+  // determine en debut de semaine."
+  function computeWeeklyConsistency(tone, drivers) {
+    if (tone === 'neutral') return null;
+    const releasedNonNeutral = drivers
+      .filter((d) => d.ev.released)
+      .map((d) => valueTone(d.ev))
+      .filter((t) => t !== 'neutral');
+    if (!releasedNonNeutral.length) return null;
+    const agree = releasedNonNeutral.filter((t) => t === tone).length;
+    return { agree, total: releasedNonNeutral.length, pct: Math.round((agree / releasedNonNeutral.length) * 100) };
+  }
+
+  // Mouvement reel du prix sur [monday, sunday] (% signe), utilise le weekend
+  // pour comparer le biais estime de la semaine passee a ce qui s'est
+  // reellement passe. Forex/matieres premieres -> Twelve Data (deja utilise
+  // par BERICH/Strategies) ; crypto -> historique CoinGecko. Retourne null
+  // (jamais une fausse valeur) si la source ne repond pas ou manque de clé -
+  // le bloc de comparaison reste alors simplement masque.
+  async function fetchWeeklyRealMovePct(pairKey, monday, sunday) {
+    try {
+      if (CRYPTO_CONFIG[pairKey]) {
+        const meta = CRYPTO_CONFIG[pairKey];
+        const from = Math.floor(monday.getTime() / 1000);
+        const to = Math.floor((sunday.getTime() + 86400000) / 1000);
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${meta.geckoId}/market_chart/range?vs_currency=usd&from=${from}&to=${to}`);
+        const data = await res.json();
+        const prices = data && data.prices;
+        if (!Array.isArray(prices) || prices.length < 2) return null;
+        const first = prices[0][1];
+        const last = prices[prices.length - 1][1];
+        if (!first) return null;
+        return ((last - first) / first) * 100;
+      }
+      const config = PAIR_CONFIG[pairKey];
+      const apiKey = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
+      if (!config || !apiKey) return null;
+      const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(config.code)}&interval=1day&start_date=${isoDateLocal(monday)}&end_date=${isoDateLocal(sunday)}&outputsize=10&apikey=${apiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const values = data && data.values;
+      if (!Array.isArray(values) || values.length < 2) return null;
+      // Twelve Data renvoie les bougies du plus recent au plus ancien.
+      const last = parseFloat(values[0].close);
+      const first = parseFloat(values[values.length - 1].close);
+      if (!first || isNaN(first) || isNaN(last)) return null;
+      return ((last - first) / first) * 100;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Verrouille le % principal + le ton (badge/lueur) d'une semaine donnee
+  // (pairKey+lundi) dans localStorage des le premier rendu de cette semaine,
+  // puis renvoie TOUJOURS cette meme valeur pour le reste de la semaine -
+  // meme si un consensus est revise avant publication, meme en rechargeant
+  // la page. C'est le nombre qui "englobe toute la semaine" et qui doit
+  // rester identique du lundi au vendredi, contrairement a la liste de
+  // cartes (drivers) qui elle reste toujours recalculee en direct pour que
+  // chaque "Reel" se mette a jour normalement. Cle differente par semaine
+  // (le lundi change) => une nouvelle semaine se recalcule naturellement.
+  const WEEKLY_FORECAST_LOCK_KEY = 'chest_weekly_forecast_lock';
+  function loadForecastLocks() {
+    try { return JSON.parse(localStorage.getItem(WEEKLY_FORECAST_LOCK_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function getLockedWeeklyForecast(pairKey, monday, freshResult, config) {
+    const key = `${pairKey}|${isoDateLocal(monday)}`;
+    const locks = loadForecastLocks();
+    if (locks[key]) return locks[key];
+    const total = freshResult.drivers.reduce((sum, d) => sum + (estimateForecastMove(d.ev, config) || 0), 0);
+    const locked = { weeklyCapped: Math.max(-3, Math.min(3, total)), tone: freshResult.tone };
+    locks[key] = locked;
+    const keys = Object.keys(locks).sort();
+    while (keys.length > 8) { delete locks[keys.shift()]; } // 8 semaines glissantes, pas d'accumulation infinie
+    try { localStorage.setItem(WEEKLY_FORECAST_LOCK_KEY, JSON.stringify(locks)); } catch (e) { /* tant pis */ }
+    return locked;
+  }
+
+  // Comparaison "Biais (annonces publiées) / Réalisé" - partagée entre la
+  // semaine en cours (lundi->aujourd'hui, mise a jour au fil des
+  // publications) et le bilan weekend (lundi->dimanche, semaine bouclee).
+  // Ne se base QUE sur les annonces deja publiees (pas les futures encore
+  // en "En attente") : repond a "a combien on est APRES ces annonces",
+  // pas a une projection sur celles qui restent a venir.
+  //
+  // Jeton de generation : cette fonction attend une reponse reseau
+  // (fetchWeeklyRealMovePct) qui peut prendre plus longtemps que le temps
+  // qu'il faut a l'utilisateur pour naviguer vers une autre semaine (◀/▶).
+  // Sans ce garde-fou, une reponse EN RETARD d'une semaine deja quittee
+  // pouvait ecraser l'affichage de la semaine fraichement ouverte avec de
+  // vieux chiffres - constate le 2026-09-11 en testant la nav ◀.
+  let weekCompareToken = 0;
+  async function renderWeekCompare(pairKey, config, monday, priceEndDate, drivers) {
+    const myToken = ++weekCompareToken;
+    const compareEl = document.getElementById('weekRealCompare');
+    const releasedDrivers = drivers.filter((d) => d.ev.released);
+    if (!releasedDrivers.length) { compareEl.hidden = true; return; }
+    const bias = Math.max(-3, Math.min(3, releasedDrivers.reduce((sum, d) => sum + (estimateMove(d.ev, config) || 0), 0)));
+    const realMove = await fetchWeeklyRealMovePct(pairKey, monday, priceEndDate);
+    if (myToken !== weekCompareToken) return; // une navigation plus recente a eu lieu entre-temps
+    if (realMove === null) { compareEl.hidden = true; return; }
+    compareEl.hidden = false;
+    const realTone = realMove > 0.05 ? 'pos' : realMove < -0.05 ? 'neg' : 'neutral';
+    const biasTone = bias > 0 ? 'pos' : bias < 0 ? 'neg' : 'neutral';
+    compareEl.innerHTML = `
+      <div class="week-compare__col"><span>Biais (annonces publiées)</span><b class="val ${biasTone}">${fmtMove(bias)}</b></div>
+      <div class="week-compare__divider"></div>
+      <div class="week-compare__col"><span>Réalisé</span><b class="val ${realTone}">${fmtMove(realMove)}</b></div>`;
+  }
+
+  // Affiche/masque la ligne de coherence interne de la semaine (voir
+  // computeWeeklyConsistency) - jamais presentee comme un taux de reussite
+  // historique, seulement comme un signal de coherence des annonces deja
+  // publiees entre elles.
+  function renderWeeklyConsistency(tone, drivers) {
+    const el = document.getElementById('sentimentConsistency');
+    const stat = computeWeeklyConsistency(tone, drivers);
+    if (!stat) { el.hidden = true; return; }
+    el.hidden = false;
+    const plural = stat.total > 1;
+    el.innerHTML = `📊 Cohérence de la semaine : <b>${stat.agree}/${stat.total}</b> annonce${plural ? 's' : ''} publiée${plural ? 's' : ''} (<b>${stat.pct}%</b>) ${plural ? 'vont' : 'va'} dans le sens du biais — pas un taux de réussite historique, juste la cohérence entre les annonces déjà sorties.`;
+  }
+
+  // Navigation par semaine dans le hero : 0 = semaine en cours, negatif =
+  // semaines passees consultees via ◀/▶ (voir renderWeekNav/setupWeekNav).
+  // Plafonnee a la fenetre d'historique reellement disponible cote backend
+  // (~30 jours glissants, voir merge_with_history() dans fetch_calendar.py).
+  let weekOffset = 0;
+  const MIN_WEEK_OFFSET = -4;
+
+  function renderWeekNav(monday, sunday) {
+    const fmtRange = (a, b) => `${a.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${b.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
+    document.getElementById('weekNavLabel').textContent = weekOffset === 0 ? `Cette semaine (${fmtRange(monday, sunday)})` : fmtRange(monday, sunday);
+    document.getElementById('weekNavPrev').disabled = weekOffset <= MIN_WEEK_OFFSET;
+    document.getElementById('weekNavNext').disabled = weekOffset >= 0;
+  }
+
+  function setupWeekNav() {
+    document.getElementById('weekNavPrev').addEventListener('click', () => {
+      if (weekOffset <= MIN_WEEK_OFFSET) return;
+      weekOffset -= 1;
+      renderSentimentHeader(allEvents);
+    });
+    document.getElementById('weekNavNext').addEventListener('click', () => {
+      if (weekOffset >= 0) return;
+      weekOffset += 1;
+      renderSentimentHeader(allEvents);
+    });
+  }
+
+  // Bilan d'UNE semaine donnee (lundi->dimanche) : toutes ses annonces avec
+  // Prevu/Reel, % et ton verrouilles (getLockedWeeklyForecast), comparateur
+  // Biais/Realise et coherence. Utilisee a la fois pour "cette semaine" une
+  // fois le weekend arrive (avec l'aperçu de la semaine suivante juste a
+  // cote, showNextPreview=true) ET pour n'importe quelle semaine passee
+  // consultee via la nav ◀ (showNextPreview=false : on regarde l'histoire,
+  // pas besoin d'un aperçu de "la semaine d'apres", deja connue).
+  async function renderWeekBilan(pairKey, config, monday, sunday, showNextPreview) {
+    const fmtRange = (a, b) => `${a.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${b.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
+
+    document.getElementById('weekForecastView').hidden = true;
+    document.getElementById('weekendView').hidden = false;
+    document.getElementById('sentimentWeeklyLabel').textContent = weekOffset === 0 ? 'Bilan indicatif de la semaine passée' : 'Bilan indicatif de cette semaine-là';
+    document.getElementById('weekPastTitle').textContent = `Bilan de la semaine (${fmtRange(monday, sunday)})`;
+
+    const weekEvents = allEvents.filter((e) => e.date && isoInRange(e.date, monday, sunday));
+    const result = computeForecastSentiment(weekEvents, config);
+
+    document.getElementById('weekPastDrivers').innerHTML = result.drivers.length
+      ? result.drivers.map(driverCardHtml).join('')
+      : `<p class="driver-empty">Pas d'annonce US/EU/UK/JP marquante cette semaine-là sur ${config.code}.</p>`;
+
+    const nextBlock = document.getElementById('weekNextBlock');
+    if (showNextPreview) {
+      nextBlock.hidden = false;
+      const nextMonday = new Date(monday); nextMonday.setDate(nextMonday.getDate() + 7);
+      const nextSunday = new Date(nextMonday); nextSunday.setDate(nextMonday.getDate() + 6);
+      document.getElementById('weekNextTitle').textContent = `Prévisionnel de la semaine à venir (${fmtRange(nextMonday, nextSunday)})`;
+      const nextWeekEvents = allEvents.filter((e) => e.date && isoInRange(e.date, nextMonday, nextSunday));
+      const nextResult = computeForecastSentiment(nextWeekEvents, config);
+      document.getElementById('weekNextDrivers').innerHTML = nextResult.drivers.length
+        ? nextResult.drivers.map(driverCardHtml).join('')
+        : `<p class="driver-empty">Calendrier de la semaine prochaine pas encore complètement disponible.</p>`;
+    } else {
+      nextBlock.hidden = true;
+    }
+
+    // Meme verrou que la vue "semaine en cours" (voir getLockedWeeklyForecast) :
+    // affiche exactement le meme % (et le meme ton de badge) que celui qui a
+    // tourne toute cette semaine-la, pas un recalcul frais au bilan.
+    const locked = getLockedWeeklyForecast(pairKey, monday, result, config);
+    const hero = document.getElementById('sentimentHero');
+    hero.dataset.tone = locked.tone;
+    document.getElementById('sentimentBadge').textContent =
+      (locked.tone === 'pos' ? 'Biais haussier' : locked.tone === 'neg' ? 'Biais baissier' : 'Neutre') + (weekOffset === 0 ? ' (semaine passée)' : '');
+    document.getElementById('sentimentWeekly').textContent = result.drivers.length ? fmtMove(locked.weeklyCapped) : '—';
+
+    renderWeeklyConsistency(locked.tone, result.drivers);
+    renderWeekCompare(pairKey, config, monday, sunday, result.drivers);
+  }
+
   function renderSentimentHeader(events) {
     const hero = document.getElementById('sentimentHero');
     if (!hero) return;
     const pairKey = loadPair();
     if (CRYPTO_CONFIG[pairKey]) {
+      document.getElementById('weekNav').hidden = true;
       renderCryptoSentiment(events, pairKey);
       return;
     }
     document.getElementById('sentimentEconMode').hidden = false;
     document.getElementById('sentimentCryptoMode').hidden = true;
+    document.getElementById('weekNav').hidden = false;
     const config = PAIR_CONFIG[pairKey];
     if (!config) return;
 
-    const { tone, drivers } = computeMarketSentiment(events, pairKey);
-    hero.dataset.tone = tone;
     document.getElementById('sentimentCode').textContent = config.code;
     document.getElementById('sentimentLabel').textContent = config.label;
-    document.getElementById('sentimentBadge').textContent =
-      tone === 'pos' ? 'Biais haussier' : tone === 'neg' ? 'Biais baissier' : 'Neutre';
 
-    // Estimation globale : somme des impacts estimes de toutes les annonces
-    // motrices de la semaine (pas juste celles affichees en carte), plafonnee
-    // pour rester plausible - indicatif, pas un vrai calcul de prix.
-    const weeklyTotal = drivers.reduce((sum, d) => sum + (estimateMove(d.ev, config) || 0), 0);
-    const weeklyCapped = Math.max(-3, Math.min(3, weeklyTotal));
-    document.getElementById('sentimentWeekly').textContent = drivers.length ? fmtMove(weeklyCapped) : '—';
+    // La semaine consultee : celle du jour reel + weekOffset*7 jours -
+    // weekOffset=0 => semaine en cours (ou "semaine passee" bis si weekend).
+    const refDate = new Date();
+    refDate.setDate(refDate.getDate() + weekOffset * 7);
+    const { monday, sunday } = getWeekBounds(refDate);
+    renderWeekNav(monday, sunday);
 
-    const shortlist = drivers.slice(0, 6);
-    const textEl = document.getElementById('sentimentText');
-    if (!shortlist.length) {
-      textEl.textContent = `Pas d'annonce US/EU/UK/JP assez marquante pour dégager un biais sur ${config.code} pour l'instant.`;
-    } else {
-      const n = shortlist.length;
-      textEl.textContent = tone === 'neutral'
-        ? `Signaux mitigés sur ${config.code} : ${n} annonce${n > 1 ? 's' : ''} pertinente${n > 1 ? 's' : ''} sans direction dominante.`
-        : `${n} annonce${n > 1 ? 's' : ''} pertinente${n > 1 ? 's' : ''} penche${n > 1 ? 'nt' : ''} vers un biais ${tone === 'pos' ? 'haussier' : 'baissier'} sur ${config.code}.`;
+    const browsingPastWeek = weekOffset < 0;
+    const liveWeekendBilan = weekOffset === 0 && isWeekendNow();
+    if (browsingPastWeek || liveWeekendBilan) {
+      renderWeekBilan(pairKey, config, monday, sunday, liveWeekendBilan);
+      return;
     }
 
-    document.getElementById('sentimentDrivers').innerHTML = shortlist.map((d) => {
-      const shown = d.ev.released ? d.ev.actual : d.ev.consensus;
-      const xauMove = estimateMove(d.ev, PAIR_CONFIG.XAUUSD);
-      const dxyMove = estimateMove(d.ev, PAIR_CONFIG.DXY);
-      return `
-        <div class="driver-card">
-          <div class="driver-card__top">
-            ${flagIcon(d.ev.country)}
-            <span class="driver-card__name">${d.ev.event}</span>
-            <span class="tag">${d.ev.released ? 'Publié' : 'À venir'}</span>
-          </div>
-          <div class="driver-card__value val ${d.tone}">${shown || '—'}</div>
-          <div class="driver-card__estimates">
-            <div><span>Est. XAU</span><b class="val ${xauMove > 0 ? 'pos' : xauMove < 0 ? 'neg' : 'neutral'}">${fmtMove(xauMove)}</b></div>
-            <div><span>Est. DXY</span><b class="val ${dxyMove > 0 ? 'pos' : dxyMove < 0 ? 'neg' : 'neutral'}">${fmtMove(dxyMove)}</b></div>
-          </div>
-        </div>`;
-    }).join('');
+    // Semaine en cours, en semaine (lundi->vendredi) : vue previsionnelle live.
+    document.getElementById('weekForecastView').hidden = false;
+    document.getElementById('weekendView').hidden = true;
+    document.getElementById('weekRealCompare').hidden = true;
+    document.getElementById('sentimentWeeklyLabel').textContent = 'Estimation indicative sur la semaine';
+
+    // Bornage lundi->dimanche : une annonce reste affichee toute la semaine,
+    // meme une fois publiee (le prevu ne disparait jamais, voir driverCardHtml).
+    const weekEvents = events.filter((e) => e.date && isoInRange(e.date, monday, sunday));
+    // computeForecastSentiment (pas computeMarketSentiment) : le biais et la
+    // liste de cartes sont determines une fois pour la semaine a partir des
+    // consensus (forecastTone) et NE bougent PAS juste parce qu'une annonce
+    // est publiee entre-temps - seule une revision de consensus avant
+    // publication (rare) les fait evoluer. Le resultat reel, lui, s'affiche
+    // par carte (colonne "Reel") et dans le comparateur juste au-dessus
+    // (renderWeekCompare) + l'indicateur de coherence.
+    const freshResult = computeForecastSentiment(weekEvents, config);
+    const drivers = freshResult.drivers; // liste toujours en direct (les "Reel" doivent se mettre a jour)
+    const locked = getLockedWeeklyForecast(pairKey, monday, freshResult, config); // % + ton fixes des lundi
+    const tone = locked.tone;
+    hero.dataset.tone = tone;
+    document.getElementById('sentimentBadge').textContent =
+      tone === 'pos' ? 'Biais haussier' : tone === 'neg' ? 'Biais baissier' : 'Neutre';
+    document.getElementById('sentimentWeekly').textContent = drivers.length ? fmtMove(locked.weeklyCapped) : '—';
+
+    const textEl = document.getElementById('sentimentText');
+    if (!drivers.length) {
+      textEl.textContent = `Pas d'annonce US/EU/UK/JP assez marquante pour dégager un biais sur ${config.code} cette semaine.`;
+    } else {
+      const n = drivers.length;
+      textEl.textContent = tone === 'neutral'
+        ? `Signaux mitigés sur ${config.code} cette semaine : ${n} annonce${n > 1 ? 's' : ''} pertinente${n > 1 ? 's' : ''} sans direction dominante.`
+        : `${n} annonce${n > 1 ? 's' : ''} pertinente${n > 1 ? 's' : ''} cette semaine penche${n > 1 ? 'nt' : ''} vers un biais ${tone === 'pos' ? 'haussier' : 'baissier'} sur ${config.code}.`;
+    }
+
+    document.getElementById('sentimentDrivers').innerHTML = drivers.length
+      ? drivers.map(driverCardHtml).join('')
+      : '';
+
+    renderWeeklyConsistency(tone, drivers);
+    renderWeekCompare(pairKey, config, monday, new Date(), drivers);
   }
 
   function loadImportanceFilter() {
@@ -627,7 +1069,16 @@
   async function load() {
     setupImportanceFilter();
     setupDayNav();
-    const apiUrl = (window.STASH_CONFIG && window.STASH_CONFIG.calendarApiUrl) || '';
+    setupWeekNav();
+    // Calibration reelle (voir calibrate_impact.py) - best-effort, jamais
+    // bloquant : si le fichier n'existe pas encore (calibration pas encore
+    // lancee/terminee) ou echoue a charger, impactCalibration reste null et
+    // estimateForecastMove retombe silencieusement sur l'heuristique forfaitaire.
+    try {
+      const calRes = await fetch('data/impact-calibration.json', { cache: 'no-store' });
+      if (calRes.ok) impactCalibration = await calRes.json();
+    } catch (e) { /* pas grave, repli sur l'heuristique */ }
+    const apiUrl = (window.CHEST_CONFIG && window.CHEST_CONFIG.calendarApiUrl) || '';
     const url = apiUrl || 'data/calendar.json';
     try {
       const res = await fetch(url, { cache: 'no-store' });

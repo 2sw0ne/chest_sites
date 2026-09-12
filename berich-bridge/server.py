@@ -1,4 +1,4 @@
-"""STASH · BERICH — récepteur de webhook TradingView (local, pas encore déployé).
+"""CHEST · BERICH — récepteur de webhook TradingView (local, pas encore déployé).
 
 Reçoit les alertes du script Pine "BE FR€E" (alert() sur "Any alert() function
 call") et les écrit dans ../site/data/berich-signal.json, que berich.html lit

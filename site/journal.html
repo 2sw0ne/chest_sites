@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Journal de trading — STASH</title>
+<title>Journal de trading — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <style>
   /* Filet de sécurité : sans ça, une règle de classe qui fixe elle-même
      `display` (ex. .jr-empty-view{display:flex}) a la même spécificité que
@@ -15,9 +15,6 @@
      après, l'emporte — l'élément reste visible même avec l'attribut hidden.
      Vécu en vrai sur Safari : #jrEmptyView restait affiché sous le dashboard. */
   [hidden]{ display:none !important; }
-
-  .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; margin-bottom:16px; }
-  .back-link:hover{ color:var(--ink); }
 
   /* ================= Verrou : pas de compte = pas de journal ================= */
   /* Page 1 — rien d'autre qu'un lien de création, pas de carte/texte en plus */
@@ -90,7 +87,7 @@
   .jr-form__actions{ display:flex; align-items:center; gap:10px; margin-top:20px; }
 
   .jr-cell input{ width:100%; height:38px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px; padding:0 11px; transition:border-color .15s, box-shadow .15s; }
-  .jr-cell input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(255,61,127,.14); }
+  .jr-cell input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(252,18,131,.14); }
   .jr-readonly{ height:38px; display:flex; align-items:center; padding:0 11px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; transition:box-shadow .2s, border-color .2s; }
   .jr-readonly.pos{ color:var(--green); border-color:rgba(51,230,166,.35); box-shadow:0 0 16px rgba(51,230,166,.12) inset; }
   .jr-readonly.neg{ color:var(--red); border-color:rgba(255,77,94,.35); box-shadow:0 0 16px rgba(255,77,94,.12) inset; }
@@ -180,7 +177,7 @@
   .jr-date-cell:not(:disabled):hover{ background:var(--panel-2); }
   .jr-date-cell.is-muted{ color:var(--faint); cursor:default; }
   .jr-date-cell.is-today{ box-shadow:inset 0 0 0 1px var(--line2); }
-  .jr-date-cell.is-selected{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; font-weight:700; box-shadow:0 0 14px rgba(255,61,127,.35); }
+  .jr-date-cell.is-selected{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; font-weight:700; box-shadow:0 0 14px rgba(252,18,131,.35); }
 
   /* ================= Sélecteur d'heure façon roue iPhone ================= */
   .jr-time-panel{
@@ -195,7 +192,7 @@
   .jr-wheel__item{ height:36px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center; font-size:15px; color:var(--faint); font-variant-numeric:tabular-nums; transition:color .15s, font-size .15s; cursor:pointer; }
   .jr-wheel__item.is-active{ color:var(--ink); font-size:19px; font-weight:700; }
   .jr-time-panel__colon{ font-size:18px; font-weight:700; color:var(--ink); flex-shrink:0; }
-  .jr-time-panel__sep{ position:absolute; left:4px; right:4px; top:72px; height:36px; pointer-events:none; border-top:1px solid var(--line2); border-bottom:1px solid var(--line2); background:rgba(255,61,127,.05); border-radius:8px; }
+  .jr-time-panel__sep{ position:absolute; left:4px; right:4px; top:72px; height:36px; pointer-events:none; border-top:1px solid var(--line2); border-bottom:1px solid var(--line2); background:rgba(252,18,131,.05); border-radius:8px; }
   .jr-time-ok{ width:100%; margin-top:10px; padding:8px; font-size:12px; }
 
   /* ================= Tableau ================= */
@@ -229,19 +226,20 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
-<body data-page="backtesting">
+<body data-page="journal">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -256,12 +254,11 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
 <main class="container">
-  <a href="backtesting.html" class="back-link">← Backtesting</a>
   <div class="page-head" id="jrPageHead">
     <h1>Journal de trading</h1>
     <p id="jrPageDesc">Toutes tes positions au même endroit — prises via BERICH ou ajoutées à la main.</p>
@@ -540,9 +537,10 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/journal-store.js"></script>
 <script>
@@ -596,13 +594,13 @@
   }
 
   function renderAccSwitcher() {
-    const accounts = STASHJournal.listAccounts();
-    const active = STASHJournal.getActiveAccount();
+    const accounts = CHESTJournal.listAccounts();
+    const active = CHESTJournal.getActiveAccount();
     if (!active) return;
     document.getElementById('jrAccAvatar').textContent = initials(active.name);
     document.getElementById('jrAccName').textContent = active.name;
     document.getElementById('jrAccSub').textContent = active.type === 'propfirm'
-      ? (STASHJournal.propfirms().find((p) => p.id === active.propfirmId) || {}).name || 'Propfirm'
+      ? (CHESTJournal.propfirms().find((p) => p.id === active.propfirmId) || {}).name || 'Propfirm'
       : 'Compte propre';
 
     document.getElementById('jrAccMenuList').innerHTML = accounts.map((a) => `
@@ -611,17 +609,17 @@
         <span><strong>${a.name}</strong><span>${money(a.balance)}</span></span>
       </button>`).join('');
     document.querySelectorAll('[data-pick-acc]').forEach((btn) => btn.addEventListener('click', () => {
-      STASHJournal.setActiveAccountId(btn.dataset.pickAcc);
+      CHESTJournal.setActiveAccountId(btn.dataset.pickAcc);
       document.getElementById('jrAccMenu').classList.remove('is-open');
       onAccountChanged();
     }));
   }
 
   function renderConditions() {
-    const active = STASHJournal.getActiveAccount();
+    const active = CHESTJournal.getActiveAccount();
     const card = document.getElementById('jrConditionsCard');
     if (!active || !active.rules) { card.hidden = true; return; }
-    const conds = STASHJournal.accountConditions(active, allRows);
+    const conds = CHESTJournal.accountConditions(active, allRows);
     card.hidden = false;
     document.getElementById('jrConditionsList').innerHTML = conds.map((c) => `
       <div class="jr-cond-row">
@@ -636,7 +634,7 @@
   function onAccountChanged() {
     renderAccSwitcher();
     renderConditions();
-    const active = STASHJournal.getActiveAccount();
+    const active = CHESTJournal.getActiveAccount();
     if (active) {
       document.getElementById('jrRisk').value = active.riskValue;
       currentRiskUnit = active.riskUnit;
@@ -665,15 +663,15 @@
 
   let selectedPropfirm = null;
   function renderPropfirmList() {
-    document.getElementById('jaPropfirmList').innerHTML = STASHJournal.propfirms().map((p) => `
+    document.getElementById('jaPropfirmList').innerHTML = CHESTJournal.propfirms().map((p) => `
       <div class="jr-combo__row" data-pick-propfirm="${p.id}">
-        <img src="${STASHJournal.propfirmLogo(p.domain)}" alt="" onerror="this.remove()">
+        <img src="${CHESTJournal.propfirmLogo(p.domain)}" alt="" onerror="this.remove()">
         <span>${p.name}</span>
       </div>`).join('');
     document.querySelectorAll('[data-pick-propfirm]').forEach((row) => row.addEventListener('click', () => {
       selectedPropfirm = row.dataset.pickPropfirm;
-      const p = STASHJournal.propfirms().find((x) => x.id === selectedPropfirm);
-      document.getElementById('jaPropfirmTrigger').innerHTML = `<img src="${STASHJournal.propfirmLogo(p.domain)}" alt="">${p.name}`;
+      const p = CHESTJournal.propfirms().find((x) => x.id === selectedPropfirm);
+      document.getElementById('jaPropfirmTrigger').innerHTML = `<img src="${CHESTJournal.propfirmLogo(p.domain)}" alt="">${p.name}`;
       document.getElementById('jaPropfirmPanel').hidden = true;
       applyPropfirmPreset();
     }));
@@ -686,7 +684,7 @@
   document.getElementById('jaPropfirmPanel').addEventListener('click', (e) => e.stopPropagation());
 
   function applyPropfirmPreset() {
-    const preset = STASHJournal.propfirmRulePreset(selectedPropfirm);
+    const preset = CHESTJournal.propfirmRulePreset(selectedPropfirm);
     document.getElementById('jaRulesRow').hidden = false;
     const note = document.getElementById('jaRulesNote');
     if (preset) {
@@ -723,8 +721,8 @@
     document.querySelectorAll('#jaTypeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.type === type));
     selectedPropfirm = account && account.propfirmId ? account.propfirmId : null;
     if (selectedPropfirm) {
-      const p = STASHJournal.propfirms().find((x) => x.id === selectedPropfirm);
-      document.getElementById('jaPropfirmTrigger').innerHTML = `<img src="${STASHJournal.propfirmLogo(p.domain)}" alt="">${p.name}`;
+      const p = CHESTJournal.propfirms().find((x) => x.id === selectedPropfirm);
+      document.getElementById('jaPropfirmTrigger').innerHTML = `<img src="${CHESTJournal.propfirmLogo(p.domain)}" alt="">${p.name}`;
       applyPropfirmPreset();
       if (account) {
         document.getElementById('jaDailyLoss').value = account.rules?.dailyLossPct ?? '';
@@ -752,15 +750,15 @@
 
   document.getElementById('jrEmptyLink').addEventListener('click', (e) => { e.preventDefault(); openAccountForm(null); });
   document.getElementById('jrAccAddBtn').addEventListener('click', () => { document.getElementById('jrAccMenu').classList.remove('is-open'); openAccountForm(null); });
-  document.getElementById('jrAccEditBtn').addEventListener('click', () => openAccountForm(STASHJournal.getActiveAccount()));
+  document.getElementById('jrAccEditBtn').addEventListener('click', () => openAccountForm(CHESTJournal.getActiveAccount()));
   document.getElementById('jaCancel').addEventListener('click', () => {
-    showView(STASHJournal.listAccounts().length ? 'dashboard' : 'empty');
+    showView(CHESTJournal.listAccounts().length ? 'dashboard' : 'empty');
   });
   document.getElementById('jaDelete').addEventListener('click', () => {
     if (!editingAccountId) return;
     if (!confirm('Supprimer ce compte ? Les trades manuels qui lui sont liés resteront dans le journal mais perdront leur rattachement.')) return;
-    STASHJournal.removeAccount(editingAccountId);
-    const hasAccounts = STASHJournal.listAccounts().length > 0;
+    CHESTJournal.removeAccount(editingAccountId);
+    const hasAccounts = CHESTJournal.listAccounts().length > 0;
     showView(hasAccounts ? 'dashboard' : 'empty');
     if (hasAccounts) onAccountChanged();
   });
@@ -785,8 +783,8 @@
         minDays: parseInt(document.getElementById('jaMinDays').value, 10) || 0,
       } : null,
     };
-    if (editingAccountId) STASHJournal.updateAccount(editingAccountId, account);
-    else STASHJournal.addAccount(account);
+    if (editingAccountId) CHESTJournal.updateAccount(editingAccountId, account);
+    else CHESTJournal.addAccount(account);
 
     showToast(editingAccountId ? 'Compte modifié ✓' : 'Compte ajouté ✓');
     showView('dashboard');
@@ -817,7 +815,7 @@
   }
   function renderPairList(query) {
     const q = (query || '').trim().toLowerCase();
-    const favs = STASHJournal.favoritePairs();
+    const favs = CHESTJournal.favoritePairs();
     const list = document.getElementById('jrPairList');
     let html = '';
     const groups = [['★ Favoris', favs.map((code) => [code, pairLabel(code)])], ...Object.entries(PAIR_GROUPS)];
@@ -838,7 +836,7 @@
     list.innerHTML = any ? html : '<div class="jr-combo__empty">Aucune paire trouvée.</div>';
     list.querySelectorAll('[data-star-pair]').forEach((btn) => btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      STASHJournal.toggleFavoritePair(btn.dataset.starPair);
+      CHESTJournal.toggleFavoritePair(btn.dataset.starPair);
       renderPairList(document.getElementById('jrPairSearch').value);
     }));
     list.querySelectorAll('[data-pick-pair]').forEach((row) => row.addEventListener('click', () => {
@@ -867,7 +865,7 @@
   }
   function renderTagList(query) {
     const q = (query || '').trim();
-    const known = STASHJournal.knownTags();
+    const known = CHESTJournal.knownTags();
     const filtered = known.filter((t) => !q || t.toLowerCase().includes(q.toLowerCase()));
     const exactMatch = known.some((t) => t.toLowerCase() === q.toLowerCase());
     const list = document.getElementById('jrTagList');
@@ -887,7 +885,7 @@
     }));
     list.querySelectorAll('[data-create-tag]').forEach((row) => row.addEventListener('click', () => {
       const t = row.dataset.createTag;
-      STASHJournal.rememberTag(t);
+      CHESTJournal.rememberTag(t);
       selectedTags.push(t);
       document.getElementById('jrTagTrigger').innerHTML = tagTriggerHtml();
       document.getElementById('jrTagSearch').value = '';
@@ -903,7 +901,7 @@
   // ================= Risque -> P&L auto =================
   function effectiveRiskAmount() {
     const val = parseFloat(document.getElementById('jrRisk').value) || 0;
-    const active = STASHJournal.getActiveAccount();
+    const active = CHESTJournal.getActiveAccount();
     if (currentRiskUnit === 'pct') return active ? Math.round(active.balance * val) / 100 : 0;
     return val;
   }
@@ -1086,7 +1084,7 @@
 
   // ================= Stats =================
   function renderStats(rows) {
-    const s = STASHJournal.computeStats(rows);
+    const s = CHESTJournal.computeStats(rows);
     document.getElementById('jrStats').innerHTML = `
       <div class="jr-stat jr-stat--win"><span>Winrate</span><strong>${s.winRatePct == null ? '—' : s.winRatePct + '%'}</strong></div>
       <div class="jr-stat jr-stat--rr"><span>RR moyen</span><strong>${s.avgRR == null ? '—' : s.avgRR}</strong></div>
@@ -1123,7 +1121,7 @@
       </tr>`).join('');
 
     tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => {
-      if (confirm('Supprimer ce trade du journal ?')) { STASHJournal.remove(btn.dataset.delete); loadAndRender(); }
+      if (confirm('Supprimer ce trade du journal ?')) { CHESTJournal.remove(btn.dataset.delete); loadAndRender(); }
     }));
     tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(allRows.find((r) => r.id === btn.dataset.edit))));
   }
@@ -1142,7 +1140,7 @@
   function openForm(row) {
     editingId = row ? row.id : null;
     document.getElementById('jrAccountForm').hidden = true;
-    const active = STASHJournal.getActiveAccount();
+    const active = CHESTJournal.getActiveAccount();
 
     if (row && row.rrActual) {
       const histRisk = Math.abs(row.pnl / row.rrActual);
@@ -1192,7 +1190,7 @@
     if (!selectedPair) { showToast('Choisis une paire.'); return; }
     const rr = document.getElementById('jrRR').value !== '' ? parseFloat(document.getElementById('jrRR').value) : null;
     const riskAmount = effectiveRiskAmount();
-    const active = STASHJournal.getActiveAccount();
+    const active = CHESTJournal.getActiveAccount();
     const entry = {
       date: combineDateTime(getDateValue('jrDate'), getTimeValue('jrTime')) || new Date().toISOString(),
       openAt: combineDateTime(getDateValue('jrOpenDate'), getTimeValue('jrOpenTime')),
@@ -1210,8 +1208,8 @@
       accountId: active ? active.id : null,
     };
 
-    if (editingId) STASHJournal.update(editingId, entry);
-    else STASHJournal.add(entry);
+    if (editingId) CHESTJournal.update(editingId, entry);
+    else CHESTJournal.add(entry);
 
     document.getElementById('jrForm').hidden = true;
     showToast(editingId ? 'Trade modifié ✓' : 'Trade ajouté ✓');
@@ -1219,9 +1217,9 @@
   });
 
   async function loadAndRender() {
-    if (!STASHJournal.listAccounts().length) { showView('empty'); return; }
+    if (!CHESTJournal.listAccounts().length) { showView('empty'); return; }
     showView('dashboard');
-    allRows = await STASHJournal.allEntries();
+    allRows = await CHESTJournal.allEntries();
     renderAccSwitcher();
     renderConditions();
     renderStats(allRows);

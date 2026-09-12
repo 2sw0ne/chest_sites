@@ -3,19 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Stratégies — STASH</title>
+<title>Stratégies — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <style>
   [hidden]{ display:none !important; }
 
-  .page-head.is-compact{ padding-bottom:20px; }
-  .page-head.is-compact h1{ font-size:26px; margin-bottom:0; }
-
-  /* ================= Barre de contrôle façon exemple ================= */
-  .scnr-topbar{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; padding:16px 18px; margin-bottom:18px; }
+  /* ================= Barre de contrôle ================= */
+  .scnr-topbar{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; padding:12px 16px; margin-bottom:12px; }
+  .page-head{ margin-bottom:16px; }
   .scnr-field{ min-width:150px; }
   .scnr-field label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px; }
   .scnr-field select{
@@ -26,76 +24,87 @@
   .scnr-tf button{ flex:1; border:none; background:transparent; color:var(--muted); font:inherit; font-size:11px; font-weight:800; cursor:pointer; padding:0 8px; }
   .scnr-tf button + button{ border-left:1px solid var(--line2); }
   .scnr-tf button.is-active{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; }
-  .scnr-actions{ display:flex; gap:8px; margin-left:auto; }
 
   /* Sélecteur de scanner — même famille visuelle que le switcher de compte */
-  .scnr-combo{ position:relative; min-width:200px; }
+  .scnr-combo{ position:relative; min-width:220px; }
   .scnr-combo__trigger{
     width:100%; height:38px; display:flex; align-items:center; gap:8px; border:1px solid var(--line2); border-radius:9px;
-    background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px; font-weight:700; padding:0 12px; cursor:pointer;
+    background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px; font-weight:700; padding:0 10px; cursor:pointer;
   }
   .scnr-combo__trigger .chev{ margin-left:auto; color:var(--muted); font-size:11px; font-weight:400; }
+  .scnr-logo{
+    width:22px; height:22px; border-radius:7px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
+    font-size:9.5px; font-weight:800; color:#fff; letter-spacing:-.02em; vertical-align:middle;
+  }
+  .scnr-logo-img{ flex-shrink:0; display:inline-block; object-fit:contain; border-radius:22%; vertical-align:middle; }
+  .scnr-trigger-inner{ display:inline-flex; align-items:center; gap:8px; }
   .scnr-menu{
     position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:260px; background:var(--panel);
     border:1px solid var(--line2); border-radius:var(--radius-sm); box-shadow:0 20px 48px rgba(0,0,0,.3); padding:6px; display:none;
   }
   .scnr-menu.is-open{ display:block; }
-  .scnr-menu__item{ display:flex; flex-direction:column; align-items:flex-start; gap:1px; width:100%; border:none; background:transparent; cursor:pointer; padding:8px 10px; border-radius:8px; text-align:left; font:inherit; color:var(--ink); }
+  .scnr-menu__item{ display:flex; align-items:center; gap:10px; width:100%; border:none; background:transparent; cursor:pointer; padding:8px 10px; border-radius:8px; text-align:left; font:inherit; color:var(--ink); }
   .scnr-menu__item:hover{ background:var(--panel-2); }
   .scnr-menu__item.is-active{ background:var(--panel-2); }
-  .scnr-menu__item strong{ font-size:12.5px; }
-  .scnr-menu__item span{ font-size:10.5px; color:var(--muted); }
-  .scnr-menu__divider{ height:1px; background:var(--line); margin:6px 4px; }
-  .scnr-menu__add{ color:var(--acc); font-weight:700; }
+  .scnr-menu__item strong{ display:block; font-size:12.5px; }
+  .scnr-menu__item span{ display:block; font-size:10.5px; color:var(--muted); }
 
-  /* ================= Média : graphique / code ================= */
-  .scnr-media{ overflow:hidden; }
+  /* ================= Graphique — pleine largeur ================= */
+  .scnr-media{ overflow:hidden; margin-bottom:16px; }
   .scnr-media__tabs{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-bottom:1px solid var(--line); }
   .scnr-tabbar{ display:inline-flex; gap:4px; background:var(--bg); padding:4px; border-radius:999px; }
   .scnr-tabbar button{ border:none; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600; padding:7px 15px; border-radius:999px; background:transparent; color:var(--muted); }
   .scnr-tabbar button.is-active{ background:var(--ink); color:var(--bg); }
   .scnr-panel{ display:none; }
   .scnr-panel.is-active{ display:block; }
-  #scnrChart{ height:min(70vh,620px); min-height:420px; }
+  #scnrChart{ height:min(85vh,860px); min-height:520px; }
   .scanner-empty{ display:flex; align-items:center; justify-content:center; height:100%; min-height:420px; color:var(--muted); font-size:13.5px; text-align:center; padding:20px; }
-
-  .pine__head{ display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); }
-  .pine__head span{ font-size:13px; font-weight:600; color:var(--muted); display:flex; align-items:center; gap:8px; }
-  .pine__copy{ border:1px solid var(--line2); background:var(--bg); color:var(--muted); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
-  .pine__copy:hover{ color:var(--ink); }
-  .pine-code{ display:flex; overflow-x:auto; max-height:560px; overflow-y:auto; font-family:Menlo,'Ubuntu Mono',Consolas,monospace; font-size:12.5px; line-height:22px; }
-  .pine-lines{ padding:16px 14px 16px 18px; text-align:right; color:var(--faint); user-select:none; border-right:1px solid var(--line); }
-  .pine-body{ padding:16px 18px; white-space:pre; }
 
   .scnr-desc{ font-size:13px; color:var(--muted); line-height:1.6; padding:14px 18px 18px; }
   .scnr-tags{ display:flex; gap:6px; flex-wrap:wrap; padding:0 18px 18px; }
   .scnr-tags span{ font-size:11px; padding:4px 9px; border-radius:6px; background:var(--panel-2); color:var(--blue); }
 
-  /* ================= Formulaire d'ajout ================= */
-  .scnr-form{ padding:22px 24px; margin-bottom:20px; }
-  .scnr-form label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px; }
-  .scnr-form .row2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
-  .scnr-form .row3{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
-  @media (max-width:640px){ .scnr-form .row2,.scnr-form .row3{ grid-template-columns:1fr; } }
-  .scnr-form textarea{ width:100%; min-height:260px; font-family:Menlo,'Ubuntu Mono',Consolas,monospace; font-size:12.5px; line-height:1.6; padding:14px; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg); color:var(--ink); resize:vertical; }
-  .scnr-form textarea:focus{ outline:none; border-color:var(--acc); }
-  .scnr-form__actions{ display:flex; align-items:center; gap:10px; margin-top:16px; }
+  /* ================= Panneau de notification d'opportunités — sous le
+     graphique, pleine largeur (plus un volet lateral qui retrecissait le
+     graphique) ================= */
+  .notif-card{ padding:0; overflow:hidden; }
+  .notif-head{ padding:16px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .notif-head h2{ font-size:13.5px; font-weight:700; margin:0; }
+  .notif-dot{ width:7px; height:7px; border-radius:50%; background:var(--faint); flex-shrink:0; }
+  .notif-dot.is-live{ background:var(--green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .notif-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1px; background:var(--line); }
+  .notif-row{
+    display:flex; align-items:flex-start; gap:10px; width:100%; padding:13px 18px;
+    background:var(--panel); border:none; cursor:pointer; text-align:left; font:inherit; color:inherit;
+  }
+  .notif-row:hover{ background:var(--bg); }
+  .notif-row__body{ flex:1; min-width:0; }
+  .notif-row__top{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:3px; }
+  .notif-row__scanner{ font-size:12px; font-weight:700; }
+  .notif-row__pair{ font-size:12.5px; font-weight:700; color:var(--ink); }
+  .notif-row__meta{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11px; color:var(--muted); }
+  .notif-side{ font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:2px 7px; border-radius:var(--radius-pill); }
+  .notif-side.buy{ color:var(--green); background:rgba(51,230,166,.14); }
+  .notif-side.sell{ color:var(--red); background:rgba(255,77,94,.14); }
+  .notif-empty{ padding:36px 18px; text-align:center; color:var(--muted); font-size:12.5px; grid-column:1/-1; }
+  .notif-example{ font-size:10.5px; color:var(--amber); padding:8px 18px; border-bottom:1px solid var(--line); background:rgba(245,166,35,.08); }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
 <body data-page="strategies">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -110,14 +119,14 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
 <main class="container">
-  <div class="page-head" id="pageHead">
+  <div class="page-head">
     <h1>Stratégies</h1>
-    <p id="pageDesc">Tes scanners en libre service — le vrai script Pine, affiché en direct sur de vraies données, comme sur BERICH.</p>
+    <p>Tes scanners réels — le vrai script Pine, affiché en direct sur de vraies données, comme sur BERICH.</p>
   </div>
 
   <div class="scnr-topbar card">
@@ -127,8 +136,6 @@
         <button type="button" class="scnr-combo__trigger" id="scnrTrigger"><span id="scnrTriggerLabel">—</span><span class="chev">▾</span></button>
         <div class="scnr-menu" id="scnrMenu">
           <div id="scnrMenuList"></div>
-          <div class="scnr-menu__divider"></div>
-          <button type="button" class="scnr-menu__item scnr-menu__add" id="scnrAddBtn"><strong>＋ Ajouter un scanner</strong></button>
         </div>
       </div>
     </div>
@@ -152,67 +159,41 @@
         <button type="button" data-tf="D">1D</button>
       </div>
     </div>
-    <div class="scnr-actions">
-      <button type="button" class="btn btn-ghost" id="scnrEditBtn" style="padding:9px 16px;font-size:12.5px">✎ Modifier</button>
-    </div>
-  </div>
-
-  <div class="card scnr-form" id="scnrForm" hidden>
-    <div class="eyebrow" style="margin-bottom:14px" id="scnrFormTitle">Nouveau scanner</div>
-    <div class="row2">
-      <div><label for="sfName">Nom du scanner</label><input id="sfName" class="field" type="text" placeholder="ex. BE FR€E, Trend Wave…"></div>
-      <div><label for="sfTags">Tags <span style="color:var(--faint);font-weight:500;text-transform:none">(séparés par une virgule)</span></label><input id="sfTags" class="field" type="text" placeholder="EMA, Momentum…"></div>
-    </div>
-    <div class="row2">
-      <div><label for="sfDesc">Description</label><input id="sfDesc" class="field" type="text" placeholder="Ce que fait le scanner, en une phrase."></div>
-      <div class="row3" style="margin-bottom:0">
-        <div><label for="sfMarket">Marché par défaut</label><select id="sfMarket" class="field"></select></div>
-        <div><label for="sfSymbol">Paire par défaut</label><select id="sfSymbol" class="field"></select></div>
-        <div><label for="sfTimeframe">Unité par défaut</label><select id="sfTimeframe" class="field"></select></div>
-      </div>
-    </div>
-    <label for="sfPine">Script Pine (v5/v6) — ton vrai script, tel quel</label>
-    <textarea id="sfPine" spellcheck="false" placeholder="//@version=5&#10;indicator(&quot;Mon scanner&quot;, overlay=true)&#10;…"></textarea>
-    <div class="scnr-form__actions">
-      <button type="button" class="btn btn-secondary" id="sfSave">Enregistrer le scanner</button>
-      <button type="button" class="btn btn-ghost" id="sfCancel">Annuler</button>
-      <button type="button" class="btn btn-ghost" id="sfDelete" style="color:var(--red);margin-left:auto" hidden>Supprimer ce scanner</button>
-    </div>
   </div>
 
   <div class="card scnr-media" id="scnrMediaCard">
     <div class="scnr-media__tabs">
       <div class="scnr-tabbar" id="scnrTabs">
         <button type="button" data-tab="chart" class="is-active">Graphique</button>
-        <button type="button" data-tab="code">Code source</button>
         <button type="button" data-tab="about">À propos</button>
       </div>
     </div>
     <div class="scnr-panel is-active" id="scnrPanelChart"><div id="scnrChart"></div></div>
-    <div class="scnr-panel pine" id="scnrPanelCode">
-      <div class="pine__head">
-        <span>📄 Pine Script®</span>
-        <button class="pine__copy" id="scnrCopyPine">Copier</button>
-      </div>
-      <div class="pine-code">
-        <div class="pine-lines" id="scnrPineLines"></div>
-        <div class="pine-body" id="scnrPineBody"></div>
-      </div>
-    </div>
     <div class="scnr-panel" id="scnrPanelAbout">
       <p class="scnr-desc" id="scnrAboutDesc"></p>
       <div class="scnr-tags" id="scnrAboutTags"></div>
     </div>
   </div>
+
+  <div class="card notif-card">
+    <div class="notif-head">
+      <h2>Opportunités</h2>
+      <span class="notif-dot" id="notifDot"></span>
+    </div>
+    <div class="notif-example" id="notifExample" hidden>Exemple — en attente d'un vrai signal webhook (voir scanner-bridge/README.md)</div>
+    <div class="notif-list" id="notifList"><div class="notif-empty">Chargement…</div></div>
+  </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
-<script src="js/scanner-store.js"></script>
+<script src="js/scanner-store.js?v=2"></script>
 <script src="js/scanner-chart.js"></script>
+<script src="js/scanner-signals-store.js"></script>
 <script>
 (() => {
   'use strict';
@@ -253,28 +234,36 @@
     const pair = (MARKETS[marketId] ? MARKETS[marketId].pairs : []).find((p) => p[0] === code);
     return pair ? pair[1] : null;
   }
+  // Pour un code de paire donne (sans savoir dans quel marche il vit — utile
+  // quand une notification arrive pour une paire d'un marche different de
+  // celui actuellement affiche), trouve son marche d'appartenance.
+  function marketContaining(code) {
+    return Object.keys(MARKETS).find((id) => MARKETS[id].pairs.some((p) => p[0] === code)) || null;
+  }
 
   populateMarketSelect(document.getElementById('scnrMarket'));
-  populateMarketSelect(document.getElementById('sfMarket'));
-  ['1', '5', '15', '30', '60', '240', 'D'].forEach((tf) => {
-    const label = tf === 'D' ? '1D' : (tf >= 60 ? (tf / 60) + 'h' : tf + 'm');
-    document.getElementById('sfTimeframe').innerHTML += `<option value="${tf}">${label}</option>`;
-  });
 
   // ================= État =================
   let currentScannerId = null;
-  let currentMarket = 'forex';
-  let currentSymbol = 'EURUSD';
-  let currentTimeframe = '15';
-  let editingId = null;
+  let currentMarket = 'commodities';
+  let currentSymbol = 'XAUUSD';
+  let currentTimeframe = '5';
 
-  function activeScanner() { return STASHScanners.get(currentScannerId); }
+  function activeScanner() { return CHESTScanners.get(currentScannerId); }
+
+  function scannerLogoHtml(s, size) {
+    if (s.logo) {
+      return `<img class="scnr-logo-img" src="${s.logo}" alt="${s.name}" width="${size}" height="${size}" style="width:${size}px;height:${size}px">`;
+    }
+    return `<span class="scnr-logo" style="background:${s.logoColor};width:${size}px;height:${size}px;border-radius:${Math.round(size * .32)}px;font-size:${Math.round(size * .42)}px">${s.logoInitials}</span>`;
+  }
 
   function renderScannerMenu() {
-    const scanners = STASHScanners.list();
+    const scanners = CHESTScanners.list();
     document.getElementById('scnrMenuList').innerHTML = scanners.map((s) => `
       <button type="button" class="scnr-menu__item ${s.id === currentScannerId ? 'is-active' : ''}" data-pick-scanner="${s.id}">
-        <strong>${s.name}</strong><span>${(s.tags || []).join(' · ') || 'Scanner personnalisé'}</span>
+        ${scannerLogoHtml(s, 40)}
+        <span><strong>${s.name}</strong><span>${(s.tags || []).join(' · ')}</span></span>
       </button>`).join('');
     document.querySelectorAll('[data-pick-scanner]').forEach((btn) => btn.addEventListener('click', () => {
       selectScanner(btn.dataset.pickScanner);
@@ -282,24 +271,21 @@
     }));
   }
 
-  function selectScanner(id) {
-    const scanner = STASHScanners.get(id);
+  function selectScanner(id, opts) {
+    const scanner = CHESTScanners.get(id);
     if (!scanner) return;
     currentScannerId = id;
-    currentMarket = scanner.market || 'forex';
-    currentSymbol = scanner.defaultSymbol || (MARKETS[currentMarket].pairs[0] || [])[0];
-    currentTimeframe = scanner.defaultTimeframe || '15';
+    currentMarket = (opts && opts.market) || scanner.market || 'forex';
+    currentSymbol = (opts && opts.symbol) || scanner.defaultSymbol || (MARKETS[currentMarket].pairs[0] || [])[0];
+    currentTimeframe = (opts && opts.timeframe) || scanner.defaultTimeframe || '15';
 
-    document.getElementById('scnrTriggerLabel').textContent = scanner.name;
+    document.getElementById('scnrTriggerLabel').innerHTML = `<span class="scnr-trigger-inner">${scannerLogoHtml(scanner, 26)}<span>${scanner.name}</span></span>`;
     document.getElementById('scnrMarket').value = currentMarket;
     populateSymbolSelect(document.getElementById('scnrSymbol'), currentMarket, currentSymbol);
     document.querySelectorAll('#scnrTimeframe button').forEach((b) => b.classList.toggle('is-active', b.dataset.tf === currentTimeframe));
 
     document.getElementById('scnrAboutDesc').textContent = scanner.description || 'Pas de description.';
     document.getElementById('scnrAboutTags').innerHTML = (scanner.tags || []).map((t) => `<span>${t}</span>`).join('');
-    const pineBody = document.getElementById('scnrPineBody');
-    pineBody.textContent = scanner.pineSource;
-    document.getElementById('scnrPineLines').innerHTML = Array.from({ length: scanner.pineSource.split('\n').length }, (_, i) => i + 1).join('<br>');
 
     renderScannerMenu();
     renderChart();
@@ -309,12 +295,14 @@
     const scanner = activeScanner();
     if (!scanner) return;
     const twelveDataSymbol = twelveDataSymbolFor(currentMarket, currentSymbol);
-    STASHScannerChart.render({
+    CHESTScannerChart.render({
       containerId: 'scnrChart',
       pineSource: scanner.pineSource,
       symbolDisplay: currentSymbol,
       twelveDataSymbol,
       timeframe: currentTimeframe,
+      candles: scanner.candles,
+      scannerId: scanner.id,
     });
   }
 
@@ -343,78 +331,74 @@
     });
   });
 
-  // ================= Onglets Graphique / Code / À propos =================
+  // ================= Onglets Graphique / À propos =================
   document.getElementById('scnrTabs').querySelectorAll('button').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.getElementById('scnrTabs').querySelectorAll('button').forEach((b) => b.classList.toggle('is-active', b === btn));
-      ['chart', 'code', 'about'].forEach((tab) => {
+      ['chart', 'about'].forEach((tab) => {
         document.getElementById('scnrPanel' + tab[0].toUpperCase() + tab.slice(1)).classList.toggle('is-active', tab === btn.dataset.tab);
       });
     });
   });
-  document.getElementById('scnrCopyPine').addEventListener('click', () => {
-    navigator.clipboard.writeText(document.getElementById('scnrPineBody').textContent).then(() => showToast('Script copié ✓'));
-  });
 
-  // ================= Formulaire d'ajout / édition =================
-  function openScannerForm(scanner) {
-    editingId = scanner ? scanner.id : null;
-    document.getElementById('scnrFormTitle').textContent = scanner ? 'Modifier le scanner' : 'Nouveau scanner';
-    document.getElementById('sfName').value = scanner ? scanner.name : '';
-    document.getElementById('sfTags').value = scanner ? (scanner.tags || []).join(', ') : '';
-    document.getElementById('sfDesc').value = scanner ? scanner.description || '' : '';
-    document.getElementById('sfMarket').value = scanner ? scanner.market : 'forex';
-    populateSymbolSelect(document.getElementById('sfSymbol'), document.getElementById('sfMarket').value, scanner ? scanner.defaultSymbol : null);
-    document.getElementById('sfTimeframe').value = scanner ? scanner.defaultTimeframe : '15';
-    document.getElementById('sfPine').value = scanner ? scanner.pineSource : '';
-    document.getElementById('sfDelete').hidden = !scanner;
-    document.getElementById('scnrForm').hidden = false;
-    document.getElementById('scnrForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // ================= Panneau de notification d'opportunités (tous scanners) =================
+  const TF_LABEL = { '1': '1m', '5': '5m', '15': '15m', '30': '30m', '60': '1h', '240': '4h', 'D': '1D' };
+  function timeAgo(iso) {
+    const diffMin = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (diffMin < 1) return 'à l\'instant';
+    if (diffMin < 60) return `il y a ${diffMin} min`;
+    const h = Math.round(diffMin / 60);
+    return `il y a ${h}h`;
   }
-  document.getElementById('sfMarket').addEventListener('change', (e) => {
-    populateSymbolSelect(document.getElementById('sfSymbol'), e.target.value, null);
-  });
-  document.getElementById('scnrAddBtn').addEventListener('click', () => {
-    document.getElementById('scnrMenu').classList.remove('is-open');
-    openScannerForm(null);
-  });
-  document.getElementById('scnrEditBtn').addEventListener('click', () => {
-    const scanner = activeScanner();
-    if (scanner) openScannerForm(scanner);
-  });
-  document.getElementById('sfCancel').addEventListener('click', () => { document.getElementById('scnrForm').hidden = true; });
-  document.getElementById('sfDelete').addEventListener('click', () => {
-    if (!editingId) return;
-    if (!confirm('Supprimer ce scanner ?')) return;
-    STASHScanners.remove(editingId);
-    document.getElementById('scnrForm').hidden = true;
-    const remaining = STASHScanners.list();
-    if (remaining.length) selectScanner(remaining[0].id);
-  });
-  document.getElementById('sfSave').addEventListener('click', () => {
-    const name = document.getElementById('sfName').value.trim();
-    const pineSource = document.getElementById('sfPine').value.trim();
-    if (!name) { showToast('Donne un nom à ce scanner.'); return; }
-    if (!pineSource) { showToast('Colle le script Pine du scanner.'); return; }
-    const scanner = {
-      name,
-      description: document.getElementById('sfDesc').value.trim(),
-      tags: document.getElementById('sfTags').value.split(',').map((t) => t.trim()).filter(Boolean),
-      market: document.getElementById('sfMarket').value,
-      defaultSymbol: document.getElementById('sfSymbol').value,
-      defaultTimeframe: document.getElementById('sfTimeframe').value,
-      pineSource,
-    };
-    let record;
-    if (editingId) record = STASHScanners.update(editingId, scanner);
-    else record = STASHScanners.add(scanner);
-    document.getElementById('scnrForm').hidden = true;
-    showToast(editingId ? 'Scanner modifié ✓' : 'Scanner ajouté ✓');
-    selectScanner(record.id);
-  });
+
+  function renderNotifications(data) {
+    document.getElementById('notifDot').classList.toggle('is-live', !data.example);
+    document.getElementById('notifExample').hidden = !data.example;
+    const list = document.getElementById('notifList');
+    const signals = data.signals || [];
+    if (!signals.length) { list.innerHTML = '<div class="notif-empty">Aucune opportunité pour l\'instant.</div>'; return; }
+    list.innerHTML = signals.map((s) => {
+      const scanner = CHESTScanners.list().find((sc) => sc.name === s.scanner);
+      const logo = scanner ? scannerLogoHtml(scanner, 40) : `<span class="scnr-logo" style="background:var(--faint);width:40px;height:40px">?</span>`;
+      return `
+        <button type="button" class="notif-row" data-notif-symbol="${s.symbol}" data-notif-tf="${s.timeframe}" data-notif-scanner="${scanner ? scanner.id : ''}">
+          ${logo}
+          <div class="notif-row__body">
+            <div class="notif-row__top">
+              <span class="notif-row__scanner">${s.scanner}</span>
+              <span class="notif-side ${s.side}">${s.side === 'sell' ? 'Vente' : 'Achat'}</span>
+            </div>
+            <div class="notif-row__meta">
+              <span class="notif-row__pair">${s.symbol} · ${TF_LABEL[s.timeframe] || s.timeframe}</span>
+              <span>${timeAgo(s.time)}</span>
+            </div>
+          </div>
+        </button>`;
+    }).join('');
+    list.querySelectorAll('[data-notif-scanner]').forEach((row) => row.addEventListener('click', () => {
+      const scannerId = row.dataset.notifScanner;
+      const symbol = row.dataset.notifSymbol;
+      const timeframe = row.dataset.notifTf;
+      if (!scannerId) { showToast('Scanner inconnu — pas encore enregistré sur cette page.'); return; }
+      const market = marketContaining(symbol) || 'forex';
+      selectScanner(scannerId, { market, symbol, timeframe });
+      document.querySelector('#scnrTabs [data-tab="chart"]').click();
+      document.getElementById('scnrMediaCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+
+  async function loadNotifications() {
+    try {
+      renderNotifications(await CHESTScannerSignals.fetchSignals());
+    } catch (e) {
+      document.getElementById('notifList').innerHTML = '<div class="notif-empty">Notifications indisponibles pour le moment.</div>';
+    }
+  }
+  loadNotifications();
+  setInterval(loadNotifications, 30000);
 
   // ================= Démarrage =================
-  const scanners = STASHScanners.list();
+  const scanners = CHESTScanners.list();
   renderScannerMenu();
   if (scanners.length) selectScanner(scanners[0].id);
 })();

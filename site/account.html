@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Compte — STASH</title>
+<title>Compte — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Vrais drapeaux SVG - les emoji "indicateur regional" s'affichent en
@@ -66,19 +66,20 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
 <body data-page="account">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -93,14 +94,14 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
 <main class="container">
   <div class="page-head">
     <h1>Compte</h1>
-    <p>Apparence et sécurité de ton espace STASH.</p>
+    <p>Apparence et sécurité de ton espace CHEST.</p>
   </div>
 
   <div class="settings-grid">
@@ -236,7 +237,7 @@
 
     <div class="card settings-card" style="grid-column:1 / -1;">
       <h2>Code d'accès</h2>
-      <p class="hint">Change le code qui protège l'accès à STASH sur cet appareil.</p>
+      <p class="hint">Change le code qui protège l'accès à CHEST sur cet appareil.</p>
       <form id="codeForm" class="form-stack" autocomplete="off">
         <div>
           <label for="currentCode">Code actuel</label>
@@ -261,9 +262,10 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script>
@@ -271,17 +273,17 @@
   const choiceWrap = document.getElementById('themeChoice');
   const buttons = [...choiceWrap.querySelectorAll('button')];
   function reflect() {
-    const t = STASHTheme.current();
+    const t = CHESTTheme.current();
     buttons.forEach((b) => b.classList.toggle('is-active', b.dataset.value === t));
   }
   reflect();
   buttons.forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.value !== STASHTheme.current()) STASHTheme.toggle();
+    if (b.dataset.value !== CHESTTheme.current()) CHESTTheme.toggle();
     reflect();
   }));
-  document.addEventListener('stash:theme', reflect);
+  document.addEventListener('chest:theme', reflect);
 
-  const PAIR_KEY = 'stash_sentiment_pair';
+  const PAIR_KEY = 'chest_sentiment_pair';
   const pairSelects = [...document.querySelectorAll('.pair-select')];
   function currentPair() {
     try { return localStorage.getItem(PAIR_KEY) || 'XAUUSD'; } catch (e) { return 'XAUUSD'; }
@@ -310,11 +312,11 @@
     const next = document.getElementById('newCode').value;
     const confirm = document.getElementById('confirmCode').value;
 
-    if (!(await STASHAuth.checkCode(current))) { errEl.textContent = 'Code actuel incorrect.'; return; }
+    if (!(await CHESTAuth.checkCode(current))) { errEl.textContent = 'Code actuel incorrect.'; return; }
     if (next.length < 4) { errEl.textContent = 'Le nouveau code doit faire au moins 4 caractères.'; return; }
     if (next !== confirm) { errEl.textContent = 'La confirmation ne correspond pas.'; return; }
 
-    await STASHAuth.setCode(next);
+    await CHESTAuth.setCode(next);
     form.reset();
     showToast('Code d\'accès mis à jour ✓');
   });
@@ -380,7 +382,7 @@
 
   function renderPresets(connection) {
     presetList.innerHTML = '';
-    const presets = (connection && connection.presets && connection.presets.length) ? connection.presets : STASHBerich.defaultPresets();
+    const presets = (connection && connection.presets && connection.presets.length) ? connection.presets : CHESTBerich.defaultPresets();
     const activeId = (connection && connection.activePresetId) || presets[0].id;
     presets.forEach((p) => presetList.appendChild(buildPresetCard(p, p.id === activeId)));
   }
@@ -417,8 +419,8 @@
 
   // ---------- Broker / serveur : liste guidée + "Autre" en secours ----------
   function populateBrokerSelect(selectedName) {
-    const known = window.STASH_BROKERS.find((b) => b.name === selectedName);
-    berichBroker.innerHTML = window.STASH_BROKERS.map((b) => `<option value="${b.id}">${b.name}</option>`).join('')
+    const known = window.CHEST_BROKERS.find((b) => b.name === selectedName);
+    berichBroker.innerHTML = window.CHEST_BROKERS.map((b) => `<option value="${b.id}">${b.name}</option>`).join('')
       + '<option value="other">Autre…</option>';
     berichBroker.value = known ? known.id : 'other';
     berichBrokerOther.style.display = known ? 'none' : 'block';
@@ -437,7 +439,7 @@
   }
 
   berichBroker.addEventListener('change', () => {
-    const broker = window.STASH_BROKERS.find((b) => b.id === berichBroker.value);
+    const broker = window.CHEST_BROKERS.find((b) => b.id === berichBroker.value);
     berichBrokerOther.style.display = broker ? 'none' : 'block';
     populateServerSelect(broker, null);
   });
@@ -446,16 +448,16 @@
   });
 
   function currentBrokerName() {
-    return berichBroker.value === 'other' ? berichBrokerOther.value.trim() : (window.STASH_BROKERS.find((b) => b.id === berichBroker.value) || {}).name;
+    return berichBroker.value === 'other' ? berichBrokerOther.value.trim() : (window.CHEST_BROKERS.find((b) => b.id === berichBroker.value) || {}).name;
   }
   function currentServerName() {
     return berichServer.value === 'other' ? berichServerOther.value.trim() : berichServer.value;
   }
 
-  const existingConn = STASHBerich.loadConnection();
+  const existingConn = CHESTBerich.loadConnection();
   populateBrokerSelect(existingConn ? existingConn.broker : null);
   if (existingConn) {
-    const broker = window.STASH_BROKERS.find((b) => b.name === existingConn.broker);
+    const broker = window.CHEST_BROKERS.find((b) => b.name === existingConn.broker);
     if (broker) populateServerSelect(broker, existingConn.server);
     berichLogin.value = existingConn.login || '';
     berichPassword.value = existingConn.password || '';
@@ -469,7 +471,7 @@
     const brokerName = currentBrokerName();
     if (!brokerName) { showToast('Renseigne au moins le nom du broker/propfirm.'); return; }
     const riskMode = riskModeToggle.querySelector('button.is-active').dataset.mode;
-    STASHBerich.saveConnection({
+    CHESTBerich.saveConnection({
       broker: brokerName,
       server: currentServerName(),
       login: berichLogin.value.trim(),

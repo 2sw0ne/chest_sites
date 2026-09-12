@@ -1,4 +1,4 @@
-// STASH · Journal de trading — CRUD des entrées manuelles + agrégation des
+// CHEST · Journal de trading — CRUD des entrées manuelles + agrégation des
 // trades venus de BERICH (live), dans un format commun, et gestion des
 // comptes de journal (propre ou propfirm, avec leurs règles). Le Backtesting
 // est volontairement exclu de cette agrégation — voir allEntries() plus bas.
@@ -24,11 +24,11 @@
 (() => {
   'use strict';
 
-  const KEY = 'stash_journal';
-  const TAGS_KEY = 'stash_journal_tags';
-  const FAV_PAIRS_KEY = 'stash_journal_fav_pairs';
-  const ACCOUNTS_KEY = 'stash_journal_accounts';
-  const ACTIVE_ACCOUNT_KEY = 'stash_journal_active_account';
+  const KEY = 'chest_journal';
+  const TAGS_KEY = 'chest_journal_tags';
+  const FAV_PAIRS_KEY = 'chest_journal_fav_pairs';
+  const ACCOUNTS_KEY = 'chest_journal_accounts';
+  const ACTIVE_ACCOUNT_KEY = 'chest_journal_active_account';
 
   // ---------- Propfirms sélectionnables (mêmes que BERICH) ----------
   const PROPFIRMS = [
@@ -163,11 +163,11 @@
   }
 
   async function berichEntries() {
-    if (!window.STASHBerich) return [];
+    if (!window.CHESTBerich) return [];
     let data;
-    try { data = await STASHBerich.fetchSignals(); } catch (e) { return []; }
+    try { data = await CHESTBerich.fetchSignals(); } catch (e) { return []; }
     if (data.example) return []; // pas de vrai signal encore reçu
-    const taken = STASHBerich.loadTaken();
+    const taken = CHESTBerich.loadTaken();
     return (data.signals || [])
       .map((s) => {
         const meta = taken.find((t) => t.id === s.id);
@@ -267,7 +267,7 @@
     return items;
   }
 
-  window.STASHJournal = {
+  window.CHESTJournal = {
     list, add, update, remove, berichEntries, allEntries, computeStats,
     knownTags, rememberTag, favoritePairs, toggleFavoritePair,
     propfirms, propfirmRulePreset, propfirmLogo,

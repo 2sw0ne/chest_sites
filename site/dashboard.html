@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard — STASH</title>
+<title>Dashboard — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <style>
   .example-badge{
     font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
@@ -125,19 +125,20 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
 <body data-page="dashboard">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -152,7 +153,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
@@ -270,10 +271,11 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/crypto-movers.js"></script>
 </body>

@@ -3,13 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Calendrier économique — STASH</title>
+<title>Calendrier économique — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
+  /* Filet de securite : sans ca, une regle de classe qui fixe elle-meme
+     `display` (ex. .week-compare{display:flex}) a la meme specificite que
+     le [hidden]{display:none} PAR DEFAUT DU NAVIGATEUR (regle UA, pas
+     auteur) et, une regle auteur l'emportant toujours sur l'UA meme a
+     specificite egale, l'element reste affiche malgre l'attribut hidden -
+     constate le 2026-09-11 sur #weekRealCompare (masque en JS mais visible
+     a l'ecran). Meme filet deja en place sur journal.html/backtesting.html. */
+  [hidden]{ display:none !important; }
+
   /* Drapeaux reels (SVG) plutot que des emoji "indicateur regional" - sur
      Windows, ces emoji s'affichent comme du texte ("US","EU"...) au lieu
      d'un drapeau, faute de police dediee. */
@@ -53,7 +62,7 @@
   .bubble__stats span{ color:var(--faint); font-size:10px; text-transform:uppercase; letter-spacing:.06em; }
   .bubble__stats b{ font-variant-numeric:tabular-nums; }
   .bubble__badge{ font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
-  .bubble__badge.pending{ background:rgba(255,61,127,.14); color:var(--acc); }
+  .bubble__badge.pending{ background:rgba(252,18,131,.14); color:var(--acc); }
   .bubble__badge.released{ background:rgba(51,230,166,.14); color:var(--green); }
 
   .bubble__detail{ max-height:0; overflow:hidden; transition:max-height .35s var(--ease); }
@@ -107,7 +116,7 @@
   }
   .imp-pill .stars{ letter-spacing:-1px; opacity:.55; color:var(--amber); }
   .imp-pill:hover{ border-color:var(--acc); }
-  .imp-pill.is-active{ background:rgba(255,61,127,.1); border-color:var(--acc); color:var(--ink); }
+  .imp-pill.is-active{ background:rgba(252,18,131,.1); border-color:var(--acc); color:var(--ink); }
   .imp-pill.is-active .stars{ opacity:1; }
   .imp-dot{ font-size:10px; letter-spacing:-1px; color:var(--amber); opacity:.85; margin-left:4px; }
 
@@ -127,7 +136,7 @@
   }
   .sentiment-hero::before{
     content:''; position:absolute; inset:0; pointer-events:none;
-    background:radial-gradient(ellipse 55% 65% at 50% 18%, var(--glow, rgba(255,61,127,.32)), transparent 72%);
+    background:radial-gradient(ellipse 55% 65% at 50% 18%, var(--glow, rgba(252,18,131,.32)), transparent 72%);
     transition:background .5s;
   }
   .sentiment-hero[data-tone="pos"]{ --glow: rgba(51,230,166,.45); }
@@ -168,6 +177,51 @@
   .driver-card__estimates span{ display:block; opacity:.7; text-transform:uppercase; letter-spacing:.04em; font-size:9.5px; margin-bottom:2px; color:rgba(255,255,255,.55); }
   .sentiment-hero .val.neutral{ color:rgba(255,255,255,.55); }
 
+  /* Prevu | Reel, separes par le trait violet (--acc2) - le "prevu" reste
+     visible toute la semaine, meme une fois l'evenement publie. Avant
+     publication, "Prevu" (.is-main) est la valeur mise en avant ; une fois
+     publie, c'est "Reel" qui devient .is-main et "Prevu" retombe en petite
+     reference (.is-ref) - la taille seule dit ce qui compte maintenant. */
+  .driver-card__compare{ display:flex; align-items:stretch; gap:12px; }
+  .driver-card__compare-col{ flex:1; min-width:0; }
+  .driver-card__compare-col span{ display:block; opacity:.7; text-transform:uppercase; letter-spacing:.04em; font-size:9.5px; margin-bottom:3px; color:rgba(255,255,255,.55); }
+  .driver-card__compare-col b{ font-weight:800; font-variant-numeric:tabular-nums; transition:font-size .2s, opacity .2s; }
+  .driver-card__compare-col.is-main b{ font-size:20px; opacity:1; }
+  .driver-card__compare-col.is-ref b{ font-size:13px; opacity:.5; }
+  .driver-card__divider{ width:2px; flex-shrink:0; background:var(--acc2); border-radius:2px; opacity:.55; }
+
+  .sentiment-hero__consistency{ font-size:12px; color:rgba(255,255,255,.55); margin:2px 0 0; }
+  .sentiment-hero__consistency b{ color:rgba(255,255,255,.85); }
+
+  /* Navigation par semaine dans le hero - remplace le hardcode "cette
+     semaine / semaine passee" par un vrai historique consultable. */
+  .week-nav{ display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:18px; }
+  .week-nav__btn{
+    width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.18); background:transparent;
+    color:rgba(255,255,255,.75); font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background .2s, opacity .2s;
+  }
+  .week-nav__btn:hover:not(:disabled){ background:rgba(255,255,255,.08); }
+  .week-nav__btn:disabled{ opacity:.3; cursor:default; }
+  .week-nav__label{ font-size:12px; font-weight:600; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:.06em; min-width:180px; }
+
+  /* Quand Prevu == Reel exactement (conforme au consensus) : le dit
+     explicitement plutot que de laisser deux chiffres presque identiques
+     ressembler a un bug d'affichage. */
+  .driver-card__match{ font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:rgba(255,255,255,.4); margin-top:6px; }
+  .driver-card__calib{ font-size:9.5px; line-height:1.4; color:rgba(51,230,166,.85); margin-top:8px; }
+  .driver-card__calib.is-heuristic{ color:rgba(255,255,255,.35); }
+
+  /* ---------- Mode weekend : bilan de la semaine passee + previsionnel ---------- */
+  .week-compare{ display:flex; align-items:center; justify-content:center; gap:22px; margin-bottom:10px; }
+  .week-compare__col{ text-align:center; }
+  .week-compare__col span{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.45); margin-bottom:4px; }
+  .week-compare__col b{ display:block; font-size:clamp(28px,5vw,42px); font-weight:800; letter-spacing:-.02em; }
+  .week-compare__divider{ width:2px; height:44px; background:var(--acc2); opacity:.55; border-radius:2px; }
+  .week-block{ text-align:left; margin-bottom:26px; }
+  .week-block__title{ font-size:11px; text-transform:uppercase; letter-spacing:.14em; color:rgba(255,255,255,.5); margin-bottom:14px; }
+  .driver-empty{ font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:12px; background:rgba(255,255,255,.05); color:rgba(255,255,255,.55); text-align:left; }
+
   .sentiment-hero__disclaimer{ font-size:11px; color:rgba(255,255,255,.38); margin:0; line-height:1.5; }
   .sentiment-hero__disclaimer a{ color:rgba(255,255,255,.6); text-decoration:underline; }
 
@@ -176,19 +230,20 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
 <body data-page="calendar">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -203,7 +258,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
@@ -221,11 +276,33 @@
       <div class="sentiment-hero__label" id="sentimentLabel">Or / Dollar</div>
 
       <div id="sentimentEconMode">
+        <div class="week-nav" id="weekNav">
+          <button type="button" id="weekNavPrev" class="week-nav__btn" aria-label="Semaine précédente">◀</button>
+          <span class="week-nav__label" id="weekNavLabel">Cette semaine</span>
+          <button type="button" id="weekNavNext" class="week-nav__btn" aria-label="Semaine suivante" disabled>▶</button>
+        </div>
         <div class="sentiment-hero__weekly" id="sentimentWeekly">—</div>
-        <div class="sentiment-hero__weekly-label">Estimation indicative sur la semaine</div>
-        <p class="sentiment-hero__text" id="sentimentText">Chargement de l'analyse…</p>
-        <div class="sentiment-hero__drivers" id="sentimentDrivers"></div>
-        <p class="sentiment-hero__disclaimer">Heuristique statistique basée sur les surprises économiques récentes et les prévisions à venir (US/EU/UK/JP) — pas une prédiction garantie. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
+        <div class="sentiment-hero__weekly-label" id="sentimentWeeklyLabel">Estimation indicative sur la semaine</div>
+        <div class="week-compare" id="weekRealCompare" hidden></div>
+        <p class="sentiment-hero__consistency" id="sentimentConsistency" hidden></p>
+
+        <div id="weekForecastView">
+          <p class="sentiment-hero__text" id="sentimentText">Chargement de l'analyse…</p>
+          <div class="sentiment-hero__drivers" id="sentimentDrivers"></div>
+        </div>
+
+        <div id="weekendView" hidden>
+          <div class="week-block">
+            <div class="week-block__title" id="weekPastTitle">Bilan de la semaine passée</div>
+            <div class="sentiment-hero__drivers" id="weekPastDrivers"></div>
+          </div>
+          <div class="week-block" id="weekNextBlock">
+            <div class="week-block__title" id="weekNextTitle">Prévisionnel de la semaine à venir</div>
+            <div class="sentiment-hero__drivers" id="weekNextDrivers"></div>
+          </div>
+        </div>
+
+        <p class="sentiment-hero__disclaimer">Heuristique statistique — pas une prédiction garantie. Le % principal est déterminé en début de semaine à partir des prévisions (US/EU/UK/JP) et ne change pas quand une annonce est publiée ; "Réel" (par carte), le comparateur "Réalisé" et la cohérence reflètent eux ce qui s'est effectivement passé. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
       </div>
 
       <div id="sentimentCryptoMode" hidden>
@@ -268,10 +345,12 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/config.js"></script>
-<script src="js/calendar.js"></script>
+<script src="js/config.local.js"></script>
+<script src="js/calendar.js?v=9"></script>
 </body>
 </html>

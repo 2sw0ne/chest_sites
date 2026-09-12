@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ajouter un backtest — STASH</title>
+<title>Ajouter un backtest — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <style>
   .wizard{ display:flex; flex-direction:column; gap:20px; max-width:760px; }
   .wz-card{ padding:26px; }
@@ -25,7 +25,7 @@
     border:1px dashed var(--line2); border-radius:var(--radius-sm); padding:28px; text-align:center; cursor:pointer;
     color:var(--muted); font-size:13.5px; transition:border-color .15s, background .15s;
   }
-  .dropzone:hover, .dropzone.is-drag{ border-color:var(--acc); background:rgba(255,61,127,.05); }
+  .dropzone:hover, .dropzone.is-drag{ border-color:var(--acc); background:rgba(252,18,131,.05); }
   .dropzone strong{ color:var(--ink); }
   .dropzone.is-filled{ border-style:solid; border-color:var(--green); background:rgba(51,230,166,.06); cursor:pointer; }
   .dropzone__filled{ display:flex; flex-direction:column; align-items:center; gap:4px; }
@@ -63,19 +63,20 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
 <body data-page="backtesting">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -90,7 +91,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
@@ -223,9 +224,10 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -272,14 +274,14 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
     importResult.className = 'import-result';
     importErrors.style.display = 'none';
     try {
-      const { trades, errors, hasHeader, optionalColumnsFound, extraLabels } = await window.STASHXlsxImport.parseXlsxFile(file);
+      const { trades, errors, hasHeader, optionalColumnsFound, extraLabels } = await window.CHESTXlsxImport.parseXlsxFile(file);
       parsedTrades = trades;
       if (!trades.length) {
         importResult.textContent = "Aucune ligne exploitable trouvée dans ce fichier.";
         importResult.className = 'import-result err';
         dropzone.classList.remove('is-filled');
       } else {
-        const labels = window.STASHXlsxImport.FIELD_LABELS;
+        const labels = window.CHESTXlsxImport.FIELD_LABELS;
         const recognized = optionalColumnsFound.map((f) => labels[f] || f);
         const allExtra = [...recognized, ...extraLabels];
         const extra = allExtra.length ? ` — colonnes détectées en plus : ${allExtra.join(', ')}` : '';
@@ -330,8 +332,8 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
       }
       const capital = Number(document.getElementById('btCapital').value) || 10000;
       const best = account === 'cp'
-        ? window.STASHBacktestEngine.optimizeCp(parsedTrades, capital)
-        : window.STASHBacktestEngine.optimizePf(parsedTrades, capital);
+        ? window.CHESTBacktestEngine.optimizeCp(parsedTrades, capital)
+        : window.CHESTBacktestEngine.optimizePf(parsedTrades, capital);
       resultEl.style.display = 'block';
       if (!best) {
         resultEl.innerHTML = `<span class="warn">Aucun réglage de risque ne respecte les contraintes propfirm (5% DD journalier / 10% DD max) sur cet historique, même au risque minimal.</span>`;
@@ -383,7 +385,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
   let editingRecord = null;
   const editId = new URLSearchParams(window.location.search).get('edit');
   if (editId) {
-    editingRecord = window.STASHBacktests.get(editId);
+    editingRecord = window.CHESTBacktests.get(editId);
     if (editingRecord) {
       document.getElementById('pageTitle').textContent = 'Modifier le backtest';
       document.getElementById('pageSubtitle').textContent = "Modifie les informations de ce backtest. Le fichier déjà importé reste utilisé sauf si tu en glisses un nouveau.";
@@ -447,10 +449,10 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
     }
 
     if (editingRecord) {
-      window.STASHBacktests.update(editingRecord.id, { title, description, capital, cp, pf, trades: parsedTrades });
+      window.CHESTBacktests.update(editingRecord.id, { title, description, capital, cp, pf, trades: parsedTrades });
       window.location.href = `backtest-view.html?id=${encodeURIComponent(editingRecord.id)}`;
     } else {
-      const record = window.STASHBacktests.add({ title, description, capital, cp, pf, trades: parsedTrades });
+      const record = window.CHESTBacktests.add({ title, description, capital, cp, pf, trades: parsedTrades });
       window.location.href = `backtest-view.html?id=${encodeURIComponent(record.id)}`;
     }
   });

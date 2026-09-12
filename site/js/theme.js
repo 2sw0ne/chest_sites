@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const KEY = 'stash_theme';
+  const KEY = 'chest_theme';
 
   function apply(theme) {
     if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
@@ -15,12 +15,12 @@
     const next = current() === 'light' ? 'dark' : 'light';
     localStorage.setItem(KEY, next);
     apply(next);
-    document.dispatchEvent(new CustomEvent('stash:theme', { detail: next }));
+    document.dispatchEvent(new CustomEvent('chest:theme', { detail: next }));
     return next;
   }
 
   // Applied immediately on script load (placed early in <head>) to avoid a flash.
   apply(current());
 
-  window.STASHTheme = { apply, current, toggle };
+  window.CHESTTheme = { apply, current, toggle };
 })();

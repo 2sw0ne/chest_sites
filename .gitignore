@@ -6,10 +6,18 @@ __pycache__/
 calendar-bridge/debug/
 
 # Donnees generees localement (recreees par fetch_calendar.py / export_mt5.py)
-# site/data/berich-signal.json n'est PAS concerne : c'est le exemple/fallback
-# livre avec le repo (example:true), pas une donnee generee.
+# site/data/berich-signal.json et scanner-signals.json ne sont PAS concernes :
+# ce sont les exemples/fallback livres avec le repo, pas des donnees generees.
 site/data/calendar.json
 site/data/data.json
+
+# Calibration d'impact reelle (calendar-bridge/calibrate_impact.py) : donnee
+# generee, longue a produire et amenee a evoluer independamment du code -
+# meme logique que calendar.json ci-dessus. Regenerer localement avec
+# calibrate_impact.py plutot que la recommiter a chaque run.
+site/data/impact-calibration.json
+calendar-bridge/calibration_checkpoint.json
+calendar-bridge/calibration_log.txt
 
 # Cle API perso (Twelve Data) - jamais dans config.js, voir config.local.example.js
 site/js/config.local.js

@@ -5,11 +5,11 @@
     {
       "id": "demo-1",
       "scanner": "BE FR€E",
-      "symbol": "EURUSD",
+      "symbol": "XAUUSD",
       "side": "buy",
-      "entry": 1.0850,
-      "sl": 1.0800,
-      "tp": 1.1000,
+      "entry": 3650.00,
+      "sl": 3630.00,
+      "tp": 3690.00,
       "time": "2026-09-09T07:55:00Z",
       "status": "open"
     }

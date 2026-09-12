@@ -1,11 +1,12 @@
 """
-STASH - calendrier economique, service Railway.
+CHEST - calendrier economique, service Railway.
 
 Enveloppe HTTP minimale autour de fetch_calendar.build_calendar_data() :
-tourne en continu, relance le scraping une fois par jour en tache de fond,
-garde le dernier resultat en memoire et l'expose en lecture sur /calendar.json.
+tourne en continu, relance le scraping en tache de fond (voir
+REFRESH_SECONDS ci-dessous), garde le dernier resultat en memoire et
+l'expose en lecture sur /calendar.json.
 
-Le reste du site STASH reste local pour le moment (voir README.md) - ce
+Le reste du site CHEST reste local pour le moment (voir README.md) - ce
 service ne fait que remplacer l'execution locale du script, pour que la
 fenetre Chrome (necessaire pour passer le blocage anti-bot d'investing.com,
 voir fetch_calendar.py) s'ouvre sur un ecran virtuel (Xvfb) que personne ne
@@ -27,7 +28,14 @@ from flask import Flask, jsonify, send_file
 
 import fetch_calendar
 
-REFRESH_SECONDS = int(os.environ.get("STASH_CALENDAR_REFRESH_SECONDS", 24 * 3600))
+# 30 min par defaut (demande explicite : les resultats deja publies doivent
+# remonter vite, pas une fois par jour) - AU DESSUS de la recommandation du
+# README de fetch_calendar.py ("une fois par jour suffit largement, ne pas
+# relancer trop souvent"), qui restait pertinente pour rester discret face
+# a l'anti-bot d'investing.com. Compromis assume : 48 scrapes/jour au lieu
+# de 1, donc un risque de blocage plus eleve qu'avant - a surveiller via les
+# logs Railway (recherche "indisponible") si ca se degrade.
+REFRESH_SECONDS = int(os.environ.get("CHEST_CALENDAR_REFRESH_SECONDS", 30 * 60))
 
 app = Flask(__name__)
 state = {"data": None, "error": None}

@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SWYPER — Backtesting — STASH</title>
+<title>SWYPER — Backtesting — CHEST</title>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 <script src="./support.js"></script>
 <style>
-  .stash-back{
+  .chest-back{
     position:fixed; top:14px; left:14px; z-index:999;
     display:inline-flex; align-items:center; gap:6px;
     font-family:'Instrument Sans',system-ui,sans-serif; font-size:12.5px; font-weight:600;
@@ -18,7 +18,7 @@
 </style>
 </head>
 <body>
-<a href="backtesting.html" class="stash-back">← STASH</a>
+<a href="backtesting.html" class="chest-back">← CHEST</a>
 <x-dc>
 <helmet>
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -29,19 +29,19 @@
 <style>
 html{scroll-behavior:smooth}
 body{margin:0;background:#050505;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-::selection{background:#ff3d7f;color:#fff}
+::selection{background:#fc1283;color:#fff}
 @keyframes floatGlow{0%,100%{transform:translate(-50%,0) scale(1)}50%{transform:translate(-50%,-18px) scale(1.06)}}
 @keyframes spinSlow{to{transform:rotate(360deg)}}
 @keyframes marq{to{transform:translateX(-50%)}}
 </style>
 </helmet>
 
-<div style="--bg:#050505;--panel:#0c0c0e;--ink:#f6f6f7;--muted:#9b9ba1;--faint:#5c5c63;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);--navbg:rgba(5,5,5,.72);--acc:#ff3d7f;--acc2:#c04dff;overflow-x:hidden">
+<div style="--bg:#050505;--panel:#0c0c0e;--ink:#f6f6f7;--muted:#9b9ba1;--faint:#5c5c63;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);--navbg:rgba(5,5,5,.72);--acc:#fc1283;--acc2:#f9a45e;overflow-x:hidden">
 <div style="--bg:{{ tBg }};--panel:{{ tPanel }};--ink:{{ tInk }};--muted:{{ tMuted }};--faint:{{ tFaint }};--line:{{ tLine }};--line2:{{ tLine2 }};--navbg:{{ tNav }};background:var(--bg);color:var(--ink);min-height:100vh;transition:background .55s ease,color .55s ease">
 
   <nav style="position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px clamp(18px,4vw,44px);background:var(--navbg);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);border-bottom:1px solid var(--line);transition:background .55s ease">
     <a href="#top" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)">
-      <span style="position:relative;width:26px;height:26px;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(255,61,127,.45)">
+      <span style="position:relative;width:26px;height:26px;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(252,18,131,.45)">
         <span style="display:block;width:12px;height:2px;background:#fff;border-radius:2px;transform:rotate(-38deg) translateY(-2px)"></span>
         <span style="position:absolute;display:block;width:12px;height:2px;background:rgba(255,255,255,.55);border-radius:2px;transform:rotate(-38deg) translateY(4px)"></span>
       </span>
@@ -61,7 +61,7 @@ body{margin:0;background:#050505;font-family:'Instrument Sans',system-ui,sans-se
   </nav>
 
   <header id="top" style="position:relative;text-align:center;padding:clamp(64px,12vh,140px) clamp(20px,5vw,56px) clamp(40px,8vh,80px);overflow:hidden">
-    <div style="position:absolute;left:50%;top:-6%;width:min(900px,120vw);height:520px;border-radius:50%;filter:blur(120px);background:radial-gradient(ellipse,rgba(255,61,127,.42),rgba(192,77,255,.22) 45%,transparent 72%);animation:floatGlow 9s ease-in-out infinite;pointer-events:none"></div>
+    <div style="position:absolute;left:50%;top:-6%;width:min(900px,120vw);height:520px;border-radius:50%;filter:blur(120px);background:radial-gradient(ellipse,rgba(252,18,131,.42),rgba(249,164,94,.22) 45%,transparent 72%);animation:floatGlow 9s ease-in-out infinite;pointer-events:none"></div>
     <div style="position:relative;z-index:2;max-width:1000px;margin:0 auto">
       <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;border:1px solid var(--line2);border-radius:999px;background:var(--panel);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:clamp(22px,4vh,34px)">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc)"></span>{{ badge }}
@@ -71,7 +71,7 @@ body{margin:0;background:#050505;font-family:'Instrument Sans',system-ui,sans-se
       <p style="max-width:680px;margin:14px auto 0;font-size:14.5px;line-height:1.7;color:var(--muted);text-wrap:pretty">{{ heroInfo }}</p>
       <p style="max-width:660px;margin:14px auto 0;font-size:13.5px;line-height:1.7;color:var(--faint);text-wrap:pretty">Cette page contient les deux modèles de risque, les zones de drawdown supérieures à 10 %, le comparatif mois par mois, les courbes d'equity en échelle log et le journal complet des positions.</p>
       <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:clamp(26px,4vh,38px)">
-        <a href="#modeles" style="text-decoration:none;font-size:14px;font-weight:600;padding:13px 26px;border-radius:999px;color:#fff;background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 14px 40px rgba(255,61,127,.35)">Voir les deux modèles</a>
+        <a href="#modeles" style="text-decoration:none;font-size:14px;font-weight:600;padding:13px 26px;border-radius:999px;color:#fff;background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 14px 40px rgba(252,18,131,.35)">Voir les deux modèles</a>
         <a href="#journal" style="text-decoration:none;font-size:14px;font-weight:600;padding:13px 26px;border-radius:999px;color:var(--ink);background:var(--panel);border:1px solid var(--line2)">Ouvrir le journal</a>
       </div>
       <div style="display:flex;justify-content:center;gap:clamp(20px,5vw,56px);flex-wrap:wrap;margin-top:clamp(34px,6vh,60px);padding-top:26px;border-top:1px solid var(--line)">
@@ -523,9 +523,9 @@ class Component extends DCLogic {
       tFaint: tv['--faint'], tLine: tv['--line'], tLine2: tv['--line2'], tNav: tv['--navbg'],
       brand: 'SWYPER',
       title: this.title(),
-      x2Bg: st.x2 ? '#ff3d7f' : 'transparent',
+      x2Bg: st.x2 ? '#fc1283' : 'transparent',
       x2Fg: st.x2 ? '#ffffff' : mut,
-      x2Border: st.x2 ? '#ff3d7f' : (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)'),
+      x2Border: st.x2 ? '#fc1283' : (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)'),
       toggleX2: () => this.setState({ x2: !st.x2 }, () => this.recompute()),
       riskNote: st.x2 ? 'Risque ×2 sur les deux modèles' : 'Risque nominal',
       badge: (eng ? eng.counts(st.mode) : 0) + ' positions · Jan 2025 → aujourd\'hui',
@@ -571,5 +571,6 @@ class Component extends DCLogic {
 }
 
 </script>
+<script src="js/lot-calculator.js?v=3"></script>
 </body>
 </html>

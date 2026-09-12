@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const ACCOUNTS_KEY = 'stash_accounts';
-  const ACTIVE_KEY = 'stash_active_account';
+  const ACCOUNTS_KEY = 'chest_accounts';
+  const ACTIVE_KEY = 'chest_active_account';
 
   // Exemple de données — partagées par les comptes de démonstration.
   const SAMPLE_PERIODS = {
@@ -181,8 +181,8 @@
       data: {
         labels: series.map((_, i) => i + 1),
         datasets: [{
-          data: series, borderColor: '#ff3d7f', borderWidth: 2, pointRadius: 0, tension: .3,
-          fill: true, backgroundColor: 'rgba(255,61,127,.08)'
+          data: series, borderColor: '#fc1283', borderWidth: 2, pointRadius: 0, tension: .3,
+          fill: true, backgroundColor: 'rgba(252,18,131,.08)'
         }]
       },
       options: {
@@ -266,6 +266,6 @@
       morePanel.style.maxHeight = isOpen ? morePanel.scrollHeight + 'px' : '0px';
     });
 
-    document.addEventListener('stash:theme', () => render(document.querySelector('#periodPills .is-active').dataset.period));
+    document.addEventListener('chest:theme', () => render(document.querySelector('#periodPills .is-active').dataset.period));
   });
 })();

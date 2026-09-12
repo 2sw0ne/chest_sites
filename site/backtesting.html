@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Backtesting — STASH</title>
+<title>Backtesting — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <style>
   .bt-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
   .bt-card{
@@ -16,7 +16,7 @@
   }
   .bt-card:hover{ transform:translateY(-3px); }
   .bt-card__inner{ border-radius:20px; background:var(--panel); padding:24px 22px; height:100%; }
-  .bt-card__tag{ font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; padding:5px 10px; border-radius:999px; background:rgba(255,61,127,.14); color:var(--acc); border:1px solid rgba(255,61,127,.35); }
+  .bt-card__tag{ font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; padding:5px 10px; border-radius:999px; background:rgba(252,18,131,.14); color:var(--acc); border:1px solid rgba(252,18,131,.35); }
   .bt-card__title{ font-size:20px; font-weight:700; letter-spacing:-.02em; margin:16px 0 6px; }
   .bt-card__desc{ font-size:13px; color:var(--muted); line-height:1.6; margin:0 0 16px; }
   .bt-card__meta{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--faint); border-top:1px solid var(--line); padding-top:14px; }
@@ -44,34 +44,23 @@
 
   .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; margin-bottom:16px; }
   .back-link:hover{ color:var(--ink); }
-
-  .jr-mini-card{ display:block; text-decoration:none; color:var(--ink); border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel); padding:16px 18px; margin-bottom:24px; transition:border-color .2s, transform .2s; }
-  .jr-mini-card:hover{ border-color:var(--muted); transform:translateY(-1px); }
-  .jr-mini-card__head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
-  .jr-mini-card__title{ display:block; font-size:14.5px; font-weight:700; }
-  .jr-mini-card__sub{ display:block; font-size:12px; color:var(--muted); margin-top:2px; }
-  .jr-mini-card__cta{ font-size:12px; font-weight:700; color:var(--acc); white-space:nowrap; }
-  .jr-mini-card__stats{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; padding-top:12px; border-top:1px solid var(--line); }
-  .jr-mini-stat span{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); margin-bottom:3px; }
-  .jr-mini-stat strong{ display:block; font-size:14.5px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .jr-mini-stat strong.pos{ color:var(--green); } .jr-mini-stat strong.neg{ color:var(--red); }
-  @media (max-width:560px){ .jr-mini-card__stats{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
 <body data-page="backtesting">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -86,7 +75,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
@@ -99,22 +88,6 @@
     </div>
     <a href="backtest-add.html" class="btn btn-primary" style="white-space:nowrap">+ Nouveau backtesting</a>
   </div>
-
-  <a href="journal.html" class="jr-mini-card" id="jrMiniCard">
-    <div class="jr-mini-card__head">
-      <div>
-        <span class="jr-mini-card__title">📔 Journal de trading</span>
-        <span class="jr-mini-card__sub">Toutes tes positions — live, backtest et manuelles — en un coup d'œil</span>
-      </div>
-      <span class="jr-mini-card__cta">Ouvrir →</span>
-    </div>
-    <div class="jr-mini-card__stats" id="jrMiniStats">
-      <div class="jr-mini-stat"><span>Winrate</span><strong data-mini="winrate">—</strong></div>
-      <div class="jr-mini-stat"><span>RR moyen</span><strong data-mini="rr">—</strong></div>
-      <div class="jr-mini-stat"><span>P&amp;L total</span><strong data-mini="pnl">—</strong></div>
-      <div class="jr-mini-stat"><span>Trades</span><strong data-mini="count">—</strong></div>
-    </div>
-  </a>
 
   <div class="bt-grid">
     <a href="backtesting-swyper.html" class="bt-card">
@@ -147,32 +120,14 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/berich-store.js"></script>
-<script src="js/journal-store.js"></script>
 <script>
 (() => {
   'use strict';
-  // Aperçu compact du journal — mêmes chiffres que sa barre de stats, en
-  // plus discret, pour donner une vue d'ensemble sans quitter le hub.
-  async function renderMiniJournal() {
-    if (!window.STASHJournal) return;
-    const rows = await STASHJournal.allEntries();
-    const s = STASHJournal.computeStats(rows);
-    const money = (v) => v == null ? '—' : (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const card = document.getElementById('jrMiniCard');
-    card.querySelector('[data-mini="winrate"]').textContent = s.winRatePct == null ? '—' : s.winRatePct + '%';
-    card.querySelector('[data-mini="rr"]').textContent = s.avgRR == null ? '—' : s.avgRR;
-    const pnlEl = card.querySelector('[data-mini="pnl"]');
-    pnlEl.textContent = money(s.totalPnl);
-    pnlEl.className = s.totalPnl > 0 ? 'pos' : s.totalPnl < 0 ? 'neg' : '';
-    card.querySelector('[data-mini="count"]').textContent = s.total;
-  }
-  renderMiniJournal();
-
   // Les cartes personnalisees doivent apparaitre comme cellules propres de
   // .bt-grid (une div englobante casserait le layout grid) : on remplace le
   // conteneur temporaire du HTML par un simple marqueur, et chaque rendu
@@ -189,7 +144,7 @@
 
   function renderCards() {
     grid.querySelectorAll('.bt-card--custom').forEach((el) => el.remove());
-    const items = window.STASHBacktests.list();
+    const items = window.CHESTBacktests.list();
     const wrap = document.createElement('div');
     wrap.innerHTML = items.map((b) => `
       <div class="bt-card bt-card--custom">
@@ -233,7 +188,7 @@
         e.preventDefault();
         e.stopPropagation();
         if (confirm('Supprimer définitivement ce backtest ?')) {
-          window.STASHBacktests.remove(btn.dataset.deleteId);
+          window.CHESTBacktests.remove(btn.dataset.deleteId);
           renderCards();
         }
       });

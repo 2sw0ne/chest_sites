@@ -1,5 +1,5 @@
 /* ============================================================
-   STASH — Design tokens
+   CHEST — Design tokens
    Repris de la DA de l'outil de backtest existant (voir
    ../../swyper-dashboard-v2/reference/DA-notes.md)
    ============================================================ */
@@ -9,7 +9,7 @@
   --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.16);
   --navbg:rgba(5,5,5,.72);
 
-  --acc:#ff3d7f; --acc2:#c04dff;
+  --acc:#fc1283; --acc2:#f9a45e;
   --model-a:#e35728; --model-b:#5470c2;
   --green:#33e6a6; --red:#ff4d5e; --blue:#4d8dff; --amber:#f5a623;
 
@@ -61,7 +61,7 @@ button,input{ font-family:inherit; }
   transition:transform .2s var(--ease), box-shadow .2s var(--ease), opacity .2s;
 }
 .btn:active{ transform:scale(.97); }
-.btn-primary{ color:#fff; background:linear-gradient(135deg,var(--acc),var(--acc2)); box-shadow:0 14px 40px rgba(255,61,127,.35); }
+.btn-primary{ color:#fff; background:linear-gradient(135deg,var(--acc),var(--acc2)); box-shadow:0 14px 40px rgba(252,18,131,.35); }
 .btn-secondary{ color:var(--ink); background:var(--panel); border:1px solid var(--line2); }
 .btn-ghost{ color:var(--muted); background:transparent; border:1px solid var(--line2); }
 

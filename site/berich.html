@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BERICH — STASH</title>
+<title>BERICH — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <style>
   .conn-bar{
     display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
@@ -94,7 +94,7 @@
   .signal-hero{ padding:0; overflow:hidden; margin-bottom:16px; }
   .signal-hero__waiting{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:56px 24px; text-align:center; }
   .pulse-dot{ width:11px; height:11px; border-radius:50%; background:var(--acc); animation:pulseDot 1.8s infinite; }
-  @keyframes pulseDot{ 0%{box-shadow:0 0 0 0 rgba(255,61,127,.45);} 70%{box-shadow:0 0 0 16px rgba(255,61,127,0);} 100%{box-shadow:0 0 0 0 rgba(255,61,127,0);} }
+  @keyframes pulseDot{ 0%{box-shadow:0 0 0 0 rgba(252,18,131,.45);} 70%{box-shadow:0 0 0 16px rgba(252,18,131,0);} 100%{box-shadow:0 0 0 0 rgba(252,18,131,0);} }
   .signal-hero__waiting p{ font-size:13.5px; color:var(--muted); margin:0; max-width:360px; }
   .signal-hero__waiting .signal-meta{ margin-top:4px; }
 
@@ -138,19 +138,20 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
 <body data-page="berich">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -165,7 +166,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
@@ -245,18 +246,19 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/berich-chart.js"></script>
 <script>
 (() => {
-  const ACCOUNTS_KEY = 'stash_accounts';
-  const ACTIVE_KEY = 'stash_active_account';
+  const ACCOUNTS_KEY = 'chest_accounts';
+  const ACTIVE_KEY = 'chest_active_account';
 
   function activeAccount() {
     try {
@@ -294,9 +296,9 @@
 
     // ---- Étape 1 : broker ----
     const brokerGrid = document.getElementById('brokerGrid');
-    brokerGrid.innerHTML = window.STASH_BROKERS.map((b) => `
+    brokerGrid.innerHTML = window.CHEST_BROKERS.map((b) => `
       <button type="button" class="broker-card" data-broker-id="${b.id}">
-        <img src="${stashBrokerLogo(b.domain)}" alt="" onerror="this.remove()">
+        <img src="${chestBrokerLogo(b.domain)}" alt="" onerror="this.remove()">
         <span>${b.name}</span>
       </button>`).join('') + `
       <button type="button" class="broker-card" data-broker-id="other">
@@ -312,7 +314,7 @@
           if (!name) return;
           chosenBroker = { id: 'other', name: name.trim() };
         } else {
-          const b = window.STASH_BROKERS.find((x) => x.id === id);
+          const b = window.CHEST_BROKERS.find((x) => x.id === id);
           chosenBroker = { id: b.id, name: b.name };
         }
         renderServerStep();
@@ -323,7 +325,7 @@
     // ---- Étape 2 : serveur ----
     function renderServerStep() {
       const serverList = document.getElementById('serverList');
-      const broker = window.STASH_BROKERS.find((b) => b.id === chosenBroker.id);
+      const broker = window.CHEST_BROKERS.find((b) => b.id === chosenBroker.id);
       const servers = broker ? broker.servers : [];
       serverList.innerHTML = servers.map((s) => `<button type="button" class="server-pill" data-server="${s}">${s}</button>`).join('')
         + `<button type="button" class="server-pill" data-server="__other__">Autre — je tape le nom exact</button>`;
@@ -346,13 +348,13 @@
     document.getElementById('wizardFinish').addEventListener('click', () => {
       const login = document.getElementById('wzLogin').value.trim();
       const password = document.getElementById('wzPassword').value;
-      STASHBerich.saveConnection({
+      CHESTBerich.saveConnection({
         broker: chosenBroker.name,
         server: chosenServer || '',
         login, password,
         riskPercent: 1,
         riskMode: 'manual',
-        presets: STASHBerich.defaultPresets(),
+        presets: CHESTBerich.defaultPresets(),
         activePresetId: null,
       });
       showToast('Connexion BERICH enregistrée ✓');
@@ -361,7 +363,7 @@
   }
 
   // ---------- Verrou d'accès : rien ne s'affiche sans connexion ----------
-  if (!STASHBerich.isConnected()) {
+  if (!CHESTBerich.isConnected()) {
     document.getElementById('berichWizard').style.display = '';
     document.getElementById('berichContent').style.display = 'none';
     initWizard();
@@ -369,11 +371,11 @@
   }
   document.getElementById('berichWizard').style.display = 'none';
   document.getElementById('berichContent').style.display = '';
-  const conn = STASHBerich.loadConnection();
+  const conn = CHESTBerich.loadConnection();
   document.getElementById('connLabel').textContent = `${conn.broker} · MT5${conn.server ? ' · ' + conn.server : ''}`;
 
   // ---------- Graphique — ton vrai script BE FR€E, exécuté en direct (XAU/USD uniquement) ----------
-  STASHBerichChart.render('tvChart').catch((e) => {
+  CHESTBerichChart.render('tvChart').catch((e) => {
     console.error('BERICH chart', e);
     document.getElementById('tvChart').innerHTML = `<div class="scanner-empty">Erreur graphique : ${e.message}</div>`;
   });
@@ -404,8 +406,8 @@
     const takenMeta = taken.find((t) => t.id === s.id);
     const isTaken = !!takenMeta;
     const sideWord = s.side === 'sell' ? 'Vente' : 'Achat';
-    const choices = STASHBerich.riskChoices(conn);
-    const lastChoice = STASHBerich.loadLastRiskChoice();
+    const choices = CHESTBerich.riskChoices(conn);
+    const lastChoice = CHESTBerich.loadLastRiskChoice();
     let currentChoice = choices.find((c) => lastChoice && c.mode === lastChoice.mode && c.presetId === lastChoice.presetId) || choices[0];
 
     // Une fois pris, le risque affiché est celui réellement choisi à ce
@@ -413,7 +415,7 @@
     // actuels, pour que l'historique/le journal reste exact.
     const riskInfo = isTaken
       ? { risk: takenMeta.riskPercent, source: takenMeta.riskSource }
-      : STASHBerich.effectiveRisk(conn, __allSignals, currentChoice);
+      : CHESTBerich.effectiveRisk(conn, __allSignals, currentChoice);
     const riskAmount = isTaken ? takenMeta.riskAmount : (account && riskInfo.risk != null ? account.balance * riskInfo.risk / 100 : null);
 
     document.getElementById('signalHero').innerHTML = `
@@ -449,8 +451,8 @@
           currentChoice = choices[Number(btn.dataset.i)];
           choiceGroup.querySelectorAll('button').forEach((b) => b.classList.remove('is-active'));
           btn.classList.add('is-active');
-          STASHBerich.saveLastRiskChoice(currentChoice);
-          const info = STASHBerich.effectiveRisk(conn, __allSignals, currentChoice);
+          CHESTBerich.saveLastRiskChoice(currentChoice);
+          const info = CHESTBerich.effectiveRisk(conn, __allSignals, currentChoice);
           const amount = account && info.risk != null ? account.balance * info.risk / 100 : null;
           document.getElementById('riskBox').innerHTML = riskBoxHtml({ risk: info.risk, source: info.source, amount }, account);
         });
@@ -460,12 +462,12 @@
     const btn = document.getElementById('bigTradeBtn');
     if (btn) {
       btn.addEventListener('click', () => {
-        STASHBerich.saveLastRiskChoice(currentChoice);
-        const info = STASHBerich.effectiveRisk(conn, __allSignals, currentChoice);
+        CHESTBerich.saveLastRiskChoice(currentChoice);
+        const info = CHESTBerich.effectiveRisk(conn, __allSignals, currentChoice);
         const amount = account && info.risk != null ? account.balance * info.risk / 100 : null;
-        STASHBerich.markTaken(s.id, { riskPercent: info.risk, riskSource: info.source, riskAmount: amount, accountBalance: account ? account.balance : null });
+        CHESTBerich.markTaken(s.id, { riskPercent: info.risk, riskSource: info.source, riskAmount: amount, accountBalance: account ? account.balance : null });
         showToast('Trade confirmé ✓');
-        renderActive(s, STASHBerich.loadTaken());
+        renderActive(s, CHESTBerich.loadTaken());
       });
     }
   }
@@ -491,14 +493,14 @@
   async function loadAndRender() {
     let data;
     try {
-      data = await STASHBerich.fetchSignals();
+      data = await CHESTBerich.fetchSignals();
     } catch (e) {
       renderWaiting('Impossible de charger les signaux.');
       return;
     }
 
     __allSignals = data.signals || [];
-    const taken = STASHBerich.loadTaken();
+    const taken = CHESTBerich.loadTaken();
     const meta = data.example
       ? 'Exemple — en attente d’un vrai signal webhook'
       : `Mis à jour ${new Date(data.updatedAt).toLocaleString('fr-FR')}`;

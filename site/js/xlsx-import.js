@@ -121,5 +121,5 @@
     };
   }
 
-  window.STASHXlsxImport = { parseXlsxFile, FIELD_LABELS };
+  window.CHESTXlsxImport = { parseXlsxFile, FIELD_LABELS };
 })();

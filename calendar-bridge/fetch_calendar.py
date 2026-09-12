@@ -1,5 +1,5 @@
 """
-STASH - calendrier economique (US / EU / UK / JP, impact eleve).
+CHEST - calendrier economique (US / EU / UK / JP, impact eleve).
 
 Deux sources combinees, chacune pour ce qu'elle fait de mieux :
 
@@ -29,6 +29,7 @@ Usage :
 Ecrit ../site/data/calendar.json, lu par la page Calendrier du site.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -444,8 +445,24 @@ def fetch_investing_today():
 # ---------------------------------------------------------------
 INV_WEEK_COUNTRIES = {"US", "EU", "UK", "JP"}
 
+
+def stable_event_id(prefix, country, date_str, event_name):
+    """Id deterministe (pays+jour+nom d'evenement), STABLE d'un fetch a
+    l'autre - a l'inverse de l'id de ligne brut scrape sur investing.com
+    (`row.id`, ex: "238-555939-UnitedStates-8"), dont le dernier segment
+    n'est qu'un index de position dans leur tableau et peut changer d'un
+    jour de scrape a l'autre pour LA MEME annonce (ex: le tableau contient
+    plus ou moins de lignes avant elle selon le jour). Sans id stable,
+    merge_with_history() ne reconnait pas qu'il s'agit du meme evenement
+    et cree un DOUBLON : l'ancienne version archivee (pas encore publiee)
+    reste affichee a cote de la nouvelle (publiee), constate le 2026-09-11
+    sur "Inscriptions hebdomadaires au chomage" (deux cartes, memes jour/
+    pays, previous legerement different a cause d'une revision)."""
+    digest = hashlib.md5(f"{country}|{event_name.strip().lower()}".encode("utf-8")).hexdigest()[:10]
+    return f"{prefix}-{country}-{date_str}-{digest}"
+
 INV_WEEK_EXTRACT_JS = r"""
-() => {
+(fallbackDate) => {
   const MONTHS_FR = {
     janvier: 1, février: 2, fevrier: 2, mars: 3, avril: 4, mai: 5, juin: 6,
     juillet: 7, août: 8, aout: 8, septembre: 9, octobre: 10, novembre: 11,
@@ -453,7 +470,10 @@ INV_WEEK_EXTRACT_JS = r"""
   };
   const DAY_HEADER_RE = /^(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+(\d{1,2})\s+([a-zéû]+)\s+(\d{4})$/i;
   const rows = Array.from(document.querySelectorAll('tr'));
-  let currentDate = null;
+  // La vue "Aujourd'hui" (un seul jour) n'a pas de ligne d'en-tete de date -
+  // on retombe alors sur fallbackDate (passe par l'appelant) plutot que de
+  // rejeter silencieusement toutes les lignes faute de currentDate connu.
+  let currentDate = fallbackDate || null;
   const events = [];
   for (const row of rows) {
     if (!row.id) {
@@ -491,6 +511,15 @@ INV_WEEK_EXTRACT_JS = r"""
 
     events.push({
       id: row.id,
+      // Premier segment du row.id investing.com (ex. "238" dans
+      // "238-555939-UnitedStates-8") = leur identifiant STABLE par
+      // indicateur (le meme que celui utilise dans leurs URLs de fiche,
+      // ex. investing.com/economic-calendar/cpi-69 -> id 69), verifie le
+      // 2026-09-11 sur un doublon (memes 2 premiers segments sur deux
+      // scrapes differents, seul le dernier index de position changeait).
+      // Sert a relier une annonce a sa calibration reelle (voir
+      // calibrate_impact.py) plutot que de deviner par nom traduit.
+      investingEventId: row.id.split('-')[0],
       date: currentDate,
       time: timeCell ? timeCell.textContent.trim() : null,
       countryCode,
@@ -609,7 +638,7 @@ def fetch_investing_week():
             # avec le vrai Chrome installe (verifie le 2026-09-07) - seul un
             # lancement "visible" passe. En local (Windows), on utilise le
             # vrai Chrome installe (channel="chrome") ; sur Railway (Linux,
-            # via Xvfb - voir server.py), STASH_CHROME_CHANNEL="" fait
+            # via Xvfb - voir server.py), CHEST_CHROME_CHANNEL="" fait
             # retomber sur le Chromium embarque par Playwright, pas besoin
             # d'installer Chrome dans le conteneur.
             #
@@ -623,7 +652,7 @@ def fetch_investing_week():
                 "headless": False,
                 "args": ["--disable-dev-shm-usage", "--disable-gpu"],
             }
-            chrome_channel = os.environ.get("STASH_CHROME_CHANNEL", "chrome")
+            chrome_channel = os.environ.get("CHEST_CHROME_CHANNEL", "chrome")
             if chrome_channel:
                 launch_kwargs["channel"] = chrome_channel
             browser = p.chromium.launch(**launch_kwargs)
@@ -631,6 +660,21 @@ def fetch_investing_week():
             page = context.new_page()
             page.goto("https://fr.investing.com/economic-calendar/", wait_until="domcontentloaded", timeout=30000)
             _dismiss_onetrust_consent(page)
+            page.wait_for_timeout(1500)  # laisse le tableau "Aujourd'hui" (onglet par defaut) finir de se rendre
+
+            # La page atterrit par defaut sur l'onglet "Aujourd'hui" (un seul
+            # jour, avec les VRAIS actual/consensus deja publies) - on le lit
+            # AVANT de basculer sur "Cette Semaine", car ce dernier onglet
+            # exclut parfois le jour meme en fin de journee (constate le
+            # 2026-09-11 : "Cette Semaine" ne montrait que lundi->jeudi un
+            # vendredi soir, vendredi restant absent du DOM meme apres scroll
+            # - comportement du site, pas un bug de scraping). Sans cette
+            # etape, les evenements du jour deja publies retombaient sur
+            # tradingeconomics.com, qui n'expose pas leur "actual" -> ils
+            # restaient a tort marques "a venir" toute la journee.
+            today_iso = datetime.now(PARIS_TZ).date().isoformat()
+            today_events_raw = page.evaluate(INV_WEEK_EXTRACT_JS, today_iso)
+
             try:
                 # Delai genereux : sur un conteneur aux ressources limitees,
                 # la page peut mettre du temps a finir de se rendre une fois
@@ -650,9 +694,17 @@ def fetch_investing_week():
                 raise
             page.wait_for_timeout(2500)  # laisse le tableau se re-rendre avec les nouvelles donnees
             all_events = {}
-            for e in page.evaluate(INV_WEEK_EXTRACT_JS):
+            # Cle stable (pays+jour+nom), PAS le row.id brut scrape (voir
+            # stable_event_id) : necessaire ici aussi, sinon le meme
+            # evenement lu une fois via "Aujourd'hui" et une fois via
+            # "Cette Semaine" (s'il finissait par apparaitre dans les deux)
+            # pourrait se dedupliquer par accident dans le mauvais sens.
+            for e in today_events_raw:
                 if e["countryCode"] in INV_WEEK_COUNTRIES:
-                    all_events[e["id"]] = e
+                    all_events[(e["countryCode"], e["date"], e["event"].strip().lower())] = e
+            for e in page.evaluate(INV_WEEK_EXTRACT_JS, None):
+                if e["countryCode"] in INV_WEEK_COUNTRIES:
+                    all_events[(e["countryCode"], e["date"], e["event"].strip().lower())] = e
     except Exception as exc:
         print(f"investing.com (semaine, playwright) indisponible : {exc}")
         return None
@@ -671,7 +723,8 @@ def fetch_investing_week():
         stars = e["stars"]
         importance = "high" if stars >= 3 else ("medium" if stars == 2 else "low")
         events.append({
-            "id": f"invwk-{e['id']}",
+            "id": stable_event_id("invwk", e["countryCode"], e["date"], e["event"]),
+            "investingEventId": e.get("investingEventId"),
             "country": e["countryCode"],
             "event": cap_first(e["event"]),
             "date": e["date"],

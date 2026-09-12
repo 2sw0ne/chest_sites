@@ -220,7 +220,7 @@
     return bestUnderConstraint(trades, capital0, 5, 10, 5);
   }
 
-  window.STASHBacktestEngine = {
+  window.CHESTBacktestEngine = {
     sortedTrades, effectiveRisk, simulate, computeReport, optimizeCp, optimizePf, RISK_GRID,
   };
 })();

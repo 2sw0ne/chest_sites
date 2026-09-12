@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Backtest — STASH</title>
+<title>Backtest — CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=2">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -15,14 +15,14 @@
   /* ---------- Flèche retour (pastille sombre, façon SWYPER) ----------
      Ancrée dans le hero (position:relative) plutôt qu'en fixed sur le
      viewport, pour ne pas chevaucher le topbar sticky du site. */
-  .stash-back{
+  .chest-back{
     position:absolute; top:20px; left:24px; z-index:5;
     display:inline-flex; align-items:center; gap:6px;
     font-family:'Instrument Sans',system-ui,sans-serif; font-size:12.5px; font-weight:600;
     text-decoration:none; color:#f6f6f7; background:rgba(255,255,255,.08); backdrop-filter:blur(10px);
     border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 14px 8px 10px;
   }
-  .stash-back:hover{ background:rgba(255,255,255,.14); }
+  .chest-back:hover{ background:rgba(255,255,255,.14); }
 
   /* ---------- Page de garde : hero plein écran, toujours sombre (identité SWYPER) ---------- */
   .bt-hero-glow{
@@ -32,7 +32,7 @@
   }
   .bt-hero-glow::before{
     content:''; position:absolute; inset:0; pointer-events:none;
-    background:radial-gradient(ellipse 60% 60% at 50% 15%, rgba(255,61,127,.32), transparent 72%);
+    background:radial-gradient(ellipse 60% 60% at 50% 15%, rgba(252,18,131,.32), transparent 72%);
   }
   .bt-hero-glow__inner{ position:relative; max-width:820px; margin:0 auto; }
   .bt-hero-glow__badge{
@@ -148,19 +148,20 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>STASHAuth.guard();</script>
+<script>CHESTAuth.guard();</script>
 </head>
 <body data-page="backtesting">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
     <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
   </div>
   <nav class="sidebar__nav">
     <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
     <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
+    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
     <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
     <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
     <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
@@ -175,7 +176,7 @@
 <header class="topbar">
   <div class="topbar__left">
     <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>STASH</span></a>
+    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
   </div>
 </header>
 
@@ -185,7 +186,7 @@
   <div id="reportZone" style="display:none">
 
     <section class="bt-hero-glow">
-      <a href="backtesting.html" class="stash-back">← Backtesting</a>
+      <a href="backtesting.html" class="chest-back">← Backtesting</a>
       <div class="bt-hero-glow__inner">
         <span class="bt-hero-glow__badge" id="heroBadge"></span>
         <h1 class="bt-hero-glow__title" id="heroTitle"></h1>
@@ -248,10 +249,11 @@
   </div>
 </main>
 
-<footer class="site-footer"><div class="site-footer__inner">STASH — usage personnel. Résultats de backtest, aucune garantie de performance future.</div></footer>
+<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel. Résultats de backtest, aucune garantie de performance future.</div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/lot-calculator.js?v=3"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js"></script>
 <script>
@@ -260,7 +262,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
-  const record = id ? window.STASHBacktests.get(id) : null;
+  const record = id ? window.CHESTBacktests.get(id) : null;
 
   if (!record) {
     document.getElementById('emptyNote').style.display = '';
@@ -305,7 +307,7 @@
   function monthLabel(key) { const [y, m] = key.split('-'); return `${MONTHS_FR[Number(m) - 1]} ${y}`; }
   function monthLabelShort(key) { const [y, m] = key.split('-'); return `${MONTHS_FR_SHORT[Number(m) - 1]} ${y}`; }
   function maxConsecutiveSl(trades) {
-    const ordered = window.STASHBacktestEngine.sortedTrades(trades);
+    const ordered = window.CHESTBacktestEngine.sortedTrades(trades);
     let max = 0, cur = 0;
     ordered.forEach((t) => {
       if (String(t.result).toUpperCase() === 'SL') { cur += 1; if (cur > max) max = cur; } else { cur = 0; }
@@ -339,7 +341,7 @@
   document.getElementById('heroCapital').textContent = fmtMoney(record.capital);
   document.getElementById('heroTrades').textContent = record.trades.length;
 
-  const sortedAll = window.STASHBacktestEngine.sortedTrades(record.trades);
+  const sortedAll = window.CHESTBacktestEngine.sortedTrades(record.trades);
   const firstDate = sortedAll.length ? tradeDate(sortedAll[0]) : null;
   const lastDate = sortedAll.length ? tradeDate(sortedAll[sortedAll.length - 1]) : null;
   function periodPoint(d) { return d ? `${MONTHS_FR_SHORT[d.getMonth()]} ${d.getFullYear()}` : '—'; }
@@ -349,7 +351,7 @@
   document.getElementById('heroPeriod').textContent = monthCount;
   document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}`;
 
-  const heroReport = window.STASHBacktestEngine.computeReport(record.trades, record.capital, { risk: record.cp.risk, tiers: record.cp.tiers || [] });
+  const heroReport = window.CHESTBacktestEngine.computeReport(record.trades, record.capital, { risk: record.cp.risk, tiers: record.cp.tiers || [] });
   document.getElementById('heroGrade').textContent = computeGrade(heroReport.stats);
 
   let mmDetailAccount = 'cp';
@@ -460,7 +462,7 @@
     if (window.Chart && ctx) {
       chart = new Chart(ctx, {
         type: 'line',
-        data: { labels: series.map((_, i) => i), datasets: [{ data: series, borderColor: '#ff3d7f', borderWidth: 2, pointRadius: 0, tension: .25, fill: true, backgroundColor: 'rgba(255,61,127,.08)' }] },
+        data: { labels: series.map((_, i) => i), datasets: [{ data: series, borderColor: '#fc1283', borderWidth: 2, pointRadius: 0, tension: .25, fill: true, backgroundColor: 'rgba(252,18,131,.08)' }] },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
@@ -577,8 +579,8 @@
 
   function renderAll() {
     const trades = filteredTrades();
-    const cpReport = window.STASHBacktestEngine.computeReport(trades, record.capital, { risk: record.cp.risk, tiers: record.cp.tiers || [] });
-    const pfReport = hasPf ? window.STASHBacktestEngine.computeReport(trades, record.capital, { risk: record.pf.risk, tiers: record.pf.tiers || [] }) : null;
+    const cpReport = window.CHESTBacktestEngine.computeReport(trades, record.capital, { risk: record.cp.risk, tiers: record.cp.tiers || [] });
+    const pfReport = hasPf ? window.CHESTBacktestEngine.computeReport(trades, record.capital, { risk: record.pf.risk, tiers: record.pf.tiers || [] }) : null;
     const slStreak = maxConsecutiveSl(trades);
     const counts = { TP: 0, SL: 0, BE: 0 };
     trades.forEach((t) => { const r = String(t.result).toUpperCase(); if (counts[r] != null) counts[r] += 1; });
@@ -594,7 +596,7 @@
   });
   document.getElementById('deleteBtn').addEventListener('click', () => {
     if (!window.confirm('Supprimer définitivement ce backtest ?')) return;
-    window.STASHBacktests.remove(record.id);
+    window.CHESTBacktests.remove(record.id);
     window.location.href = 'backtesting.html';
   });
 

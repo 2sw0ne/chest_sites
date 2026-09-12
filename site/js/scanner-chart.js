@@ -1,19 +1,40 @@
-// STASH · Stratégies — moteur de rendu générique pour les scanners ajoutés
-// en libre service : même pipeline que BERICH (PineTS + Vela sur données
-// Twelve Data réelles), mais paramétrable par symbole/unité de temps/script
-// au lieu d'être figé sur XAU/USD. berich-chart.js n'est pas touché — cette
-// page a besoin d'être générique, BERICH doit rester exactement comme testé.
+// CHEST · Stratégies — moteur de rendu générique pour les scanners : même
+// pipeline que BERICH (PineTS + Vela sur données Twelve Data réelles), mais
+// paramétrable par symbole/unité de temps/script/couleur de bougies au lieu
+// d'être figé sur XAU/USD. berich-chart.js n'est pas touché.
+//
+// Sauvegarde des dessins (traits, fibo, etc.) : Vela expose chart.drawings.
+// toJSON()/fromJSON() nativement (voir @luxalgo/vela). Sans ça, changer de
+// paire/unité de temps recree le graphique et perd tout ce qui a ete trace —
+// on persiste donc automatiquement (evenements drawing:created/edited/
+// removed) dans localStorage, par scanner+paire+unite de temps, et on
+// restaure la bonne analyse a chaque (re)rendu de ce meme trio.
 (() => {
   'use strict';
 
-  // Intervalle Vela/Pine (timeframe.period) -> intervalle Twelve Data.
   const INTERVAL_MAP = {
     '1': '1min', '5': '5min', '15': '15min', '30': '30min',
     '60': '1h', '240': '4h', 'D': '1day',
   };
+  const DEFAULT_CANDLES = { upColor: '#089981', downColor: '#f23645', wickUpColor: '#089981', wickDownColor: '#f23645' };
+  const DRAWINGS_KEY = 'chest_scanner_drawings';
+
+  function drawingsStoreKey(scannerId, symbolDisplay, timeframe) {
+    return `${scannerId}::${symbolDisplay}::${timeframe}`;
+  }
+  function loadAllDrawings() {
+    try { return JSON.parse(localStorage.getItem(DRAWINGS_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function saveDrawingsFor(key, doc) {
+    try {
+      const all = loadAllDrawings();
+      all[key] = doc;
+      localStorage.setItem(DRAWINGS_KEY, JSON.stringify(all));
+    } catch (e) { /* quota depassee ou stockage indisponible - tant pis, pas bloquant */ }
+  }
 
   async function fetchCandles(twelveDataSymbol, interval) {
-    const key = window.STASH_CONFIG && window.STASH_CONFIG.twelveDataApiKey;
+    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
     if (!key) throw new Error('Clé Twelve Data manquante — voir js/config.local.example.js');
     const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(twelveDataSymbol)}&interval=${interval}&outputsize=1000&apikey=${key}`;
     const res = await fetch(url);
@@ -37,26 +58,28 @@
     return candles.filter((c) => (c.high - c.low) <= median * 8);
   }
 
-  // { containerId, pineSource, symbolDisplay, twelveDataSymbol, timeframe }
+  // { containerId, pineSource, symbolDisplay, twelveDataSymbol, timeframe,
+  //   candles?: {upColor,downColor,wickUpColor,wickDownColor} | null,
+  //   scannerId?: string (necessaire pour la sauvegarde des dessins) }
   async function render(opts) {
-    const { containerId, pineSource, symbolDisplay, twelveDataSymbol, timeframe } = opts;
+    const { containerId, pineSource, symbolDisplay, twelveDataSymbol, timeframe, candles, scannerId } = opts;
     const container = document.getElementById(containerId);
     const interval = INTERVAL_MAP[timeframe] || '15min';
 
-    const key = window.STASH_CONFIG && window.STASH_CONFIG.twelveDataApiKey;
+    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
     if (!key) {
       container.innerHTML = '<div class="scanner-empty">Clé Twelve Data manquante — voir <code>js/config.local.example.js</code>.</div>';
-      return;
+      return null;
     }
 
     container.innerHTML = `<div class="scanner-empty">Chargement de ${symbolDisplay} et du scanner…</div>`;
 
-    let candles;
+    let candleData;
     try {
-      candles = await fetchCandles(twelveDataSymbol, interval);
+      candleData = await fetchCandles(twelveDataSymbol, interval);
     } catch (e) {
       container.innerHTML = `<div class="scanner-empty">Erreur Twelve Data : ${e.message}</div>`;
-      return;
+      return null;
     }
 
     container.innerHTML = '';
@@ -69,23 +92,38 @@
     const chart = new Vela(container, {
       symbol: symbolDisplay,
       timeframe,
-      data: candles,
-      theme: (window.STASHTheme && STASHTheme.current() === 'light') ? 'light' : 'dark',
+      data: candleData,
+      theme: (window.CHESTTheme && CHESTTheme.current() === 'light') ? 'light' : 'dark',
+      drawings: true,
     });
 
     chart.registerEngine('pine', new PineEngine());
     await chart.addIndicator(pineSource);
 
-    // Memes couleurs de bougies que BERICH (berich-chart.js) - un seul et
-    // meme moteur de graphique, doit rendre pareil partout sur le site.
     try {
-      chart.renderer.applyConfig({
-        candles: { upColor: '#089981', downColor: '#f23645', wickUpColor: '#089981', wickDownColor: '#f23645' },
-      });
+      chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES });
     } catch (e) {
       console.warn('Scanner: couleurs de bougies non appliquees', e);
     }
+
+    // ---- Restauration + sauvegarde automatique des dessins ----
+    if (scannerId) {
+      const storeKey = drawingsStoreKey(scannerId, symbolDisplay, timeframe);
+      const saved = loadAllDrawings()[storeKey];
+      if (saved) { try { chart.drawings.fromJSON(saved); } catch (e) { console.warn('Scanner: restauration des dessins impossible', e); } }
+
+      let saveTimer = null;
+      const scheduleSave = () => {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => saveDrawingsFor(storeKey, chart.drawings.toJSON()), 400);
+      };
+      chart.on('drawing:created', scheduleSave);
+      chart.on('drawing:edited', scheduleSave);
+      chart.on('drawing:removed', scheduleSave);
+    }
+
+    return chart;
   }
 
-  window.STASHScannerChart = { render };
+  window.CHESTScannerChart = { render };
 })();

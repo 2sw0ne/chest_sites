@@ -1,4 +1,4 @@
-# Calendrier économique → STASH
+# Calendrier économique → CHEST
 
 Script local qui va chercher les annonces à impact élevé pour US / zone euro / UK / Japon et écrit `../site/data/calendar.json`, lu automatiquement par la page Calendrier.
 
@@ -43,14 +43,14 @@ Pour une mise à jour automatique **en local**, programme-le dans le **Planifica
 
 ## Déploiement Railway (optionnel — évite la fenêtre Chrome locale)
 
-Le reste du site STASH (dashboard, backtesting, compte) reste local pour le moment ; seul ce dossier `calendar-bridge/` peut tourner sur Railway, en remplacement du lancement local, pour que la fenêtre Chrome s'ouvre sur un écran virtuel plutôt que sur l'écran de l'utilisateur :
+Le reste du site CHEST (dashboard, backtesting, compte) reste local pour le moment ; seul ce dossier `calendar-bridge/` peut tourner sur Railway, en remplacement du lancement local, pour que la fenêtre Chrome s'ouvre sur un écran virtuel plutôt que sur l'écran de l'utilisateur :
 
 1. Créer un nouveau service Railway pointé sur ce dossier (`calendar-bridge/`), déployé via son `Dockerfile` (Railway le détecte automatiquement).
-2. Aucune variable d'environnement obligatoire — `STASH_CHROME_CHANNEL=""` et `PORT=8080` sont déjà fixées dans le `Dockerfile` pour utiliser le Chromium embarqué par Playwright (pas besoin d'installer Chrome dans le conteneur) sous `xvfb-run`.
-3. Une fois déployé, Railway donne une URL publique (`https://<ton-service>.up.railway.app`). Le service scrape une première fois au démarrage puis se rafraîchit tout seul toutes les 24h (`server.py`, `STASH_CALENDAR_REFRESH_SECONDS`).
+2. Aucune variable d'environnement obligatoire — `CHEST_CHROME_CHANNEL=""` et `PORT=8080` sont déjà fixées dans le `Dockerfile` pour utiliser le Chromium embarqué par Playwright (pas besoin d'installer Chrome dans le conteneur) sous `xvfb-run`.
+3. Une fois déployé, Railway donne une URL publique (`https://<ton-service>.up.railway.app`). Le service scrape une première fois au démarrage puis se rafraîchit tout seul toutes les 30 min par défaut (`server.py`, `CHEST_CALENDAR_REFRESH_SECONDS`) — modifiable via cette variable d'environnement Railway. Compromis assumé : plus réactif qu'un cycle de 24h, mais 48 scrapes/jour au lieu d'1 augmente le risque de se faire bloquer par l'anti-bot d'investing.com (voir "Fragilités" plus haut) — à surveiller via les logs Railway si ça se dégrade.
 4. Dans `site/js/config.js`, renseigner `calendarApiUrl: 'https://<ton-service>.up.railway.app/calendar.json'` — la page calendrier du site local ira lire les données là-bas au lieu du fichier local `data/calendar.json`. Laisser vide `''` pour revenir au fonctionnement 100% local (fichier écrit par `python fetch_calendar.py`).
 
-**À vérifier au premier déploiement** : le blocage anti-bot d'investing.com a été testé en local avec le vrai Chrome installé (`channel="chrome"`) en mode visible. Sur Railway, c'est le Chromium embarqué par Playwright (sous Xvfb) qui est utilisé à la place — l'hypothèse est que c'est bien le mode *headless* qui déclenche le blocage, pas le binaire précis. Si les logs du service Railway affichent "investing.com (semaine, playwright) indisponible" en continu, il faudra installer Chrome via `apt-get` dans le `Dockerfile` (`google-chrome-stable`) et repasser `STASH_CHROME_CHANNEL=chrome`.
+**À vérifier au premier déploiement** : le blocage anti-bot d'investing.com a été testé en local avec le vrai Chrome installé (`channel="chrome"`) en mode visible. Sur Railway, c'est le Chromium embarqué par Playwright (sous Xvfb) qui est utilisé à la place — l'hypothèse est que c'est bien le mode *headless* qui déclenche le blocage, pas le binaire précis. Si les logs du service Railway affichent "investing.com (semaine, playwright) indisponible" en continu, il faudra installer Chrome via `apt-get` dans le `Dockerfile` (`google-chrome-stable`) et repasser `CHEST_CHROME_CHANNEL=chrome`.
 
 ## Traduction et heure de Paris
 
