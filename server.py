@@ -146,8 +146,12 @@ def signup():
         return jsonify({"error": "Prénom et nom requis."}), 400
     if not EMAIL_RE.match(email):
         return jsonify({"error": "Adresse email invalide."}), 400
-    if len(password) < 8:
-        return jsonify({"error": "Le mot de passe doit faire au moins 8 caractères."}), 400
+    # Minimum court (4) plutot que le standard 8+ : usage familial/proches de
+    # confiance, pas un vrai SaaS public - meme convention que le code
+    # d'acces existant du site (4 chiffres), retour direct utilisateur du
+    # 2026-09-14 qui voulait explicitement un mot de passe court et memorable.
+    if len(password) < 4:
+        return jsonify({"error": "Le mot de passe doit faire au moins 4 caractères."}), 400
 
     db = get_db()
     with db_lock:
@@ -255,6 +259,33 @@ def reject_member(member_id):
         db.execute("UPDATE users SET status = 'rejected' WHERE id = ?", (member_id,))
         db.commit()
     return jsonify({"ok": True})
+
+
+# Reinitialisation de mot de passe - AJOUTE (2026-09-14, retour direct
+# utilisateur : "un processus de reinitialisation si tu peux"). Pas d'envoi
+# d'email (aucune infrastructure mail dans ce projet, usage familial/proches
+# de confiance uniquement) : l'admin genere un nouveau mot de passe
+# temporaire depuis la page "Gestion des membres" et le transmet lui-meme
+# (message, en personne...) - suffisant pour un petit cercle de confiance,
+# beaucoup plus simple qu'un vrai service d'emails transactionnels a mettre
+# en place pour si peu d'utilisateurs. Toutes les sessions actives du compte
+# sont invalidees pour forcer une reconnexion avec le nouveau mot de passe.
+@app.route("/members/<int:member_id>/reset-password", methods=["POST"])
+def reset_member_password(member_id):
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    db = get_db()
+    target = db.execute("SELECT id FROM users WHERE id = ?", (member_id,)).fetchone()
+    if not target:
+        return jsonify({"error": "Compte introuvable."}), 404
+    new_password = secrets.token_hex(3)  # 6 caracteres hex, facile a transmettre a l'oral
+    with db_lock:
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?",
+                   (generate_password_hash(new_password), member_id))
+        db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
+        db.commit()
+    return jsonify({"newPassword": new_password})
 
 
 @app.route("/health")
