@@ -28,7 +28,7 @@
 // Après un retrait le solde revient au capital initial (le profit est retiré).
 //
 // Frais : fee.pct = frais du challenge en % du compte de 100 000. `verified`
-// dit si le prix vient de la page officielle. Un compte perdu se rachète : sans
+// dit si le prix vient de la page officielle (tous relevés le 20/09/2026, prix affichés). Un compte perdu se rachète : sans
 // frais, prendre un risque énorme paraîtrait toujours rentable.
 (() => {
   'use strict';
@@ -50,7 +50,9 @@
         ],
       },
       riskCapPct: null,
-      fee: { pct: 0.55, verified: false, refund: null, note: 'Prix du 1 étape non lu sur la page (estimation)' },
+      fee: { pct: 0.5, verified: true, refund: null, note: '499 € pour un compte de 100 000 (tarif normal, 399 € en promotion) — frais non remboursables (page FTMO)' },
+      prices: { currency: 'EUR', asOf: '2026-09-20', source: 'https://ftmo.com/en/', sizes: [{ size: 10000, price: 79 }, { size: 25000, price: 199 }, { size: 50000, price: 319 }, { size: 100000, price: 399, regular: 499 }, { size: 200000, price: 999 }],
+        notes: ['Frais unique, non remboursable', 'Offre du moment : −20 % sur le compte de 100 000 (399 € au lieu de 499 €)'] },
       newsFunded: 'Compte FTMO : aucun ordre ouvert, fermé ou déclenché (SL/TP) 2 min avant / après une annonce majeure (comptes Standard).',
       source: { url: 'https://ftmo.com/en/trading-objectives/', pageDate: '2026-05-13' },
       facts: [
@@ -74,7 +76,9 @@
         ],
       },
       riskCapPct: null,
-      fee: { pct: 0.54, verified: true, refund: 'first', note: '540 € pour un compte de 100 000 (page FTMO) — remboursé avec le 1er retrait' },
+      fee: { pct: 0.54, verified: true, refund: 'first', note: '540 € pour un compte de 100 000 (tarif normal, 439 € en promotion) — remboursé avec le 1er retrait (page FTMO)' },
+      prices: { currency: 'EUR', asOf: '2026-09-20', source: 'https://ftmo.com/en/', sizes: [{ size: 10000, price: 89 }, { size: 25000, price: 250 }, { size: 50000, price: 345 }, { size: 100000, price: 439, regular: 540 }, { size: 200000, price: 1080 }],
+        notes: ['Frais unique, remboursé avec le 1er retrait'] },
       newsFunded: 'Compte FTMO : aucun ordre ouvert, fermé ou déclenché (SL/TP) 2 min avant / après une annonce majeure (comptes Standard).',
       source: { url: 'https://ftmo.com/en/trading-objectives/', pageDate: '2026-05-13' },
       facts: [
@@ -98,6 +102,8 @@
       },
       riskCapPct: 3,
       fee: { pct: 0.57, verified: true, refund: 'third', note: '569,99 $ pour 100 000 (prix affiché, remises possibles) — remboursé avec le 3e retrait' },
+      prices: { currency: 'USD', asOf: '2026-09-20', source: 'https://fundednext.com/cfds/stellar-1-step', sizes: [{ size: 6000, price: 39.99, regular: 65.99 }, { size: 15000, price: 103.99 }, { size: 25000, price: 175.99 }, { size: 50000, price: 263.99 }, { size: 100000, price: 569.99 }, { size: 200000, price: 1099.99 }],
+        notes: ['Prix affichés avec remise (le tarif normal n\'apparaît que pour le compte de 6 000 : 65,99 $)', 'Frais remboursés avec le 3e retrait', 'Option « Lifetime Reward 95 % » : 95 % de partage, prix non relevé'] },
       newsFunded: 'Trades ouverts ou clôturés ±5 min autour d\'une annonce : seulement 40 % de leur profit compte, 100 % de la perte reste à ta charge.',
       source: { url: 'https://fundednext.com/cfd-challenge-terms', pageDate: '2026-05-05' },
       facts: [
@@ -122,6 +128,8 @@
       },
       riskCapPct: 3,
       fee: { pct: 0.55, verified: true, refund: 'first', note: '549,99 $ pour 100 000 (prix affiché) — remboursé avec le 1er retrait' },
+      prices: { currency: 'USD', asOf: '2026-09-20', source: 'https://fundednext.com/cfds/stellar-2-step', sizes: [{ size: 6000, price: 29.99 }, { size: 15000, price: 95.99 }, { size: 25000, price: 159.99 }, { size: 50000, price: 239.99 }, { size: 100000, price: 549.99 }, { size: 200000, price: 1099.99 }],
+        notes: ['Prix affichés, promotions incluses', 'Frais remboursés avec le 1er retrait', 'Option « Lifetime Reward 95 % » : 95 % de partage, prix non relevé'] },
       newsFunded: 'Trades ±5 min autour d\'une annonce : seulement 40 % de leur profit compte (comptes financés Stellar).',
       source: { url: 'https://help.fundednext.com/en/articles/10701585-how-often-will-i-receive-my-performance-reward', pageDate: null },
       facts: [
@@ -146,7 +154,9 @@
         ],
       },
       riskCapPct: 3,
-      fee: { pct: 0.5, verified: false, refund: null, note: 'Prix du modèle Lite non lu (estimation)' },
+      fee: { pct: 0.4, verified: true, refund: 'third', note: '399,99 $ pour un compte de 100 000 (prix affiché avec remise) — remboursé avec le 3e retrait (page FundedNext)' },
+      prices: { currency: 'USD', asOf: '2026-09-20', source: 'https://fundednext.com/cfds/stellar-lite', sizes: [{ size: 5000, price: 26.39, regular: 32.99 }, { size: 10000, price: 47.99, regular: 59.99 }, { size: 25000, price: 111.99, regular: 139.99 }, { size: 50000, price: 183.99, regular: 229.99 }, { size: 100000, price: 399.99 }, { size: 200000, price: 798.99 }],
+        notes: ['Prix normal non affiché pour 100 000 et 200 000', 'Frais remboursés avec le 3e retrait'] },
       newsFunded: 'Trades ±5 min autour d\'une annonce : seulement 40 % de leur profit compte (comptes financés Stellar).',
       source: { url: 'https://fundednext.com/cfd-challenge-terms', pageDate: '2026-05-05' },
       facts: [
@@ -154,7 +164,7 @@
         'Mêmes trois options de retrait que le Stellar 2 étapes',
         'Limite de risque : 3 % maximum à tout moment',
       ],
-      unverified: ['Remboursement des frais non trouvé pour ce modèle', 'Consistance « 40 % » de l\'option À la demande interprétée comme meilleur jour ≤ 40 % du profit du cycle'],
+      unverified: ['Consistance « 40 % » de l\'option À la demande interprétée comme meilleur jour ≤ 40 % du profit du cycle'],
     },
     {
       id: 'the5ers-hypergrowth', firm: 'The5ers', label: 'Hyper Growth · 1 étape',
@@ -168,7 +178,9 @@
         ],
       },
       riskCapPct: null,
-      fee: { pct: 0.55, verified: false, refund: null, note: 'Pas de compte de 100 000 : estimation' },
+      fee: { pct: 0.66, verified: true, refund: null, note: '329 $ pour le plus grand compte (50 000) : pas de compte de 100 000 — remboursement non précisé' },
+      prices: { currency: 'USD', asOf: '2026-09-20', source: 'https://the5ers.com/hyper-growth/', sizes: [{ size: 5000, price: 52 }, { size: 10000, price: 98 }, { size: 20000, price: 189 }, { size: 50000, price: 329 }],
+        notes: ['Le compte le plus grand est de 50 000 $ ; il double à chaque objectif de 10 % atteint', 'Prix affichés, promotions incluses'] },
       newsFunded: 'Annonces permises (sauf stratégies « bracket » autour des annonces).',
       source: { url: 'https://the5ers.com/hyper-growth/', pageDate: null },
       facts: [
@@ -177,7 +189,7 @@
         'Le compte double à chaque objectif de 10 % atteint (plan de croissance)',
         'Durée illimitée · week-end permis',
       ],
-      unverified: ['Partage de 75 % lu dans le tableau du plan de croissance (à confirmer pour le départ)', 'Jours profitables exigés seulement au challenge dans cette simulation', 'Frais estimés'],
+      unverified: ['Partage de 75 % lu dans le tableau du plan de croissance (à confirmer pour le départ)', 'Jours profitables exigés seulement au challenge dans cette simulation'],
     },
     {
       id: 'the5ers-highstakes', firm: 'The5ers', label: 'High Stakes · 2 étapes',
@@ -192,7 +204,9 @@
         ],
       },
       riskCapPct: null,
-      fee: { pct: 0.55, verified: false, refund: null, note: 'Prix du compte de 100 000 non lu (estimation)' },
+      fee: { pct: 0.46, verified: true, refund: null, note: '455 $ pour un compte de 100 000 (tarif normal, 405 $ en promotion) — remboursement à confirmer' },
+      prices: { currency: 'USD', asOf: '2026-09-20', source: 'https://the5ers.com/high-stakes/', sizes: [{ size: 2500, price: 19, regular: 22 }, { size: 5000, price: 35, regular: 39 }, { size: 10000, price: 69, regular: 78 }, { size: 25000, price: 176, regular: 195 }, { size: 50000, price: 249, regular: 279 }, { size: 100000, price: 405, regular: 455 }],
+        notes: ['Remboursement du prix mentionné sur la page (« Refund ») : conditions à confirmer'] },
       newsFunded: 'Aucun ordre exécuté 2 min avant / après une annonce majeure (garder une position ouverte est permis).',
       source: { url: 'https://the5ers.com/high-stakes/', pageDate: null },
       facts: [
@@ -201,7 +215,7 @@
         'Premier retrait 14 jours après l\'activation, puis toutes les 2 semaines (profit minimum 150 $)',
         'Partage 80 % (jusqu\'à 100 % avec la croissance) · week-end permis',
       ],
-      unverified: ['Mode de calcul de la consistance de 50 % non précisé', 'Ce qui reste du profit au-delà du plafond de 2 000 $ : supposé laissé sur le compte', 'Frais estimés'],
+      unverified: ['Mode de calcul de la consistance de 50 % non précisé', 'Ce qui reste du profit au-delà du plafond de 2 000 $ : supposé laissé sur le compte'],
     },
     {
       id: 'fundingpips-2step-flex', firm: 'Funding Pips', label: '2 étapes Flex',
@@ -217,7 +231,9 @@
         ],
       },
       riskCapPct: 2,
-      fee: { pct: 0.55, verified: false, refund: null, note: 'Prix du compte de 100 000 non lu (estimation)' },
+      fee: { pct: 0.56, verified: true, refund: null, note: '555 $ pour un compte de 100 000 (tarif normal, 499 $ en promotion) — remboursement non précisé' },
+      prices: { currency: 'USD', asOf: '2026-09-20', source: 'https://fundingpips.com/', sizes: [{ size: 5000, price: 32 }, { size: 10000, price: 59 }, { size: 25000, price: 159 }, { size: 50000, price: 269 }, { size: 100000, price: 499, regular: 555 }],
+        notes: ['Option swap-free disponible sur toutes les tailles (prix non relevé)', 'Les autres modèles (Zero, 1 étape Flex, 2 étapes Standard et Pro) existent aussi et ne sont pas simulés ici'] },
       newsFunded: 'Compte Master : aucun ordre ouvert ou fermé 5 min avant / après une annonce majeure ; les profits d\'annonce sont déduits.',
       source: { url: 'https://fundingpips.com/trading-objectives', pageDate: null },
       facts: [
@@ -226,7 +242,7 @@
         'Retrait minimum : 1 % de la taille du compte · jours minimum de l\'évaluation : 1 jour (85 %) ou 3 jours profitables (95 %)',
         'Inactivité : fermer au moins 1 trade tous les 30 jours · week-end permis',
       ],
-      unverified: ['Jour profitable de l\'évaluation (option 95 %) supposé à 0,5 % comme sur le compte Master', 'Frais estimés', 'Système « strikes » à 1 % du cycle mensuel non simulé'],
+      unverified: ['Jour profitable de l\'évaluation (option 95 %) supposé à 0,5 % comme sur le compte Master', 'Système « strikes » à 1 % du cycle mensuel non simulé'],
     },
   ];
 

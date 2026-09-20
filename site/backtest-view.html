@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=8">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=8">
-<link rel="stylesheet" href="css/backtest-da.css?v=5">
+<link rel="stylesheet" href="css/backtest-da.css?v=7">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -302,7 +302,7 @@
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js"></script>
-<script src="js/propfirm-rules.js?v=3"></script>
+<script src="js/propfirm-rules.js?v=4"></script>
 <script src="js/propfirm-fit.js?v=4"></script>
 <script src="js/page-tour.js"></script>
 <script>
@@ -728,6 +728,35 @@ CHESTTour.init([
     return `Aucun modèle vérifié ne rapporte de façon fiable sur ${H} mois : le meilleur (${name}) finit gagnant dans ${pctFr(b.netPositivePct)} des départs seulement.${consistencySentence(res)} Ce style de trading est mieux servi par un compte propre, sans règle imposée.${ownTxt}`;
   }
 
+  // Tarifs du challenge : toutes les tailles de compte, et les autres modèles de
+  // la même firme en colonnes (prix relevés sur les pages officielles).
+  function priceBlock(m) {
+    if (!m.prices) return '';
+    const rules = window.CHESTPropRules;
+    const models = rules.models.filter((x) => x.firm === m.firm && x.prices);
+    const sizes = [...new Set(models.flatMap((x) => x.prices.sizes.map((z) => z.size)))].sort((a, b) => a - b);
+    const sym = (c) => (c === 'EUR' ? '€' : '$');
+    const money = (v, c) => `${nFr(v, v % 1 ? 2 : 0)} ${sym(c)}`;
+    const cell = (x, size) => {
+      const z = x.prices.sizes.find((q) => q.size === size);
+      const cur = x.id === m.id ? ' is-cur' : '';
+      if (!z) return `<span class="bt-price__cell${cur}">—</span>`;
+      return `<span class="bt-price__cell${cur}"><b>${money(z.price, x.prices.currency)}</b>${z.regular && z.regular !== z.price ? `<s>${money(z.regular, x.prices.currency)}</s>` : ''}</span>`;
+    };
+    const head = `<div class="bt-price__row bt-price__head" style="--cols:${models.length}"><span>Compte</span>${models.map((x) => `<span class="${x.id === m.id ? 'is-cur' : ''}">${escHtml(x.label)}</span>`).join('')}</div>`;
+    const rows = sizes.map((size) => `
+      <div class="bt-price__row${size === rules.refAccount ? ' is-ref' : ''}" style="--cols:${models.length}">
+        <span class="bt-price__size">${nFr(size)} $${size === rules.refAccount ? '<em>simulé</em>' : ''}</span>
+        ${models.map((x) => cell(x, size)).join('')}
+      </div>`).join('');
+    const notes = [...m.prices.notes, `Prix affichés sur les pages officielles le ${longDate(m.prices.asOf)}, frais uniques, en ${m.prices.currency === 'EUR' ? 'euros' : 'dollars'} (promotions du moment incluses, tarif normal barré quand il est affiché).`];
+    return `
+      <div class="chest-label bt-fit-row__unv">Tarifs du challenge · ${escHtml(m.firm)}</div>
+      <div class="bt-price">${head}${rows}</div>
+      <ul class="bt-price__notes">${notes.map((n) => `<li>${escHtml(n)}</li>`).join('')}</ul>
+      <a class="bt-fit-row__src" href="${m.prices.source}" target="_blank" rel="noopener noreferrer">Page des tarifs ↗</a>`;
+  }
+
   function fitRowHtml(r, isTop, meta) {
     const m = r.model, b = r.best;
     const src = m.source;
@@ -749,7 +778,7 @@ CHESTTour.init([
         <span>${signedPct(c.meanNet)}</span>
         <span>${nFr(c.lostPerStart, 1)}</span>
       </div>`).join('');
-    const feeLine = `Frais estimés ≈ ${nFr(m.fee.pct, 2)} % du compte${m.fee.verified ? ' (prix officiel)' : ' (non vérifié)'}${m.fee.refund ? ` · remboursés avec le ${m.fee.refund === 'first' ? '1er' : '3e'} retrait` : ' · non remboursés'} — ${escHtml(m.fee.note)}`;
+    const feeLine = `Frais retenus dans la simulation ≈ ${nFr(m.fee.pct, 2)} % du compte${m.fee.refund ? ` · remboursés avec le ${m.fee.refund === 'first' ? '1er' : '3e'} retrait` : ' · aucun remboursement pris en compte'} — ${escHtml(m.fee.note)}`;
     return `
       <details class="bt-fit-row"${isTop ? ' open' : ''}>
         <summary>
@@ -772,6 +801,7 @@ CHESTTour.init([
             ${unv ? `<div class="chest-label bt-fit-row__unv">Non vérifié ou non simulé</div><ul class="bt-fit-row__list is-muted">${unv}</ul>` : ''}
             <a class="bt-fit-row__src" href="${src.url}" target="_blank" rel="noopener noreferrer">Règles officielles ↗</a>
             <span class="bt-fit-row__srcdate">${srcDate}</span>
+            ${priceBlock(m)}
           </div>
           <div>
             <div class="chest-label">Options de retrait · meilleur risque de chacune</div>
@@ -814,7 +844,7 @@ CHESTTour.init([
         </details>
       </div>
 
-      <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais sans prix officiel lu sont estimés à ≈ 0,5 % du compte. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
+      <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais du challenge sont les prix affichés sur les pages officielles (tarif normal quand il est connu), remboursements compris quand ils sont documentés. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
   }
 
   function renderFitHorizon() {
