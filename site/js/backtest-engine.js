@@ -48,27 +48,31 @@
 
   // ---------------------------------------------------------------
   // BONUS : colonnes optionnelles du fichier (étiquette W/L/P, tendance/contre,
-  // confirmation…) + informations DÉDUITES de l'heure d'ouverture (session, jour). Une règle « Si » choisit le
-  // risque d'un trade selon ses bonus ; les paliers « après N SL » continuent
-  // de fonctionner. La durée de détention n'est volontairement PAS proposée : elle
-  // n'est connue qu'à la clôture (les SL sortent vite, les TP durent) — l'utiliser
-  // pour dimensionner un trade serait tricher avec l'avenir.
+  // confirmation…) + informations DÉDUITES de l'heure d'ouverture (session,
+  // jour, plage horaire). Une règle « Si » choisit le risque d'un trade selon
+  // ses bonus ; les paliers « après N SL » continuent de fonctionner.
   //
   // Règle : { conds:[{field, value}], afterSl:number|null, risk:number }
   //   field  'source' | 'confirmation' | 'order' | 'x:<en-tête de colonne>'
-  //          | 'd:session' | 'd:weekday' (déduits de l'heure d'OUVERTURE, connue à l'entrée)
+  //          | 'd:session' | 'd:weekday' | 'd:window' (déduits de l'heure d'OUVERTURE, connue à l'entrée)
+  //   value  pour 'd:window' : plage d'heures d'ouverture « 1h-3h » (de 1h00 à 2h59, boucle possible « 22h-2h »)
   //   risk   0 = le trade est IGNORÉ (il n'est pas pris)
   // La règle la plus précise gagne : plus de conditions, puis plus de SL
   // consécutifs exigés, puis la plus basse dans la liste.
+  //
+  // Garde-fous assumés : la durée de détention n'est PAS proposée (connue seulement à
+  // la clôture : les SL sortent vite, les TP durent — tricher avec l'avenir) ; le
+  // week-end n'existe pas (marchés fermés du vendredi 22 h au dimanche 22 h UTC, crypto
+  // non prise en compte) : ces trades n'ont ni session, ni jour, ni plage horaire.
   // ---------------------------------------------------------------
   const BONUS_LABELS = { source: 'Source', confirmation: 'Confirmation', order: 'Ordre' };
-  const DERIVED_LABELS = { 'd:session': 'Session', 'd:weekday': 'Jour' };
+  const DERIVED_LABELS = { 'd:session': 'Session', 'd:weekday': 'Jour', 'd:window': 'Heures' };
   // Heures UTC : les horaires importés sont lus tels quels (un fichier saisi en heure locale décale les sessions).
   const SESSIONS = [[0, 7, 'Asie'], [7, 12, 'Londres'], [12, 16, 'Londres × New York'], [16, 21, 'New York'], [21, 24, 'Soir']];
   const WEEKDAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
   const DERIVED_ORDER = {
     'd:session': SESSIONS.map((s) => s[2]),
-    'd:weekday': ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+    'd:weekday': ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'],
   };
 
   function norm(v) { return String(v == null ? '' : v).trim().toUpperCase(); }
@@ -79,10 +83,33 @@
     return BONUS_LABELS[key] || DERIVED_LABELS[key] || key;
   }
 
-  function derivedValue(t, key) {
+  // Date d'ouverture si le marché est ouvert (forex/indices : du dimanche 22 h au vendredi 22 h UTC), sinon null.
+  function openMarketDate(t) {
     const d = toDate(t.open || t.date);
+    if (!d) return null;
+    const wd = new Date(d.getTime() + 2 * 3600000).getUTCDay();
+    return wd === 0 || wd === 6 ? null : d;
+  }
+
+  function openHour(t) {
+    const d = openMarketDate(t);
+    return d ? d.getUTCHours() : null;
+  }
+
+  function parseWindow(v) {
+    const m = /^(\d{1,2})h-(\d{1,2})h$/.exec(String(v || ''));
+    return m ? [Number(m[1]) % 24, Number(m[2]) % 24] : null;
+  }
+
+  function inWindow(h, w) {
+    if (w[0] === w[1]) return false;
+    return w[0] < w[1] ? h >= w[0] && h < w[1] : h >= w[0] || h < w[1];
+  }
+
+  function derivedValue(t, key) {
+    const d = openMarketDate(t);
     if (!d) return undefined;
-    if (key === 'd:weekday') return WEEKDAYS[d.getUTCDay()];
+    if (key === 'd:weekday') return WEEKDAYS[new Date(d.getTime() + 2 * 3600000).getUTCDay()];
     if (key === 'd:session') {
       const h = d.getUTCHours();
       const s = SESSIONS.find((x) => h >= x[0] && h < x[1]);
@@ -98,8 +125,17 @@
     return t[key];
   }
 
+  function condMatch(c, t) {
+    if (c.field === 'd:window') {
+      const w = parseWindow(c.value), h = openHour(t);
+      return !!w && h != null && inWindow(h, w);
+    }
+    const v = bonusValue(t, c.field);
+    return v != null && norm(v) !== '' && norm(v) === norm(c.value);
+  }
+
   function condsMatch(conds, t) {
-    return (conds || []).every((c) => { const v = bonusValue(t, c.field); return v != null && norm(v) !== '' && norm(v) === norm(c.value); });
+    return (conds || []).every((c) => condMatch(c, t));
   }
 
   // Part des trades dont l'heure du jour n'est pas minuit pile (sinon les sessions n'ont aucun sens).
@@ -350,8 +386,19 @@
   // profil est vérifié sur les 40 % de trades les plus récents, que le calcul
   // n'a pas vus (réglage appris sur les 60 % premiers), et son pire cas est
   // estimé en mélangeant l'ordre des trades (300 tirages, graine fixe).
+  //
+  // GÉNÉRALITÉS, pas coïncidences : le passé ne fait pas le futur, donc une règle n'existe que si
+  // (1) son groupe pèse au moins 30 trades et 4 % de l'historique, (2) son écart de gain moyen
+  // face au reste a le même signe dans les DEUX moitiés de l'historique et reste net sur le tout,
+  // (3) elle est simple : une session entière, un jour, une plage d'heures contiguë (« pas de
+  // trading de 1 h à 3 h »), une étiquette — jamais un croisement session × jour. Le sens de la
+  // règle suit l'écart (moins bon → réduire ou ignorer ; meilleur → augmenter).
   // ---------------------------------------------------------------
-  const MIN_GROUP = 15;
+  const MIN_GROUP_ABS = 30;
+  const MIN_GROUP_SHARE = 0.04;
+  const minGroupOf = (nTrades) => Math.max(MIN_GROUP_ABS, Math.ceil(nTrades * MIN_GROUP_SHARE));
+  const Z_GATE = 1.5;    // écart minimal (en écarts-types) pour qu'un groupe ait droit à une règle
+  const Z_SCAN = 2.3;    // idem pour une plage d'heures, choisie parmi beaucoup de candidates
   const MAX_RULES = 6;   // au-delà, le réglage n'est plus applicable ni fiable : on élague
   const MC_RUNS = 300;
   const MULTS = [0, 0.5, 0.75, 1, 1.25, 1.5, 2]; // multiplicateur du risque de base par groupe (1 = pas de règle)
@@ -382,9 +429,9 @@
     ],
     pf: [
       { id: 'regular', name: 'Régularité', short: 'Rendement mensuel le plus stable',
-        goal: 'Un rendement mensuel moyen élevé ET stable d\'un mois à l\'autre (ratio rendement / variation, pondéré par le rendement), dans les limites de la propfirm.',
+        goal: 'Le rendement mensuel le plus stable d\'un mois à l\'autre (meilleur ratio rendement / variation), puis le plus haut possible parmi les réglages aussi stables, dans les limites de la propfirm.',
         grid: GRID_PF, steps: [{ maxDd: 10, maxDaily: 5 }],
-        score: (m) => (m.stdM > 0 && m.avgM > 0 ? (m.avgM / m.stdM) * Math.sqrt(m.avgM) : m.avgM) },
+        score: (m) => (m.stdM > 0 ? Math.round((m.avgM / m.stdM) * 20) * 1e6 : 0) + Math.min(m.avgM, 9e5) },
       { id: 'perf', name: 'Performance pure', short: 'Le plus de profit possible',
         goal: 'La plus forte performance totale qui respecte les limites de perte de la propfirm.',
         grid: GRID_PF, steps: [{ maxDd: 10, maxDaily: 5 }],
@@ -404,15 +451,16 @@
 
   function buildPre(ordered) {
     const n = ordered.length;
-    const rr = new Float64Array(n), sl = new Uint8Array(n), dk = new Array(n), mk = new Array(n);
+    const rr = new Float64Array(n), sl = new Uint8Array(n), hr = new Int8Array(n), dk = new Array(n), mk = new Array(n);
     ordered.forEach((t, i) => {
       rr[i] = isBE(t) ? 0 : Number(t.rr) || 0;
       sl[i] = isSL(t) ? 1 : 0;
+      const h = openHour(t); hr[i] = h == null ? -1 : h;
       const d = toDate(t.close || t.open || t.date);
       const k = d ? d.toISOString() : '';
       dk[i] = k.slice(0, 10); mk[i] = k.slice(0, 7);
     });
-    return { n, rr, sl, dk, mk, zeros: new Int16Array(n) };
+    return { n, rr, sl, hr, dk, mk, zeros: new Int16Array(n) };
   }
 
   // Un état = { bi (risque de base), ti (palier), mi[] (multiplicateur par groupe) } ; groupe 0 = « le reste ».
@@ -490,16 +538,105 @@
     return null;
   }
 
-  // Montée de coordonnées : risque de base, palier, puis multiplicateur de chaque groupe (≥ MIN_GROUP trades).
+  // Droit à une règle : écart de gain moyen (en R) du groupe face au reste, de même signe dans les deux
+  // moitiés de [lo, hi) ET net sur le tout. -1 = moins bon (réduire / ignorer), +1 = meilleur (augmenter), 0 = rien.
+  function zStat(ng, sg, qg, N, S, Q) {
+    const nr = N - ng;
+    if (ng < 2 || nr < 2) return null;
+    const mg = sg / ng, mr = (S - sg) / nr;
+    const vg = Math.max(0, (qg - ng * mg * mg) / (ng - 1)), vr = Math.max(0, (Q - qg - nr * mr * mr) / (nr - 1));
+    const se = Math.sqrt(vg / ng + vr / nr);
+    return { d: mg - mr, z: se > 0 ? (mg - mr) / se : 0, n: ng, mg, mr };
+  }
+
+  function groupDirs(pre, lo, hi, gs) {
+    const G = gs.groups.length, mid = (lo + hi) >> 1, minG = minGroupOf(hi - lo);
+    const mk = () => ({ n: new Array(G).fill(0), s: new Array(G).fill(0), q: new Array(G).fill(0), N: 0, S: 0, Q: 0 });
+    const T = mk(), A = mk(), B = mk();
+    for (let i = lo; i < hi; i++) {
+      const g = gs.gid[i], r = pre.rr[i];
+      [T, i < mid ? A : B].forEach((X) => { X.n[g]++; X.s[g] += r; X.q[g] += r * r; X.N++; X.S += r; X.Q += r * r; });
+    }
+    const dirs = new Array(G).fill(0);
+    for (let g = 1; g < G; g++) {
+      const t = zStat(T.n[g], T.s[g], T.q[g], T.N, T.S, T.Q);
+      const a = zStat(A.n[g], A.s[g], A.q[g], A.N, A.S, A.Q);
+      const b = zStat(B.n[g], B.s[g], B.q[g], B.N, B.S, B.Q);
+      if (!t || !a || !b || t.n < minG || a.n < 8 || b.n < 8) continue;
+      if (Math.abs(t.z) < Z_GATE || a.d * b.d <= 0 || a.d * t.d <= 0) continue;
+      dirs[g] = t.d < 0 ? -1 : 1;
+    }
+    return dirs;
+  }
+
+  // Plages d'heures d'ouverture (1 à 6 h contiguës, boucle possible) au gain moyen nettement différent du reste,
+  // avec le même signe dans les deux moitiés de l'historique ; au plus `maxWin` plages qui ne se chevauchent pas.
+  function scanWindows(pre, lo, hi, maxWin) {
+    const mid = (lo + hi) >> 1, minG = minGroupOf(hi - lo);
+    const H = () => ({ n: new Array(24).fill(0), s: new Array(24).fill(0), q: new Array(24).fill(0), N: 0, S: 0, Q: 0 });
+    const T = H(), A = H(), B = H();
+    for (let i = lo; i < hi; i++) {
+      const h = pre.hr[i];
+      if (h < 0) continue;
+      const r = pre.rr[i];
+      [T, i < mid ? A : B].forEach((X) => { X.n[h]++; X.s[h] += r; X.q[h] += r * r; X.N++; X.S += r; X.Q += r * r; });
+    }
+    const sum = (X, a0, len) => {
+      let n = 0, s = 0, q = 0;
+      for (let k = 0; k < len; k++) { const h = (a0 + k) % 24; n += X.n[h]; s += X.s[h]; q += X.q[h]; }
+      return [n, s, q];
+    };
+    const found = [];
+    for (let len = 1; len <= 6; len++) {
+      for (let a0 = 0; a0 < 24; a0++) {
+        const [n, s, q] = sum(T, a0, len);
+        if (n < minG || n > T.N * 0.4) continue;
+        const t = zStat(n, s, q, T.N, T.S, T.Q);
+        const x = sum(A, a0, len), y = sum(B, a0, len);
+        const ta = zStat(x[0], x[1], x[2], A.N, A.S, A.Q), tb = zStat(y[0], y[1], y[2], B.N, B.S, B.Q);
+        if (!t || !ta || !tb || ta.n < 8 || tb.n < 8) continue;
+        if (Math.abs(t.z) < Z_SCAN || ta.d * tb.d <= 0 || ta.d * t.d <= 0) continue;
+        found.push({ a: a0, len, z: t.z, n, avg: t.mg, rest: t.mr });
+      }
+    }
+    found.sort((p, q) => Math.abs(q.z) - Math.abs(p.z));
+    const used = new Array(24).fill(false), out = [];
+    for (const w of found) {
+      if (out.length >= maxWin) break;
+      let clash = false;
+      for (let k = 0; k < w.len; k++) if (used[(w.a + k) % 24]) clash = true;
+      if (clash) continue;
+      for (let k = 0; k < w.len; k++) used[(w.a + k) % 24] = true;
+      out.push(Object.assign(w, { value: `${w.a}h-${(w.a + w.len) % 24}h` }));
+    }
+    return out;
+  }
+
+  function windowGs(pre, wins) {
+    if (!wins.length) return null;
+    const groups = [{ conds: [], count: 0 }].concat(wins.map((w) => ({ conds: [{ field: 'd:window', value: w.value }], count: 0 })));
+    const parsed = wins.map((w) => parseWindow(w.value));
+    const gid = new Int16Array(pre.n);
+    for (let i = 0; i < pre.n; i++) {
+      const h = pre.hr[i];
+      let g = 0;
+      if (h >= 0) for (let k = 0; k < parsed.length; k++) if (inWindow(h, parsed[k])) { g = k + 1; break; }
+      gid[i] = g; groups[g].count++;
+    }
+    return { groups, gid, fields: [{ key: 'd:window', derived: true }] };
+  }
+
+  // Montée de coordonnées : risque de base, palier, puis multiplicateur de chaque groupe autorisé
+  // (sens imposé par groupDirs : moins bon → 0 / ×0,5 / ×0,75 ; meilleur → ×1,25 / ×1,5 / ×2).
   function ascent(pre, lo, hi, gs, prof, stepIdx, start) {
     const L = prof.steps[stepIdx];
-    const counts = new Array(gs.groups.length).fill(0);
-    for (let i = lo; i < hi; i++) counts[gs.gid[i]]++;
+    const dirs = groupDirs(pre, lo, hi, gs);
     const st = { bi: start.state.bi, ti: start.state.ti, mi: gs.groups.map(() => M_ONE) };
     let cur = evalRange(pre, lo, hi, gs.gid, stateCfg(prof, st, gs));
     let curScore = prof.score(cur);
-    const coords = [{ k: 'bi', n: prof.grid.length }, { k: 'ti', n: TIERS.length }];
-    for (let g = 1; g < gs.groups.length; g++) if (counts[g] >= MIN_GROUP) coords.push({ k: 'g', g, n: MULTS.length });
+    const range = (n) => Array.from({ length: n }, (_, i) => i);
+    const coords = [{ k: 'bi', vals: range(prof.grid.length) }, { k: 'ti', vals: range(TIERS.length) }];
+    for (let g = 1; g < gs.groups.length; g++) if (dirs[g] !== 0) coords.push({ k: 'g', g, vals: dirs[g] < 0 ? [0, 1, 2, M_ONE] : [M_ONE, 4, 5, 6] });
     for (let pass = 0; pass < 6; pass++) {
       let improved = false;
       coords.forEach((c) => {
@@ -507,14 +644,14 @@
         const set = (v) => { if (c.k === 'g') st.mi[c.g] = v; else st[c.k] = v; };
         const orig = get();
         let bestV = orig, bestM = cur, bestS = curScore;
-        for (let v = 0; v < c.n; v++) {
-          if (v === orig) continue;
+        c.vals.forEach((v) => {
+          if (v === orig) return;
           set(v);
           const m = evalRange(pre, lo, hi, gs.gid, stateCfg(prof, st, gs));
-          if (!feasible(m, L)) continue;
+          if (!feasible(m, L)) return;
           const sc = prof.score(m);
           if (sc > bestS + 1e-9) { bestV = v; bestM = m; bestS = sc; }
-        }
+        });
         set(bestV);
         if (bestV !== orig) { cur = bestM; curScore = bestS; improved = true; }
       });
@@ -618,7 +755,7 @@
       return gs;
     };
     const cut = n >= 60 ? Math.floor(n * 0.6) : 0;
-    const out = [];
+    const built = [];
 
     for (const prof of PROFILES[kind]) {
       const flat = searchFlat(pre, 0, n, prof);
@@ -627,18 +764,22 @@
           ? 'Aucun réglage de risque ne respecte les limites propfirm (5 % de DD journalier, 10 % de DD max) sur cet historique, même au risque minimal.'
           : 'Aucun réglage de risque trouvé sur cet historique.' };
       }
-      // Logiques candidates : chaque bonus seul, puis les deux meilleurs croisés.
+      // Logiques candidates : chaque bonus seul (étiquettes, session, jour), une à deux plages d'heures,
+      // puis les deux meilleures étiquettes croisées. Jamais session × jour (échantillons trop petits).
       const logics = [];
-      fields.forEach((f) => {
-        const gs = groupsFor([f]);
-        if (!gs) return;
-        const r = ascent(pre, 0, n, gs, prof, flat.stepIdx, flat);
-        logics.push(Object.assign(r, { gs }));
-      });
-      const top = logics.filter((l) => l.nRules > 0).sort((a, b) => b.score - a.score).slice(0, 2);
-      if (top.length === 2) {
-        const gs = groupsFor([top[0].gs.fields[0], top[1].gs.fields[0]]);
-        if (gs) logics.push(Object.assign(ascent(pre, 0, n, gs, prof, flat.stepIdx, flat), { gs }));
+      const addLogic = (mkGs, fs) => {
+        const gs = mkGs(0, n);
+        if (!gs) return null;
+        const l = Object.assign(ascent(pre, 0, n, gs, prof, flat.stepIdx, flat), { gs, mkGs, fields: fs });
+        logics.push(l);
+        return l;
+      };
+      fields.forEach((f) => addLogic(() => groupsFor([f]), [f]));
+      addLogic((lo, hi) => windowGs(pre, scanWindows(pre, lo, hi, 2)), [{ key: 'd:window', derived: true }]);
+      const topExplicit = logics.filter((l) => l.nRules > 0 && !l.fields[0].derived).sort((p, q) => q.score - p.score).slice(0, 2);
+      if (topExplicit.length === 2) {
+        const fs = [topExplicit[0].fields[0], topExplicit[1].fields[0]];
+        addLogic(() => groupsFor(fs), fs);
       }
 
       // Vérification sur les trades récents, jamais vus par le réglage.
@@ -655,8 +796,10 @@
         const margin = Math.max(Math.abs(flat.score) * 0.02, 1e-9);
         const cands = logics.filter((l) => l.nRules > 0 && l.score > flat.score + margin).sort((a, b) => b.score - a.score).slice(0, 3);
         for (const c of cands) {
-          const tl = ascent(pre, 0, cut, c.gs, prof, trainFlat.stepIdx, trainFlat);
-          const lt = evalRange(pre, cut, n, c.gs.gid, stateCfg(prof, tl.state, c.gs));
+          const gsT = c.mkGs(0, cut); // réglage refait sur les seuls trades d'apprentissage (plages d'heures comprises)
+          if (!gsT) continue;
+          const tl = ascent(pre, 0, cut, gsT, prof, trainFlat.stepIdx, trainFlat);
+          const lt = evalRange(pre, cut, n, gsT.gid, stateCfg(prof, tl.state, gsT));
           if (okTest(lt) && prof.score(lt) > prof.score(flatTest) && lt.avgM >= flatTest.avgM * 0.75) {
             pick = { c, oos: { trainN: cut, testN: n - cut, perf: lt.perf, maxDd: lt.maxDd, flatPerf: flatTest.perf, holds: true, beatsFlat: true } };
             break;
@@ -676,23 +819,47 @@
         if (backed) note = (note ? note + ' ' : '') + `Risque réduit de ${backed} cran${backed > 1 ? 's' : ''} pour que le pire cas reste sous ${prof.mc.dd} % de DD.`;
         if (mcBreach(dds, prof.mc.dd) > prof.mc.p / 100) note = (note ? note + ' ' : '') + `Même au risque minimal, le pire cas dépasse ${prof.mc.dd} % de DD dans plus de ${prof.mc.p} % des cas.`;
       }
-      const bdd = prof.mc ? prof.mc.dd : (kind === 'pf' ? 10 : null);
-      const config = stateConfig(prof, st, gs);
-      const report = computeReport(trades, capital0, config);
-      const ms = monthStats(report.monthly);
-      const fin = evalRange(pre, 0, n, gid, stateCfg(prof, st, gs));
+      const cfg = stateCfg(prof, st, gs), config = stateConfig(prof, st, gs);
+      const logic = pick ? pick.c.fields.map((f) => fieldLabel(f.key)).join(' × ') : null;
       const oos = pick ? pick.oos : oosFlat;
-      out.push({
-        id: prof.id, name: prof.name, short: prof.short, goal: prof.goal, config,
-        logic: pick ? pick.c.gs.fields.map((f) => fieldLabel(f.key)).join(' × ') : null,
+      const mFull = evalRange(pre, 0, n, gid, cfg);
+      built.push({ prof, cfg, config, gid, logic, oos, note, dds, score: prof.score(mFull), stepIdx: flat.stepIdx });
+    }
+
+    // Cohérence : un profil ne doit jamais être battu, sur SON objectif, par le réglage d'un autre profil
+    // (validé sur des trades jamais vus, dans les mêmes limites). Sinon on lui donne ce meilleur réglage.
+    const snapshot = built.slice();
+    built.forEach((P, idx) => {
+      let best = null;
+      snapshot.forEach((Q) => {
+        if (Q === P || !Q.oos || !Q.oos.holds) return;
+        const m = evalRange(pre, 0, n, Q.gid, Q.cfg);
+        if (!feasible(m, P.prof.steps[P.stepIdx])) return;
+        const sc = P.prof.score(m);
+        if (sc <= (best ? best.score : P.score) + 1e-9) return;
+        const dds = mcDrawdowns(pre, Q.gid, Q.cfg);
+        if (P.prof.mc && mcBreach(dds, P.prof.mc.dd) > P.prof.mc.p / 100) return;
+        best = { Q, score: sc, dds };
+      });
+      if (best) built[idx] = Object.assign({}, best.Q, { prof: P.prof, score: best.score, dds: best.dds, stepIdx: P.stepIdx, note: `Même réglage que « ${best.Q.prof.name} » : il fait mieux ici sur cet objectif.` });
+    });
+
+    const out = built.map((B) => {
+      const prof = B.prof;
+      const bdd = prof.mc ? prof.mc.dd : (kind === 'pf' ? 10 : null);
+      const report = computeReport(trades, capital0, B.config);
+      const ms = monthStats(report.monthly);
+      const fin = evalRange(pre, 0, n, B.gid, B.cfg);
+      return {
+        id: prof.id, name: prof.name, short: prof.short, goal: prof.goal, config: B.config, logic: B.logic,
         perf: report.stats.performancePct, finalMult: report.stats.finalCapital / capital0,
         dd: report.stats.maxDrawdownPct, daily: report.maxDailyDrawdownPct,
         avgM: ms.avgM, posM: ms.posM, worstM: ms.worstM, nM: ms.nM, bestShare: fin.bestShare * 100,
         skipped: report.stats.skippedTrades || 0, maxSlStreak: maxSlStreak(ordered),
-        mc: { p95: dds[Math.floor(dds.length * 0.95)], breachDd: bdd, breach: bdd != null ? mcBreach(dds, bdd) * 100 : null },
-        trust: oos ? (oos.holds ? 'ok' : 'warn') : 'none', oos, note,
-      });
-    }
+        mc: { p95: B.dds[Math.floor(B.dds.length * 0.95)], breachDd: bdd, breach: bdd != null ? mcBreach(B.dds, bdd) * 100 : null },
+        trust: B.oos ? (B.oos.holds ? 'ok' : 'warn') : 'none', oos: B.oos, note: B.note,
+      };
+    });
     return { profiles: out, fields: fields.map((f) => f.label), kind };
   }
 
@@ -703,28 +870,27 @@
   // ---------------------------------------------------------------
   function findInsights(trades) {
     const ordered = sortedTrades(trades);
+    const n = ordered.length;
+    const minG = minGroupOf(n);
     const R = ordered.map((t) => (isBE(t) ? 0 : Number(t.rr) || 0));
     const fields = detectBonusFields(ordered);
-    const stat = (idx) => {
-      const v = idx.map((i) => R[i]);
-      const m = mean(v);
-      const variance = v.length > 1 ? v.reduce((s, x) => s + (x - m) * (x - m), 0) / (v.length - 1) : 0;
-      return { n: v.length, m, variance };
-    };
     const tips = [];
     fields.forEach((f) => f.values.forEach((val) => {
-      const inG = [], out = [];
-      ordered.forEach((t, i) => { const v = bonusValue(t, f.key); if (v != null && norm(v) === norm(val.value)) inG.push(i); else out.push(i); });
-      if (inG.length < 30 || out.length < 30) return;
-      const a = stat(inG), b = stat(out);
-      const se = Math.sqrt(a.variance / a.n + b.variance / b.n);
-      if (!(se > 0)) return;
-      const z = (a.m - b.m) / se;
-      if (Math.abs(z) >= 2.3) tips.push({ key: f.key, label: f.label, value: val.value, n: a.n, avg: a.m, rest: b.m, z });
+      let ng = 0, sg = 0, qg = 0, N = 0, S = 0, Q = 0;
+      ordered.forEach((t, i) => {
+        const v = bonusValue(t, f.key);
+        if (v == null || norm(v) === '') return;
+        N++; S += R[i]; Q += R[i] * R[i];
+        if (norm(v) === norm(val.value)) { ng++; sg += R[i]; qg += R[i] * R[i]; }
+      });
+      if (ng < minG || N - ng < minG) return;
+      const z = zStat(ng, sg, qg, N, S, Q);
+      if (z && Math.abs(z.z) >= Z_SCAN) tips.push({ key: f.key, label: f.label, value: val.value, n: ng, avg: z.mg, rest: z.mr, z: z.z });
     }));
+    scanWindows(buildPre(ordered), 0, n, 2).forEach((w) => tips.push({ key: 'd:window', label: fieldLabel('d:window'), value: w.value, n: w.n, avg: w.avg, rest: w.rest, z: w.z }));
     tips.sort((x, y) => Math.abs(y.z) - Math.abs(x.z));
     const missing = [];
-    if (ordered.length >= 20 && clockShare(ordered) < 0.5) missing.push('time');
+    if (n >= 20 && clockShare(ordered) < 0.5) missing.push('time');
     if (!fields.some((f) => !f.derived)) missing.push('bonus');
     return { tips: tips.slice(0, 3), missing, checked: fields.map((f) => f.label) };
   }

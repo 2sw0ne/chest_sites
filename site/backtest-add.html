@@ -66,7 +66,7 @@
   .cond-chip button:hover{ color:var(--ink); background:rgba(255,255,255,.08); }
   .si-wrap{ position:relative; display:inline-flex; }
   .si-btn{ height:30px; padding:0 12px; font-size:12.5px; border-radius:999px; }
-  .si-pop{ position:absolute; top:calc(100% + 8px); left:0; z-index:40; min-width:250px; max-width:min(340px,86vw); padding:14px; border-radius:16px; border:1px solid rgba(255,255,255,.14);
+  .si-pop{ max-height:min(62vh,440px); overflow-y:auto; position:absolute; top:calc(100% + 8px); left:0; z-index:40; min-width:250px; max-width:min(340px,86vw); padding:14px; border-radius:16px; border:1px solid rgba(255,255,255,.14);
     background:linear-gradient(180deg,rgba(24,24,28,.97),rgba(12,12,15,.98)); box-shadow:0 18px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12); }
   .si-pop__title{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
   .si-pop__cat{ margin-bottom:12px; }
@@ -77,6 +77,9 @@
   .si-pop__val:hover{ border-color:rgba(249,164,94,.55); transform:translateY(-1px); }
   .si-pop__val.is-on{ border-color:#f9a45e; background:rgba(249,164,94,.14); }
   .si-pop__val small{ color:var(--muted); margin-left:5px; font-size:11px; }
+  .si-pop__win{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:12.5px; }
+  .si-pop__win select{ width:auto; min-width:0; height:32px; padding:0 8px; border-radius:10px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05); color:var(--ink); font:inherit; font-size:12.5px; }
+  .si-pop__hint{ font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.5; }
   .si-pop__empty{ font-size:12.5px; color:var(--muted); line-height:1.5; margin:0; }
   .rules-hint{ font-size:12px; color:var(--muted); line-height:1.55; margin:2px 0 10px; }
   .rules-hint b{ color:var(--ink); font-weight:600; }
@@ -263,11 +266,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
             <p class="rules-hint" data-rules-hint="cp"></p>
         </div>
         <div class="mm-auto" data-account="cp" style="display:none">
-          <p class="hint" style="margin:0 0 10px">Cherche le meilleur retour avec un risque idéalement ≤3% (jusqu'à 5% si besoin) et un drawdown max visé ≤30%.</p>
-          <div class="auto-actions">
-            <button type="button" class="btn btn-secondary run-auto-btn" data-account="cp">Calculer le meilleur réglage</button>
-            <button type="button" class="btn btn-primary run-premium-btn" data-account="cp" title="Trois réglages aux objectifs différents, qui tiennent compte de tous les bonus, des sessions et des jours">Réglage premium</button>
-          </div>
+          <p class="hint" style="margin:0 0 10px">Trois réglages aux objectifs différents (croissance, meilleur ratio, prudent), calculés tout seuls sur ton historique. Ils tiennent compte des bonus de ton fichier, des sessions, des jours et des heures, mais seulement quand l'effet est net et se répète — jamais sur un petit échantillon.</p>
           <div class="auto-result" data-account="cp" style="display:none"></div>
         </div>
       </div>
@@ -292,11 +291,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
             <p class="rules-hint" data-rules-hint="pf"></p>
           </div>
           <div class="mm-auto" data-account="pf" style="display:none">
-            <p class="hint" style="margin:0 0 10px">Contrainte stricte : jamais plus de 5% de drawdown journalier ni 10% de drawdown max. Nécessite les heures de clôture pour un résultat fiable.</p>
-            <div class="auto-actions">
-            <button type="button" class="btn btn-secondary run-auto-btn" data-account="pf">Calculer le meilleur réglage</button>
-            <button type="button" class="btn btn-primary run-premium-btn" data-account="pf" title="Trois réglages aux objectifs différents, qui tiennent compte de tous les bonus, des sessions et des jours">Réglage premium</button>
-          </div>
+            <p class="hint" style="margin:0 0 10px">Trois réglages aux objectifs différents (régularité, performance pure, sécurité), toujours dans les limites propfirm : jamais plus de 5% de drawdown journalier ni 10% de drawdown max. Nécessite les heures de clôture pour un résultat fiable.</p>
             <div class="auto-result" data-account="pf" style="display:none"></div>
           </div>
         </div>
@@ -321,7 +316,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=7"></script>
+<script src="js/backtest-engine.js?v=10"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js"></script>
 <script src="js/page-tour.js"></script>
@@ -389,6 +384,7 @@ CHESTTour.init([
         importResult.textContent = `${trades.length} position(s) importée(s)${extra}.`;
         importResult.className = 'import-result ok';
         refreshBonus();
+        runAutoAll();
       }
       if (errors.length) {
         importErrors.style.display = 'block';
@@ -417,7 +413,7 @@ CHESTTour.init([
     let html;
     if (bonusFields.length) {
       const list = bonusFields.map((f) => `<b>${esc(f.label)}</b> (${f.values.slice(0, 6).map((v) => esc(v.value)).join(', ')}${f.values.length > 6 ? '…' : ''})`).join(' · ');
-      html = `Bonus détectés dans ton fichier : ${list}. Session et Jour sont déduits de l'heure d'ouverture (lue en UTC). Clique sur « + Si » dans un palier pour régler le risque d'un bonus. Risque <b>0 %</b> = trade ignoré ; la règle la plus précise l'emporte (Si + Après &gt; Si &gt; Après).`;
+      html = `Bonus détectés dans ton fichier : ${list}. Session et Jour sont déduits de l'heure d'ouverture (UTC, marchés ouverts seulement) ; « Heures » cible une plage comme 1h-3h. Clique sur « + Si » dans un palier pour régler le risque d'un bonus. Risque <b>0 %</b> = trade ignoré ; la règle la plus précise l'emporte (Si + Après &gt; Si &gt; Après).`;
     } else if (parsedTrades && parsedTrades.length) {
       html = `Aucun bonus exploitable détecté (il faut une colonne avec 2 à 15 valeurs différentes, par exemple Source ou Facultatif).`;
     } else {
@@ -468,8 +464,12 @@ CHESTTour.init([
       const pop = document.createElement('div');
       pop.className = 'si-pop';
       pop.setAttribute('role', 'dialog');
+      const hourOpts = (sel) => Array.from({ length: 24 }, (_, h) => `<option value="${h}"${h === sel ? ' selected' : ''}>${h}h</option>`).join('');
+      const winHtml = parsedTrades && parsedTrades.length
+        ? `<div class="si-pop__cat"><div class="si-pop__name">Heures</div><div class="si-pop__win">de <select class="si-h" data-w="a">${hourOpts(1)}</select> à <select class="si-h" data-w="b">${hourOpts(3)}</select> <button type="button" class="si-pop__val si-pop__add">Ajouter</button></div><div class="si-pop__hint">Heure d'ouverture du trade (UTC) : 1h à 3h = de 1h00 à 2h59.</div></div>`
+        : '';
       if (!bonusFields.length) {
-        pop.innerHTML = `<p class="si-pop__title">Si…</p><p class="si-pop__empty">${parsedTrades && parsedTrades.length
+        pop.innerHTML = `<p class="si-pop__title">Si…</p>${winHtml}<p class="si-pop__empty">${parsedTrades && parsedTrades.length
           ? "Aucun bonus exploitable dans ce fichier : il faut une colonne avec 2 à 15 valeurs différentes (Source, Confirmation, Ordre ou une colonne « Facultatif »)."
           : "Importe d'abord ton fichier (étape 3) : les bonus détectés (étiquettes W/L/P, tendance/contre…) apparaîtront ici."}</p>`;
       } else {
@@ -477,9 +477,21 @@ CHESTTour.init([
           `<div class="si-pop__cat"><div class="si-pop__name">${esc(f.label)}</div><div class="si-pop__vals">${f.values.map((v) => {
             const on = row._conds.some((c) => c.field === f.key && String(c.value).toUpperCase() === String(v.value).toUpperCase());
             return `<button type="button" class="si-pop__val${on ? ' is-on' : ''}" data-f="${esc(f.key)}" data-v="${esc(v.value)}">${esc(v.value)}<small>${v.count}</small></button>`;
-          }).join('')}</div></div>`).join('');
+          }).join('')}</div></div>`).join('') + winHtml;
       }
       pop.addEventListener('click', (ev) => {
+        const add = ev.target.closest('.si-pop__add');
+        if (add) {
+          const a0 = Number(pop.querySelector('[data-w="a"]').value), b0 = Number(pop.querySelector('[data-w="b"]').value);
+          if (a0 === b0) return;
+          const value = `${a0}h-${b0}h`;
+          const i0 = row._conds.findIndex((c) => c.field === 'd:window');
+          if (i0 >= 0) row._conds[i0].value = value; else row._conds.push({ field: 'd:window', value });
+          if (!touched) afterEl.value = '';
+          paint();
+          closePops();
+          return;
+        }
         const b = ev.target.closest('.si-pop__val');
         if (!b) return;
         const i = row._conds.findIndex((c) => c.field === b.dataset.f);
@@ -509,52 +521,44 @@ CHESTTour.init([
         const isAuto = b.dataset.mode === 'auto';
         manualEl.style.display = isAuto ? 'none' : '';
         autoEl.style.display = isAuto ? '' : 'none';
+        if (isAuto) runAuto(account);
       });
     });
 
     document.querySelector(`.add-tier-btn[data-account="${account}"]`).addEventListener('click', () => addTierRow(account));
+  }
 
-    document.querySelector(`.run-auto-btn[data-account="${account}"]`).addEventListener('click', () => {
-      const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
-      if (!parsedTrades || !parsedTrades.length) {
-        resultEl.style.display = 'block';
-        resultEl.innerHTML = `<span class="warn">Importe d'abord un fichier Excel valide (étape 3).</span>`;
-        return;
-      }
-      const capital = Number(document.getElementById('btCapital').value) || 10000;
-      const best = account === 'cp'
-        ? ENG.optimizeCp(parsedTrades, capital)
-        : ENG.optimizePf(parsedTrades, capital);
-      resultEl.style.display = 'block';
-      if (!best) {
-        resultEl.innerHTML = `<span class="warn">Aucun réglage de risque ne respecte les contraintes propfirm (5% DD journalier / 10% DD max) sur cet historique, même au risque minimal.</span>`;
-        return;
-      }
-      const s = best.report.stats;
-      const dailyNote = (account === 'pf' && !parsedTrades.some((t) => t.close))
-        ? `<div class="warn">Valeur non garantie : aucune heure de clôture fournie, le drawdown journalier est estimé à partir de la date seule.</div>` : '';
-      const relaxedNote = best.relaxedNote ? `<div class="warn">${best.relaxedNote}</div>` : '';
-      resultEl.innerHTML = `Risque retenu : <b>${best.risk}%</b> — performance totale <b>${s.performancePct.toFixed(1)}%</b>, drawdown max <b>${s.maxDrawdownPct.toFixed(1)}%</b>${account === 'pf' ? `, DD journalier max <b>${best.report.maxDailyDrawdownPct.toFixed(1)}%</b>` : ''}.${relaxedNote}${dailyNote}`;
-      resultEl.dataset.risk = best.risk;
-      resultEl.dataset.rules = '[]';
-      resultEl.dataset.tiers = '[]';
-      delete resultEl.dataset.premium;
-    });
-
-    // Réglage premium : chaque bonus est séparé puis réglé indépendamment.
-    document.querySelector(`.run-premium-btn[data-account="${account}"]`).addEventListener('click', () => {
-      const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
-      resultEl.style.display = 'block';
-      if (!parsedTrades || !parsedTrades.length) {
-        resultEl.innerHTML = `<span class="warn">Importe d'abord un fichier Excel valide (étape 3).</span>`;
-        return;
-      }
+  // Le mode Automatique calcule tout seul les trois réglages (à l'activation, à l'import, au changement de capital).
+  const autoToken = { cp: 0, pf: 0 };
+  function isAutoActive(account) {
+    if (account === 'pf' && !document.getElementById('pfEnable').checked) return false;
+    return document.querySelector(`.mode-toggle[data-target="${account}"] button.is-active`).dataset.mode === 'auto';
+  }
+  function clearAuto(resultEl) {
+    delete resultEl.dataset.risk; delete resultEl.dataset.rules; delete resultEl.dataset.tiers; delete resultEl.dataset.premium;
+  }
+  function runAuto(account) {
+    const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
+    resultEl.style.display = 'block';
+    const token = ++autoToken[account];
+    if (!parsedTrades || !parsedTrades.length) {
+      clearAuto(resultEl);
+      resultEl.innerHTML = `<span class="warn">Importe ton fichier (étape 3) : le calcul se lancera tout seul.</span>`;
+      return;
+    }
+    resultEl.innerHTML = `<span class="prem-note">Calcul des trois réglages…</span>`;
+    setTimeout(() => {
+      if (token !== autoToken[account]) return;
       const capital = Number(document.getElementById('btCapital').value) || 10000;
       const res = ENG.optimizeProfiles(parsedTrades, capital, account);
-      if (res.error) { resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
+      if (res.error) { clearAuto(resultEl); resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
       renderPremium(resultEl, res, account);
-    });
+    }, 30);
   }
+  const runAutoAll = () => ['cp', 'pf'].forEach((a) => { if (isAutoActive(a)) runAuto(a); });
+  let capTimer = null;
+  document.getElementById('btCapital').addEventListener('input', () => { clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); });
+
 
   // Réglage premium : trois profils par compte, chacun avec son objectif (voir optimizeProfiles).
   function fmtBig(x) {
@@ -566,7 +570,7 @@ CHESTTour.init([
   const fmtPerf = (p) => (p.finalMult >= 1000 ? `×${fmtBig(p.finalMult)}` : `${p.perf >= 0 ? '+' : '−'}${Math.round(Math.abs(p.perf)).toLocaleString('fr-FR')} %`);
   const fmtSigned = (v, d = 1) => `${v >= 0 ? '+' : '−'}${fr(Math.abs(v), d)} %`;
   const ruleTxt = (r) => {
-    const cond = r.conds.map((c) => (c.field.indexOf('d:') === 0 ? esc(c.value) : `${esc(fieldLabel(c.field))} ${esc(c.value)}`)).join(' + ');
+    const cond = r.conds.map((c) => (c.field.indexOf('d:') === 0 && c.field !== 'd:window' ? esc(c.value) : `${esc(fieldLabel(c.field))} ${esc(c.value)}`)).join(' + ');
     return `<b>${cond}</b> → ${riskTxt(r.risk)}`;
   };
   const summaryTxt = (p) => {
@@ -629,7 +633,7 @@ CHESTTour.init([
             + `</button>`;
         }).join('')}</div>`
         + `<div class="prof-detail">${detail(profiles[sel])}</div>`
-        + `<div class="prem-note" style="margin-top:8px">Bonus pris en compte : ${res.fields.map(esc).join(', ')}. Recherche sur ton historique, pas une prédiction.</div>`;
+        + `<div class="prem-note" style="margin-top:8px">Bonus pris en compte : ${res.fields.map(esc).join(', ')}, plages d'heures. Recherche sur ton historique, pas une prédiction.${account === 'pf' && !parsedTrades.some((t) => t.close) ? ' <span class="warn">Aucune heure de clôture : le drawdown journalier est estimé à partir de la date seule.</span>' : ''}</div>`;
       resultEl.querySelectorAll('.prof').forEach((b) => b.addEventListener('click', () => { sel = Number(b.dataset.i); store(); draw(); }));
     };
     store();
@@ -640,6 +644,7 @@ CHESTTour.init([
 
   document.getElementById('pfEnable').addEventListener('change', (e) => {
     document.getElementById('pfInner').style.display = e.target.checked ? '' : 'none';
+    if (e.target.checked && isAutoActive('pf')) runAuto('pf');
   });
 
   // ---- Prefill d'un réglage de risque existant (mode édition) ----
@@ -736,12 +741,12 @@ CHESTTour.init([
     if (!parsedTrades || !parsedTrades.length) { errEl.textContent = "Importe d'abord un fichier Excel valide (étape 3)."; return; }
 
     const cp = readRiskConfig('cp');
-    if (!cp) { errEl.textContent = "Calcule d'abord le réglage automatique du compte propre (étape 4), ou passe en mode manuel."; return; }
+    if (!cp) { errEl.textContent = "Le réglage automatique du compte propre n'a pas de résultat : importe ton fichier (étape 3) ou passe en mode manuel."; return; }
 
     let pf = null;
     if (document.getElementById('pfEnable').checked) {
       pf = readRiskConfig('pf');
-      if (!pf) { errEl.textContent = "Calcule d'abord le réglage automatique propfirm (étape 4), ou passe en mode manuel."; return; }
+      if (!pf) { errEl.textContent = "Le réglage automatique propfirm n'a pas de résultat : importe ton fichier (étape 3) ou passe en mode manuel."; return; }
     }
 
     if (editingRecord) {
