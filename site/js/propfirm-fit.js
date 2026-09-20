@@ -34,15 +34,20 @@
   // « Week-end » = le trade est resté ouvert au moins un samedi (ouverture avant,
   // clôture à partir du samedi) ; « nuit » = clôturé un autre jour UTC que son
   // ouverture. Sans heures d'ouverture ET de clôture, on ne peut pas les détecter.
-  function prepare(trades) {
+  // weightOf(trade) (facultatif) : multiplicateur de risque des règles « Si » du
+  // backtest (risque de la règle / risque de base). 0 = trade ignoré, 2 = le trade
+  // pèse le double du risque conseillé.
+  function prepare(trades, weightOf) {
     const ordered = window.CHESTBacktestEngine.sortedTrades(trades);
     const rr = [], day = [], wk = [], ov = [];
     let withTimes = 0, wkCount = 0, ovCount = 0;
     ordered.forEach((t) => {
       const d = new Date(t.close || t.open || t.date);
       if (isNaN(d.getTime())) return;
+      const w = weightOf ? weightOf(t) : 1;
+      if (!(w > 0)) return;
       const res = String(t.result).toUpperCase();
-      rr.push(res === 'BE' ? 0 : (Number(t.rr) || 0));
+      rr.push(res === 'BE' ? 0 : (Number(t.rr) || 0) * w);
       day.push(Math.floor(d.getTime() / 86400000));
       let crosses = false, over = false;
       if (t.open && t.close) {
@@ -281,7 +286,8 @@
     const E = window.CHESTBacktestEngine;
     const horizonMonths = (opts && opts.horizonMonths) || 6;
     const horizonDays = Math.round(horizonMonths * 30.4);
-    const P = prepare(trades);
+    const weightOf = opts && opts.weightOf;
+    const P = prepare(trades, weightOf);
     if (P.n < 30) return { error: 'Il faut au moins 30 trades datés pour simuler un compte.' };
     const spanDays = P.day[P.n - 1] - P.day[0] + 1;
     const starts = startIndexes(P, horizonDays);
@@ -325,7 +331,10 @@
     const ownOpt = E.optimizeCp(trades, capital0);
     let own = null;
     if (ownOpt) {
-      const rets = starts.map((s) => windowReturn(P, s, ownOpt.risk, horizonDays));
+      // Le compte propre est comparé sur les trades tels quels (risque plat optimisé).
+      const Pown = weightOf ? prepare(trades) : P;
+      const startsOwn = weightOf ? startIndexes(Pown, horizonDays) : starts;
+      const rets = startsOwn.map((s) => windowReturn(Pown, s, ownOpt.risk, horizonDays));
       const meanRet = mean(rets);
       own = {
         risk: ownOpt.risk, relaxedNote: ownOpt.relaxed ? ownOpt.relaxedNote : null,
@@ -348,7 +357,7 @@
     return {
       rows, own, prop, verdict: { kind, top },
       holding: { trades: P.n, withTimes: P.withTimes, weekendCount: P.wkCount, weekendPct: P.n ? P.wkCount / P.n * 100 : 0, overnightCount: P.ovCount, overnightPct: P.n ? P.ovCount / P.n * 100 : 0 },
-      meta: { starts: starts.length, spanDays, trades: P.n, horizonMonths, horizonDays, refAccount: ref },
+      meta: { weighted: !!weightOf, starts: starts.length, spanDays, trades: P.n, horizonMonths, horizonDays, refAccount: ref },
     };
   }
 

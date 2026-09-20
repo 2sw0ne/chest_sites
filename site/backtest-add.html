@@ -47,13 +47,52 @@
   .mode-toggle{ display:inline-flex; gap:3px; padding:3px; border:1px solid var(--line2); border-radius:var(--radius-pill); background:var(--bg); }
   .mode-toggle button{ border:none; background:transparent; padding:6px 14px; border-radius:999px; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; font:inherit; }
   .mode-toggle button.is-active{ background:var(--ink); color:var(--bg); }
-  .tiers-list{ display:flex; flex-direction:column; gap:8px; margin:10px 0; }
+  .tiers-list{ display:flex; flex-direction:column; gap:14px; margin:10px 0; }
   .tier-row{ display:flex; align-items:center; gap:8px; font-size:13px; }
   .tier-row input{ width:70px; }
-  .tier-row button{ margin-left:auto; }
+  .tier-row .tier-remove{ margin-left:auto; }
   .auto-result{ margin-top:12px; padding:12px 14px; border-radius:10px; background:var(--bg); font-size:12.5px; line-height:1.6; }
   .auto-result b{ font-variant-numeric:tabular-nums; }
   .auto-result .warn{ color:var(--amber); }
+
+  /* Règles « Si » (bonus du fichier) */
+  .tier-row{ flex-wrap:wrap; row-gap:8px; }
+  .tier-conds{ display:contents; }
+  .tier-tail{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; flex:1 1 auto; min-width:0; }
+  .cond-chip{ display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 4px 0 11px; border-radius:999px; border:1px solid rgba(249,164,94,.4); background:rgba(249,164,94,.08); font-size:12.5px; white-space:nowrap; }
+  .cond-chip__k{ font-weight:700; color:#f9a45e; }
+  .cond-chip b{ font-weight:700; }
+  .cond-chip button{ border:0; background:transparent; color:var(--muted); cursor:pointer; width:22px; height:22px; border-radius:50%; font-size:15px; line-height:1; padding:0; }
+  .cond-chip button:hover{ color:var(--ink); background:rgba(255,255,255,.08); }
+  .si-wrap{ position:relative; display:inline-flex; }
+  .si-btn{ height:30px; padding:0 12px; font-size:12.5px; border-radius:999px; }
+  .si-pop{ position:absolute; top:calc(100% + 8px); left:0; z-index:40; min-width:250px; max-width:min(340px,86vw); padding:14px; border-radius:16px; border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg,rgba(24,24,28,.97),rgba(12,12,15,.98)); box-shadow:0 18px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12); }
+  .si-pop__title{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
+  .si-pop__cat{ margin-bottom:12px; }
+  .si-pop__cat:last-child{ margin-bottom:0; }
+  .si-pop__name{ font-size:12.5px; font-weight:700; margin-bottom:6px; }
+  .si-pop__vals{ display:flex; flex-wrap:wrap; gap:6px; }
+  .si-pop__val{ border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.03); color:var(--ink); border-radius:999px; padding:5px 11px; font:inherit; font-size:12.5px; cursor:pointer; transition:border-color .2s, transform .2s; }
+  .si-pop__val:hover{ border-color:rgba(249,164,94,.55); transform:translateY(-1px); }
+  .si-pop__val.is-on{ border-color:#f9a45e; background:rgba(249,164,94,.14); }
+  .si-pop__val small{ color:var(--muted); margin-left:5px; font-size:11px; }
+  .si-pop__empty{ font-size:12.5px; color:var(--muted); line-height:1.5; margin:0; }
+  .rules-hint{ font-size:12px; color:var(--muted); line-height:1.55; margin:2px 0 10px; }
+  .rules-hint b{ color:var(--ink); font-weight:600; }
+  .auto-actions{ display:flex; flex-wrap:wrap; gap:10px; }
+  .prem-box{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .prem-title{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; }
+  .prem-opt{ display:block; width:100%; text-align:left; font:inherit; color:var(--ink); cursor:pointer; padding:11px 13px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); transition:border-color .2s; }
+  .prem-opt:hover{ border-color:rgba(249,164,94,.5); }
+  .prem-opt.is-on{ border-color:#fc1283; box-shadow:0 0 0 3px rgba(252,18,131,.14); }
+  .prem-opt__top{ display:flex; flex-wrap:wrap; gap:6px 12px; align-items:baseline; font-size:13px; }
+  .prem-opt__top b{ font-variant-numeric:tabular-nums; }
+  .prem-opt__tag{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#33e6a6; font-weight:700; }
+  .prem-opt__tag--warn{ color:var(--amber); }
+  .prem-opt__det{ margin-top:5px; font-size:12px; color:var(--muted); line-height:1.6; }
+  .prem-pos{ color:var(--green); } .prem-neg{ color:var(--red); }
+  .prem-note{ font-size:12px; color:var(--muted); line-height:1.6; }
 
   .pf-enable{ display:flex; align-items:center; gap:10px; font-size:13.5px; margin-bottom:14px; }
 
@@ -185,7 +224,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 
     <div class="card wz-card">
       <h2><span class="step">4</span>Gestion du risque</h2>
-      <p class="hint">Choisis un risque fixe (avec paliers optionnels après une série de SL), ou laisse l'algorithme chercher le meilleur réglage sur ton historique — importe d'abord ton fichier pour activer le mode automatique.</p>
+      <p class="hint">Choisis un risque fixe (avec paliers optionnels après une série de SL), ou laisse l'algorithme chercher le meilleur réglage sur ton historique — importe d'abord ton fichier pour activer le mode automatique. Si ton fichier contient des bonus (étiquette W/L/P, tendance/contre, confirmation…), tu peux régler le risque de chacun avec « Si ».</p>
 
       <div class="mm-block" id="cpBlock" data-account="cp">
         <div class="mm-block__head">
@@ -200,10 +239,14 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
           <input class="field risk-input" type="number" min="0.1" max="20" step="0.1" value="1">
           <div class="tiers-list" data-tiers="cp"></div>
           <button type="button" class="btn btn-ghost add-tier-btn" data-account="cp">+ Ajouter un palier</button>
+            <p class="rules-hint" data-rules-hint="cp"></p>
         </div>
         <div class="mm-auto" data-account="cp" style="display:none">
           <p class="hint" style="margin:0 0 10px">Cherche le meilleur retour avec un risque idéalement ≤3% (jusqu'à 5% si besoin) et un drawdown max visé ≤30%.</p>
-          <button type="button" class="btn btn-secondary run-auto-btn" data-account="cp">Calculer le meilleur réglage</button>
+          <div class="auto-actions">
+            <button type="button" class="btn btn-secondary run-auto-btn" data-account="cp">Calculer le meilleur réglage</button>
+            <button type="button" class="btn btn-primary run-premium-btn" data-account="cp" title="Sépare chaque bonus du fichier (W/L/P, tendance/contre…) et règle le risque de chacun indépendamment">Réglage premium</button>
+          </div>
           <div class="auto-result" data-account="cp" style="display:none"></div>
         </div>
       </div>
@@ -225,10 +268,14 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
             <input class="field risk-input" type="number" min="0.1" max="20" step="0.1" value="0.5">
             <div class="tiers-list" data-tiers="pf"></div>
             <button type="button" class="btn btn-ghost add-tier-btn" data-account="pf">+ Ajouter un palier</button>
+            <p class="rules-hint" data-rules-hint="pf"></p>
           </div>
           <div class="mm-auto" data-account="pf" style="display:none">
             <p class="hint" style="margin:0 0 10px">Contrainte stricte : jamais plus de 5% de drawdown journalier ni 10% de drawdown max. Nécessite les heures de clôture pour un résultat fiable.</p>
+            <div class="auto-actions">
             <button type="button" class="btn btn-secondary run-auto-btn" data-account="pf">Calculer le meilleur réglage</button>
+            <button type="button" class="btn btn-primary run-premium-btn" data-account="pf" title="Sépare chaque bonus du fichier (W/L/P, tendance/contre…) et règle le risque de chacun indépendamment">Réglage premium</button>
+          </div>
             <div class="auto-result" data-account="pf" style="display:none"></div>
           </div>
         </div>
@@ -253,7 +300,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js"></script>
+<script src="js/backtest-engine.js?v=3"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js"></script>
 <script src="js/page-tour.js"></script>
@@ -320,6 +367,7 @@ CHESTTour.init([
         const extra = allExtra.length ? ` — colonnes détectées en plus : ${allExtra.join(', ')}` : '';
         importResult.textContent = `${trades.length} position(s) importée(s)${extra}.`;
         importResult.className = 'import-result ok';
+        refreshBonus();
       }
       if (errors.length) {
         importErrors.style.display = 'block';
@@ -327,10 +375,109 @@ CHESTTour.init([
       }
     } catch (e) {
       parsedTrades = null;
+      refreshBonus();
       importResult.textContent = `Erreur de lecture : ${e.message}`;
       importResult.className = 'import-result err';
       dropzone.classList.remove('is-filled');
     }
+  }
+
+  // ---- Bonus du fichier (étiquette W/L/P, tendance/contre, confirmation…) ----
+  const ENG = window.CHESTBacktestEngine;
+  let bonusFields = [];
+  const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fr = (n, d = 1) => Number(n).toFixed(d).replace('.', ',');
+  const signed = (n) => (n >= 0 ? '+' : '−') + fr(Math.abs(n), 1) + ' %';
+  const riskTxt = (r) => (r === 0 ? 'ignoré' : fr(r, 2).replace(/,?0+$/, '') + ' %');
+  function fieldLabel(key) {
+    if (key.indexOf('x:') === 0) return key.slice(2);
+    return ({ source: 'Source', confirmation: 'Confirmation', order: 'Ordre' })[key] || key;
+  }
+
+  function refreshBonus() {
+    bonusFields = parsedTrades && parsedTrades.length ? ENG.detectBonusFields(parsedTrades) : [];
+    let html;
+    if (bonusFields.length) {
+      const list = bonusFields.map((f) => `<b>${esc(f.label)}</b> (${f.values.slice(0, 6).map((v) => esc(v.value)).join(', ')}${f.values.length > 6 ? '…' : ''})`).join(' · ');
+      html = `Bonus détectés dans ton fichier : ${list}. Clique sur « + Si » dans un palier pour régler le risque d'un bonus. Risque <b>0 %</b> = trade ignoré ; la règle la plus précise l'emporte (Si + Après &gt; Si &gt; Après).`;
+    } else if (parsedTrades && parsedTrades.length) {
+      html = `Aucun bonus exploitable détecté (il faut une colonne avec 2 à 15 valeurs différentes, par exemple Source ou Facultatif).`;
+    } else {
+      html = `Importe ton fichier pour voir les bonus détectés (étiquettes, tendance, confirmations…) et les utiliser avec « Si ».`;
+    }
+    document.querySelectorAll('.rules-hint').forEach((el) => { el.innerHTML = html; });
+  }
+
+  function closePops() { document.querySelectorAll('.si-pop').forEach((p) => p.remove()); }
+  document.addEventListener('click', (e) => { if (!e.target.closest('.si-wrap')) closePops(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePops(); });
+
+  // Une ligne = [Si bonus…] Après N SL consécutifs → risque X %. Sans « Si » c'est un
+  // palier classique ; avec « Si » c'est une règle propre au bonus (Après devient facultatif).
+  function addTierRow(account, init) {
+    const list = document.querySelector(`.tiers-list[data-tiers="${account}"]`);
+    const row = document.createElement('div');
+    row.className = 'tier-row';
+    row._conds = ((init && init.conds) || []).map((c) => ({ field: c.field, value: c.value }));
+    row.innerHTML = `<span class="tier-conds"></span><span class="si-wrap"><button type="button" class="btn btn-ghost si-btn" aria-haspopup="dialog"></button></span><span class="tier-tail">Après <input type="number" min="0" step="1" class="field tier-after" placeholder="0"> SL consécutifs → risque <input type="number" min="0" step="0.1" class="field tier-risk"> % <button type="button" class="btn btn-ghost tier-remove" aria-label="Retirer">✕</button></span>`;
+    const afterEl = row.querySelector('.tier-after');
+    const riskEl = row.querySelector('.tier-risk');
+    const wrap = row.querySelector('.si-wrap');
+    afterEl.value = init ? (init.afterSl == null ? '' : init.afterSl) : 3;
+    riskEl.value = init ? (init.risk != null ? init.risk : init.newRisk) : 0.5;
+    let touched = !!init;
+    afterEl.addEventListener('input', () => { touched = true; });
+
+    function paint() {
+      row.querySelector('.tier-conds').innerHTML = row._conds.map((c, i) =>
+        `<span class="cond-chip"><span class="cond-chip__k">${i ? 'Et' : 'Si'}</span>${esc(fieldLabel(c.field))} = <b>${esc(c.value)}</b><button type="button" data-i="${i}" aria-label="Retirer cette condition">×</button></span>`).join('');
+      row.querySelector('.si-btn').textContent = row._conds.length ? '+ Et' : '+ Si';
+    }
+    row.querySelector('.tier-conds').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-i]');
+      if (!b) return;
+      row._conds.splice(Number(b.dataset.i), 1);
+      if (!row._conds.length && afterEl.value === '' && !touched) afterEl.value = 3;
+      paint();
+    });
+    row.querySelector('.tier-remove').addEventListener('click', () => { closePops(); row.remove(); });
+
+    row.querySelector('.si-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasOpen = !!wrap.querySelector('.si-pop');
+      closePops();
+      if (wasOpen) return;
+      const pop = document.createElement('div');
+      pop.className = 'si-pop';
+      pop.setAttribute('role', 'dialog');
+      if (!bonusFields.length) {
+        pop.innerHTML = `<p class="si-pop__title">Si…</p><p class="si-pop__empty">${parsedTrades && parsedTrades.length
+          ? "Aucun bonus exploitable dans ce fichier : il faut une colonne avec 2 à 15 valeurs différentes (Source, Confirmation, Ordre ou une colonne « Facultatif »)."
+          : "Importe d'abord ton fichier (étape 3) : les bonus détectés (étiquettes W/L/P, tendance/contre…) apparaîtront ici."}</p>`;
+      } else {
+        pop.innerHTML = `<p class="si-pop__title">Si le trade porte ce bonus</p>` + bonusFields.map((f) =>
+          `<div class="si-pop__cat"><div class="si-pop__name">${esc(f.label)}</div><div class="si-pop__vals">${f.values.map((v) => {
+            const on = row._conds.some((c) => c.field === f.key && String(c.value).toUpperCase() === String(v.value).toUpperCase());
+            return `<button type="button" class="si-pop__val${on ? ' is-on' : ''}" data-f="${esc(f.key)}" data-v="${esc(v.value)}">${esc(v.value)}<small>${v.count}</small></button>`;
+          }).join('')}</div></div>`).join('');
+      }
+      pop.addEventListener('click', (ev) => {
+        const b = ev.target.closest('.si-pop__val');
+        if (!b) return;
+        const i = row._conds.findIndex((c) => c.field === b.dataset.f);
+        if (i >= 0) row._conds[i].value = b.dataset.v; else row._conds.push({ field: b.dataset.f, value: b.dataset.v });
+        if (!touched) afterEl.value = '';
+        paint();
+        closePops();
+      });
+      wrap.appendChild(pop);
+      const r = pop.getBoundingClientRect();
+      if (r.right > window.innerWidth - 8) pop.style.left = `${-(r.right - window.innerWidth + 12)}px`;
+    });
+
+    list.appendChild(row);
+    paint();
+    return row;
   }
 
   // ---- Mode manuel / automatique + paliers ----
@@ -347,14 +494,7 @@ CHESTTour.init([
       });
     });
 
-    document.querySelector(`.add-tier-btn[data-account="${account}"]`).addEventListener('click', () => {
-      const list = document.querySelector(`.tiers-list[data-tiers="${account}"]`);
-      const row = document.createElement('div');
-      row.className = 'tier-row';
-      row.innerHTML = `Après <input type="number" min="1" step="1" class="field tier-after" value="3"> SL consécutifs → risque <input type="number" min="0.1" step="0.1" class="field tier-risk" value="0.5"> % <button type="button" class="btn btn-ghost tier-remove">✕</button>`;
-      row.querySelector('.tier-remove').addEventListener('click', () => row.remove());
-      list.appendChild(row);
-    });
+    document.querySelector(`.add-tier-btn[data-account="${account}"]`).addEventListener('click', () => addTierRow(account));
 
     document.querySelector(`.run-auto-btn[data-account="${account}"]`).addEventListener('click', () => {
       const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
@@ -365,8 +505,8 @@ CHESTTour.init([
       }
       const capital = Number(document.getElementById('btCapital').value) || 10000;
       const best = account === 'cp'
-        ? window.CHESTBacktestEngine.optimizeCp(parsedTrades, capital)
-        : window.CHESTBacktestEngine.optimizePf(parsedTrades, capital);
+        ? ENG.optimizeCp(parsedTrades, capital)
+        : ENG.optimizePf(parsedTrades, capital);
       resultEl.style.display = 'block';
       if (!best) {
         resultEl.innerHTML = `<span class="warn">Aucun réglage de risque ne respecte les contraintes propfirm (5% DD journalier / 10% DD max) sur cet historique, même au risque minimal.</span>`;
@@ -378,7 +518,74 @@ CHESTTour.init([
       const relaxedNote = best.relaxedNote ? `<div class="warn">${best.relaxedNote}</div>` : '';
       resultEl.innerHTML = `Risque retenu : <b>${best.risk}%</b> — performance totale <b>${s.performancePct.toFixed(1)}%</b>, drawdown max <b>${s.maxDrawdownPct.toFixed(1)}%</b>${account === 'pf' ? `, DD journalier max <b>${best.report.maxDailyDrawdownPct.toFixed(1)}%</b>` : ''}.${relaxedNote}${dailyNote}`;
       resultEl.dataset.risk = best.risk;
+      resultEl.dataset.rules = '[]';
+      delete resultEl.dataset.premium;
     });
+
+    // Réglage premium : chaque bonus est séparé puis réglé indépendamment.
+    document.querySelector(`.run-premium-btn[data-account="${account}"]`).addEventListener('click', () => {
+      const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
+      resultEl.style.display = 'block';
+      if (!parsedTrades || !parsedTrades.length) {
+        resultEl.innerHTML = `<span class="warn">Importe d'abord un fichier Excel valide (étape 3).</span>`;
+        return;
+      }
+      const capital = Number(document.getElementById('btCapital').value) || 10000;
+      const res = ENG.optimizePremium(parsedTrades, capital, account);
+      if (res.error) { resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
+      renderPremium(resultEl, res, account);
+    });
+  }
+
+  function renderPremium(resultEl, res, account) {
+    const bestIdx = res.best ? 1 + res.logics.indexOf(res.best) : 0;
+    const richest = res.logics.length ? res.logics[0] : null; // triées par rendement décroissant
+    const opts = [{ label: `Réglage plat · ${fr(res.base.risk, 1)} % partout`, rules: [], perf: res.basePerf, dd: res.baseDd, flat: true }]
+      .concat(res.logics.map((l) => ({ label: l.label, rules: l.rules, perf: l.perf, dd: l.maxDd, gain: l.gain, detail: l.detail, oos: l.oos, richest: l === richest && l.gain > 1e-6 })));
+    let sel = bestIdx;
+    const oosHtml = (o) => {
+      if (o.flat || o.gain <= 1e-6) return '';
+      const x = o.oos;
+      if (!x) return 'Moins de 60 trades : trop peu pour un test hors échantillon — prends ce résultat avec prudence.';
+      if (x.noGain) return `Test hors échantillon : sur les ${x.trainN} premiers trades ce bonus ne donne aucun gain — il ne semble pas exploitable de façon stable.`;
+      return `Test hors échantillon : règles apprises sur les ${x.trainN} premiers trades, jugées sur les ${x.testN} derniers → plat <b>${signed(x.flatPct)}</b> · premium <b>${signed(x.premiumPct)}</b>. ${x.holds ? '<b class="prem-pos">Le gain tient sur des trades que le calcul n\'a pas vus.</b>' : '<b class="warn">Le gain ne tient pas hors échantillon : prudence, risque de sur-optimisation.</b>'}`;
+    };
+    const tagHtml = (o, i) => {
+      let t = '';
+      if (o.richest) t += `<span class="prem-opt__tag">la plus rentable</span>`;
+      if (o.oos && o.oos.holds) t += `<span class="prem-opt__tag">tient hors échantillon</span>`;
+      else if (o.oos) t += `<span class="prem-opt__tag prem-opt__tag--warn">ne tient pas hors échantillon</span>`;
+      return t;
+    };
+    const detailTxt = (o) => o.flat ? '' : o.detail.map((d) => {
+      const name = d.conds.map((c) => esc(c.value)).join(' + ');
+      const tail = d.tooFew ? ' <small>(trop peu de trades, risque de base)</small>' : '';
+      return `<b>${name}</b> <small>×${d.count}</small> → ${riskTxt(d.risk)}${tail}`;
+    }).join(' · ');
+    const store = () => {
+      resultEl.dataset.risk = res.base.risk;
+      resultEl.dataset.rules = JSON.stringify(opts[sel].rules);
+      const x = opts[sel].oos;
+      if (sel > 0) resultEl.dataset.premium = JSON.stringify({ label: opts[sel].label, perf: opts[sel].perf, basePerf: res.basePerf, dd: opts[sel].dd, baseDd: res.baseDd, oos: x && !x.noGain ? { flatPct: x.flatPct, premiumPct: x.premiumPct, holds: x.holds } : null });
+      else delete resultEl.dataset.premium;
+    };
+    const draw = () => {
+      resultEl.innerHTML = `<div class="prem-title">Réglage premium</div>`
+        + `<div class="prem-note">Chaque bonus est séparé puis réglé seul, sous les mêmes limites que le réglage classique (drawdown max ${fr(res.limits.maxDd, 0)} %${account === 'pf' ? ', DD journalier 5 %' : ''}). Choisis la logique à appliquer :</div>`
+        + `<div class="prem-box">${opts.map((o, i) => `<button type="button" class="prem-opt${i === sel ? ' is-on' : ''}" data-i="${i}">`
+          + `<div class="prem-opt__top"><b>${esc(o.label)}</b>`
+          + `<span>performance <b>${fr(o.perf, 1)} %</b></span>`
+          + (o.gain != null ? (Math.abs(o.gain) < 0.05 ? `<span>identique au plat</span>` : `<span class="${o.gain >= 0 ? 'prem-pos' : 'prem-neg'}"><b>${signed(o.gain)}</b> vs plat</span>`) : '')
+          + `<span>DD max <b>${fr(o.dd, 1)} %</b></span>`
+          + tagHtml(o, i)
+          + `</div>${o.flat ? '' : `<div class="prem-opt__det">${detailTxt(o)}</div>`}</button>`).join('')}</div>`
+        + (res.best ? '' : `<div class="prem-note" style="margin-top:8px">Aucun bonus ne fait mieux que le réglage plat sous ces limites : c'est lui qui est retenu.</div>`)
+        + (oosHtml(opts[sel]) ? `<div class="prem-note" style="margin-top:8px">${oosHtml(opts[sel])}</div>` : '')
+        + `<div class="prem-note" style="margin-top:8px">Recherche transparente sur ton historique, pas une prédiction : un bonus rentable hier ne l'est pas forcément demain.${res.base.relaxedNote ? ' ' + esc(res.base.relaxedNote) : ''}</div>`;
+      resultEl.querySelectorAll('.prem-opt').forEach((b) => b.addEventListener('click', () => { sel = Number(b.dataset.i); store(); draw(); }));
+    };
+    store();
+    draw();
   }
   setupAccountBlock('cp');
   setupAccountBlock('pf');
@@ -400,17 +607,16 @@ CHESTTour.init([
     if (isAuto) {
       const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
       resultEl.style.display = 'block';
-      resultEl.innerHTML = `Réglage automatique précédemment calculé : risque retenu <b>${cfg.risk}%</b>. Relance le calcul si tu as changé le fichier importé.`;
+      const nRules = (cfg.rules || []).length;
+      const prem = cfg.premium ? ` Réglage premium retenu : <b>${esc(cfg.premium.label)}</b> (${nRules} règle${nRules > 1 ? 's' : ''} « Si »).` : '';
+      resultEl.innerHTML = `Réglage automatique précédemment calculé : risque retenu <b>${cfg.risk}%</b>.${prem} Relance le calcul si tu as changé le fichier importé.`;
       resultEl.dataset.risk = cfg.risk;
+      resultEl.dataset.rules = JSON.stringify(cfg.rules || []);
+      if (cfg.premium) resultEl.dataset.premium = JSON.stringify(cfg.premium);
     } else {
       manualEl.querySelector('.risk-input').value = cfg.risk;
-      const list = document.querySelector(`.tiers-list[data-tiers="${account}"]`);
-      (cfg.tiers || []).forEach((t) => {
-        document.querySelector(`.add-tier-btn[data-account="${account}"]`).click();
-        const row = list.lastElementChild;
-        row.querySelector('.tier-after').value = t.afterSl;
-        row.querySelector('.tier-risk').value = t.newRisk;
-      });
+      (cfg.tiers || []).forEach((t) => addTierRow(account, { afterSl: t.afterSl, newRisk: t.newRisk }));
+      (cfg.rules || []).forEach((r) => addTierRow(account, r));
     }
   }
 
@@ -426,6 +632,7 @@ CHESTTour.init([
       document.getElementById('btDesc').value = editingRecord.description || '';
       document.getElementById('btCapital').value = editingRecord.capital;
       parsedTrades = editingRecord.trades;
+      refreshBonus();
       dropzoneFilename.textContent = `Fichier déjà importé (${editingRecord.trades.length} position${editingRecord.trades.length > 1 ? 's' : ''})`;
       dropzoneDefault.style.display = 'none';
       dropzoneFilled.style.display = 'flex';
@@ -449,15 +656,21 @@ CHESTTour.init([
       const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
       const risk = Number(resultEl.dataset.risk);
       if (!risk) return null; // pas encore calcule
-      return { mode: 'auto', risk, tiers: [] };
+      const cfg = { mode: 'auto', risk, tiers: [], rules: JSON.parse(resultEl.dataset.rules || '[]') };
+      if (resultEl.dataset.premium) cfg.premium = JSON.parse(resultEl.dataset.premium);
+      return cfg;
     }
     const manualEl = document.querySelector(`.mm-manual[data-account="${account}"]`);
     const risk = Number(manualEl.querySelector('.risk-input').value) || 1;
-    const tiers = [...manualEl.querySelectorAll('.tier-row')].map((row) => ({
-      afterSl: Number(row.querySelector('.tier-after').value) || 1,
-      newRisk: Number(row.querySelector('.tier-risk').value) || risk,
-    }));
-    return { mode: 'manual', risk, tiers };
+    const tiers = [], rules = [];
+    manualEl.querySelectorAll('.tier-row').forEach((row) => {
+      const riskRaw = row.querySelector('.tier-risk').value;
+      const rowRisk = riskRaw === '' || isNaN(Number(riskRaw)) ? risk : Number(riskRaw); // 0 = trade ignoré
+      const after = Number(row.querySelector('.tier-after').value) || 0;
+      if (row._conds.length) rules.push({ conds: row._conds.map((c) => ({ field: c.field, value: c.value })), afterSl: after > 0 ? after : null, risk: rowRisk });
+      else tiers.push({ afterSl: after || 1, newRisk: rowRisk });
+    });
+    return { mode: 'manual', risk, tiers, rules };
   }
 
   document.getElementById('generateBtn').addEventListener('click', () => {

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=8">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=8">
-<link rel="stylesheet" href="css/backtest-da.css?v=9">
+<link rel="stylesheet" href="css/backtest-da.css?v=10">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -91,6 +91,11 @@
   .mm-card__mini-value{ font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; }
   .mm-card__extra{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); flex-wrap:wrap; gap:6px; }
   .mm-card__extra b{ color:var(--ink); }
+  .mm-card__rules{ font-size:12px; line-height:1.55; color:var(--muted); padding:9px 11px; border-radius:10px; border:1px solid rgba(249,164,94,.3); background:rgba(249,164,94,.06); }
+  .mm-card__rules-k{ display:block; font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#f9a45e; margin-bottom:3px; }
+  .mm-card__rules b{ color:var(--ink); }
+  .mm-card__ok{ color:var(--green); }
+  .mm-card__warn{ color:var(--amber); }
   .mm-card__toggle{
     margin-top:4px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font:inherit;
     font-size:13px; font-weight:700; color:var(--ink); background:var(--bg); border:1px solid var(--line2); border-radius:var(--radius-pill);
@@ -301,9 +306,9 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js"></script>
+<script src="js/backtest-engine.js?v=3"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
-<script src="js/propfirm-fit.js?v=5"></script>
+<script src="js/propfirm-fit.js?v=6"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -329,6 +334,25 @@ CHESTTour.init([
   document.getElementById('reportZone').style.display = '';
 
   const hasPf = !!record.pf;
+  const riskCfg = (c) => ({ risk: c.risk, tiers: c.tiers || [], rules: c.rules || [] });
+  // Règles « Si » du compte suivi par la recommandation (propfirm si présent) : multiplicateur
+  // de risque par trade (risque de la règle / risque de base) pour la simulation des comptes.
+  const fitCfg = hasPf ? record.pf : record.cp;
+  const fitRules = (fitCfg.rules || []).filter((r) => !r.afterSl);
+  const fitWeightOf = fitRules.length && fitCfg.risk > 0
+    ? (t) => window.CHESTBacktestEngine.resolveRisk(t, { risk: fitCfg.risk, tiers: [], rules: fitRules }, 0) / fitCfg.risk
+    : null;
+  const bonusLabel = (key) => key.indexOf('x:') === 0 ? key.slice(2) : ({ source: 'Source', confirmation: 'Confirmation', order: 'Ordre' })[key] || key;
+  function rulesSummary(cfg) {
+    const rules = cfg.rules || [];
+    if (!rules.length) return '';
+    const txt = rules.map((r) => {
+      const c = r.conds.map((x) => `${bonusLabel(x.field)} ${x.value}`).join(' + ');
+      const after = r.afterSl ? ` après ${r.afterSl} SL` : '';
+      return `${c}${after} → ${r.risk === 0 ? 'ignoré' : r.risk + ' %'}`;
+    }).join(' · ');
+    return txt;
+  }
   const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
   const MONTHS_FR_SHORT = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
 
@@ -409,7 +433,7 @@ CHESTTour.init([
   document.getElementById('heroPeriod').textContent = monthCount;
   document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}`;
 
-  const heroReport = window.CHESTBacktestEngine.computeReport(record.trades, record.capital, { risk: record.cp.risk, tiers: record.cp.tiers || [] });
+  const heroReport = window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp));
   document.getElementById('heroGrade').textContent = computeGrade(heroReport.stats);
 
   let mmDetailAccount = 'cp';
@@ -441,8 +465,18 @@ CHESTTour.init([
     });
   }
 
-  function mmCardHtml(account, report, label, color, slStreak, counts, tradesTotal) {
+  function mmCardHtml(account, report, label, color, slStreak, allCounts, tradesTotal) {
     const s = report.stats;
+    const cfg = account === 'pf' ? record.pf : record.cp;
+    const skipped = s.skippedTrades || 0;
+    const counts = { TP: 0, SL: 0, BE: 0 };
+    report.curve.slice(1).forEach((pt) => { const r = String(pt.trade.result).toUpperCase(); if (counts[r] != null) counts[r] += 1; });
+    const nRules = (cfg.rules || []).length;
+    const po = cfg.premium && cfg.premium.oos;
+    const oosNote = po ? (po.holds ? ' <span class="mm-card__ok">· tient hors échantillon</span>' : ' <span class="mm-card__warn">· ne tient pas hors échantillon : prudence</span>') : '';
+    const rulesHtml = nRules
+      ? `<div class="mm-card__rules"><span class="mm-card__rules-k">${cfg.premium ? 'Réglage premium' : 'Règles « Si »'}</span> ${rulesSummary(cfg)}${skipped ? ` · <b>${skipped}</b> trade${skipped > 1 ? 's' : ''} ignoré${skipped > 1 ? 's' : ''}` : ''}${oosNote}</div>`
+      : '';
     const isSelected = mmDetailAccount === account;
     return `
       <div class="mm-card chest-glass chest-glass--mini" style="--mm-color:${color}">
@@ -460,9 +494,10 @@ CHESTTour.init([
           <div><div class="mm-card__mini-label">Profit factor</div><div class="mm-card__mini-value">${s.profitFactor != null ? s.profitFactor.toFixed(2) : '—'}</div></div>
         </div>
         <div class="mm-card__extra">
-          <span>Trades total <b>${tradesTotal}</b></span>
+          <span>Trades pris <b>${s.totalTrades}</b>${skipped ? ` / ${tradesTotal}` : ''}</span>
           <span>SL consécutifs max <b>${slStreak}</b></span>
         </div>
+        ${rulesHtml}
         <button type="button" class="mm-card__toggle ${isSelected ? 'is-selected' : ''}" data-mm-account="${account}">
           ${isSelected ? 'Détails affichés ci-dessous' : 'Money management'} <span class="plus">${isSelected ? '−' : '+'}</span>
         </button>
@@ -905,6 +940,7 @@ CHESTTour.init([
         </details>
       </div>
 
+      ${res.meta.weighted ? `<p class="bt-note">Tes règles « Si » sont appliquées à la simulation : chaque trade est pondéré par le risque de sa règle rapporté au risque de base, et les trades à 0 % sont ignorés. Le risque conseillé ci-dessus est le risque de base.</p>` : ''}
       <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Les trades qui traversent un week-end ou la nuit sont détectés grâce aux heures d'ouverture et de clôture ; une détention interdite fait perdre le compte. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais du challenge sont les prix affichés sur les pages officielles (tarif normal quand il est connu), remboursements compris quand ils sont documentés. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
   }
 
@@ -929,7 +965,7 @@ CHESTTour.init([
     document.getElementById('fitBody').innerHTML = '<div class="cal-state">Simulation de la vie des comptes…</div>';
     clearTimeout(fitTimer);
     fitTimer = setTimeout(() => {
-      const res = window.CHESTPropFit.fit(trades, record.capital, { horizonMonths: fitHorizon });
+      const res = window.CHESTPropFit.fit(trades, record.capital, { horizonMonths: fitHorizon, weightOf: fitWeightOf });
       fitCache.set(key, res);
       paintFit(res, key);
     }, 30);
@@ -937,8 +973,8 @@ CHESTTour.init([
 
   function renderAll() {
     const trades = filteredTrades();
-    const cpReport = window.CHESTBacktestEngine.computeReport(trades, record.capital, { risk: record.cp.risk, tiers: record.cp.tiers || [] });
-    const pfReport = hasPf ? window.CHESTBacktestEngine.computeReport(trades, record.capital, { risk: record.pf.risk, tiers: record.pf.tiers || [] }) : null;
+    const cpReport = window.CHESTBacktestEngine.computeReport(trades, record.capital, riskCfg(record.cp));
+    const pfReport = hasPf ? window.CHESTBacktestEngine.computeReport(trades, record.capital, riskCfg(record.pf)) : null;
     const slStreak = maxConsecutiveSl(trades);
     const counts = { TP: 0, SL: 0, BE: 0 };
     trades.forEach((t) => { const r = String(t.result).toUpperCase(); if (counts[r] != null) counts[r] += 1; });
