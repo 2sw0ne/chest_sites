@@ -35,9 +35,12 @@
      en z-index 0 — le .chest-glass du graphique étant en position:relative,
      il passe AU-DESSUS : la lueur se retrouve derrière le verre, floutée et
      assombrie par lui. C'est exactement l'effet de la maquette. */
-  inset:0 0 -820px 0 !important;
-  mask-image: linear-gradient(180deg,#000 0%,#000 62%,rgba(0,0,0,.55) 82%,transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg,#000 0%,#000 62%,rgba(0,0,0,.55) 82%,transparent 100%);
+  inset:0 0 -640px 0 !important;
+  background:radial-gradient(620px circle at var(--mx,70%) var(--my,120px), rgba(252,18,131,.2), transparent 70%) !important;
+  /* Fondu long et régulier : la lueur s'éteint progressivement en
+     descendant, sans palier visible. */
+  mask-image: linear-gradient(180deg,#000 0%,#000 46%,transparent 92%);
+  -webkit-mask-image: linear-gradient(180deg,#000 0%,#000 46%,transparent 92%);
 }
 /* Le contenu qui suit doit rester au-dessus du calque, sauf le verre qui
    le laisse transparaître en l'atténuant. */
@@ -150,8 +153,7 @@
 /* Le conteneur .container bridait la page à 1180px alors que la maquette
    est pleine largeur — le graphique respire enfin. */
 .chest-main > main.container{ max-width:none; padding:0; }
-.chest-main > main.container > *{ margin-left:clamp(20px,4vw,34px); margin-right:clamp(20px,4vw,34px); }
-.chest-main > main.container > .scnr-topbar{ margin-left:0; margin-right:0; }
+/* (gouttière portée par le conteneur, voir §14) */
 .scnr-desc{ font-size:13.5px; line-height:1.6; color:var(--chest-ink-2); padding:22px 26px 18px; }
 .scnr-tags{ padding:0 26px 22px; }
 .scnr-tags span{
@@ -785,7 +787,9 @@ small{ color:var(--chest-ink-3); }
   max-width:none !important;
   padding:0 clamp(20px,3vw,30px) !important;
 }
-.chest-main > main.container > *{ margin-left:0 !important; margin-right:0 !important; }
+/* Ne jamais écraser les marges des enfants : plusieurs blocs se centrent
+   avec margin:0 auto (assistant BERICH, cartes d'étapes). Le conteneur
+   porte seul la gouttière. */
 
 /* La barre de contrôle redevient une fenêtre, alignée au graphique */
 .scnr-topbar.card{
@@ -902,3 +906,20 @@ small{ color:var(--chest-ink-3); }
 /* ---- Lignes du jour : colonnes Prévu / Réel lisibles ---- */
 .day-row .col{ font-size:12.5px !important; }
 .day-row .col span{ font-size:9px !important; letter-spacing:.14em !important; margin-bottom:2px; }
+
+
+/* ════════ 16. CORRECTIFS DE RÉGRESSION ════════ */
+
+/* L'assistant BERICH et les cartes centrées gardent leur centrage. */
+.wizard-card.card{ margin-left:auto !important; margin-right:auto !important; }
+
+/* Volet : bulle franchement visible, chevron contrasté. */
+.chest-sidebar__toggle-bg path{
+  fill:#17171c !important;
+  stroke:rgba(255,255,255,.22) !important;
+  stroke-width:1.2 !important;
+}
+.chest-sidebar__toggle{ color:#f6f6f7 !important; }
+.chest-sidebar__toggle:hover .chest-sidebar__toggle-bg path{
+  fill:#1e1e24 !important; stroke:rgba(249,164,94,.6) !important;
+}

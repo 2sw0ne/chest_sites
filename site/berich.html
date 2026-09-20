@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=4">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=4">
+<link rel="stylesheet" href="css/chest-da.css?v=7">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=7">
 <style>
   /* ================= Hero BE FR€E — fond neon plein largeur, meme principe
      que .scnr-hero (Stratégies) et .sentiment-hero (Calendrier) : breakout
@@ -37,8 +37,10 @@
   .berich-hero__inner{ position:relative; max-width:520px; margin:0 auto; }
   .berich-hero__logo-wrap{ display:inline-flex; margin-bottom:8px; }
   .berich-hero__logo{
-    width:168px; height:168px; object-fit:contain; display:block;
-    mix-blend-mode:screen; /* fond noir de l'image -> transparent sur le fond sombre du hero, sans contour visible */
+    width:148px; height:148px; object-fit:contain; display:block;
+    /* PNG détouré (vrai canal alpha) : plus de fond noir à masquer par
+       mix-blend-mode, la tuile de verre se pose directement sur la lueur. */
+    filter:drop-shadow(0 14px 38px rgba(51,230,166,.3));
   }
   .berich-hero__title{ font-size:clamp(34px,5.5vw,52px); font-weight:800; letter-spacing:-.03em; margin:0 0 12px; color:#fff; }
   .berich-hero__sub{ font-size:13.5px; color:rgba(255,255,255,.62); line-height:1.6; margin:0; }
@@ -171,7 +173,7 @@
 <div class="chest-shell" id="chestShell">
   <aside class="chest-sidebar">
     <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
-      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 22 112" preserveAspectRatio="none"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div class="chest-sidebar__label"><span>Navigation</span></div>
@@ -213,7 +215,7 @@
 
   <section class="berich-hero">
     <div class="berich-hero__inner">
-      <div class="berich-hero__logo-wrap"><img class="berich-hero__logo" src="assets/logo-berich.png" alt="BE FR€E"></div>
+      <div class="berich-hero__logo-wrap"><img class="berich-hero__logo" src="assets/logo-berich.png?v=2" alt="BE FR€E"></div>
       <h1 class="berich-hero__title">BERICH</h1>
       <p class="berich-hero__sub">Graphique en direct, signaux détectés par ton scanner, et prise de position en un clic.</p>
     </div>
@@ -309,7 +311,7 @@
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
 <script src="js/nav.js?v=2"></script>
-<script src="js/chest-ui.js?v=1"></script>
+<script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=3"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>

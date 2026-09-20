@@ -28,13 +28,18 @@
     function apply(e) {
       pending = null;
       spots.forEach((spot) => {
-        const r = spot.getBoundingClientRect();
-        // Hors écran : on ne recalcule pas.
+        // Le calque déborde volontairement sous la section (pour passer
+        // derrière le graphique) : la position doit donc être mesurée sur
+        // LE CALQUE, pas sur la section — sinon le pourcentage est calculé
+        // sur une autre hauteur et la lueur décroche du curseur.
+        const layer = spot.querySelector('.chest-spot__layer') || spot;
+        const r = layer.getBoundingClientRect();
+        if (!r.width || !r.height) return;
         if (r.bottom < -400 || r.top > window.innerHeight + 400) return;
-        const x = ((e.clientX - r.left) / r.width) * 100;
-        const y = ((e.clientY - r.top) / r.height) * 100;
-        spot.style.setProperty('--mx', x.toFixed(1) + '%');
-        spot.style.setProperty('--my', y.toFixed(1) + '%');
+        // En pixels : insensible à la taille du calque, donc exact même
+        // quand il déborde largement de sa section.
+        spot.style.setProperty('--mx', (e.clientX - r.left).toFixed(0) + 'px');
+        spot.style.setProperty('--my', (e.clientY - r.top).toFixed(0) + 'px');
       });
     }
 

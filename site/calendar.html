@@ -8,8 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=4">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=4">
+<link rel="stylesheet" href="css/chest-da.css?v=7">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=7">
+<link rel="stylesheet" href="css/calendar-da.css?v=3">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : sans ca, une regle de classe qui fixe elle-meme
@@ -342,7 +343,7 @@
 <div class="chest-shell" id="chestShell">
   <aside class="chest-sidebar">
     <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
-      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 22 112" preserveAspectRatio="none"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div class="chest-sidebar__label"><span>Navigation</span></div>
@@ -398,27 +399,6 @@
         <div class="sentiment-hero__weekly" id="sentimentWeekly">—</div>
         <div class="sentiment-hero__weekly-label" id="sentimentWeeklyLabel">Prévision verrouillée lundi, pour la semaine à venir</div>
         <p class="sentiment-hero__text" id="sentimentText">Chargement de l'analyse…</p>
-        <div class="driver-top3" id="driverTop3"></div>
-        <div class="driver-compact" id="driverCompact" hidden>
-          <div class="driver-compact__detail" id="driverCompactDetail">
-            <p class="driver-compact__hint">Clique une annonce ci-contre pour voir tout son détail ici.</p>
-          </div>
-          <div class="driver-compact__stack" id="driverCompactStack"></div>
-        </div>
-
-        <div class="week-block">
-          <div class="week-block__title" id="weekPastTitle">Résultats de la semaine passée</div>
-          <div class="week-compare" id="weekRealCompare" hidden></div>
-          <div class="driver-top3" id="weekPastTop3"></div>
-          <div class="driver-compact" id="weekPastCompact" hidden>
-            <div class="driver-compact__detail" id="weekPastCompactDetail">
-              <p class="driver-compact__hint">Clique une annonce ci-contre pour voir tout son détail ici.</p>
-            </div>
-            <div class="driver-compact__stack" id="weekPastCompactStack"></div>
-          </div>
-        </div>
-
-        <p class="sentiment-hero__disclaimer">Heuristique statistique — pas une prédiction garantie. Le % du haut est déterminé une fois par semaine (le lundi) à partir des prévisions (US/EU/UK/JP) et ne change plus ensuite ; "Réel" (par carte) et "Réalisé" reflètent eux ce qui s'est effectivement passé. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
       </div>
 
       <div id="sentimentCryptoMode" hidden>
@@ -431,15 +411,51 @@
     </div>
   </section>
 
-  <main class="container">
+  <!-- Sections numérotées, comme la maquette (5a) : 01 annonces motrices,
+       02 semaine passée, 03 publications. Les blocs 01 et 02 n'existent que
+       pour une paire forex / matière première (calendar.js les masque en mode
+       crypto, qui a son propre calcul dans le hero). -->
+  <div id="econBlocks">
+    <section class="cal-sec" id="driversSection">
+      <div class="cal-step">01 — Annonces motrices de la semaine</div>
+      <div class="driver-top3" id="driverTop3"></div>
+      <div class="driver-compact" id="driverCompact" hidden>
+        <div class="driver-compact__detail" id="driverCompactDetail">
+          <p class="driver-compact__hint">Clique une annonce ci-contre pour voir tout son détail ici.</p>
+        </div>
+        <div class="driver-compact__stack" id="driverCompactStack"></div>
+      </div>
+    </section>
+
+    <section class="cal-sec" id="weekSection">
+      <div class="cal-sec__head">
+        <span class="cal-step" id="weekPastTitle">02 — Semaine passée</span>
+        <span class="cal-sec__aside" id="weekPastAside" hidden></span>
+      </div>
+      <div class="week-compare" id="weekRealCompare" hidden></div>
+      <details class="cal-more" id="weekPastDetails">
+        <summary>Voir les annonces de la semaine passée</summary>
+        <div class="driver-top3" id="weekPastTop3"></div>
+        <div class="driver-compact" id="weekPastCompact" hidden>
+          <div class="driver-compact__detail" id="weekPastCompactDetail">
+            <p class="driver-compact__hint">Clique une annonce ci-contre pour voir tout son détail ici.</p>
+          </div>
+          <div class="driver-compact__stack" id="weekPastCompactStack"></div>
+        </div>
+      </details>
+      <p class="cal-disclaimer">Heuristique statistique — pas une prédiction garantie. Le % du haut est déterminé une fois par semaine (le lundi) à partir des prévisions (US/EU/UK/JP) et ne change plus ensuite ; « Réel » (par carte) et « Réalisé » reflètent eux ce qui s'est effectivement passé. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
+    </section>
+  </div>
+
+  <main class="cal-main">
   <!-- Marché crypto — deplace ici depuis le Dashboard (demande explicite du
        2026-09-15) : n'a de sens que quand la paire suivie est une crypto,
        jamais affiche a cote d'un sentiment forex/matieres premieres. Meme
        widget (js/crypto-movers.js), il se contente de ne rien faire si ses
        elements ne sont pas dans la page - ici ils y sont, juste caches par
        defaut et reveles par calendar.js selon la paire suivie. -->
-  <div id="moversSection" hidden>
-    <div class="eyebrow" style="margin-top:28px">Marché crypto — top 100</div>
+  <section class="cal-sec" id="moversSection" hidden>
+    <div class="cal-step">Marché crypto — top 100</div>
     <div class="card" style="padding:22px 24px">
       <div class="mover-cols">
         <div>
@@ -453,36 +469,42 @@
       </div>
       <p class="hint" style="margin:16px 0 0">Parmi les 100 plus grandes capitalisations (hors stablecoins) — données CoinGecko en direct, indépendant de la paire suivie ci-dessus.</p>
     </div>
-  </div>
+  </section>
 
-  <div class="page-head">
-    <h1>Calendrier économique</h1>
-    <p>US, zone euro, UK, Japon. Aujourd'hui et cette semaine viennent directement d'investing.com (leurs étoiles, leurs prévisions) ; au-delà, tradingeconomics.com prend le relais — leur notation diffère parfois de celle d'investing.com pour un même évènement, à toi de vérifier au cas par cas. Mis à jour par <code style="background:var(--panel);padding:2px 6px;border-radius:5px">fetch_calendar.py</code>, usage strictement personnel.</p>
-  </div>
-
-  <div class="imp-filter" id="importanceFilter">
-    <span class="imp-filter__label">Importance affichée :</span>
-    <button class="imp-pill" data-imp="high" type="button"><span class="stars">✯✯✯</span> Élevée</button>
-    <button class="imp-pill" data-imp="medium" type="button"><span class="stars">✯✯☆</span> Moyenne</button>
-    <button class="imp-pill" data-imp="low" type="button"><span class="stars">✯☆☆</span> Faible</button>
-  </div>
-
-  <div class="day-nav-head">
-    <div class="eyebrow" id="dayZoneLabel">Aujourd'hui</div>
-    <div class="day-nav">
-      <button type="button" id="dayPrev" class="day-nav__btn" aria-label="Jour précédent">◀</button>
-      <button type="button" id="dayToday" class="day-nav__today is-active">Aujourd'hui</button>
-      <button type="button" id="dayNext" class="day-nav__btn" aria-label="Jour suivant">▶</button>
+  <section class="cal-sec cal-sec--pub">
+    <div class="cal-pub-head">
+      <div class="cal-pub-title">
+        <div class="cal-step">03 — Publications</div>
+        <h1>Calendrier économique</h1>
+        <p>US, zone euro, UK, Japon. Aujourd'hui et cette semaine viennent d'investing.com ; au-delà, tradingeconomics.com prend le relais — leur notation d'importance diffère parfois pour un même évènement, à vérifier au cas par cas. Mis à jour par <code>fetch_calendar.py</code>, usage strictement personnel.</p>
+      </div>
+      <div class="cal-controls">
+        <div class="imp-filter" id="importanceFilter">
+          <span class="imp-filter__label">Importance</span>
+          <button class="imp-pill" data-imp="high" type="button"><span class="stars">✯✯✯</span> Élevée</button>
+          <button class="imp-pill" data-imp="medium" type="button"><span class="stars">✯✯☆</span> Moyenne</button>
+          <button class="imp-pill" data-imp="low" type="button"><span class="stars">✯☆☆</span> Faible</button>
+        </div>
+        <div class="day-nav-head">
+          <div class="day-nav">
+            <button type="button" id="dayPrev" class="day-nav__btn" aria-label="Jour précédent">◀</button>
+            <button type="button" id="dayToday" class="day-nav__today is-active">Aujourd'hui</button>
+            <button type="button" id="dayNext" class="day-nav__btn" aria-label="Jour suivant">▶</button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div id="bubbleZone">
-    <div class="cal-state">Chargement…</div>
-  </div>
 
-  <div class="eyebrow">Prochains jours</div>
-  <div id="upcomingZone">
-    <div class="cal-state">Chargement…</div>
-  </div>
+    <div class="cal-label" id="dayZoneLabel">Aujourd'hui</div>
+    <div id="bubbleZone">
+      <div class="cal-state">Chargement…</div>
+    </div>
+
+    <div class="cal-label cal-label--next">Prochains jours</div>
+    <div id="upcomingZone">
+      <div class="cal-state">Chargement…</div>
+    </div>
+  </section>
 </main>
 </div>
 </div>
@@ -490,12 +512,12 @@
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js?v=2"></script>
-<script src="js/chest-ui.js?v=1"></script>
+<script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=3"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
 <script src="js/crypto-movers.js"></script>
-<script src="js/calendar.js?v=21"></script>
+<script src="js/calendar.js?v=22"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([

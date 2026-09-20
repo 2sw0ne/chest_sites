@@ -421,6 +421,7 @@
     const hero = document.getElementById('sentimentHero');
     const meta = CRYPTO_CONFIG[pairKey];
     document.getElementById('sentimentEconMode').hidden = true;
+    document.getElementById('econBlocks').hidden = true;
     document.getElementById('sentimentCryptoMode').hidden = false;
     document.getElementById('moversSection').hidden = false;
     document.getElementById('sentimentCode').textContent = meta.code;
@@ -532,7 +533,7 @@
   // des % je sais pas si c'est la prevision ou la realite".
   function driverCardHtml(d) {
     const ev = d.ev;
-    const badge = dayBadge(ev);
+    const badge = [dayBadge(ev), ev.time].filter(Boolean).join(' '); // "Lundi 14:30"
     if (hasNoData(ev)) {
       // Evenement qualitatif (discours, conference...) : jamais de valeur
       // chiffree, meme une fois passe - inutile (et trompeur) de lui
@@ -881,6 +882,31 @@
       ${coverageNote}`;
   }
 
+  // Une annonce publiee est "dans le sens prevu" quand le reel s'est ecarte
+  // du precedent dans la meme direction que le consensus (ou a pile atteint
+  // le consensus). null = pas assez de chiffres pour trancher (annonce non
+  // publiee, qualitative, ou consensus == precedent : aucun sens attendu).
+  function inForecastDirection(ev) {
+    if (!ev.released) return null;
+    const num = (v) => parseFloat(String(v).replace(',', '.'));
+    const prev = num(ev.previous), cons = num(ev.consensus), act = num(ev.actual);
+    if ([prev, cons, act].some(isNaN)) return null;
+    const expected = Math.sign(cons - prev);
+    if (expected === 0) return null;
+    return act === cons || Math.sign(act - prev) === expected;
+  }
+  // "4 annonces sur 5 dans le sens prévu" — compte factuel sur les annonces
+  // de la semaine passée, affiche a droite du titre de la section 02.
+  function renderPastAside(drivers) {
+    const el = document.getElementById('weekPastAside');
+    if (!el) return;
+    const verdicts = drivers.map((d) => inForecastDirection(d.ev)).filter((v) => v !== null);
+    el.hidden = !verdicts.length;
+    if (!verdicts.length) return;
+    const ok = verdicts.filter(Boolean).length;
+    el.textContent = `${ok} annonce${ok > 1 ? 's' : ''} sur ${verdicts.length} dans le sens prévu`;
+  }
+
   function renderSentimentHeader(events) {
     const hero = document.getElementById('sentimentHero');
     if (!hero) return;
@@ -890,6 +916,7 @@
       return;
     }
     document.getElementById('sentimentEconMode').hidden = false;
+    document.getElementById('econBlocks').hidden = false;
     document.getElementById('sentimentCryptoMode').hidden = true;
     document.getElementById('moversSection').hidden = true;
     const config = PAIR_CONFIG[pairKey];
@@ -949,9 +976,10 @@
 
     // --- Bas : resultats de la semaine PASSEE - prevision verrouillee de
     // cette semaine-la vs ce qui s'est reellement passe, + score de reussite.
-    document.getElementById('weekPastTitle').textContent = `Résultats de la semaine passée (${fmtRange(pastMonday, pastSunday)})`;
+    document.getElementById('weekPastTitle').textContent = `02 — Semaine passée (${fmtRange(pastMonday, pastSunday)})`;
     const pastWeekEvents = allEvents.filter((e) => e.date && isoInRange(e.date, pastMonday, pastSunday));
     const pastResult = computeForecastSentiment(pastWeekEvents, config);
+    renderPastAside(pastResult.drivers);
     const pastLocked = getLockedWeeklyForecast(pairKey, pastMonday, pastResult, config);
     renderDriverCompact(
       { top3: 'weekPastTop3', compact: 'weekPastCompact', stack: 'weekPastCompactStack', detail: 'weekPastCompactDetail' },
@@ -1050,17 +1078,34 @@
   // % de prevision disparaissait une fois l'annonce publiee, retour direct
   // utilisateur : "le calendrier n'affiche plus le % de prevision une fois
   // les annonces passees").
-  function dayRowHtml(ev, isNow) {
+  // `compact` (colonnes "Prochains jours", etroites) : heure, drapeau, titre
+  // et Prevu seulement - ces jours-la ne sont pas encore publies. Le tableau
+  // du jour, lui, a 3 colonnes de chiffres sous un en-tete (voir dayHeadHtml).
+  function dayRowHtml(ev, isNow, compact) {
     const fTone = forecastTone(ev);
     const rTone = ev.released ? valueTone(ev) : 'neutral';
+    const title = `<span class="ev"><span class="ev__name">${ev.event}</span> <span class="imp-dot" title="Importance ${IMP_LABEL[ev.importance] || 'Élevée'}">${IMP_STARS[ev.importance] || IMP_STARS.high}</span></span>`;
+    if (compact) {
+      return `
+      <div class="day-row day-row--compact">
+        <span class="t">${ev.time || '—'}</span>
+        <span class="c">${flagIcon(ev.country)}</span>
+        ${title}
+        <span class="col val ${fTone}">${ev.consensus || '—'}</span>
+      </div>`;
+    }
     return `
       <div class="day-row${isNow ? ' is-now' : ''}">
         <span class="t">${ev.time || '—'}</span>
         <span class="c">${flagIcon(ev.country)}</span>
-        <span>${ev.event} <span class="imp-dot" title="Importance ${IMP_LABEL[ev.importance] || 'Élevée'}">${IMP_STARS[ev.importance] || IMP_STARS.high}</span></span>
+        ${title}
+        <span class="col col--prev"><span>Précédent</span>${ev.previous || '—'}</span>
         <span class="col val ${fTone}"><span>Prévu</span>${ev.consensus || '—'}</span>
         <span class="col val ${rTone}"><span>Réel</span>${ev.released ? (ev.actual || '—') : '—'}</span>
       </div>`;
+  }
+  function dayHeadHtml() {
+    return `<div class="day-row day-head"><span>Heure</span><span>Pays</span><span>Évènement</span><span class="col">Précédent</span><span class="col">Prévu</span><span class="col">Réel</span></div>`;
   }
   // Index de l'annonce "en cours" dans une liste triee par heure : la
   // premiere qui n'est pas encore passee, ou la derniere si tout est deja
@@ -1085,9 +1130,9 @@
 
     const dayEvents = events.filter((e) => e.date === iso);
 
-    const label = iso === todayIso
-      ? "Aujourd'hui"
-      : selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    // "Jeudi 17 septembre — aujourd'hui" (la maquette nomme toujours le jour).
+    const label = selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      + (iso === todayIso ? " — aujourd'hui" : '');
     document.getElementById('dayZoneLabel').textContent = label;
     document.getElementById('dayToday').classList.toggle('is-active', iso === todayIso);
 
@@ -1107,7 +1152,7 @@
     // de sens que sur le jour REEL d'aujourd'hui, pas en navigant sur un
     // autre jour.
     const nowIdx = iso === todayIso ? nowRowIndex(dayEvents) : -1;
-    zone.innerHTML = `<div class="day-table">${dayEvents.map((e, i) => dayRowHtml(e, i === nowIdx)).join('')}</div>`;
+    zone.innerHTML = `<div class="day-table">${dayHeadHtml()}${dayEvents.map((e, i) => dayRowHtml(e, i === nowIdx)).join('')}</div>`;
   }
 
   function setupDayNav() {
@@ -1145,8 +1190,9 @@
 
     let html = '';
     groups.forEach((rows, date) => {
-      html += `<div class="upcoming-day"><div class="upcoming-day__label">${fmtDateLabel(date)}</div><div class="day-table">`;
-      html += rows.map((e) => dayRowHtml(e, false)).join('');
+      const n = rows.length;
+      html += `<div class="upcoming-day"><div class="upcoming-day__head"><span class="upcoming-day__label">${fmtDateLabel(date)}</span><span class="upcoming-day__count">${n} annonce${n > 1 ? 's' : ''}</span></div><div class="day-table">`;
+      html += rows.map((e) => dayRowHtml(e, false, true)).join('');
       html += `</div></div>`;
     });
     zone.innerHTML = html;

@@ -26,7 +26,10 @@ Le site se comporte comme **un seul produit** : `app.html` est le shell (sidebar
 - **Ajouter une page** : créer le `.html` avec le même `<head>`/CSS que les autres, l'ajouter à `PAGES` (`shell.js`) et à `APP_PAGES` (`theme.js`), et un lien `href="#/nom"` dans la sidebar d'`app.html`.
 - **Ne pas** tester la création de compte/connexion contre le backend local réel (`accounts.db`) : ça crée de vrais comptes.
 - Les pages `backtesting-swyper.html` / `backtesting-allin.html` (legacy) ne sont plus liées nulle part et restent hors shell.
-- Feuilles de style : `css/chest-da.css` (design system + shell) puis `css/patch-chest-da.css` (correctifs par page fournis par la DA, chargé après). Incrémenter le `?v=` à chaque modification.
+- Feuilles de style : `css/chest-da.css` (design system + shell) puis `css/patch-chest-da.css` (correctifs par page fournis par la DA, chargé après). Incrémenter le `?v=` à chaque modification. Attention : un `sed` sur `chest-da.css?v=N` modifie aussi `patch-chest-da.css?v=N` (sous-chaîne).
+- Calendrier : `calendar.html` suit la maquette 5a en sections numérotées (hero → 01 annonces motrices → 02 semaine passée → 03 publications), habillées par `css/calendar-da.css` (chargé après le patch, préfixe `.chest-root` pour l'emporter sur ses `!important`). `calendar.js` masque `#econBlocks` en mode crypto.
+- Volet rabattable : bosse SVG ouverte (sans `Z`) dont le trait ne suit que la courbe ; règles dans `chest-da.css` avec sélecteurs plus spécifiques que le patch. Ne pas re-fixer la taille du fond en 13×13 (la règle générique `.chest-sidebar__toggle svg` l'écrasait).
+- Logo BERICH : `assets/logo-berich.png` est un PNG détouré (vrai canal alpha), sans `mix-blend-mode`.
 
 ## Plan du site (`site/*.html`)
 

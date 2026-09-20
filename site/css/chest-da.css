@@ -393,6 +393,28 @@
 .chest-shell:not(.is-collapsed) .chest-sidebar__toggle svg{ transform:rotate(180deg); }
 .chest-sidebar__toggle-bg{ position:absolute; top:0; left:-2px; width:calc(100% + 2px); height:100%; overflow:visible; }
 
+/* Volet : une bosse du volet lui-même (pas un bouton posé à côté).
+   Le bord du volet se soulève autour du chevron : même matière que le volet,
+   et le filet de bord contourne la courbe au lieu de passer derrière.
+   Le tracé est ouvert (sans Z) : le remplissage se ferme tout seul, mais le
+   trait ne dessine que la courbe, jamais la base collée au volet.
+   Sélecteurs volontairement plus spécifiques que le patch (qui fixe des
+   tailles et des couleurs en !important). */
+.chest-shell .chest-sidebar .chest-sidebar__toggle{
+  width:22px !important; height:112px !important; right:-22px !important;
+  color:var(--chest-ink-2) !important;
+}
+.chest-shell .chest-sidebar .chest-sidebar__toggle:hover{ color:var(--chest-ink) !important; }
+.chest-shell .chest-sidebar .chest-sidebar__toggle svg.chest-sidebar__toggle-bg{
+  left:-1px; top:0; width:calc(100% + 1px) !important; height:100% !important; margin:0 !important; transform:none !important;
+}
+.chest-shell .chest-sidebar .chest-sidebar__toggle-bg path{
+  fill:#070709 !important; stroke:rgba(255,255,255,.12) !important; stroke-width:1px !important;
+  vector-effect:non-scaling-stroke; transition:stroke .2s;
+}
+.chest-shell .chest-sidebar .chest-sidebar__toggle:hover .chest-sidebar__toggle-bg path{ stroke:rgba(255,255,255,.28) !important; fill:#070709 !important; }
+.chest-shell .chest-sidebar .chest-sidebar__toggle svg:last-child{ width:12px !important; height:12px !important; margin-left:-5px !important; }
+
 .chest-sidebar__label{ padding:20px 14px 10px; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--chest-ink-3); white-space:nowrap; overflow:hidden; }
 .chest-shell.is-collapsed .chest-sidebar__label{ height:22px; padding:0; }
 .chest-shell.is-collapsed .chest-sidebar__label span{ display:none; }
@@ -525,13 +547,6 @@ html.is-embedded .chest-main{ min-height:100vh; }
 /* .chest-main est un flex : un <main class="container"> à marges auto s'y
    rétrécit à son contenu et se centre. Il doit prendre toute la largeur. */
 .chest-main > main.container{ width:100%; margin-left:0 !important; margin-right:0 !important; }
-
-/* Calendrier, « Prochains jours » : une ligne = heure, drapeau, titre, Prévu,
-   Réel (pas de Précédent). Le patch prévoyait une colonne de moins que le
-   balisage réel, d'où un « Réel » qui passait à la ligne. */
-@media (min-width:641px){
-  .chest-root #upcomingZone .day-row{ grid-template-columns:48px 24px minmax(0,1fr) 54px 54px !important; column-gap:10px; }
-}
 
 /* ---------- Côté shell ---------- */
 html.is-shell, html.is-shell body{ height:100%; overflow:hidden; }

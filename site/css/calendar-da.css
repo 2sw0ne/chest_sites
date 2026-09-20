@@ -1,0 +1,233 @@
+/* ============================================================
+   CHEST — Calendrier, mise en page de la maquette (CHEST App.dc.html, 5a)
+   Chargé APRÈS patch-chest-da.css : il reprend la main sur les règles du
+   patch qui portaient sur l'ancien balisage (bulles, en-tête de journée).
+   Structure : hero → 01 annonces motrices → 02 semaine passée →
+   03 publications (titre + filtres, tableau du jour, prochains jours).
+   ============================================================ */
+
+/* ---------- Sections numérotées ---------- */
+.chest-root .cal-sec{
+  border-top:1px solid var(--chest-rule);
+  padding:30px clamp(20px,3vw,34px) 34px;
+}
+.chest-root .cal-sec--pub{ padding-top:34px; padding-bottom:44px; }
+.chest-root .cal-step{
+  font-size:10px; letter-spacing:.24em; text-transform:uppercase;
+  color:var(--chest-ink-3); margin:0 0 18px;
+}
+.chest-root .cal-sec__head{
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  margin-bottom:22px; flex-wrap:wrap;
+}
+.chest-root .cal-sec__head .cal-step{ margin:0; }
+.chest-root .cal-sec__aside{ font-size:11.5px; color:var(--chest-ink-3); }
+
+/* ---------- Hero : cotes de la maquette ---------- */
+.chest-root .sentiment-hero{ padding:clamp(44px,7vh,60px) 24px 34px; }
+.chest-root .sentiment-hero__code{
+  font-size:clamp(46px,7vw,74px); font-weight:700; letter-spacing:-.045em;
+  line-height:1.06; padding-bottom:.06em; margin:0 0 10px;
+}
+.chest-root .sentiment-hero__label{ margin-bottom:34px; }
+.chest-root .sentiment-hero__weekly{
+  font-size:clamp(34px,4.4vw,48px); font-weight:700; letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums; margin-bottom:8px;
+}
+.chest-root .sentiment-hero[data-tone="pos"] .sentiment-hero__weekly{ text-shadow:0 0 34px rgba(51,230,166,.45); }
+.chest-root .sentiment-hero[data-tone="neg"] .sentiment-hero__weekly{ text-shadow:0 0 34px rgba(255,77,94,.45); }
+.chest-root .sentiment-hero__weekly-label{ letter-spacing:.12em; margin-bottom:0; }
+.chest-root .sentiment-hero__text{ max-width:620px; margin:26px auto 0; }
+.chest-root .sentiment-hero__badge{ margin-bottom:26px; }
+
+/* ---------- 01 · Annonces motrices : cartes de verre ---------- */
+.chest-root .driver-top3{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:14px; margin:0;
+}
+.chest-root .driver-top3 > .driver-card{
+  position:relative; overflow:hidden; gap:14px; padding:18px 20px;
+  border:1px solid rgba(255,255,255,.12); border-radius:var(--chest-r);
+  background:linear-gradient(160deg,rgba(9,9,11,.5),rgba(9,9,11,.66));
+  backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
+  -webkit-backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
+  box-shadow:0 14px 34px rgba(0,0,0,.4),
+             inset 1.5px 1.5px 0 rgba(255,255,255,.16),
+             inset -1.5px -1.5px 0 rgba(255,255,255,.05);
+  transition:transform .22s var(--chest-ease), border-color .22s;
+}
+.chest-root .driver-top3 > .driver-card:hover{ transform:translateY(-3px); border-color:rgba(249,164,94,.4); }
+.chest-root .driver-card__top{ gap:9px; }
+.chest-root .driver-card__top .flag-ic{ width:22px; height:16px; }
+.chest-root .driver-card__name{ font-size:12.5px; }
+.chest-root .driver-card__top .tag{ font-size:9.5px; letter-spacing:.06em; color:var(--chest-ink-3); }
+.chest-root .driver-card__compare{ gap:12px; }
+.chest-root .driver-card__compare-col span{ font-size:9.5px; letter-spacing:.06em; opacity:1; color:rgba(255,255,255,.5); margin-bottom:4px; }
+.chest-root .driver-card__compare-col.is-main b{ font-size:22px; letter-spacing:-.02em; }
+.chest-root .driver-card__compare-col.is-ref b{ font-size:15px; opacity:.6; }
+.chest-root .driver-card__divider{ background:var(--chest-acc-2); opacity:.6; }
+/* Estimation XAU/DXY : la ligne d'appoint de la carte, discrète */
+.chest-root .driver-card__estimates{
+  gap:18px; padding-top:12px; border-top:1px solid var(--chest-rule); font-size:10.5px;
+}
+.chest-root .driver-card__estimates span{ font-size:9px; letter-spacing:.1em; margin-bottom:2px; }
+.chest-root .driver-card__estimates b{ font-size:12.5px; }
+.chest-root .driver-card__calib{ font-size:10px; margin-top:0; }
+.chest-root .driver-card__match{ margin-top:0; }
+
+/* Panneau de détail + onglets verticaux */
+.chest-root .driver-compact{ gap:16px; margin:16px 0 0; flex-wrap:wrap; }
+.chest-root .driver-compact__detail{
+  flex:0 0 240px; border:1px solid rgba(255,255,255,.1); border-radius:14px;
+  background:rgba(255,255,255,.03); padding:16px;
+}
+.chest-root .driver-compact__hint{ color:var(--chest-ink-3); }
+.chest-root .driver-compact__stack{ flex:1 1 280px; gap:3px; padding:4px 2px 10px; }
+.chest-root .driver-tab{
+  flex:1 1 28px; min-width:22px; max-width:32px; height:176px; padding:11px 0 10px;
+  border:1px solid rgba(255,255,255,.12); border-radius:9px; background:rgba(255,255,255,.03);
+}
+/* Le nom est lisible au repos (maquette) ; au survol l'onglet s'élargit */
+.chest-root .driver-tab__name{ opacity:1; }
+.chest-root .driver-tab:hover{
+  flex-basis:64px; transform:translateY(-5px); background:rgba(255,255,255,.07);
+  border-color:rgba(249,164,94,.5);
+}
+.chest-root .driver-tab.is-active{
+  flex-basis:64px; background:rgba(255,255,255,.07); border-color:rgba(249,164,94,.6);
+  box-shadow:0 10px 26px rgba(249,164,94,.12);
+}
+.chest-root .driver-tab__dot{ width:7px; height:7px; }
+
+/* ---------- 02 · Semaine passée ---------- */
+.chest-root .week-compare{ gap:26px; margin:0 0 4px; justify-content:center; }
+.chest-root .week-compare__col span{ font-size:10.5px; letter-spacing:.1em; margin-bottom:6px; color:rgba(255,255,255,.45); }
+.chest-root .week-compare__col b{ font-size:clamp(30px,3.6vw,40px); font-weight:700; letter-spacing:-.03em; line-height:1; }
+.chest-root .week-compare__col--accuracy b{ font-size:26px; letter-spacing:-.02em; }
+.chest-root .week-compare .val.pos{ text-shadow:0 0 28px rgba(51,230,166,.4); }
+.chest-root .week-compare .val.neg{ text-shadow:0 0 28px rgba(255,77,94,.35); }
+.chest-root .week-compare__divider{ height:46px; background:var(--chest-acc-2); }
+.chest-root .week-compare__divider + .week-compare__col--accuracy{ position:relative; }
+.chest-root .week-compare__accuracy-note{ text-align:center; color:var(--chest-ink-3); margin-top:10px; }
+
+/* Annonces de la semaine passée : repliées, un lien discret les ouvre */
+.chest-root .cal-more{ margin-top:26px; }
+.chest-root .cal-more > summary{
+  list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+  width:max-content; margin:0 auto; padding:7px 14px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.14); font-size:12px; color:var(--chest-ink-2);
+  transition:border-color .18s, color .18s;
+}
+.chest-root .cal-more > summary::-webkit-details-marker{ display:none; }
+.chest-root .cal-more > summary::before{ content:'+'; font-size:14px; line-height:1; transition:transform .2s; }
+.chest-root .cal-more[open] > summary::before{ transform:rotate(45deg); }
+.chest-root .cal-more > summary:hover{ border-color:rgba(249,164,94,.5); color:var(--chest-ink); }
+.chest-root .cal-more > summary:focus-visible{ outline:2px solid var(--chest-acc); outline-offset:2px; }
+.chest-root .cal-more[open] > summary ~ *{ margin-top:18px; }
+.chest-root .cal-more .driver-compact{ margin-top:16px; }
+
+.chest-root .cal-disclaimer{
+  max-width:760px; margin:26px auto 0; text-align:center;
+  font-size:11px; line-height:1.55; color:var(--chest-ink-3);
+}
+.chest-root .cal-disclaimer a{ color:var(--chest-ink-2); text-decoration:underline; }
+
+/* ---------- 03 · Publications ---------- */
+.chest-root .cal-pub-head{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:40px;
+  margin-bottom:26px; flex-wrap:wrap;
+}
+.chest-root .cal-pub-title{ min-width:0; }
+.chest-root .cal-pub-title .cal-step{ margin-bottom:16px; }
+.chest-root .cal-pub-title h1{
+  margin:0; padding-bottom:.06em; font-size:clamp(36px,4.6vw,54px); font-weight:700;
+  letter-spacing:-.045em; line-height:1.04;
+}
+.chest-root .cal-pub-title p{
+  margin:14px 0 0; max-width:560px; font-size:13.5px; line-height:1.6; color:var(--chest-ink-2);
+}
+.chest-root .cal-pub-title code{
+  font-size:.92em; padding:1px 6px; border-radius:5px; background:rgba(255,255,255,.06); color:var(--chest-ink);
+}
+.chest-root .cal-controls{ display:flex; flex-direction:column; align-items:flex-end; gap:12px; flex-shrink:0; }
+.chest-root .cal-controls .imp-filter{ margin:0 !important; gap:8px; justify-content:flex-end; }
+.chest-root .cal-controls .imp-filter__label{
+  font-size:11px !important; letter-spacing:0 !important; text-transform:none !important; color:var(--chest-ink-3) !important; margin-right:2px;
+}
+.chest-root .cal-controls .day-nav-head{ margin:0 !important; display:block !important; }
+.chest-root .cal-controls .day-nav-head .day-nav{ margin-left:0 !important; }
+
+.chest-root .cal-label{
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--chest-ink-2);
+  margin:0 0 10px;
+}
+.chest-root .cal-label--next{ margin-top:30px; }
+.chest-root .cal-label::first-letter{ text-transform:uppercase; }
+
+/* Tableau du jour : en-tête + 3 colonnes de chiffres */
+.chest-root #bubbleZone .day-row{
+  grid-template-columns:74px 44px minmax(0,1fr) 96px 96px 96px !important;
+  column-gap:14px; padding:14px 22px !important;
+}
+.chest-root #bubbleZone .day-row .c .flag-ic{ width:24px; height:17px; }
+.chest-root .day-row .ev{ display:flex; align-items:center; gap:9px; min-width:0; font-size:13px; }
+.chest-root .day-row .ev__name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.chest-root .day-row .imp-dot{ margin-left:0; flex-shrink:0; }
+.chest-root .day-row .col{ font-size:12.5px !important; text-align:right; }
+.chest-root .day-row .col span{ display:none !important; }
+.chest-root .day-row .col--prev{ color:var(--chest-ink-3); font-weight:400; }
+/* Prévu en gris neutre, Réel seul porte la couleur (maquette) */
+.chest-root .day-row:not(.day-head):not(.day-row--compact) .col:not(:last-child),
+.chest-root .day-row--compact .col{ color:var(--chest-ink-2) !important; font-weight:600; }
+.chest-root .day-head{
+  padding:14px 22px !important; border-bottom:1px solid rgba(255,255,255,.1) !important;
+  font-size:10px !important; letter-spacing:.14em; text-transform:uppercase; color:var(--chest-ink-3);
+}
+.chest-root .day-head:hover{ background:transparent !important; }
+.chest-root .day-head .col{ font-size:10px !important; color:var(--chest-ink-3) !important; font-weight:400 !important; }
+
+/* Prochains jours : colonnes compactes */
+.chest-root .upcoming-day__head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  padding:14px 18px; border-bottom:1px solid var(--chest-rule);
+}
+.chest-root .upcoming-day__head .upcoming-day__label{
+  margin:0 !important; padding:0 !important; border:0 !important;
+  font-size:13.5px !important; letter-spacing:0 !important; text-transform:none;
+  color:var(--chest-ink) !important; font-weight:700 !important; display:inline-block;
+}
+.chest-root .upcoming-day__label::first-letter{ text-transform:uppercase; }
+.chest-root .upcoming-day__count{ font-size:11px; color:var(--chest-ink-3); white-space:nowrap; }
+.chest-root .day-row--compact{
+  grid-template-columns:52px 26px minmax(0,1fr) 62px !important;
+  column-gap:10px; padding:11px 18px !important; font-size:12px;
+}
+.chest-root .day-row--compact .t{ font-size:11.5px; color:var(--chest-ink-3) !important; }
+.chest-root .day-row--compact .c .flag-ic{ width:20px; height:14px; }
+.chest-root .day-row--compact .ev{ font-size:12px; }
+.chest-root .day-row--compact .col{ font-size:11.5px !important; }
+
+/* ---------- Petits écrans ---------- */
+@media (max-width:640px){
+  .chest-root .cal-pub-head{ align-items:flex-start; }
+  .chest-root .cal-pub-head{ gap:24px; }
+  .chest-root .cal-controls{ align-items:stretch; width:100%; }
+  .chest-root .cal-controls .imp-filter{ justify-content:flex-start; flex-wrap:wrap; }
+  .chest-root .day-head, .chest-root .day-row .col--prev{ display:none !important; }
+  /* L'ancienne règle de la page masquait la dernière colonne (Réel) */
+  .chest-root .day-row .col:last-child{ display:block !important; }
+  .chest-root #bubbleZone .day-row{ grid-template-columns:44px 24px minmax(0,1fr) 52px 52px !important; column-gap:8px; padding:12px 14px !important; }
+  .chest-root #bubbleZone .day-row .c .flag-ic{ width:20px; height:14px; }
+  .chest-root .day-row .ev{ align-items:flex-start; flex-wrap:wrap; gap:2px 6px; }
+  .chest-root .day-row .ev__name{ white-space:normal; }
+  .chest-root .day-row:not(.day-row--compact) .col span{ display:block !important; font-size:8.5px !important; margin-bottom:2px; }
+  .chest-root .upcoming-day .day-row--compact{ grid-template-columns:44px 24px minmax(0,1fr) 52px !important; }
+  .chest-root .driver-compact{ flex-direction:column; flex-wrap:nowrap; min-width:0; }
+  .chest-root .driver-compact__detail{ flex:0 0 auto; width:100%; min-width:0; box-sizing:border-box; }
+  .chest-root .driver-compact__stack{ flex:0 0 auto; width:100%; min-width:0; max-width:100%; }
+  .chest-root .driver-tab{ height:150px; flex:0 0 28px; }
+  .chest-root .driver-card__top{ flex-wrap:wrap; }
+}
+@media (prefers-reduced-motion:reduce){
+  .chest-root .driver-top3 > .driver-card, .chest-root .driver-tab{ transition:none; }
+}
