@@ -31,6 +31,18 @@ Le site se comporte comme **un seul produit** : `app.html` est le shell (sidebar
 - Volet rabattable : bosse SVG ouverte (sans `Z`) dont le trait ne suit que la courbe ; règles dans `chest-da.css` avec sélecteurs plus spécifiques que le patch. Ne pas re-fixer la taille du fond en 13×13 (la règle générique `.chest-sidebar__toggle svg` l'écrasait).
 - Logo BERICH : `assets/logo-berich.png` est un PNG détouré (vrai canal alpha), sans `mix-blend-mode`.
 
+## DA CHEST — référence pour TOUTE nouvelle fenêtre, modale, page ou composant
+
+Validée par l'utilisateur le 2026-09-20 (« vraiment super »). Tout ce qui est créé pour CHEST doit être fait dans ce style, sans qu'on ait à le redemander. Sources de vérité : `site/css/chest-da.css` (jetons `--chest-*` et composants), `site/css/patch-chest-da.css`, `site/css/calendar-da.css` (patron « sections numérotées »), `CHEST DESIGN/CHEST-DA.md`, maquette `CHEST App.dc.html`.
+
+- **Base** : fond `#050505`, encres `#f6f6f7` / `#9b9ba1` / `#5c5c63`, accent dégradé `#fc1283 → #f9a45e`, vert `#33e6a6`, rouge `#ff4d5e`, ambre `#e8b339`, police Instrument Sans, chiffres tabulaires. Jamais de gris « ancienne carte », jamais d'emoji comme icône (SVG en ligne).
+- **Fenêtres / modales / cartes = verre liquide** : bordure 1px `rgba(255,255,255,.12–.14)`, rayon 16–20, fond dégradé sombre + `backdrop-filter: blur(22–34px) brightness(.34–.62)`, reflets internes `inset 1.5px` blancs, filet clair en haut (voir `.chest-glass`, `.chest-glass--mini`, `.lotcalc-modal`).
+- **Typographie** : étiquette `10px / .24em / majuscules / ink-3` avec numérotation (« 01 — Titre ») ; grands titres 700, interlettrage −.045em ; grands chiffres avec ombre de texte colorée (vert/rouge selon le signe).
+- **Champs** : hauteur 42, rayon 12, fond `rgba(255,255,255,.03)`, **anneau rose au focus** (bordure `rgba(252,18,131,.6)` + halo 3px `.15`). Bouton principal `.chest-btn` (pilule dégradée), secondaire `.chest-btn-2`, bascules `.chest-seg` (actif = fond encre).
+- **États** : positif vert / négatif rouge, séparateur orange 2px entre paires « Prévu | Réel », survol = bordure orange `rgba(249,164,94,.5)` + léger soulèvement.
+- **Mouvement** : court et doux (.2s, `cubic-bezier(.16,1,.3,1)`), `prefers-reduced-motion` respecté. Toujours vérifier bureau ET mobile (<640px), sans débordement horizontal.
+- **Pièges** : une règle générique `.x svg{}` écrase les tailles de composants ; le patch utilise `!important`, donc préfixer par `.chest-root …` ; ne pas mettre de couleur sur `a` globalement.
+
 ## Plan du site (`site/*.html`)
 
 | Page | Rôle |

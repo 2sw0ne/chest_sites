@@ -57,47 +57,91 @@
     });
   }
 
+  // Style : DA CHEST (verre liquide, champs cerclés de rose au focus, boutons
+  // de la DA). Les var(--chest-*, repli) gardent le widget correct même sur
+  // une page qui ne charge pas chest-da.css.
   const STYLE = `
     .lotcalc-fab{
       position:fixed; right:24px; bottom:24px; z-index:260; width:52px; height:52px; border-radius:50%;
-      border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:22px;
-      background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; box-shadow:0 14px 34px rgba(252,18,131,.4);
-      transition:transform .2s var(--ease);
+      border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff;
+      background:var(--chest-grad, linear-gradient(135deg,#fc1283,#f9a45e));
+      box-shadow:0 14px 34px rgba(252,18,131,.4), inset 1px 1px 0 rgba(255,255,255,.35);
+      transition:transform .2s var(--chest-ease, cubic-bezier(.16,1,.3,1)), box-shadow .2s;
     }
-    .lotcalc-fab:hover{ transform:scale(1.06); }
+    .lotcalc-fab svg{ width:22px; height:22px; }
+    .lotcalc-fab:hover{ transform:translateY(-2px) scale(1.04); box-shadow:0 18px 44px rgba(252,18,131,.55), inset 1px 1px 0 rgba(255,255,255,.35); }
+    .lotcalc-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
     .lotcalc-overlay{
-      position:fixed; inset:0; z-index:280; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+      position:fixed; inset:0; z-index:280; background:rgba(0,0,0,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
       display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s;
     }
     .lotcalc-overlay.is-open{ opacity:1; pointer-events:auto; }
     .lotcalc-modal{
-      width:100%; max-width:440px; max-height:88vh; overflow-y:auto; background:var(--panel); border:1px solid var(--line2);
-      border-radius:var(--radius); padding:22px 22px 24px; transform:translateY(12px); transition:transform .2s;
+      position:relative; width:100%; max-width:440px; max-height:88vh; overflow-y:auto;
+      border:1px solid rgba(255,255,255,.14); border-radius:var(--chest-r-xl, 20px);
+      background:linear-gradient(160deg, rgba(9,9,11,.82), rgba(9,9,11,.9));
+      backdrop-filter:blur(34px) saturate(1.05); -webkit-backdrop-filter:blur(34px) saturate(1.05);
+      box-shadow:0 30px 80px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.2), inset -1.5px -1.5px 0 rgba(255,255,255,.06);
+      padding:24px 24px 26px; color:var(--chest-ink, #f6f6f7);
+      transform:translateY(12px) scale(.985); transition:transform .25s var(--chest-ease, cubic-bezier(.16,1,.3,1));
     }
-    .lotcalc-overlay.is-open .lotcalc-modal{ transform:translateY(0); }
-    .lotcalc-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-    .lotcalc-head h3{ font-size:16px; margin:0; }
-    .lotcalc-close{ border:none; background:var(--bg); color:var(--muted); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:15px; }
-    .lotcalc-row{ margin-bottom:12px; }
-    .lotcalc-row label{ display:block; font-size:11.5px; color:var(--muted); font-weight:700; margin-bottom:6px; }
+    .lotcalc-modal::before{
+      content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+    }
+    .lotcalc-overlay.is-open .lotcalc-modal{ transform:none; }
+    .lotcalc-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:20px; }
+    .lotcalc-step{ display:block; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--chest-ink-3, #5c5c63); margin-bottom:8px; }
+    .lotcalc-head h3{ font-size:22px; font-weight:700; letter-spacing:-.03em; line-height:1.1; margin:0; }
+    .lotcalc-close{
+      flex-shrink:0; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:13px;
+      border:1px solid rgba(255,255,255,.14); background:transparent; color:var(--chest-ink-2, #9b9ba1);
+      transition:border-color .18s, color .18s;
+    }
+    .lotcalc-close:hover{ border-color:rgba(249,164,94,.5); color:var(--chest-ink, #f6f6f7); }
+    .lotcalc-row{ margin-bottom:14px; }
+    .lotcalc-row label{
+      display:block; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+      color:var(--chest-ink-3, #5c5c63); margin-bottom:7px;
+    }
     .lotcalc-row select, .lotcalc-row input{
-      width:100%; height:38px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); color:var(--ink);
-      font:inherit; font-size:13px; padding:0 11px;
+      width:100%; height:42px; box-sizing:border-box; border:1px solid rgba(255,255,255,.14); border-radius:12px;
+      background:rgba(255,255,255,.03); color:var(--chest-ink, #f6f6f7);
+      font:inherit; font-size:13.5px; padding:0 13px; transition:border-color .18s, box-shadow .18s, background .18s;
     }
-    .lotcalc-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .lotcalc-risk-toggle{ display:inline-flex; gap:3px; padding:3px; border:1px solid var(--line2); border-radius:999px; background:var(--bg); margin-bottom:8px; }
-    .lotcalc-risk-toggle button{ border:none; cursor:pointer; font:inherit; font-size:11px; font-weight:700; padding:6px 12px; border-radius:999px; background:transparent; color:var(--muted); }
-    .lotcalc-risk-toggle button.is-active{ background:var(--ink); color:var(--bg); }
-    .lotcalc-actions{ display:flex; gap:10px; margin-top:6px; }
-    .lotcalc-actions .btn{ flex:1; justify-content:center; }
-    .lotcalc-result{ margin-top:18px; padding-top:16px; border-top:1px solid var(--line); display:none; }
+    .lotcalc-row select option, .lotcalc-row select optgroup{ background:#0c0c0e; color:#f6f6f7; }
+    .lotcalc-row select:focus, .lotcalc-row input:focus{
+      outline:none; border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.15); background:rgba(255,255,255,.05);
+    }
+    .lotcalc-row input::placeholder{ color:var(--chest-ink-3, #5c5c63); }
+    .lotcalc-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:420px){ .lotcalc-grid2{ grid-template-columns:1fr; gap:0; } }
+    .lotcalc-risk-toggle{
+      display:inline-flex; gap:2px; padding:3px; margin-bottom:8px;
+      border:1px solid rgba(255,255,255,.12); border-radius:999px; background:rgba(255,255,255,.03);
+    }
+    .lotcalc-risk-toggle button{
+      border:none; cursor:pointer; font:inherit; font-size:11.5px; font-weight:600; padding:6px 14px; border-radius:999px;
+      background:transparent; color:var(--chest-ink-2, #9b9ba1); transition:color .18s, background .18s;
+    }
+    .lotcalc-risk-toggle button:hover{ color:var(--chest-ink, #f6f6f7); }
+    .lotcalc-risk-toggle button.is-active{ background:var(--chest-ink, #f6f6f7); color:var(--chest-bg, #050505); font-weight:700; }
+    .lotcalc-actions{ display:flex; gap:10px; margin-top:8px; }
+    .lotcalc-actions button{ flex:1; justify-content:center; }
+    .lotcalc-result{ margin-top:20px; padding-top:18px; border-top:1px solid var(--chest-rule, rgba(255,255,255,.08)); display:none; }
     .lotcalc-result.is-visible{ display:block; }
-    .lotcalc-result__row{ display:flex; align-items:center; justify-content:space-between; padding:7px 0; font-size:13px; }
-    .lotcalc-result__row b{ font-variant-numeric:tabular-nums; }
-    .lotcalc-result__lot{ font-size:26px; font-weight:800; color:var(--acc); }
-    .lotcalc-warning{ margin-top:10px; padding:10px 12px; border-radius:10px; background:rgba(245,166,35,.12); border:1px solid rgba(245,166,35,.35); color:var(--amber); font-size:12px; line-height:1.5; }
-    .lotcalc-error{ margin-top:10px; padding:10px 12px; border-radius:10px; background:rgba(255,77,94,.1); border:1px solid rgba(255,77,94,.3); color:var(--red); font-size:12px; line-height:1.5; }
-    .lotcalc-hint{ font-size:11px; color:var(--faint); margin-top:4px; }
+    .lotcalc-result__lot{
+      font-size:38px; font-weight:700; letter-spacing:-.04em; line-height:1.1; margin-bottom:8px; padding-bottom:.06em;
+      background:linear-gradient(120deg,#fff 20%,#f9a45e 95%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+      font-variant-numeric:tabular-nums;
+    }
+    .lotcalc-result__row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; font-size:12.5px; border-bottom:1px solid var(--chest-rule-row, rgba(255,255,255,.055)); color:var(--chest-ink-2, #9b9ba1); }
+    .lotcalc-result__row:last-of-type{ border-bottom:none; }
+    .lotcalc-result__row b{ font-variant-numeric:tabular-nums; color:var(--chest-ink, #f6f6f7); font-weight:600; text-align:right; }
+    .lotcalc-warning{ margin-top:12px; padding:11px 13px; border-radius:12px; background:rgba(232,179,57,.1); border:1px solid rgba(232,179,57,.32); color:var(--chest-amber, #e8b339); font-size:12px; line-height:1.5; }
+    .lotcalc-error{ margin-top:12px; padding:11px 13px; border-radius:12px; background:rgba(255,77,94,.1); border:1px solid rgba(255,77,94,.3); color:var(--chest-red, #ff4d5e); font-size:12px; line-height:1.5; }
+    .lotcalc-hint{ font-size:11px; color:var(--chest-ink-3, #5c5c63); margin-top:4px; }
+    @media (prefers-reduced-motion:reduce){ .lotcalc-modal, .lotcalc-fab, .lotcalc-overlay{ transition:none; } }
   `;
 
   function injectStyles() {
@@ -113,7 +157,7 @@
     fab.type = 'button';
     fab.className = 'lotcalc-fab';
     fab.setAttribute('aria-label', 'Calculatrice de lots');
-    fab.textContent = '🧮';
+    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.4"/></svg>';
     document.body.appendChild(fab);
 
     const overlay = document.createElement('div');
@@ -121,7 +165,7 @@
     overlay.innerHTML = `
       <div class="lotcalc-modal">
         <div class="lotcalc-head">
-          <h3>Calculatrice de lots</h3>
+          <div><span class="lotcalc-step">Outil — Risque</span><h3>Calculatrice de lots</h3></div>
           <button type="button" class="lotcalc-close" aria-label="Fermer">✕</button>
         </div>
 
@@ -148,7 +192,7 @@
 
         <div class="lotcalc-row">
           <label>Risque</label>
-          <div class="lotcalc-risk-toggle" id="lotcalcRiskToggle">
+          <div class="lotcalc-risk-toggle chest-seg" id="lotcalcRiskToggle">
             <button type="button" data-mode="pct" class="is-active">%</button>
             <button type="button" data-mode="usd">$</button>
           </div>
@@ -156,8 +200,8 @@
         </div>
 
         <div class="lotcalc-actions">
-          <button type="button" class="btn btn-secondary" id="lotcalcReset">Réinitialiser</button>
-          <button type="button" class="btn btn-primary" id="lotcalcCompute">Calculer</button>
+          <button type="button" class="chest-btn-2" id="lotcalcReset">Réinitialiser</button>
+          <button type="button" class="chest-btn" id="lotcalcCompute">Calculer</button>
         </div>
 
         <div class="lotcalc-result" id="lotcalcResult"></div>

@@ -422,6 +422,7 @@
     const meta = CRYPTO_CONFIG[pairKey];
     document.getElementById('sentimentEconMode').hidden = true;
     document.getElementById('econBlocks').hidden = true;
+    document.getElementById('cryptoBlocks').hidden = false;
     document.getElementById('sentimentCryptoMode').hidden = false;
     document.getElementById('moversSection').hidden = false;
     document.getElementById('sentimentCode').textContent = meta.code;
@@ -438,6 +439,7 @@
     if (!fngEntry && !coinMarket) {
       hero.dataset.tone = 'neutral';
       document.getElementById('sentimentBadge').textContent = 'Indisponible';
+      document.getElementById('cryptoBlocks').hidden = true;
       document.getElementById('cryptoText').textContent = 'Données indisponibles pour le moment (alternative.me / coingecko.com).';
       return;
     }
@@ -917,6 +919,7 @@
     }
     document.getElementById('sentimentEconMode').hidden = false;
     document.getElementById('econBlocks').hidden = false;
+    document.getElementById('cryptoBlocks').hidden = true;
     document.getElementById('sentimentCryptoMode').hidden = true;
     document.getElementById('moversSection').hidden = true;
     const config = PAIR_CONFIG[pairKey];

@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=7">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=7">
+<link rel="stylesheet" href="css/chest-da.css?v=8">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=8">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : une regle de classe qui fixe elle-meme `display`
@@ -508,7 +508,6 @@
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px">
       <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
         <span class="chest-step">02 — Courbe d'equity</span>
-        <span style="display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--chest-ink-2)"><span style="width:14px;height:2px;border-radius:2px;background:linear-gradient(90deg,#33e6a6,#ff4d5e);display:inline-block"></span>Réel — vert au-dessus de 0, rouge en dessous</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <div class="chest-seg" id="periodPills">
@@ -529,7 +528,7 @@
         <span class="example-badge" id="chartExampleBadge">Exemple</span>
       </div>
     </div>
-    <div class="chest-glass" style="padding:22px 24px 16px">
+    <div class="chest-glass chest-glass--chart" style="padding:22px 24px 16px">
       <div style="position:relative;width:100%;height:296px">
         <canvas id="equityChart"></canvas>
       </div>
@@ -807,7 +806,7 @@
 <script src="js/nav.js?v=2"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/lot-calculator.js?v=3"></script>
+<script src="js/lot-calculator.js?v=4"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/myfxbook-store.js?v=3"></script>

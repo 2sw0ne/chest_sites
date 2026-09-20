@@ -583,3 +583,18 @@ html.is-shell, html.is-shell body{ height:100%; overflow:hidden; }
 .chest-topbar{ justify-content:flex-start; position:relative; }
 .chest-topbar__actions{ margin-left:0; }
 @media (max-width:640px){ .chest-crumb{ display:none; } .chest-topbar__actions{ margin-left:auto; } }
+
+/* ============================================================
+   DASHBOARD — petits ajustements
+   ============================================================ */
+/* Fenêtre du graphique d'equity : 20 % plus transparente que le verre
+   standard (fond 0.62/0.74 -> 0.50/0.59, voile de luminosité relevé). */
+.chest-glass.chest-glass--chart{
+  background:linear-gradient(160deg, rgba(9,9,11,.5), rgba(9,9,11,.59));
+  backdrop-filter:blur(34px) brightness(.42) saturate(1.05);
+  -webkit-backdrop-filter:blur(34px) brightness(.42) saturate(1.05);
+}
+/* PnL non réalisé et profit du jour : vert si positif, rouge si négatif
+   (dashboard.js pose déjà .pos / .neg selon le signe). */
+.chest-root #resPnl.pos, .chest-root #resToday.pos{ color:var(--chest-green); }
+.chest-root #resPnl.neg, .chest-root #resToday.neg{ color:var(--chest-red); }

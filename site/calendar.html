@@ -8,9 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=7">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=7">
-<link rel="stylesheet" href="css/calendar-da.css?v=3">
+<link rel="stylesheet" href="css/chest-da.css?v=8">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=8">
+<link rel="stylesheet" href="css/calendar-da.css?v=5">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : sans ca, une regle de classe qui fixe elle-meme
@@ -405,8 +405,6 @@
         <div class="sentiment-hero__weekly" id="cryptoWeekly">—</div>
         <div class="sentiment-hero__weekly-label">Estimation indicative sur la semaine</div>
         <p class="sentiment-hero__text" id="cryptoText">Chargement…</p>
-        <div class="sentiment-hero__drivers" id="cryptoCards"></div>
-        <p class="sentiment-hero__disclaimer">Combine calendrier macro US, Fear &amp; Greed (alternative.me) et momentum 24h (CoinGecko) — une heuristique de tendance, pas une prédiction de prix. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
       </div>
     </div>
   </section>
@@ -447,6 +445,14 @@
     </section>
   </div>
 
+  <!-- Mode crypto : même mise en page que le forex (hero, puis sections
+       numérotées). 01 = la pièce suivie + les annonces macro qui pèsent. -->
+  <section class="cal-sec" id="cryptoBlocks" hidden>
+    <div class="cal-step">01 — Ce qui pèse sur la semaine</div>
+    <div class="driver-top3" id="cryptoCards"></div>
+    <p class="cal-disclaimer">Combine calendrier macro US, Fear &amp; Greed (alternative.me) et momentum 24h (CoinGecko) — une heuristique de tendance, pas une prédiction de prix. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
+  </section>
+
   <main class="cal-main">
   <!-- Marché crypto — deplace ici depuis le Dashboard (demande explicite du
        2026-09-15) : n'a de sens que quand la paire suivie est une crypto,
@@ -455,7 +461,7 @@
        elements ne sont pas dans la page - ici ils y sont, juste caches par
        defaut et reveles par calendar.js selon la paire suivie. -->
   <section class="cal-sec" id="moversSection" hidden>
-    <div class="cal-step">Marché crypto — top 100</div>
+    <div class="cal-step">02 — Marché crypto, top 100</div>
     <div class="card" style="padding:22px 24px">
       <div class="mover-cols">
         <div>
@@ -513,11 +519,11 @@
 
 <script src="js/nav.js?v=2"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/lot-calculator.js?v=3"></script>
+<script src="js/lot-calculator.js?v=4"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
 <script src="js/crypto-movers.js"></script>
-<script src="js/calendar.js?v=22"></script>
+<script src="js/calendar.js?v=23"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
