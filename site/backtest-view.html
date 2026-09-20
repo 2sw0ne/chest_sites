@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=8">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=8">
-<link rel="stylesheet" href="css/backtest-da.css?v=2">
+<link rel="stylesheet" href="css/backtest-da.css?v=4">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -264,7 +264,7 @@
     <section class="bt-sec" id="fitSection">
       <div class="bt-sec__head">
         <span class="chest-step">03 — Recommandation · prop firm ou compte propre</span>
-        <span class="bt-sec__aside" id="fitAside"></span>
+        <div class="bt-sec__tools"><span class="bt-sec__aside" id="fitAside"></span><div class="pill-group" id="fitHorizon"></div></div>
       </div>
       <div id="fitBody"><div class="cal-state">Calcul de la compatibilité…</div></div>
     </section>
@@ -302,8 +302,8 @@
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js"></script>
-<script src="js/propfirm-rules.js?v=1"></script>
-<script src="js/propfirm-fit.js?v=1"></script>
+<script src="js/propfirm-rules.js?v=2"></script>
+<script src="js/propfirm-fit.js?v=3"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -649,15 +649,18 @@ CHESTTour.init([
 
   // ---- 03 · Recommandation : prop firm ou compte propre ----
   // Calcul dans js/propfirm-fit.js (règles vérifiées dans js/propfirm-rules.js).
-  // Il ne dépend que des années sélectionnées : on met le résultat en cache et
-  // on ne repeint pas tant que la sélection n'a pas changé (les <details>
-  // ouverts restent ouverts quand on change un filtre du journal).
+  // Il dépend des années sélectionnées et de l'horizon : on met le résultat en
+  // cache et on ne repeint pas tant que rien n'a changé (les volets ouverts
+  // restent ouverts quand on change un filtre du journal).
   const fitCache = new Map();
   let fitPaintedKey = null;
   let fitTimer = null;
+  let fitHorizon = 6;
 
   function nFr(n, d = 0) { return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: d, minimumFractionDigits: d }); }
   function pctFr(n, d = 0) { return `${nFr(n, d)} %`; }
+  function signedPct(n, d = 0) { const f = Math.pow(10, d), r = Math.round(n * f) / f; return r === 0 ? pctFr(0, d) : (r > 0 ? '+' : '−') + pctFr(Math.abs(r), d); }
+  function usdFr(n) { return (n >= 0 ? '' : '−') + nFr(Math.abs(n)) + ' $'; }
   function longDate(iso) { return iso ? new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; }
   function escHtml(v) { return String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
@@ -666,17 +669,31 @@ CHESTTour.init([
     if (md.kind === 'trading') return `${md.count} jour${md.count > 1 ? 's' : ''} de trading minimum`;
     return `${md.count} jours profitables (≥ ${nFr(md.minPct, 1)} %)`;
   }
-  function rulesLine(m) {
-    const type = m.maxLossType === 'trailing_eod' ? 'suiveuse' : 'fixe';
-    return `Objectif ${m.phases.map((p) => pctFr(p)).join(' puis ')} · perte du jour ${pctFr(m.dailyLossPct)} · perte max ${pctFr(m.maxLossPct)} (${type}) · ${minDaysText(m.minDays)}`
-      + (m.bestDayMaxPct != null ? ` · meilleur jour ≤ ${pctFr(m.bestDayMaxPct)} du profit` : '');
+  function lossTypeText(t) { return t === 'trailing_eod' ? 'suiveuse, recalculée après minuit' : 'fixe'; }
+  function consText(c) { return c ? `meilleur jour ≤ ${pctFr(c.maxPct)} du ${c.basis === 'positive_days' ? 'profit des jours positifs' : 'profit du cycle'}` : null; }
+  function challengeLine(m) {
+    return `Objectif ${m.phases.map((p) => pctFr(p)).join(' puis ')} · perte du jour ${pctFr(m.dailyLossPct)} · perte max ${pctFr(m.maxLossPct)} (${lossTypeText(m.maxLossType)}) · ${minDaysText(m.minDays)}`
+      + (m.bestDay ? ` · ${consText(m.bestDay)}` : '');
   }
-  function blockerWhat(b, m) {
-    return b.blocker === 'daily' ? `perte du jour > ${pctFr(m.dailyLossPct)}` : `perte max > ${pctFr(m.maxLossPct)}`;
+  function fundedLine(m) {
+    const f = m.funded;
+    return `Perte du jour ${pctFr(f.dailyLossPct)} · perte max ${pctFr(f.maxLossPct)} (${lossTypeText(f.maxLossType)})`
+      + (f.consistency ? ` · ${consText(f.consistency)}` : '')
+      + (m.riskCapPct ? ` · risque ≤ ${pctFr(m.riskCapPct)} par trade` : '');
   }
-  function blockerText(b, m) {
-    if (!b.fail) return 'Aucun échec observé';
-    return `${b.fail} échec${b.fail > 1 ? 's' : ''} sur ${b.decisive} · ${blockerWhat(b, m)}${b.blockerShare < 100 ? ` (${nFr(b.blockerShare)} %)` : ''}`;
+  function optionRule(o) {
+    const parts = [`partage ${pctFr(o.splitPct)}`, o.firstAfterDays ? `1er retrait à ${o.firstAfterDays} j` : '1er retrait immédiat', `puis tous les ${o.cycleDays} j`];
+    if (o.minProfitableDays) parts.push(`${o.minProfitableDays.count} jours profitables ≥ ${nFr(o.minProfitableDays.minPct, 1)} %`);
+    if (o.minGrowthPct) parts.push(`+${nFr(o.minGrowthPct)} % de croissance`);
+    if (o.consistency) parts.push(consText(o.consistency));
+    return parts.join(' · ');
+  }
+  function watchText(r) {
+    const b = r.best, parts = [];
+    if (b.delayedShare >= 25) parts.push(`retraits reportés par la cohérence (${nFr(b.delayedShare)} %, +${nFr(b.avgDelayDays)} j)`);
+    if (b.lostPerStart >= 0.25) parts.push(`≈ ${nFr(b.lostPerStart, 1)} compte perdu / période`);
+    if (b.fundedPct < 70) parts.push(`${nFr(b.fundedPct)} % seulement validés à temps`);
+    return parts.join(' · ') || 'Rien de bloquant observé';
   }
   function statusMeta(kind) {
     return {
@@ -686,95 +703,142 @@ CHESTTour.init([
     }[kind];
   }
 
+  function consistencySentence(res) {
+    const c = res.prop && res.prop.consistency14;
+    if (!c) return '';
+    return ` Côté cohérence, ton meilleur jour reste sous 45 % du profit dans ${pctFr(c.pass[45])} des cycles de 14 jours.`;
+  }
   function fitVerdictText(res) {
-    const { verdict: v, own } = res;
+    const { verdict: v, own, meta } = res;
     const t = v.top, b = t.best, m = t.model;
     const name = `${m.firm} ${m.label}`;
-    const stress = b.stressPassPct != null ? ` Même en mélangeant l'ordre des journées, ${nFr(b.stressPassPct)} % passent.` : '';
+    const H = meta.horizonMonths;
+    const money = `${signedPct(b.meanNet)} du compte financé, frais déduits, soit ≈ ${usdFr(res.prop.horizonUsd)} sur un compte de ${nFr(meta.refAccount)} $`;
+    const ownTxt = own ? ` À titre de comparaison, le compte propre à risque optimisé (${nFr(own.risk, 2)} %) ferait ${signedPct(own.horizonPct)} de ton capital, avec un drawdown de ${pctFr(own.maxDdPct, 1)}.` : '';
     if (v.kind === 'propfirm') {
-      return `À ${nFr(b.risk, 2)} % de risque par trade, ${nFr(b.passPct)} % des départs historiques auraient validé ${name}, en ${b.medianDays} jours (médiane).${stress} Le compte propre reste possible, mais son drawdown à risque optimisé (${own ? pctFr(own.maxDdPct, 1) : '—'}) est plus lourd à porter.`;
+      return `Sur ${H} mois, ${name} (option « ${t.option.label} », risque ${nFr(b.risk, 2)} %) aurait permis de retirer en moyenne ${money}. ${nFr(b.fundedPct)} % des départs sont validés (médiane ${b.medianFundedDay} j) et le premier retrait tombe après ${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}.${consistencySentence(res)}${ownTxt}`;
     }
     if (v.kind === 'both') {
-      return `Le meilleur modèle (${name}) ne valide que ${nFr(b.passPct)} % des départs à ${nFr(b.risk, 2)} % de risque.${stress} Un challenge se tente à risque réduit, mais le compte propre est moins fragile : ${b.fail} échec${b.fail > 1 ? 's' : ''} sur ${b.decisive}, surtout ${blockerWhat(b, m)}.`;
+      return `Le meilleur modèle (${name}, risque ${nFr(b.risk, 2)} %) rapporte en moyenne ${money}, mais seulement ${pctFr(b.netPositivePct)} des départs finissent gagnants sur ${H} mois.${consistencySentence(res)}${ownTxt}`;
     }
-    return `Aucun modèle vérifié ne valide ce backtest de façon fiable : le meilleur (${name}) ne passe que ${nFr(b.passPct)} % des départs${b.fail ? `, surtout bloqué par la ${blockerWhat(b, m)}` : ''}. Ce style de trading est mieux servi par un compte propre, sans règle de perte imposée.`;
+    return `Aucun modèle vérifié ne rapporte de façon fiable sur ${H} mois : le meilleur (${name}) finit gagnant dans ${pctFr(b.netPositivePct)} des départs seulement.${consistencySentence(res)} Ce style de trading est mieux servi par un compte propre, sans règle imposée.${ownTxt}`;
   }
 
-  function fitPathCard(kind, title, subtitle, risk, annual, dd, extras) {
+  function fitPathCard(kind, title, subtitle, cells, extras) {
     return `
       <div class="bt-path bt-path--${kind}">
         <div class="bt-path__head"><span class="bt-path__dot"></span><span class="bt-path__title">${title}</span></div>
         <div class="bt-path__sub">${subtitle}</div>
         <div class="bt-path__grid">
-          <div><div class="chest-label">Risque / trade</div><div class="bt-path__val">${risk != null ? pctFr(risk, 2) : '—'}</div></div>
-          <div><div class="chest-label">Rendement / an</div><div class="bt-path__val ${annual != null && annual >= 0 ? 'is-pos' : 'is-neg'}">${annual != null ? (annual >= 0 ? '+' : '') + pctFr(annual) : '—'}</div></div>
-          <div><div class="chest-label">Drawdown max</div><div class="bt-path__val is-neg">${dd != null ? '−' + pctFr(dd, 1) : '—'}</div></div>
+          ${cells.map(([label, value, tone]) => `<div><div class="chest-label">${label}</div><div class="bt-path__val ${tone || ''}">${value}</div></div>`).join('')}
         </div>
         ${extras || ''}
       </div>`;
   }
 
-  function fitRowHtml(r, isTop, stressRuns) {
+  function consistencyBlock(res) {
+    const c14 = res.prop.consistency14, c30 = res.prop.consistency30;
+    if (!c14 && !c30) return '';
+    const limits = [30, 35, 40, 45, 50];
+    const row = (c, label) => c ? `
+      <div class="bt-cons__row">
+        <div class="bt-cons__label"><b>${label}</b><small>${c.cycles} cycles · meilleur jour médian = ${pctFr(c.medianShare)} du profit</small></div>
+        ${limits.map((l) => `<div class="bt-cons__cell"><span class="bt-cons__bar"><i style="width:${Math.max(2, c.pass[l])}%"></i></span><b>${pctFr(c.pass[l])}</b></div>`).join('')}
+      </div>` : '';
+    return `
+      <div class="bt-cons chest-glass chest-glass--mini">
+        <div class="bt-cons__head">
+          <div><div class="chest-label">Règles de cohérence · ta stratégie passe-t-elle ?</div>
+          <p>Part des cycles où ton meilleur jour reste sous la limite. Un retrait est <b>reporté</b> tant que le meilleur jour pèse plus que la limite dans le profit du cycle : 50 % chez FTMO 1 étape, 40 % chez FundedNext À la demande, 35 % chez Funding Pips mensuel ; d'autres firmes en appliquent aussi (souvent 30 à 45 % selon le plan).</p></div>
+        </div>
+        <div class="bt-cons__grid">
+          <div class="bt-cons__row bt-cons__legend"><span></span>${limits.map((l) => `<span>≤ ${l} %</span>`).join('')}</div>
+          ${row(c14, 'Cycles de 14 jours')}
+          ${row(c30, 'Cycles de 30 jours')}
+        </div>
+        <p class="bt-cons__note">Calculé au risque conseillé (${nFr(res.prop.risk, 2)} %). Plus la part est basse, plus une règle de cohérence retardera tes retraits — voir la colonne « À surveiller » de chaque modèle. Au-delà de 100 %, le meilleur jour dépasse à lui seul le profit net du cycle (le reste du cycle est perdant).</p>
+      </div>`;
+  }
+
+  function fitRowHtml(r, isTop, meta) {
     const m = r.model, b = r.best;
     const src = m.source;
     const facts = m.facts.map((f) => `<li>${escHtml(f)}</li>`).join('');
     const unv = m.unverified.map((f) => `<li>${escHtml(f)}</li>`).join('');
     const srcDate = src.pageDate ? `page du ${longDate(src.pageDate)}` : 'page consultée le ' + longDate(window.CHESTPropRules.verifiedOn);
-    if (!b) {
-      return `
-        <details class="bt-fit-row">
-          <summary><span class="bt-fit-row__name"><b>${m.firm}</b><small>${m.label}</small></span><span class="bt-fit-row__na">Historique trop court pour conclure</span></summary>
-          <div class="bt-fit-row__body"><p class="bt-fit-row__rules">${rulesLine(m)}</p></div>
-        </details>`;
-    }
-    const passTone = r.status === 'good' ? 'good' : r.status === 'mid' ? 'mid' : 'bad';
-    const curve = b.curve.map((c) => `
+    const tone = r.status === 'good' ? 'good' : r.status === 'mid' ? 'mid' : 'bad';
+    const barW = Math.max(2, Math.min(100, b.meanNet * 100 / (meta.maxNet || 1)));
+    const opts = r.options.map((po) => `
+      <div class="bt-opt${po.opt.id === r.option.id ? ' is-picked' : ''}">
+        <div class="bt-opt__head"><b>${escHtml(po.opt.label)}</b><span class="bt-opt__net ${po.best.meanNet >= 0 ? 'is-pos' : 'is-neg'}">${signedPct(po.best.meanNet, 1)}</span></div>
+        <div class="bt-opt__rule">${escHtml(optionRule(po.opt))}</div>
+        <div class="bt-opt__meta">Risque ${nFr(po.best.risk, 2)} % · 1er retrait ${po.best.medianFirstPay != null ? po.best.medianFirstPay + ' j' : '—'} · ${nFr(po.best.paidPct)} % des départs retirent${po.best.delayedPayouts ? ` · ${nFr(po.best.payoutCount ? po.best.delayedPayouts / po.best.payoutCount * 100 : 0)} % des retraits reportés (+${nFr(po.best.avgDelayDays)} j)` : ''}</div>
+      </div>`).join('');
+    const curve = r.curve.map((c) => `
       <div class="bt-curve__row${c.risk === b.risk ? ' is-picked' : ''}">
         <span>${nFr(c.risk, 2)} %</span>
-        <span class="bt-curve__bar"><i style="width:${Math.max(2, c.passPct)}%"></i></span>
-        <span>${nFr(c.passPct)} %</span>
-        <span>${c.medianDays != null ? c.medianDays + ' j' : '—'}</span>
+        <span class="bt-curve__bar"><i style="width:${Math.max(2, Math.min(100, Math.max(0, c.meanNet) * 100 / (meta.maxNet || 1)))}%"></i></span>
+        <span>${signedPct(c.meanNet)}</span>
+        <span>${nFr(c.lostPerStart, 1)}</span>
       </div>`).join('');
-    const openNote = b.openPct >= 25 ? `<p class="bt-fit-row__warn">${nFr(b.openPct)} % des départs n'ont pas eu d'issue : l'historique s'arrête avant la fin du challenge.</p>` : '';
+    const feeLine = `Frais estimés ≈ ${nFr(m.fee.pct, 2)} % du compte${m.fee.verified ? ' (prix officiel)' : ' (non vérifié)'}${m.fee.refund ? ` · remboursés avec le ${m.fee.refund === 'first' ? '1er' : '3e'} retrait` : ' · non remboursés'} — ${escHtml(m.fee.note)}`;
     return `
       <details class="bt-fit-row"${isTop ? ' open' : ''}>
         <summary>
           <span class="bt-fit-row__name"><b>${m.firm}</b><small>${m.label}</small></span>
-          <span class="bt-fit-row__pass bt-tone--${passTone}"><b>${nFr(b.passPct)} %</b><span class="bt-fit-row__bar"><i style="width:${Math.max(2, b.passPct)}%"></i></span></span>
-          <span class="bt-fit-row__cell" data-label="Risque">${nFr(b.risk, 2)} %</span>
-          <span class="bt-fit-row__cell" data-label="Délai médian">${b.medianDays != null ? b.medianDays + ' j' : '—'}</span>
-          <span class="bt-fit-row__cell bt-fit-row__block" data-label="À surveiller">${blockerText(b, m)}</span>
+          <span class="bt-fit-row__pass bt-tone--${tone}"><b>${signedPct(b.meanNet)}</b><span class="bt-fit-row__bar"><i style="width:${barW}%"></i></span></span>
+          <span class="bt-fit-row__cell" data-label="Validation">${nFr(b.fundedPct)} %</span>
+          <span class="bt-fit-row__cell" data-label="1er retrait">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</span>
+          <span class="bt-fit-row__cell bt-fit-row__block" data-label="À surveiller">${escHtml(watchText(r))}</span>
         </summary>
         <div class="bt-fit-row__body">
           <div>
             <div class="chest-label">Règles simulées</div>
-            <p class="bt-fit-row__rules">${rulesLine(m)}</p>
+            <p class="bt-fit-row__rules"><b>Challenge</b> · ${challengeLine(m)}</p>
+            <p class="bt-fit-row__rules"><b>Compte financé</b> · ${fundedLine(m)}</p>
             <ul class="bt-fit-row__list">${facts}</ul>
+            <p class="bt-fit-row__rules"><b>Annonces</b> · ${escHtml(m.newsFunded)} <em>(non simulé)</em></p>
+            <p class="bt-fit-row__rules">${feeLine}</p>
             ${unv ? `<div class="chest-label bt-fit-row__unv">Non vérifié ou non simulé</div><ul class="bt-fit-row__list is-muted">${unv}</ul>` : ''}
-            ${openNote}
             <a class="bt-fit-row__src" href="${src.url}" target="_blank" rel="noopener noreferrer">Règles officielles ↗</a>
             <span class="bt-fit-row__srcdate">${srcDate}</span>
           </div>
           <div>
-            <div class="chest-label">Taux de passage selon le risque par trade</div>
-            <div class="bt-curve"><div class="bt-curve__row bt-curve__head"><span>Risque</span><span></span><span>Passage</span><span>Délai</span></div>${curve}</div>
-            <p class="bt-fit-row__stress">Ordre des journées mélangé (${stressRuns} tirages) : <b>${b.stressPassPct != null ? nFr(b.stressPassPct) + ' %' : '—'}</b> de passage au risque conseillé.</p>
+            <div class="chest-label">Options de retrait · meilleur risque de chacune</div>
+            <div class="bt-opts">${opts}</div>
+            <div class="chest-label bt-fit-row__unv">Retraits nets selon le risque par trade (option retenue)</div>
+            <div class="bt-curve"><div class="bt-curve__row bt-curve__head"><span>Risque</span><span></span><span>Net</span><span>Perdus</span></div>${curve}</div>
           </div>
         </div>
       </details>`;
   }
+
   function paintFit(res, key) {
     const body = document.getElementById('fitBody');
     fitPaintedKey = key;
     if (res.error) { body.innerHTML = `<div class="cal-state">${res.error}</div>`; return; }
-    const v = res.verdict, sm = statusMeta(v.kind);
-    const b = v.top.best;
-    const passTone = v.top.status === 'good' ? 'is-pos' : v.top.status === 'bad' ? 'is-neg' : '';
+    const v = res.verdict, sm = statusMeta(v.kind), b = v.top.best, H = res.meta.horizonMonths;
+    const positive = v.top.status === 'good' ? 'is-pos' : v.top.status === 'bad' ? 'is-neg' : '';
     const title = v.kind === 'own' ? 'Compte propre' : `${v.top.model.firm} · ${v.top.model.label}`;
+    res.meta.maxNet = Math.max(1, ...res.rows.map((r) => r.best.meanNet));
 
-    const prof = res.prop && res.prop.profile;
-    const propExtras = prof ? `<div class="bt-path__foot">Pire journée <b>${pctFr(prof.worstDayPct, 1).replace('-', '−')}</b> · meilleur jour = <b>${prof.bestDayShare != null ? pctFr(prof.bestDayShare) : '—'}</b> du profit des jours positifs · <b>${nFr(prof.tradesPerDay, 1)}</b> trades/jour</div>` : '';
-    const ownExtras = res.own && res.own.relaxedNote ? `<div class="bt-path__foot">${escHtml(res.own.relaxedNote)}</div>` : '';
+    const own = res.own;
+    const ownCard = fitPathCard('own', 'Compte propre',
+      'Risque optimisé sous 3 % (5 % si besoin) et 30 % de drawdown — sur ton capital',
+      [
+        ['Risque / trade', own ? pctFr(own.risk, 2) : '—'],
+        [`Rendement · ${H} mois`, own ? signedPct(own.horizonPct) : '—', own && own.horizonPct >= 0 ? 'is-pos' : 'is-neg'],
+        ['Drawdown max', own ? '−' + pctFr(own.maxDdPct, 1) : '—', 'is-neg'],
+      ],
+      own ? `<div class="bt-path__foot">≈ <b>${usdFr(own.horizonUsd)}</b> sur un capital de ${nFr(record.capital)} $ · ${pctFr(own.positivePct)} des départs gagnants${own.relaxedNote ? ' · ' + escHtml(own.relaxedNote) : ''}</div>` : '');
+    const propCard = fitPathCard('prop', 'Prop firm',
+      `${v.top.model.firm} ${v.top.model.label} · option « ${escHtml(v.top.option.label)} »`,
+      [
+        ['Risque / trade', pctFr(b.risk, 2)],
+        [`Retraits nets · ${H} mois`, signedPct(b.meanNet), b.meanNet >= 0 ? 'is-pos' : 'is-neg'],
+        ['Comptes perdus / période', nFr(b.lostPerStart, 2), b.lostPerStart > 0.5 ? 'is-neg' : ''],
+      ],
+      `<div class="bt-path__foot">≈ <b>${usdFr(res.prop.horizonUsd)}</b> sur ${nFr(res.meta.refAccount)} $ financés (retraits après partage, frais déduits) · pire quart des départs : <b>${signedPct(b.p25Net)}</b> · ${pctFr(b.netPositivePct)} des départs gagnants</div>`);
 
     body.innerHTML = `
       <div class="bt-verdict bt-verdict--${sm.tone} chest-glass">
@@ -784,36 +848,50 @@ CHESTTour.init([
           <p class="bt-verdict__text">${fitVerdictText(res)}</p>
         </div>
         <div class="chest-kpis bt-verdict__nums">
-          <div><div class="chest-label">Passage historique</div><div class="chest-kpi__val ${passTone}">${nFr(b.passPct)} %</div><div class="chest-kpi__note">${b.pass} réussis · ${b.fail} échoués</div></div>
-          <div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">le plus haut à ≥ 80 % de réussite</div></div>
-          <div><div class="chest-label">Délai médian</div><div class="chest-kpi__val">${b.medianDays != null ? b.medianDays + ' j' : '—'}</div><div class="chest-kpi__note">jours calendaires</div></div>
-          <div><div class="chest-label">Ordre mélangé</div><div class="chest-kpi__val">${b.stressPassPct != null ? nFr(b.stressPassPct) + ' %' : '—'}</div><div class="chest-kpi__note">test de robustesse</div></div>
+          <div><div class="chest-label">Retraits potentiels · ${H} mois</div><div class="chest-kpi__val ${positive}">${signedPct(b.meanNet)}</div><div class="chest-kpi__note">≈ ${usdFr(res.prop.horizonUsd)} sur ${nFr(res.meta.refAccount)} $ financés</div></div>
+          <div><div class="chest-label">Validation</div><div class="chest-kpi__val">${nFr(b.fundedPct)} %</div><div class="chest-kpi__note">des départs financés · médiane ${b.medianFundedDay != null ? b.medianFundedDay + ' j' : '—'}</div></div>
+          <div><div class="chest-label">Premier retrait</div><div class="chest-kpi__val">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</div><div class="chest-kpi__note">${nFr(b.paidPct)} % des départs retirent</div></div>
+          <div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>
         </div>
+        <details class="bt-fit-fold">
+          <summary><span class="bt-fit-fold__title">Modèles de challenge testés</span><span class="bt-fit-fold__sub">${res.rows.length} modèles · du mieux adapté au moins adapté</span><span class="bt-fit-fold__caret" aria-hidden="true"></span></summary>
+          <div class="bt-fit-table">
+            <div class="bt-fit-head"><span>Firme · modèle</span><span>Retraits nets · ${H} mois</span><span>Validation</span><span>1er retrait</span><span>À surveiller</span></div>
+            ${res.rows.map((r, i) => fitRowHtml(r, false, res.meta)).join('')}
+            ${(window.CHESTPropRules.excluded || []).map((x) => `<div class="bt-fit-excluded"><b>${escHtml(x.firm)}</b> — non simulée : ${escHtml(x.reason)}</div>`).join('')}
+          </div>
+        </details>
       </div>
 
-      <div class="bt-paths">
-        ${fitPathCard('own', 'Compte propre', 'Risque optimisé sous 3 % (5 % si besoin) et 30 % de drawdown', res.own && res.own.risk, res.own && res.own.annualPct, res.own && res.own.maxDdPct, ownExtras)}
-        ${fitPathCard('prop', 'Prop firm', `${v.top.model.firm} ${v.top.model.label} · rendement avant partage des gains`, res.prop && res.prop.risk, res.prop && res.prop.annualPct, res.prop && res.prop.maxDdPct, propExtras)}
-      </div>
+      <div class="bt-paths">${ownCard}${propCard}</div>
 
-      <div class="cal-label bt-label">Modèles de challenge testés · du plus fiable au moins fiable</div>
-      <div class="bt-fit-table chest-glass">
-        <div class="bt-fit-head"><span>Firme · modèle</span><span>Passage</span><span>Risque</span><span>Délai médian</span><span>À surveiller</span></div>
-        ${res.rows.map((r, i) => fitRowHtml(r, i === 0, res.meta.stressRuns)).join('')}
-      </div>
+      ${consistencyBlock(res)}
 
-      <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs, qui se recoupent). Seuls les trades clôturés comptent : pas de perte flottante en cours de trade, ni frais, swaps ou slippage. Les règles viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.</p>`;
+      <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais sans prix officiel lu sont estimés à ≈ 0,5 % du compte. Les règles viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.</p>`;
+  }
+
+  function renderFitHorizon() {
+    const el = document.getElementById('fitHorizon');
+    if (!el || el.dataset.ready) return;
+    el.dataset.ready = '1';
+    el.innerHTML = [3, 6, 12].map((h) => `<button type="button" data-h="${h}" class="${h === fitHorizon ? 'is-active' : ''}">${h} mois</button>`).join('');
+    el.querySelectorAll('button').forEach((btn) => btn.addEventListener('click', () => {
+      fitHorizon = Number(btn.dataset.h);
+      el.querySelectorAll('button').forEach((x) => x.classList.toggle('is-active', x === btn));
+      renderFit(filteredTrades());
+    }));
   }
 
   function renderFit(trades) {
-    const key = [...selectedYears].sort().join(',');
+    renderFitHorizon();
+    const key = [...selectedYears].sort().join(',') + '|' + fitHorizon;
     document.getElementById('fitAside').textContent = `Règles vérifiées le ${longDate(window.CHESTPropRules.verifiedOn)}`;
     if (fitPaintedKey === key) return;
     if (fitCache.has(key)) { paintFit(fitCache.get(key), key); return; }
-    document.getElementById('fitBody').innerHTML = '<div class="cal-state">Calcul de la compatibilité…</div>';
+    document.getElementById('fitBody').innerHTML = '<div class="cal-state">Simulation de la vie des comptes…</div>';
     clearTimeout(fitTimer);
     fitTimer = setTimeout(() => {
-      const res = window.CHESTPropFit.fit(trades, record.capital);
+      const res = window.CHESTPropFit.fit(trades, record.capital, { horizonMonths: fitHorizon });
       fitCache.set(key, res);
       paintFit(res, key);
     }, 30);
