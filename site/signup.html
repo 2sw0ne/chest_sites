@@ -7,60 +7,165 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=4">
 <script src="js/theme.js"></script>
 <style>
-  .gate__card{ max-width:420px; text-align:left; }
-  .gate__card h1, .gate__card > p{ text-align:center; }
-  .signup-field{ margin-bottom:14px; }
-  .signup-field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
-  .signup-field input{ width:100%; }
-  .signup-row{ display:flex; gap:10px; }
-  .signup-row .signup-field{ flex:1; }
-  .signup-status{ font-size:13px; line-height:1.5; padding:12px 14px; border-radius:12px; margin-bottom:16px; display:none; }
+  /* ============================================================
+     Création de compte — même traitement immersif que login.html
+     (photo pleine page, carte en verre, logo lumineux en débord).
+     Remplace l'ancien .gate gris, resté à l'écart de la DA.
+     ============================================================ */
+  *{ box-sizing:border-box; }
+  html, body{ margin:0; min-height:100%; }
+  body{
+    font-family:'Instrument Sans', system-ui, sans-serif; color:var(--ink); background:#050505;
+    min-height:100vh; overflow-x:hidden;
+  }
+
+  .auth-bg{
+    position:fixed; inset:0; z-index:0;
+    background:url("assets/login-bg.jpg") center 38%/cover no-repeat;
+  }
+  .auth-scrim{
+    position:fixed; inset:0; z-index:1;
+    background:
+      linear-gradient(90deg, rgba(4,4,5,.15) 0%, rgba(4,4,5,.55) 55%, rgba(4,4,5,.88) 100%),
+      linear-gradient(0deg, rgba(4,4,5,.5), transparent 40%);
+  }
+
+  .auth-page{
+    position:relative; z-index:2; min-height:100vh;
+    display:flex; align-items:center; justify-content:flex-end;
+    padding:40px clamp(24px,6vw,96px);
+  }
+
+  .auth-card{
+    width:100%; max-width:430px; position:relative;
+    padding:40px 32px 32px;
+    background:rgba(10,10,12,.72); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,.09); border-radius:24px;
+    box-shadow:0 30px 80px rgba(0,0,0,.55);
+    text-align:center;
+  }
+  .auth-card__logo{
+    width:104px; height:104px; object-fit:contain; display:block; margin:-92px auto 18px;
+    filter:drop-shadow(0 14px 28px rgba(252,18,131,.35));
+  }
+  .auth-card h1{ font-size:20px; font-weight:700; letter-spacing:-.01em; margin:0 0 4px; }
+  .auth-card__lead{ font-size:13.5px; color:var(--muted); margin:0 0 28px; }
+
+  .auth-field{ position:relative; margin-bottom:12px; text-align:left; }
+  .auth-field__icon{
+    position:absolute; left:16px; top:50%; transform:translateY(-50%);
+    width:17px; height:17px; color:var(--faint); pointer-events:none;
+  }
+  .auth-field input{
+    width:100%; padding:14px 16px 14px 44px; font:inherit; font-size:13.5px; color:var(--ink);
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:13px;
+    transition:border-color .15s, background .15s;
+  }
+  .auth-field input::placeholder{ color:var(--faint); }
+  .auth-field input:focus{ outline:none; border-color:var(--acc); background:rgba(255,255,255,.06); }
+  .auth-field__toggle{
+    position:absolute; right:14px; top:50%; transform:translateY(-50%);
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+    border:none; background:none; color:var(--faint); cursor:pointer; padding:0;
+  }
+  .auth-field__toggle:hover{ color:var(--muted); }
+  .auth-field__toggle svg{ width:17px; height:17px; }
+
+  /* Prénom + Nom côte à côte, qui se replient sous 380px de carte */
+  .auth-row2{ display:flex; gap:10px; }
+  .auth-row2 .auth-field{ flex:1; min-width:0; }
+  @media (max-width:420px){ .auth-row2{ flex-direction:column; gap:0; } }
+
+  .auth-hint{ font-size:11.5px; color:var(--faint); margin:-6px 0 14px; text-align:left; }
+
+  .auth-error{ font-size:12.5px; color:var(--red); margin:0 0 14px; text-align:left; }
+  .auth-error:empty{ display:none; }
+
+  /* Message de suite : en attente de validation / approuvé / erreur */
+  .signup-status{
+    font-size:13px; line-height:1.55; padding:14px 16px; border-radius:13px;
+    margin:0 0 16px; display:none; text-align:left; border:1px solid transparent;
+  }
   .signup-status.is-visible{ display:block; }
-  .signup-status.is-pending{ background:rgba(249,164,94,.12); color:var(--acc2); }
-  .signup-status.is-approved{ background:rgba(48,196,132,.12); color:var(--green); }
-  .signup-status.is-error{ background:rgba(240,90,90,.12); color:var(--red); }
-  .gate__footnote a{ color:var(--acc); text-decoration:none; }
-  .gate__footnote a:hover{ text-decoration:underline; }
+  .signup-status.is-pending{ background:rgba(232,179,57,.12); border-color:rgba(232,179,57,.35); color:#f4d07a; }
+  .signup-status.is-approved{ background:rgba(51,230,166,.12); border-color:rgba(51,230,166,.35); color:#7ff3ca; }
+  .signup-status.is-error{ background:rgba(255,77,94,.12); border-color:rgba(255,77,94,.35); color:#ff94a0; }
+
+  .auth-submit{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:14px; font:inherit; font-size:14.5px; font-weight:700; color:#fff; letter-spacing:-.005em;
+    border:none; border-radius:13px; cursor:pointer;
+    background:linear-gradient(90deg, var(--acc), var(--acc2));
+    box-shadow:0 14px 32px rgba(252,18,131,.28);
+    transition:transform .15s, box-shadow .15s;
+  }
+  .auth-submit:hover{ box-shadow:0 16px 38px rgba(252,18,131,.4); }
+  .auth-submit:active{ transform:scale(.98); }
+  .auth-submit:disabled{ opacity:.65; cursor:default; box-shadow:none; }
+
+  .auth-footnote{ font-size:12.5px; color:var(--muted); margin:22px 0 0; }
+  .auth-footnote a{ color:var(--acc); text-decoration:none; font-weight:600; }
+  .auth-footnote a:hover{ text-decoration:underline; }
+
+  @media (max-width:760px){
+    .auth-page{ justify-content:center; align-items:flex-end; padding:24px 16px 40px; }
+    .auth-scrim{
+      background:linear-gradient(0deg, rgba(4,4,5,.2) 0%, rgba(4,4,5,.75) 45%, rgba(4,4,5,.95) 100%);
+    }
+    .auth-card{ max-width:420px; }
+  }
 </style>
 </head>
 <body>
 
-<div class="gate">
-  <div class="gate__glow" aria-hidden="true"></div>
-  <div class="gate__card">
-    <div class="gate__mark" aria-hidden="true"></div>
+<div class="auth-bg" aria-hidden="true"></div>
+<div class="auth-scrim" aria-hidden="true"></div>
+
+<div class="auth-page">
+  <div class="auth-card">
+    <img class="auth-card__logo" src="assets/logo-chest-glow.png" alt="CHEST">
     <h1>Créer un compte</h1>
-    <p>Réservé aux personnes invitées par l'administrateur.</p>
+    <p class="auth-card__lead">Réservé aux personnes invitées par l'administrateur.</p>
 
     <p class="signup-status" id="statusMsg"></p>
 
     <form id="signupForm" autocomplete="off">
-      <div class="signup-row">
-        <div class="signup-field">
-          <label for="firstName">Prénom</label>
-          <input id="firstName" class="field" type="text" required>
+      <div class="auth-row2">
+        <div class="auth-field">
+          <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+          <input id="firstName" type="text" placeholder="Prénom" required>
         </div>
-        <div class="signup-field">
-          <label for="lastName">Nom</label>
-          <input id="lastName" class="field" type="text" required>
+        <div class="auth-field">
+          <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+          <input id="lastName" type="text" placeholder="Nom" required>
         </div>
       </div>
-      <div class="signup-field">
-        <label for="email">Email</label>
-        <input id="email" class="field" type="email" required autocomplete="off">
+
+      <div class="auth-field">
+        <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M3 6l9 7 9-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <input id="email" type="email" placeholder="Adresse e-mail" required autocomplete="off">
       </div>
-      <div class="signup-field">
-        <label for="password">Mot de passe (8 caractères minimum)</label>
-        <input id="password" class="field" type="password" minlength="8" required autocomplete="new-password">
+
+      <div class="auth-field">
+        <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5" stroke-linecap="round"/></svg>
+        <input id="password" type="password" placeholder="Mot de passe" minlength="8" required autocomplete="new-password" style="padding-right:44px">
+        <button type="button" class="auth-field__toggle" id="pwToggle" aria-label="Afficher le mot de passe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
       </div>
-      <p class="gate__error" id="formError"></p>
-      <button type="submit" class="btn btn-primary gate__submit" id="submitBtn">Créer mon compte</button>
+      <p class="auth-hint">8 caractères minimum.</p>
+
+      <p class="auth-error" id="formError"></p>
+
+      <button type="submit" class="auth-submit" id="submitBtn">
+        <span id="submitLabel">Créer mon compte</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </form>
 
-    <p class="gate__footnote">Déjà un compte ? <a href="login.html">Se connecter</a></p>
+    <p class="auth-footnote">Déjà un compte ? <a href="login.html">Se connecter</a></p>
   </div>
 </div>
 
@@ -73,6 +178,15 @@
   const errEl = document.getElementById('formError');
   const statusEl = document.getElementById('statusMsg');
   const submitBtn = document.getElementById('submitBtn');
+  const submitLabel = document.getElementById('submitLabel');
+
+  document.getElementById('pwToggle').addEventListener('click', () => {
+    const input = document.getElementById('password');
+    const btn = document.getElementById('pwToggle');
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.setAttribute('aria-label', showing ? 'Afficher le mot de passe' : 'Masquer le mot de passe');
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -85,7 +199,7 @@
     const password = document.getElementById('password').value;
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Envoi…';
+    submitLabel.textContent = 'Envoi…';
     try {
       const result = await CHESTAccounts.signup({ firstName, lastName, email, password });
       form.hidden = true;
@@ -97,7 +211,7 @@
     } catch (err) {
       errEl.textContent = err.message;
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Créer mon compte';
+      submitLabel.textContent = 'Créer mon compte';
     }
   });
 })();

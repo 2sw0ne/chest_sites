@@ -1,0 +1,741 @@
+/* ============================================================
+   CHEST — correctifs visuels
+   À déposer dans site/css/ et à charger APRÈS chest-da.css :
+     <link rel="stylesheet" href="css/patch-chest-da.css?v=2">
+   Aucune classe nouvelle imposée au HTML : tout s'applique sur
+   les classes déjà présentes dans le dépôt.
+   ============================================================ */
+
+
+/* ════════ 1. Onglet du volet : il flottait « dans le vide » ════════
+   Le SVG avait un fond semi-transparent sans le backdrop-filter de la
+   sidebar : la bulle ne se raccordait pas au volet. Le fond est repris
+   ici, opaque, avec la teinte exacte de la sidebar composée sur le fond
+   de page — et le bouton gagne la même zone de clic. */
+.chest-sidebar__toggle{ width:18px; }
+.chest-sidebar__toggle-bg path{ fill:#0a0a0c !important; }
+[data-theme="light"] .chest-sidebar__toggle-bg path{ fill:#f0f0f1 !important; }
+/* Filet de raccord : prolonge le bord de la sidebar derrière la bulle,
+   pour qu'aucune couture n'apparaisse au-dessus ni en dessous. */
+.chest-sidebar::after{
+  content:''; position:absolute; top:0; bottom:0; right:0; width:1px;
+  background:var(--chest-rule); pointer-events:none;
+}
+
+
+/* ════════ 2. Lueur du curseur ════════
+   Le masque s'arrêtait à 57 % : l'éclairage mourait dès les KPI. Il
+   couvre maintenant le compte, les KPI et toute la courbe d'equity.
+   ⚠ Il faut AUSSI charger chest-ui.js — sans lui, --mx/--my ne sont
+   jamais mis à jour et la lueur reste figée. */
+.chest-spot__layer{
+  mask-image: linear-gradient(180deg,#000 0%,#000 72%,transparent 97%);
+  -webkit-mask-image: linear-gradient(180deg,#000 0%,#000 72%,transparent 97%);
+}
+
+
+/* ════════ 3. Titres en dégradé : jambages et « % » rognés ════════ */
+.chest-grad-text,
+.chest-hero-num,
+.scnr-hero__name,
+.sentiment-hero__pair{
+  line-height:1.08;
+  padding-bottom:.09em;
+  padding-right:.09em;
+}
+.chest-hero-num{ display:inline-block; }
+
+
+/* ════════ 4. STRATÉGIES ════════
+   La barre de contrôle était une carte encadrée avec des <select>
+   natifs ; elle passe sur le même plan que le reste, séparée par des
+   filets verticaux — comme le bandeau de KPI du Dashboard. */
+
+.scnr-topbar.card{
+  border:none !important;
+  background:transparent !important;
+  border-radius:0 !important;
+  border-top:1px solid var(--chest-rule) !important;
+  align-items:flex-end;
+  gap:0;
+  row-gap:22px;
+  padding:24px clamp(20px,4vw,34px) 26px !important;
+  margin-bottom:0 !important;
+}
+.scnr-topbar .scnr-field{
+  padding:0 22px;
+  border-left:1px solid var(--chest-rule-v);
+  flex:0 1 auto;
+}
+.scnr-topbar .scnr-field:first-child{ padding-left:0; border-left:none; }
+.scnr-topbar .scnr-field:last-child{ flex:1 1 300px; min-width:0; padding-right:0; }
+
+/* Étiquettes : même échelle que .chest-label */
+.scnr-topbar .scnr-field label{
+  font-size:10px; letter-spacing:.16em; font-weight:600;
+  color:var(--chest-ink-3); margin-bottom:9px;
+}
+
+/* Scanner : plus de bulle encadrée — logo nu + nom en 19px */
+.scnr-combo__trigger{
+  height:auto !important; border:none !important; background:transparent !important;
+  padding:0 !important; font-size:19px !important; font-weight:700 !important;
+  letter-spacing:-.02em; gap:11px !important;
+}
+.scnr-combo__trigger .scnr-logo-img,
+.scnr-combo__trigger .scnr-logo{
+  width:30px !important; height:30px !important; border-radius:9px !important;
+}
+.scnr-combo__trigger .chev{ font-size:10px; }
+
+/* Marché / Paire : le <select> natif devient du texte 19px */
+.scnr-topbar .scnr-field select{
+  height:auto !important; border:none !important; background:transparent !important;
+  padding:0 18px 0 0 !important; font-size:19px !important; font-weight:700 !important;
+  letter-spacing:-.02em; color:var(--chest-ink) !important; cursor:pointer;
+  -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235c5c63' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important;
+  background-position:right center !important;
+  background-size:9px 6px !important;
+}
+.scnr-topbar .scnr-field select option{ background:#0c0c0e; color:var(--chest-ink); font-size:14px; }
+
+/* Unité de temps : segmenté en pilules, comme partout ailleurs */
+.scnr-tf{
+  height:auto !important; display:inline-flex !important; flex-wrap:wrap;
+  gap:2px !important; padding:3px !important;
+  border:1px solid var(--chest-border) !important; border-radius:999px !important;
+  background:rgba(255,255,255,.03) !important; overflow:visible !important;
+}
+.scnr-tf button{
+  flex:0 0 auto !important; font-size:11.5px !important; font-weight:600 !important;
+  padding:6px 12px !important; border-radius:999px !important;
+  color:var(--chest-ink-2) !important; transition:color .18s, background .18s;
+}
+.scnr-tf button + button{ border-left:none !important; }
+.scnr-tf button:hover{ color:var(--chest-ink) !important; }
+.scnr-tf button.is-active{
+  background:var(--chest-ink) !important; color:var(--chest-bg) !important; font-weight:700 !important;
+}
+
+/* Le graphique passe en fenêtre liquid glass */
+.scnr-media.card{
+  border:1px solid rgba(255,255,255,.14) !important;
+  border-radius:var(--chest-r-lg) !important;
+  background:linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74)) !important;
+  backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
+  -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.45),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
+    inset -1.5px -1.5px 0 rgba(255,255,255,.06),
+    inset 0 0 40px rgba(255,255,255,.035) !important;
+  position:relative;
+}
+.scnr-media.card::after{
+  content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none; z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+}
+/* Le conteneur .container bridait la page à 1180px alors que la maquette
+   est pleine largeur — le graphique respire enfin. */
+.chest-main > main.container{ max-width:none; padding:0; }
+.chest-main > main.container > *{ margin-left:clamp(20px,4vw,34px); margin-right:clamp(20px,4vw,34px); }
+.chest-main > main.container > .scnr-topbar{ margin-left:0; margin-right:0; }
+.scnr-desc{ font-size:13.5px; line-height:1.6; color:var(--chest-ink-2); padding:22px 26px 18px; }
+.scnr-tags{ padding:0 26px 22px; }
+.scnr-tags span{
+  font-size:11px; padding:4px 10px; border-radius:999px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); color:#c9c9cf;
+}
+
+
+/* ════════ 5. Bandeau de KPI : palier intermédiaire ════════
+   Entre 640 et 900px les valeurs passaient sur deux lignes. */
+@media (max-width:900px) and (min-width:641px){
+  .chest-kpis{
+    grid-auto-flow:row;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    row-gap:22px;
+  }
+  .chest-kpis > *:nth-child(3n+1){ border-left:none; padding-left:0; }
+}
+.chest-kpi__val{ white-space:nowrap; }
+
+
+/* ════════ 6. Lueur d'ambiance : débordement horizontal ════════ */
+.chest-ambient{ inset:-127px 0 auto 0; }
+
+
+/* ════════ 7. Garde-fou sur l'overflow du volet ════════
+   L'onglet déborde à right:-16px : un overflow:hidden sur la sidebar
+   le rogne. Il doit rester sur .chest-nav uniquement. */
+.chest-sidebar{ overflow:visible; }
+.chest-nav{ overflow:hidden; }
+
+
+/* ════════ 8. BERICH ════════ */
+
+/* Barre de connexion : plus de carte, un simple bandeau à filets */
+.conn-bar{
+  border:none !important; background:transparent !important; border-radius:0 !important;
+  border-top:1px solid var(--chest-rule) !important;
+  border-bottom:1px solid var(--chest-rule) !important;
+  padding:14px clamp(20px,4vw,34px) !important;
+  margin:0 0 26px !important;
+}
+.conn-bar__status{ font-size:12.5px; }
+.conn-bar__status span{ color:var(--chest-ink-2); }
+
+/* Le bloc du signal : fenêtre liquid glass, colonnes égales
+   (1fr / 1.3fr écrasait la colonne de gauche sur les écrans moyens) */
+.signal-hero.card{
+  border:1px solid rgba(255,255,255,.14) !important;
+  border-radius:var(--chest-r-lg) !important;
+  background:linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74)) !important;
+  backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
+  -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.45),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
+    inset -1.5px -1.5px 0 rgba(255,255,255,.06) !important;
+  position:relative;
+}
+.signal-hero.card::after{
+  content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none; z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+}
+.signal-hero__active{ grid-template-columns:repeat(auto-fit,minmax(300px,1fr)) !important; }
+@media (max-width:880px){ .signal-hero__active{ grid-template-columns:1fr !important; } }
+.signal-hero__info{ border-left-color:var(--chest-rule) !important; }
+
+/* Entrée / SL / TP : filets verticaux au lieu de trois petites cartes */
+.signal-hero__levels,
+.levels{
+  grid-template-columns:repeat(auto-fit,minmax(130px,1fr)) !important;
+  gap:14px 0 !important;
+}
+.signal-hero__levels div,
+.levels div{
+  border:none !important; background:transparent !important; border-radius:0 !important;
+  padding:2px 22px !important; min-width:0;
+  border-left:1px solid var(--chest-rule-v) !important;
+}
+.signal-hero__levels div:first-child,
+.levels div:first-child{ padding-left:0 !important; border-left:none !important; }
+.signal-hero__levels span,
+.levels span{
+  font-size:10px !important; letter-spacing:.16em !important;
+  color:var(--chest-ink-3) !important; margin-bottom:8px !important;
+}
+.signal-hero__levels strong,
+.levels strong{ font-size:24px !important; font-weight:700 !important; letter-spacing:-.02em; white-space:nowrap; }
+.signal-hero__levels .sl strong,
+.levels .sl strong{ text-shadow:0 0 18px rgba(255,77,94,.3); }
+.signal-hero__levels .tp strong,
+.levels .tp strong{ text-shadow:0 0 18px rgba(51,230,166,.35); }
+
+/* Ligne de risque : encadré léger, sélecteur en pilules */
+.risk-box{
+  border:1px solid var(--chest-border) !important; border-radius:var(--chest-r-sm) !important;
+  background:rgba(255,255,255,.03) !important; font-size:12.5px !important;
+}
+.risk-choice-group{
+  border:1px solid var(--chest-border) !important; background:rgba(255,255,255,.03) !important;
+  padding:3px !important; border-radius:999px !important;
+}
+.risk-choice-group button{
+  font-size:11px !important; font-weight:600 !important; padding:5px 11px !important;
+  border-radius:999px !important; color:var(--chest-ink-2) !important;
+}
+.risk-choice-group button.is-active{
+  background:var(--chest-ink) !important; color:var(--chest-bg) !important; font-weight:700 !important;
+}
+
+/* Le graphique passe en fenêtre liquid glass */
+.chart-wrap.card{
+  border:1px solid rgba(255,255,255,.14) !important;
+  border-radius:var(--chest-r-lg) !important;
+  background:linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74)) !important;
+  backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
+  -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.45),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
+    inset -1.5px -1.5px 0 rgba(255,255,255,.06) !important;
+  position:relative;
+}
+.chart-wrap.card::after{
+  content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none; z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+}
+.chart-wrap__head{ padding:20px 24px 0 !important; }
+.chart-note{ padding:14px 24px 20px !important; color:var(--chest-ink-3) !important; }
+
+/* Bouton d'action : arrondi de la DA */
+.big-trade-btn{ border-radius:16px !important; }
+
+/* Historique : liste simple, plus de carte dans la carte */
+#historyWrap .card.signal-card{
+  border:none !important; background:transparent !important; padding:0 !important;
+}
+.history-row{ border-bottom-color:var(--chest-rule-row) !important; padding:14px 0 !important; }
+
+
+/* ════════ 9. PAGES DE TRANSITION ════════
+   Assistants, verrous, modales, formulaires — ces écrans n'avaient
+   jamais reçu la DA : ils gardaient la carte grise par défaut. Les
+   règles ci-dessous sont transversales, elles couvrent BERICH (verrou
+   broker + EA), le Dashboard (ajout de compte Myfxbook), Backtesting
+   (import), Compte et l'admin. */
+
+/* Carte d'assistant → fenêtre liquid glass */
+.wizard-card.card,
+.connmodal-modal,
+.gate__card{
+  border:1px solid rgba(255,255,255,.14) !important;
+  border-radius:var(--chest-r-xl) !important;
+  background:linear-gradient(160deg, rgba(9,9,11,.72), rgba(9,9,11,.82)) !important;
+  backdrop-filter:blur(30px) saturate(1.1);
+  -webkit-backdrop-filter:blur(30px) saturate(1.1);
+  box-shadow:
+    0 30px 80px rgba(0,0,0,.55),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.14),
+    inset -1.5px -1.5px 0 rgba(255,255,255,.05) !important;
+}
+
+/* Fil d'étapes : filet fin + accent dégradé sur l'étape en cours */
+.wizard-steps{ gap:0 !important; }
+.wizard-step{
+  border-bottom:2px solid var(--chest-rule) !important;
+  font-size:10px !important; letter-spacing:.16em !important; color:var(--chest-ink-3) !important;
+  padding-bottom:12px !important;
+}
+.wizard-step.is-active{
+  color:var(--chest-ink) !important;
+  border-image:linear-gradient(90deg,#fc1283,#f9a45e) 1 !important;
+}
+.wizard-step.is-done{ border-bottom-color:rgba(252,18,131,.45) !important; color:var(--chest-ink-2) !important; }
+
+/* Tuiles de choix (broker, méthode de connexion) : survol dégradé */
+.broker-card,
+.broker-card-sm,
+.method-card,
+.mfx-account-row{
+  border:1px solid var(--chest-border) !important;
+  border-radius:var(--chest-r-sm) !important;
+  background:rgba(255,255,255,.025) !important;
+  transition:transform .2s var(--chest-ease), border-color .2s, background .2s, box-shadow .2s !important;
+}
+.broker-card:hover,
+.broker-card-sm:hover,
+.method-card:hover,
+.mfx-account-row:hover{
+  transform:translateY(-2px);
+  border-color:rgba(249,164,94,.45) !important;
+  background:linear-gradient(135deg, rgba(252,18,131,.11), rgba(249,164,94,.08)) !important;
+  box-shadow:0 10px 26px rgba(252,18,131,.16) !important;
+}
+.broker-card-sm.is-selected,
+.mfx-account-row.is-selected{
+  border-color:rgba(252,18,131,.55) !important;
+  background:linear-gradient(135deg, rgba(252,18,131,.14), rgba(249,164,94,.1)) !important;
+}
+
+/* Encadré d'instructions (étapes numérotées) */
+.method-steps{
+  border:1px solid var(--chest-border) !important;
+  border-radius:var(--chest-r-sm) !important;
+  background:rgba(255,255,255,.025) !important;
+}
+.method-steps h3{ font-size:10px !important; letter-spacing:.16em; text-transform:uppercase; color:var(--chest-ink-3) !important; }
+.method-steps ol{ color:var(--chest-ink-2) !important; }
+.method-steps code,
+.sync-line code,
+.conn-bar__status code{
+  background:rgba(255,255,255,.06) !important; border:1px solid rgba(255,255,255,.1);
+  border-radius:5px; padding:1px 6px; font-size:.92em;
+}
+
+/* Champs de formulaire : contour rose au focus, comme la maquette */
+.field{
+  background:rgba(255,255,255,.04) !important;
+  border:1px solid var(--chest-border) !important;
+  border-radius:13px !important;
+  transition:border-color .18s, background .18s !important;
+}
+.field:hover{ border-color:rgba(249,164,94,.4) !important; }
+.field:focus{
+  border-color:var(--chest-acc) !important;
+  background:rgba(255,255,255,.06) !important;
+  box-shadow:0 0 0 3px rgba(252,18,131,.12);
+}
+label{ font-size:12px !important; letter-spacing:.02em; color:var(--chest-ink-2) !important; }
+
+/* Boutons hérités du thème d'origine, alignés sur la DA */
+.btn-primary{
+  background:var(--chest-grad) !important;
+  box-shadow:0 10px 30px rgba(252,18,131,.3) !important;
+  border-radius:999px !important;
+}
+.btn-primary:hover{ transform:translateY(-1px); box-shadow:0 16px 44px rgba(252,18,131,.45) !important; }
+.btn-secondary,
+.btn-ghost{
+  border-radius:999px !important;
+  border:1px solid transparent !important;
+  background:linear-gradient(rgba(255,255,255,.04),rgba(255,255,255,.04)) padding-box,
+             linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.16)) border-box !important;
+  transition:background .2s, color .2s, box-shadow .2s !important;
+}
+.btn-secondary:hover,
+.btn-ghost:hover{
+  color:#fff !important;
+  background:linear-gradient(rgba(255,255,255,.04),rgba(255,255,255,.04)) padding-box,
+             var(--chest-grad) border-box !important;
+  box-shadow:0 8px 26px rgba(252,18,131,.2) !important;
+}
+
+/* Boutons ronds (réglages, navigation de jour) */
+.icon-btn{
+  background:rgba(255,255,255,.04) !important;
+  border:1px solid var(--chest-border) !important;
+  color:var(--chest-ink-2) !important;
+  transition:color .18s, border-color .18s !important;
+}
+.icon-btn:hover{ color:var(--chest-ink) !important; border-color:rgba(249,164,94,.5) !important; }
+
+/* Segmenté hérité (.pill-group) : même rendu que .chest-seg */
+.pill-group{
+  border:1px solid var(--chest-border) !important;
+  background:rgba(255,255,255,.03) !important;
+}
+.pill-group button{ color:var(--chest-ink-2) !important; }
+.pill-group button.is-active{ background:var(--chest-ink) !important; color:var(--chest-bg) !important; }
+
+/* Voile des modales : même profondeur que le reste */
+.connmodal-overlay{ background:rgba(0,0,0,.66) !important; backdrop-filter:blur(10px) !important; -webkit-backdrop-filter:blur(10px) !important; }
+
+/* Titre de modale */
+.connmodal-modal h2{ font-size:19px !important; font-weight:700 !important; letter-spacing:-.025em; }
+.connmodal-modal .hint,
+p.hint{ color:var(--chest-ink-2) !important; }
+.connmodal-close{
+  background:rgba(255,255,255,.05) !important; border:1px solid var(--chest-border) !important;
+  color:var(--chest-ink-2) !important; transition:color .18s, border-color .18s;
+}
+.connmodal-close:hover{ color:var(--chest-ink) !important; border-color:rgba(249,164,94,.5) !important; }
+
+/* Bloc vide / réservé */
+.placeholder{
+  border:1px dashed rgba(255,255,255,.18) !important;
+  border-radius:var(--chest-r) !important;
+  color:var(--chest-ink-3) !important;
+}
+.placeholder strong{ color:var(--chest-ink) !important; }
+
+/* Pied de page */
+.site-footer{ border-top-color:var(--chest-rule) !important; }
+.site-footer__inner{ color:var(--chest-ink-3) !important; font-size:11.5px !important; }
+
+/* Bandeau "exemple" : ambre de la DA */
+.example-badge{
+  color:var(--chest-amber) !important;
+  background:rgba(232,179,57,.12) !important;
+  border-color:rgba(232,179,57,.35) !important;
+  border-radius:999px !important;
+}
+
+
+/* ════════ 10. CALENDRIER ════════ */
+
+/* Le conteneur bridait la page à 1180px alors que le ticker et le hero
+   sont pleine largeur — la rupture se voyait à chaque bord. */
+.chest-main > main.container{ max-width:none; padding:0 clamp(20px,4vw,34px); }
+
+/* Annonces du jour : les « bulles » deviennent des mini-fenêtres verre */
+.bubble{
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:var(--chest-r) !important;
+  background:linear-gradient(160deg, rgba(9,9,11,.5), rgba(9,9,11,.66)) !important;
+  backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
+  -webkit-backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,.4),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.16),
+    inset -1.5px -1.5px 0 rgba(255,255,255,.05) !important;
+  transition:transform .22s var(--chest-ease), border-color .22s, box-shadow .22s !important;
+}
+.bubble:hover{
+  transform:translateY(-3px);
+  border-color:rgba(249,164,94,.45) !important;
+  box-shadow:0 20px 44px rgba(0,0,0,.45), 0 0 34px rgba(252,18,131,.18),
+             inset 1.5px 1.5px 0 rgba(255,255,255,.2) !important;
+}
+.bubble.is-open{ border-color:rgba(252,18,131,.55) !important; }
+.bubble__badge.pending{ background:rgba(232,179,57,.14) !important; color:var(--chest-amber) !important; }
+.bubble__badge.released{ background:rgba(51,230,166,.14) !important; color:var(--chest-green) !important; }
+.bubble__detail-inner{ border-top-color:var(--chest-rule) !important; }
+
+/* Prévu | Réel dans le détail : filets au lieu de trois pavés */
+.compare-row{ gap:0 !important; }
+.compare-cell{
+  background:transparent !important; border-radius:0 !important;
+  text-align:left !important; padding:2px 16px !important;
+  border-left:1px solid var(--chest-rule-v);
+}
+.compare-cell:first-child{ padding-left:0 !important; border-left:none; }
+.compare-cell span{ font-size:9.5px !important; letter-spacing:.14em !important; color:var(--chest-ink-3) !important; }
+.compare-cell b{ font-size:18px !important; font-weight:700 !important; }
+.hypothesis{
+  background:rgba(255,255,255,.04) !important;
+  border:1px solid var(--chest-border);
+  border-radius:var(--chest-r-sm) !important;
+}
+
+/* Tableaux du jour et des prochains jours : fenêtres liquid glass */
+.day-table,
+.upcoming-table{
+  border:1px solid rgba(255,255,255,.14) !important;
+  border-radius:var(--chest-r-lg) !important;
+  background:linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74)) !important;
+  backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
+  -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.45),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
+    inset -1.5px -1.5px 0 rgba(255,255,255,.06) !important;
+  position:relative;
+}
+.day-table::after,
+.upcoming-table::after{
+  content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none; z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+}
+.day-row,
+.upcoming-row{
+  border-bottom-color:var(--chest-rule-row) !important;
+  padding:14px 22px !important;
+  transition:background .18s;
+}
+.day-row:hover,
+.upcoming-row:hover{ background:rgba(255,255,255,.035); }
+.day-row .t,
+.upcoming-row .t{ color:var(--chest-ink-2) !important; font-size:12.5px; }
+.day-row .col span,
+.upcoming-row .cons{ color:var(--chest-ink-3) !important; }
+/* Repère « maintenant » : même traitement que la maquette */
+.day-row.is-now{
+  background:rgba(252,18,131,.07) !important;
+  box-shadow:inset 0 2px 12px rgba(252,18,131,.25);
+}
+.day-row.is-now::before{ box-shadow:0 0 8px rgba(252,18,131,.6) !important; }
+
+/* Filtre d'importance : pilules alignées sur la DA, actif en dégradé */
+.imp-pill{
+  border:1px solid var(--chest-border) !important;
+  background:rgba(255,255,255,.03) !important;
+  color:var(--chest-ink-2) !important;
+  transition:border-color .18s, color .18s, background .18s !important;
+}
+.imp-pill:hover{ border-color:rgba(249,164,94,.5) !important; color:var(--chest-ink) !important; }
+.imp-pill.is-active{
+  border-color:rgba(252,18,131,.5) !important;
+  background:linear-gradient(135deg,rgba(252,18,131,.14),rgba(249,164,94,.1)) !important;
+  color:var(--chest-ink) !important;
+}
+.imp-pill .stars,
+.imp-dot{ color:var(--chest-amber) !important; }
+
+/* Navigateur de jour */
+.day-nav__btn{
+  background:rgba(255,255,255,.04) !important;
+  border:1px solid var(--chest-border) !important;
+  color:var(--chest-ink-2) !important;
+}
+.day-nav__btn:not(:disabled):hover{ border-color:rgba(249,164,94,.5) !important; color:var(--chest-ink) !important; }
+.day-nav__today{
+  background:rgba(255,255,255,.03) !important;
+  border:1px solid var(--chest-border) !important;
+  color:var(--chest-ink-2) !important;
+}
+.day-nav__today.is-active{
+  background:var(--chest-ink) !important; color:var(--chest-bg) !important;
+  border-color:var(--chest-ink) !important; font-weight:700 !important;
+}
+
+/* Tranches verticales de la semaine : accent dégradé quand actif */
+.driver-tab.is-active{
+  background:linear-gradient(135deg,rgba(252,18,131,.12),rgba(249,164,94,.08)) !important;
+  border-color:rgba(249,164,94,.5) !important;
+  box-shadow:0 10px 26px rgba(252,18,131,.22) !important;
+}
+.driver-compact__detail{
+  border:1px solid var(--chest-border) !important;
+  border-radius:var(--chest-r) !important;
+  background:rgba(255,255,255,.03) !important;
+}
+
+/* Ticker : filets et fond de la DA */
+.ticker-item{ border-right-color:var(--chest-rule) !important; }
+.ticker-meta{ background:rgba(8,8,10,.9) !important; border-left-color:var(--chest-rule) !important; }
+
+/* État de chargement / vide */
+.cal-state{
+  border:1px dashed rgba(255,255,255,.18) !important;
+  border-radius:var(--chest-r) !important;
+  color:var(--chest-ink-3) !important;
+}
+.cal-state code{ background:rgba(255,255,255,.06) !important; color:var(--chest-ink) !important; }
+
+/* Marché crypto : la carte devient une mini-fenêtre verre */
+#moversSection .card{
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:var(--chest-r) !important;
+  background:linear-gradient(160deg, rgba(9,9,11,.5), rgba(9,9,11,.66)) !important;
+  backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
+  -webkit-backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
+  box-shadow:0 14px 34px rgba(0,0,0,.4), inset 1.5px 1.5px 0 rgba(255,255,255,.16) !important;
+}
+.mover-row{ border-bottom-color:var(--chest-rule-row) !important; }
+.mover-col__label{ font-size:10px !important; letter-spacing:.16em !important; color:var(--chest-ink-3) !important; }
+
+
+/* ════════ 11. TITRES DE PAGE ════════
+   .page-head existe sur Calendrier, Backtesting, Journal, Compte et
+   l'admin : il reçoit ici l'échelle et la lumière diffuse de la
+   maquette — la lueur est DERRIÈRE le bloc, jamais sur les lettres. */
+.page-head{ position:relative; padding:clamp(40px,7vh,64px) 0 clamp(24px,4vh,32px); }
+.page-head::before{
+  content:''; position:absolute; left:-80px; top:-30px; width:620px; height:360px;
+  pointer-events:none; filter:blur(90px); z-index:0;
+  background:radial-gradient(45% 50% at 30% 50%, rgba(252,18,131,.3), transparent 72%),
+             radial-gradient(40% 44% at 62% 40%, rgba(249,164,94,.2), transparent 74%);
+}
+.page-head > *{ position:relative; z-index:1; }
+.page-head h1{
+  font-size:clamp(34px,5vw,54px) !important;
+  letter-spacing:-.045em !important;
+  line-height:1.06 !important;
+  padding-bottom:.04em;
+}
+.page-head p{ color:var(--chest-ink-2) !important; font-size:13.5px !important; max-width:560px; }
+
+/* Étiquette de section : l'échelle « 01 — » de la maquette */
+.eyebrow{
+  font-size:10px !important; letter-spacing:.24em !important;
+  color:var(--chest-ink-3) !important; margin-bottom:16px;
+}
+.eyebrow::after{ background:var(--chest-rule) !important; }
+
+
+/* ════════ 12. CARTE GÉNÉRIQUE ════════
+   Dernier filet : toute .card restée en fond plat (Backtesting, Journal,
+   Compte, admin…) prend la surface et la bordure de la DA. Les cartes
+   déjà traitées plus haut gardent leur traitement, plus spécifique. */
+.chest-root .card{
+  border:1px solid var(--chest-border) !important;
+  border-radius:var(--chest-r) !important;
+  background:var(--chest-surface) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+
+/* ════════ 13. JOURNAL, COMPTE, IMPORT & RAPPORT DE BACKTEST ════════
+   Ces pages partagent les mêmes briques héritées (tableaux, onglets,
+   formulaires longs, blocs de réglages). Les règles ci-dessous les
+   alignent sans toucher à leur balisage ni à leurs identifiants. */
+
+/* Tableaux de données : entête en petites capitales, lignes à filets,
+   survol discret — le langage du Journal dans la maquette. */
+.chest-root table{ width:100%; border-collapse:collapse; }
+.chest-root thead th{
+  font-size:10px !important; font-weight:600 !important; letter-spacing:.14em !important;
+  text-transform:uppercase !important; color:var(--chest-ink-3) !important;
+  text-align:left; padding:14px 16px !important;
+  border-bottom:1px solid rgba(255,255,255,.1) !important;
+  background:transparent !important;
+}
+.chest-root tbody td{
+  font-size:12.5px !important; padding:14px 16px !important;
+  border-bottom:1px solid var(--chest-rule-row) !important;
+}
+.chest-root tbody tr{ transition:background .18s; }
+.chest-root tbody tr:hover{ background:rgba(255,255,255,.035); }
+.chest-root tbody tr:last-child td{ border-bottom:none !important; }
+/* Les chiffres d'un tableau s'alignent toujours */
+.chest-root td[class*="pnl"], .chest-root td[class*="rr"],
+.chest-root td[class*="amount"], .chest-root .num{ font-variant-numeric:tabular-nums; }
+
+/* Un tableau dense défile plutôt que d'écraser ses colonnes */
+.table-wrap, .table-scroll{ overflow-x:auto; overflow-y:hidden; }
+
+/* Blocs de réglages en liste (Compte) : un filet par ligne, pas de carte */
+.settings-row, .setting-row, .account-row{
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  padding:18px 0 !important; border-bottom:1px solid var(--chest-rule) !important;
+  background:transparent !important; border-radius:0 !important;
+}
+.settings-row:last-child, .setting-row:last-child, .account-row:last-child{ border-bottom:none !important; }
+
+/* Onglets hérités */
+.tabbar, .tabs{
+  display:inline-flex; gap:2px; padding:3px;
+  border:1px solid var(--chest-border) !important; border-radius:999px !important;
+  background:rgba(255,255,255,.03) !important;
+}
+.tabbar button, .tabs button{
+  border:none !important; background:transparent !important; cursor:pointer;
+  font:inherit; font-size:12.5px; font-weight:600; padding:7px 15px;
+  border-radius:999px !important; color:var(--chest-ink-2) !important;
+  transition:color .18s, background .18s;
+}
+.tabbar button:hover, .tabs button:hover{ color:var(--chest-ink) !important; background:rgba(255,255,255,.05) !important; }
+.tabbar button.is-active, .tabs button.is-active{
+  background:var(--chest-ink) !important; color:var(--chest-bg) !important; font-weight:700 !important;
+}
+
+/* Zone de dépôt de fichier (import Excel) */
+.dropzone, .file-drop, [class*="upload"]{
+  border:1px dashed rgba(255,255,255,.18) !important;
+  border-radius:var(--chest-r) !important;
+  background:rgba(255,255,255,.02) !important;
+  transition:border-color .2s, background .2s !important;
+}
+.dropzone:hover, .file-drop:hover,
+.dropzone.is-over, .file-drop.is-over{
+  border-color:rgba(249,164,94,.5) !important;
+  background:linear-gradient(135deg,rgba(252,18,131,.07),rgba(249,164,94,.05)) !important;
+}
+
+/* Sélecteurs natifs : même traitement que les champs */
+.chest-root select.field,
+.chest-root select:not(.scnr-field select){
+  background-color:rgba(255,255,255,.04);
+  border:1px solid var(--chest-border);
+  border-radius:var(--chest-r-sm);
+  color:var(--chest-ink);
+}
+.chest-root select:focus{ outline:none; border-color:var(--chest-acc); }
+.chest-root select option{ background:#0c0c0e; color:var(--chest-ink); }
+
+/* Cases et interrupteurs : accent de marque */
+.chest-root input[type="checkbox"],
+.chest-root input[type="radio"],
+.chest-root input[type="range"]{ accent-color:var(--chest-acc); }
+
+/* Barres de progression */
+.chest-root progress::-webkit-progress-value,
+.progress__bar, .bar__fill{ background:var(--chest-grad) !important; }
+.chest-root progress::-webkit-progress-bar,
+.progress, .bar{ background:rgba(255,255,255,.07) !important; border-radius:999px; }
+
+/* Message d'aide / note discrète */
+.hint, .note, .muted{ color:var(--chest-ink-2) !important; }
+small{ color:var(--chest-ink-3); }
+
+/* Séparateurs horizontaux hérités */
+.chest-root hr{ border:none; border-top:1px solid var(--chest-rule); margin:24px 0; }
+
+/* Le pied de page ne colle plus au contenu */
+.chest-main + .site-footer,
+.chest-shell ~ .site-footer{ margin-top:0; }
