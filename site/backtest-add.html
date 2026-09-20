@@ -92,20 +92,27 @@
   .prem-opt__tag--warn{ color:var(--amber); }
   .prem-opt__det{ margin-top:5px; font-size:12px; color:var(--muted); line-height:1.6; }
   .prem-pos{ color:var(--green); } .prem-neg{ color:var(--red); }
-  .prem-reco{ margin-top:10px; padding:14px 15px; border-radius:14px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.03); }
-  .prem-reco.is-ok{ border-color:rgba(51,230,166,.45); box-shadow:0 0 0 3px rgba(51,230,166,.08); }
-  .prem-reco.is-warn{ border-color:rgba(232,179,57,.45); }
-  .prem-reco__tag{ font-size:10px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:var(--green); }
-  .prem-reco.is-warn .prem-reco__tag{ color:var(--amber); }
-  .prem-reco__name{ font-size:16px; font-weight:700; margin:6px 0 4px; letter-spacing:-.01em; }
-  .prem-reco__rules{ font-size:13px; line-height:1.6; }
-  .prem-reco__stats{ display:flex; flex-wrap:wrap; gap:4px 18px; margin-top:8px; font-size:13px; color:var(--muted); }
-  .prem-reco__stats b{ color:var(--ink); font-variant-numeric:tabular-nums; }
-  .prem-reco__why{ margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.08); font-size:12.5px; line-height:1.6; color:var(--muted); }
-  .prem-more{ margin-top:10px; }
-  .prem-more summary{ cursor:pointer; font-size:12.5px; color:var(--muted); padding:4px 0; }
-  .prem-more summary:hover{ color:var(--ink); }
-  .prem-more .prem-box{ margin-top:8px; }
+  .prof-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-top:10px; }
+  .prof{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; text-align:left; font:inherit; color:var(--ink); cursor:pointer; padding:13px 13px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); transition:border-color .2s, transform .2s, box-shadow .2s; }
+  .prof:hover{ border-color:rgba(249,164,94,.5); transform:translateY(-1px); }
+  .prof.is-on{ border-color:#fc1283; box-shadow:0 0 0 3px rgba(252,18,131,.14); }
+  .prof__name{ font-size:15px; font-weight:700; letter-spacing:-.01em; }
+  .prof__short{ font-size:12px; color:var(--muted); line-height:1.4; }
+  .prof__kpis{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; width:100%; margin:4px 0; padding:9px 0; border-top:1px solid rgba(255,255,255,.08); border-bottom:1px solid rgba(255,255,255,.08); }
+  .prof__kpis span{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .prof__kpis i{ font-style:normal; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .prof__kpis b{ font-size:14px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .prof__rules{ font-size:11.5px; line-height:1.55; color:var(--muted); }
+  .prof__rules b{ color:var(--ink); font-weight:600; }
+  .prof-tag{ display:inline-block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:999px; border:1px solid currentColor; }
+  .prof-tag.is-ok{ color:var(--green); }
+  .prof-tag.is-warn{ color:var(--amber); }
+  .prof-tag.is-none{ color:var(--muted); }
+  .prof-detail{ margin-top:10px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); }
+  .prof-detail__goal{ font-size:13px; font-weight:600; margin-bottom:6px; }
+  .prof-detail__row{ font-size:12.5px; line-height:1.6; color:var(--muted); margin-top:6px; }
+  .prof-detail__row b{ color:var(--ink); font-weight:600; }
+  .prof-detail__row.warn{ color:var(--amber); }
   .prem-note{ font-size:12px; color:var(--muted); line-height:1.6; }
 
   .pf-enable{ display:flex; align-items:center; gap:10px; font-size:13.5px; margin-bottom:14px; }
@@ -259,7 +266,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
           <p class="hint" style="margin:0 0 10px">Cherche le meilleur retour avec un risque idéalement ≤3% (jusqu'à 5% si besoin) et un drawdown max visé ≤30%.</p>
           <div class="auto-actions">
             <button type="button" class="btn btn-secondary run-auto-btn" data-account="cp">Calculer le meilleur réglage</button>
-            <button type="button" class="btn btn-primary run-premium-btn" data-account="cp" title="Sépare chaque bonus du fichier (W/L/P, tendance/contre…) et règle le risque de chacun indépendamment">Réglage premium</button>
+            <button type="button" class="btn btn-primary run-premium-btn" data-account="cp" title="Trois réglages aux objectifs différents, qui tiennent compte de tous les bonus, des sessions et des jours">Réglage premium</button>
           </div>
           <div class="auto-result" data-account="cp" style="display:none"></div>
         </div>
@@ -288,7 +295,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
             <p class="hint" style="margin:0 0 10px">Contrainte stricte : jamais plus de 5% de drawdown journalier ni 10% de drawdown max. Nécessite les heures de clôture pour un résultat fiable.</p>
             <div class="auto-actions">
             <button type="button" class="btn btn-secondary run-auto-btn" data-account="pf">Calculer le meilleur réglage</button>
-            <button type="button" class="btn btn-primary run-premium-btn" data-account="pf" title="Sépare chaque bonus du fichier (W/L/P, tendance/contre…) et règle le risque de chacun indépendamment">Réglage premium</button>
+            <button type="button" class="btn btn-primary run-premium-btn" data-account="pf" title="Trois réglages aux objectifs différents, qui tiennent compte de tous les bonus, des sessions et des jours">Réglage premium</button>
           </div>
             <div class="auto-result" data-account="pf" style="display:none"></div>
           </div>
@@ -314,7 +321,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=3"></script>
+<script src="js/backtest-engine.js?v=7"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js"></script>
 <script src="js/page-tour.js"></script>
@@ -403,17 +410,14 @@ CHESTTour.init([
   const fr = (n, d = 1) => Number(n).toFixed(d).replace('.', ',');
   const signed = (n) => (n >= 0 ? '+' : '−') + fr(Math.abs(n), 1) + ' %';
   const riskTxt = (r) => (r === 0 ? 'ignoré' : fr(r, 2).replace(/,?0+$/, '') + ' %');
-  function fieldLabel(key) {
-    if (key.indexOf('x:') === 0) return key.slice(2);
-    return ({ source: 'Source', confirmation: 'Confirmation', order: 'Ordre' })[key] || key;
-  }
+  const fieldLabel = (key) => ENG.fieldLabel(key);
 
   function refreshBonus() {
     bonusFields = parsedTrades && parsedTrades.length ? ENG.detectBonusFields(parsedTrades) : [];
     let html;
     if (bonusFields.length) {
       const list = bonusFields.map((f) => `<b>${esc(f.label)}</b> (${f.values.slice(0, 6).map((v) => esc(v.value)).join(', ')}${f.values.length > 6 ? '…' : ''})`).join(' · ');
-      html = `Bonus détectés dans ton fichier : ${list}. Clique sur « + Si » dans un palier pour régler le risque d'un bonus. Risque <b>0 %</b> = trade ignoré ; la règle la plus précise l'emporte (Si + Après &gt; Si &gt; Après).`;
+      html = `Bonus détectés dans ton fichier : ${list}. Session et Jour sont déduits de l'heure d'ouverture (lue en UTC). Clique sur « + Si » dans un palier pour régler le risque d'un bonus. Risque <b>0 %</b> = trade ignoré ; la règle la plus précise l'emporte (Si + Après &gt; Si &gt; Après).`;
     } else if (parsedTrades && parsedTrades.length) {
       html = `Aucun bonus exploitable détecté (il faut une colonne avec 2 à 15 valeurs différentes, par exemple Source ou Facultatif).`;
     } else {
@@ -533,6 +537,7 @@ CHESTTour.init([
       resultEl.innerHTML = `Risque retenu : <b>${best.risk}%</b> — performance totale <b>${s.performancePct.toFixed(1)}%</b>, drawdown max <b>${s.maxDrawdownPct.toFixed(1)}%</b>${account === 'pf' ? `, DD journalier max <b>${best.report.maxDailyDrawdownPct.toFixed(1)}%</b>` : ''}.${relaxedNote}${dailyNote}`;
       resultEl.dataset.risk = best.risk;
       resultEl.dataset.rules = '[]';
+      resultEl.dataset.tiers = '[]';
       delete resultEl.dataset.premium;
     });
 
@@ -545,56 +550,87 @@ CHESTTour.init([
         return;
       }
       const capital = Number(document.getElementById('btCapital').value) || 10000;
-      const res = ENG.optimizePremium(parsedTrades, capital, account);
+      const res = ENG.optimizeProfiles(parsedTrades, capital, account);
       if (res.error) { resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
       renderPremium(resultEl, res, account);
     });
   }
 
-  function renderPremium(resultEl, res, account) {
-    const opts = [{ label: `Réglage plat · ${fr(res.base.risk, 1)} % partout`, rules: [], perf: res.basePerf, dd: res.baseDd, flat: true }]
-      .concat(res.logics.map((l) => ({ label: l.label, rules: l.rules, perf: l.perf, dd: l.maxDd, gain: l.gain, detail: l.detail, oos: l.oos })));
-    // Recommandé = la logique la plus rentable dont le gain est CONFIRMÉ sur des trades jamais vus ;
-    // sinon le réglage plat (aucun bonus ne mérite d'être suivi).
-    const recoIdx = res.best && res.best.oos && res.best.oos.holds ? 1 + res.logics.indexOf(res.best) : 0;
-    let sel = recoIdx;
+  // Réglage premium : trois profils par compte, chacun avec son objectif (voir optimizeProfiles).
+  function fmtBig(x) {
+    if (x >= 1e12) return fr(x / 1e12, 1) + ' T';
+    if (x >= 1e9) return fr(x / 1e9, 1) + ' Md';
+    if (x >= 1e6) return fr(x / 1e6, 1) + ' M';
+    return Math.round(x).toLocaleString('fr-FR');
+  }
+  const fmtPerf = (p) => (p.finalMult >= 1000 ? `×${fmtBig(p.finalMult)}` : `${p.perf >= 0 ? '+' : '−'}${Math.round(Math.abs(p.perf)).toLocaleString('fr-FR')} %`);
+  const fmtSigned = (v, d = 1) => `${v >= 0 ? '+' : '−'}${fr(Math.abs(v), d)} %`;
+  const ruleTxt = (r) => {
+    const cond = r.conds.map((c) => (c.field.indexOf('d:') === 0 ? esc(c.value) : `${esc(fieldLabel(c.field))} ${esc(c.value)}`)).join(' + ');
+    return `<b>${cond}</b> → ${riskTxt(r.risk)}`;
+  };
+  const summaryTxt = (p) => {
+    const c = p.config;
+    const parts = [`Risque <b>${riskTxt(c.risk)}</b>`];
+    if (c.tiers.length) parts.push(`<b>${riskTxt(c.tiers[0].newRisk)}</b> après ${c.tiers[0].afterSl} SL`);
+    parts.push(c.rules.length ? `<b>${c.rules.length}</b> règle${c.rules.length > 1 ? 's' : ''} « Si » (${esc(p.logic)})` : 'sans règle « Si »');
+    return parts.join(' · ');
+  };
+  const trustShort = (p) => {
+    if (p.trust === 'ok') return { cls: 'ok', tag: 'Fiable', txt: `Confirmé sur les ${p.oos.testN} derniers trades, jamais vus par le calcul.` };
+    if (p.trust === 'warn') return { cls: 'warn', tag: 'Prudence', txt: `Non confirmé sur les ${p.oos.testN} derniers trades, jamais vus par le calcul.` };
+    return { cls: 'none', tag: 'Non vérifiable', txt: 'Moins de 60 trades : impossible de le vérifier.' };
+  };
 
-    const rulesTxt = (o) => o.flat ? `Même risque sur tous les trades, sans distinction de bonus.` : o.detail.map((d) => {
-      const name = d.conds.map((c) => esc(c.value)).join(' + ');
-      return `<b>${name}</b> → ${riskTxt(d.risk)}${d.tooFew ? ' <small>(peu de trades)</small>' : ''}`;
-    }).join(' · ');
-    const trust = (o) => {
-      if (o.flat) return { cls: 'ok', tag: 'Le plus sûr', txt: res.best ? `Aucun bonus n'est confirmé sur des trades que le calcul n'a pas vus : mieux vaut ne pas séparer les bonus.` : `Aucun bonus ne fait mieux que le réglage plat sous ces limites.` };
-      const x = o.oos;
-      if (!x) return { cls: 'warn', tag: 'Non vérifiable', txt: `Moins de 60 trades : impossible de vérifier que ce gain ne vient pas du hasard.` };
-      if (x.noGain) return { cls: 'warn', tag: 'À prendre avec prudence', txt: `Sur les ${x.trainN} premiers trades ce bonus ne donne aucun gain : il ne semble pas stable.` };
-      if (x.holds) return { cls: 'ok', tag: 'Fiable', txt: `Règles calculées sur les ${x.trainN} premiers trades, puis vérifiées sur les ${x.testN} derniers, jamais vus par le calcul : ${signed(x.premiumPct)} contre ${signed(x.flatPct)} en réglage plat.` };
-      return { cls: 'warn', tag: 'À prendre avec prudence', txt: `Vérifié sur les ${x.testN} derniers trades, jamais vus par le calcul, le gain disparaît (${signed(x.premiumPct)} contre ${signed(x.flatPct)} en réglage plat) : la règle s'est probablement collée à l'historique.` };
-    };
+  function renderPremium(resultEl, res, account) {
+    const profiles = res.profiles;
+    let sel = account === 'cp' ? 1 : 0; // le profil du milieu / de tête = le plus équilibré
+
     const store = () => {
-      resultEl.dataset.risk = res.base.risk;
-      resultEl.dataset.rules = JSON.stringify(opts[sel].rules);
-      const x = opts[sel].oos;
-      if (sel > 0) resultEl.dataset.premium = JSON.stringify({ label: opts[sel].label, perf: opts[sel].perf, basePerf: res.basePerf, dd: opts[sel].dd, baseDd: res.baseDd, oos: x && !x.noGain ? { flatPct: x.flatPct, premiumPct: x.premiumPct, holds: x.holds } : null });
-      else delete resultEl.dataset.premium;
+      const p = profiles[sel];
+      resultEl.dataset.risk = p.config.risk;
+      resultEl.dataset.tiers = JSON.stringify(p.config.tiers);
+      resultEl.dataset.rules = JSON.stringify(p.config.rules);
+      resultEl.dataset.premium = JSON.stringify({ profile: p.id, name: p.name, logic: p.logic, perf: p.perf, mult: p.finalMult, avgM: p.avgM, posM: p.posM, dd: p.dd, holds: p.trust === 'ok' ? true : p.trust === 'warn' ? false : null });
+    };
+    const detail = (p) => {
+      const t = trustShort(p);
+      const lines = [];
+      lines.push(`<div class="prof-detail__goal">${esc(p.goal)}</div>`);
+      lines.push(`<div class="prof-detail__row">${p.config.rules.length ? p.config.rules.map(ruleTxt).join(' · ') : 'Même risque sur tous les trades, sans distinction de bonus.'}</div>`);
+      if (p.oos) {
+        lines.push(`<div class="prof-detail__row"><span class="prof-tag is-${t.cls}">${t.tag}</span> Réglé sur les ${p.oos.trainN} premiers trades, puis testé sur les ${p.oos.testN} derniers : <b>${fmtSigned(p.oos.perf, 0)}</b> avec un drawdown de <b>${fr(p.oos.maxDd, 1)} %</b>${p.oos.flatPerf != null ? ` (sans règle « Si » : ${fmtSigned(p.oos.flatPerf, 0)})` : ''}.</div>`);
+      } else {
+        lines.push(`<div class="prof-detail__row"><span class="prof-tag is-none">${t.tag}</span> ${t.txt}</div>`);
+      }
+      let worst = `Pire cas (ordre des trades mélangé, 95 % des tirages) : drawdown sous <b>${fr(p.mc.p95, 1)} %</b>`;
+      if (p.mc.breach != null) worst += ` · limite de ${p.mc.breachDd} % dépassée dans <b>${fr(p.mc.breach, 1)} %</b> des tirages`;
+      lines.push(`<div class="prof-detail__row">${worst}. Ton pire enchaînement réel : <b>${p.maxSlStreak}</b> SL d'affilée.</div>`);
+      if (p.finalMult >= 1000) lines.push(`<div class="prof-detail__row">Chiffres composés théoriques : sans limite de lots ni de liquidité.</div>`);
+      if (p.skipped) lines.push(`<div class="prof-detail__row">${p.skipped} trade${p.skipped > 1 ? 's' : ''} ignoré${p.skipped > 1 ? 's' : ''} par ces règles.</div>`);
+      if (p.note) lines.push(`<div class="prof-detail__row warn">${esc(p.note)}</div>`);
+      return lines.join('');
     };
     const draw = () => {
-      const o = opts[sel], t = trust(o);
-      const others = opts.map((x, i) => ({ x, i })).filter((e) => e.i !== sel);
-      resultEl.innerHTML = `<div class="prem-title">Réglage premium</div>`
-        + `<div class="prem-reco is-${t.cls}">`
-        + `<div class="prem-reco__tag">${sel === recoIdx ? 'Recommandé · ' : 'Ton choix · '}${t.tag}</div>`
-        + `<div class="prem-reco__name">${esc(o.label)}</div>`
-        + `<div class="prem-reco__rules">${rulesTxt(o)}</div>`
-        + `<div class="prem-reco__stats"><span>Performance <b>${fr(o.perf, 1)} %</b>${o.flat ? '' : ` <small>(plat : ${fr(res.basePerf, 1)} %)</small>`}</span><span>DD max <b>${fr(o.dd, 1)} %</b></span></div>`
-        + `<div class="prem-reco__why">${t.txt}</div>`
-        + `</div>`
-        + (others.length ? `<details class="prem-more"><summary>Voir les autres logiques testées (${others.length})</summary><div class="prem-box">${others.map(({ x, i }) => {
-            const tt = trust(x);
-            return `<button type="button" class="prem-opt" data-i="${i}"><div class="prem-opt__top"><b>${esc(x.label)}</b><span>${fr(x.perf, 1)} %</span><span class="prem-opt__tag${tt.cls === 'warn' ? ' prem-opt__tag--warn' : ''}">${tt.tag}</span></div></button>`;
-          }).join('')}</div></details>` : '')
-        + `<div class="prem-note" style="margin-top:8px">Recherche sur ton historique, pas une prédiction.${res.base.relaxedNote ? ' ' + esc(res.base.relaxedNote) : ''}</div>`;
-      resultEl.querySelectorAll('.prem-opt').forEach((b) => b.addEventListener('click', () => { sel = Number(b.dataset.i); store(); draw(); }));
+      resultEl.innerHTML = `<div class="prem-title">Réglage premium · 3 façons de voir</div>`
+        + `<div class="prof-grid" role="radiogroup">${profiles.map((p, i) => {
+          const t = trustShort(p);
+          return `<button type="button" role="radio" aria-checked="${i === sel}" class="prof${i === sel ? ' is-on' : ''}" data-i="${i}">`
+            + `<span class="prof__name">${esc(p.name)}</span>`
+            + `<span class="prof__short">${esc(p.short)}</span>`
+            + `<span class="prof__kpis">`
+            + `<span title="Performance totale sur l'historique"><i>Total</i><b class="${p.perf >= 0 ? 'prem-pos' : 'prem-neg'}">${fmtPerf(p)}</b></span>`
+            + `<span title="Rendement moyen par mois"><i>Par mois</i><b class="${p.avgM >= 0 ? 'prem-pos' : 'prem-neg'}">${fmtSigned(p.avgM, 1)}</b></span>`
+            + `<span title="Drawdown maximum"><i>DD max</i><b>${fr(p.dd, 1)} %</b></span>`
+            + `<span title="Part des mois gagnants"><i>Mois +</i><b>${Math.round(p.posM * 100)} %</b></span>`
+            + `</span>`
+            + `<span class="prof__rules">${summaryTxt(p)}</span>`
+            + `<span class="prof-tag is-${t.cls}">${t.tag}</span>`
+            + `</button>`;
+        }).join('')}</div>`
+        + `<div class="prof-detail">${detail(profiles[sel])}</div>`
+        + `<div class="prem-note" style="margin-top:8px">Bonus pris en compte : ${res.fields.map(esc).join(', ')}. Recherche sur ton historique, pas une prédiction.</div>`;
+      resultEl.querySelectorAll('.prof').forEach((b) => b.addEventListener('click', () => { sel = Number(b.dataset.i); store(); draw(); }));
     };
     store();
     draw();
@@ -620,10 +656,12 @@ CHESTTour.init([
       const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
       resultEl.style.display = 'block';
       const nRules = (cfg.rules || []).length;
-      const prem = cfg.premium ? ` Réglage premium retenu : <b>${esc(cfg.premium.label)}</b> (${nRules} règle${nRules > 1 ? 's' : ''} « Si »).` : '';
+      const tier = (cfg.tiers || [])[0];
+      const prem = cfg.premium ? ` Réglage premium retenu : <b>${esc(cfg.premium.name || cfg.premium.label)}</b>${tier ? ` (${riskTxt(tier.newRisk)} après ${tier.afterSl} SL)` : ''}${nRules ? `, ${nRules} règle${nRules > 1 ? 's' : ''} « Si »` : ''}.` : '';
       resultEl.innerHTML = `Réglage automatique précédemment calculé : risque retenu <b>${cfg.risk}%</b>.${prem} Relance le calcul si tu as changé le fichier importé.`;
       resultEl.dataset.risk = cfg.risk;
       resultEl.dataset.rules = JSON.stringify(cfg.rules || []);
+      resultEl.dataset.tiers = JSON.stringify(cfg.tiers || []);
       if (cfg.premium) resultEl.dataset.premium = JSON.stringify(cfg.premium);
     } else {
       manualEl.querySelector('.risk-input').value = cfg.risk;
@@ -668,7 +706,7 @@ CHESTTour.init([
       const resultEl = document.querySelector(`.auto-result[data-account="${account}"]`);
       const risk = Number(resultEl.dataset.risk);
       if (!risk) return null; // pas encore calcule
-      const cfg = { mode: 'auto', risk, tiers: [], rules: JSON.parse(resultEl.dataset.rules || '[]') };
+      const cfg = { mode: 'auto', risk, tiers: JSON.parse(resultEl.dataset.tiers || '[]'), rules: JSON.parse(resultEl.dataset.rules || '[]') };
       if (resultEl.dataset.premium) cfg.premium = JSON.parse(resultEl.dataset.premium);
       return cfg;
     }

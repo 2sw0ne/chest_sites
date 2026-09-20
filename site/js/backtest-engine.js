@@ -48,21 +48,52 @@
 
   // ---------------------------------------------------------------
   // BONUS : colonnes optionnelles du fichier (étiquette W/L/P, tendance/contre,
-  // confirmation…). Une règle « Si » choisit le risque d'un trade selon ses
-  // bonus ; les paliers « après N SL » continuent de fonctionner.
+  // confirmation…) + informations DÉDUITES de l'heure d'ouverture (session, jour). Une règle « Si » choisit le
+  // risque d'un trade selon ses bonus ; les paliers « après N SL » continuent
+  // de fonctionner. La durée de détention n'est volontairement PAS proposée : elle
+  // n'est connue qu'à la clôture (les SL sortent vite, les TP durent) — l'utiliser
+  // pour dimensionner un trade serait tricher avec l'avenir.
   //
   // Règle : { conds:[{field, value}], afterSl:number|null, risk:number }
   //   field  'source' | 'confirmation' | 'order' | 'x:<en-tête de colonne>'
+  //          | 'd:session' | 'd:weekday' (déduits de l'heure d'OUVERTURE, connue à l'entrée)
   //   risk   0 = le trade est IGNORÉ (il n'est pas pris)
   // La règle la plus précise gagne : plus de conditions, puis plus de SL
   // consécutifs exigés, puis la plus basse dans la liste.
   // ---------------------------------------------------------------
   const BONUS_LABELS = { source: 'Source', confirmation: 'Confirmation', order: 'Ordre' };
+  const DERIVED_LABELS = { 'd:session': 'Session', 'd:weekday': 'Jour' };
+  // Heures UTC : les horaires importés sont lus tels quels (un fichier saisi en heure locale décale les sessions).
+  const SESSIONS = [[0, 7, 'Asie'], [7, 12, 'Londres'], [12, 16, 'Londres × New York'], [16, 21, 'New York'], [21, 24, 'Soir']];
+  const WEEKDAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const DERIVED_ORDER = {
+    'd:session': SESSIONS.map((s) => s[2]),
+    'd:weekday': ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+  };
 
   function norm(v) { return String(v == null ? '' : v).trim().toUpperCase(); }
 
+  function fieldLabel(key) {
+    if (!key) return '';
+    if (key.indexOf('x:') === 0) return key.slice(2);
+    return BONUS_LABELS[key] || DERIVED_LABELS[key] || key;
+  }
+
+  function derivedValue(t, key) {
+    const d = toDate(t.open || t.date);
+    if (!d) return undefined;
+    if (key === 'd:weekday') return WEEKDAYS[d.getUTCDay()];
+    if (key === 'd:session') {
+      const h = d.getUTCHours();
+      const s = SESSIONS.find((x) => h >= x[0] && h < x[1]);
+      return s ? s[2] : undefined;
+    }
+    return undefined;
+  }
+
   function bonusValue(t, key) {
     if (!t || !key) return undefined;
+    if (key.indexOf('d:') === 0) return derivedValue(t, key);
     if (key.indexOf('x:') === 0) return t.extra ? t.extra[key.slice(2)] : undefined;
     return t[key];
   }
@@ -71,14 +102,26 @@
     return (conds || []).every((c) => { const v = bonusValue(t, c.field); return v != null && norm(v) !== '' && norm(v) === norm(c.value); });
   }
 
+  // Part des trades dont l'heure du jour n'est pas minuit pile (sinon les sessions n'ont aucun sens).
+  function clockShare(trades) {
+    let n = 0, c = 0;
+    trades.forEach((t) => { const d = toDate(t.open || t.date); if (!d) return; n++; if (d.getUTCHours() || d.getUTCMinutes()) c++; });
+    return n ? c / n : 0;
+  }
+
   // Bonus exploitables : au moins 2 valeurs, au plus 15, renseignés sur ≥ 30 % des trades.
   function detectBonusFields(trades, opts) {
     const maxValues = (opts && opts.maxValues) || 15;
+    const withDerived = !opts || opts.derived !== false;
     const keys = new Map();
     trades.forEach((t) => {
       Object.keys(BONUS_LABELS).forEach((k) => { if (t[k] != null && norm(t[k]) !== '') keys.set(k, BONUS_LABELS[k]); });
       if (t.extra) Object.keys(t.extra).forEach((h) => { if (t.extra[h] != null && norm(t.extra[h]) !== '') keys.set('x:' + h, h); });
     });
+    if (withDerived && trades.length >= 20) {
+      keys.set('d:weekday', DERIVED_LABELS['d:weekday']);
+      if (clockShare(trades) >= 0.5) keys.set('d:session', DERIVED_LABELS['d:session']);
+    }
     const out = [];
     keys.forEach((label, key) => {
       const counts = new Map();
@@ -88,11 +131,13 @@
         if (v == null || norm(v) === '') return;
         filled++;
         const n = norm(v);
-        if (!counts.has(n)) counts.set(n, { value: String(v).trim().toUpperCase() === n ? n : String(v).trim(), count: 0 });
+        if (!counts.has(n)) counts.set(n, { value: key.indexOf('d:') === 0 ? String(v) : (String(v).trim().toUpperCase() === n ? n : String(v).trim()), count: 0 });
         counts.get(n).count++;
       });
       if (counts.size < 2 || counts.size > maxValues || filled < trades.length * 0.3) return;
-      out.push({ key, label, coverage: filled / trades.length * 100, values: [...counts.values()].sort((a, b) => b.count - a.count) });
+      const order = DERIVED_ORDER[key];
+      const values = [...counts.values()].sort(order ? (a, b) => order.indexOf(a.value) - order.indexOf(b.value) : (a, b) => b.count - a.count);
+      out.push({ key, label, derived: key.indexOf('d:') === 0, coverage: filled / trades.length * 100, values });
     });
     return out;
   }
@@ -296,161 +341,396 @@
   }
 
   // ---------------------------------------------------------------
-  // Réglage PREMIUM (mode automatique) : sépare les bonus, calcule chaque
-  // logique indépendamment (un bonus seul, puis deux bonus croisés) en
-  // cherchant, pour chaque valeur (W, L, P, TENDANCE, CONTRE…), le risque qui
-  // rapporte le plus sous les mêmes contraintes que le réglage classique.
-  // Recherche transparente (montée par coordonnées sur une grille), pas un
-  // modèle d'IA. Elle apprend sur l'historique : un test hors échantillon
-  // (appris sur les 60 % premiers trades, jugé sur les 40 % derniers) dit
-  // honnêtement si le gain tient.
+  // Réglage PREMIUM (mode automatique) : trois profils par compte, chacun avec
+  // son propre objectif. Pour chaque profil la recherche est exhaustive sur le
+  // risque de base × le palier « après N SL », puis affinée par montée de
+  // coordonnées sur les règles « Si » (chaque valeur d'un bonus est réglée
+  // indépendamment : étiquette, tendance/contre, session, jour, détention…).
+  // Recherche transparente sur l'historique, jamais une prédiction. Chaque
+  // profil est vérifié sur les 40 % de trades les plus récents, que le calcul
+  // n'a pas vus (réglage appris sur les 60 % premiers), et son pire cas est
+  // estimé en mélangeant l'ordre des trades (300 tirages, graine fixe).
   // ---------------------------------------------------------------
-  const PREMIUM_GRID = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5];
   const MIN_GROUP = 15;
+  const MAX_RULES = 6;   // au-delà, le réglage n'est plus applicable ni fiable : on élague
+  const MC_RUNS = 300;
+  const MULTS = [0, 0.5, 0.75, 1, 1.25, 1.5, 2]; // multiplicateur du risque de base par groupe (1 = pas de règle)
+  const M_ONE = 3;
+  const TIERS = [null];
+  [1, 2, 3, 4].forEach((a) => [0.1, 0.25, 0.5, 0.75].forEach((f) => TIERS.push({ a, f })));
+  const GRID_CP_BOLD = [1, 2, 3, 4, 5, 6, 8, 10, 12];
+  const GRID_CP = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5];
+  const GRID_PF = [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
+  const mean = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
+  const round2 = (x) => Math.round(x * 100) / 100;
 
-  function quickPre(ordered) {
-    return {
-      rr: ordered.map((t) => (isBE(t) ? 0 : Number(t.rr) || 0)),
-      dayKey: ordered.map((t) => { const d = toDate(t.close || t.open || t.date); return d ? dayKey(d) : ''; }),
-    };
+  // steps : limites de plus en plus souples, essayées dans l'ordre tant qu'aucun réglage ne les respecte.
+  const PROFILES = {
+    cp: [
+      { id: 'growth', name: 'Croissance', short: 'Partir de peu, monter haut',
+        goal: 'Gros risque, réduit après une série de SL, sans jamais cramer le compte : pour faire grimper un petit capital.',
+        grid: GRID_CP_BOLD, steps: [{ maxDd: 55 }, { maxDd: 70 }], mc: { dd: 70, p: 5 },
+        score: (m) => m.perf },
+      { id: 'ratio', name: 'Meilleur ratio', short: 'Le plus de rendement pour le risque',
+        goal: 'Le meilleur rendement mensuel moyen rapporté au drawdown subi.',
+        grid: GRID_CP, steps: [{ maxDd: 35 }, { maxDd: 50 }, { maxDd: null }],
+        score: (m) => m.avgM / Math.max(m.maxDd, 1) },
+      { id: 'safe', name: 'Prudent', short: 'Raisonnable, sans grosses secousses',
+        goal: 'Le rendement le plus régulier avec un drawdown contenu et aucun mois catastrophique.',
+        grid: GRID_CP, steps: [{ maxDd: 15, worstM: -8 }, { maxDd: 20, worstM: -12 }, { maxDd: 30 }, { maxDd: null }],
+        score: (m) => m.avgM * m.posM },
+    ],
+    pf: [
+      { id: 'regular', name: 'Régularité', short: 'Rendement mensuel le plus stable',
+        goal: 'Un rendement mensuel moyen élevé ET stable d\'un mois à l\'autre (ratio rendement / variation, pondéré par le rendement), dans les limites de la propfirm.',
+        grid: GRID_PF, steps: [{ maxDd: 10, maxDaily: 5 }],
+        score: (m) => (m.stdM > 0 && m.avgM > 0 ? (m.avgM / m.stdM) * Math.sqrt(m.avgM) : m.avgM) },
+      { id: 'perf', name: 'Performance pure', short: 'Le plus de profit possible',
+        goal: 'La plus forte performance totale qui respecte les limites de perte de la propfirm.',
+        grid: GRID_PF, steps: [{ maxDd: 10, maxDaily: 5 }],
+        score: (m) => m.perf },
+      { id: 'safe', name: 'Sécurité', short: 'Loin des limites, quand même rentable',
+        goal: 'Reste loin des limites de perte (DD ≤ 6 %, jour ≤ 3 %) et vise un rendement régulier ; le pire cas mélangé doit aussi passer.',
+        grid: GRID_PF, steps: [{ maxDd: 6, maxDaily: 3 }, { maxDd: 8, maxDaily: 4 }, { maxDd: 10, maxDaily: 5 }], mc: { dd: 10, p: 5 },
+        score: (m) => m.avgM * m.posM },
+    ],
+  };
+
+  function feasible(m, L) {
+    return (L.maxDd == null || m.maxDd <= L.maxDd + 1e-9)
+      && (L.maxDaily == null || m.maxDaily <= L.maxDaily + 1e-9)
+      && (L.worstM == null || m.worstM >= L.worstM - 1e-9);
   }
 
-  // Évaluation rapide d'une affectation de risques par groupe (sans allocation).
-  function quickEval(pre, gid, risks) {
-    let cap = 1, peak = 1, maxDd = 0, lastKey = null, prevEnd = 1, dayEnd = 1, maxDaily = 0;
-    for (let i = 0; i < gid.length; i++) {
-      if (pre.dayKey[i] !== lastKey) {
-        if (lastKey !== null) { const dd = prevEnd > 0 ? (prevEnd - dayEnd) / prevEnd : 0; if (dd > maxDaily) maxDaily = dd; prevEnd = dayEnd; }
-        lastKey = pre.dayKey[i];
-      }
-      const r = risks[gid[i]];
+  function buildPre(ordered) {
+    const n = ordered.length;
+    const rr = new Float64Array(n), sl = new Uint8Array(n), dk = new Array(n), mk = new Array(n);
+    ordered.forEach((t, i) => {
+      rr[i] = isBE(t) ? 0 : Number(t.rr) || 0;
+      sl[i] = isSL(t) ? 1 : 0;
+      const d = toDate(t.close || t.open || t.date);
+      const k = d ? d.toISOString() : '';
+      dk[i] = k.slice(0, 10); mk[i] = k.slice(0, 7);
+    });
+    return { n, rr, sl, dk, mk, zeros: new Int16Array(n) };
+  }
+
+  // Un état = { bi (risque de base), ti (palier), mi[] (multiplicateur par groupe) } ; groupe 0 = « le reste ».
+  function stateCfg(prof, st, gs) {
+    const base = prof.grid[st.bi];
+    const t = TIERS[st.ti];
+    const rg = [-1];
+    const cap = prof.grid[prof.grid.length - 1];
+    if (gs) for (let g = 1; g < gs.groups.length; g++) rg.push(MULTS[st.mi[g]] === 1 ? -1 : Math.min(cap, round2(base * MULTS[st.mi[g]])));
+    return { base, tier: t ? { a: t.a, r: Math.max(round2(base * t.f), 0.05) } : null, rg };
+  }
+
+  function stateConfig(prof, st, gs) {
+    const c = stateCfg(prof, st, gs);
+    const config = { risk: c.base, tiers: c.tier ? [{ afterSl: c.tier.a, newRisk: c.tier.r }] : [], rules: [] };
+    if (gs) gs.groups.forEach((g, i) => {
+      if (i > 0 && c.rg[i] >= 0) config.rules.push({ conds: g.conds.map((x) => ({ field: x.field, value: x.value })), afterSl: null, risk: c.rg[i] });
+    });
+    return config;
+  }
+
+  // Évaluation rapide (sans allocation de courbe) d'une configuration sur les trades [lo, hi).
+  function evalRange(pre, lo, hi, gid, cfg) {
+    let cap = 1, peak = 1, maxDd = 0, streak = 0;
+    let lastD = null, prevEnd = 1, dayEnd = 1, maxDaily = 0, bestDay = 0, sumPos = 0;
+    let lastM = null, mStart = 1;
+    const months = [];
+    const closeDay = () => {
+      const ret = prevEnd > 0 ? dayEnd / prevEnd - 1 : 0;
+      if (-ret > maxDaily) maxDaily = -ret;
+      if (ret > 0) { sumPos += ret; if (ret > bestDay) bestDay = ret; }
+      prevEnd = dayEnd;
+    };
+    for (let i = lo; i < hi; i++) {
+      const d = pre.dk[i];
+      if (d !== lastD) { if (lastD !== null) closeDay(); lastD = d; }
+      const mk = pre.mk[i];
+      if (mk !== lastM) { if (lastM !== null) months.push(cap / mStart - 1); mStart = cap; lastM = mk; }
+      const rg = cfg.rg[gid[i]];
+      const r = rg >= 0 ? rg : (cfg.tier && streak >= cfg.tier.a ? cfg.tier.r : cfg.base);
       if (r > 0) {
         cap *= 1 + (r / 100) * pre.rr[i];
         if (cap > peak) peak = cap;
         const dd = (peak - cap) / peak; if (dd > maxDd) maxDd = dd;
+        streak = pre.sl[i] ? streak + 1 : 0;
       }
       dayEnd = cap;
     }
-    const dd = prevEnd > 0 ? (prevEnd - dayEnd) / prevEnd : 0; if (dd > maxDaily) maxDaily = dd;
-    return { perf: (cap - 1) * 100, maxDd: maxDd * 100, maxDaily: maxDaily * 100 };
+    if (lastD !== null) closeDay();
+    if (lastM !== null) months.push(cap / mStart - 1);
+    const nM = months.length;
+    const avg = mean(months);
+    const std = nM > 1 ? Math.sqrt(months.reduce((s, v) => s + (v - avg) * (v - avg), 0) / (nM - 1)) : 0;
+    return {
+      perf: (cap - 1) * 100, cap, maxDd: maxDd * 100, maxDaily: maxDaily * 100,
+      avgM: avg * 100, stdM: std * 100, posM: nM ? months.filter((v) => v > 0).length / nM : 0,
+      worstM: nM ? Math.min(...months) * 100 : 0, nM, bestShare: sumPos > 0 ? bestDay / sumPos : 0,
+    };
   }
 
-  // groups : [{ conds, count }] — l'index 0 est « le reste » (risque de base, jamais modifié).
-  function optimizeGroups(pre, gid, groups, baseRisk, limits) {
-    const risks = groups.map(() => baseRisk);
-    const feasible = (e) => e.maxDd <= limits.maxDd + 1e-9 && (limits.maxDaily == null || e.maxDaily <= limits.maxDaily + 1e-9);
-    const grid = PREMIUM_GRID.filter((r) => r <= limits.maxRisk + 1e-9);
-    let cur = quickEval(pre, gid, risks);
-    for (let pass = 0; pass < 3; pass++) {
-      let improved = false;
-      for (let g = 1; g < groups.length; g++) {
-        if (groups[g].count < MIN_GROUP) continue;
-        let bestR = risks[g], bestE = cur;
-        grid.forEach((c) => {
-          if (c === risks[g]) return;
-          const t = risks.slice(); t[g] = c;
-          const e = quickEval(pre, gid, t);
-          if (feasible(e) && e.perf > bestE.perf + 1e-9) { bestR = c; bestE = e; }
-        });
-        if (bestR !== risks[g]) { risks[g] = bestR; cur = bestE; improved = true; }
+  function searchFlat(pre, lo, hi, prof) {
+    for (let s = 0; s < prof.steps.length; s++) {
+      let best = null;
+      for (let bi = 0; bi < prof.grid.length; bi++) {
+        for (let ti = 0; ti < TIERS.length; ti++) {
+          const st = { bi, ti, mi: [M_ONE] };
+          const m = evalRange(pre, lo, hi, pre.zeros, stateCfg(prof, st, null));
+          if (!feasible(m, prof.steps[s])) continue;
+          const sc = prof.score(m);
+          if (!best || sc > best.score + 1e-12) best = { state: st, m, score: sc, stepIdx: s };
+        }
       }
+      if (best) return best;
+    }
+    return null;
+  }
+
+  // Montée de coordonnées : risque de base, palier, puis multiplicateur de chaque groupe (≥ MIN_GROUP trades).
+  function ascent(pre, lo, hi, gs, prof, stepIdx, start) {
+    const L = prof.steps[stepIdx];
+    const counts = new Array(gs.groups.length).fill(0);
+    for (let i = lo; i < hi; i++) counts[gs.gid[i]]++;
+    const st = { bi: start.state.bi, ti: start.state.ti, mi: gs.groups.map(() => M_ONE) };
+    let cur = evalRange(pre, lo, hi, gs.gid, stateCfg(prof, st, gs));
+    let curScore = prof.score(cur);
+    const coords = [{ k: 'bi', n: prof.grid.length }, { k: 'ti', n: TIERS.length }];
+    for (let g = 1; g < gs.groups.length; g++) if (counts[g] >= MIN_GROUP) coords.push({ k: 'g', g, n: MULTS.length });
+    for (let pass = 0; pass < 6; pass++) {
+      let improved = false;
+      coords.forEach((c) => {
+        const get = () => (c.k === 'g' ? st.mi[c.g] : st[c.k]);
+        const set = (v) => { if (c.k === 'g') st.mi[c.g] = v; else st[c.k] = v; };
+        const orig = get();
+        let bestV = orig, bestM = cur, bestS = curScore;
+        for (let v = 0; v < c.n; v++) {
+          if (v === orig) continue;
+          set(v);
+          const m = evalRange(pre, lo, hi, gs.gid, stateCfg(prof, st, gs));
+          if (!feasible(m, L)) continue;
+          const sc = prof.score(m);
+          if (sc > bestS + 1e-9) { bestV = v; bestM = m; bestS = sc; }
+        }
+        set(bestV);
+        if (bestV !== orig) { cur = bestM; curScore = bestS; improved = true; }
+      });
       if (!improved) break;
     }
-    return { risks, ev: cur };
-  }
-
-  function buildLogic(ordered, pre, fields, baseRisk, limits, label) {
-    // groupes = combinaisons de valeurs des champs choisis (index 0 = le reste)
-    const groups = [{ conds: [], count: 0 }];
-    const index = new Map();
-    const gid = ordered.map((t) => {
-      const parts = fields.map((f) => { const v = bonusValue(t, f.key); return v == null || norm(v) === '' ? null : { field: f.key, value: f.canon(v) }; });
-      if (parts.some((p) => p === null)) { groups[0].count++; return 0; }
-      const k = parts.map((p) => p.field + '=' + norm(p.value)).join('&');
-      if (!index.has(k)) { index.set(k, groups.length); groups.push({ conds: parts, count: 0 }); }
-      const g = index.get(k); groups[g].count++; return g;
-    });
-    if (groups.length < 2) return null;
-    const { risks, ev } = optimizeGroups(pre, gid, groups, baseRisk, limits);
-    const rules = [];
-    const detail = [];
-    groups.forEach((g, i) => {
-      if (i === 0) return;
-      detail.push({ conds: g.conds, count: g.count, risk: risks[i], tooFew: g.count < MIN_GROUP });
-      if (risks[i] !== baseRisk) rules.push({ conds: g.conds, afterSl: null, risk: risks[i] });
-    });
-    return { label, fields: fields.map((f) => f.key), rules, detail, perf: ev.perf, maxDd: ev.maxDd, maxDaily: ev.maxDaily };
-  }
-
-  function premiumCore(trades, capital0, kind, onlyKeys) {
-    const base = kind === 'pf' ? optimizePf(trades, capital0) : optimizeCp(trades, capital0);
-    if (!base) return { error: kind === 'pf' ? 'Aucun réglage de risque ne respecte les contraintes propfirm sur cet historique, même au risque minimal.' : 'Aucun réglage de base trouvé.' };
-    const ordered = sortedTrades(trades);
-    const pre = quickPre(ordered);
-    const fields = detectBonusFields(ordered).filter((f) => !onlyKeys || onlyKeys.includes(f.key));
-    if (!fields.length) return { error: 'Aucun bonus exploitable dans ce fichier (il faut une colonne avec 2 à 15 valeurs différentes : Source, Confirmation, Ordre ou une colonne « Facultatif »).' };
-    const lim0 = kind === 'pf' ? { maxRisk: 5, maxDd: 10, maxDaily: 5 } : { maxRisk: base.relaxed ? 5 : 3, maxDd: 30, maxDaily: null };
-    const baseStats = base.report.stats;
-    // Ne jamais dépasser le drawdown du réglage de base quand celui-ci a dû être assoupli.
-    const limits = { maxRisk: Math.max(lim0.maxRisk, base.risk), maxDd: Math.max(lim0.maxDd, baseStats.maxDrawdownPct), maxDaily: lim0.maxDaily };
-    const withCanon = fields.map((f) => { const canon = new Map(f.values.map((v) => [norm(v.value), v.value])); return { key: f.key, label: f.label, canon: (v) => canon.get(norm(v)) || String(v).trim() }; });
-
-    const logics = [];
-    withCanon.forEach((f) => {
-      const l = buildLogic(ordered, pre, [f], base.risk, limits, `${f.label} seul`);
-      if (l) logics.push(l);
-    });
-    if (withCanon.length >= 2) {
-      // croisement des deux bonus les plus utiles (par gain de leur logique seule)
-      const ranked = logics.slice().sort((a, b) => b.perf - a.perf).map((l) => withCanon.find((f) => f.key === l.fields[0])).filter(Boolean);
-      const pair = ranked.slice(0, 2);
-      if (pair.length === 2) {
-        const l = buildLogic(ordered, pre, pair, base.risk, limits, `${pair[0].label} × ${pair[1].label}`);
-        if (l) logics.push(l);
-      }
+    // Élagage : on retire les règles qui rapportent peu (≤ 5 % du score) puis, s'il en reste trop,
+    // les moins utiles, pour garder un réglage simple à appliquer et moins collé à l'historique.
+    const ref = curScore;
+    for (;;) {
+      const active = [];
+      for (let g = 1; g < st.mi.length; g++) if (st.mi[g] !== M_ONE) active.push(g);
+      if (!active.length) break;
+      let bg = -1, bm = null, bs = 0, bl = Infinity;
+      active.forEach((g) => {
+        const keep = st.mi[g];
+        st.mi[g] = M_ONE;
+        const m = evalRange(pre, lo, hi, gs.gid, stateCfg(prof, st, gs));
+        st.mi[g] = keep;
+        if (!feasible(m, L)) return;
+        const sc = prof.score(m);
+        if (ref - sc < bl) { bl = ref - sc; bg = g; bm = m; bs = sc; }
+      });
+      if (bg < 0) break;
+      if (bl <= Math.abs(ref) * 0.05 || active.length > MAX_RULES) { st.mi[bg] = M_ONE; cur = bm; curScore = bs; } else break;
     }
-    const basePerf = baseStats.performancePct;
-    logics.forEach((l) => { l.gain = l.perf - basePerf; });
-    logics.sort((a, b) => b.perf - a.perf);
-    return { base, basePerf, baseDd: baseStats.maxDrawdownPct, logics, limits, labels: withCanon.map((f) => [f.key, f.label]) };
+    const nRules = st.mi.filter((v, i) => i > 0 && v !== M_ONE).length;
+    return { state: st, m: cur, score: curScore, nRules, stepIdx };
+  }
+
+  function mulberry32(a) {
+    return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+
+  // Pire cas : DD max sur des ordres de trades mélangés (mêmes trades, autre séquence).
+  function mcDrawdowns(pre, gid, cfg) {
+    const n = pre.n, ord = new Int32Array(n), rand = mulberry32(20260920), dds = [];
+    for (let run = 0; run < MC_RUNS; run++) {
+      for (let i = 0; i < n; i++) ord[i] = i;
+      for (let i = n - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const tmp = ord[i]; ord[i] = ord[j]; ord[j] = tmp; }
+      let cap = 1, peak = 1, maxDd = 0, streak = 0;
+      for (let k = 0; k < n; k++) {
+        const i = ord[k];
+        const rg = cfg.rg[gid[i]];
+        const r = rg >= 0 ? rg : (cfg.tier && streak >= cfg.tier.a ? cfg.tier.r : cfg.base);
+        if (r > 0) {
+          cap *= 1 + (r / 100) * pre.rr[i];
+          if (cap > peak) peak = cap;
+          const dd = (peak - cap) / peak; if (dd > maxDd) maxDd = dd;
+          streak = pre.sl[i] ? streak + 1 : 0;
+        }
+      }
+      dds.push(maxDd * 100);
+    }
+    dds.sort((a, b) => a - b);
+    return dds;
+  }
+  const mcBreach = (dds, x) => dds.filter((v) => v >= x).length / dds.length;
+
+  function maxSlStreak(ordered) {
+    let best = 0, cur = 0;
+    ordered.forEach((t) => { if (isSL(t)) { cur++; if (cur > best) best = cur; } else cur = 0; });
+    return best;
+  }
+
+  function monthStats(monthly) {
+    const v = monthly.map((m) => m.pct);
+    const avg = mean(v);
+    return {
+      avgM: avg, posM: v.length ? v.filter((x) => x > 0).length / v.length : 0,
+      worstM: v.length ? Math.min(...v) : 0, bestM: v.length ? Math.max(...v) : 0, nM: v.length,
+    };
   }
 
   /**
-   * kind : 'cp' | 'pf'. Renvoie { base, logics[], best, limits } ou { error }.
-   * Chaque logique : { label, fields, rules, detail, perf, maxDd, gain, oos }.
-   * oos = test hors échantillon : la même logique est apprise sur les 60 % premiers
-   * trades puis jugée sur les 40 % derniers, contre le réglage plat appris sur la même
-   * période — { trainN, testN, flatPct, premiumPct, holds } (noGain si rien n'a été
-   * trouvé à l'apprentissage, null si trop peu de trades pour tester).
-   * best = la logique la plus rentable QUI TIENT hors échantillon ; à défaut, la plus
-   * rentable tout court (l'appelant doit alors prévenir du risque de sur-optimisation).
+   * kind : 'cp' | 'pf'. Renvoie { profiles:[…3], fields:[libellés pris en compte] } ou { error }.
+   * Profil : { id, name, short, goal, config:{risk,tiers,rules}, logic (libellé ou null), perf, dd, daily, avgM,
+   *            posM, worstM, nM, bestShare, finalMult, mc:{p95, breach}, trust:'ok'|'warn'|'none', oos, note }
    */
-  function optimizePremium(trades, capital0, kind) {
-    const core = premiumCore(trades, capital0, kind, null);
-    if (core.error) return core;
-    const sig = (l) => l.fields.slice().sort().join('|');
+  function optimizeProfiles(trades, capital0, kind) {
     const ordered = sortedTrades(trades);
-    const cut = Math.floor(ordered.length * 0.6);
-    const train = ordered.slice(0, cut), test = ordered.slice(cut);
-    core.logics.forEach((l) => {
-      l.oos = null;
-      if (l.gain <= 1e-6 || trades.length < 60) return;
-      const trainCore = premiumCore(train, capital0, kind, l.fields);
-      if (trainCore.error) return;
-      const pick = trainCore.logics.find((x) => sig(x) === sig(l));
-      if (!pick || pick.gain <= 1e-6) { l.oos = { trainN: train.length, testN: test.length, flatPct: null, premiumPct: null, holds: false, noGain: true }; return; }
-      const cfgBase = { risk: trainCore.base.risk, tiers: [] };
-      const flat = computeReport(test, capital0, cfgBase).stats.performancePct;
-      const prem = computeReport(test, capital0, Object.assign({}, cfgBase, { rules: pick.rules })).stats.performancePct;
-      l.oos = { trainN: train.length, testN: test.length, flatPct: flat, premiumPct: prem, holds: prem > flat };
-    });
-    const useful = core.logics.filter((l) => l.gain > 1e-6);
-    const best = useful.find((l) => l.oos && l.oos.holds) || useful[0] || null;
-    return { base: core.base, basePerf: core.basePerf, baseDd: core.baseDd, logics: core.logics, best, limits: core.limits, labels: core.labels };
+    const n = ordered.length;
+    if (n < 20) return { error: 'Il faut au moins 20 trades pour calculer un réglage premium.' };
+    const pre = buildPre(ordered);
+    const fields = detectBonusFields(ordered);
+    const canon = new Map(fields.map((f) => [f.key, new Map(f.values.map((v) => [norm(v.value), v.value]))]));
+    const gsCache = new Map();
+    const groupsFor = (fs) => {
+      const ck = fs.map((f) => f.key).join('|');
+      if (gsCache.has(ck)) return gsCache.get(ck);
+      const groups = [{ conds: [], count: 0 }], index = new Map();
+      const gid = new Int16Array(n);
+      ordered.forEach((t, i) => {
+        const parts = fs.map((f) => { const v = bonusValue(t, f.key); return v == null || norm(v) === '' ? null : { field: f.key, value: canon.get(f.key).get(norm(v)) || String(v).trim() }; });
+        if (parts.some((p) => p === null)) { groups[0].count++; gid[i] = 0; return; }
+        const k = parts.map((p) => p.field + '=' + norm(p.value)).join('&');
+        if (!index.has(k)) { index.set(k, groups.length); groups.push({ conds: parts, count: 0 }); }
+        const g = index.get(k); groups[g].count++; gid[i] = g;
+      });
+      const gs = groups.length < 2 ? null : { groups, gid, fields: fs };
+      gsCache.set(ck, gs);
+      return gs;
+    };
+    const cut = n >= 60 ? Math.floor(n * 0.6) : 0;
+    const out = [];
+
+    for (const prof of PROFILES[kind]) {
+      const flat = searchFlat(pre, 0, n, prof);
+      if (!flat) {
+        return { error: kind === 'pf'
+          ? 'Aucun réglage de risque ne respecte les limites propfirm (5 % de DD journalier, 10 % de DD max) sur cet historique, même au risque minimal.'
+          : 'Aucun réglage de risque trouvé sur cet historique.' };
+      }
+      // Logiques candidates : chaque bonus seul, puis les deux meilleurs croisés.
+      const logics = [];
+      fields.forEach((f) => {
+        const gs = groupsFor([f]);
+        if (!gs) return;
+        const r = ascent(pre, 0, n, gs, prof, flat.stepIdx, flat);
+        logics.push(Object.assign(r, { gs }));
+      });
+      const top = logics.filter((l) => l.nRules > 0).sort((a, b) => b.score - a.score).slice(0, 2);
+      if (top.length === 2) {
+        const gs = groupsFor([top[0].gs.fields[0], top[1].gs.fields[0]]);
+        if (gs) logics.push(Object.assign(ascent(pre, 0, n, gs, prof, flat.stepIdx, flat), { gs }));
+      }
+
+      // Vérification sur les trades récents, jamais vus par le réglage.
+      const lim = prof.steps[0];
+      const okTest = (m) => m.perf > 0 && (lim.maxDd == null || m.maxDd <= lim.maxDd * 1.25 + 1e-9);
+      let trainFlat = null, flatTest = null;
+      if (cut) {
+        trainFlat = searchFlat(pre, 0, cut, prof);
+        if (trainFlat) flatTest = evalRange(pre, cut, n, pre.zeros, stateCfg(prof, trainFlat.state, null));
+      }
+      const oosFlat = flatTest ? { trainN: cut, testN: n - cut, perf: flatTest.perf, maxDd: flatTest.maxDd, holds: okTest(flatTest) } : null;
+      let pick = null;
+      if (flatTest) {
+        const margin = Math.max(Math.abs(flat.score) * 0.02, 1e-9);
+        const cands = logics.filter((l) => l.nRules > 0 && l.score > flat.score + margin).sort((a, b) => b.score - a.score).slice(0, 3);
+        for (const c of cands) {
+          const tl = ascent(pre, 0, cut, c.gs, prof, trainFlat.stepIdx, trainFlat);
+          const lt = evalRange(pre, cut, n, c.gs.gid, stateCfg(prof, tl.state, c.gs));
+          if (okTest(lt) && prof.score(lt) > prof.score(flatTest) && lt.avgM >= flatTest.avgM * 0.75) {
+            pick = { c, oos: { trainN: cut, testN: n - cut, perf: lt.perf, maxDd: lt.maxDd, flatPerf: flatTest.perf, holds: true, beatsFlat: true } };
+            break;
+          }
+        }
+      }
+
+      const st = pick ? pick.c.state : flat.state;
+      const gs = pick ? pick.c.gs : null;
+      const gid = gs ? gs.gid : pre.zeros;
+      // Pire cas : si le profil l'exige, on baisse le risque de base jusqu'à ce que le pire cas passe.
+      let dds = mcDrawdowns(pre, gid, stateCfg(prof, st, gs));
+      let note = flat.stepIdx > 0 ? 'Limite assouplie : aucun réglage ne tenait la limite visée sur cet historique.' : null;
+      if (prof.mc) {
+        let backed = 0;
+        while (mcBreach(dds, prof.mc.dd) > prof.mc.p / 100 && st.bi > 0) { st.bi--; backed++; dds = mcDrawdowns(pre, gid, stateCfg(prof, st, gs)); }
+        if (backed) note = (note ? note + ' ' : '') + `Risque réduit de ${backed} cran${backed > 1 ? 's' : ''} pour que le pire cas reste sous ${prof.mc.dd} % de DD.`;
+        if (mcBreach(dds, prof.mc.dd) > prof.mc.p / 100) note = (note ? note + ' ' : '') + `Même au risque minimal, le pire cas dépasse ${prof.mc.dd} % de DD dans plus de ${prof.mc.p} % des cas.`;
+      }
+      const bdd = prof.mc ? prof.mc.dd : (kind === 'pf' ? 10 : null);
+      const config = stateConfig(prof, st, gs);
+      const report = computeReport(trades, capital0, config);
+      const ms = monthStats(report.monthly);
+      const fin = evalRange(pre, 0, n, gid, stateCfg(prof, st, gs));
+      const oos = pick ? pick.oos : oosFlat;
+      out.push({
+        id: prof.id, name: prof.name, short: prof.short, goal: prof.goal, config,
+        logic: pick ? pick.c.gs.fields.map((f) => fieldLabel(f.key)).join(' × ') : null,
+        perf: report.stats.performancePct, finalMult: report.stats.finalCapital / capital0,
+        dd: report.stats.maxDrawdownPct, daily: report.maxDailyDrawdownPct,
+        avgM: ms.avgM, posM: ms.posM, worstM: ms.worstM, nM: ms.nM, bestShare: fin.bestShare * 100,
+        skipped: report.stats.skippedTrades || 0, maxSlStreak: maxSlStreak(ordered),
+        mc: { p95: dds[Math.floor(dds.length * 0.95)], breachDd: bdd, breach: bdd != null ? mcBreach(dds, bdd) * 100 : null },
+        trust: oos ? (oos.holds ? 'ok' : 'warn') : 'none', oos, note,
+      });
+    }
+    return { profiles: out, fields: fields.map((f) => f.label), kind };
+  }
+
+  // ---------------------------------------------------------------
+  // Pistes : ce que l'historique suggère en plus (jamais une prédiction).
+  // Compare, pour chaque valeur d'un bonus (étiquette, session, jour…), le gain moyen
+  // par trade (en R) au reste des trades ; ne retient que les écarts nets (z ≥ 2,3, ≥ 30 trades).
+  // ---------------------------------------------------------------
+  function findInsights(trades) {
+    const ordered = sortedTrades(trades);
+    const R = ordered.map((t) => (isBE(t) ? 0 : Number(t.rr) || 0));
+    const fields = detectBonusFields(ordered);
+    const stat = (idx) => {
+      const v = idx.map((i) => R[i]);
+      const m = mean(v);
+      const variance = v.length > 1 ? v.reduce((s, x) => s + (x - m) * (x - m), 0) / (v.length - 1) : 0;
+      return { n: v.length, m, variance };
+    };
+    const tips = [];
+    fields.forEach((f) => f.values.forEach((val) => {
+      const inG = [], out = [];
+      ordered.forEach((t, i) => { const v = bonusValue(t, f.key); if (v != null && norm(v) === norm(val.value)) inG.push(i); else out.push(i); });
+      if (inG.length < 30 || out.length < 30) return;
+      const a = stat(inG), b = stat(out);
+      const se = Math.sqrt(a.variance / a.n + b.variance / b.n);
+      if (!(se > 0)) return;
+      const z = (a.m - b.m) / se;
+      if (Math.abs(z) >= 2.3) tips.push({ key: f.key, label: f.label, value: val.value, n: a.n, avg: a.m, rest: b.m, z });
+    }));
+    tips.sort((x, y) => Math.abs(y.z) - Math.abs(x.z));
+    const missing = [];
+    if (ordered.length >= 20 && clockShare(ordered) < 0.5) missing.push('time');
+    if (!fields.some((f) => !f.derived)) missing.push('bonus');
+    return { tips: tips.slice(0, 3), missing, checked: fields.map((f) => f.label) };
   }
 
   window.CHESTBacktestEngine = {
-    sortedTrades, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizePremium,
-    detectBonusFields, condsMatch, bonusValue, RISK_GRID,
+    sortedTrades, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizeProfiles,
+    detectBonusFields, findInsights, fieldLabel, condsMatch, bonusValue, RISK_GRID,
   };
 })();

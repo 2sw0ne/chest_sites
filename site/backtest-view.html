@@ -95,6 +95,11 @@
   .mm-card__rules-k{ display:block; font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#f9a45e; margin-bottom:3px; }
   .mm-card__rules b{ color:var(--ink); }
   .mm-card__ok{ color:var(--green); }
+  .bt-insights{ margin-top:34px; padding-top:18px; border-top:1px solid rgba(255,255,255,.08); font-size:12.5px; line-height:1.65; color:var(--muted); max-width:720px; }
+  .bt-insights__k{ display:block; font-size:10px; letter-spacing:.24em; text-transform:uppercase; margin-bottom:6px; }
+  .bt-insights p{ margin:0 0 6px; }
+  .bt-insights b{ color:var(--ink); font-weight:600; }
+  .bt-insights .pos{ color:var(--green); } .bt-insights .neg{ color:var(--red); }
   .mm-card__warn{ color:var(--amber); }
   .mm-card__toggle{
     margin-top:4px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font:inherit;
@@ -293,6 +298,8 @@
       <div class="journal-wrap"><table class="journal-table" id="journalTable"></table></div>
     </section>
 
+    <aside class="bt-insights" id="insights" hidden></aside>
+
   </div>
 </main>
   </div>
@@ -306,7 +313,7 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=3"></script>
+<script src="js/backtest-engine.js?v=7"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/propfirm-fit.js?v=6"></script>
 <script src="js/page-tour.js"></script>
@@ -342,23 +349,31 @@ CHESTTour.init([
   const fitWeightOf = fitRules.length && fitCfg.risk > 0
     ? (t) => window.CHESTBacktestEngine.resolveRisk(t, { risk: fitCfg.risk, tiers: [], rules: fitRules }, 0) / fitCfg.risk
     : null;
-  const bonusLabel = (key) => key.indexOf('x:') === 0 ? key.slice(2) : ({ source: 'Source', confirmation: 'Confirmation', order: 'Ordre' })[key] || key;
+  const bonusLabel = (key) => window.CHESTBacktestEngine.fieldLabel(key);
+  const riskTxt = (r) => (r === 0 ? 'ignoré' : String(r).replace('.', ',') + ' %');
+  // Réglage lisible : risque de base, palier, puis règles « Si ».
   function rulesSummary(cfg) {
-    const rules = cfg.rules || [];
-    if (!rules.length) return '';
-    const txt = rules.map((r) => {
-      const c = r.conds.map((x) => `${bonusLabel(x.field)} ${x.value}`).join(' + ');
+    const parts = [`Risque <b>${riskTxt(cfg.risk)}</b>`];
+    (cfg.tiers || []).forEach((t) => parts.push(`<b>${riskTxt(t.newRisk)}</b> après ${t.afterSl} SL`));
+    (cfg.rules || []).forEach((r) => {
+      const c = r.conds.map((x) => (x.field.indexOf('d:') === 0 ? x.value : `${bonusLabel(x.field)} ${x.value}`)).join(' + ');
       const after = r.afterSl ? ` après ${r.afterSl} SL` : '';
-      return `${c}${after} → ${r.risk === 0 ? 'ignoré' : r.risk + ' %'}`;
-    }).join(' · ');
-    return txt;
+      parts.push(`${c}${after} → <b>${riskTxt(r.risk)}</b>`);
+    });
+    return parts.join(' · ');
   }
   const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
   const MONTHS_FR_SHORT = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
 
   function fmtMoney(v) { return '$' + Math.round(v).toLocaleString('fr-FR'); }
   function fmtMoneySigned(v) { return (v >= 0 ? '+' : '−') + Math.round(Math.abs(v)).toLocaleString('fr-FR'); }
-  function fmtPct(v) { return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; }
+  function fmtPct(v) {
+    if (Math.abs(v) >= 1e5) { // résultats composés géants : plus lisibles en multiple du capital
+      const m = 1 + v / 100;
+      return '×' + (m >= 1e12 ? (m / 1e12).toFixed(1).replace('.', ',') + ' T' : m >= 1e9 ? (m / 1e9).toFixed(1).replace('.', ',') + ' Md' : m >= 1e6 ? (m / 1e6).toFixed(1).replace('.', ',') + ' M' : Math.round(m).toLocaleString('fr-FR'));
+    }
+    return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+  }
   function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('fr-FR') : '—'; }
   function fmtDateTime(iso) {
     if (!iso) return '—';
@@ -472,10 +487,12 @@ CHESTTour.init([
     const counts = { TP: 0, SL: 0, BE: 0 };
     report.curve.slice(1).forEach((pt) => { const r = String(pt.trade.result).toUpperCase(); if (counts[r] != null) counts[r] += 1; });
     const nRules = (cfg.rules || []).length;
-    const po = cfg.premium && cfg.premium.oos;
-    const oosNote = po ? (po.holds ? ' <span class="mm-card__ok">· gain confirmé sur des trades jamais vus</span>' : ' <span class="mm-card__warn">· gain non confirmé sur des trades jamais vus : prudence</span>') : '';
-    const rulesHtml = nRules
-      ? `<div class="mm-card__rules"><span class="mm-card__rules-k">${cfg.premium ? 'Réglage premium' : 'Règles « Si »'}</span> ${rulesSummary(cfg)}${skipped ? ` · <b>${skipped}</b> trade${skipped > 1 ? 's' : ''} ignoré${skipped > 1 ? 's' : ''}` : ''}${oosNote}</div>`
+    const pm = cfg.premium;
+    const holds = pm ? (pm.holds != null ? pm.holds : (pm.oos ? pm.oos.holds : null)) : null;
+    const oosNote = holds === true ? ' <span class="mm-card__ok">· confirmé sur des trades jamais vus</span>' : holds === false ? ' <span class="mm-card__warn">· non confirmé sur des trades jamais vus : prudence</span>' : '';
+    const showCfg = nRules || pm || (cfg.tiers || []).length;
+    const rulesHtml = showCfg
+      ? `<div class="mm-card__rules"><span class="mm-card__rules-k">${pm ? `Réglage premium${pm.name ? ' · ' + pm.name : ''}` : 'Réglage du risque'}</span> ${rulesSummary(cfg)}${skipped ? ` · <b>${skipped}</b> trade${skipped > 1 ? 's' : ''} ignoré${skipped > 1 ? 's' : ''}` : ''}${oosNote}</div>`
       : '';
     const isSelected = mmDetailAccount === account;
     return `
@@ -994,6 +1011,23 @@ CHESTTour.init([
     window.CHESTBacktests.remove(record.id);
     window.location.href = 'backtesting.html';
   });
+
+  // Pistes : ce que l'historique suggère en plus, en petit et sans jamais promettre (voir findInsights).
+  (function renderInsights() {
+    const el = document.getElementById('insights');
+    const r = window.CHESTBacktestEngine.findInsights(record.trades);
+    const rows = [];
+    const fr1 = (v) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).replace('.', ',') + ' R';
+    r.tips.slice(0, 2).forEach((t) => {
+      const who = t.key === 'd:session' ? `ouverts en session <b>${t.value}</b>` : t.key === 'd:weekday' ? `ouverts le <b>${t.value}</b>` : `dont <b>${bonusLabel(t.key)} = ${t.value}</b>`;
+      rows.push(`<p>Les trades ${who} (${t.n} trades) rapportent en moyenne <b class="${t.avg >= 0 ? 'pos' : 'neg'}">${fr1(t.avg)}</b> contre <b>${fr1(t.rest)}</b> pour les autres : un écart net.</p>`);
+    });
+    if (r.missing.indexOf('time') >= 0) rows.push(`<p>Ton fichier n'a pas d'heure d'ouverture : ajoute-la et le Réglage premium pourra tenir compte des sessions (Asie, Londres, New York) et des jours.</p>`);
+    if (r.missing.indexOf('bonus') >= 0) rows.push(`<p>Une colonne en plus (confirmation, tendance, étiquette…) permettrait de régler le risque selon la qualité du signal.</p>`);
+    if (!rows.length) return;
+    el.innerHTML = `<span class="bt-insights__k">Piste détectée · à confirmer</span>${rows.join('')}<p>À tester avec « + Si » ou le Réglage premium. Mesuré sur cet historique (heures lues en UTC), ce n'est pas une prédiction.</p>`;
+    el.hidden = false;
+  })();
 
   renderYearFilter();
   renderAll();
