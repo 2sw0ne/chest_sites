@@ -39,6 +39,7 @@
   const MODELS = [
     {
       id: 'ftmo-1step', firm: 'FTMO', label: '1 étape',
+      consistencyNote: 'Règle du meilleur jour : le meilleur jour ne doit pas dépasser 50 % du profit des jours positifs (page officielle des objectifs).',
       phases: [10], dailyLossPct: 3, maxLossPct: 10, maxLossType: 'trailing_eod',
       minDays: null, bestDay: { maxPct: 50, basis: 'positive_days' },
       funded: {
@@ -63,6 +64,7 @@
     },
     {
       id: 'ftmo-2step', firm: 'FTMO', label: '2 étapes',
+      consistencyNote: 'Aucune règle de cohérence en dehors des objectifs (FAQ officielle « Do you have any consistency rules? »).',
       phases: [10, 5], dailyLossPct: 5, maxLossPct: 10, maxLossType: 'static',
       minDays: { count: 4, kind: 'trading' }, bestDay: null,
       funded: {
@@ -85,6 +87,7 @@
     },
     {
       id: 'fundednext-stellar-1', firm: 'FundedNext', label: 'Stellar 1 étape',
+      consistencyNote: 'Aucune règle de cohérence trouvée pour ce modèle (règles CFD officielles).',
       phases: [10], dailyLossPct: 3, maxLossPct: 6, maxLossType: 'static',
       minDays: { count: 2, kind: 'trading' }, bestDay: null,
       funded: {
@@ -106,6 +109,7 @@
     },
     {
       id: 'fundednext-stellar-2', firm: 'FundedNext', label: 'Stellar 2 étapes',
+      consistencyNote: 'Aucune règle de cohérence, sauf l\'option de retrait « À la demande » : 40 % (aide officielle FundedNext).',
       phases: [8, 5], dailyLossPct: 5, maxLossPct: 10, maxLossType: 'static',
       minDays: { count: 5, kind: 'trading' }, bestDay: null,
       funded: {
@@ -121,14 +125,16 @@
       newsFunded: 'Trades ±5 min autour d\'une annonce : seulement 40 % de leur profit compte (comptes financés Stellar).',
       source: { url: 'https://help.fundednext.com/en/articles/10701585-how-often-will-i-receive-my-performance-reward', pageDate: null },
       facts: [
+        'Perte max FIXE (10 % depuis le solde initial) — règles CFD officielles',
         'Trois options de retrait : Standard (80 %, 1er retrait à 21 jours, puis tous les 14 jours), 3 jours (60 %, 3 jours profitables ≥ 1 % par cycle), À la demande (90 %, +2 % de croissance et 40 % de consistance)',
         'Limite de risque : 3 % maximum à tout moment',
         'Frais remboursés avec le 1er retrait',
       ],
-      unverified: ['Perte max : fixe ou suiveuse non précisé (traité comme fixe)', 'Consistance « 40 % » de l\'option À la demande interprétée comme meilleur jour ≤ 40 % du profit du cycle', 'Rythme de l\'option 3 jours supposé identique au Standard'],
+      unverified: ['Consistance « 40 % » de l\'option À la demande interprétée comme meilleur jour ≤ 40 % du profit du cycle', 'Rythme de l\'option 3 jours supposé identique au Standard'],
     },
     {
       id: 'fundednext-stellar-lite', firm: 'FundedNext', label: 'Stellar Lite',
+      consistencyNote: 'Aucune règle de cohérence, sauf l\'option de retrait « À la demande » : 40 % (aide officielle FundedNext).',
       phases: [8, 4], dailyLossPct: 4, maxLossPct: 8, maxLossType: 'static',
       minDays: { count: 5, kind: 'trading' }, bestDay: null,
       funded: {
@@ -144,19 +150,21 @@
       newsFunded: 'Trades ±5 min autour d\'une annonce : seulement 40 % de leur profit compte (comptes financés Stellar).',
       source: { url: 'https://fundednext.com/cfd-challenge-terms', pageDate: '2026-05-05' },
       facts: [
+        'Perte max FIXE (8 % : le compte ne doit pas passer sous 92 % du solde initial)',
         'Mêmes trois options de retrait que le Stellar 2 étapes',
         'Limite de risque : 3 % maximum à tout moment',
       ],
-      unverified: ['Perte max : fixe ou suiveuse non précisé (traité comme fixe)', 'Remboursement des frais non trouvé pour ce modèle', 'Consistance « 40 % » de l\'option À la demande interprétée comme meilleur jour ≤ 40 % du profit du cycle'],
+      unverified: ['Remboursement des frais non trouvé pour ce modèle', 'Consistance « 40 % » de l\'option À la demande interprétée comme meilleur jour ≤ 40 % du profit du cycle'],
     },
     {
       id: 'the5ers-hypergrowth', firm: 'The5ers', label: 'Hyper Growth · 1 étape',
+      consistencyNote: 'Aucune règle de cohérence trouvée sur la fiche Hyper Growth.',
       phases: [10], dailyLossPct: 3, maxLossPct: 6, maxLossType: 'static',
       minDays: { count: 3, kind: 'profitable', minPct: 0.5 }, bestDay: null,
       funded: {
         dailyLossPct: 3, maxLossPct: 6, maxLossType: 'static', consistency: null,
         payoutOptions: [
-          { id: 'std', label: 'Retrait dès le 14e jour', splitPct: 75, firstAfterDays: 14, cycleDays: 14, minProfitableDays: null, minGrowthPct: null, consistency: null },
+          { id: 'std', label: 'Retrait dès le 14e jour', splitPct: 75, firstAfterDays: 14, cycleDays: 14, minProfitableDays: null, minGrowthPct: null, consistency: null, minPayoutPct: 0.15 },
         ],
       },
       riskCapPct: null,
@@ -173,10 +181,12 @@
     },
     {
       id: 'the5ers-highstakes', firm: 'The5ers', label: 'High Stakes · 2 étapes',
+      consistencyNote: 'Aucune pendant l\'évaluation ; 50 % sur le compte financé (page officielle 2 étapes) — mode de calcul non précisé, lu comme meilleur jour ≤ 50 % du profit du cycle.',
       phases: [10, 5], dailyLossPct: 5, maxLossPct: 10, maxLossType: 'static',
       minDays: { count: 3, kind: 'profitable', minPct: 0.5 }, bestDay: null,
       funded: {
-        dailyLossPct: 5, maxLossPct: 10, maxLossType: 'static', consistency: null,
+        dailyLossPct: 5, maxLossPct: 10, maxLossType: 'static',
+        consistency: { maxPct: 50, basis: 'total_profit' }, payoutCapPct: 2, minPayoutPct: 0.25,
         payoutOptions: [
           { id: 'std', label: 'Retrait dès le 14e jour', splitPct: 80, firstAfterDays: 14, cycleDays: 14, minProfitableDays: null, minGrowthPct: null, consistency: null },
         ],
@@ -186,22 +196,24 @@
       newsFunded: 'Aucun ordre exécuté 2 min avant / après une annonce majeure (garder une position ouverte est permis).',
       source: { url: 'https://the5ers.com/high-stakes/', pageDate: null },
       facts: [
+        'Compte financé : consistance de 50 % · retrait minimum 250 $ de profit · plafond de 2 000 $ par retrait (compte de 100 000 $)',
         'Jour profitable = clôtures positives d\'au moins 0,5 % du capital initial',
         'Premier retrait 14 jours après l\'activation, puis toutes les 2 semaines (profit minimum 150 $)',
         'Partage 80 % (jusqu\'à 100 % avec la croissance) · week-end permis',
       ],
-      unverified: ['Plafond de retrait éventuel non trouvé', 'Frais estimés'],
+      unverified: ['Mode de calcul de la consistance de 50 % non précisé', 'Ce qui reste du profit au-delà du plafond de 2 000 $ : supposé laissé sur le compte', 'Frais estimés'],
     },
     {
       id: 'fundingpips-2step-flex', firm: 'Funding Pips', label: '2 étapes Flex',
+      consistencyNote: 'Aucune sur les cycles bimensuels (85 % et 95 %) ; 35 % sur le cycle mensuel à 100 % : aucun jour ne doit peser plus de 35 % du profit total, remis à zéro après chaque retrait (aide officielle).',
       phases: [10, 6], dailyLossPct: 4, maxLossPct: 12, maxLossType: 'static',
       minDays: { count: 1, kind: 'trading' }, bestDay: null,
       funded: {
         dailyLossPct: 4, maxLossPct: 12, maxLossType: 'static', consistency: null,
         payoutOptions: [
-          { id: 'bw85', label: 'Toutes les 2 semaines · 85 %', splitPct: 85, firstAfterDays: 14, cycleDays: 14, minProfitableDays: null, minGrowthPct: null, consistency: null },
-          { id: 'bw95', label: 'Toutes les 2 semaines · 95 %', splitPct: 95, firstAfterDays: 14, cycleDays: 14, minProfitableDays: { count: 3, minPct: 0.5 }, minGrowthPct: null, consistency: null },
-          { id: 'm100', label: 'Mensuel · 100 %', splitPct: 100, firstAfterDays: 30, cycleDays: 30, minProfitableDays: { count: 7, minPct: 0.5 }, minGrowthPct: null, consistency: { maxPct: 35, basis: 'total_profit' } },
+          { id: 'bw85', label: 'Toutes les 2 semaines · 85 %', splitPct: 85, firstAfterDays: 14, cycleDays: 14, minProfitableDays: null, minGrowthPct: null, consistency: null, minPayoutPct: 1, challengeMinDays: { count: 1, kind: 'trading' } },
+          { id: 'bw95', label: 'Toutes les 2 semaines · 95 %', splitPct: 95, firstAfterDays: 14, cycleDays: 14, minProfitableDays: { count: 3, minPct: 0.5 }, minGrowthPct: null, consistency: null, minPayoutPct: 1, challengeMinDays: { count: 3, kind: 'profitable', minPct: 0.5 } },
+          { id: 'm100', label: 'Mensuel · 100 %', splitPct: 100, firstAfterDays: 30, cycleDays: 30, minProfitableDays: { count: 7, minPct: 0.5 }, minGrowthPct: null, consistency: { maxPct: 35, basis: 'total_profit' }, minPayoutPct: 1, challengeMinDays: { count: 1, kind: 'trading' } },
         ],
       },
       riskCapPct: 2,
@@ -210,10 +222,11 @@
       source: { url: 'https://fundingpips.com/trading-objectives', pageDate: null },
       facts: [
         'Risque maximum par idée de trade sur le compte Master : 2 % au-dessus de 25 000 $ (3 % à 25 000 $)',
-        'Trois cycles de retrait : toutes les 2 semaines à 85 %, à 95 % (3 jours profitables), ou mensuel à 100 % (consistance 35 %, 7 jours profitables de 0,5 %)',
+        'Trois cycles de retrait, tous comptés depuis le 1er trade du Master : toutes les 2 semaines à 85 % (sans condition), à 95 % (3 jours profitables par cycle), ou mensuel à 100 % (consistance 35 %, 7 jours profitables de 0,5 %)',
+        'Retrait minimum : 1 % de la taille du compte · jours minimum de l\'évaluation : 1 jour (85 %) ou 3 jours profitables (95 %)',
         'Inactivité : fermer au moins 1 trade tous les 30 jours · week-end permis',
       ],
-      unverified: ['Définition du jour profitable des options 95 % et 100 % reprise à 0,5 %', 'Premier retrait supposé au bout d\'un cycle', 'Frais estimés', 'Système « strikes » à 1 % du cycle mensuel non simulé'],
+      unverified: ['Jour profitable de l\'évaluation (option 95 %) supposé à 0,5 % comme sur le compte Master', 'Frais estimés', 'Système « strikes » à 1 % du cycle mensuel non simulé'],
     },
   ];
 

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=8">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=8">
-<link rel="stylesheet" href="css/backtest-da.css?v=4">
+<link rel="stylesheet" href="css/backtest-da.css?v=5">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -302,8 +302,8 @@
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js"></script>
-<script src="js/propfirm-rules.js?v=2"></script>
-<script src="js/propfirm-fit.js?v=3"></script>
+<script src="js/propfirm-rules.js?v=3"></script>
+<script src="js/propfirm-fit.js?v=4"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -703,10 +703,14 @@ CHESTTour.init([
     }[kind];
   }
 
+  // La cohérence est intégrée à la simulation (retraits reportés) : on ne dit ici
+  // que ce qui concerne le modèle recommandé.
   function consistencySentence(res) {
-    const c = res.prop && res.prop.consistency14;
-    if (!c) return '';
-    return ` Côté cohérence, ton meilleur jour reste sous 45 % du profit dans ${pctFr(c.pass[45])} des cycles de 14 jours.`;
+    const t = res.verdict.top, b = t.best;
+    const c = t.option.consistency || t.model.funded.consistency;
+    if (!c) return ' Ce modèle n\'impose aucune règle de cohérence sur les retraits.';
+    const share = b.payoutCount ? b.delayedPayouts / b.payoutCount * 100 : 0;
+    return ` Règle de cohérence de ce modèle : ${consText(c)} — ${nFr(share)} % de tes retraits y sont reportés${b.delayedPayouts ? ` (+${nFr(b.avgDelayDays)} j en moyenne)` : ''}.`;
   }
   function fitVerdictText(res) {
     const { verdict: v, own, meta } = res;
@@ -722,42 +726,6 @@ CHESTTour.init([
       return `Le meilleur modèle (${name}, risque ${nFr(b.risk, 2)} %) rapporte en moyenne ${money}, mais seulement ${pctFr(b.netPositivePct)} des départs finissent gagnants sur ${H} mois.${consistencySentence(res)}${ownTxt}`;
     }
     return `Aucun modèle vérifié ne rapporte de façon fiable sur ${H} mois : le meilleur (${name}) finit gagnant dans ${pctFr(b.netPositivePct)} des départs seulement.${consistencySentence(res)} Ce style de trading est mieux servi par un compte propre, sans règle imposée.${ownTxt}`;
-  }
-
-  function fitPathCard(kind, title, subtitle, cells, extras) {
-    return `
-      <div class="bt-path bt-path--${kind}">
-        <div class="bt-path__head"><span class="bt-path__dot"></span><span class="bt-path__title">${title}</span></div>
-        <div class="bt-path__sub">${subtitle}</div>
-        <div class="bt-path__grid">
-          ${cells.map(([label, value, tone]) => `<div><div class="chest-label">${label}</div><div class="bt-path__val ${tone || ''}">${value}</div></div>`).join('')}
-        </div>
-        ${extras || ''}
-      </div>`;
-  }
-
-  function consistencyBlock(res) {
-    const c14 = res.prop.consistency14, c30 = res.prop.consistency30;
-    if (!c14 && !c30) return '';
-    const limits = [30, 35, 40, 45, 50];
-    const row = (c, label) => c ? `
-      <div class="bt-cons__row">
-        <div class="bt-cons__label"><b>${label}</b><small>${c.cycles} cycles · meilleur jour médian = ${pctFr(c.medianShare)} du profit</small></div>
-        ${limits.map((l) => `<div class="bt-cons__cell"><span class="bt-cons__bar"><i style="width:${Math.max(2, c.pass[l])}%"></i></span><b>${pctFr(c.pass[l])}</b></div>`).join('')}
-      </div>` : '';
-    return `
-      <div class="bt-cons chest-glass chest-glass--mini">
-        <div class="bt-cons__head">
-          <div><div class="chest-label">Règles de cohérence · ta stratégie passe-t-elle ?</div>
-          <p>Part des cycles où ton meilleur jour reste sous la limite. Un retrait est <b>reporté</b> tant que le meilleur jour pèse plus que la limite dans le profit du cycle : 50 % chez FTMO 1 étape, 40 % chez FundedNext À la demande, 35 % chez Funding Pips mensuel ; d'autres firmes en appliquent aussi (souvent 30 à 45 % selon le plan).</p></div>
-        </div>
-        <div class="bt-cons__grid">
-          <div class="bt-cons__row bt-cons__legend"><span></span>${limits.map((l) => `<span>≤ ${l} %</span>`).join('')}</div>
-          ${row(c14, 'Cycles de 14 jours')}
-          ${row(c30, 'Cycles de 30 jours')}
-        </div>
-        <p class="bt-cons__note">Calculé au risque conseillé (${nFr(res.prop.risk, 2)} %). Plus la part est basse, plus une règle de cohérence retardera tes retraits — voir la colonne « À surveiller » de chaque modèle. Au-delà de 100 %, le meilleur jour dépasse à lui seul le profit net du cycle (le reste du cycle est perdant).</p>
-      </div>`;
   }
 
   function fitRowHtml(r, isTop, meta) {
@@ -787,6 +755,7 @@ CHESTTour.init([
         <summary>
           <span class="bt-fit-row__name"><b>${m.firm}</b><small>${m.label}</small></span>
           <span class="bt-fit-row__pass bt-tone--${tone}"><b>${signedPct(b.meanNet)}</b><span class="bt-fit-row__bar"><i style="width:${barW}%"></i></span></span>
+          <span class="bt-fit-row__cell" data-label="Risque">${nFr(b.risk, 2)} %</span>
           <span class="bt-fit-row__cell" data-label="Validation">${nFr(b.fundedPct)} %</span>
           <span class="bt-fit-row__cell" data-label="1er retrait">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</span>
           <span class="bt-fit-row__cell bt-fit-row__block" data-label="À surveiller">${escHtml(watchText(r))}</span>
@@ -796,6 +765,7 @@ CHESTTour.init([
             <div class="chest-label">Règles simulées</div>
             <p class="bt-fit-row__rules"><b>Challenge</b> · ${challengeLine(m)}</p>
             <p class="bt-fit-row__rules"><b>Compte financé</b> · ${fundedLine(m)}</p>
+            <p class="bt-fit-row__rules"><b>Cohérence</b> · ${escHtml(m.consistencyNote)}</p>
             <ul class="bt-fit-row__list">${facts}</ul>
             <p class="bt-fit-row__rules"><b>Annonces</b> · ${escHtml(m.newsFunded)} <em>(non simulé)</em></p>
             <p class="bt-fit-row__rules">${feeLine}</p>
@@ -822,24 +792,6 @@ CHESTTour.init([
     const title = v.kind === 'own' ? 'Compte propre' : `${v.top.model.firm} · ${v.top.model.label}`;
     res.meta.maxNet = Math.max(1, ...res.rows.map((r) => r.best.meanNet));
 
-    const own = res.own;
-    const ownCard = fitPathCard('own', 'Compte propre',
-      'Risque optimisé sous 3 % (5 % si besoin) et 30 % de drawdown — sur ton capital',
-      [
-        ['Risque / trade', own ? pctFr(own.risk, 2) : '—'],
-        [`Rendement · ${H} mois`, own ? signedPct(own.horizonPct) : '—', own && own.horizonPct >= 0 ? 'is-pos' : 'is-neg'],
-        ['Drawdown max', own ? '−' + pctFr(own.maxDdPct, 1) : '—', 'is-neg'],
-      ],
-      own ? `<div class="bt-path__foot">≈ <b>${usdFr(own.horizonUsd)}</b> sur un capital de ${nFr(record.capital)} $ · ${pctFr(own.positivePct)} des départs gagnants${own.relaxedNote ? ' · ' + escHtml(own.relaxedNote) : ''}</div>` : '');
-    const propCard = fitPathCard('prop', 'Prop firm',
-      `${v.top.model.firm} ${v.top.model.label} · option « ${escHtml(v.top.option.label)} »`,
-      [
-        ['Risque / trade', pctFr(b.risk, 2)],
-        [`Retraits nets · ${H} mois`, signedPct(b.meanNet), b.meanNet >= 0 ? 'is-pos' : 'is-neg'],
-        ['Comptes perdus / période', nFr(b.lostPerStart, 2), b.lostPerStart > 0.5 ? 'is-neg' : ''],
-      ],
-      `<div class="bt-path__foot">≈ <b>${usdFr(res.prop.horizonUsd)}</b> sur ${nFr(res.meta.refAccount)} $ financés (retraits après partage, frais déduits) · pire quart des départs : <b>${signedPct(b.p25Net)}</b> · ${pctFr(b.netPositivePct)} des départs gagnants</div>`);
-
     body.innerHTML = `
       <div class="bt-verdict bt-verdict--${sm.tone} chest-glass">
         <div class="bt-verdict__main">
@@ -854,20 +806,15 @@ CHESTTour.init([
           <div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>
         </div>
         <details class="bt-fit-fold">
-          <summary><span class="bt-fit-fold__title">Modèles de challenge testés</span><span class="bt-fit-fold__sub">${res.rows.length} modèles · du mieux adapté au moins adapté</span><span class="bt-fit-fold__caret" aria-hidden="true"></span></summary>
+          <summary><span class="bt-fit-fold__title">Top 3 des prop firms</span><span class="bt-fit-fold__sub">classées selon les retraits nets à leur risque conseillé · 3 sur ${res.rows.length} modèles testés</span><span class="bt-fit-fold__caret" aria-hidden="true"></span></summary>
           <div class="bt-fit-table">
-            <div class="bt-fit-head"><span>Firme · modèle</span><span>Retraits nets · ${H} mois</span><span>Validation</span><span>1er retrait</span><span>À surveiller</span></div>
-            ${res.rows.map((r, i) => fitRowHtml(r, false, res.meta)).join('')}
-            ${(window.CHESTPropRules.excluded || []).map((x) => `<div class="bt-fit-excluded"><b>${escHtml(x.firm)}</b> — non simulée : ${escHtml(x.reason)}</div>`).join('')}
+            <div class="bt-fit-head"><span>Firme · modèle</span><span>Retraits nets · ${H} mois</span><span>Risque</span><span>Validation</span><span>1er retrait</span><span>À surveiller</span></div>
+            ${res.rows.slice(0, 3).map((r) => fitRowHtml(r, false, res.meta)).join('')}
           </div>
         </details>
       </div>
 
-      <div class="bt-paths">${ownCard}${propCard}</div>
-
-      ${consistencyBlock(res)}
-
-      <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais sans prix officiel lu sont estimés à ≈ 0,5 % du compte. Les règles viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.</p>`;
+      <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais sans prix officiel lu sont estimés à ≈ 0,5 % du compte. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
   }
 
   function renderFitHorizon() {

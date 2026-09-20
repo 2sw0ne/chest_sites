@@ -29,7 +29,6 @@
   const MAX_STARTS = 240;
   const MAX_PURCHASES = 3;        // un trader ne rachète pas 90 challenges : on s'arrête au 3e achat
   const MAX_LOST_PER_START = 0.5; // risque conseillé : en moyenne moins d'un demi-compte perdu sur la période
-  const THRESHOLDS = [30, 35, 40, 45, 50];
 
   // Trades triés par clôture -> tableaux compacts (rr, jour UTC).
   function prepare(trades) {
@@ -62,6 +61,7 @@
     const feeF = m.fee.pct / 100;
     const startDay = P.day[start];
     const endDay = startDay + horizonDays;
+    const chMinDays = opt.challengeMinDays !== undefined ? opt.challengeMinDays : m.minDays;
 
     let stage = 0;                 // 0 = challenge, 1 = compte financé
     let phase = 0, bal = 1, dayStart = 1, peak = 1, curDay = startDay, dayHas = false;
@@ -83,6 +83,8 @@
       if (since < need) return;
       const profit = bal - 1;
       if (profit <= 0) return;
+      const minPayout = opt.minPayoutPct != null ? opt.minPayoutPct : f.minPayoutPct;
+      if (minPayout && profit * 100 < minPayout) return;
       if (opt.minGrowthPct && profit * 100 < opt.minGrowthPct) return;
       if (opt.minProfitableDays && cProf < opt.minProfitableDays.count) return;
       const cons = opt.consistency || f.consistency;
@@ -91,12 +93,17 @@
         if (!(base > 0) || cBest / base > cons.maxPct / 100) { if (blockedDay === null) blockedDay = d; return; }
       }
       if (blockedDay !== null) { o.delayed++; o.delayDays += d - blockedDay; blockedDay = null; }
-      o.payouts += profit * opt.splitPct / 100;
+      // Plafond par retrait (ex. The5ers High Stakes : 2 000 $ sur 100 000 $) : le
+      // reste du profit demeure sur le compte.
+      let amount = profit * opt.splitPct / 100, withdrawn = profit;
+      if (f.payoutCapPct && amount * 100 > f.payoutCapPct) { amount = f.payoutCapPct / 100; withdrawn = amount / (opt.splitPct / 100); }
+      o.payouts += amount;
       o.count++;
       if (o.firstPay === null) o.firstPay = d - startDay + 1;
       if (m.fee.refund === 'first' && o.count === 1) o.refund += feeF;
       if (m.fee.refund === 'third' && o.count === 3) o.refund += feeF;
-      bal = 1; peak = 1; dayStart = 1; lastPay = d; cProf = 0; cBest = 0; cPos = 0;
+      if (withdrawn >= profit - 1e-12) { bal = 1; } else { bal -= withdrawn; }
+      peak = bal; dayStart = bal; lastPay = d; cProf = 0; cBest = 0; cPos = 0;
     };
 
     for (let i = start; i < P.n && P.day[i] < endDay; i++) {
@@ -106,7 +113,7 @@
           const pnl = bal - dayStart;
           if (stage === 0) {
             if (pnl > 0) { posSum += pnl; if (pnl > bestDay) bestDay = pnl; }
-            if (m.minDays && m.minDays.kind === 'profitable' && pnl >= m.minDays.minPct / 100) profDays++;
+            if (chMinDays && chMinDays.kind === 'profitable' && pnl >= chMinDays.minPct / 100) profDays++;
           } else {
             if (pnl > 0) { cPos += pnl; if (pnl > cBest) cBest = pnl; }
             if (opt.minProfitableDays && pnl >= opt.minProfitableDays.minPct / 100) cProf++;
@@ -137,7 +144,7 @@
       if (stage === 0 && bal >= 1 + m.phases[phase] / 100) {
         const today = bal - dayStart;
         let okDays = true;
-        const md = m.minDays;
+        const md = chMinDays;
         if (md) okDays = md.kind === 'trading' ? tDays >= md.count : (profDays + (today >= md.minPct / 100 ? 1 : 0)) >= md.count;
         let okBest = true;
         if (m.bestDay) {
@@ -209,37 +216,6 @@
     return (bal - 1) * 100;
   }
 
-  // Profil de cohérence : dans quelle part des cycles le meilleur jour reste-t-il
-  // sous 30/35/40/45/50 % du profit ? (cycles consécutifs de `cycleDays` jours)
-  function consistencyProfile(P, riskPct, cycleDays) {
-    const k = riskPct / 100;
-    const startDay = P.day[0];
-    const cycles = new Map();
-    let bal = 1, dayStart = 1, curDay = P.day[0];
-    const flush = () => {
-      const pnl = bal - dayStart;
-      const c = Math.floor((curDay - startDay) / cycleDays);
-      if (!cycles.has(c)) cycles.set(c, []);
-      cycles.get(c).push(pnl);
-    };
-    for (let i = 0; i < P.n; i++) {
-      if (P.day[i] !== curDay) { flush(); dayStart = bal; curDay = P.day[i]; }
-      bal *= 1 + k * P.rr[i];
-    }
-    flush();
-    const shares = [];
-    cycles.forEach((days) => {
-      const total = days.reduce((s, v) => s + v, 0);
-      if (total <= 0) return;
-      shares.push(Math.max(...days) / total * 100);
-    });
-    if (shares.length < 3) return null;
-    shares.sort((a, b) => a - b);
-    const pass = {};
-    THRESHOLDS.forEach((t) => { pass[t] = shares.filter((s) => s <= t).length / shares.length * 100; });
-    return { cycleDays, cycles: shares.length, medianShare: quantile(shares, 0.5), pass };
-  }
-
   function statusOf(best) {
     if (!best) return 'na';
     if (best.meanNet > 0 && best.netPositivePct >= 60) return 'good';
@@ -289,7 +265,7 @@
     });
 
     const rank = { good: 0, mid: 1, bad: 2 };
-    rows.sort((a, b) => (rank[a.status] - rank[b.status]) || (b.best.meanNet - a.best.meanNet));
+    rows.sort((a, b) => (rank[a.status] - rank[b.status]) || (b.best.meanNet - a.best.meanNet) || (a.best.risk - b.best.risk));
 
     // Compte propre : risque optimisé, rendement moyen sur la même fenêtre.
     const ownOpt = E.optimizeCp(trades, capital0);
@@ -312,8 +288,6 @@
       risk: top.best.risk, optionLabel: top.option.label,
       horizonPct: top.best.meanNet, horizonUsd: ref * top.best.meanNet / 100,
       payoutPct: top.best.meanPayout, payoutUsd: ref * top.best.meanPayout / 100,
-      consistency14: consistencyProfile(P, top.best.risk, 14),
-      consistency30: consistencyProfile(P, top.best.risk, 30),
     };
 
     let kind = top.status === 'good' ? 'propfirm' : top.status === 'mid' ? 'both' : 'own';
@@ -323,5 +297,5 @@
     };
   }
 
-  window.CHESTPropFit = { fit, RISKS, THRESHOLDS };
+  window.CHESTPropFit = { fit, RISKS };
 })();
