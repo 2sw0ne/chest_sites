@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=3">
+<link rel="stylesheet" href="css/chest-da.css?v=1">
 <style>
   /* Filet de sécurité : sans ça, une règle de classe qui fixe elle-même
      `display` (ex. .jr-empty-view{display:flex}) a la même spécificité que
@@ -225,48 +226,67 @@
   .jr-empty{ text-align:center; padding:50px 20px; color:var(--muted); font-size:13.5px; }
 </style>
 <script src="js/theme.js"></script>
+<script src="js/config.js"></script>
+<script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
-<script>CHESTAuth.guard();</script>
+<script src="js/accounts-auth.js"></script>
+<script>CHESTAccounts.guard();</script>
 </head>
-<body data-page="journal">
+<body data-page="journal" class="chest-root">
 
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
-  </div>
-  <nav class="sidebar__nav">
-    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
-    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
-    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
-    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
-    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
-    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
-    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
-  </nav>
-  <div class="sidebar__foot">
-    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
-    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
-  </div>
-</aside>
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
 
-<header class="topbar">
-  <div class="topbar__left">
-    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-  </div>
-</header>
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </header>
 
-<main class="container">
-  <div class="page-head" id="jrPageHead">
-    <h1>Journal de trading</h1>
-    <p id="jrPageDesc">Toutes tes positions au même endroit — prises via BERICH ou ajoutées à la main.</p>
+    <main>
+  <div class="page-head chest-titleglow" id="jrPageHead" style="padding:40px 34px 26px">
+    <div class="chest-step" style="margin-bottom:16px">01 — Compte du journal</div>
+    <h1 class="chest-h1">Journal de trading</h1>
+    <p id="jrPageDesc" class="chest-body" style="max-width:520px;margin-top:14px">Toutes tes positions au même endroit — prises via BERICH ou ajoutées à la main.</p>
   </div>
 
   <!-- ============ Page 1 : aucun compte — rien d'autre qu'un lien ============ -->
   <div class="jr-empty-view" id="jrEmptyView">
-    <a href="#" class="btn btn-primary" id="jrEmptyLink">+ Créer un compte</a>
+    <a href="#" class="chest-btn" id="jrEmptyLink" style="text-decoration:none">+ Créer un compte</a>
   </div>
 
   <!-- ============ Page 2 : création / édition de compte ============ -->
@@ -333,7 +353,7 @@
 
   <!-- ============ Page 3 : dashboard du compte ============ -->
   <div id="jrDashboard" hidden>
-    <div class="jr-acc-bar">
+    <div class="jr-acc-bar" style="padding:0 34px 26px">
       <div class="jr-acc-switcher" id="jrAccSwitcher">
         <button class="jr-acc-switcher__btn" id="jrAccSwitcherBtn">
           <span class="jr-acc-avatar" id="jrAccAvatar">—</span>
@@ -346,19 +366,16 @@
           <button class="jr-acc-menu__item jr-acc-menu__add" id="jrAccAddBtn"><span>＋</span> Ajouter un compte</button>
         </div>
       </div>
-      <button type="button" class="btn btn-ghost" id="jrAccEditBtn" style="padding:9px 16px;font-size:12.5px">✎ Modifier ce compte</button>
+      <button type="button" class="chest-btn-2" id="jrAccEditBtn">✎ Modifier ce compte</button>
+      <button type="button" class="chest-btn" id="jrAddBtn" style="margin-left:auto">+ Ajouter un trade</button>
     </div>
 
-    <div class="card jr-cond-card" id="jrConditionsCard" hidden>
-      <div class="eyebrow" style="margin-bottom:6px">Conditions du compte</div>
-      <div id="jrConditionsList"></div>
-    </div>
+    <section class="chest-kpis" id="jrStats" style="padding:0 34px 30px;border-top:1px solid var(--chest-rule);padding-top:26px"></section>
 
-    <div class="jr-stats" id="jrStats"></div>
-
-    <div class="jr-toolbar">
-      <button type="button" class="btn btn-primary" id="jrAddBtn" style="padding:10px 20px;font-size:13px;margin-left:auto">+ Ajouter un trade</button>
-    </div>
+    <section class="chest-section" id="jrConditionsCard" hidden style="border-top:1px solid var(--chest-rule)">
+      <div class="chest-step" style="margin-bottom:6px">02 — Conditions du compte</div>
+      <div id="jrConditionsList" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:44px"></div>
+    </section>
 
     <!-- ============ Formulaire : nouveau trade ============ -->
     <div class="card jr-form" id="jrForm" hidden>
@@ -522,7 +539,11 @@
       </div>
     </div>
 
-    <div class="card jr-table-wrap" id="jrTableWrap">
+    <div class="chest-section" style="border-top:1px solid var(--chest-rule)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px">
+      <span class="chest-step">03 — Positions</span>
+    </div>
+    <div class="chest-glass jr-table-wrap" id="jrTableWrap">
       <table class="jr-table">
         <thead>
           <tr>
@@ -534,15 +555,30 @@
       </table>
       <div class="jr-empty" id="jrEmpty" hidden>Aucun trade pour l'instant — prends une position sur BERICH, ajoute un backtest, ou enregistre-en un manuellement.</div>
     </div>
+    </div>
   </div>
 </main>
+</div>
+</div>
 
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
-<script src="js/nav.js"></script>
+<script src="js/nav.js?v=2"></script>
+<script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=3"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/journal-store.js"></script>
+<script src="js/page-tour.js"></script>
+<script>
+CHESTTour.init([
+  { selector: '#jrEmptyView', title: 'Journal de trading', text: 'Crée un premier compte (propre ou propfirm) pour commencer à suivre tes trades — pris via BERICH ou ajoutés à la main.' },
+  { selector: '#jrAccSwitcher', title: 'Tes comptes', text: 'Bascule entre tes comptes de journal, ou ajoutes-en un nouveau.' },
+  { selector: '#jrConditionsCard', title: 'Règles du challenge', text: 'Pour un compte propfirm : suivi en direct des règles (perte max, objectif de profit, jours minimum).' },
+  { selector: '#jrStats', title: 'Statistiques', text: 'Winrate, RR moyen et P&L calculés automatiquement sur tous les trades de ce compte.' },
+  { selector: '#jrAddBtn', title: 'Ajouter un trade', text: 'Enregistre une position manuellement — ou laisse BERICH le faire automatiquement pour toi.' },
+  { selector: '#jrTableWrap', title: 'Historique', text: 'Toutes les positions de ce compte, filtrables par paire, résultat ou mois.' },
+]);
+</script>
 <script>
 (() => {
   'use strict';
@@ -754,9 +790,9 @@
   document.getElementById('jaCancel').addEventListener('click', () => {
     showView(CHESTJournal.listAccounts().length ? 'dashboard' : 'empty');
   });
-  document.getElementById('jaDelete').addEventListener('click', () => {
+  document.getElementById('jaDelete').addEventListener('click', async () => {
     if (!editingAccountId) return;
-    if (!confirm('Supprimer ce compte ? Les trades manuels qui lui sont liés resteront dans le journal mais perdront leur rattachement.')) return;
+    if (!(await CHESTConfirm('Supprimer ce compte ? Les trades manuels qui lui sont liés resteront dans le journal mais perdront leur rattachement.'))) return;
     CHESTJournal.removeAccount(editingAccountId);
     const hasAccounts = CHESTJournal.listAccounts().length > 0;
     showView(hasAccounts ? 'dashboard' : 'empty');
@@ -1085,11 +1121,12 @@
   // ================= Stats =================
   function renderStats(rows) {
     const s = CHESTJournal.computeStats(rows);
+    const pnlCls = s.totalPnl > 0 ? 'is-pos' : s.totalPnl < 0 ? 'is-neg' : '';
     document.getElementById('jrStats').innerHTML = `
-      <div class="jr-stat jr-stat--win"><span>Winrate</span><strong>${s.winRatePct == null ? '—' : s.winRatePct + '%'}</strong></div>
-      <div class="jr-stat jr-stat--rr"><span>RR moyen</span><strong>${s.avgRR == null ? '—' : s.avgRR}</strong></div>
-      <div class="jr-stat jr-stat--pnl"><span>P&amp;L total</span><strong class="${s.totalPnl > 0 ? 'pos' : s.totalPnl < 0 ? 'neg' : ''}">${money(s.totalPnl)}</strong></div>
-      <div class="jr-stat jr-stat--count"><span>Trades</span><strong>${s.total}<span class="jr-stat__sub">${s.tp} TP · ${s.sl} SL · ${s.be} BE · ${s.open} en cours</span></strong></div>`;
+      <div><div class="chest-label" style="margin-bottom:8px">Winrate</div><div class="chest-kpi__val">${s.winRatePct == null ? '—' : s.winRatePct + '%'}</div><div class="chest-kpi__note">${s.total} trades</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">RR moyen</div><div class="chest-kpi__val">${s.avgRR == null ? '—' : s.avgRR}</div><div class="chest-kpi__note">reward ÷ risk</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">P&amp;L total</div><div class="chest-kpi__val ${pnlCls}">${money(s.totalPnl)}</div><div class="chest-kpi__note">sur ce compte</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Trades</div><div class="chest-kpi__val">${s.total}</div><div class="chest-kpi__note">${s.tp} TP · ${s.sl} SL · ${s.be} BE · ${s.open} en cours</div></div>`;
   }
   function resultBadge(result) {
     if (!result) return '<span class="jr-result open">En cours</span>';
@@ -1120,8 +1157,8 @@
         </td>
       </tr>`).join('');
 
-    tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => {
-      if (confirm('Supprimer ce trade du journal ?')) { CHESTJournal.remove(btn.dataset.delete); loadAndRender(); }
+    tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (await CHESTConfirm('Supprimer ce trade du journal ?')) { CHESTJournal.remove(btn.dataset.delete); loadAndRender(); }
     }));
     tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(allRows.find((r) => r.id === btn.dataset.edit))));
   }

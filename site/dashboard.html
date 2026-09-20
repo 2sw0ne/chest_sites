@@ -7,8 +7,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=4">
+<link rel="stylesheet" href="css/chest-da.css?v=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
+  /* Filet de securite : une regle de classe qui fixe elle-meme `display`
+     (ex. .btn{display:inline-flex}, .form-stack{display:flex}) a la meme
+     specificite que le [hidden]{display:none} PAR DEFAUT DU NAVIGATEUR (regle
+     UA, pas auteur) et, une regle auteur l'emportant toujours sur l'UA meme a
+     specificite egale, l'element reste affiche malgre l'attribut hidden -
+     meme piege deja rencontre sur calendar.html/journal.html/strategies.html. */
+  [hidden]{ display:none !important; }
+
   .example-badge{
     font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
     color:var(--amber); background:rgba(245,166,35,.13); border:1px solid rgba(245,166,35,.35);
@@ -44,42 +54,151 @@
   .acc-menu__divider{ height:1px; background:var(--line); margin:6px 4px; }
   .acc-menu__add{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--acc); }
 
-  /* ---------- Current results (FTMO-style header) ---------- */
-  .results-card{ border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel); padding:22px 24px; margin-bottom:24px; }
-  .results-card__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-  .results-card__head h2{ font-size:15px; font-weight:700; margin:0; }
-  .sync-line{ font-size:11.5px; color:var(--faint); margin-top:2px; }
-  .sync-line code{ background:var(--bg); padding:1px 6px; border-radius:5px; }
-  .results-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
-  .results-grid div{ border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--bg); padding:14px 16px; }
-  .results-grid span{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; }
-  .results-grid strong{ display:block; font-size:18px; font-weight:700; }
-  .results-grid strong.pos{ color:var(--green); } .results-grid strong.neg{ color:var(--red); }
-
-  .kpi-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:28px; }
-  .kpi-card{ position:relative; overflow:hidden; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel); padding:18px 18px 16px; }
-  .kpi-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:2px; }
-  .kpi-card--green::before{ background:var(--green); } .kpi-card--blue::before{ background:var(--blue); }
-  .kpi-card--acc::before{ background:linear-gradient(90deg,var(--acc),var(--acc2)); } .kpi-card--red::before{ background:var(--red); }
-  .kpi-card__label{ font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
-  .kpi-card__value{ font-size:26px; font-weight:700; letter-spacing:-.02em; }
-  .kpi-card__sub{ font-size:11.5px; color:var(--faint); margin-top:4px; }
-
-  .chart-card{ padding:22px 24px 26px; margin-bottom:16px; }
-  .chart-card__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; gap:12px; flex-wrap:wrap; }
-  .unit-toggle{ display:inline-flex; gap:3px; padding:3px; border:1px solid var(--line2); border-radius:999px; background:var(--bg); }
-  .unit-toggle button{ border:none; cursor:pointer; font:inherit; font-size:12px; font-weight:700; padding:6px 13px; border-radius:999px; background:transparent; color:var(--muted); }
-  .unit-toggle button.is-active{ background:var(--ink); color:var(--bg); }
-
-  /* ---------- Expandable "more" panel ---------- */
-  .more-toggle{
-    width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
-    border:1px solid var(--line2); background:var(--panel); color:var(--muted); cursor:pointer; font:inherit;
-    font-size:13px; font-weight:600; padding:12px; border-radius:var(--radius-sm); margin-bottom:0;
+  /* ---------- Familles dans le switcher (regroupement de comptes lies,
+     ex. Phase 1 -> Phase 2 -> Finance d'un meme challenge) ---------- */
+  .acc-menu__family-head{
+    display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; cursor:pointer;
+    padding:9px 10px; border-radius:9px; color:var(--ink); font:inherit; text-align:left; font-weight:700; font-size:12.5px;
   }
-  .more-toggle:hover{ color:var(--ink); }
-  .more-toggle .chev{ transition:transform .25s var(--ease); }
-  .more-toggle.is-open .chev{ transform:rotate(180deg); }
+  .acc-menu__family-head:hover{ background:var(--panel-2); }
+  .acc-menu__family-head .chev{ margin-left:auto; color:var(--muted); font-size:10px; transition:transform .15s; }
+  .acc-menu__family-head.is-open .chev{ transform:rotate(180deg); }
+  .acc-menu__family-accounts{ padding-left:14px; border-left:1px solid var(--line); margin:0 0 4px 20px; }
+  .acc-menu__family-add{ color:var(--acc); font-weight:600; }
+  .acc-menu__family-row{ display:flex; align-items:center; gap:4px; }
+  .acc-menu__family-row .acc-menu__family-head{ flex:1; }
+  .acc-menu__family-hover{ position:relative; flex-shrink:0; }
+  .acc-menu__family-hover-btn{
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--line2); background:var(--bg);
+    color:var(--muted); cursor:pointer; font:inherit; font-size:13px; display:flex; align-items:center; justify-content:center;
+  }
+  .acc-menu__family-hover-btn:hover{ color:var(--acc); border-color:var(--acc); }
+  .acc-menu__family-flyout{
+    display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60; width:180px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
+    box-shadow:0 16px 40px rgba(0,0,0,.35); padding:6px;
+  }
+  .acc-menu__family-hover:hover .acc-menu__family-flyout,
+  .acc-menu__family-hover:focus-within .acc-menu__family-flyout{ display:block; }
+  .acc-menu__family-flyout button{
+    display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; cursor:pointer;
+    padding:8px 9px; border-radius:8px; color:var(--acc); font:inherit; font-size:12.5px; font-weight:600; text-align:left;
+  }
+  .acc-menu__family-flyout button:hover{ background:var(--panel-2); }
+  .acc-menu__family-flyout button.is-backtest-btn{ color:var(--blue); }
+
+  /* ---------- Compte "Live" (Myfxbook, admin, toujours synchronise) ---------- */
+  .acc-switcher__btn.is-live{ border-color:rgba(51,230,166,.4); }
+  .avatar.is-live, .acc-menu__item .avatar.is-live{ background:linear-gradient(135deg,#1fbd88,var(--green)); }
+
+  /* ---------- Etape "identite du compte" (broker/PF + numero, plus de nom libre) ---------- */
+  .broker-grid-sm{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+  @media (max-width:520px){ .broker-grid-sm{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  .broker-card-sm{
+    display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 6px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg);
+    cursor:pointer; font:inherit; font-size:10.5px; font-weight:600; color:var(--ink); text-align:center; transition:.15s;
+  }
+  .broker-card-sm:hover{ border-color:var(--acc); }
+  .broker-card-sm.is-selected{ border-color:var(--acc); background:rgba(252,18,131,.06); }
+  .broker-card-sm img{ width:22px; height:22px; border-radius:5px; }
+  .broker-card-sm__icon{ width:22px; height:22px; border-radius:5px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; font-size:11px; }
+
+  /* ---------- Connexion trading (meme compte que Strategies/BERICH) ----------
+     N'affiche jamais de wizard ici (ca vit sur BERICH/Strategies) - juste le
+     statut + un rappel pour synchroniser les vraies donnees via export_mt5.py
+     quand un compte est relie mais que data/data.json n'existe pas encore. */
+  .conn-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    margin-bottom:16px; padding:14px 18px; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
+  }
+  .conn-bar__status{ display:flex; align-items:center; gap:10px; font-size:13.5px; }
+  .conn-dot{ width:9px; height:9px; border-radius:50%; background:var(--faint); flex-shrink:0; }
+  .conn-dot.is-on{ background:var(--green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .conn-dot.is-pending{ background:var(--amber); box-shadow:0 0 0 3px rgba(245,166,35,.16); }
+  .conn-bar__status span{ color:var(--muted); }
+  .conn-bar__status code{ background:var(--bg); padding:1px 6px; border-radius:5px; }
+
+  /* ---------- Assistant "Ajouter un compte" (choix MT5 local / Myfxbook) ---------- */
+  .connmodal-overlay{
+    position:fixed; inset:0; z-index:280; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .connmodal-overlay.is-open{ opacity:1; pointer-events:auto; }
+  .connmodal-modal{
+    width:100%; max-width:600px; max-height:88vh; overflow-y:auto; background:var(--panel); border:1px solid var(--line2);
+    border-radius:var(--radius); padding:32px 32px 28px; transform:translateY(12px); transition:transform .2s;
+  }
+  .connmodal-overlay.is-open .connmodal-modal{ transform:translateY(0); }
+  .connmodal-close{ float:right; border:none; background:var(--bg); color:var(--muted); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:15px; }
+  .connmodal-modal h2{ font-size:18px; font-weight:700; margin:0 0 6px; }
+  .connmodal-modal .hint{ font-size:12.5px; color:var(--muted); line-height:1.55; margin:0 0 22px; }
+
+  .method-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px; }
+  @media (max-width:560px){ .method-grid{ grid-template-columns:1fr; } }
+  .method-card{
+    text-align:left; padding:18px 16px; border-radius:var(--radius-sm); border:1px solid var(--line2);
+    background:var(--bg); cursor:pointer; font:inherit; color:var(--ink); transition:.15s;
+  }
+  .method-card:hover{ border-color:var(--acc); }
+  .method-card__badge{
+    display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    padding:3px 9px; border-radius:999px; margin-bottom:10px;
+  }
+  .method-card__badge.free{ background:rgba(51,230,166,.14); color:var(--green); }
+  .method-card__badge.paid{ background:rgba(245,166,35,.14); color:var(--amber); }
+  .method-card__title{ font-size:15px; font-weight:700; margin-bottom:6px; }
+  .method-card__desc{ font-size:12px; color:var(--muted); line-height:1.5; }
+
+  .method-steps{ padding:16px 18px; border-radius:var(--radius-sm); background:var(--bg); border:1px solid var(--line2); margin-top:18px; }
+  .method-steps h3{ font-size:13.5px; font-weight:700; margin:0 0 10px; }
+  .method-steps ol{ margin:0; padding-left:20px; font-size:12.5px; color:var(--muted); line-height:1.8; }
+  .method-steps code{ background:var(--panel); padding:1px 6px; border-radius:5px; }
+  .method-steps a{ color:var(--acc); }
+  .method-back{ margin-top:16px; }
+  .form-stack{ display:flex; flex-direction:column; gap:14px; }
+  .wizard-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .mfx-account-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg);
+    cursor:pointer; font:inherit; color:var(--ink); text-align:left; width:100%; transition:.15s;
+  }
+  .mfx-account-row:hover{ border-color:var(--acc); }
+  .mfx-account-row.is-selected{ border-color:var(--acc); background:rgba(252,18,131,.06); }
+  .mfx-account-row strong{ display:block; font-size:13px; }
+  .mfx-account-row span{ display:block; font-size:11px; color:var(--muted); }
+  .mfx-account-row b{ font-size:13px; font-variant-numeric:tabular-nums; }
+
+  /* ---------- Payouts propfirm (montants recus, purement informatif -
+     n'affecte jamais le solde/equity synchronises via Myfxbook) - carte
+     compacte (retour direct utilisateur du 2026-09-17) : reglages et volet
+     detail EN LIGNE a cote du toggle reel/simule, plus d'espace mort reserve
+     par un positionnement absolu. ---------- */
+  .payout-bar{ margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
+  .payout-bar__head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .payout-bar__info{ display:flex; align-items:center; gap:8px; }
+  .payout-bar__info span{ font-size:12.5px; color:var(--muted); }
+  .payout-bar__info strong{ font-size:16px; font-weight:700; }
+  .payout-bar__actions{ display:flex; align-items:center; gap:8px; }
+  .payout-bar__list{ display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+  .payout-row__note{ font-size:10.5px; color:var(--yellow, #e8b339); margin-top:2px; }
+  .payout-row{ display:flex; align-items:center; gap:10px; font-size:12.5px; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--bg); }
+  .payout-row span{ flex:1; color:var(--muted); }
+  .payout-row b{ font-variant-numeric:tabular-nums; }
+  .payout-row__del{ border:none; background:transparent; color:var(--faint); cursor:pointer; font-size:13px; padding:2px 4px; line-height:1; }
+  .payout-row__del:hover{ color:var(--red); }
+  .payout-bar__collapse .chev{ display:block; transition:transform .25s var(--ease); }
+  .payout-bar__collapse.is-open .chev{ transform:rotate(180deg); }
+
+  /* ---------- Current results — repris dans le hero de la nouvelle DA
+     (voir .chest-spot dans dashboard.html) ; seule .acc-sync-error survit
+     telle quelle, réutilisée à côté du libellé "Compte propre/Propfirm". ---------- */
+  .acc-sync-error{ color:var(--red); font-size:14px; cursor:help; }
+
+  /* ---------- Volet "outils" (chevron géré par #toolsToggle, plus par
+     l'ancienne classe .more-toggle — voir chest-btn-2 dans le markup) ---------- */
+  .chev{ display:inline-block; transition:transform .25s var(--ease); }
+  #toolsToggle.is-open .chev{ transform:rotate(180deg); }
   .more-panel{ max-height:0; overflow:hidden; transition:max-height .4s var(--ease); }
   .more-panel__inner{ padding-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 
@@ -96,187 +215,616 @@
   .objective-row__wrap{ display:flex; align-items:center; }
 
   .mini-cal{ }
-  .mini-cal__head{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .mini-cal__head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .mini-cal__range{ font-size:11px; color:var(--faint); flex-basis:100%; }
+  .mini-cal__settings{ position:absolute; top:16px; right:16px; }
+  /* Resultats par semaine EN TEXTE PLEIN, tout en haut de la carte - plus de
+     "bulles" encadrees (retour direct utilisateur du 2026-09-17). */
+  .mini-cal__totals{ display:flex; flex-wrap:wrap; gap:4px 16px; margin:0 40px 14px 0; font-size:12.5px; }
+  .mini-cal__totals:empty{ display:none; }
+  .mini-cal__total-item{ display:flex; align-items:baseline; gap:6px; }
+  .mini-cal__total-item .r{ font-size:10.5px; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .mini-cal__total-item .v{ font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .mini-cal__total-item .v.pos{ color:var(--green); }
+  .mini-cal__total-item .v.neg{ color:var(--red); }
+  /* Navigateur de jours (meme langage que .day-nav de calendar.html) - fait
+     defiler des fenetres de 14 jours dans tout l'historique enregistre
+     (backtest + myfxbook persiste), au lieu des 14 derniers jours fixes
+     d'avant (retour direct utilisateur du 2026-09-16). */
+  .day-nav{ display:inline-flex; align-items:center; gap:6px; flex-shrink:0; }
+  .day-nav__btn{
+    width:26px; height:26px; border-radius:999px; border:1px solid var(--line2); background:var(--panel);
+    color:var(--ink); cursor:pointer; font-size:11px; font:inherit; display:flex; align-items:center; justify-content:center;
+  }
+  .day-nav__btn:disabled{ opacity:.3; cursor:default; }
+  .day-nav__btn:not(:disabled):hover{ border-color:var(--acc); }
+  .day-nav__today{
+    border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:5px 12px;
+    font-size:11.5px; font-weight:600; color:var(--muted); cursor:pointer; font:inherit;
+  }
+  .day-nav__today.is-active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
   .mini-cal__grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
-  .mini-cal__cell{ aspect-ratio:1; border-radius:8px; background:var(--bg); border:1px solid var(--line); padding:5px; display:flex; flex-direction:column; justify-content:space-between; }
+  .mini-cal__cell{ aspect-ratio:1; min-height:0; border-radius:8px; background:var(--bg); border:1px solid var(--line); padding:5px; display:flex; flex-direction:column; justify-content:space-between; gap:2px; overflow:hidden; }
+  .mini-cal__cell:has(.n){ aspect-ratio:auto; }
   .mini-cal__cell.pos{ background:rgba(51,230,166,.1); border-color:rgba(51,230,166,.3); }
   .mini-cal__cell.neg{ background:rgba(255,77,94,.1); border-color:rgba(255,77,94,.3); }
+  /* Jour de BACKTEST sur un compte propre (pas propfirm) : jaune/orange au
+     lieu de vert/rouge - distingue d'un coup d'oeil une position simulee
+     d'une vraie position (retour direct utilisateur du 2026-09-17). */
+  .mini-cal__cell.bt-pos{ background:rgba(232,179,57,.12); border-color:rgba(232,179,57,.35); }
+  .mini-cal__cell.bt-neg{ background:rgba(232,140,57,.12); border-color:rgba(232,140,57,.35); }
   .mini-cal__cell .d{ font-size:10px; color:var(--faint); }
   .mini-cal__cell .p{ font-size:9.5px; font-weight:700; }
+  .mini-cal__cell .n{ font-size:8px; font-weight:700; color:var(--yellow, #e8b339); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .mini-cal__cell.pos .p{ color:var(--green); } .mini-cal__cell.neg .p{ color:var(--red); }
+  .mini-cal__cell.bt-pos .p{ color:#e8b339; } .mini-cal__cell.bt-neg .p{ color:#e88c39; }
+  .mini-cal__cell.is-today{ border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
+
+  /* ---------- Outils : timeline des sessions + force des devises ---------- */
+
+  /* ----- Ciel jour/nuit : occupe TOUT le haut de la card (bord a bord, coins
+     hauts arrondis comme la card elle-meme - la card passe en padding:0 pour
+     laisser le ciel "deborder" jusqu'aux bords, voir #sessionTimeline plus
+     bas) - retour direct utilisateur du 2026-09-16 ("commence et termine sur
+     le bord de la fenetre", pas un pave encadre a l'interieur). La couleur de
+     fond n'est plus un simple bascule jour/nuit : elle est interpolee en
+     continu (voir skyColorsAt() dans session-timeline.js) pour un vrai
+     lever/coucher de soleil (bleu -> orange -> bleu nuit), posee en style
+     inline plutot qu'en classe CSS fixe. `t` (0..1) = avancement du
+     soleil/lune sur son demi-arc ; position = balayage horizontal
+     (left:t*100%) + hauteur en arc de cercle (sin(t*pi)). ----- */
+  .sesstl-sky{
+    position:relative; height:152px; overflow:hidden;
+    border-radius:var(--radius) var(--radius) 0 0;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding-top:16px; transition:background 1s linear;
+  }
+  /* Fondu vers le fond de la card au lieu d'un bord franc (retour direct
+     utilisateur du 2026-09-16, capture entouree en rose). */
+  .sesstl-sky::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:40px;
+    background:linear-gradient(180deg, transparent, var(--panel)); pointer-events:none;
+  }
+  /* Pendant le glisser du curseur, AUCUNE transition sur le ciel/soleil-lune -
+     ils doivent suivre le pointeur au pixel pres, en direct (constate en
+     direct le 2026-09-16 : avec les transitions .8s actives, le soleil/la
+     lune "rattrapait" le curseur en retard au lieu de le suivre 1:1). Les
+     transitions ne servent que pour la mise a jour "au repos" (tick de
+     60s, ou le saut instantane au relachement qui lui est fait AVANT de
+     retirer cette classe - voir session-timeline.js). */
+  .sesstl-sky.is-scrubbing{ transition:none; }
+  .sesstl-sky.is-scrubbing .sesstl-sky__body{ transition:none; }
+  .sesstl-sky.is-scrubbing .sesstl-sky__stars{ transition:none; }
+  .sesstl-sky__stars{ position:absolute; inset:0; pointer-events:none; transition:opacity 1s linear;
+    background-image:
+      radial-gradient(1.6px 1.6px at 12% 22%, #fff, transparent),
+      radial-gradient(1.3px 1.3px at 28% 14%, #fff, transparent),
+      radial-gradient(1.8px 1.8px at 44% 30%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 62% 12%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 78% 24%, #fff, transparent),
+      radial-gradient(1.3px 1.3px at 90% 16%, #fff, transparent),
+      radial-gradient(1.4px 1.4px at 20% 40%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 68% 38%, #fff, transparent);
+  }
+  .sesstl-sky__arc{ position:absolute; left:0; right:0; top:20px; bottom:18px; opacity:.3; pointer-events:none; }
+  .sesstl-sky__arc path{ fill:none; stroke:#fff; stroke-width:1.5; stroke-dasharray:2 6; stroke-linecap:round; }
+  .sesstl-sky__horizon{ position:absolute; left:0; right:0; bottom:18px; height:1px; background:rgba(255,255,255,.18); }
+  .sesstl-sky__body{
+    position:absolute; width:20px; height:20px; border-radius:50%; transform:translate(-50%,50%);
+    transition:left .8s ease, bottom .8s ease, background .8s ease, box-shadow .8s ease; z-index:1;
+  }
+  .sesstl-sky__body.is-sun{ background:radial-gradient(circle at 35% 32%,#fff8dd,#ffc862 55%,#ff9a3d); box-shadow:0 0 20px 5px rgba(255,175,70,.55); }
+  .sesstl-sky__body.is-moon{ background:radial-gradient(circle at 35% 32%,#f8faff,#d7deef 55%,#a8b3d6);
+    box-shadow:0 0 14px 3px rgba(190,205,255,.4), inset -3px -2px 0 -1px rgba(140,150,190,.5), inset 4px 5px 0 -3px rgba(140,150,190,.4); }
+  .sesstl-sky__content{ position:relative; z-index:2; text-align:center; }
+  /* Meme traitement typo que le titre "BERICH" (berich.html) - gras 800,
+     tres serre - juste a une echelle de card plutot que de hero plein ecran
+     (retour direct utilisateur du 2026-09-16). */
+  .sesstl-sky__title{ font-size:23px; font-weight:800; color:#fff; text-shadow:0 1px 8px rgba(0,0,0,.4); letter-spacing:-.02em; }
+  .sesstl-sky__title.is-preview::after{ content:'aperçu'; margin-left:8px; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:rgba(255,255,255,.75); background:rgba(255,255,255,.18); border-radius:999px; padding:2px 7px; vertical-align:4px; }
+  .sesstl-sky__time{ font-size:12.5px; color:rgba(255,255,255,.85); text-shadow:0 1px 4px rgba(0,0,0,.3); margin-top:4px; }
+
+  /* Contenu sous le ciel (pistes + statut) - la card etant passee en
+     padding:0 pour laisser le ciel deborder, c'est ce bloc qui porte
+     desormais le padding habituel de card. */
+  .sesstl-body{ padding:18px 22px 20px; }
+
+  /* Grille explicite (plutot que des lignes flex empilees) pour que le trait
+     "maintenant" et l'axe d'heures, positionnes en % a l'interieur de LEUR
+     propre piste, tombent verticalement sous les bonnes graduations. */
+  /* grid-column explicite sur les 3 colonnes (au lieu de laisser
+     l'auto-placement deviner) : necessaire depuis que .sesstl-nowline-wrap
+     reserve explicitement toute la colonne 2 sur les 4 lignes - sans ca,
+     l'auto-placement des pistes evite ces cellules "deja prises" et part en
+     vrille (constate en direct le 2026-09-16 : pistes ecrasees sur 90px au
+     lieu de la largeur "1fr"). Le grid-row de chaque trio label/piste/statut
+     est lui pose en inline-style par JS (voir session-timeline.js), pour que
+     le curseur unique (grid-row:1/span N) et ces items se superposent
+     volontairement sans que l'auto-placement des uns evite les autres. */
+  .sesstl{ position:relative; display:grid; grid-template-columns:100px 1fr 90px; column-gap:10px; row-gap:14px; align-items:center; }
+  .sesstl-label{ grid-column:1; display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--muted); }
+  .sesstl-flag{ display:inline-block; width:16px; height:12px; border-radius:2px; flex-shrink:0; }
+  .sesstl-dot{ width:7px; height:7px; border-radius:50%; background:var(--faint); flex-shrink:0; margin-left:auto; }
+  .sesstl-dot.is-open{ box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .sesstl-track{ grid-column:2; position:relative; height:10px; border-radius:999px; background:var(--bg); border:1px solid var(--line); overflow:visible; }
+  .sesstl-seg{ position:absolute; top:0; bottom:0; opacity:.9; border-radius:999px; }
+  .sesstl-status{ grid-column:3; font-size:11px; color:var(--faint); text-align:right; white-space:nowrap; }
+  .sesstl-status.is-open{ color:var(--green); font-weight:700; }
+  .sesstl-axis{ grid-column:2; position:relative; height:14px; }
+  .sesstl-axis span{ position:absolute; top:0; transform:translateX(-50%); font-size:9.5px; color:var(--faint); }
+
+  /* ----- Curseur "maintenant" unique, une seule ligne qui traverse les 4
+     pistes (grid-row en span) au lieu d'un trait repete par ligne - deplacable
+     a la souris/au doigt (façon babypips) pour lire la volatilite estimee a
+     l'endroit vise. ----- */
+  .sesstl-nowline-wrap{ grid-column:2; grid-row:1 / span 4; align-self:stretch; position:relative; z-index:2; cursor:ew-resize; touch-action:none; }
+  .sesstl-nowline{ position:absolute; top:-5px; bottom:-5px; width:2px; background:var(--ink); pointer-events:none; }
+  .sesstl-nowline.is-pinned{ background:var(--acc); }
+  .sesstl-nowline__tick{ position:absolute; top:-5px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--ink); }
+  .sesstl-nowline.is-pinned .sesstl-nowline__tick{ border-top-color:var(--acc); }
+  .sesstl-nowline__handle{ position:absolute; top:50%; left:50%; width:16px; height:16px; border-radius:50%; transform:translate(-50%,-50%); background:var(--panel); border:2px solid var(--ink); box-shadow:0 2px 6px rgba(0,0,0,.25); }
+  .sesstl-nowline.is-pinned .sesstl-nowline__handle{ border-color:var(--acc); }
+
+  /* Une seule ligne de lecture pour la volatilite estimee a l'endroit vise
+     par le curseur - remplace l'ancien pave de texte (retour direct
+     utilisateur du 2026-09-16 : "des choses qu'on ne va pas lire"). */
+  .sesstl-vibe{ display:flex; align-items:center; gap:7px; font-size:12.5px; margin-top:14px; }
+  .sesstl-vibe__dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .sesstl-vibe__dot.level-high{ background:var(--red); box-shadow:0 0 0 3px rgba(255,77,94,.18); }
+  .sesstl-vibe__dot.level-medium{ background:var(--acc2); box-shadow:0 0 0 3px rgba(249,164,94,.18); }
+  .sesstl-vibe__dot.level-low{ background:var(--green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .sesstl-vibe__level{ font-weight:700; color:var(--ink); }
+  .sesstl-vibe__sep{ color:var(--faint); }
+  .sesstl-vibe__label{ color:var(--muted); }
+
+  .cstr-row{ display:grid; grid-template-columns:36px 1fr 60px; align-items:center; gap:10px; margin-bottom:10px; }
+  .cstr-row:last-child{ margin-bottom:0; }
+  .cstr-code{ font-size:12px; font-weight:700; }
+  .cstr-track{ height:8px; border-radius:999px; background:var(--bg); border:1px solid var(--line); overflow:hidden; }
+  .cstr-bar{ height:100%; border-radius:999px; }
+  .cstr-bar.pos{ background:var(--green); } .cstr-bar.neg{ background:var(--red); }
+  .cstr-val{ font-size:12px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; }
+  .cstr-val.pos{ color:var(--green); } .cstr-val.neg{ color:var(--red); }
 
   @media (max-width: 900px){ .kpi-grid,.results-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } .more-panel__inner{ grid-template-columns:1fr; } }
   @media (max-width: 560px){ .kpi-grid,.results-grid{ grid-template-columns:1fr; } }
 
-  /* ---------- Top/flop crypto (top 100 par capitalisation) ---------- */
-  .mover-cols{ display:grid; grid-template-columns:1fr 1fr; gap:28px; }
-  @media (max-width: 640px){ .mover-cols{ grid-template-columns:1fr; } }
-  .mover-col__label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); margin-bottom:10px; }
-  .mover-row{ display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
-  .mover-row:last-child{ border-bottom:none; }
-  .mover-row img{ width:26px; height:26px; border-radius:50%; flex-shrink:0; }
-  .mover-row .name{ flex:1; min-width:0; }
-  .mover-row .name b{ display:block; font-size:13.5px; font-weight:700; }
-  .mover-row .name span{ display:block; font-size:10.5px; color:var(--muted); text-transform:uppercase; }
-  .mover-row .price{ text-align:right; font-size:13px; font-variant-numeric:tabular-nums; color:var(--muted); white-space:nowrap; }
-  .mover-row .chg{ text-align:right; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; min-width:64px; }
-  .mover-row .chg.pos{ color:var(--green); } .mover-row .chg.neg{ color:var(--red); }
   p.hint{ font-size:12.5px; color:var(--muted); line-height:1.5; }
 </style>
 <script src="js/theme.js"></script>
+<script src="js/config.js"></script>
+<script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
-<script>CHESTAuth.guard();</script>
+<script src="js/accounts-auth.js"></script>
+<script>CHESTAccounts.guard();</script>
 </head>
-<body data-page="dashboard">
+<body data-page="dashboard" class="chest-root">
 
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
-  </div>
-  <nav class="sidebar__nav">
-    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
-    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
-    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
-    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
-    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
-    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
-    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
-  </nav>
-  <div class="sidebar__foot">
-    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
-    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
-  </div>
-</aside>
-
-<header class="topbar">
-  <div class="topbar__left">
-    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-  </div>
-</header>
-
-<main class="container">
-  <div class="page-head">
-    <h1>Dashboard</h1>
-    <p>Vue d'ensemble de tes comptes — profit, ratio, winrate, drawdown et courbe d'equity, façon FTMO.</p>
-  </div>
-
-  <div class="acc-bar">
-    <div class="acc-switcher" id="accSwitcher">
-      <button class="acc-switcher__btn" id="accSwitcherBtn">
-        <span class="avatar" id="accAvatar">—</span>
-        <span class="meta"><strong id="accName">—</strong><span id="accSub">—</span></span>
-        <span class="chev">▾</span>
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
       </button>
-      <div class="acc-menu" id="accMenu">
-        <div id="accMenuList"></div>
-        <div class="acc-menu__divider"></div>
-        <button class="acc-menu__item acc-menu__add" id="accAddBtn"><span>＋</span> Ajouter un compte</button>
+    </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
       </div>
-    </div>
-    <span class="example-badge">Exemple — données de démonstration</span>
-  </div>
+    </header>
 
-  <div class="results-card">
-    <div class="results-card__head">
-      <div>
-        <h2>Current Results</h2>
-        <div class="sync-line" id="accSync">Dernière synchro il y a 2 min · pont local <code>export_mt5.py</code></div>
-      </div>
-    </div>
-    <div class="results-grid">
-      <div><span>Balance</span><strong id="resBalance">—</strong></div>
-      <div><span>Equity</span><strong id="resEquity">—</strong></div>
-      <div><span>Unrealized PnL</span><strong id="resPnl">—</strong></div>
-      <div><span>Profit du jour</span><strong id="resToday">—</strong></div>
-    </div>
-  </div>
-
-  <div class="eyebrow">Période</div>
-  <div class="pill-group" id="periodPills" style="margin-bottom:24px">
-    <button data-period="day">Jour</button>
-    <button data-period="week">Semaine</button>
-    <button data-period="month" class="is-active">Mois</button>
-    <button data-period="all">Tout</button>
-  </div>
-
-  <div class="kpi-grid">
-    <div class="kpi-card kpi-card--green">
-      <div class="kpi-card__label">Profit</div>
-      <div class="kpi-card__value" id="kpiProfit">—</div>
-      <div class="kpi-card__sub" id="kpiProfitSub">—</div>
-    </div>
-    <div class="kpi-card kpi-card--blue">
-      <div class="kpi-card__label">R:R moyen</div>
-      <div class="kpi-card__value" id="kpiRR">—</div>
-      <div class="kpi-card__sub">reward ÷ risk</div>
-    </div>
-    <div class="kpi-card kpi-card--acc">
-      <div class="kpi-card__label">Winrate</div>
-      <div class="kpi-card__value" id="kpiWinrate">—</div>
-      <div class="kpi-card__sub" id="kpiWinrateSub">—</div>
-    </div>
-    <div class="kpi-card kpi-card--red">
-      <div class="kpi-card__label">Max Drawdown</div>
-      <div class="kpi-card__value" id="kpiDD">—</div>
-      <div class="kpi-card__sub" id="kpiDDSub">—</div>
-    </div>
-  </div>
-
-  <div class="card chart-card">
-    <div class="chart-card__head">
-      <span class="eyebrow" style="margin:0">Courbe d'equity</span>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="unit-toggle" id="unitToggle">
-          <button data-unit="dollar" class="is-active">$</button>
-          <button data-unit="percent">%</button>
+    <main>
+  <section class="chest-spot" id="heroSpot">
+    <div class="chest-spot__layer" id="heroGlow"></div>
+    <div style="padding:36px 30px 26px;display:flex;align-items:flex-start;justify-content:space-between;gap:40px;flex-wrap:wrap">
+      <div style="min-width:0">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+          <span class="chest-step">01 — Compte actif</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--chest-ink-3)"><span id="accKindTitle">Compte propre</span><span class="acc-sync-error" id="accSyncError" hidden>⚠</span></span>
+          <span class="example-badge" id="accExampleBadge">Exemple — données de démonstration</span>
         </div>
-        <span class="example-badge">Exemple</span>
+        <div class="acc-switcher" id="accSwitcher">
+          <button class="acc-switcher__btn" id="accSwitcherBtn">
+            <span class="avatar" id="accAvatar">—</span>
+            <span class="meta"><strong id="accName">—</strong><span id="accSub">—</span></span>
+            <span class="chev">▾</span>
+          </button>
+          <div class="acc-menu" id="accMenu">
+            <div id="accMenuList"></div>
+            <div class="acc-menu__divider"></div>
+            <button class="acc-menu__item acc-menu__add" id="familyAddBtn"><span>＋</span> Nouvelle famille de comptes</button>
+          </div>
+        </div>
+        <div style="margin-top:22px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+          <span class="chest-hero-num chest-grad-text" id="kpiProfit">—</span>
+          <span style="font-size:12.5px;color:var(--chest-ink-2);padding-bottom:8px" id="kpiProfitSub">—</span>
+        </div>
+        <div style="margin-top:14px;font-size:13px;color:var(--chest-ink-2)">Equity <b id="resEquity" style="color:var(--chest-ink);font-variant-numeric:tabular-nums">—</b></div>
+      </div>
+      <div style="width:200px;flex-shrink:0;display:flex;flex-direction:column">
+        <div style="padding:10px 0;border-bottom:1px solid var(--chest-rule)"><div class="chest-label" style="margin-bottom:4px">Balance</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums" id="resBalance">—</div></div>
+        <div style="padding:10px 0;border-bottom:1px solid var(--chest-rule)"><div class="chest-label" style="margin-bottom:4px">PnL non réalisé</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums" id="resPnl">—</div></div>
+        <div style="padding:10px 0"><div class="chest-label" style="margin-bottom:4px">Profit du jour</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums" id="resToday">—</div></div>
       </div>
     </div>
-    <div style="position:relative;width:100%;height:320px">
-      <canvas id="equityChart"></canvas>
+
+    <div class="chest-kpis" style="padding:6px 30px 34px">
+      <div><div class="chest-label" style="margin-bottom:8px">Profit</div><div class="chest-kpi__val" id="kpiProfitDollar">—</div><div class="chest-kpi__note" id="kpiProfitDollarSub">—</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">R:R moyen</div><div class="chest-kpi__val" id="kpiRR">—</div><div class="chest-kpi__note">reward ÷ risk</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Winrate</div><div class="chest-kpi__val" id="kpiWinrate">—</div><div class="chest-kpi__note" id="kpiWinrateSub">—</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Max Drawdown</div><div class="chest-kpi__val" id="kpiDD">—</div><div class="chest-kpi__note" id="kpiDDSub">—</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Jours tradés</div><div class="chest-kpi__val" id="kpiTradedDays">—</div><div class="chest-kpi__note" id="kpiTradedDaysSub">—</div></div>
+    </div>
+  </section>
+
+  <div class="chest-section" id="payoutBar" hidden style="padding-top:20px;padding-bottom:20px">
+    <div class="payout-bar__head">
+      <div class="payout-bar__info"><span class="chest-label">Payouts reçus</span><strong id="payoutTotal" style="font-size:17px">$0</strong></div>
+      <div class="payout-bar__actions">
+        <div class="chest-seg" id="payoutViewToggle">
+          <button type="button" data-view="real" class="is-active">👁 Réel</button>
+          <button type="button" data-view="sim">🧮 Simulé</button>
+        </div>
+        <button type="button" class="icon-btn" id="payoutSettingsBtn" title="Paramètres de simulation des retraits" hidden>⚙️</button>
+        <button type="button" class="icon-btn payout-bar__collapse" id="payoutListToggle" title="Afficher/masquer le détail" aria-label="Afficher/masquer le détail des payouts"><span class="chev">▾</span></button>
+      </div>
+    </div>
+    <div class="payout-bar__list" id="payoutList" hidden></div>
+    <button type="button" class="chest-btn-2" id="payoutAddBtn" style="padding:7px 14px;font-size:12.5px;margin-top:10px">+ Ajouter un payout</button>
+  </div>
+
+  <section class="chest-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
+        <span class="chest-step">02 — Courbe d'equity</span>
+        <span style="display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--chest-ink-2)"><span style="width:14px;height:2px;border-radius:2px;background:linear-gradient(90deg,#33e6a6,#ff4d5e);display:inline-block"></span>Réel — vert au-dessus de 0, rouge en dessous</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="chest-seg" id="periodPills">
+          <button data-period="day">Jour</button>
+          <button data-period="week">Semaine</button>
+          <button data-period="month" class="is-active">Mois</button>
+          <button data-period="all">Année</button>
+          <button data-period="full">Tout</button>
+        </div>
+        <div class="chest-seg" id="btVisibilityToggle" title="Masque entièrement le backtest de départ (courbe, calendrier, RR/winrate) — ne garde que tes vraies positions.">
+          <button type="button" data-bt="on" class="is-active">+ Backtest</button>
+          <button type="button" data-bt="off">Réel seul</button>
+        </div>
+        <div class="chest-seg" id="unitToggle">
+          <button data-unit="dollar">$</button>
+          <button data-unit="percent" class="is-active">%</button>
+        </div>
+        <span class="example-badge" id="chartExampleBadge">Exemple</span>
+      </div>
+    </div>
+    <div class="chest-glass" style="padding:22px 24px 16px">
+      <div style="position:relative;width:100%;height:296px">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="chest-section chest-split" style="padding:0">
+    <div style="padding:30px 34px 30px;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span class="chest-step">03 — Objectifs du challenge</span>
+        <button type="button" class="icon-btn" id="editObjectivesBtn" title="Régler les conditions du propfirm" style="width:26px;height:26px">⚙️</button>
+      </div>
+      <div class="objectives" id="objectivesList"></div>
+    </div>
+    <div style="background:var(--chest-rule)"></div>
+    <div style="padding:30px 34px 30px;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px">
+        <span class="chest-step">Performance par jour</span>
+        <button type="button" class="icon-btn" id="miniCalSettingsBtn" title="Période affichée" hidden style="width:26px;height:26px">⚙️</button>
+      </div>
+      <div class="mini-cal__totals" id="calWeeks"></div>
+      <div class="mini-cal__head">
+        <div class="day-nav">
+          <button type="button" id="calPrev" class="day-nav__btn" aria-label="Fenêtre précédente">◀</button>
+          <button type="button" id="calToday" class="day-nav__today is-active">Aujourd'hui</button>
+          <button type="button" id="calNext" class="day-nav__btn" aria-label="Fenêtre suivante" disabled>▶</button>
+        </div>
+        <span class="mini-cal__range" id="calRange"></span>
+      </div>
+      <div class="mini-cal__grid" id="miniCalGrid"></div>
+    </div>
+  </section>
+
+  <!-- Periode du calendrier de performance (14j ou mois complet) - reserve
+       aux comptes propres, retour direct utilisateur du 2026-09-17. -->
+  <div class="connmodal-overlay" id="miniCalSettingsModal">
+    <div class="connmodal-modal" style="max-width:380px">
+      <button type="button" class="connmodal-close" id="miniCalSettingsClose" aria-label="Fermer">✕</button>
+      <h2>Période affichée</h2>
+      <p class="hint">Choisis la fenêtre du calendrier de performance ci-dessous.</p>
+      <div class="chest-seg" id="miniCalRangeToggle" style="width:100%">
+        <button type="button" data-days="14">14 jours</button>
+        <button type="button" data-days="28">Mois complet (4 semaines)</button>
+      </div>
     </div>
   </div>
 
-  <button class="more-toggle" id="moreToggle">Objectifs &amp; calendrier de performance <span class="chev">▾</span></button>
-  <div class="more-panel" id="morePanel">
-    <div class="more-panel__inner">
-      <div class="card" style="padding:20px 22px">
-        <div class="eyebrow">Trading Objectives</div>
-        <div class="objectives" id="objectivesList"></div>
-      </div>
-      <div class="card" style="padding:20px 22px">
-        <div class="mini-cal__head"><span>14 derniers jours</span><span id="calTotal">—</span></div>
-        <div class="mini-cal__grid" id="miniCalGrid"></div>
+  <section class="chest-section">
+    <button class="chest-btn-2" id="toolsToggle" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:14px">
+      <span class="chest-step">04 — Outils</span>
+      <span style="font-size:11.5px;color:var(--chest-ink-3)">Sessions · force des devises <span class="chev">▾</span></span>
+    </button>
+    <div class="more-panel" id="toolsPanel">
+      <div class="more-panel__inner">
+        <div class="chest-glass--mini" style="padding:0;overflow:hidden">
+          <div id="sessionTimeline"><p class="hint" style="margin:20px 22px">Chargement…</p></div>
+        </div>
+        <div class="chest-glass--mini" style="padding:20px 22px">
+          <div class="chest-step" style="margin-bottom:14px">Force des devises</div>
+          <div id="currencyStrength"><p class="hint">Chargement…</p></div>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="eyebrow" style="margin-top:28px">Marché crypto — top 100</div>
-  <div class="card" style="padding:22px 24px">
-    <div class="mover-cols">
-      <div>
-        <div class="mover-col__label">Meilleure performance (24h)</div>
-        <div id="moversTop"><div class="mover-row">Chargement…</div></div>
-      </div>
-      <div>
-        <div class="mover-col__label">Moins bonne performance (24h)</div>
-        <div id="moversBottom"><div class="mover-row">Chargement…</div></div>
-      </div>
-    </div>
-    <p class="hint" style="margin:16px 0 0">Parmi les 100 plus grandes capitalisations (hors stablecoins) — données CoinGecko en direct, indépendant de tes comptes.</p>
-  </div>
 </main>
+</div>
+</div>
+
+<!-- Assistant "Ajouter un compte" — Myfxbook uniquement (retour direct
+     utilisateur du 2026-09-15 : plus simple, aucun logiciel a laisser ouvert,
+     contrairement au MT5 local retire). Specifique a CHAQUE compte du
+     Dashboard, contrairement au wizard broker de Stratégies/BERICH (une seule
+     connexion partagee pour tout le site). Une fois le compte Myfxbook
+     choisi, une derniere etape precise le broker/propfirm + les objectifs du
+     challenge (jours min, pertes max, profit cible) - Myfxbook ne connait pas
+     ces regles, seul l'utilisateur les connait. -->
+<div class="connmodal-overlay" id="addAccountModal">
+  <div class="connmodal-modal">
+    <button type="button" class="connmodal-close" id="addAccountClose" aria-label="Fermer">✕</button>
+    <h2>🔗 Connecter un compte (Myfxbook)</h2>
+
+    <div id="mfxStepIntro">
+      <div class="method-steps">
+        <h3>Une seule fois, sur myfxbook.com</h3>
+        <ol>
+          <li>Crée un compte gratuit sur <a href="https://www.myfxbook.com" target="_blank" rel="noopener">myfxbook.com</a> si tu n'en as pas déjà un.</li>
+          <li>Portfolio → Add Account → choisis ton broker/serveur MT4-MT5, ton numéro de compte, et ton <b>mot de passe investisseur</b> (lecture seule — jamais ton vrai mot de passe de trading).</li>
+          <li>Choisis l'option <b>"Auto Update"</b> (gratuite) — synchro ~toutes les 24h, aucun logiciel à laisser ouvert.</li>
+        </ol>
+      </div>
+      <div class="form-stack" style="margin-top:18px" id="mfxLoginForm">
+        <div>
+          <label for="mfxEmail">Email Myfxbook</label>
+          <input id="mfxEmail" class="field" type="email" autocomplete="off">
+        </div>
+        <div>
+          <label for="mfxPassword">Mot de passe Myfxbook</label>
+          <input id="mfxPassword" class="field" type="password" autocomplete="off">
+        </div>
+        <p class="hint" id="mfxLoginError" style="color:var(--red);display:none"></p>
+      </div>
+      <div id="mfxAccountsPicker" hidden style="margin-top:18px">
+        <label>Quel compte relié à ton profil Myfxbook ?</label>
+        <div id="mfxAccountsList" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div class="wizard-actions" style="margin-top:18px">
+        <button type="button" class="btn btn-primary" id="mfxConnectBtn">Se connecter</button>
+      </div>
+    </div>
+
+    <div id="mfxDetailsStep" hidden>
+      <p class="hint">Myfxbook ne connaît pas les règles de ton challenge — précise-les ici pour que "Trading Objectives" reflète vraiment ton propfirm.</p>
+      <div class="form-stack">
+        <div>
+          <label>Broker ou propfirm</label>
+          <div class="broker-grid-sm" id="addAccountBrokerGrid"></div>
+          <input id="addAccountBrokerOther" class="field" type="text" placeholder="Nom du broker/propfirm" style="margin-top:8px;display:none">
+        </div>
+      </div>
+      <div class="form-stack" id="accountKindBlock" style="margin-top:16px" hidden>
+        <label style="margin-bottom:-6px">Type de compte</label>
+        <div class="pill-group" id="accountKindToggle">
+          <button type="button" data-kind="own" class="is-active">Compte propre</button>
+          <button type="button" data-kind="propfirm">Propfirm</button>
+        </div>
+      </div>
+      <div id="objectivesStepBlock" hidden>
+        <div class="form-stack" id="addAccountPhaseBlock" style="margin-top:16px" hidden>
+          <label style="margin-bottom:-6px">Phase actuelle du challenge</label>
+          <div class="pill-group" id="addAccountPhaseToggle">
+            <button type="button" data-phase="phase1">Phase 1</button>
+            <button type="button" data-phase="phase2">Phase 2</button>
+            <button type="button" data-phase="funded">Financé</button>
+          </div>
+          <p class="hint" id="addAccountRulesNote" style="margin:8px 0 0"></p>
+        </div>
+        <div class="form-stack" style="margin-top:16px">
+          <label style="margin-bottom:-6px">Objectifs du challenge (laisser vide si non applicable)</label>
+          <div class="method-grid">
+            <div><label for="objMinDays">Jours de trading minimum</label><input id="objMinDays" class="field" type="number" min="0" step="1" placeholder="ex. 5"></div>
+            <div><label for="objProfitTarget">Objectif de profit (%)</label><input id="objProfitTarget" class="field" type="number" min="0" step="0.1" placeholder="ex. 10"></div>
+            <div><label for="objMaxDailyLoss">Perte journalière max (%)</label><input id="objMaxDailyLoss" class="field" type="number" min="0" step="0.1" placeholder="ex. 4"></div>
+            <div><label for="objMaxLoss">Perte totale max (%)</label><input id="objMaxLoss" class="field" type="number" min="0" step="0.1" placeholder="ex. 8"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-stack" style="margin-top:16px">
+        <label for="addAccountBacktest">Backtesting de départ (optionnel)</label>
+        <select id="addAccountBacktest" class="field">
+          <option value="">Aucun — nouveau compte, pas d'historique</option>
+        </select>
+        <p class="hint" style="margin:6px 0 0">Le backtest choisi représente le passé de la stratégie sur ce compte — son historique simulé s'affiche avant tes vraies positions dans l'onglet "Tout" du Dashboard, qui continuent directement à la suite.</p>
+      </div>
+      <div class="wizard-actions" style="margin-top:18px">
+        <button type="button" class="btn btn-ghost" id="mfxDetailsBack">← Retour</button>
+        <button type="button" class="btn btn-primary" id="addAccountFinish">Ajouter le compte</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ajouter un payout — montant recu d'une propfirm, purement informatif
+     (n'affecte pas le solde/equity synchronises via Myfxbook), demande
+     explicite du 2026-09-15. -->
+<div class="connmodal-overlay" id="payoutModal">
+  <div class="connmodal-modal" style="max-width:400px">
+    <button type="button" class="connmodal-close" id="payoutModalClose" aria-label="Fermer">✕</button>
+    <h2>Ajouter un payout</h2>
+    <p class="hint">Montant reçu de ta propfirm — purement informatif, n'affecte pas le solde synchronisé via Myfxbook.</p>
+    <div class="form-stack">
+      <div>
+        <label for="payoutAmount">Montant ($)</label>
+        <input id="payoutAmount" class="field" type="number" min="0" step="0.01" placeholder="ex. 850">
+      </div>
+      <div>
+        <label for="payoutDate">Date</label>
+        <input id="payoutDate" class="field" type="date">
+      </div>
+    </div>
+    <div class="wizard-actions" style="margin-top:18px">
+      <button type="button" class="btn btn-primary" id="payoutSaveBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modifier les objectifs d'un compte deja cree - reprend le meme principe
+     que l'etape "objectifs" de l'assistant d'ajout (phases prereplies si le
+     broker/propfirm est reconnu), mais accessible a tout moment depuis la
+     carte "Trading Objectives" du Dashboard : changer de phase (ou retirer
+     les objectifs) remet le suivi a zero a partir d'aujourd'hui, comme un
+     vrai changement de phase de challenge - demande explicite du 2026-09-16. -->
+<div class="connmodal-overlay" id="editObjectivesModal">
+  <div class="connmodal-modal" style="max-width:460px">
+    <button type="button" class="connmodal-close" id="editObjectivesClose" aria-label="Fermer">✕</button>
+    <h2 id="editObjectivesTitle">Objectifs du challenge</h2>
+    <p class="hint" id="editObjectivesHint">Choisis la phase actuelle du challenge pour préremplir ses règles.</p>
+    <div class="form-stack" id="editObjectivesPhaseBlock" hidden>
+      <div class="pill-group" id="editObjectivesPhase"></div>
+    </div>
+    <div class="form-stack" style="margin-top:16px">
+      <div class="method-grid">
+        <div><label for="editObjMinDays">Jours de trading minimum</label><input id="editObjMinDays" class="field" type="number" min="0" step="1" placeholder="ex. 5"></div>
+        <div><label for="editObjProfitTarget">Objectif de profit (%)</label><input id="editObjProfitTarget" class="field" type="number" min="0" step="0.1" placeholder="ex. 10"></div>
+        <div><label for="editObjMaxDailyLoss">Perte journalière max (%)</label><input id="editObjMaxDailyLoss" class="field" type="number" min="0" step="0.1" placeholder="ex. 4"></div>
+        <div><label for="editObjMaxLoss">Perte totale max (%)</label><input id="editObjMaxLoss" class="field" type="number" min="0" step="0.1" placeholder="ex. 8"></div>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:14px">Enregistrer (ou changer de phase) remet "Trading Objectives" à zéro à partir d'aujourd'hui — comme un vrai changement de phase ou un retrait.</p>
+    <div class="wizard-actions" style="margin-top:18px">
+      <button type="button" class="btn btn-ghost" id="editObjectivesClear">Retirer (compte propre)</button>
+      <button type="button" class="btn btn-primary" id="editObjectivesSave">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Simulation de retrait PF - conditions realistes de retrait appliquees
+     au backtest (14j minimum, +1% de profit minimum, retrait complet puis
+     reset a 100 000$ le lundi suivant) - retour direct utilisateur du
+     2026-09-17. Uniquement pertinent pour un compte propfirm. -->
+<div class="connmodal-overlay" id="payoutSettingsModal">
+  <div class="connmodal-modal" style="max-width:420px">
+    <button type="button" class="connmodal-close" id="payoutSettingsClose" aria-label="Fermer">✕</button>
+    <h2>Conditions de retrait simulées</h2>
+    <p class="hint">Simule un cycle de retrait propfirm réaliste sur l'historique (backtest + réel) : 14 jours minimum depuis le dernier retrait, +1% de profit minimum, retrait complet en fin de semaine puis reset à 100 000$ le lundi suivant.</p>
+    <div class="form-stack">
+      <div><label for="payoutSimPct">% du profit reversé au retrait</label><input id="payoutSimPct" class="field" type="number" min="1" max="100" step="1" value="80"></div>
+      <div><label for="payoutSimMin">Palier minimum de retrait ($, 0 = aucun)</label><input id="payoutSimMin" class="field" type="number" min="0" step="50" value="1000"></div>
+    </div>
+    <div class="wizard-actions" style="margin-top:18px">
+      <button type="button" class="btn btn-primary" id="payoutSimSave">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backtesting de depart d'une FAMILLE (accessible depuis la fleche du
+     switcher, a cote de "+ Ajouter un compte") - represente le passe de la
+     strategie pour toute la famille : son historique simule s'affiche avant
+     la somme reelle des comptes membres dans l'onglet "Tout", qui continue
+     directement a la suite. Demande explicite du 2026-09-15. -->
+<div class="connmodal-overlay" id="familyBacktestModal">
+  <div class="connmodal-modal" style="max-width:440px">
+    <button type="button" class="connmodal-close" id="familyBacktestClose" aria-label="Fermer">✕</button>
+    <h2>Backtesting de départ</h2>
+    <p class="hint">Représente le passé de la stratégie pour cette famille — son historique simulé s'affiche avant la somme réelle des comptes membres dans l'onglet "Tout" du Dashboard, qui continue directement à la suite.</p>
+    <div id="familyBacktestList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<!-- Nouvelle famille de comptes — remplace un window.prompt() natif, qui ne
+     fonctionne pas dans ce panneau d'apercu integre (constate en direct le
+     2026-09-15 : le bouton "Nouvelle famille" ne faisait rigoureusement rien
+     pour l'utilisateur, la boite de dialogue native etant bloquee/absente
+     silencieusement dans cet environnement). -->
+<div class="connmodal-overlay" id="newFamilyModal">
+  <div class="connmodal-modal" style="max-width:420px">
+    <button type="button" class="connmodal-close" id="newFamilyClose" aria-label="Fermer">✕</button>
+    <h2>Nouvelle famille de comptes</h2>
+    <p class="hint">Regroupe des comptes liés (ex. Phase 1 → Phase 2 → Financé d'un même challenge) pour voir leur progression additionnée sur le Dashboard.</p>
+    <div class="form-stack">
+      <div>
+        <label for="newFamilyName">Nom de la famille</label>
+        <input id="newFamilyName" class="field" type="text" placeholder="ex. Challenge FTMO 100k">
+      </div>
+    </div>
+    <div class="wizard-actions" style="margin-top:18px">
+      <button type="button" class="btn btn-primary" id="newFamilyCreateBtn">Créer la famille</button>
+    </div>
+  </div>
+</div>
 
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="js/nav.js"></script>
+<script src="js/nav.js?v=2"></script>
+<script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=3"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/crypto-movers.js"></script>
+<script src="js/berich-brokers.js"></script>
+<script src="js/berich-store.js"></script>
+<script src="js/myfxbook-store.js?v=3"></script>
+<script src="js/backtest-store.js"></script>
+<script src="js/backtest-engine.js"></script>
+<script src="js/dashboard.js?v=28"></script>
+<script src="js/session-timeline.js?v=5"></script>
+<script src="js/currency-strength.js"></script>
+<script src="js/page-tour.js"></script>
+<script>
+CHESTTour.init([
+  { selector: '#accSwitcher', title: 'Tes comptes', text: 'Bascule entre tes comptes, ou entre les familles (des comptes liés — ex. Phase 1 → Phase 2 → Financé — dont les résultats s\'additionnent). Survole la flèche d\'une famille pour lui ajouter un compte ou un backtesting de départ.' },
+  { selector: '.results-card', title: 'Current Results', text: 'Balance, equity, PnL non réalisé et profit du jour du compte actif — synchronisés via Myfxbook (ou le pont MT5 local).' },
+  { selector: '#periodPills', title: 'Période', text: 'Change la fenêtre affichée par les KPI et la courbe juste en dessous : jour, semaine, mois, ou depuis le début.' },
+  { selector: '.kpi-grid', title: 'Indicateurs clés', text: 'Profit, R:R moyen, winrate et drawdown max sur la période choisie.' },
+  { selector: '.chart-card', title: 'Courbe d\'equity', text: 'Si un backtesting de départ a été associé à ce compte ou à sa famille, son historique simulé apparaît ici avant tes vraies positions, qui continuent directement à la suite (onglet "Tout" uniquement).' },
+  { selector: '.objectives', title: 'Objectifs & calendrier', text: 'Les règles de ton challenge propfirm (si renseignées) et les 14 derniers jours de performance juste à côté.' },
+  { selector: '#toolsToggle', title: 'Outils', text: 'Timeline des sessions de trading (Sydney/Tokyo/Londres/New York) et force des devises en direct — repliés ici, un clic les déplie.' },
+]);
+</script>
 </body>
 </html>

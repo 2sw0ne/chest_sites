@@ -3,12 +3,15 @@
    ============================================================ */
 
 /* ---------- Brand mark (reused in topbar + sidebar) ---------- */
-.brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink); }
+.brand{ display:flex; align-items:center; gap:7px; text-decoration:none; color:var(--ink); }
 .brand__mark{
-  position:relative; width:26px; height:26px; flex-shrink:0;
+  position:relative; width:32px; height:32px; flex-shrink:0;
   background:url("../assets/logo-chest.png") center/contain no-repeat;
+  filter:
+    drop-shadow(0 0 7px rgba(252,18,131,.55))
+    drop-shadow(0 0 14px rgba(249,164,94,.35));
 }
-.brand span{ font-weight:700; letter-spacing:-.02em; font-size:15px; }
+.brand span{ font-weight:700; letter-spacing:-.02em; font-size:16.5px; }
 
 .icon-btn{
   display:flex; align-items:center; justify-content:center; width:38px; height:38px;
@@ -27,6 +30,17 @@
 }
 .topbar__left{ display:flex; align-items:center; gap:14px; }
 .topbar__actions{ display:flex; align-items:center; gap:10px; }
+/* Bulle profil (-> Compte) + bulle admin (-> Membres, reservee aux admins,
+   masquee par defaut via [hidden] comme l'etait le lien "Membres" de la
+   sidebar) - remplacent les liens "Compte"/"Membres" de la sidebar et les
+   icones soleil/cadenas du bas de sidebar, desormais consolidees ici et
+   dans les reglages de Compte (retour direct utilisateur du 2026-09-16). */
+.topbar__profile{ text-decoration:none; font-size:16px; }
+.topbar__admin{
+  text-decoration:none; font-size:14px; font-weight:800; color:#fff;
+  background:linear-gradient(135deg,var(--acc),var(--acc2)); border-color:transparent;
+}
+.topbar__admin:hover{ color:#fff; filter:brightness(1.08); }
 
 /* ---------- Sidebar (off-canvas drawer, opens on demand) ---------- */
 .sidebar-overlay{
@@ -52,8 +66,6 @@
 .sidebar__nav a .ic{ font-size:16px; width:20px; text-align:center; }
 .sidebar__nav a:hover{ background:var(--panel-2); color:var(--ink); }
 .sidebar__nav a.is-active{ background:var(--panel-2); color:var(--ink); box-shadow:inset 3px 0 0 var(--acc); }
-.sidebar__foot{ padding:14px 18px 18px; border-top:1px solid var(--line); display:flex; gap:10px; }
-.sidebar__foot .icon-btn{ flex:1; width:auto; }
 
 /* ---------- Page shell ---------- */
 .page-head{ padding:clamp(40px,7vh,64px) 0 clamp(24px,4vh,32px); }
@@ -86,10 +98,13 @@
   border:1px solid var(--line2); border-radius:24px; background:var(--panel);
   padding:36px 32px; text-align:center;
 }
-.gate__mark{ width:44px; height:44px; border-radius:14px; margin:0 auto 20px; position:relative;
-  background:linear-gradient(135deg,var(--acc),var(--acc2)); box-shadow:0 0 30px rgba(252,18,131,.5); }
-.gate__mark::before,.gate__mark::after{ content:''; position:absolute; left:11px; top:20px; width:22px; height:3px; border-radius:2px; background:#fff; transform:rotate(-38deg); }
-.gate__mark::after{ top:26px; background:rgba(255,255,255,.55); }
+.gate__mark{
+  width:56px; height:56px; margin:0 auto 20px;
+  background:url("../assets/logo-chest.png") center/contain no-repeat;
+  filter:
+    drop-shadow(0 0 10px rgba(252,18,131,.55))
+    drop-shadow(0 0 20px rgba(249,164,94,.35));
+}
 .gate__card h1{ font-size:20px; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; }
 .gate__card p{ font-size:13.5px; color:var(--muted); margin:0 0 26px; line-height:1.55; }
 .gate__code{

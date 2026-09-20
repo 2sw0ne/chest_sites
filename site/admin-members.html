@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gestion des membres — CHEST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=3">
+<link rel="stylesheet" href="css/chest-da.css?v=1">
+<style>
+  .member-row{
+    display:grid; grid-template-columns:42px minmax(0,1fr) auto auto; align-items:center; gap:16px;
+    padding:16px 0; border-bottom:1px solid var(--chest-rule);
+  }
+  .member-row:last-child{ border-bottom:none; }
+  .member-row__avatar{
+    width:42px; height:42px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,var(--chest-acc),var(--chest-acc-2)); color:#fff;
+    font-weight:700; font-size:15px;
+  }
+  .member-row__info{ min-width:0; }
+  .member-row__name{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; color:var(--chest-ink); }
+  .member-row__name .badge-admin{
+    font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--chest-acc); border:1px solid rgba(252,18,131,.45); background:rgba(252,18,131,.1);
+    padding:3px 8px; border-radius:999px;
+  }
+  .member-row__email{ font-size:12px; color:var(--chest-ink-2); margin-top:2px; }
+  .member-row__status{
+    font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    padding:4px 10px; border-radius:99px; flex-shrink:0; justify-self:end;
+  }
+  .member-row__status.pending{ background:rgba(232,179,57,.14); color:var(--chest-amber); }
+  .member-row__status.approved{ background:rgba(51,230,166,.14); color:var(--chest-green); }
+  .member-row__status.rejected{ background:rgba(255,77,94,.14); color:var(--chest-red); }
+  .member-row__status.blocked{ background:rgba(255,77,94,.14); color:var(--chest-red); }
+  .member-row__actions{ display:flex; gap:8px; flex-shrink:0; justify-self:end; }
+  .member-row__actions .btn{ padding:7px 14px; font-size:12.5px; }
+  .member-empty{ padding:40px 20px; text-align:center; color:var(--chest-ink-2); font-size:14px; }
+  .member-error{ padding:16px 0; color:var(--chest-red); font-size:13.5px; }
+  @media (max-width:700px){ .member-row{ grid-template-columns:42px minmax(0,1fr); row-gap:10px; } .member-row__status{ grid-column:2; justify-self:start; } .member-row__actions{ grid-column:1/-1; justify-self:start; } }
+</style>
+<script src="js/theme.js"></script>
+<script src="js/config.js"></script>
+<script src="js/config.local.js"></script>
+<script src="js/accounts-auth.js"></script>
+<script>CHESTAccounts.guard();</script>
+</head>
+<body data-page="admin-members" class="chest-root">
+
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <main>
+  <section class="chest-titleglow" style="padding:40px 34px 30px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap">
+    <div style="min-width:0">
+      <div class="chest-step" style="margin-bottom:16px">01 — Accès</div>
+      <h1 class="chest-h1" style="font-size:48px">Gestion des membres</h1>
+      <p class="chest-body" style="max-width:480px;margin-top:14px">Accepte ou refuse les demandes d'inscription — une fois accepté, un compte a accès à tous les outils.</p>
+    </div>
+    <div class="chest-kpis" id="memberCounts" style="flex-shrink:0;width:auto"></div>
+  </section>
+
+  <section class="chest-section" id="membersCard" style="border-top:1px solid var(--chest-rule)">
+    <div class="member-empty" id="membersLoading">Chargement…</div>
+  </section>
+</main>
+</div>
+</div>
+
+<script src="js/nav.js?v=2"></script>
+<script src="js/confirm-dialog.js"></script>
+<script src="js/page-tour.js"></script>
+<script>
+CHESTTour.init([
+  { selector: '#membersCard', title: 'Gestion des membres', text: 'Accepte, refuse ou bloque les inscriptions — tu reçois un email à chaque nouvelle demande si les notifications sont configurées.' },
+]);
+</script>
+<script>
+(() => {
+  const card = document.getElementById('membersCard');
+
+  function initials(m) {
+    return `${(m.firstName || '?')[0]}${(m.lastName || '?')[0]}`.toUpperCase();
+  }
+
+  function statusLabel(status) {
+    return { pending: 'En attente', approved: 'Approuvé', rejected: 'Refusé', blocked: 'Bloqué' }[status] || status;
+  }
+
+  function rowHtml(m) {
+    const actions = m.status === 'pending'
+      ? `<button class="btn btn-primary" data-approve="${m.id}">Accepter</button>
+         <button class="btn btn-ghost" data-reject="${m.id}">Refuser</button>`
+      : m.status === 'rejected' || m.status === 'blocked'
+        ? `<button class="btn btn-primary" data-approve="${m.id}">${m.status === 'blocked' ? 'Débloquer' : 'Accepter quand même'}</button>`
+        : `<button class="btn btn-ghost" data-block="${m.id}">Bloquer le compte</button>`;
+    return `
+      <div class="member-row" data-member-row="${m.id}">
+        <div class="member-row__avatar">${initials(m)}</div>
+        <div class="member-row__info">
+          <div class="member-row__name">${m.firstName} ${m.lastName}${m.isAdmin ? '<span class="badge-admin">Admin</span>' : ''}</div>
+          <div class="member-row__email">${m.email}</div>
+        </div>
+        <span class="member-row__status ${m.status}">${statusLabel(m.status)}</span>
+        <div class="member-row__actions">${actions}</div>
+      </div>`;
+  }
+
+  function renderCounts(members) {
+    const zone = document.getElementById('memberCounts');
+    const count = (st) => members.filter((m) => m.status === st).length;
+    zone.innerHTML = `
+      <div style="text-align:right"><div class="chest-label" style="margin-bottom:8px">En attente</div><div class="chest-kpi__val" style="color:var(--chest-amber);text-shadow:0 0 18px rgba(232,179,57,.3)">${count('pending')}</div></div>
+      <div style="text-align:right"><div class="chest-label" style="margin-bottom:8px">Actifs</div><div class="chest-kpi__val is-pos">${count('approved')}</div></div>
+      <div style="text-align:right"><div class="chest-label" style="margin-bottom:8px">Bloqués</div><div class="chest-kpi__val is-neg">${count('blocked')}</div></div>`;
+  }
+
+  async function render() {
+    if (!CHESTAccounts.isAdmin()) {
+      card.innerHTML = '<div class="member-error">Cette page est réservée aux administrateurs.</div>';
+      return;
+    }
+    try {
+      const members = await CHESTAccounts.fetchMembers();
+      renderCounts(members);
+      card.innerHTML = members.length
+        ? members.map(rowHtml).join('')
+        : '<div class="member-empty">Aucun membre pour l\'instant.</div>';
+    } catch (err) {
+      card.innerHTML = `<div class="member-error">Impossible de charger les membres : ${err.message}</div>`;
+    }
+  }
+
+  card.addEventListener('click', async (e) => {
+    const approveId = e.target.dataset.approve;
+    const rejectId = e.target.dataset.reject;
+    const blockId = e.target.dataset.block;
+    if (!approveId && !rejectId && !blockId) return;
+    if (blockId && !(await CHESTConfirm('Bloquer ce compte ? Son accès sera coupé immédiatement (déconnexion forcée) — tu pourras le réapprouver plus tard.'))) return;
+    e.target.disabled = true;
+    try {
+      if (approveId) await CHESTAccounts.approveMember(approveId);
+      if (rejectId) await CHESTAccounts.rejectMember(rejectId);
+      if (blockId) await CHESTAccounts.blockMember(blockId);
+      await render();
+    } catch (err) {
+      await CHESTAlert(err.message);
+      e.target.disabled = false;
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

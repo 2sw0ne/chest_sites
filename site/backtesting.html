@@ -7,124 +7,143 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=3">
+<link rel="stylesheet" href="css/chest-da.css?v=1">
 <style>
-  .bt-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
-  .bt-card{
-    position:relative; overflow:hidden; border-radius:22px; padding:2px; text-decoration:none; color:var(--ink);
-    background:linear-gradient(135deg,#e35728,#034854,#5470c2); transition:transform .25s var(--ease);
-  }
-  .bt-card:hover{ transform:translateY(-3px); }
-  .bt-card__inner{ border-radius:20px; background:var(--panel); padding:24px 22px; height:100%; }
-  .bt-card__tag{ font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; padding:5px 10px; border-radius:999px; background:rgba(252,18,131,.14); color:var(--acc); border:1px solid rgba(252,18,131,.35); }
-  .bt-card__title{ font-size:20px; font-weight:700; letter-spacing:-.02em; margin:16px 0 6px; }
-  .bt-card__desc{ font-size:13px; color:var(--muted); line-height:1.6; margin:0 0 16px; }
-  .bt-card__meta{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--faint); border-top:1px solid var(--line); padding-top:14px; }
-  .bt-card__meta b{ color:var(--ink); }
+  [hidden]{ display:none !important; }
+  .bt-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+  @media (max-width:1000px){ .bt-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:640px){ .bt-grid{ grid-template-columns:1fr; } }
 
-  .bt-card--custom{ display:block; overflow:visible; }
+  .bt-card{ position:relative; cursor:pointer; }
   .bt-card__hit{ position:absolute; inset:0; z-index:1; border-radius:inherit; }
-  .bt-card__top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
-  .bt-card__menu{ position:relative; z-index:2; flex-shrink:0; }
+  .bt-card__top{ position:relative; z-index:2; padding:20px 20px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; pointer-events:none; }
+  .bt-card__title{ font-size:19px; font-weight:700; letter-spacing:-.025em; }
+  .bt-card__menu{ position:relative; z-index:3; flex-shrink:0; pointer-events:auto; }
   .bt-card__menu-btn{
-    width:28px; height:28px; border-radius:50%; border:1px solid var(--line2); background:var(--bg);
-    color:var(--muted); font-size:15px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04);
+    color:var(--chest-ink-2); font-size:13px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:color .18s, border-color .18s;
   }
-  .bt-card__menu-btn:hover{ color:var(--ink); border-color:var(--muted); }
+  .bt-card__menu-btn:hover{ color:var(--chest-ink); border-color:rgba(255,255,255,.3); }
   .bt-card__menu-list{
-    position:absolute; top:34px; right:0; min-width:150px; background:var(--panel); border:1px solid var(--line2);
-    border-radius:12px; box-shadow:0 14px 34px rgba(0,0,0,.18); overflow:hidden; padding:5px;
+    position:absolute; top:32px; right:0; min-width:150px; background:rgba(14,14,16,.97); border:1px solid var(--chest-border);
+    border-radius:12px; box-shadow:0 14px 34px rgba(0,0,0,.4); overflow:hidden; padding:5px; z-index:4;
   }
   .bt-card__menu-list a, .bt-card__menu-list button{
     display:block; width:100%; text-align:left; padding:9px 11px; border-radius:8px; border:none; background:transparent;
-    color:var(--ink); font-size:13px; font-family:inherit; text-decoration:none; cursor:pointer;
+    color:var(--chest-ink); font-size:13px; font-family:inherit; text-decoration:none; cursor:pointer;
   }
-  .bt-card__menu-list a:hover, .bt-card__menu-list button:hover{ background:var(--bg); }
-  .bt-card__menu-list .danger{ color:var(--red); }
-
-  .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; margin-bottom:16px; }
-  .back-link:hover{ color:var(--ink); }
+  .bt-card__menu-list a:hover, .bt-card__menu-list button:hover{ background:rgba(255,255,255,.06); }
+  .bt-card__menu-list .danger{ color:var(--chest-red); }
+  .bt-card__desc{ position:relative; z-index:2; margin:6px 0 0; padding:0 20px; font-size:12.5px; line-height:1.55; color:var(--chest-ink-2); pointer-events:none; }
+  .bt-card__spark{ position:relative; height:86px; margin:16px 0 0; pointer-events:none; }
+  .bt-card__meta{
+    position:relative; z-index:2; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:14px 20px 18px; border-top:1px solid var(--chest-rule); font-size:11.5px; color:var(--chest-ink-3);
+    font-variant-numeric:tabular-nums; pointer-events:none;
+  }
+  .bt-card__meta b{ color:var(--chest-ink); }
+  .bt-card__add{
+    display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:10px;
+    min-height:250px; padding:24px; border:1px dashed rgba(255,255,255,.18); border-radius:18px; text-decoration:none;
+    color:inherit; transition:border-color .2s, background .2s;
+  }
+  .bt-card__add:hover{ border-color:rgba(249,164,94,.5); background:linear-gradient(135deg,rgba(252,18,131,.07),rgba(249,164,94,.05)); }
+  .bt-card__add-icon{ width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:17px; color:var(--chest-ink-2); }
+  .bt-card__add-title{ font-size:15px; font-weight:700; color:var(--chest-ink); }
+  .bt-card__add-desc{ font-size:12px; color:var(--chest-ink-3); line-height:1.5; max-width:210px; }
 </style>
 <script src="js/theme.js"></script>
+<script src="js/config.js"></script>
+<script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
-<script>CHESTAuth.guard();</script>
+<script src="js/accounts-auth.js"></script>
+<script>CHESTAccounts.guard();</script>
 </head>
-<body data-page="backtesting">
+<body data-page="backtesting" class="chest-root">
 
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
-  </div>
-  <nav class="sidebar__nav">
-    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
-    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
-    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
-    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
-    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
-    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
-    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
-  </nav>
-  <div class="sidebar__foot">
-    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
-    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
-  </div>
-</aside>
-
-<header class="topbar">
-  <div class="topbar__left">
-    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-  </div>
-</header>
-
-<main class="container">
-  <a href="dashboard.html" class="back-link">← Dashboard</a>
-  <div class="page-head" style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
-    <div>
-      <h1>Backtesting</h1>
-      <p>Choisis l'algorithme à explorer. La liste s'agrandit à mesure que de nouveaux backtests sont ajoutés.</p>
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
+      </button>
     </div>
-    <a href="backtest-add.html" class="btn btn-primary" style="white-space:nowrap">+ Nouveau backtesting</a>
-  </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
 
-  <div class="bt-grid">
-    <a href="backtesting-swyper.html" class="bt-card">
-      <div class="bt-card__inner">
-        <span class="bt-card__tag">Actif</span>
-        <div class="bt-card__title">SWYPER</div>
-        <p class="bt-card__desc">V2 de l'algorithme — TP/SL dynamiques établis à partir de la structure du marché au moment de l'entrée, sur les signaux Wolfx, Putrajaya et Legacy.</p>
-        <div class="bt-card__meta">
-          <span><b>871</b> positions</span>
-          <span><b>$10 000</b> capital initial</span>
-          <span><b>Jan 2025 →</b> aujourd'hui</span>
-        </div>
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
       </div>
-    </a>
+    </header>
 
-    <a href="backtesting-allin.html" class="bt-card">
-      <div class="bt-card__inner">
-        <span class="bt-card__tag">Actif</span>
-        <div class="bt-card__title">ALLIN</div>
-        <p class="bt-card__desc">V1 de l'algorithme, en production depuis le 23/10/2025 — niveaux de TP/SL fixes, base sur laquelle SWYPER a été construit.</p>
-        <div class="bt-card__meta">
-          <span><b>843</b> positions</span>
-          <span><b>$10 000</b> capital initial</span>
-          <span><b>Jan 2025 →</b> aujourd'hui</span>
-        </div>
+    <main>
+  <section class="chest-titleglow" style="padding:40px 34px 0">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:40px;flex-wrap:wrap">
+      <div style="min-width:0">
+        <div class="chest-step" style="margin-bottom:16px">01 — Bibliothèque</div>
+        <h1 class="chest-h1" style="font-size:56px">Backtesting</h1>
+        <p class="chest-body" style="max-width:520px;margin-top:14px">Choisis l'algorithme à explorer. La liste s'agrandit à mesure que de nouveaux backtests sont ajoutés.</p>
       </div>
-    </a>
+      <a href="backtest-add.html" class="chest-btn" style="white-space:nowrap;text-decoration:none">+ Nouveau backtesting</a>
+    </div>
+  </section>
 
-    <div id="customBacktests"></div>
-  </div>
+  <section class="chest-kpis" id="btKpis" style="padding:26px 34px 34px"></section>
+
+  <section class="chest-section" style="border-top:1px solid var(--chest-rule)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px">
+      <span class="chest-step">02 — Algorithmes</span>
+      <span style="font-size:11.5px;color:var(--chest-ink-3)">Trié par date d'import</span>
+    </div>
+    <div class="bt-grid">
+      <div id="customBacktests"></div>
+      <a href="backtest-add.html" class="bt-card__add">
+        <span class="bt-card__add-icon">+</span>
+        <div class="bt-card__add-title">Ajouter un backtest</div>
+        <div class="bt-card__add-desc">Importe un fichier Excel de positions, CHEST calcule le reste.</div>
+      </a>
+    </div>
+  </section>
 </main>
+</div>
+</div>
 
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
-<script src="js/nav.js"></script>
-<script src="js/lot-calculator.js?v=3"></script>
+<script src="js/nav.js?v=2"></script>
+<script src="js/confirm-dialog.js"></script>
 <script src="js/backtest-store.js"></script>
+<script src="js/backtest-engine.js"></script>
 <script>
 (() => {
   'use strict';
@@ -142,33 +161,113 @@
   }
   document.addEventListener('click', closeAllMenus);
 
+  // ---------- Aperçu d'équity (courbe verte au-dessus du capital de départ,
+  // rouge en dessous - même langage visuel que le Dashboard, à l'échelle
+  // d'une mini-carte) - calculé sur la config "compte propre" du backtest. ----------
+  function buildSpark(values) {
+    const w = 400, h = 86;
+    const start = values[0];
+    const min = Math.min(...values, start), max = Math.max(...values, start);
+    const range = (max - min) || 1;
+    const n = values.length;
+    const x = (i) => (n > 1 ? (i / (n - 1)) * w : 0);
+    const y = (v) => h - ((v - min) / range) * h;
+    const line = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const area = `${line} L${w},${h} L0,${h} Z`;
+    let zeroT = Math.max(0.04, Math.min(0.96, y(start) / h));
+    return { line, area, zeroT, allAbove: min >= start, allBelow: max <= start };
+  }
+  function sparkStops(spark) {
+    if (spark.allAbove) return {
+      lineStops: '<stop offset="0" stop-color="#6ef2c9"/><stop offset="1" stop-color="#33e6a6"/>',
+      areaStops: '<stop offset="0" stop-color="#33e6a6" stop-opacity=".45"/><stop offset="1" stop-color="#33e6a6" stop-opacity="0"/>',
+    };
+    if (spark.allBelow) return {
+      lineStops: '<stop offset="0" stop-color="#ff4d5e"/><stop offset="1" stop-color="#ff4d5e"/>',
+      areaStops: '<stop offset="0" stop-color="#ff4d5e" stop-opacity="0"/><stop offset="1" stop-color="#ff4d5e" stop-opacity=".4"/>',
+    };
+    const t = spark.zeroT.toFixed(3);
+    return {
+      lineStops: `<stop offset="0" stop-color="#6ef2c9"/><stop offset="${t}" stop-color="#33e6a6"/><stop offset="${t}" stop-color="#dcdce0"/><stop offset="1" stop-color="#ff4d5e"/>`,
+      areaStops: `<stop offset="0" stop-color="#33e6a6" stop-opacity=".45"/><stop offset="${t}" stop-color="#33e6a6" stop-opacity="0"/><stop offset="${t}" stop-color="#ff4d5e" stop-opacity="0"/><stop offset="1" stop-color="#ff4d5e" stop-opacity=".4"/>`,
+    };
+  }
+  function reportFor(b) {
+    const cfg = (b.cp && b.cp.mode) ? b.cp : { risk: 1, tiers: [] };
+    return CHESTBacktestEngine.computeReport(b.trades || [], b.capital, cfg);
+  }
+
+  function renderKpis(items) {
+    const zone = document.getElementById('btKpis');
+    // Bandeau TOUJOURS visible (memes 4 cases qu'avec des backtests reels),
+    // a zero/tiret quand la bibliotheque est vide - jamais remplace par un
+    // message qui ferait disparaitre la structure de la maquette.
+    if (!items.length) {
+      zone.innerHTML = `
+        <div><div class="chest-label" style="margin-bottom:8px">Backtests</div><div class="chest-kpi__val">0</div><div class="chest-kpi__note">0 position au total</div></div>
+        <div><div class="chest-label" style="margin-bottom:8px">Positions simulées</div><div class="chest-kpi__val">0</div><div class="chest-kpi__note">tous algorithmes</div></div>
+        <div><div class="chest-label" style="margin-bottom:8px">Meilleur profit</div><div class="chest-kpi__val">—</div><div class="chest-kpi__note">aucun backtest pour l'instant</div></div>
+        <div><div class="chest-label" style="margin-bottom:8px">Dernier import</div><div class="chest-kpi__val">—</div><div class="chest-kpi__note">importe un fichier Excel</div></div>
+      `;
+      return;
+    }
+    const reports = items.map((b) => ({ b, report: reportFor(b) }));
+    const totalTrades = items.reduce((s, b) => s + (b.trades || []).length, 0);
+    const best = reports.reduce((a, x) => (x.report.stats.performancePct > a.report.stats.performancePct ? x : a), reports[0]);
+    const latest = [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const latestDate = latest && latest.createdAt ? new Date(latest.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—';
+    zone.innerHTML = `
+      <div><div class="chest-label" style="margin-bottom:8px">Backtests</div><div class="chest-kpi__val">${items.length}</div><div class="chest-kpi__note">${totalTrades} positions au total</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Positions simulées</div><div class="chest-kpi__val">${totalTrades.toLocaleString('fr-FR')}</div><div class="chest-kpi__note">tous algorithmes</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Meilleur profit</div><div class="chest-kpi__val ${best.report.stats.performancePct >= 0 ? 'is-pos' : 'is-neg'}">${best.report.stats.performancePct >= 0 ? '+' : ''}${best.report.stats.performancePct.toFixed(1)}%</div><div class="chest-kpi__note">${best.b.title}</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Dernier import</div><div class="chest-kpi__val">${latestDate}</div><div class="chest-kpi__note">${latest ? (latest.trades || []).length : 0} lignes</div></div>
+    `;
+  }
+
   function renderCards() {
     grid.querySelectorAll('.bt-card--custom').forEach((el) => el.remove());
     const items = window.CHESTBacktests.list();
+    renderKpis(items);
     const wrap = document.createElement('div');
-    wrap.innerHTML = items.map((b) => `
-      <div class="bt-card bt-card--custom">
+    wrap.innerHTML = items.map((b) => {
+      const report = reportFor(b);
+      const spark = buildSpark(report.curve.map((p) => p.capital));
+      const stops = sparkStops(spark);
+      const uid = String(b.id).replace(/[^a-zA-Z0-9]/g, '');
+      const pct = report.stats.performancePct;
+      return `
+      <div class="bt-card bt-card--custom chest-glass--mini">
         <a class="bt-card__hit" href="backtest-view.html?id=${encodeURIComponent(b.id)}" aria-label="Ouvrir ${b.title}"></a>
-        <div class="bt-card__inner">
-          <div class="bt-card__top">
-            <span class="bt-card__tag">Ajouté</span>
-            <div class="bt-card__menu">
-              <button type="button" class="bt-card__menu-btn" data-menu-toggle aria-label="Options du backtest">⋮</button>
-              <div class="bt-card__menu-list" data-menu-list hidden>
-                <a href="backtest-view.html?id=${encodeURIComponent(b.id)}">Voir le rapport</a>
-                <a href="backtest-add.html?edit=${encodeURIComponent(b.id)}">Modifier</a>
-                <button type="button" class="danger" data-delete-id="${b.id}">Supprimer</button>
-              </div>
+        <div class="bt-card__top">
+          <div class="bt-card__title">${b.title}</div>
+          <div class="bt-card__menu">
+            <button type="button" class="bt-card__menu-btn" data-menu-toggle aria-label="Options du backtest">⋮</button>
+            <div class="bt-card__menu-list" data-menu-list hidden>
+              <a href="backtest-view.html?id=${encodeURIComponent(b.id)}">Voir le rapport</a>
+              <a href="backtest-add.html?edit=${encodeURIComponent(b.id)}">Modifier</a>
+              <button type="button" class="danger" data-delete-id="${b.id}">Supprimer</button>
             </div>
           </div>
-          <div class="bt-card__title">${b.title}</div>
-          <p class="bt-card__desc">${b.description || 'Backtest ajouté depuis un fichier Excel personnel.'}</p>
-          <div class="bt-card__meta">
-            <span><b>${b.trades.length}</b> positions</span>
-            <span><b>$${Math.round(b.capital).toLocaleString('fr-FR')}</b> capital initial</span>
-          </div>
         </div>
-      </div>`).join('');
+        <p class="bt-card__desc">${b.description || 'Backtest ajouté depuis un fichier Excel personnel.'}</p>
+        <div class="bt-card__spark">
+          <svg viewBox="0 0 400 86" preserveAspectRatio="none" style="width:100%;height:86px;display:block;overflow:visible">
+            <defs>
+              <linearGradient id="line-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="86">${stops.lineStops}</linearGradient>
+              <linearGradient id="area-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="86">${stops.areaStops}</linearGradient>
+            </defs>
+            <line x1="0" y1="${(spark.zeroT * 86).toFixed(1)}" x2="400" y2="${(spark.zeroT * 86).toFixed(1)}" stroke="rgba(255,255,255,.16)" stroke-width="1"></line>
+            <path d="${spark.area}" fill="url(#area-${uid})"></path>
+            <path d="${spark.line}" fill="none" stroke="url(#line-${uid})" stroke-width="2.5" stroke-linecap="round" style="filter:drop-shadow(0 2px 8px rgba(51,230,166,.35))"></path>
+          </svg>
+        </div>
+        <div class="bt-card__meta">
+          <span><b style="color:${pct >= 0 ? '#33e6a6' : '#ff4d5e'}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</b> profit</span>
+          <span><b>${(b.trades || []).length}</b> positions</span>
+          <span><b>$${Math.round(b.capital).toLocaleString('fr-FR')}</b> capital</span>
+        </div>
+      </div>`;
+    }).join('');
     const frag = document.createDocumentFragment();
     while (wrap.firstChild) frag.appendChild(wrap.firstChild);
     grid.insertBefore(frag, anchor);
@@ -184,10 +283,10 @@
       });
     });
     grid.querySelectorAll('.bt-card--custom [data-delete-id]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (confirm('Supprimer définitivement ce backtest ?')) {
+        if (await CHESTConfirm('Supprimer définitivement ce backtest ?')) {
           window.CHESTBacktests.remove(btn.dataset.deleteId);
           renderCards();
         }

@@ -19,6 +19,7 @@
   const SYMBOL_DISPLAY = 'XAUUSD';
   const BASE_INTERVAL = '5'; // 5min — la MA500 tourne alors sur "15" (M15), cf. tfHTF dans le script
   const TWELVEDATA_INTERVAL = '5min';
+  const VELA_TIMEFRAME = '5m'; // format attendu par l'option `timeframe` de Vela (ex. "5m") — different du code interne BASE_INTERVAL ('5' seul) ; meme bug/fix que scanner-chart.js (2026-09-14)
 
   const PINE_SOURCE = `//@version=5
 indicator("BE FR€E",
@@ -468,6 +469,15 @@ if barstate.islast and showJournal
     table.cell(jTbl, 1, 3, na(wr) ? "—" : str.tostring(wr, "#.#") + "%", bgcolor=bgC, text_color=na(wr) ? color.white : (wr >= 43 ? winTxtCol : lossTxtCol), text_size=size.small)
 `;
 
+  // PAS de filtre "bougie aberrante au redemarrage du marche" ici : une
+  // ancienne version retirait les bougies dont le range depassait 8x la
+  // mediane, cense corriger un artefact rare de Twelve Data. Teste en direct
+  // le 2026-09-14 : sur un vrai dataset avec une periode calme (weekend/heures
+  // creuses), la mediane s'ecrase vers ces valeurs quasi-nulles et le filtre
+  // retire ~1/3 des bougies REELLES (celles avec un vrai mouvement) - creant
+  // les trous temporels qui cassaient le rendu Vela (bougies ecrasees sur une
+  // portion du graphique, reste vide). Mieux vaut afficher un artefact rare
+  // que corrompre systematiquement les vraies donnees.
   async function fetchXauCandles() {
     const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
     if (!key) throw new Error('Clé Twelve Data manquante — voir js/config.local.example.js');
@@ -481,17 +491,7 @@ if barstate.islast and showJournal
         open: parseFloat(v.open), high: parseFloat(v.high), low: parseFloat(v.low), close: parseFloat(v.close), volume: 0,
       }))
       .sort((a, b) => a.time - b.time);
-    return dropGapArtifacts(candles);
-  }
-
-  // Twelve Data renvoie parfois une bougie aberrante au redémarrage du marché
-  // après le weekend/une fermeture (range de prix énorme, pas un vrai mouvement)
-  // — heuristique : on retire les bougies dont le range dépasse largement la
-  // médiane des autres. Si ça n'arrive pas, ce filtre ne change rien.
-  function dropGapArtifacts(candles) {
-    const ranges = candles.map((c) => c.high - c.low).sort((a, b) => a - b);
-    const median = ranges[Math.floor(ranges.length / 2)] || 1;
-    return candles.filter((c) => (c.high - c.low) <= median * 8);
+    return candles;
   }
 
   async function render(containerId) {
@@ -521,7 +521,7 @@ if barstate.islast and showJournal
 
     const chart = new Vela(container, {
       symbol: SYMBOL_DISPLAY,
-      timeframe: BASE_INTERVAL,
+      timeframe: VELA_TIMEFRAME,
       data: candles,
       theme: (window.CHESTTheme && CHESTTheme.current() === 'light') ? 'light' : 'dark',
     });

@@ -4,5 +4,11 @@
 window.CHEST_CONFIG = window.CHEST_CONFIG || {};
 
 // Clé gratuite sur https://twelvedata.com/pricing (plan Basic, 0€) — sert au
-// graphique BERICH pour récupérer les chandelles XAU/USD en direct.
+// calendrier et au calculateur de lot.
 window.CHEST_CONFIG.twelveDataApiKey = 'COLLE_TA_CLE_ICI';
+
+// Token OANDA (compte démo pratique gratuit) — sert aux graphiques
+// Stratégies et BERICH. Pour l'obtenir : créer un compte démo sur
+// https://www.oanda.com/demo-account/tpa/personal_details, puis dans le
+// portail démo -> "Manage API Access" -> générer un "Personal Access Token".
+window.CHEST_CONFIG.oandaApiToken = 'COLLE_TON_TOKEN_ICI';

@@ -1,0 +1,336 @@
+/* ============================================================
+   CHEST — DA (tokens + utilitaires)
+   Référence : CHEST-DA.md. À charger APRÈS tokens.css.
+   Les valeurs sont celles de la maquette, à l'identique.
+   ============================================================ */
+
+:root{
+  /* Fond & surfaces */
+  --chest-bg:            #050505;
+  --chest-page:          rgba(8,8,10,.72);
+  --chest-surface:       rgba(255,255,255,.025);
+  --chest-surface-2:     rgba(255,255,255,.055);
+  --chest-border:        rgba(255,255,255,.12);
+  --chest-rule:          rgba(255,255,255,.08);
+  --chest-rule-v:        rgba(255,255,255,.09);
+  --chest-rule-row:      rgba(255,255,255,.055);
+
+  /* Encres */
+  --chest-ink:           #f6f6f7;
+  --chest-ink-2:         #9b9ba1;
+  --chest-ink-3:         #5c5c63;
+
+  /* Accent de marque */
+  --chest-acc:           #fc1283;
+  --chest-acc-2:         #f9a45e;
+  --chest-grad:          linear-gradient(135deg,#fc1283,#f9a45e);
+
+  /* Signaux */
+  --chest-green:         #33e6a6;  --chest-green-lite: #7ff3ca;
+  --chest-red:           #ff4d5e;  --chest-red-lite:   #ff94a0;
+  --chest-blue:          #4d8dff;  --chest-blue-lite:  #9dbcff;
+  --chest-amber:         #e8b339;  --chest-amber-lite: #f4d07a;
+
+  /* Lueurs contextuelles */
+  --chest-glow-brand:    rgba(252,18,131,.34);
+  --chest-glow-swyper:   rgba(227,87,40,.42);
+  --chest-glow-berich:   rgba(8,153,129,.5);
+  --chest-glow-pos:      rgba(51,230,166,.4);
+  --chest-glow-neg:      rgba(255,77,94,.4);
+
+  /* Rayons */
+  --chest-r-sm: 12px;
+  --chest-r:    16px;
+  --chest-r-lg: 18px;
+  --chest-r-xl: 20px;
+  --chest-r-pill: 999px;
+
+  --chest-ease: cubic-bezier(.16,1,.3,1);
+}
+
+/* ---------- Page ---------- */
+.chest-root{
+  background: var(--chest-bg);
+  color: var(--chest-ink);
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.chest-root a{ color: var(--chest-acc); text-decoration: none; }
+.chest-root a:hover{ color: var(--chest-acc-2); }
+
+/* Surface pleine page (contient nav + sections) */
+.chest-page{
+  border: 1px solid var(--chest-border);
+  border-radius: var(--chest-r-xl);
+  overflow: hidden;
+  background: var(--chest-page);
+  backdrop-filter: blur(30px) saturate(1.2);
+  -webkit-backdrop-filter: blur(30px) saturate(1.2);
+}
+
+/* Séparation entre deux sujets d'une même page */
+.chest-section + .chest-section{ border-top: 1px solid var(--chest-rule); }
+.chest-section{ padding: 30px 34px 34px; }
+
+/* Grain — sur un calque plein écran, sous le contenu */
+.chest-grain{
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  mix-blend-mode: overlay; opacity: .055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+/* ---------- Typographie ---------- */
+.chest-hero-num{ font-size:78px; font-weight:700; letter-spacing:-.05em; line-height:.9; font-variant-numeric:tabular-nums; }
+.chest-h1{ font-size:56px; font-weight:700; letter-spacing:-.045em; line-height:1.04; margin:0; }
+.chest-h2{ font-size:19px; font-weight:700; letter-spacing:-.025em; }
+.chest-body{ font-size:13.5px; line-height:1.6; color:var(--chest-ink-2); text-wrap:pretty; }
+.chest-label{ font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--chest-ink-3); }
+.chest-step{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--chest-ink-3); }
+.chest-num{ font-variant-numeric: tabular-nums; }
+
+/* Titre en dégradé — le padding évite le rognage des jambages et du % */
+.chest-grad-text{
+  background: linear-gradient(120deg,#fff 20%,var(--chest-acc-2) 95%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  line-height:1.08; padding-bottom:.08em; display:inline-block;
+}
+.chest-grad-text--white{ background: linear-gradient(180deg,#fff,rgba(255,255,255,.55)); }
+
+/* ---------- Bandeau de KPI (remplace les cartes de stats) ---------- */
+.chest-kpis{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); }
+.chest-kpis > *{ padding:2px 22px; border-left:1px solid var(--chest-rule-v); }
+.chest-kpis > *:first-child{ padding-left:0; border-left:none; }
+.chest-kpis > *:last-child{ padding-right:0; }
+.chest-kpi__val{ font-size:25px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.chest-kpi__val.is-pos{ color:var(--chest-green); text-shadow:0 0 18px rgba(51,230,166,.35); }
+.chest-kpi__val.is-neg{ color:var(--chest-red);   text-shadow:0 0 18px rgba(255,77,94,.3); }
+.chest-kpi__note{ font-size:11px; color:var(--chest-ink-3); margin-top:3px; }
+
+/* ---------- Fenêtre liquid glass ---------- */
+.chest-glass{
+  position: relative; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: var(--chest-r-lg);
+  background: linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74));
+  backdrop-filter: blur(34px) brightness(.34) saturate(1.05);
+  -webkit-backdrop-filter: blur(34px) brightness(.34) saturate(1.05);
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.45),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
+    inset -1.5px -1.5px 0 rgba(255,255,255,.06),
+    inset 0 0 40px rgba(255,255,255,.035);
+}
+.chest-glass::before{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background: linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.02) 26%,
+              transparent 48%, rgba(255,255,255,.035) 74%, rgba(255,255,255,.1) 100%);
+}
+.chest-glass::after{
+  content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+}
+/* Variante pour une carte (backtest, annonce) */
+.chest-glass--mini{
+  border-radius: var(--chest-r);
+  background: linear-gradient(160deg, rgba(9,9,11,.5), rgba(9,9,11,.66));
+  backdrop-filter: blur(22px) brightness(.62) saturate(1.05);
+  -webkit-backdrop-filter: blur(22px) brightness(.62) saturate(1.05);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,.4),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.16),
+    inset -1.5px -1.5px 0 rgba(255,255,255,.05);
+}
+.chest-glass--mini::before{ display:none; }
+
+/* ---------- Lueur qui suit le curseur (haut du Dashboard seulement) ---------- */
+.chest-spot{ position:relative; }
+.chest-spot__layer{
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background: radial-gradient(620px circle at var(--mx,72%) var(--my,3%), rgba(252,18,131,.17), transparent 70%);
+  mask-image: linear-gradient(180deg,#000 0%,#000 40%,transparent 57%);
+  -webkit-mask-image: linear-gradient(180deg,#000 0%,#000 40%,transparent 57%);
+}
+.chest-spot > :not(.chest-spot__layer){ position:relative; }
+
+/* ---------- Lumière derrière un bloc de titre (jamais sur les lettres) ---------- */
+.chest-titleglow{ position:relative; }
+.chest-titleglow::before{
+  content:''; position:absolute; left:-80px; top:-90px; width:620px; height:400px;
+  pointer-events:none; filter: blur(90px);
+  background: radial-gradient(45% 50% at 30% 50%, rgba(252,18,131,.4), transparent 72%),
+              radial-gradient(40% 44% at 62% 40%, rgba(249,164,94,.26), transparent 74%);
+}
+.chest-titleglow > *{ position:relative; }
+
+/* ---------- Héros centré ---------- */
+.chest-hero{ position:relative; text-align:center; padding:56px 24px 30px; overflow:hidden; }
+.chest-hero::before{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background: radial-gradient(ellipse 55% 64% at 50% 20%, var(--chest-hero-glow, var(--chest-glow-brand)), transparent 72%);
+  transition: background .5s ease;
+}
+.chest-hero::after{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:120px; pointer-events:none;
+  background: linear-gradient(180deg, transparent, rgba(8,8,10,.95));
+}
+.chest-hero > *{ position:relative; }
+.chest-hero[data-glow="swyper"]{ --chest-hero-glow: var(--chest-glow-swyper); }
+.chest-hero[data-glow="berich"]{ --chest-hero-glow: var(--chest-glow-berich); }
+.chest-hero[data-glow="pos"]   { --chest-hero-glow: var(--chest-glow-pos); }
+.chest-hero[data-glow="neg"]   { --chest-hero-glow: var(--chest-glow-neg); }
+
+/* ---------- Boutons ---------- */
+.chest-btn{
+  font: inherit; font-size:13px; font-weight:600; cursor:pointer;
+  padding:11px 22px; border-radius:var(--chest-r-pill); border:none; color:#fff;
+  background: var(--chest-grad);
+  box-shadow: 0 10px 30px rgba(252,18,131,.3);
+  transition: transform .18s var(--chest-ease), box-shadow .18s;
+}
+.chest-btn:hover{ transform: translateY(-1px); box-shadow: 0 16px 44px rgba(252,18,131,.45); }
+
+/* Secondaire : transparent, contour dégradé AU SURVOL */
+.chest-btn-2{
+  font: inherit; font-size:13px; font-weight:600; cursor:pointer; color:var(--chest-ink);
+  padding:11px 22px; border-radius:var(--chest-r-pill); border:1px solid transparent;
+  background: linear-gradient(rgba(255,255,255,.04),rgba(255,255,255,.04)) padding-box,
+              linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.16)) border-box;
+  transition: background .2s, color .2s, box-shadow .2s;
+}
+.chest-btn-2:hover{
+  color:#fff;
+  background: linear-gradient(rgba(255,255,255,.04),rgba(255,255,255,.04)) padding-box,
+              var(--chest-grad) border-box;
+  box-shadow: 0 8px 26px rgba(252,18,131,.2);
+}
+
+/* ---------- Segmenté & onglets ---------- */
+.chest-seg{
+  display:inline-flex; gap:2px; padding:3px;
+  border:1px solid var(--chest-border); border-radius:var(--chest-r-pill);
+  background: rgba(255,255,255,.03);
+}
+.chest-seg > *{
+  font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:var(--chest-r-pill);
+  border:none; background:transparent; color:var(--chest-ink-2); cursor:pointer;
+  font-family:inherit; transition: color .18s, background .18s;
+}
+.chest-seg > *:hover{ color:var(--chest-ink); }
+.chest-seg > .is-active{ background:var(--chest-ink); color:var(--chest-bg); font-weight:700; }
+
+.chest-tabs{ display:flex; align-items:center; gap:2px; padding:3px;
+  border:1px solid rgba(255,255,255,.1); border-radius:var(--chest-r-pill); background:rgba(255,255,255,.03); }
+.chest-tabs > *{
+  font-size:12.5px; font-weight:600; padding:7px 15px; border-radius:var(--chest-r-pill);
+  color:var(--chest-ink-2); cursor:pointer; border:none; background:transparent; font-family:inherit;
+  transition: color .18s, background .18s;
+}
+.chest-tabs > *:hover{ color:var(--chest-ink); background:rgba(255,255,255,.05); }
+.chest-tabs > .is-active{
+  font-weight:700; color:var(--chest-ink);
+  background: rgba(255,255,255,.08);
+  box-shadow: inset 0 0 0 1px rgba(252,18,131,.45);
+}
+
+/* ---------- Tuile & survol ---------- */
+.chest-tile{
+  border:1px solid var(--chest-border); border-radius:var(--chest-r); background:var(--chest-surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  transition: transform .22s var(--chest-ease), border-color .22s, background .22s, box-shadow .22s;
+}
+.chest-tile--hoverable:hover{
+  transform: translateY(-3px);
+  border-color: rgba(249,164,94,.45);
+  background: linear-gradient(135deg, rgba(252,18,131,.13), rgba(249,164,94,.1));
+  box-shadow: 0 10px 30px rgba(252,18,131,.18);
+}
+.chest-empty{
+  border:1px dashed rgba(255,255,255,.18); border-radius:var(--chest-r);
+  color:var(--chest-ink-3); font-size:11.5px; line-height:1.5; padding:16px;
+}
+
+/* ---------- Pastilles ---------- */
+.chest-pill{
+  font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  padding:3px 9px; border-radius:var(--chest-r-pill); white-space:nowrap;
+}
+.chest-pill.is-pos{ color:var(--chest-green); background:rgba(51,230,166,.14); }
+.chest-pill.is-neg{ color:var(--chest-red);   background:rgba(255,77,94,.14); }
+.chest-pill.is-wait{ color:var(--chest-amber); background:rgba(232,179,57,.14); }
+.chest-pill.is-info{ color:var(--chest-blue);  background:rgba(77,141,255,.14); }
+.chest-pill.is-mute{ color:var(--chest-ink-2); background:rgba(255,255,255,.06); }
+
+.chest-check{
+  width:22px; height:22px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:11px;
+}
+.chest-check.is-ok{ color:var(--chest-green); background:rgba(51,230,166,.16); box-shadow:0 0 12px rgba(51,230,166,.25); }
+.chest-check.is-ko{ color:var(--chest-red);   background:rgba(255,77,94,.16);  box-shadow:0 0 12px rgba(255,77,94,.25); }
+
+/* Tuile de signal (palette de DA) */
+.chest-signal{
+  border-radius:var(--chest-r-sm); padding:13px 14px;
+  border:1px solid rgba(var(--chest-signal-rgb),.35);
+  background: linear-gradient(160deg, rgba(var(--chest-signal-rgb),.18), rgba(var(--chest-signal-rgb),.03));
+  box-shadow: 0 10px 26px rgba(var(--chest-signal-rgb),.16), inset 0 1px 0 rgba(255,255,255,.1);
+}
+.chest-signal--pos { --chest-signal-rgb: 51,230,166; }
+.chest-signal--neg { --chest-signal-rgb: 255,77,94; }
+.chest-signal--info{ --chest-signal-rgb: 77,141,255; }
+.chest-signal--wait{ --chest-signal-rgb: 232,179,57; }
+
+/* ---------- Avatar ---------- */
+.chest-avatar{
+  border-radius:12px; display:flex; align-items:center; justify-content:center;
+  font-weight:800; color:#fff; background:var(--chest-grad); flex-shrink:0;
+}
+.chest-avatar--round{ border-radius:var(--chest-r-pill); }
+
+/* ---------- Lignes de liste / tableau ---------- */
+.chest-row{
+  display:grid; align-items:center; column-gap:14px; padding:14px 22px;
+  border-bottom:1px solid var(--chest-rule-row); font-size:12.5px;
+  transition: background .18s;
+}
+.chest-row:hover{ background: rgba(255,255,255,.035); }
+.chest-row--head{
+  border-bottom:1px solid rgba(255,255,255,.1);
+  font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--chest-ink-3);
+}
+/* Repère "maintenant" */
+.chest-row.is-now{
+  background: rgba(252,18,131,.07);
+  border-top: 2px solid var(--chest-acc);
+  box-shadow: inset 0 2px 12px rgba(252,18,131,.25);
+}
+
+/* ---------- Ticker ---------- */
+.chest-ticker{ display:flex; align-items:stretch; overflow:hidden; border-bottom:1px solid var(--chest-rule); }
+.chest-ticker__viewport{ flex:1; min-width:0; overflow:hidden; display:flex; }
+.chest-ticker__track{ display:flex; width:max-content; animation: chest-ticker 42s linear infinite; }
+.chest-ticker__item{
+  display:flex; align-items:baseline; gap:9px; padding:11px 22px;
+  border-right:1px solid rgba(255,255,255,.07); font-size:12.5px; white-space:nowrap;
+}
+.chest-ticker__meta{
+  flex-shrink:0; padding:11px 20px; font-size:11px; color:var(--chest-ink-3);
+  white-space:nowrap; border-left:1px solid rgba(255,255,255,.07); background:rgba(8,8,10,.9);
+}
+@keyframes chest-ticker{ from{ transform:translate3d(0,0,0); } to{ transform:translate3d(-50%,0,0); } }
+@media (prefers-reduced-motion: reduce){ .chest-ticker__track{ animation:none; } }
+
+/* ---------- Lueur de fond du canvas ---------- */
+.chest-ambient{
+  position:absolute; inset:-10% -10% auto -10%; height:1100px; pointer-events:none;
+  filter: blur(120px); opacity:.9;
+  background: radial-gradient(40% 50% at 22% 20%, rgba(252,18,131,.38), transparent 70%),
+              radial-gradient(38% 46% at 78% 8%, rgba(249,164,94,.26), transparent 72%);
+  animation: chest-drift 46s ease-in-out infinite;
+}
+@keyframes chest-drift{
+  0%  { transform: translate3d(-4%,-2%,0) scale(1.1); }
+  50% { transform: translate3d(4%,3%,0)   scale(1.25); }
+  100%{ transform: translate3d(-4%,-2%,0) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce){ .chest-ambient{ animation:none; } }

@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=3">
+<link rel="stylesheet" href="css/chest-da.css?v=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : sans ca, une regle de classe qui fixe elle-meme
@@ -27,22 +28,22 @@
   .cal-state{ border:1px dashed var(--line2); border-radius:var(--radius); padding:60px 24px; text-align:center; color:var(--muted); }
   .cal-state code{ background:var(--panel); padding:2px 8px; border-radius:6px; color:var(--ink); }
 
-  /* ---------- Ticker (bandeau plein écran) ---------- */
+  /* ---------- Ticker — bandeau plein-largeur DE LA COLONNE DE CONTENU
+     (plus un breakout 100vw : ca casserait la grille sidebar+contenu de
+     .chest-shell, la sidebar n'etant plus la meme largeur ouverte/repliee). ---------- */
   .ticker-wrap{
-    width:100vw; position:relative; left:50%; right:50%; margin-left:-50vw; margin-right:-50vw;
-    background:var(--panel); border-top:1px solid var(--line); border-bottom:1px solid var(--line);
-    overflow:hidden; margin-bottom:clamp(28px,5vh,44px);
+    display:flex; align-items:stretch; border-bottom:1px solid var(--chest-rule); overflow:hidden;
   }
   .ticker-track{ display:flex; gap:0; width:max-content; will-change:transform; }
   .ticker-item{
-    display:flex; align-items:baseline; gap:9px; padding:12px 26px; border-right:1px solid var(--line);
-    font-size:13px; white-space:nowrap;
+    display:flex; align-items:baseline; gap:9px; padding:11px 22px; border-right:1px solid var(--chest-rule);
+    font-size:12.5px; white-space:nowrap;
   }
   .ticker-item b{ font-weight:700; letter-spacing:-.01em; }
-  .ticker-item .px{ color:var(--ink-dim,var(--muted)); font-variant-numeric:tabular-nums; }
+  .ticker-item .px{ color:var(--chest-ink-2); font-variant-numeric:tabular-nums; }
   .ticker-item .chg{ font-weight:700; font-variant-numeric:tabular-nums; }
-  .ticker-item .chg.pos{ color:var(--green); } .ticker-item .chg.neg{ color:var(--red); }
-  .ticker-meta{ padding:12px 26px; font-size:11px; color:var(--faint); white-space:nowrap; }
+  .ticker-item .chg.pos{ color:var(--chest-green); } .ticker-item .chg.neg{ color:var(--chest-red); }
+  .ticker-meta{ flex-shrink:0; padding:11px 20px; font-size:11px; color:var(--chest-ink-3); white-space:nowrap; border-left:1px solid var(--chest-rule); background:rgba(8,8,10,.9); }
 
   /* ---------- Bubbles (aujourd'hui) ---------- */
   .bubble-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-bottom:clamp(30px,5vh,46px); }
@@ -74,10 +75,29 @@
   .hypothesis{ font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:12px; background:var(--bg); }
   .hypothesis.pos{ color:var(--green); } .hypothesis.neg{ color:var(--red); } .hypothesis.neutral{ color:var(--muted); }
 
-  /* ---------- Liste des prochains jours ---------- */
+  /* ---------- Liste des prochains jours + annonces du jour (meme style en
+     ligne pour les deux, retour direct utilisateur du 2026-09-16 : plus de
+     cartes pour "aujourd'hui", des lignes comme "Prochains jours", avec un
+     repere sur l'annonce en attente/venant de passer). ---------- */
   .upcoming-day{ margin-bottom:18px; }
   .upcoming-day__label{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
-  .upcoming-row{
+  .day-row{
+    display:grid; grid-template-columns:70px 40px 1fr 84px 84px; gap:10px; align-items:center;
+    padding:11px 16px; border-bottom:1px solid var(--line); font-size:13px; position:relative;
+  }
+  .day-table{ border:1px solid var(--line2); border-radius:var(--radius); background:var(--panel); overflow:hidden; }
+  .day-row:last-child{ border-bottom:none; }
+  .day-row .t{ color:var(--faint); font-variant-numeric:tabular-nums; }
+  .day-row .c{ font-weight:700; font-size:17px; }
+  .day-row .c .flag-ic{ width:22px; height:16px; }
+  .day-row .col{ text-align:right; font-variant-numeric:tabular-nums; }
+  .day-row .col span{ display:block; font-size:9px; color:var(--faint); text-transform:uppercase; letter-spacing:.05em; font-weight:400; }
+  /* Repere "maintenant" : la ligne de l'annonce en attente (ou, si tout est
+     deja passe, la derniere publiee) - un trait net en haut de la ligne,
+     seulement pertinent sur la journee d'AUJOURD'HUI. */
+  .day-row.is-now{ background:rgba(252,18,131,.07); }
+  .day-row.is-now::before{ content:''; position:absolute; left:0; right:0; top:-1px; height:2px; background:var(--acc); box-shadow:0 0 8px rgba(252,18,131,.6); }
+  .upcoming-row{ /* alias conserve pour compat visuelle - meme regles que .day-row */
     display:grid; grid-template-columns:70px 50px 1fr 110px; gap:12px; align-items:center;
     padding:11px 16px; border-bottom:1px solid var(--line); font-size:13px;
   }
@@ -88,7 +108,10 @@
   .upcoming-row .c .flag-ic{ width:22px; height:16px; }
   .upcoming-row .cons{ text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
 
-  @media (max-width: 640px){ .upcoming-row{ grid-template-columns:56px 40px 1fr; } .upcoming-row .cons{ display:none; } }
+  @media (max-width: 640px){
+    .upcoming-row{ grid-template-columns:56px 40px 1fr; } .upcoming-row .cons{ display:none; }
+    .day-row{ grid-template-columns:56px 32px 1fr 70px; } .day-row .col:last-child{ display:none; }
+  }
 
   /* ---------- Filtre d'importance (étoiles) ---------- */
   .imp-filter{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:18px 0 28px; }
@@ -130,9 +153,8 @@
      clair/sombre du site, comme la page SWYPER) avec une lueur radiale
      coloree selon le biais - pas d'encadre, pas de remplissage plein rouge. */
   .sentiment-hero{
-    width:100vw; position:relative; left:50%; right:50%; margin-left:-50vw; margin-right:-50vw;
-    background:#07070a; overflow:hidden; text-align:center;
-    padding:clamp(48px,8vh,76px) 24px clamp(40px,6vh,56px); margin-bottom:clamp(28px,5vh,44px);
+    position:relative; overflow:hidden; text-align:center;
+    padding:clamp(48px,8vh,76px) 24px clamp(40px,6vh,56px);
   }
   .sentiment-hero::before{
     content:''; position:absolute; inset:0; pointer-events:none;
@@ -141,6 +163,17 @@
   }
   .sentiment-hero[data-tone="pos"]{ --glow: rgba(51,230,166,.45); }
   .sentiment-hero[data-tone="neg"]{ --glow: rgba(255,77,94,.45); }
+  /* Fondu de sortie vers le fond reel de la page (retour direct utilisateur
+     du 2026-09-16 : coupure nette en bas du hero, capture entouree en rose).
+     Le fondu d'entree tente au dessus (vers le ticker) a ete retire : il
+     produisait une bande grise plate au lieu d'un fondu (var(--panel) est
+     une couleur pleine, pas transparente - 2e retour direct utilisateur,
+     "cette barre noire"). Hauteur en clamp() : plus le viewport est grand,
+     plus le fondu est genereux. */
+  .sentiment-hero::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; pointer-events:none;
+    height:clamp(40px,10vh,120px); background:linear-gradient(180deg, transparent, var(--bg));
+  }
   .sentiment-hero__inner{ position:relative; max-width:760px; margin:0 auto; }
   .sentiment-hero__badge{
     display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
@@ -190,21 +223,6 @@
   .driver-card__compare-col.is-ref b{ font-size:13px; opacity:.5; }
   .driver-card__divider{ width:2px; flex-shrink:0; background:var(--acc2); border-radius:2px; opacity:.55; }
 
-  .sentiment-hero__consistency{ font-size:12px; color:rgba(255,255,255,.55); margin:2px 0 0; }
-  .sentiment-hero__consistency b{ color:rgba(255,255,255,.85); }
-
-  /* Navigation par semaine dans le hero - remplace le hardcode "cette
-     semaine / semaine passee" par un vrai historique consultable. */
-  .week-nav{ display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:18px; }
-  .week-nav__btn{
-    width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.18); background:transparent;
-    color:rgba(255,255,255,.75); font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center;
-    transition:background .2s, opacity .2s;
-  }
-  .week-nav__btn:hover:not(:disabled){ background:rgba(255,255,255,.08); }
-  .week-nav__btn:disabled{ opacity:.3; cursor:default; }
-  .week-nav__label{ font-size:12px; font-weight:600; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:.06em; min-width:180px; }
-
   /* Quand Prevu == Reel exactement (conforme au consensus) : le dit
      explicitement plutot que de laisser deux chiffres presque identiques
      ressembler a un bug d'affichage. */
@@ -212,12 +230,83 @@
   .driver-card__calib{ font-size:9.5px; line-height:1.4; color:rgba(51,230,166,.85); margin-top:8px; }
   .driver-card__calib.is-heuristic{ color:rgba(255,255,255,.35); }
 
+  /* ---------- Semaine a venir : 3 annonces vedettes (plus gros risque
+     d'impact) + pile compacte pour le reste - retour direct utilisateur du
+     2026-09-16 ("il y en a trop, il faudrait un affichage plus compact...
+     les 3 plus grosses annonces... et juste en dessous en beaucoup plus
+     petit toutes les autres, triees en ligne les unes sur les autres" +
+     mockup Photoshop d'un jeu de cartes qui se chevauchent). Les 3 vedettes
+     reutilisent .driver-card tel quel (info complete). Le reste se replie
+     en "tranches" verticales cliquables (texte ecrit de haut en bas sur la
+     partie visible, comme demande) qui glissent leur detail COMPLET
+     (exactement le meme contenu que .driver-card, driverCardHtml) dans la
+     zone a gauche plutot que de s'empiler en cartes pleines. ---------- */
+  .driver-top3{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:14px; text-align:left; }
+  .driver-compact{ display:flex; gap:16px; align-items:stretch; margin-bottom:24px; text-align:left; }
+  @media (max-width:640px){ .driver-compact{ flex-direction:column; } }
+  .driver-compact__detail{
+    flex:0 0 220px; min-width:0; border:1px solid rgba(255,255,255,.1); border-radius:var(--radius-sm);
+    background:rgba(255,255,255,.03); padding:16px; display:flex; flex-direction:column; justify-content:center;
+  }
+  .driver-compact__detail .driver-card{ border:none; background:none; padding:0; animation:driverDetailIn .25s var(--ease); }
+  @keyframes driverDetailIn{ from{ opacity:0; transform:translateX(-8px); } to{ opacity:1; transform:translateX(0); } }
+  .driver-compact__hint{ margin:0; font-size:12px; line-height:1.6; color:rgba(255,255,255,.4); }
+  /* Rangee qui se comprime toute seule pour tenir sur une ligne, sans barre
+     de defilement visible (retour direct utilisateur du 2026-09-16 : "je
+     veux que tout soit range, pas de volet qui glissent tous au meme
+     endroit, quitte a les resserrer, simplifie") - flex-shrink plutot qu'une
+     largeur fixe + scroll : chaque tranche retrecit automatiquement en
+     fonction du nombre d'annonces de la semaine, jusqu'a un minimum lisible.
+     Un scroll fin reste en secours si vraiment trop d'annonces sur un tres
+     petit ecran, jamais la grosse barre par defaut du navigateur. */
+  .driver-compact__stack{
+    flex:1; min-width:0; display:flex; align-items:flex-start; gap:2px;
+    overflow-x:auto; overflow-y:hidden; padding:4px 2px 10px;
+    scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.2) transparent;
+  }
+  .driver-compact__stack::-webkit-scrollbar{ height:4px; }
+  .driver-compact__stack::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.2); border-radius:4px; }
+  .driver-compact__stack::-webkit-scrollbar-track{ background:transparent; }
+  .driver-tab{
+    all:unset; box-sizing:border-box; position:relative; z-index:1;
+    flex:1 1 22px; min-width:18px; max-width:26px; height:150px;
+    border:1px solid rgba(255,255,255,.12); border-radius:9px; background:rgba(255,255,255,.03);
+    cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:9px; padding:11px 0 10px;
+    overflow:hidden; transition:flex-basis .2s var(--ease), transform .2s var(--ease), background .2s, border-color .2s;
+  }
+  /* Repos = juste le drapeau + le point de tendance, texte invisible (jamais
+     coupe/deborde) ; au survol la tranche s'elargit un peu et revele le nom
+     en ecriture verticale, comme demande - le flex-shrink des voisines
+     absorbe naturellement la place prise (pas de decalage brutal). */
+  .driver-tab:hover{ flex-basis:64px; transform:translateY(-5px); background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.3); z-index:3; }
+  .driver-tab.is-active{ flex-basis:64px; background:rgba(252,18,131,.09); border-color:var(--acc); box-shadow:0 10px 26px rgba(252,18,131,.22); z-index:2; }
+  .driver-tab .flag-ic{ width:18px; height:13px; flex-shrink:0; }
+  .driver-tab__name{
+    flex:1; min-height:0; writing-mode:vertical-rl; text-orientation:mixed; white-space:nowrap;
+    font-size:10px; font-weight:600; line-height:1.3; color:rgba(255,255,255,.85); letter-spacing:.01em;
+    opacity:0; transition:opacity .15s ease;
+  }
+  .driver-tab:hover .driver-tab__name, .driver-tab.is-active .driver-tab__name{ opacity:1; transition-delay:.08s; }
+  .driver-tab__dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; background:rgba(255,255,255,.3); }
+  .driver-tab__dot.pos{ background:var(--green); } .driver-tab__dot.neg{ background:var(--red); }
+  .driver-now-sep{ flex:0 0 auto; width:1px; align-self:stretch; margin:6px 10px; background:linear-gradient(180deg, transparent, var(--acc), transparent); position:relative; }
+  .driver-now-sep span{
+    position:absolute; top:-8px; left:50%; transform:translateX(-50%) rotate(-90deg); transform-origin:center;
+    white-space:nowrap; font-size:8px; text-transform:uppercase; letter-spacing:.06em; color:var(--acc);
+    background:rgba(18,18,22,.92); padding:2px 7px; border-radius:6px;
+  }
+
   /* ---------- Mode weekend : bilan de la semaine passee + previsionnel ---------- */
-  .week-compare{ display:flex; align-items:center; justify-content:center; gap:22px; margin-bottom:10px; }
+  .week-compare{ display:flex; align-items:center; justify-content:center; gap:22px; margin-bottom:10px; flex-wrap:wrap; }
   .week-compare__col{ text-align:center; }
   .week-compare__col span{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.45); margin-bottom:4px; }
   .week-compare__col b{ display:block; font-size:clamp(28px,5vw,42px); font-weight:800; letter-spacing:-.02em; }
   .week-compare__divider{ width:2px; height:44px; background:var(--acc2); opacity:.55; border-radius:2px; }
+  /* Colonne "Reussite" : metrique secondaire (pas un mouvement de prix comme
+     les 2 autres colonnes) - taille reduite pour ne pas rivaliser visuellement
+     avec Prevision/Realise, qui restent les deux chiffres principaux. */
+  .week-compare__col--accuracy b{ font-size:clamp(20px,3.4vw,28px); }
+  .week-compare__accuracy-note{ width:100%; font-size:11px; color:rgba(255,255,255,.4); margin-top:2px; }
   .week-block{ text-align:left; margin-bottom:26px; }
   .week-block__title{ font-size:11px; text-transform:uppercase; letter-spacing:.14em; color:rgba(255,255,255,.5); margin-bottom:14px; }
   .driver-empty{ font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:12px; background:rgba(255,255,255,.05); color:rgba(255,255,255,.55); text-align:left; }
@@ -225,84 +314,110 @@
   .sentiment-hero__disclaimer{ font-size:11px; color:rgba(255,255,255,.38); margin:0; line-height:1.5; }
   .sentiment-hero__disclaimer a{ color:rgba(255,255,255,.6); text-decoration:underline; }
 
+  /* ---------- Marché crypto (deplace depuis le Dashboard) ---------- */
+  .mover-cols{ display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+  @media (max-width: 640px){ .mover-cols{ grid-template-columns:1fr; } }
+  .mover-col__label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); margin-bottom:10px; }
+  .mover-row{ display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .mover-row:last-child{ border-bottom:none; }
+  .mover-row img{ width:26px; height:26px; border-radius:50%; flex-shrink:0; }
+  .mover-row .name{ flex:1; min-width:0; }
+  .mover-row .name b{ display:block; font-size:13.5px; font-weight:700; }
+  .mover-row .name span{ display:block; font-size:10.5px; color:var(--muted); text-transform:uppercase; }
+  .mover-row .price{ text-align:right; font-size:13px; font-variant-numeric:tabular-nums; color:var(--muted); white-space:nowrap; }
+  .mover-row .chg{ text-align:right; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; min-width:64px; }
+  .mover-row .chg.pos{ color:var(--green); } .mover-row .chg.neg{ color:var(--red); }
+
   /* ---------- Compte a rebours (evenements sans donnee chiffree) ---------- */
   .countdown{ font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; background:var(--panel-2); color:var(--muted); font-variant-numeric:tabular-nums; }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>CHESTAuth.guard();</script>
+<script src="js/accounts-auth.js"></script>
+<script>CHESTAccounts.guard();</script>
 </head>
-<body data-page="calendar">
+<body data-page="calendar" class="chest-root">
 
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
-  </div>
-  <nav class="sidebar__nav">
-    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
-    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
-    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
-    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
-    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
-    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
-    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
-  </nav>
-  <div class="sidebar__foot">
-    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
-    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
-  </div>
-</aside>
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
 
-<header class="topbar">
-  <div class="topbar__left">
-    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-  </div>
-</header>
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </header>
 
-<div class="ticker-wrap">
-  <div class="ticker-track" id="tickerTrack">
-    <div class="ticker-meta" id="tickerMeta">Chargement…</div>
-  </div>
-</div>
+    <div class="ticker-wrap">
+      <div class="ticker-track" id="tickerTrack">
+        <div class="ticker-meta" id="tickerMeta">Chargement…</div>
+      </div>
+    </div>
 
-<main class="container">
-  <section class="sentiment-hero" id="sentimentHero" data-tone="neutral">
+    <section class="sentiment-hero" id="sentimentHero" data-tone="neutral">
     <div class="sentiment-hero__inner">
       <span class="sentiment-hero__badge" id="sentimentBadge">Neutre</span>
       <h2 class="sentiment-hero__code" id="sentimentCode">XAU/USD</h2>
       <div class="sentiment-hero__label" id="sentimentLabel">Or / Dollar</div>
 
       <div id="sentimentEconMode">
-        <div class="week-nav" id="weekNav">
-          <button type="button" id="weekNavPrev" class="week-nav__btn" aria-label="Semaine précédente">◀</button>
-          <span class="week-nav__label" id="weekNavLabel">Cette semaine</span>
-          <button type="button" id="weekNavNext" class="week-nav__btn" aria-label="Semaine suivante" disabled>▶</button>
-        </div>
         <div class="sentiment-hero__weekly" id="sentimentWeekly">—</div>
-        <div class="sentiment-hero__weekly-label" id="sentimentWeeklyLabel">Estimation indicative sur la semaine</div>
-        <div class="week-compare" id="weekRealCompare" hidden></div>
-        <p class="sentiment-hero__consistency" id="sentimentConsistency" hidden></p>
-
-        <div id="weekForecastView">
-          <p class="sentiment-hero__text" id="sentimentText">Chargement de l'analyse…</p>
-          <div class="sentiment-hero__drivers" id="sentimentDrivers"></div>
+        <div class="sentiment-hero__weekly-label" id="sentimentWeeklyLabel">Prévision verrouillée lundi, pour la semaine à venir</div>
+        <p class="sentiment-hero__text" id="sentimentText">Chargement de l'analyse…</p>
+        <div class="driver-top3" id="driverTop3"></div>
+        <div class="driver-compact" id="driverCompact" hidden>
+          <div class="driver-compact__detail" id="driverCompactDetail">
+            <p class="driver-compact__hint">Clique une annonce ci-contre pour voir tout son détail ici.</p>
+          </div>
+          <div class="driver-compact__stack" id="driverCompactStack"></div>
         </div>
 
-        <div id="weekendView" hidden>
-          <div class="week-block">
-            <div class="week-block__title" id="weekPastTitle">Bilan de la semaine passée</div>
-            <div class="sentiment-hero__drivers" id="weekPastDrivers"></div>
-          </div>
-          <div class="week-block" id="weekNextBlock">
-            <div class="week-block__title" id="weekNextTitle">Prévisionnel de la semaine à venir</div>
-            <div class="sentiment-hero__drivers" id="weekNextDrivers"></div>
+        <div class="week-block">
+          <div class="week-block__title" id="weekPastTitle">Résultats de la semaine passée</div>
+          <div class="week-compare" id="weekRealCompare" hidden></div>
+          <div class="driver-top3" id="weekPastTop3"></div>
+          <div class="driver-compact" id="weekPastCompact" hidden>
+            <div class="driver-compact__detail" id="weekPastCompactDetail">
+              <p class="driver-compact__hint">Clique une annonce ci-contre pour voir tout son détail ici.</p>
+            </div>
+            <div class="driver-compact__stack" id="weekPastCompactStack"></div>
           </div>
         </div>
 
-        <p class="sentiment-hero__disclaimer">Heuristique statistique — pas une prédiction garantie. Le % principal est déterminé en début de semaine à partir des prévisions (US/EU/UK/JP) et ne change pas quand une annonce est publiée ; "Réel" (par carte), le comparateur "Réalisé" et la cohérence reflètent eux ce qui s'est effectivement passé. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
+        <p class="sentiment-hero__disclaimer">Heuristique statistique — pas une prédiction garantie. Le % du haut est déterminé une fois par semaine (le lundi) à partir des prévisions (US/EU/UK/JP) et ne change plus ensuite ; "Réel" (par carte) et "Réalisé" reflètent eux ce qui s'est effectivement passé. Change la paire suivie dans <a href="account.html">Compte</a>.</p>
       </div>
 
       <div id="sentimentCryptoMode" hidden>
@@ -314,6 +429,30 @@
       </div>
     </div>
   </section>
+
+  <main class="container">
+  <!-- Marché crypto — deplace ici depuis le Dashboard (demande explicite du
+       2026-09-15) : n'a de sens que quand la paire suivie est une crypto,
+       jamais affiche a cote d'un sentiment forex/matieres premieres. Meme
+       widget (js/crypto-movers.js), il se contente de ne rien faire si ses
+       elements ne sont pas dans la page - ici ils y sont, juste caches par
+       defaut et reveles par calendar.js selon la paire suivie. -->
+  <div id="moversSection" hidden>
+    <div class="eyebrow" style="margin-top:28px">Marché crypto — top 100</div>
+    <div class="card" style="padding:22px 24px">
+      <div class="mover-cols">
+        <div>
+          <div class="mover-col__label">Meilleure performance (24h)</div>
+          <div id="moversTop"><div class="mover-row">Chargement…</div></div>
+        </div>
+        <div>
+          <div class="mover-col__label">Moins bonne performance (24h)</div>
+          <div id="moversBottom"><div class="mover-row">Chargement…</div></div>
+        </div>
+      </div>
+      <p class="hint" style="margin:16px 0 0">Parmi les 100 plus grandes capitalisations (hors stablecoins) — données CoinGecko en direct, indépendant de la paire suivie ci-dessus.</p>
+    </div>
+  </div>
 
   <div class="page-head">
     <h1>Calendrier économique</h1>
@@ -344,13 +483,28 @@
     <div class="cal-state">Chargement…</div>
   </div>
 </main>
+</div>
+</div>
 
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
-<script src="js/nav.js"></script>
+<script src="js/nav.js?v=2"></script>
 <script src="js/lot-calculator.js?v=3"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
-<script src="js/calendar.js?v=9"></script>
+<script src="js/crypto-movers.js"></script>
+<script src="js/calendar.js?v=21"></script>
+<script src="js/page-tour.js"></script>
+<script>
+CHESTTour.init([
+  { selector: '.ticker-wrap', title: 'Ticker en direct', text: 'Les principales paires forex qui défilent, en continu.' },
+  { selector: '.sentiment-hero', title: 'Sentiment', text: 'Biais haussier/baissier estimé pour la paire suivie, à partir des annonces macro de la semaine (ou, pour une crypto, du calendrier US + Fear & Greed + momentum). Change la paire suivie dans Compte.' },
+  { selector: '#moversSection', title: 'Marché crypto', text: 'Visible uniquement quand la paire suivie est une crypto — meilleures et moins bonnes performances sur 24h, parmi les 100 plus grandes capitalisations.' },
+  { selector: '#importanceFilter', title: 'Filtrer par importance', text: 'Ne garde que les annonces à fort impact si tu veux aller à l\'essentiel.' },
+  { selector: '.day-nav-head', title: 'Navigateur de jour', text: 'Parcours les jours passés/à venir — la liste "Prochains jours" plus bas reste elle toujours ancrée sur aujourd\'hui.' },
+  { selector: '#bubbleZone', title: 'Annonces du jour', text: 'Le détail des annonces économiques du jour sélectionné, avec prévu/réel et l\'impact estimé sur XAU/DXY.' },
+  { selector: '#upcomingZone', title: 'Prochains jours', text: 'Vue d\'ensemble des jours suivants, pour anticiper les annonces à fort impact.' },
+]);
+</script>
 </body>
 </html>

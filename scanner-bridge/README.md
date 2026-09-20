@@ -1,12 +1,12 @@
 # Stratégies — panneau de notification multi-scanners
 
-Service local qui reçoit les alertes TradingView de N'IMPORTE LEQUEL des scanners enregistrés (Wolfx, Algomni, Swyper v6, Pivot) et écrit `../site/data/scanner-signals.json`, lu par le panneau de notification de `strategies.html`.
+Service local qui reçoit les alertes TradingView de N'IMPORTE LEQUEL des scanners enregistrés (Wolfx, Algomni, Swyper, Pivot) et écrit `../site/data/scanner-signals.json`, lu par le panneau de notification de `strategies.html`.
 
 Différence avec `berich-bridge` : BERICH suit UNE position (ouverture → clôture, avec un `id` partagé entre les deux messages). Ici il n'y a pas de suivi de position — chaque signal est une simple opportunité ponctuelle (achat/vente détecté sur telle paire/unité de temps par tel scanner), affichée dans la liste, cliquable pour ouvrir directement le bon graphique.
 
 ## Configurer les alertes TradingView
 
-Sur **chaque** script (Wolfx, Algomni, Swyper v6, Pivot), crée une alerte de type webhook pointée vers :
+Sur **chaque** script (Wolfx, Algomni, Swyper, Pivot), crée une alerte de type webhook pointée vers :
 
 ```
 http://<ton-ip-ou-tunnel>:5601/webhook
@@ -18,7 +18,7 @@ avec un message JSON dans ce format exact :
 {"scanner": "Wolfx", "symbol": "EURUSD", "timeframe": "15", "side": "buy"}
 ```
 
-- `scanner` doit correspondre EXACTEMENT au nom du scanner tel qu'enregistré dans `site/js/scanner-store.js` (`"Wolfx"`, `"Algomni"`, `"Swyper v6"`, `"Pivot"`) — c'est ce nom qui sert à retrouver le bon logo/couleur côté site.
+- `scanner` doit correspondre EXACTEMENT au nom du scanner tel qu'enregistré dans `site/js/scanner-store.js` (`"Wolfx"`, `"Algomni"`, `"Swyper"`, `"Pivot"`) — c'est ce nom qui sert à retrouver le bon logo/couleur côté site.
 - `timeframe` doit être l'un de `1`, `5`, `15`, `30`, `60`, `240`, `D` (les unités de temps proposées par le site).
 - `side` vaut `"buy"` ou `"sell"`.
 - `time` est optionnel (l'heure de réception du serveur est utilisée sinon).

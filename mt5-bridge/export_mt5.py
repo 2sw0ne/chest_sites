@@ -6,7 +6,14 @@ Lit les données du compte MT5 actuellement connecté sur cette machine
 le Dashboard lit en fetch(). Aucun identifiant ne transite jamais vers
 le site : ce script tourne uniquement en local.
 
-Installation :
+Le plus simple pour une personne non technique : double-clique sur
+lancer-sync.bat (Windows) - il installe MetaTrader5 si besoin, pose 4
+questions au tout premier lancement (nom du compte, type, broker, objectifs
+de challenge) puis synchronise en boucle tant que la fenêtre reste ouverte.
+Ces reponses sont sauvegardees dans config.json (jamais commite, propre a
+chaque machine) - pas besoin d'ouvrir ce fichier .py pour se configurer.
+
+Installation manuelle :
     pip install MetaTrader5
 
 Utilisation ponctuelle :
@@ -27,30 +34,87 @@ import time
 import argparse
 from datetime import datetime, timedelta, timezone
 
+# La console Windows par defaut (cmd.exe lance par lancer-sync.bat) utilise
+# souvent un codepage (cp1252/cp850) qui ne sait pas encoder certains
+# caracteres Unicode (fleches, emoji) - un print() planterait le script en
+# UnicodeEncodeError. errors="replace" degrade proprement (caractere illisible
+# affiche) plutot que de crasher - constate en testant ce script (2026-09-14).
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(errors="replace")
+
 try:
     import MetaTrader5 as mt5
 except ImportError:
     print("Le module MetaTrader5 n'est pas installé. Lance : pip install MetaTrader5")
     sys.exit(1)
 
-# ============================================================
-# CONFIGURATION — à adapter à ton compte et à ton challenge
-# ============================================================
-ACCOUNT_NAME = "Mon compte MT5"
-ACCOUNT_TYPE = "Démo"        # ex: "Démo", "2-Step", "1-Step"
-BROKER_LABEL = "MT5"         # ex: "Vantage", "FTMO"
-
-OBJECTIVES = {
-    "min_trading_days": 5,
-    "max_daily_loss_pct": 4.0,
-    "max_loss_pct": 8.0,
-    "profit_target_pct": 10.0,
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+DEFAULT_CONFIG = {
+    "account_name": "Mon compte MT5",
+    "account_type": "Démo",
+    "broker_label": "MT5",
+    "objectives": {
+        "min_trading_days": 5,
+        "max_daily_loss_pct": 4.0,
+        "max_loss_pct": 8.0,
+        "profit_target_pct": 10.0,
+    },
 }
-
 REFRESH_SECONDS = 60  # utilisé seulement en mode --loop
-# ============================================================
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "site", "data", "data.json")
+
+
+def ask(question, default):
+    """input() avec une valeur par defaut si la personne appuie juste sur Entree."""
+    answer = input(f"{question} [{default}] : ").strip()
+    return answer if answer else default
+
+
+def ask_float(question, default):
+    while True:
+        raw = ask(question, str(default))
+        try:
+            return float(raw)
+        except ValueError:
+            print("  -> réponds avec un nombre (ex. 8 ou 4.5).")
+
+
+def run_setup_wizard():
+    """Pose quelques questions une seule fois - pas besoin d'ouvrir le code
+    pour configurer son compte, pense pour quelqu'un qui ne connaît pas
+    Python (retour direct utilisateur : la famille/les amis qui trading
+    doivent pouvoir s'en servir sans toucher au fichier .py)."""
+    print("Première configuration de ton pont CHEST <-> MT5 (une seule fois).\n")
+    cfg = {
+        "account_name": ask("Nom du compte (affiché dans CHEST)", DEFAULT_CONFIG["account_name"]),
+        "account_type": ask("Type de compte (Démo / 2-Step / 1-Step...)", DEFAULT_CONFIG["account_type"]),
+        "broker_label": ask("Nom de ton broker/propfirm (ex. Vantage, FTMO)", DEFAULT_CONFIG["broker_label"]),
+        "objectives": {
+            "min_trading_days": ask_float("Jours de trading minimum exigés", DEFAULT_CONFIG["objectives"]["min_trading_days"]),
+            "max_daily_loss_pct": ask_float("Perte journalière max autorisée (%)", DEFAULT_CONFIG["objectives"]["max_daily_loss_pct"]),
+            "max_loss_pct": ask_float("Perte totale max autorisée (%)", DEFAULT_CONFIG["objectives"]["max_loss_pct"]),
+            "profit_target_pct": ask_float("Objectif de profit (%)", DEFAULT_CONFIG["objectives"]["profit_target_pct"]),
+        },
+    }
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+    print(f"\nConfiguration enregistrée dans {CONFIG_PATH} — modifiable à tout moment en relançant ce script après l'avoir supprimé, ou en éditant ce fichier directement.\n")
+    return cfg
+
+
+def load_config():
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return run_setup_wizard()
+
+
+CONFIG = load_config()
+ACCOUNT_NAME = CONFIG["account_name"]
+ACCOUNT_TYPE = CONFIG["account_type"]
+BROKER_LABEL = CONFIG["broker_label"]
+OBJECTIVES = CONFIG["objectives"]
 
 
 def connect():

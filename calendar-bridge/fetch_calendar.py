@@ -680,7 +680,7 @@ def fetch_investing_week():
                 # la page peut mettre du temps a finir de se rendre une fois
                 # le bandeau cookies ferme (meme constat que pour le bandeau
                 # lui-meme, voir _dismiss_onetrust_consent).
-                page.wait_for_selector("text=Cette Semaine", timeout=30000)
+                page.wait_for_selector("text=Cette Semaine", timeout=45000)
                 tab_locator = page.get_by_text("Cette Semaine", exact=True).last
                 try:
                     tab_locator.click(timeout=10000)
@@ -720,6 +720,105 @@ def fetch_investing_week():
 
     events = []
     for e in all_events.values():
+        stars = e["stars"]
+        importance = "high" if stars >= 3 else ("medium" if stars == 2 else "low")
+        events.append({
+            "id": stable_event_id("invwk", e["countryCode"], e["date"], e["event"]),
+            "investingEventId": e.get("investingEventId"),
+            "country": e["countryCode"],
+            "event": cap_first(e["event"]),
+            "date": e["date"],
+            "time": e["time"],
+            "actual": e["actual"],
+            "previous": e["previous"],
+            "consensus": e["forecast"],
+            "released": bool(e["actual"]),
+            "directionBias": guess_direction_fr(e["event"]),
+            "importance": importance,
+            "source": "investing.com",
+        })
+    return events
+
+
+def fetch_investing_date_range(start_date, end_date):
+    """Comme fetch_investing_week(), mais pour une plage de dates arbitraire
+    dans le PASSE - utile pour garantir qu'une semaine deja ecoulee (ex. la
+    semaine precedente) reste disponible independamment de l'historique deja
+    accumule par merge_with_history(). Utilise le bouton "Personnaliser les
+    dates" du calendrier investing.com (verifie manuellement le 2026-09-14 :
+    champs #date-picker-start-day / #date-picker-end-day au format
+    DD/MM/YYYY, puis bouton "Appliquer"), plutot que "Cette Semaine"/
+    "Semaine prochaine" qui ne couvrent jamais le passe.
+
+    start_date/end_date : objets date(). Renvoie None si Playwright est
+    absent ou si ca echoue (meme convention que fetch_investing_week)."""
+    if sync_playwright is None:
+        return None
+
+    browser = None
+    try:
+        with sync_playwright() as p:
+            launch_kwargs = {
+                "headless": False,
+                "args": ["--disable-dev-shm-usage", "--disable-gpu"],
+            }
+            chrome_channel = os.environ.get("CHEST_CHROME_CHANNEL", "chrome")
+            if chrome_channel:
+                launch_kwargs["channel"] = chrome_channel
+            browser = p.chromium.launch(**launch_kwargs)
+            context = browser.new_context(locale="fr-FR", timezone_id="Europe/Paris")
+            page = context.new_page()
+            page.goto("https://fr.investing.com/economic-calendar/", wait_until="domcontentloaded", timeout=30000)
+            _dismiss_onetrust_consent(page)
+            page.wait_for_timeout(1500)
+
+            page.wait_for_selector("text=Personnaliser les dates", timeout=45000)
+            # BUG CORRIGE (2026-09-14, vu en prod) : le bandeau OneTrust peut
+            # encore etre en train de se fermer (filtre sombre du Preference
+            # Center) au moment de ce clic, meme apres _dismiss_onetrust_consent
+            # plus haut - il intercepte alors le clic "reel" en boucle jusqu'au
+            # timeout. On retente le dismiss juste avant, et on retombe sur un
+            # clic JS direct (qui ignore les overlays) si ca coince quand meme -
+            # meme repli deja utilise avec succes pour l'onglet "Cette Semaine".
+            _dismiss_onetrust_consent(page)
+            date_range_tab = page.get_by_text("Personnaliser les dates", exact=True).last
+            try:
+                date_range_tab.click(timeout=10000)
+            except Exception:
+                date_range_tab.evaluate("el => el.click()")
+            page.wait_for_selector("#date-picker-start-day", timeout=10000)
+            # .fill() ne declenche pas toujours le re-rendu React de ce
+            # composant (verifie manuellement) - on passe par le DOM natif +
+            # un evenement "input", comme teste avec succes dans le navigateur.
+            set_native_value = """(el, value) => {
+                const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                setter.call(el, value);
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            }"""
+            page.eval_on_selector("#date-picker-start-day", set_native_value, start_date.strftime("%d/%m/%Y"))
+            page.eval_on_selector("#date-picker-end-day", set_native_value, end_date.strftime("%d/%m/%Y"))
+            apply_btn = page.get_by_text("Appliquer", exact=True).last
+            try:
+                apply_btn.click(timeout=10000)
+            except Exception:
+                apply_btn.evaluate("el => el.click()")
+            page.wait_for_timeout(2500)
+
+            raw_events = page.evaluate(INV_WEEK_EXTRACT_JS, None)
+    except Exception as exc:
+        print(f"investing.com (plage {start_date}..{end_date}, playwright) indisponible : {exc}")
+        return None
+    finally:
+        if browser is not None:
+            try:
+                browser.close()
+            except Exception:
+                pass
+
+    events = []
+    for e in raw_events:
+        if e["countryCode"] not in INV_WEEK_COUNTRIES:
+            continue
         stars = e["stars"]
         importance = "high" if stars >= 3 else ("medium" if stars == 2 else "low")
         events.append({

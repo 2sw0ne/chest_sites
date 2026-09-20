@@ -19,38 +19,119 @@ script local `python fetch_calendar.py` classique reste la bonne option) :
 Sur Railway, c'est le CMD du Dockerfile qui lance cette commande.
 """
 
+import json
 import os
 import threading
 import time
 import traceback
+from datetime import datetime, timedelta
 
 from flask import Flask, jsonify, send_file
 
 import fetch_calendar
 
-# 30 min par defaut (demande explicite : les resultats deja publies doivent
-# remonter vite, pas une fois par jour) - AU DESSUS de la recommandation du
-# README de fetch_calendar.py ("une fois par jour suffit largement, ne pas
-# relancer trop souvent"), qui restait pertinente pour rester discret face
-# a l'anti-bot d'investing.com. Compromis assume : 48 scrapes/jour au lieu
-# de 1, donc un risque de blocage plus eleve qu'avant - a surveiller via les
-# logs Railway (recherche "indisponible") si ca se degrade.
-REFRESH_SECONDS = int(os.environ.get("CHEST_CALENDAR_REFRESH_SECONDS", 30 * 60))
+# Persistance de l'historique glissant (merge_with_history) sur le Volume
+# Railway attache au service - AJOUTE (2026-09-14, retour direct utilisateur) :
+# state["data"] ne vivait qu'en RAM, donc chaque redemarrage/redeploiement du
+# conteneur (meme pour un simple bug fix) effacait tout l'historique accumule,
+# faisant disparaitre le bilan de "la semaine passee" cote site jusqu'a ce que
+# 7 jours se soient re-ecoules. RAILWAY_VOLUME_MOUNT_PATH est defini
+# automatiquement par Railway des qu'un Volume est attache au service (voir
+# docs.railway.com/reference/volumes) - en local (pas de volume), on retombe
+# sur le dossier du script, comme fetch_calendar.py le fait deja pour
+# calendar_history.json.
+HISTORY_DIR = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH") or os.path.dirname(os.path.abspath(__file__))
+HISTORY_FILE = os.path.join(HISTORY_DIR, "calendar_history.json")
+
+
+def load_persisted_events():
+    try:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f).get("events", [])
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return []
+
+
+def save_persisted_events(data):
+    try:
+        os.makedirs(HISTORY_DIR, exist_ok=True)
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump({"events": data["events"]}, f, ensure_ascii=False)
+    except OSError as exc:
+        print(f"Impossible d'ecrire l'historique persistant ({HISTORY_FILE}) : {exc}")
+
+# 2h par defaut. Etait a 30 min (demande explicite de fraicheur), mais le
+# service s'est mis a repondre 502 "Application failed to respond" en continu
+# juste apres ce changement (2026-09-12) - hypothese la plus probable : Chrome
+# via Playwright/Xvfb, relance 48x/jour au lieu de 1x, finit par OOM le
+# conteneur Railway (ressources limitees, cause deja rencontree une fois lors
+# du deploiement initial - voir README.md). 2h reste bien plus frequent que
+# la recommandation initiale (1x/jour) tout en reduisant fortement le risque
+# de crash repete. A resserrer de nouveau seulement si le service se montre
+# stable ET qu'un vrai suivi memoire est en place cote Railway.
+REFRESH_SECONDS = int(os.environ.get("CHEST_CALENDAR_REFRESH_SECONDS", 2 * 3600))
 
 app = Flask(__name__)
 state = {"data": None, "error": None}
 state_lock = threading.Lock()
 
 
+def last_completed_week_bounds():
+    """Lundi/dimanche de la derniere semaine ENTIEREMENT terminee, cote
+    serveur (heure de Paris) - reprend la meme convention que le site
+    (js/calendar.js, isForexMarketClosedNow/tradingWeekReference) : le
+    week-end, la semaine qui s'acheve aujourd'hui compte deja comme
+    terminee ; sinon c'est la semaine precedente."""
+    now = datetime.now(fetch_calendar.PARIS_TZ)
+    today = now.date()
+    monday = today - timedelta(days=today.weekday())
+    market_closed = today.weekday() == 5 or (today.weekday() == 6 and now.hour < 22)
+    past_monday = monday if market_closed else monday - timedelta(days=7)
+    return past_monday, past_monday + timedelta(days=6)
+
+
+def ensure_last_week_backfilled(data):
+    """Garantit que la derniere semaine terminee est presente dans
+    data["events"], independamment de ce que merge_with_history a accumule -
+    retour direct utilisateur (2026-09-14) : sans ca, un historique remis a
+    zero (redemarrage, nouveau Volume...) laisse "Resultats de la semaine
+    passee" vide cote site jusqu'a ce qu'une semaine entiere se re-ecoule.
+    Ne scrape QUE si necessaire (semaine deja absente) - pas a chaque refresh,
+    pour ne pas doubler la charge Playwright toutes les 2h."""
+    past_monday, past_sunday = last_completed_week_bounds()
+    have_dates = {e["date"] for e in data["events"] if e.get("date")}
+    target_dates = {(past_monday + timedelta(days=i)).isoformat() for i in range(7)}
+    if target_dates & have_dates:
+        return data  # au moins un jour de cette semaine est deja connu - rien a faire
+    print(f"Semaine du {past_monday} au {past_sunday} absente de l'historique — backfill investing.com...")
+    backfilled = fetch_calendar.fetch_investing_date_range(past_monday, past_sunday)
+    if not backfilled:
+        print("Backfill de la semaine passee indisponible pour l'instant (reessaiera au prochain refresh).")
+        return data
+    by_id = {e["id"]: e for e in data["events"]}
+    for e in backfilled:
+        by_id.setdefault(e["id"], e)
+    data["events"] = sorted(by_id.values(), key=lambda e: (e["date"] or "", e["time"] or ""))
+    print(f"Backfill OK — {len(backfilled)} evenements ajoutes pour la semaine du {past_monday}.")
+    return data
+
+
 def refresh_once():
     try:
         with state_lock:
-            previous_events = (state["data"] or {}).get("events", [])
+            previous_events = (state["data"] or {}).get("events")
+        if previous_events is None:
+            # Rien en RAM (premier refresh depuis un (re)demarrage du
+            # conteneur) - recharge l'historique persiste sur le Volume au
+            # lieu de repartir de zero.
+            previous_events = load_persisted_events()
         data = fetch_calendar.build_calendar_data()
         data = fetch_calendar.merge_with_history(data, previous_events)
+        data = ensure_last_week_backfilled(data)
         with state_lock:
             state["data"] = data
             state["error"] = None
+        save_persisted_events(data)
         print(f"OK — {len(data['events'])} evenements rafraichis")
     except Exception:
         err = traceback.format_exc()
@@ -116,4 +197,13 @@ def debug_error():
 
 if __name__ == "__main__":
     threading.Thread(target=refresh_loop, daemon=True).start()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    # threaded=False explicite (2026-09-12) : les logs Railway montrent le
+    # serveur de dev Werkzeug plantant sur "RuntimeError: can't start new
+    # thread" (socketserver.py, ThreadingMixIn.process_request) apres une
+    # dizaine d'heures - le conteneur finit par epuiser sa limite de threads
+    # OS a force de servir /calendar.json (chaque requete entrante ouvrant un
+    # nouveau thread), ce qui bloque ENSUITE toutes les requetes (502
+    # "Application failed to respond" cote Railway). En mode non threade, le
+    # serveur traite les requetes une par une sur le thread principal - pas
+    # de thread supplementaire cree par requete HTTP.
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), threaded=False)

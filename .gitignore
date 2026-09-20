@@ -11,6 +11,10 @@ calendar-bridge/debug/
 site/data/calendar.json
 site/data/data.json
 
+# Config perso generee au premier lancement d'export_mt5.py (nom de compte,
+# objectifs de challenge) - propre a chaque famille/ami, jamais dans le repo.
+mt5-bridge/config.json
+
 # Calibration d'impact reelle (calendar-bridge/calibrate_impact.py) : donnee
 # generee, longue a produire et amenee a evoluer independamment du code -
 # meme logique que calendar.json ci-dessus. Regenerer localement avec
@@ -25,3 +29,9 @@ site/js/config.local.js
 # OS
 .DS_Store
 Thumbs.db
+
+# Base de comptes utilisateurs (emails + hashs de mots de passe) - jamais dans le repo
+accounts-bridge/accounts.db
+
+# Brouillons locaux
+scratch/

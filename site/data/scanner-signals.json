@@ -3,7 +3,7 @@
   "updatedAt": "2026-09-11T20:00:00Z",
   "signals": [
     { "id": "demo-1", "scanner": "Wolfx", "symbol": "EURUSD", "timeframe": "15", "side": "buy", "time": "2026-09-11T19:55:00Z" },
-    { "id": "demo-2", "scanner": "Swyper v6", "symbol": "GBPUSD", "timeframe": "60", "side": "sell", "time": "2026-09-11T19:40:00Z" },
+    { "id": "demo-2", "scanner": "Swyper", "symbol": "GBPUSD", "timeframe": "60", "side": "sell", "time": "2026-09-11T19:40:00Z" },
     { "id": "demo-3", "scanner": "Algomni", "symbol": "XAUUSD", "timeframe": "240", "side": "buy", "time": "2026-09-11T18:10:00Z" }
   ]
 }

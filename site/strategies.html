@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=3">
+<link rel="stylesheet" href="css/chest-da.css?v=1">
 <style>
   [hidden]{ display:none !important; }
 
@@ -50,10 +51,19 @@
   .scnr-menu__item span{ display:block; font-size:10.5px; color:var(--muted); }
 
   /* ================= Graphique — pleine largeur ================= */
-  .scnr-media{ overflow:hidden; margin-bottom:16px; }
-  .scnr-media__tabs{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-bottom:1px solid var(--line); }
-  .scnr-tabbar{ display:inline-flex; gap:4px; background:var(--bg); padding:4px; border-radius:999px; }
-  .scnr-tabbar button{ border:none; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600; padding:7px 15px; border-radius:999px; background:transparent; color:var(--muted); }
+  .scnr-media{ overflow:hidden; margin-bottom:16px; border-top-left-radius:0; border-top-right-radius:0; }
+  /* La barre d'onglets vit maintenant DANS le hero sombre (juste sous le nom
+     du scanner), pas dans une carte separee - retour direct utilisateur
+     (2026-09-14) : evite la coupure nette entre la lueur neon et un bloc de
+     fond clair juste en dessous. Style hero-specifique (jamais var(--bg),
+     qui suit le theme clair/sombre du site alors que le hero reste toujours
+     sombre) plutot que la version "carte normale" du tabbar. */
+  .scnr-hero .scnr-media__tabs{ display:flex; justify-content:center; margin-top:24px; }
+  .scnr-hero .scnr-tabbar{ background:rgba(255,255,255,.06); }
+  .scnr-hero .scnr-tabbar button{ color:rgba(255,255,255,.6); }
+  .scnr-hero .scnr-tabbar button.is-active{ background:#fff; color:#0a0a0d; }
+  .scnr-tabbar{ display:inline-flex; gap:4px; padding:4px; border-radius:999px; }
+  .scnr-tabbar button{ border:none; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600; padding:7px 15px; border-radius:999px; background:transparent; color:var(--muted); transition:background .15s, color .15s; }
   .scnr-tabbar button.is-active{ background:var(--ink); color:var(--bg); }
   .scnr-panel{ display:none; }
   .scnr-panel.is-active{ display:block; }
@@ -64,71 +74,122 @@
   .scnr-tags{ display:flex; gap:6px; flex-wrap:wrap; padding:0 18px 18px; }
   .scnr-tags span{ font-size:11px; padding:4px 9px; border-radius:6px; background:var(--panel-2); color:var(--blue); }
 
-  /* ================= Panneau de notification d'opportunités — sous le
-     graphique, pleine largeur (plus un volet lateral qui retrecissait le
-     graphique) ================= */
-  .notif-card{ padding:0; overflow:hidden; }
-  .notif-head{ padding:16px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .notif-head h2{ font-size:13.5px; font-weight:700; margin:0; }
-  .notif-dot{ width:7px; height:7px; border-radius:50%; background:var(--faint); flex-shrink:0; }
-  .notif-dot.is-live{ background:var(--green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
-  .notif-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1px; background:var(--line); }
-  .notif-row{
-    display:flex; align-items:flex-start; gap:10px; width:100%; padding:13px 18px;
-    background:var(--panel); border:none; cursor:pointer; text-align:left; font:inherit; color:inherit;
+  /* ================= Hero du scanner actif — logo + nom en grand, fond neon
+     derive du logoColor (scanner-store.js), meme principe que .sentiment-hero
+     du calendrier (breakout pleine largeur, lueur radiale, toujours sombre
+     independamment du theme du site) mais teinte propre a chaque scanner
+     plutot qu'un binaire haussier/baissier. Couleurs dupliquees ici depuis
+     logoColor (regles par data-scanner, pas de variables CSS partagees entre
+     les deux fichiers) — a garder synchronise si un logoColor change dans
+     scanner-store.js. ================= */
+  .scnr-hero{
+    position:relative; overflow:hidden; text-align:center;
+    padding:clamp(40px,6vh,64px) 24px 28px;
   }
-  .notif-row:hover{ background:var(--bg); }
-  .notif-row__body{ flex:1; min-width:0; }
-  .notif-row__top{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:3px; }
-  .notif-row__scanner{ font-size:12px; font-weight:700; }
-  .notif-row__pair{ font-size:12.5px; font-weight:700; color:var(--ink); }
-  .notif-row__meta{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11px; color:var(--muted); }
-  .notif-side{ font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:2px 7px; border-radius:var(--radius-pill); }
-  .notif-side.buy{ color:var(--green); background:rgba(51,230,166,.14); }
-  .notif-side.sell{ color:var(--red); background:rgba(255,77,94,.14); }
-  .notif-empty{ padding:36px 18px; text-align:center; color:var(--muted); font-size:12.5px; grid-column:1/-1; }
-  .notif-example{ font-size:10.5px; color:var(--amber); padding:8px 18px; border-bottom:1px solid var(--line); background:rgba(245,166,35,.08); }
+  .scnr-hero::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 55% 65% at 50% 22%, var(--glow, rgba(140,140,160,.4)), transparent 72%);
+    transition:background .5s ease;
+  }
+  /* Fondu de sortie vers le fond reel de la page - sans ca, la lueur radiale
+     (deja assombrie a ses bords, voir ::before) rencontre le fond de page
+     (var(--bg)) en une ligne nette, visible surtout aux coins gauche/droite
+     ou la lueur n'apporte plus rien (retour direct utilisateur du
+     2026-09-16, capture entouree en rose). Hauteur en clamp() : plus le
+     viewport est grand, plus le fondu est genereux. */
+  .scnr-hero::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; pointer-events:none;
+    height:clamp(40px,10vh,120px); background:linear-gradient(180deg, transparent, var(--bg));
+  }
+  .scnr-hero[data-scanner="wolfx"]{ --glow: rgba(84,112,194,.5); }
+  .scnr-hero[data-scanner="algomni"]{ --glow: rgba(249,164,94,.5); }
+  .scnr-hero[data-scanner="swyper-v6"]{ --glow: rgba(227,87,40,.5); }
+  .scnr-hero[data-scanner="pivot"]{ --glow: rgba(51,230,166,.5); }
+  .scnr-hero__inner{ position:relative; max-width:520px; margin:0 auto; }
+  .scnr-hero__logo-wrap{ display:inline-flex; margin-bottom:22px; }
+  .scnr-hero__logo{
+    width:92px; height:92px; border-radius:26px; object-fit:contain; display:block;
+    box-shadow:0 0 0 1px rgba(255,255,255,.1), 0 24px 56px -8px var(--glow, rgba(0,0,0,.5));
+    transition:box-shadow .5s ease;
+  }
+  .scnr-hero__logo-fallback{
+    width:92px; height:92px; border-radius:26px; display:flex; align-items:center; justify-content:center;
+    font-size:32px; font-weight:800; color:#fff;
+    box-shadow:0 0 0 1px rgba(255,255,255,.1), 0 24px 56px -8px var(--glow, rgba(0,0,0,.5));
+    transition:box-shadow .5s ease;
+  }
+  .scnr-hero__name{
+    font-size:clamp(36px,6vw,60px); font-weight:800; letter-spacing:-.03em; line-height:1; margin:0 0 12px;
+    background:linear-gradient(180deg,#fff,rgba(255,255,255,.55)); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .scnr-hero__tags{ font-size:13px; font-weight:600; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.06em; }
+
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>CHESTAuth.guard();</script>
+<script src="js/accounts-auth.js"></script>
+<script>CHESTAccounts.guard();</script>
 </head>
-<body data-page="strategies">
+<body data-page="strategies" class="chest-root">
 
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
-  </div>
-  <nav class="sidebar__nav">
-    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
-    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
-    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
-    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
-    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
-    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
-    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
-  </nav>
-  <div class="sidebar__foot">
-    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
-    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
-  </div>
-</aside>
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
 
-<header class="topbar">
-  <div class="topbar__left">
-    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-  </div>
-</header>
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </header>
 
-<main class="container">
-  <div class="page-head">
-    <h1>Stratégies</h1>
-    <p>Tes scanners réels — le vrai script Pine, affiché en direct sur de vraies données, comme sur BERICH.</p>
-  </div>
+  <section class="scnr-hero" id="scnrHero">
+    <div class="scnr-hero__inner">
+      <div class="scnr-hero__logo-wrap" id="scnrHeroLogoWrap"></div>
+      <h2 class="scnr-hero__name" id="scnrHeroName">—</h2>
+      <div class="scnr-hero__tags" id="scnrHeroTags"></div>
+      <div class="scnr-media__tabs">
+        <div class="scnr-tabbar" id="scnrTabs">
+          <button type="button" data-tab="chart" class="is-active">Graphique</button>
+          <button type="button" data-tab="about">À propos</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <main class="container">
   <div class="scnr-topbar card">
     <div class="scnr-field" style="min-width:220px">
       <label>Scanner</label>
@@ -162,48 +223,44 @@
   </div>
 
   <div class="card scnr-media" id="scnrMediaCard">
-    <div class="scnr-media__tabs">
-      <div class="scnr-tabbar" id="scnrTabs">
-        <button type="button" data-tab="chart" class="is-active">Graphique</button>
-        <button type="button" data-tab="about">À propos</button>
-      </div>
-    </div>
     <div class="scnr-panel is-active" id="scnrPanelChart"><div id="scnrChart"></div></div>
     <div class="scnr-panel" id="scnrPanelAbout">
       <p class="scnr-desc" id="scnrAboutDesc"></p>
       <div class="scnr-tags" id="scnrAboutTags"></div>
     </div>
   </div>
-
-  <div class="card notif-card">
-    <div class="notif-head">
-      <h2>Opportunités</h2>
-      <span class="notif-dot" id="notifDot"></span>
-    </div>
-    <div class="notif-example" id="notifExample" hidden>Exemple — en attente d'un vrai signal webhook (voir scanner-bridge/README.md)</div>
-    <div class="notif-list" id="notifList"><div class="notif-empty">Chargement…</div></div>
+  </main>
   </div>
-</main>
+</div>
 
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
-<script src="js/nav.js"></script>
+<script src="js/nav.js?v=2"></script>
 <script src="js/lot-calculator.js?v=3"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
-<script src="js/scanner-store.js?v=2"></script>
-<script src="js/scanner-chart.js"></script>
-<script src="js/scanner-signals-store.js"></script>
+<script src="js/scanner-store.js?v=5"></script>
+<script src="js/scanner-chart.js?v=5"></script>
+<script src="js/page-tour.js"></script>
+<script>
+CHESTTour.init([
+  { selector: '#scnrHero', title: 'Stratégies', text: 'Le scanner actif, son logo et une courte description de ce qu\'il détecte.' },
+  { selector: '#scnrCombo', title: 'Changer de scanner', text: 'Bascule entre les différents scanners disponibles (WolfX, Algomni, Swyper, Pivot...).' },
+  { selector: '.scnr-topbar', title: 'Marché & timeframe', text: 'Choisis la paire et l\'unité de temps du graphique juste en dessous.' },
+  { selector: '#scnrMediaCard', title: 'Graphique', text: 'Le scanner tourne en direct sur ce graphique — bascule sur "À propos" pour lire le détail de la stratégie.' },
+]);
+</script>
 <script>
 (() => {
   'use strict';
 
   // ================= Marchés / paires — mêmes listes que le Journal, avec
-  // conversion vers le format Twelve Data (BASE/QUOTE). Seules les paires qui
-  // se convertissent proprement sont proposées (USOIL et DXY ne sont pas de
+  // conversion vers un format "BASE/QUOTE" générique (converti en instrument
+  // OANDA "BASE_QUOTE" dans scanner-chart.js). Seules les paires qui se
+  // convertissent proprement sont proposées (USOIL et DXY ne sont pas de
   // simples paires de devises — exclues pour l'instant plutôt que de risquer
   // un symbole invalide). =================
-  function toTwelveDataSymbol(code) {
+  function toSlashSymbol(code) {
     if (code.length === 6) return code.slice(0, 3) + '/' + code.slice(3);
     if (code.endsWith('USD') && code.length > 3) return code.slice(0, -3) + '/USD';
     return null;
@@ -220,7 +277,7 @@
   };
   const MARKETS = {};
   Object.entries(RAW_MARKETS).forEach(([id, m]) => {
-    MARKETS[id] = { label: m.label, pairs: m.codes.map((code) => [code, toTwelveDataSymbol(code)]).filter(([, td]) => td) };
+    MARKETS[id] = { label: m.label, pairs: m.codes.map((code) => [code, toSlashSymbol(code)]).filter(([, sp]) => sp) };
   });
 
   function populateMarketSelect(sel) {
@@ -230,15 +287,9 @@
     const pairs = MARKETS[marketId] ? MARKETS[marketId].pairs : [];
     sel.innerHTML = pairs.map(([code]) => `<option value="${code}" ${code === selected ? 'selected' : ''}>${code}</option>`).join('');
   }
-  function twelveDataSymbolFor(marketId, code) {
+  function slashSymbolFor(marketId, code) {
     const pair = (MARKETS[marketId] ? MARKETS[marketId].pairs : []).find((p) => p[0] === code);
     return pair ? pair[1] : null;
-  }
-  // Pour un code de paire donne (sans savoir dans quel marche il vit — utile
-  // quand une notification arrive pour une paire d'un marche different de
-  // celui actuellement affiche), trouve son marche d'appartenance.
-  function marketContaining(code) {
-    return Object.keys(MARKETS).find((id) => MARKETS[id].pairs.some((p) => p[0] === code)) || null;
   }
 
   populateMarketSelect(document.getElementById('scnrMarket'));
@@ -287,19 +338,34 @@
     document.getElementById('scnrAboutDesc').textContent = scanner.description || 'Pas de description.';
     document.getElementById('scnrAboutTags').innerHTML = (scanner.tags || []).map((t) => `<span>${t}</span>`).join('');
 
+    renderScannerHero(scanner);
     renderScannerMenu();
     renderChart();
+  }
+
+  // Hero plein écran au-dessus du graphique (même principe que le hero de
+  // sentiment du calendrier) : logo + nom du scanner actif en grand, fond
+  // néon dérivé de son logoColor via l'attribut data-scanner (regle CSS,
+  // voir <style> — permet la transition douce sur le changement de scanner).
+  function renderScannerHero(scanner) {
+    document.getElementById('scnrHero').dataset.scanner = scanner.id;
+    document.getElementById('scnrHeroLogoWrap').innerHTML = scanner.logo
+      ? `<img class="scnr-hero__logo" src="${scanner.logo}" alt="${scanner.name}">`
+      : `<span class="scnr-hero__logo-fallback" style="background:${scanner.logoColor}">${scanner.logoInitials}</span>`;
+    document.getElementById('scnrHeroName').textContent = 'Stratégie ' + scanner.name;
+    document.getElementById('scnrHeroTags').textContent = (scanner.tags || []).join(' · ');
   }
 
   function renderChart() {
     const scanner = activeScanner();
     if (!scanner) return;
-    const twelveDataSymbol = twelveDataSymbolFor(currentMarket, currentSymbol);
+    const symbolPair = slashSymbolFor(currentMarket, currentSymbol);
     CHESTScannerChart.render({
       containerId: 'scnrChart',
       pineSource: scanner.pineSource,
+      secondaryPineSource: scanner.secondaryPineSource,
       symbolDisplay: currentSymbol,
-      twelveDataSymbol,
+      twelveDataSymbol: symbolPair, // Twelve Data attend aussi un symbole "BASE/QUOTE" (ex. "XAU/USD") - retour a Twelve Data (2026-09-14, OANDA abandonne : restriction EU)
       timeframe: currentTimeframe,
       candles: scanner.candles,
       scannerId: scanner.id,
@@ -340,62 +406,6 @@
       });
     });
   });
-
-  // ================= Panneau de notification d'opportunités (tous scanners) =================
-  const TF_LABEL = { '1': '1m', '5': '5m', '15': '15m', '30': '30m', '60': '1h', '240': '4h', 'D': '1D' };
-  function timeAgo(iso) {
-    const diffMin = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-    if (diffMin < 1) return 'à l\'instant';
-    if (diffMin < 60) return `il y a ${diffMin} min`;
-    const h = Math.round(diffMin / 60);
-    return `il y a ${h}h`;
-  }
-
-  function renderNotifications(data) {
-    document.getElementById('notifDot').classList.toggle('is-live', !data.example);
-    document.getElementById('notifExample').hidden = !data.example;
-    const list = document.getElementById('notifList');
-    const signals = data.signals || [];
-    if (!signals.length) { list.innerHTML = '<div class="notif-empty">Aucune opportunité pour l\'instant.</div>'; return; }
-    list.innerHTML = signals.map((s) => {
-      const scanner = CHESTScanners.list().find((sc) => sc.name === s.scanner);
-      const logo = scanner ? scannerLogoHtml(scanner, 40) : `<span class="scnr-logo" style="background:var(--faint);width:40px;height:40px">?</span>`;
-      return `
-        <button type="button" class="notif-row" data-notif-symbol="${s.symbol}" data-notif-tf="${s.timeframe}" data-notif-scanner="${scanner ? scanner.id : ''}">
-          ${logo}
-          <div class="notif-row__body">
-            <div class="notif-row__top">
-              <span class="notif-row__scanner">${s.scanner}</span>
-              <span class="notif-side ${s.side}">${s.side === 'sell' ? 'Vente' : 'Achat'}</span>
-            </div>
-            <div class="notif-row__meta">
-              <span class="notif-row__pair">${s.symbol} · ${TF_LABEL[s.timeframe] || s.timeframe}</span>
-              <span>${timeAgo(s.time)}</span>
-            </div>
-          </div>
-        </button>`;
-    }).join('');
-    list.querySelectorAll('[data-notif-scanner]').forEach((row) => row.addEventListener('click', () => {
-      const scannerId = row.dataset.notifScanner;
-      const symbol = row.dataset.notifSymbol;
-      const timeframe = row.dataset.notifTf;
-      if (!scannerId) { showToast('Scanner inconnu — pas encore enregistré sur cette page.'); return; }
-      const market = marketContaining(symbol) || 'forex';
-      selectScanner(scannerId, { market, symbol, timeframe });
-      document.querySelector('#scnrTabs [data-tab="chart"]').click();
-      document.getElementById('scnrMediaCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }));
-  }
-
-  async function loadNotifications() {
-    try {
-      renderNotifications(await CHESTScannerSignals.fetchSignals());
-    } catch (e) {
-      document.getElementById('notifList').innerHTML = '<div class="notif-empty">Notifications indisponibles pour le moment.</div>';
-    }
-  }
-  loadNotifications();
-  setInterval(loadNotifications, 30000);
 
   // ================= Démarrage =================
   const scanners = CHESTScanners.list();

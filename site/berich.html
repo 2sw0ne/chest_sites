@@ -7,8 +7,41 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=3">
+<link rel="stylesheet" href="css/chest-da.css?v=1">
 <style>
+  /* ================= Hero BE FR€E — fond neon plein largeur, meme principe
+     que .scnr-hero (Stratégies) et .sentiment-hero (Calendrier) : breakout
+     pleine largeur, lueur radiale, toujours sombre quel que soit le theme.
+     Couleur reprise du vert deja utilise partout sur BERICH (bougies haussieres
+     #089981, pill "Achat", bouton "Prendre le trade") - c'est la couleur
+     etablie de BE FR€E sur ce site, pas un choix arbitraire. ================= */
+  .berich-hero{
+    position:relative; overflow:hidden; text-align:center;
+    padding:clamp(36px,5.5vh,56px) 24px 32px;
+  }
+  .berich-hero::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 55% 65% at 50% 22%, rgba(8,153,129,.45), transparent 72%);
+  }
+  /* Fondu de sortie vers le fond reel de la page (retour direct utilisateur
+     du 2026-09-16 : coupure nette aux bords gauche/droite ou la lueur ne
+     porte plus, capture entouree en rose) - meme technique que .scnr-hero/
+     .sentiment-hero. Hauteur en clamp() : plus le viewport est grand, plus
+     le fondu est genereux. */
+  .berich-hero::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; pointer-events:none;
+    height:clamp(40px,10vh,120px); background:linear-gradient(180deg, transparent, var(--bg));
+  }
+  .berich-hero__inner{ position:relative; max-width:520px; margin:0 auto; }
+  .berich-hero__logo-wrap{ display:inline-flex; margin-bottom:8px; }
+  .berich-hero__logo{
+    width:168px; height:168px; object-fit:contain; display:block;
+    mix-blend-mode:screen; /* fond noir de l'image -> transparent sur le fond sombre du hero, sans contour visible */
+  }
+  .berich-hero__title{ font-size:clamp(34px,5.5vw,52px); font-weight:800; letter-spacing:-.03em; margin:0 0 12px; color:#fff; }
+  .berich-hero__sub{ font-size:13.5px; color:rgba(255,255,255,.62); line-height:1.6; margin:0; }
+
   .conn-bar{
     display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
     margin-bottom:24px; padding:14px 18px; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
@@ -81,15 +114,6 @@
   .broker-card img{ width:28px; height:28px; border-radius:6px; }
   .broker-card__icon{ width:28px; height:28px; border-radius:6px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; font-size:14px; }
 
-  .server-list{ display:flex; flex-direction:column; gap:8px; }
-  .server-pill{
-    display:flex; align-items:center; justify-content:space-between; padding:12px 16px;
-    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--bg);
-    cursor:pointer; font:inherit; font-size:13.5px; color:var(--ink); text-align:left; transition:.15s;
-  }
-  .server-pill:hover{ border-color:var(--acc); }
-  .server-other-input{ margin-top:8px; }
-
   /* ---------- Panneau position : attente / active ---------- */
   .signal-hero{ padding:0; overflow:hidden; margin-bottom:16px; }
   .signal-hero__waiting{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:56px 24px; text-align:center; }
@@ -138,76 +162,110 @@
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
-<script>CHESTAuth.guard();</script>
+<script src="js/accounts-auth.js"></script>
+<script>CHESTAccounts.guard();</script>
 </head>
-<body data-page="berich">
+<body data-page="berich" class="chest-root">
 
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar__head">
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-    <button class="icon-btn" id="sidebarClose" aria-label="Fermer le menu">✕</button>
-  </div>
-  <nav class="sidebar__nav">
-    <a href="dashboard.html" data-page="dashboard"><span class="ic">📊</span>Dashboard</a>
-    <a href="backtesting.html" data-page="backtesting"><span class="ic">🧪</span>Backtesting</a>
-    <a href="journal.html" data-page="journal"><span class="ic">📔</span>Journal</a>
-    <a href="strategies.html" data-page="strategies"><span class="ic">📈</span>Stratégies</a>
-    <a href="calendar.html" data-page="calendar"><span class="ic">🗓️</span>Calendrier</a>
-    <a href="berich.html" data-page="berich"><span class="ic">📡</span>BERICH</a>
-    <a href="account.html" data-page="account"><span class="ic">⚙️</span>Compte</a>
-  </nav>
-  <div class="sidebar__foot">
-    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">☀️</button>
-    <button class="icon-btn" data-logout aria-label="Verrouiller">🔒</button>
-  </div>
-</aside>
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 16 96" preserveAspectRatio="none"><path d="M0 0 C 0 22, 16 30, 16 48 C 16 66, 0 74, 0 96 Z" fill="rgba(8,8,10,.86)"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
 
-<header class="topbar">
-  <div class="topbar__left">
-    <button class="icon-btn" id="sidebarOpen" aria-label="Ouvrir le menu">☰</button>
-    <a href="dashboard.html" class="brand"><span class="brand__mark" aria-hidden="true"></span><span>CHEST</span></a>
-  </div>
-</header>
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </header>
 
-<main class="container">
-  <div class="page-head">
-    <h1>BERICH</h1>
-    <p>Graphique en direct, signaux détectés par ton scanner, et prise de position en un clic.</p>
-  </div>
+  <section class="berich-hero">
+    <div class="berich-hero__inner">
+      <div class="berich-hero__logo-wrap"><img class="berich-hero__logo" src="assets/logo-berich.png" alt="BE FR€E"></div>
+      <h1 class="berich-hero__title">BERICH</h1>
+      <p class="berich-hero__sub">Graphique en direct, signaux détectés par ton scanner, et prise de position en un clic.</p>
+    </div>
+  </section>
 
-  <!-- Verrou : inscription en 3 étapes tant qu'aucun compte n'est relié.
-       Une fois fait, ces réglages restent modifiables dans Compte. -->
+  <main class="container">
+  <!-- Verrou : configuration en 2 étapes (broker, puis installation de l'EA
+       MT5) tant que BERICH n'est pas prêt à l'emploi — la page ne se
+       débloque qu'une fois l'EA effectivement installé, pas juste un compte
+       "connecté" sur le papier (retour direct utilisateur du 2026-09-15 :
+       ni serveur ni identifiants ne servaient jamais à rien, l'EA gère
+       lui-même la vraie connexion à MT5 avec son propre solde/risque). Le
+       broker reste modifiable ensuite dans Compte. -->
   <div class="card wizard-card" id="berichWizard">
     <div class="wizard-steps">
       <span class="wizard-step is-active" data-step="1">1 · Broker</span>
-      <span class="wizard-step" data-step="2">2 · Serveur</span>
-      <span class="wizard-step" data-step="3">3 · Identifiants</span>
+      <span class="wizard-step" data-step="2">2 · Installer l'EA</span>
     </div>
 
     <div class="wizard-panel" data-panel="1">
       <h2>Quel est ton broker ou ta propfirm ?</h2>
-      <p class="hint">Nécessaire pour calculer correctement le risque de chaque position. Pas dans la liste ? Choisis "Autre".</p>
+      <p class="hint">Juste pour l'affichage — le calcul du risque réel se fait dans l'EA, sur ton vrai solde MT5. Pas dans la liste ? Choisis "Autre".</p>
       <div class="broker-grid" id="brokerGrid"></div>
+      <div class="form-stack" id="brokerOtherWrap" hidden style="margin-top:14px">
+        <div>
+          <label for="brokerOtherInput">Nom du broker / propfirm</label>
+          <input id="brokerOtherInput" class="field" type="text" placeholder="ex. Mon broker">
+        </div>
+        <button type="button" class="btn btn-primary" id="brokerOtherConfirm">Continuer</button>
+      </div>
     </div>
 
     <div class="wizard-panel" data-panel="2" hidden>
-      <h2>Quel serveur MT5 ?</h2>
-      <p class="hint">Liste indicative, pas vérifiée en direct — si le tien n'apparaît pas, choisis "Autre" et tape son nom exact (visible dans MT5 à la connexion).</p>
-      <div class="server-list" id="serverList"></div>
-      <div class="wizard-actions"><button type="button" class="btn btn-ghost" data-wizard-back="1">← Retour</button></div>
-    </div>
-
-    <div class="wizard-panel" data-panel="3" hidden>
-      <h2>Identifiants du compte</h2>
-      <div class="form-stack">
-        <div><label for="wzLogin">Numéro de compte</label><input id="wzLogin" class="field" type="text" placeholder="ex. 5012345"></div>
-        <div><label for="wzPassword">Mot de passe</label><input id="wzPassword" class="field" type="password"></div>
-        <p class="hint">Stocké uniquement en local dans ce navigateur, jamais envoyé nulle part.</p>
-      </div>
+      <h2>Installer l'EA MT5</h2>
+      <p class="hint">
+        Un Expert Advisor gratuit à installer une fois dans ton MT5 : dès qu'un signal XAU/USD arrive,
+        il dessine Entrée/SL/TP sur ton graphique et calcule le lot sur ton vrai solde — tu n'as plus
+        qu'à cliquer sur un bouton, dans le terminal, pour envoyer l'ordre. Rien n'est automatique par
+        défaut, et aucun mot de passe ne transite nulle part — l'EA tourne dans ton propre MT5, déjà connecté.
+      </p>
+      <ol style="margin:0 0 20px;padding-left:20px;font-size:13px;color:var(--muted);line-height:1.9">
+        <li>Télécharge <code>BERICH_Receiver.mq5</code> ci-dessous.</li>
+        <li>Ouvre-le dans MetaEditor (<code>F4</code> dans MT5) et compile (<code>F7</code>).</li>
+        <li>Autorise l'URL du signal dans <code>Outils → Options → Expert Advisors</code>.</li>
+        <li>Glisse l'EA sur un graphique XAUUSD, règle ton risque, active "Algo Trading".</li>
+      </ol>
       <div class="wizard-actions">
-        <button type="button" class="btn btn-ghost" data-wizard-back="2">← Retour</button>
-        <button type="button" class="btn btn-primary" id="wizardFinish">Terminer</button>
+        <a href="https://raw.githubusercontent.com/2sw0ne/BERICH/main/BERICH_Receiver.mq5" class="btn btn-primary" download>Télécharger l'EA (.mq5)</a>
+        <a href="https://github.com/2sw0ne/BERICH#readme" target="_blank" rel="noopener" class="btn btn-ghost">Voir le guide complet →</a>
+      </div>
+      <div class="wizard-actions" style="margin-top:20px">
+        <button type="button" class="btn btn-ghost" data-wizard-back="1">← Retour</button>
+        <button type="button" class="btn btn-primary" id="wizardFinish">J'ai terminé, débloquer BERICH</button>
       </div>
     </div>
   </div>
@@ -221,7 +279,8 @@
       <a href="account.html#connexion" class="btn btn-secondary" style="padding:9px 18px;font-size:12.5px">Modifier la connexion</a>
     </div>
 
-    <div class="eyebrow">01 — Graphique</div>
+    <div class="card signal-hero" id="signalHero"></div>
+
     <div class="card chart-wrap">
       <div class="chart-wrap__head">
         <span class="eyebrow" style="margin:0">Vue marché</span>
@@ -229,9 +288,6 @@
       <div id="tvChart"></div>
       <p class="chart-note" id="chartNote">XAU/USD uniquement pour l'instant — ton vrai script <b>BE FR€E</b> tourne réellement ici (PineTS + Vela, données Twelve Data), pas une recréation approximative. Seul le tableau de tendance multi-timeframe (cosmétique) est désactivé — trop lent à calculer sur des timeframes courts. La vraie détection de trade reste le webhook TradingView ci-dessous, pas ce graphique.</p>
     </div>
-
-    <div class="eyebrow" style="margin-top:28px">02 — Position</div>
-    <div class="card signal-hero" id="signalHero"></div>
 
     <div id="historyWrap" hidden>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
@@ -242,19 +298,21 @@
         <div id="signalHistoryList"></div>
       </div>
     </div>
-
   </div>
 </main>
+</div>
+</div>
 
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
-<script src="js/nav.js"></script>
+<script src="js/nav.js?v=2"></script>
 <script src="js/lot-calculator.js?v=3"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
-<script src="js/berich-chart.js"></script>
+<script src="js/berich-chart.js?v=3"></script>
+<script src="js/page-tour.js"></script>
 <script>
 (() => {
   const ACCOUNTS_KEY = 'chest_accounts';
@@ -271,17 +329,14 @@
 
   function money(v) { return v == null ? '—' : '$' + v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-  // ---------- Assistant d'inscription (aucun compte relié pour l'instant) ----------
+  // ---------- Assistant de configuration (broker, puis installation EA) ----------
   function initWizard() {
-    let step = 1;
     let chosenBroker = null; // {id, name} ou {id:'other', name: <saisi>}
-    let chosenServer = null;
 
     const panels = [...document.querySelectorAll('.wizard-panel')];
     const stepEls = [...document.querySelectorAll('.wizard-step')];
 
     function goToStep(n) {
-      step = n;
       panels.forEach((p) => { p.hidden = Number(p.dataset.panel) !== n; });
       stepEls.forEach((el) => {
         const s = Number(el.dataset.step);
@@ -306,58 +361,46 @@
         <span>Autre</span>
       </button>`;
 
+    const brokerOtherWrap = document.getElementById('brokerOtherWrap');
+    const brokerOtherInput = document.getElementById('brokerOtherInput');
     brokerGrid.querySelectorAll('.broker-card').forEach((card) => {
       card.addEventListener('click', () => {
         const id = card.dataset.brokerId;
         if (id === 'other') {
-          const name = prompt('Nom du broker / propfirm :');
-          if (!name) return;
-          chosenBroker = { id: 'other', name: name.trim() };
-        } else {
-          const b = window.CHEST_BROKERS.find((x) => x.id === id);
-          chosenBroker = { id: b.id, name: b.name };
+          // Remplace un window.prompt() natif - ne fonctionne pas dans ce
+          // panneau d'apercu integre (constate en direct le 2026-09-15).
+          brokerOtherWrap.hidden = false;
+          brokerOtherInput.value = '';
+          brokerOtherInput.focus();
+          return;
         }
-        renderServerStep();
+        brokerOtherWrap.hidden = true;
+        const b = window.CHEST_BROKERS.find((x) => x.id === id);
+        chosenBroker = { id: b.id, name: b.name };
         goToStep(2);
       });
     });
-
-    // ---- Étape 2 : serveur ----
-    function renderServerStep() {
-      const serverList = document.getElementById('serverList');
-      const broker = window.CHEST_BROKERS.find((b) => b.id === chosenBroker.id);
-      const servers = broker ? broker.servers : [];
-      serverList.innerHTML = servers.map((s) => `<button type="button" class="server-pill" data-server="${s}">${s}</button>`).join('')
-        + `<button type="button" class="server-pill" data-server="__other__">Autre — je tape le nom exact</button>`;
-
-      serverList.querySelectorAll('.server-pill').forEach((pill) => {
-        pill.addEventListener('click', () => {
-          if (pill.dataset.server === '__other__') {
-            const name = prompt('Nom exact du serveur MT5 :');
-            if (!name) return;
-            chosenServer = name.trim();
-          } else {
-            chosenServer = pill.dataset.server;
-          }
-          goToStep(3);
-        });
-      });
+    function confirmOtherBroker() {
+      const name = brokerOtherInput.value.trim();
+      if (!name) return;
+      chosenBroker = { id: 'other', name };
+      goToStep(2);
     }
+    document.getElementById('brokerOtherConfirm').addEventListener('click', confirmOtherBroker);
+    brokerOtherInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmOtherBroker(); });
 
-    // ---- Étape 3 : identifiants ----
+    // ---- Étape 2 : installer l'EA — ne débloque la page qu'une fois cette
+    // étape confirmée (plus de "connexion" factice serveur/identifiants). ----
     document.getElementById('wizardFinish').addEventListener('click', () => {
-      const login = document.getElementById('wzLogin').value.trim();
-      const password = document.getElementById('wzPassword').value;
       CHESTBerich.saveConnection({
         broker: chosenBroker.name,
-        server: chosenServer || '',
-        login, password,
+        server: '',
         riskPercent: 1,
         riskMode: 'manual',
         presets: CHESTBerich.defaultPresets(),
         activePresetId: null,
       });
-      showToast('Connexion BERICH enregistrée ✓');
+      showToast('BERICH configuré ✓');
       location.reload();
     });
   }
@@ -372,7 +415,15 @@
   document.getElementById('berichWizard').style.display = 'none';
   document.getElementById('berichContent').style.display = '';
   const conn = CHESTBerich.loadConnection();
-  document.getElementById('connLabel').textContent = `${conn.broker} · MT5${conn.server ? ' · ' + conn.server : ''}`;
+  document.getElementById('connLabel').textContent = conn.broker;
+
+  CHESTTour.init([
+    { selector: '.berich-hero', title: 'BERICH', text: 'Le graphique en direct de ton scanner BE FR€E, les signaux détectés, et de quoi prendre position en un clic — tout est sur cette page.' },
+    { selector: '.conn-bar', title: 'Ton broker', text: 'Le broker/propfirm choisi à la configuration, purement informatif. Le vrai calcul de risque se fait dans l\'EA MT5, sur ton vrai solde — "Modifier la connexion" te renvoie vers Compte.' },
+    { selector: '#signalHero', title: 'Position en cours', text: 'Dès qu\'un signal arrive, son entrée/SL/TP s\'affichent ici avec un bouton "Prendre le trade" — il confirme l\'intention et l\'enregistre dans ton journal, l\'exécution réelle se fait via l\'EA MT5. Un signal non pris disparaît si le prix s\'éloigne de plus de 5$ de l\'entrée.' },
+    { selector: '.chart-wrap', title: 'Le graphique', text: 'Ton vrai script BE FR€E tourne ici en direct (XAU/USD uniquement) — ce n\'est pas une recréation, mais la vraie détection de trade passe par le webhook, pas ce graphique.' },
+    { selector: '#historyWrap', title: 'Historique', text: 'Les signaux déjà clôturés (TP ou SL) — le journal complet, avec le détail par compte, reste accessible depuis "Journal complet".' },
+  ]);
 
   // ---------- Graphique — ton vrai script BE FR€E, exécuté en direct (XAU/USD uniquement) ----------
   CHESTBerichChart.render('tvChart').catch((e) => {
@@ -490,6 +541,39 @@
 
   let __allSignals = [];
 
+  // ---------- Invalidation par écart de prix ----------
+  // Un signal pas encore pris reste affiché tel quel (demande explicite du
+  // 2026-09-15), mais s'il n'a toujours pas été pris et que le prix XAU/USD
+  // s'est éloigné de plus de 5$ (au-dessus ou en-dessous) de son entrée,
+  // prendre le trade à ce prix n'aurait plus rien à voir avec le setup
+  // annoncé - on retire alors le bouton "Prendre le trade" plutôt que de
+  // laisser confirmer un trade qui ne correspond plus au signal d'origine.
+  // Une fois pris (taken), plus aucune invalidation : c'est une vraie
+  // position suivie, pas juste une opportunité à saisir ou non.
+  const PRICE_INVALIDATE_THRESHOLD = 5;
+  const INVALIDATED_KEY = 'chest_berich_invalidated';
+
+  function loadInvalidated() {
+    try { return new Set(JSON.parse(localStorage.getItem(INVALIDATED_KEY) || '[]')); } catch (e) { return new Set(); }
+  }
+  function saveInvalidated(set) {
+    try { localStorage.setItem(INVALIDATED_KEY, JSON.stringify([...set])); } catch (e) { /* tant pis */ }
+  }
+  const invalidated = loadInvalidated();
+
+  async function fetchCurrentXauPrice() {
+    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
+    if (!key) return null;
+    try {
+      const res = await fetch(`https://api.twelvedata.com/price?symbol=XAU/USD&apikey=${key}`);
+      const json = await res.json();
+      const price = parseFloat(json.price);
+      return isNaN(price) ? null : price;
+    } catch (e) {
+      return null;
+    }
+  }
+
   async function loadAndRender() {
     let data;
     try {
@@ -501,21 +585,32 @@
 
     __allSignals = data.signals || [];
     const taken = CHESTBerich.loadTaken();
-    const meta = data.example
+    let waitingMeta = data.example
       ? 'Exemple — en attente d’un vrai signal webhook'
       : `Mis à jour ${new Date(data.updatedAt).toLocaleString('fr-FR')}`;
 
-    const openUntaken = __allSignals.find((s) => s.status !== 'closed' && !taken.some((t) => t.id === s.id));
+    const openUntaken = __allSignals.find((s) => s.status !== 'closed' && !taken.some((t) => t.id === s.id) && !invalidated.has(s.id));
     const openTaken = __allSignals.find((s) => s.status !== 'closed' && taken.some((t) => t.id === s.id));
-    const active = openUntaken || openTaken;
+    let active = openUntaken || openTaken;
+
+    if (openUntaken && !openTaken) {
+      const price = await fetchCurrentXauPrice();
+      if (price != null && Math.abs(price - openUntaken.entry) > PRICE_INVALIDATE_THRESHOLD) {
+        invalidated.add(openUntaken.id);
+        saveInvalidated(invalidated);
+        active = null;
+        waitingMeta = `Signal invalidé — le prix s'est éloigné de plus de ${PRICE_INVALIDATE_THRESHOLD}$ de l'entrée (${openUntaken.entry}) depuis sa détection.`;
+      }
+    }
 
     if (active) renderActive(active, taken);
-    else renderWaiting(meta);
+    else renderWaiting(waitingMeta);
 
     renderHistory(__allSignals);
   }
 
   loadAndRender();
+  setInterval(loadAndRender, 20000);
 })();
 </script>
 </body>
