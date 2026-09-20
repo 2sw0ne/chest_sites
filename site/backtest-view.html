@@ -473,7 +473,7 @@ CHESTTour.init([
     report.curve.slice(1).forEach((pt) => { const r = String(pt.trade.result).toUpperCase(); if (counts[r] != null) counts[r] += 1; });
     const nRules = (cfg.rules || []).length;
     const po = cfg.premium && cfg.premium.oos;
-    const oosNote = po ? (po.holds ? ' <span class="mm-card__ok">· tient hors échantillon</span>' : ' <span class="mm-card__warn">· ne tient pas hors échantillon : prudence</span>') : '';
+    const oosNote = po ? (po.holds ? ' <span class="mm-card__ok">· gain confirmé sur des trades jamais vus</span>' : ' <span class="mm-card__warn">· gain non confirmé sur des trades jamais vus : prudence</span>') : '';
     const rulesHtml = nRules
       ? `<div class="mm-card__rules"><span class="mm-card__rules-k">${cfg.premium ? 'Réglage premium' : 'Règles « Si »'}</span> ${rulesSummary(cfg)}${skipped ? ` · <b>${skipped}</b> trade${skipped > 1 ? 's' : ''} ignoré${skipped > 1 ? 's' : ''}` : ''}${oosNote}</div>`
       : '';

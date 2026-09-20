@@ -92,6 +92,20 @@
   .prem-opt__tag--warn{ color:var(--amber); }
   .prem-opt__det{ margin-top:5px; font-size:12px; color:var(--muted); line-height:1.6; }
   .prem-pos{ color:var(--green); } .prem-neg{ color:var(--red); }
+  .prem-reco{ margin-top:10px; padding:14px 15px; border-radius:14px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.03); }
+  .prem-reco.is-ok{ border-color:rgba(51,230,166,.45); box-shadow:0 0 0 3px rgba(51,230,166,.08); }
+  .prem-reco.is-warn{ border-color:rgba(232,179,57,.45); }
+  .prem-reco__tag{ font-size:10px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:var(--green); }
+  .prem-reco.is-warn .prem-reco__tag{ color:var(--amber); }
+  .prem-reco__name{ font-size:16px; font-weight:700; margin:6px 0 4px; letter-spacing:-.01em; }
+  .prem-reco__rules{ font-size:13px; line-height:1.6; }
+  .prem-reco__stats{ display:flex; flex-wrap:wrap; gap:4px 18px; margin-top:8px; font-size:13px; color:var(--muted); }
+  .prem-reco__stats b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .prem-reco__why{ margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.08); font-size:12.5px; line-height:1.6; color:var(--muted); }
+  .prem-more{ margin-top:10px; }
+  .prem-more summary{ cursor:pointer; font-size:12.5px; color:var(--muted); padding:4px 0; }
+  .prem-more summary:hover{ color:var(--ink); }
+  .prem-more .prem-box{ margin-top:8px; }
   .prem-note{ font-size:12px; color:var(--muted); line-height:1.6; }
 
   .pf-enable{ display:flex; align-items:center; gap:10px; font-size:13.5px; margin-bottom:14px; }
@@ -538,30 +552,25 @@ CHESTTour.init([
   }
 
   function renderPremium(resultEl, res, account) {
-    const bestIdx = res.best ? 1 + res.logics.indexOf(res.best) : 0;
-    const richest = res.logics.length ? res.logics[0] : null; // triées par rendement décroissant
     const opts = [{ label: `Réglage plat · ${fr(res.base.risk, 1)} % partout`, rules: [], perf: res.basePerf, dd: res.baseDd, flat: true }]
-      .concat(res.logics.map((l) => ({ label: l.label, rules: l.rules, perf: l.perf, dd: l.maxDd, gain: l.gain, detail: l.detail, oos: l.oos, richest: l === richest && l.gain > 1e-6 })));
-    let sel = bestIdx;
-    const oosHtml = (o) => {
-      if (o.flat || o.gain <= 1e-6) return '';
-      const x = o.oos;
-      if (!x) return 'Moins de 60 trades : trop peu pour un test hors échantillon — prends ce résultat avec prudence.';
-      if (x.noGain) return `Test hors échantillon : sur les ${x.trainN} premiers trades ce bonus ne donne aucun gain — il ne semble pas exploitable de façon stable.`;
-      return `Test hors échantillon : règles apprises sur les ${x.trainN} premiers trades, jugées sur les ${x.testN} derniers → plat <b>${signed(x.flatPct)}</b> · premium <b>${signed(x.premiumPct)}</b>. ${x.holds ? '<b class="prem-pos">Le gain tient sur des trades que le calcul n\'a pas vus.</b>' : '<b class="warn">Le gain ne tient pas hors échantillon : prudence, risque de sur-optimisation.</b>'}`;
-    };
-    const tagHtml = (o, i) => {
-      let t = '';
-      if (o.richest) t += `<span class="prem-opt__tag">la plus rentable</span>`;
-      if (o.oos && o.oos.holds) t += `<span class="prem-opt__tag">tient hors échantillon</span>`;
-      else if (o.oos) t += `<span class="prem-opt__tag prem-opt__tag--warn">ne tient pas hors échantillon</span>`;
-      return t;
-    };
-    const detailTxt = (o) => o.flat ? '' : o.detail.map((d) => {
+      .concat(res.logics.map((l) => ({ label: l.label, rules: l.rules, perf: l.perf, dd: l.maxDd, gain: l.gain, detail: l.detail, oos: l.oos })));
+    // Recommandé = la logique la plus rentable dont le gain est CONFIRMÉ sur des trades jamais vus ;
+    // sinon le réglage plat (aucun bonus ne mérite d'être suivi).
+    const recoIdx = res.best && res.best.oos && res.best.oos.holds ? 1 + res.logics.indexOf(res.best) : 0;
+    let sel = recoIdx;
+
+    const rulesTxt = (o) => o.flat ? `Même risque sur tous les trades, sans distinction de bonus.` : o.detail.map((d) => {
       const name = d.conds.map((c) => esc(c.value)).join(' + ');
-      const tail = d.tooFew ? ' <small>(trop peu de trades, risque de base)</small>' : '';
-      return `<b>${name}</b> <small>×${d.count}</small> → ${riskTxt(d.risk)}${tail}`;
+      return `<b>${name}</b> → ${riskTxt(d.risk)}${d.tooFew ? ' <small>(peu de trades)</small>' : ''}`;
     }).join(' · ');
+    const trust = (o) => {
+      if (o.flat) return { cls: 'ok', tag: 'Le plus sûr', txt: res.best ? `Aucun bonus n'est confirmé sur des trades que le calcul n'a pas vus : mieux vaut ne pas séparer les bonus.` : `Aucun bonus ne fait mieux que le réglage plat sous ces limites.` };
+      const x = o.oos;
+      if (!x) return { cls: 'warn', tag: 'Non vérifiable', txt: `Moins de 60 trades : impossible de vérifier que ce gain ne vient pas du hasard.` };
+      if (x.noGain) return { cls: 'warn', tag: 'À prendre avec prudence', txt: `Sur les ${x.trainN} premiers trades ce bonus ne donne aucun gain : il ne semble pas stable.` };
+      if (x.holds) return { cls: 'ok', tag: 'Fiable', txt: `Règles calculées sur les ${x.trainN} premiers trades, puis vérifiées sur les ${x.testN} derniers, jamais vus par le calcul : ${signed(x.premiumPct)} contre ${signed(x.flatPct)} en réglage plat.` };
+      return { cls: 'warn', tag: 'À prendre avec prudence', txt: `Vérifié sur les ${x.testN} derniers trades, jamais vus par le calcul, le gain disparaît (${signed(x.premiumPct)} contre ${signed(x.flatPct)} en réglage plat) : la règle s'est probablement collée à l'historique.` };
+    };
     const store = () => {
       resultEl.dataset.risk = res.base.risk;
       resultEl.dataset.rules = JSON.stringify(opts[sel].rules);
@@ -570,18 +579,21 @@ CHESTTour.init([
       else delete resultEl.dataset.premium;
     };
     const draw = () => {
+      const o = opts[sel], t = trust(o);
+      const others = opts.map((x, i) => ({ x, i })).filter((e) => e.i !== sel);
       resultEl.innerHTML = `<div class="prem-title">Réglage premium</div>`
-        + `<div class="prem-note">Chaque bonus est séparé puis réglé seul, sous les mêmes limites que le réglage classique (drawdown max ${fr(res.limits.maxDd, 0)} %${account === 'pf' ? ', DD journalier 5 %' : ''}). Choisis la logique à appliquer :</div>`
-        + `<div class="prem-box">${opts.map((o, i) => `<button type="button" class="prem-opt${i === sel ? ' is-on' : ''}" data-i="${i}">`
-          + `<div class="prem-opt__top"><b>${esc(o.label)}</b>`
-          + `<span>performance <b>${fr(o.perf, 1)} %</b></span>`
-          + (o.gain != null ? (Math.abs(o.gain) < 0.05 ? `<span>identique au plat</span>` : `<span class="${o.gain >= 0 ? 'prem-pos' : 'prem-neg'}"><b>${signed(o.gain)}</b> vs plat</span>`) : '')
-          + `<span>DD max <b>${fr(o.dd, 1)} %</b></span>`
-          + tagHtml(o, i)
-          + `</div>${o.flat ? '' : `<div class="prem-opt__det">${detailTxt(o)}</div>`}</button>`).join('')}</div>`
-        + (res.best ? '' : `<div class="prem-note" style="margin-top:8px">Aucun bonus ne fait mieux que le réglage plat sous ces limites : c'est lui qui est retenu.</div>`)
-        + (oosHtml(opts[sel]) ? `<div class="prem-note" style="margin-top:8px">${oosHtml(opts[sel])}</div>` : '')
-        + `<div class="prem-note" style="margin-top:8px">Recherche transparente sur ton historique, pas une prédiction : un bonus rentable hier ne l'est pas forcément demain.${res.base.relaxedNote ? ' ' + esc(res.base.relaxedNote) : ''}</div>`;
+        + `<div class="prem-reco is-${t.cls}">`
+        + `<div class="prem-reco__tag">${sel === recoIdx ? 'Recommandé · ' : 'Ton choix · '}${t.tag}</div>`
+        + `<div class="prem-reco__name">${esc(o.label)}</div>`
+        + `<div class="prem-reco__rules">${rulesTxt(o)}</div>`
+        + `<div class="prem-reco__stats"><span>Performance <b>${fr(o.perf, 1)} %</b>${o.flat ? '' : ` <small>(plat : ${fr(res.basePerf, 1)} %)</small>`}</span><span>DD max <b>${fr(o.dd, 1)} %</b></span></div>`
+        + `<div class="prem-reco__why">${t.txt}</div>`
+        + `</div>`
+        + (others.length ? `<details class="prem-more"><summary>Voir les autres logiques testées (${others.length})</summary><div class="prem-box">${others.map(({ x, i }) => {
+            const tt = trust(x);
+            return `<button type="button" class="prem-opt" data-i="${i}"><div class="prem-opt__top"><b>${esc(x.label)}</b><span>${fr(x.perf, 1)} %</span><span class="prem-opt__tag${tt.cls === 'warn' ? ' prem-opt__tag--warn' : ''}">${tt.tag}</span></div></button>`;
+          }).join('')}</div></details>` : '')
+        + `<div class="prem-note" style="margin-top:8px">Recherche sur ton historique, pas une prédiction.${res.base.relaxedNote ? ' ' + esc(res.base.relaxedNote) : ''}</div>`;
       resultEl.querySelectorAll('.prem-opt').forEach((b) => b.addEventListener('click', () => { sel = Number(b.dataset.i); store(); draw(); }));
     };
     store();
