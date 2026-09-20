@@ -43,6 +43,14 @@ Validée par l'utilisateur le 2026-09-20 (« vraiment super »). Tout ce qui est
 - **Mouvement** : court et doux (.2s, `cubic-bezier(.16,1,.3,1)`), `prefers-reduced-motion` respecté. Toujours vérifier bureau ET mobile (<640px), sans débordement horizontal.
 - **Pièges** : une règle générique `.x svg{}` écrase les tailles de composants ; le patch utilise `!important`, donc préfixer par `.chest-root …` ; ne pas mettre de couleur sur `a` globalement.
 
+## Rapport de backtest : recommandation prop firm / compte propre
+
+`backtest-view.html` suit la DA (`css/backtest-da.css`, sections `01 Deux possibilités → 02 Détail → 03 Recommandation → 04 Mensuel → 05 Journal`). La section 03 est calculée par deux fichiers :
+
+- **`js/propfirm-rules.js`** : règles des challenges, **uniquement lues sur les pages officielles** (lien + date de page + date de vérification). Un champ non trouvé reste `null` / listé dans `unverified[]`, jamais deviné. Modèles vérifiés le 2026-09-20 : FTMO 1 et 2 étapes, FundedNext Stellar 1/2/Lite, The5ers Hyper Growth et High Stakes, Funding Pips 2 étapes Flex. **Ne jamais copier la base d'un concurrent (Futurizq) ni compléter de mémoire** : ces règles changent souvent (ex. FTMO a maintenant un 1 étape à perte max suiveuse et règle du meilleur jour) ; pour ajouter ou rafraîchir une firme, relire sa page officielle et dater l'entrée.
+- **`js/propfirm-fit.js`** : rejoue les trades sous ces règles depuis chaque jour de l'historique (jusqu'à 400 départs), choisit le risque le plus élevé qui garde ≥ 80 % de réussite, ajoute un test d'ordre des journées mélangé (250 tirages, graine fixe) et compare au compte propre (`optimizeCp`). Limites assumées et affichées : trades clôturés seulement (pas de perte flottante), ni frais ni slippage, règles non modélisées listées « non vérifié ».
+- **Pas encore fait** : courtiers recommandés selon le pays (champ pays dans Compte, régulateurs, coût spread/commission sur l'instrument du backtest), consistance de retrait de Funding Pips, plus de firmes (Alpha Capital, E8…).
+
 ## Plan du site (`site/*.html`)
 
 | Page | Rôle |
