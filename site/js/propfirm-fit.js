@@ -30,18 +30,35 @@
   const MAX_PURCHASES = 3;        // un trader ne rachète pas 90 challenges : on s'arrête au 3e achat
   const MAX_LOST_PER_START = 0.5; // risque conseillé : en moyenne moins d'un demi-compte perdu sur la période
 
-  // Trades triés par clôture -> tableaux compacts (rr, jour UTC).
+  // Trades triés par clôture -> tableaux compacts (rr, jour UTC, week-end, nuit).
+  // « Week-end » = le trade est resté ouvert au moins un samedi (ouverture avant,
+  // clôture à partir du samedi) ; « nuit » = clôturé un autre jour UTC que son
+  // ouverture. Sans heures d'ouverture ET de clôture, on ne peut pas les détecter.
   function prepare(trades) {
     const ordered = window.CHESTBacktestEngine.sortedTrades(trades);
-    const rr = [], day = [];
+    const rr = [], day = [], wk = [], ov = [];
+    let withTimes = 0, wkCount = 0, ovCount = 0;
     ordered.forEach((t) => {
       const d = new Date(t.close || t.open || t.date);
       if (isNaN(d.getTime())) return;
       const res = String(t.result).toUpperCase();
       rr.push(res === 'BE' ? 0 : (Number(t.rr) || 0));
       day.push(Math.floor(d.getTime() / 86400000));
+      let crosses = false, over = false;
+      if (t.open && t.close) {
+        const a = new Date(t.open), b = new Date(t.close);
+        if (!isNaN(a.getTime()) && !isNaN(b.getTime())) {
+          withTimes++;
+          const da = Math.floor(a.getTime() / 86400000), db = Math.floor(b.getTime() / 86400000);
+          over = db > da;
+          for (let x = da + 1; x <= db && !crosses; x++) if ((x + 4) % 7 === 6) crosses = true; // 6 = samedi
+        }
+      }
+      wk.push(crosses); ov.push(over);
+      if (crosses) wkCount++;
+      if (over) ovCount++;
     });
-    return { rr, day, n: rr.length };
+    return { rr, day, wk, ov, n: rr.length, withTimes, wkCount, ovCount };
   }
 
   function mean(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0; }
@@ -66,13 +83,13 @@
     let stage = 0;                 // 0 = challenge, 1 = compte financé
     let phase = 0, bal = 1, dayStart = 1, peak = 1, curDay = startDay, dayHas = false;
     let tDays = 0, profDays = 0, posSum = 0, bestDay = 0;      // compteurs du challenge
-    let clock = null, lastPay = null, cProf = 0, cBest = 0, cPos = 0, blockedDay = null; // compte financé
-    const o = { fundedDay: null, payouts: 0, count: 0, firstPay: null, purchases: 1, lost: 0, challFails: 0, delayed: 0, delayDays: 0, refund: 0 };
+    let clock = null, lastPay = null, cProf = 0, cBest = 0, cPos = 0, cActive = 0, blockedDay = null; // compte financé
+    const o = { fundedDay: null, payouts: 0, count: 0, firstPay: null, purchases: 1, lost: 0, challFails: 0, delayed: 0, delayDays: 0, refund: 0, violations: 0 };
 
     const resetChallenge = () => {
       stage = 0; phase = 0; bal = 1; dayStart = 1; peak = 1; dayHas = false;
       tDays = 0; profDays = 0; posSum = 0; bestDay = 0;
-      clock = null; lastPay = null; cProf = 0; cBest = 0; cPos = 0; blockedDay = null;
+      clock = null; lastPay = null; cProf = 0; cBest = 0; cPos = 0; cActive = 0; blockedDay = null;
     };
 
     // Un retrait est demandé le premier jour de trading où toutes les conditions sont réunies.
@@ -87,15 +104,17 @@
       if (minPayout && profit * 100 < minPayout) return;
       if (opt.minGrowthPct && profit * 100 < opt.minGrowthPct) return;
       if (opt.minProfitableDays && cProf < opt.minProfitableDays.count) return;
+      if (opt.minActiveDays && cActive < opt.minActiveDays) return;
       const cons = opt.consistency || f.consistency;
       if (cons) {
         const base = cons.basis === 'positive_days' ? cPos : profit;
         if (!(base > 0) || cBest / base > cons.maxPct / 100) { if (blockedDay === null) blockedDay = d; return; }
       }
       if (blockedDay !== null) { o.delayed++; o.delayDays += d - blockedDay; blockedDay = null; }
-      // Plafond par retrait (ex. The5ers High Stakes : 2 000 $ sur 100 000 $) : le
-      // reste du profit demeure sur le compte.
-      let amount = profit * opt.splitPct / 100, withdrawn = profit;
+      // Fraction retirable (ex. Topstep : 50 % du solde) et plafond par retrait (ex.
+      // The5ers High Stakes : 2 000 $ sur 100 000 $) : le reste du profit demeure sur le compte.
+      let withdrawn = profit * (f.withdrawFraction || 1);
+      let amount = withdrawn * opt.splitPct / 100;
       if (f.payoutCapPct && amount * 100 > f.payoutCapPct) { amount = f.payoutCapPct / 100; withdrawn = amount / (opt.splitPct / 100); }
       o.payouts += amount;
       o.count++;
@@ -103,7 +122,7 @@
       if (m.fee.refund === 'first' && o.count === 1) o.refund += feeF;
       if (m.fee.refund === 'third' && o.count === 3) o.refund += feeF;
       if (withdrawn >= profit - 1e-12) { bal = 1; } else { bal -= withdrawn; }
-      peak = bal; dayStart = bal; lastPay = d; cProf = 0; cBest = 0; cPos = 0;
+      peak = bal; dayStart = bal; lastPay = d; cProf = 0; cBest = 0; cPos = 0; cActive = 0;
     };
 
     for (let i = start; i < P.n && P.day[i] < endDay; i++) {
@@ -117,6 +136,7 @@
           } else {
             if (pnl > 0) { cPos += pnl; if (pnl > cBest) cBest = pnl; }
             if (opt.minProfitableDays && pnl >= opt.minProfitableDays.minPct / 100) cProf++;
+            cActive++;
           }
         }
         // Plancher suiveur : recalculé APRÈS MINUIT sur le solde de fin de journée.
@@ -125,14 +145,30 @@
         if (stage === 1) tryPayout(d);
       }
 
+      // Détention interdite (week-end / nuit) : le compte est perdu avant même que le
+      // trade ne compte. C'est le piège d'un compte Standard pour une stratégie swing.
+      const h = m.holding;
+      if (h && (h.appliesTo === 'all' || stage === 1) && ((h.weekend === 'forbidden' && P.wk[i]) || (h.overnight === 'forbidden' && P.ov[i]))) {
+        if (stage === 0) o.challFails++; else o.lost++;
+        o.violations++;
+        if (o.purchases >= MAX_PURCHASES) { o.gaveUp = true; break; }
+        o.purchases++;
+        resetChallenge();
+        continue;
+      }
+
       bal *= 1 + k * P.rr[i];
       if (!dayHas) { dayHas = true; if (stage === 0) tDays++; }
       if (stage === 1 && clock === null) clock = d;
 
-      const daily = (stage === 0 ? m.dailyLossPct : f.dailyLossPct) / 100;
-      const maxLoss = (stage === 0 ? m.maxLossPct : f.maxLossPct) / 100;
-      const type = stage === 0 ? m.maxLossType : f.maxLossType;
-      const floor = type === 'trailing_eod' ? peak - maxLoss : 1 - maxLoss;
+      const dl = stage === 0 ? m.dailyLossPct : f.dailyLossPct;
+      const daily = dl == null ? Infinity : dl / 100;            // null = pas de perte du jour
+      let maxLoss = (stage === 0 ? m.maxLossPct : f.maxLossPct) / 100;
+      let type = stage === 0 ? m.maxLossType : f.maxLossType;
+      // Topstep : après le 1er retrait la perte max passe à 0 (le plancher devient le capital).
+      if (stage === 1 && o.count > 0 && f.postPayoutMaxLossPct != null) { maxLoss = f.postPayoutMaxLossPct / 100; type = 'static'; }
+      // trailing_eod_lock : suiveur (fin de journée) puis verrouillé au capital initial.
+      const floor = type === 'trailing_eod' ? peak - maxLoss : type === 'trailing_eod_lock' ? Math.min(peak - maxLoss, 1) : 1 - maxLoss;
       if (bal < dayStart - daily || bal < floor) {
         if (stage === 0) o.challFails++; else o.lost++;
         if (o.purchases >= MAX_PURCHASES) { o.gaveUp = true; break; }
@@ -150,8 +186,13 @@
         if (m.bestDay) {
           const best = Math.max(bestDay, today > 0 ? today : 0);
           const pos = posSum + (today > 0 ? today : 0);
-          const base = m.bestDay.basis === 'positive_days' ? pos : bal - 1;
-          okBest = base > 0 && best / base <= m.bestDay.maxPct / 100;
+          if (m.bestDay.basis === 'target') {
+            // Topstep : si le meilleur jour dépasse 55 % de l'objectif, l'objectif augmente.
+            okBest = bal - 1 >= best / (m.bestDay.maxPct / 100);
+          } else {
+            const base = m.bestDay.basis === 'positive_days' ? pos : bal - 1;
+            okBest = base > 0 && best / base <= m.bestDay.maxPct / 100;
+          }
         }
         if (okDays && okBest) {
           phase++;
@@ -159,7 +200,7 @@
           if (phase >= m.phases.length) {
             stage = 1;
             if (o.fundedDay === null) o.fundedDay = d - startDay + 1;
-            clock = null; lastPay = null; cProf = 0; cBest = 0; cPos = 0; blockedDay = null;
+            clock = null; lastPay = null; cProf = 0; cBest = 0; cPos = 0; cActive = 0; blockedDay = null;
           }
         }
       }
@@ -182,13 +223,14 @@
 
   function evaluate(P, starts, m, opt, risk, horizonDays) {
     const nets = [], pays = [], fundedDays = [], firstPays = [];
-    let funded = 0, paid = 0, lost = 0, delayed = 0, delaySum = 0, payoutCount = 0, fails = 0;
+    let funded = 0, paid = 0, lost = 0, delayed = 0, delaySum = 0, payoutCount = 0, fails = 0, violStarts = 0;
     starts.forEach((s) => {
       const o = lifecycle(P, s, m, opt, risk, horizonDays);
       nets.push(o.net * 100);
       pays.push(o.payouts * 100);
       if (o.fundedDay !== null) { funded++; fundedDays.push(o.fundedDay); }
       if (o.count > 0) { paid++; firstPays.push(o.firstPay); }
+      if (o.violations > 0) violStarts++;
       lost += o.lost; fails += o.challFails; delayed += o.delayed; delaySum += o.delayDays; payoutCount += o.count;
     });
     const n = starts.length;
@@ -205,6 +247,7 @@
       lostPerStart: (lost + fails) / n,
       fundedLostPerStart: lost / n,
       payoutCount, delayedPayouts: delayed, avgDelayDays: delayed ? delaySum / delayed : 0,
+      violatedPct: violStarts / n * 100,
     };
   }
 
@@ -261,7 +304,18 @@
       const top = perOption.reduce((a, b) => (b.best.meanNet > a.best.meanNet + 1e-9 ? b : a));
       const best = top.best;
       best.delayedShare = best.payoutCount ? best.delayedPayouts / best.payoutCount * 100 : 0;
-      return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best) };
+      // Conflit entre ce que la stratégie fait (week-end / nuit) et ce que le compte permet.
+      let issue = null;
+      const h = m.holding;
+      if (h && (h.weekend === 'forbidden' || h.overnight === 'forbidden')) {
+        if (!P.withTimes) issue = { kind: 'unknown', appliesTo: h.appliesTo, swingModelId: h.swingModelId };
+        else {
+          const wkHit = h.weekend === 'forbidden' && P.wkCount > 0;
+          const ovHit = h.overnight === 'forbidden' && P.ovCount > 0;
+          if (wkHit || ovHit) issue = { kind: wkHit ? 'weekend' : 'overnight', count: wkHit ? P.wkCount : P.ovCount, share: (wkHit ? P.wkCount : P.ovCount) / P.n * 100, appliesTo: h.appliesTo, swingModelId: h.swingModelId };
+        }
+      }
+      return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best), issue };
     });
 
     const rank = { good: 0, mid: 1, bad: 2 };
@@ -293,6 +347,7 @@
     let kind = top.status === 'good' ? 'propfirm' : top.status === 'mid' ? 'both' : 'own';
     return {
       rows, own, prop, verdict: { kind, top },
+      holding: { trades: P.n, withTimes: P.withTimes, weekendCount: P.wkCount, weekendPct: P.n ? P.wkCount / P.n * 100 : 0, overnightCount: P.ovCount, overnightPct: P.n ? P.ovCount / P.n * 100 : 0 },
       meta: { starts: starts.length, spanDays, trades: P.n, horizonMonths, horizonDays, refAccount: ref },
     };
   }

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=8">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=8">
-<link rel="stylesheet" href="css/backtest-da.css?v=7">
+<link rel="stylesheet" href="css/backtest-da.css?v=9">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -302,8 +302,8 @@
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js"></script>
-<script src="js/propfirm-rules.js?v=4"></script>
-<script src="js/propfirm-fit.js?v=4"></script>
+<script src="js/propfirm-rules.js?v=5"></script>
+<script src="js/propfirm-fit.js?v=5"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -669,31 +669,52 @@ CHESTTour.init([
     if (md.kind === 'trading') return `${md.count} jour${md.count > 1 ? 's' : ''} de trading minimum`;
     return `${md.count} jours profitables (≥ ${nFr(md.minPct, 1)} %)`;
   }
-  function lossTypeText(t) { return t === 'trailing_eod' ? 'suiveuse, recalculée après minuit' : 'fixe'; }
-  function consText(c) { return c ? `meilleur jour ≤ ${pctFr(c.maxPct)} du ${c.basis === 'positive_days' ? 'profit des jours positifs' : 'profit du cycle'}` : null; }
+  function lossTypeText(t) { return t === 'trailing_eod' ? 'suiveuse, recalculée après minuit' : t === 'trailing_eod_lock' ? 'suiveuse sur le solde de fin de journée, verrouillée au capital initial une fois atteint' : 'fixe'; }
+  function dailyTxt(v) { return v == null ? 'aucune (optionnelle)' : pctFr(v); }
+  function consText(c) {
+    if (!c) return null;
+    const of = c.basis === 'positive_days' ? 'du profit des jours positifs' : c.basis === 'target' ? 'de l\'objectif de profit' : 'du profit du cycle';
+    return `meilleur jour ≤ ${pctFr(c.maxPct)} ${of}`;
+  }
   function challengeLine(m) {
-    return `Objectif ${m.phases.map((p) => pctFr(p)).join(' puis ')} · perte du jour ${pctFr(m.dailyLossPct)} · perte max ${pctFr(m.maxLossPct)} (${lossTypeText(m.maxLossType)}) · ${minDaysText(m.minDays)}`
+    return `Objectif ${m.phases.map((p) => pctFr(p)).join(' puis ')} · perte du jour ${dailyTxt(m.dailyLossPct)} · perte max ${pctFr(m.maxLossPct)} (${lossTypeText(m.maxLossType)}) · ${minDaysText(m.minDays)}`
       + (m.bestDay ? ` · ${consText(m.bestDay)}` : '');
   }
   function fundedLine(m) {
     const f = m.funded;
-    return `Perte du jour ${pctFr(f.dailyLossPct)} · perte max ${pctFr(f.maxLossPct)} (${lossTypeText(f.maxLossType)})`
+    return `Perte du jour ${dailyTxt(f.dailyLossPct)} · perte max ${pctFr(f.maxLossPct)} (${lossTypeText(f.maxLossType)})`
       + (f.consistency ? ` · ${consText(f.consistency)}` : '')
       + (m.riskCapPct ? ` · risque ≤ ${pctFr(m.riskCapPct)} par trade` : '');
   }
   function optionRule(o) {
     const parts = [`partage ${pctFr(o.splitPct)}`, o.firstAfterDays ? `1er retrait à ${o.firstAfterDays} j` : '1er retrait immédiat', `puis tous les ${o.cycleDays} j`];
     if (o.minProfitableDays) parts.push(`${o.minProfitableDays.count} jours profitables ≥ ${nFr(o.minProfitableDays.minPct, 1)} %`);
+    if (o.minActiveDays) parts.push(`${o.minActiveDays} jours de trading actifs`);
     if (o.minGrowthPct) parts.push(`+${nFr(o.minGrowthPct)} % de croissance`);
     if (o.consistency) parts.push(consText(o.consistency));
     return parts.join(' · ');
   }
-  function watchText(r) {
+  // Ce que la stratégie fait (week-end, nuit) contre ce que le compte permet.
+  function holdingWarn(r, hs) {
+    const i = r.issue;
+    if (!i) return null;
+    if (i.kind === 'unknown') return 'heures d\'ouverture et de clôture absentes : week-end non vérifiable';
+    const h = r.model.holding, bits = [];
+    if (h.weekend === 'forbidden' && hs.weekendCount) bits.push(`${nFr(hs.weekendPct)} % de tes trades traversent un week-end`);
+    if (h.overnight === 'forbidden' && hs.overnightCount) bits.push(`${nFr(hs.overnightPct)} % passent la nuit`);
+    const where = h.appliesTo === 'funded' ? 'sur le compte financé' : 'dès le challenge';
+    const sw = i.swingModelId ? window.CHESTPropRules.models.find((x) => x.id === i.swingModelId) : null;
+    return `${bits.join(' et ')} : interdit ${where}, le compte est perdu${sw ? ` — il faut le compte ${sw.label}` : ''}`;
+  }
+  function watchText(r, hs) {
     const b = r.best, parts = [];
+    const hw = holdingWarn(r, hs);
+    if (hw) parts.push(hw);
     if (b.delayedShare >= 25) parts.push(`retraits reportés par la cohérence (${nFr(b.delayedShare)} %, +${nFr(b.avgDelayDays)} j)`);
-    if (b.lostPerStart >= 0.25) parts.push(`≈ ${nFr(b.lostPerStart, 1)} compte perdu / période`);
-    if (b.fundedPct < 70) parts.push(`${nFr(b.fundedPct)} % seulement validés à temps`);
-    return parts.join(' · ') || 'Rien de bloquant observé';
+    if (!hw && b.lostPerStart >= 0.25) parts.push(`≈ ${nFr(b.lostPerStart, 1)} compte perdu / période`);
+    if (!hw && b.fundedPct < 70) parts.push(`${nFr(b.fundedPct)} % seulement validés à temps`);
+    if (r.model.market === 'futures') parts.push('futures uniquement');
+    return { text: parts.join(' · ') || 'Rien de bloquant observé', warn: !!hw };
   }
   function statusMeta(kind) {
     return {
@@ -728,6 +749,36 @@ CHESTTour.init([
     return `Aucun modèle vérifié ne rapporte de façon fiable sur ${H} mois : le meilleur (${name}) finit gagnant dans ${pctFr(b.netPositivePct)} des départs seulement.${consistencySentence(res)} Ce style de trading est mieux servi par un compte propre, sans règle imposée.${ownTxt}`;
   }
 
+  // Alerte : positions tenues sur le week-end / la nuit. Un compte Standard qui
+  // l'interdit fait perdre le compte ; il faut un compte Swing ou une firme qui l'autorise.
+  function holdingAlert(res) {
+    const hs = res.holding;
+    const icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4L12 3.5z"/><path d="M12 10v4.5M12 17.4h.01"/></svg>';
+    if (hs && !hs.withTimes) {
+      return `
+        <div class="bt-alert" role="note">${icon}
+          <div><div class="bt-alert__title">Week-end impossible à vérifier</div>
+          <p>Ton backtest n'a pas d'heures d'ouverture et de clôture : on ne peut pas savoir si tes positions traversent un week-end. Le <b>compte financé FTMO Standard</b>, le <b>compte qualifié Alpha Pro</b> et <b>Topstep</b> l'interdisent (et font perdre le compte). Ajoute ces heures à l'import pour que le calcul en tienne compte, ou choisis un compte Swing.</p></div>
+        </div>`;
+    }
+    if (!hs || (!hs.weekendCount && !hs.overnightCount)) return '';
+    const models = window.CHESTPropRules.models;
+    const blocked = res.rows.filter((r) => r.issue && r.issue.kind !== 'unknown');
+    const swingIds = [...new Set(blocked.map((r) => r.issue.swingModelId).filter(Boolean))];
+    const swingRows = swingIds.map((id) => res.rows.find((r) => r.model.id === id)).filter(Boolean);
+    const okFirms = [...new Set(res.rows.filter((r) => r.model.holding && r.model.holding.weekend === 'allowed' && !swingIds.includes(r.model.id)).map((r) => r.model.firm))];
+    const H = res.meta.horizonMonths;
+    const lines = [];
+    lines.push(`<b>${nFr(hs.weekendCount)} trades sur ${nFr(hs.trades)} (${pctFr(hs.weekendPct)})</b> restent ouverts sur un week-end${hs.overnightCount ? ` et <b>${pctFr(hs.overnightPct)}</b> passent la nuit` : ''}. Sur un compte qui l'interdit, le compte est <b>perdu</b> dès le premier week-end : le calcul l'applique.`);
+    if (blocked.length) lines.push(`<b>Incompatibles sans compte Swing :</b> ${blocked.map((r) => escHtml(`${r.model.firm} ${r.model.label}`)).join(', ')}.`);
+    if (swingRows.length) lines.push(`<b>Comptes Swing (week-end autorisé) :</b> ${swingRows.map((r) => `${escHtml(r.model.firm + ' ' + r.model.label)} (${signedPct(r.best.meanNet)} sur ${H} mois)`).join(', ')} — leurs règles et leurs tarifs sont dans le volet ci-dessous.`);
+    if (okFirms.length) lines.push(`<b>Autres firmes qui autorisent le week-end :</b> ${okFirms.map(escHtml).join(', ')}.`);
+    return `
+      <div class="bt-alert" role="note">${icon}
+        <div><div class="bt-alert__title">Tes positions traversent le week-end</div>${lines.map((l) => `<p>${l}</p>`).join('')}</div>
+      </div>`;
+  }
+
   // Tarifs du challenge : toutes les tailles de compte, et les autres modèles de
   // la même firme en colonnes (prix relevés sur les pages officielles).
   function priceBlock(m) {
@@ -736,20 +787,21 @@ CHESTTour.init([
     const models = rules.models.filter((x) => x.firm === m.firm && x.prices);
     const sizes = [...new Set(models.flatMap((x) => x.prices.sizes.map((z) => z.size)))].sort((a, b) => a - b);
     const sym = (c) => (c === 'EUR' ? '€' : '$');
-    const money = (v, c) => `${nFr(v, v % 1 ? 2 : 0)} ${sym(c)}`;
+    const ref = m.prices.refSize || rules.refAccount;
+    const money = (v, c, u) => `${nFr(v, v % 1 ? 2 : 0)} ${sym(c)}${u ? ' ' + u : ''}`;
     const cell = (x, size) => {
       const z = x.prices.sizes.find((q) => q.size === size);
       const cur = x.id === m.id ? ' is-cur' : '';
       if (!z) return `<span class="bt-price__cell${cur}">—</span>`;
-      return `<span class="bt-price__cell${cur}"><b>${money(z.price, x.prices.currency)}</b>${z.regular && z.regular !== z.price ? `<s>${money(z.regular, x.prices.currency)}</s>` : ''}</span>`;
+      return `<span class="bt-price__cell${cur}"><b>${money(z.price, x.prices.currency, x.prices.unit)}</b>${z.regular && z.regular !== z.price ? `<s>${money(z.regular, x.prices.currency, x.prices.unit)}</s>` : ''}</span>`;
     };
     const head = `<div class="bt-price__row bt-price__head" style="--cols:${models.length}"><span>Compte</span>${models.map((x) => `<span class="${x.id === m.id ? 'is-cur' : ''}">${escHtml(x.label)}</span>`).join('')}</div>`;
     const rows = sizes.map((size) => `
-      <div class="bt-price__row${size === rules.refAccount ? ' is-ref' : ''}" style="--cols:${models.length}">
-        <span class="bt-price__size">${nFr(size)} $${size === rules.refAccount ? '<em>simulé</em>' : ''}</span>
+      <div class="bt-price__row${size === ref ? ' is-ref' : ''}" style="--cols:${models.length}">
+        <span class="bt-price__size">${nFr(size)} $${size === ref ? '<em>simulé</em>' : ''}</span>
         ${models.map((x) => cell(x, size)).join('')}
       </div>`).join('');
-    const notes = [...m.prices.notes, `Prix affichés sur les pages officielles le ${longDate(m.prices.asOf)}, frais uniques, en ${m.prices.currency === 'EUR' ? 'euros' : 'dollars'} (promotions du moment incluses, tarif normal barré quand il est affiché).`];
+    const notes = [...m.prices.notes, `Prix affichés sur les pages officielles le ${longDate(m.prices.asOf)}, ${m.prices.unit ? 'abonnement mensuel' : 'frais uniques'}, en ${m.prices.currency === 'EUR' ? 'euros' : 'dollars'} (promotions du moment incluses, tarif normal barré quand il est affiché).`];
     return `
       <div class="chest-label bt-fit-row__unv">Tarifs du challenge · ${escHtml(m.firm)}</div>
       <div class="bt-price">${head}${rows}</div>
@@ -778,6 +830,7 @@ CHESTTour.init([
         <span>${signedPct(c.meanNet)}</span>
         <span>${nFr(c.lostPerStart, 1)}</span>
       </div>`).join('');
+    const watch = watchText(r, meta.holding);
     const feeLine = `Frais retenus dans la simulation ≈ ${nFr(m.fee.pct, 2)} % du compte${m.fee.refund ? ` · remboursés avec le ${m.fee.refund === 'first' ? '1er' : '3e'} retrait` : ' · aucun remboursement pris en compte'} — ${escHtml(m.fee.note)}`;
     return `
       <details class="bt-fit-row"${isTop ? ' open' : ''}>
@@ -787,7 +840,7 @@ CHESTTour.init([
           <span class="bt-fit-row__cell" data-label="Risque">${nFr(b.risk, 2)} %</span>
           <span class="bt-fit-row__cell" data-label="Validation">${nFr(b.fundedPct)} %</span>
           <span class="bt-fit-row__cell" data-label="1er retrait">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</span>
-          <span class="bt-fit-row__cell bt-fit-row__block" data-label="À surveiller">${escHtml(watchText(r))}</span>
+          <span class="bt-fit-row__cell bt-fit-row__block${watch.warn ? ' is-warn' : ''}" data-label="À surveiller">${escHtml(watch.text)}</span>
         </summary>
         <div class="bt-fit-row__body">
           <div>
@@ -795,6 +848,8 @@ CHESTTour.init([
             <p class="bt-fit-row__rules"><b>Challenge</b> · ${challengeLine(m)}</p>
             <p class="bt-fit-row__rules"><b>Compte financé</b> · ${fundedLine(m)}</p>
             <p class="bt-fit-row__rules"><b>Cohérence</b> · ${escHtml(m.consistencyNote)}</p>
+            ${m.holding ? `<p class="bt-fit-row__rules"><b>Week-end / nuit</b> · ${escHtml(m.holding.note)}</p>` : ''}
+            ${m.market === 'futures' ? '<p class="bt-fit-row__rules"><b>Marché</b> · contrats à terme uniquement : la stratégie doit pouvoir s\'exécuter sur futures (les pertes du calcul sont exprimées en % du compte).</p>' : ''}
             <ul class="bt-fit-row__list">${facts}</ul>
             <p class="bt-fit-row__rules"><b>Annonces</b> · ${escHtml(m.newsFunded)} <em>(non simulé)</em></p>
             <p class="bt-fit-row__rules">${feeLine}</p>
@@ -821,6 +876,10 @@ CHESTTour.init([
     const positive = v.top.status === 'good' ? 'is-pos' : v.top.status === 'bad' ? 'is-neg' : '';
     const title = v.kind === 'own' ? 'Compte propre' : `${v.top.model.firm} · ${v.top.model.label}`;
     res.meta.maxNet = Math.max(1, ...res.rows.map((r) => r.best.meanNet));
+    res.meta.holding = res.holding;
+    const top3 = res.rows.slice(0, 3);
+    const swingIds = new Set(window.CHESTPropRules.models.map((x) => x.holding && x.holding.swingModelId).filter(Boolean));
+    const swingExtra = res.holding && res.holding.weekendCount ? res.rows.filter((r) => swingIds.has(r.model.id) && !top3.includes(r)) : [];
 
     body.innerHTML = `
       <div class="bt-verdict bt-verdict--${sm.tone} chest-glass">
@@ -828,6 +887,7 @@ CHESTTour.init([
           <span class="bt-pill bt-pill--${sm.tone}"><span class="dot"></span>${sm.label}</span>
           <h3 class="bt-verdict__title">${title}</h3>
           <p class="bt-verdict__text">${fitVerdictText(res)}</p>
+          ${holdingAlert(res)}
         </div>
         <div class="chest-kpis bt-verdict__nums">
           <div><div class="chest-label">Retraits potentiels · ${H} mois</div><div class="chest-kpi__val ${positive}">${signedPct(b.meanNet)}</div><div class="chest-kpi__note">≈ ${usdFr(res.prop.horizonUsd)} sur ${nFr(res.meta.refAccount)} $ financés</div></div>
@@ -836,15 +896,16 @@ CHESTTour.init([
           <div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>
         </div>
         <details class="bt-fit-fold">
-          <summary><span class="bt-fit-fold__title">Top 3 des prop firms</span><span class="bt-fit-fold__sub">classées selon les retraits nets à leur risque conseillé · 3 sur ${res.rows.length} modèles testés</span><span class="bt-fit-fold__caret" aria-hidden="true"></span></summary>
+          <summary><span class="bt-fit-fold__title">Top 3 des prop firms</span><span class="bt-fit-fold__sub">classées selon les retraits nets à leur risque conseillé · 3 sur ${res.rows.length} modèles testés${swingExtra.length ? ` · + ${swingExtra.length} compte${swingExtra.length > 1 ? 's' : ''} Swing` : ''}</span><span class="bt-fit-fold__caret" aria-hidden="true"></span></summary>
           <div class="bt-fit-table">
             <div class="bt-fit-head"><span>Firme · modèle</span><span>Retraits nets · ${H} mois</span><span>Risque</span><span>Validation</span><span>1er retrait</span><span>À surveiller</span></div>
-            ${res.rows.slice(0, 3).map((r) => fitRowHtml(r, false, res.meta)).join('')}
+            ${top3.map((r) => fitRowHtml(r, false, res.meta)).join('')}
+            ${swingExtra.length ? `<div class="bt-fit-group">Comptes Swing · week-end autorisé, pour tes positions tenues sur le week-end</div>${swingExtra.map((r) => fitRowHtml(r, false, res.meta)).join('')}` : ''}
           </div>
         </details>
       </div>
 
-      <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais du challenge sont les prix affichés sur les pages officielles (tarif normal quand il est connu), remboursements compris quand ils sont documentés. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
+      <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Les trades qui traversent un week-end ou la nuit sont détectés grâce aux heures d'ouverture et de clôture ; une détention interdite fait perdre le compte. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais du challenge sont les prix affichés sur les pages officielles (tarif normal quand il est connu), remboursements compris quand ils sont documentés. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
   }
 
   function renderFitHorizon() {
