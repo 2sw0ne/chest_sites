@@ -196,7 +196,7 @@
   const submitLabel = document.getElementById('submitLabel');
 
   if (CHESTAccounts.isLoggedIn()) {
-    window.location.replace('dashboard.html');
+    window.location.replace('app.html');
   }
 
   document.getElementById('pwToggle').addEventListener('click', () => {
@@ -227,7 +227,7 @@
     submitLabel.textContent = 'Connexion…';
     try {
       await CHESTAccounts.login({ email, password, remember });
-      window.location.href = 'dashboard.html';
+      window.location.href = 'app.html';
     } catch (err) {
       errEl.textContent = err.message;
       submitBtn.disabled = false;

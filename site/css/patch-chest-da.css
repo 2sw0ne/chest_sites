@@ -28,10 +28,20 @@
    couvre maintenant le compte, les KPI et toute la courbe d'equity.
    ⚠ Il faut AUSSI charger chest-ui.js — sans lui, --mx/--my ne sont
    jamais mis à jour et la lueur reste figée. */
+.chest-spot{ overflow:visible !important; }
 .chest-spot__layer{
-  mask-image: linear-gradient(180deg,#000 0%,#000 72%,transparent 97%);
-  -webkit-mask-image: linear-gradient(180deg,#000 0%,#000 72%,transparent 97%);
+  /* La section .chest-spot s'arrête après les KPI : sans débord, la lueur
+     mourait avant le graphique. Elle descend maintenant de 820px au-delà,
+     en z-index 0 — le .chest-glass du graphique étant en position:relative,
+     il passe AU-DESSUS : la lueur se retrouve derrière le verre, floutée et
+     assombrie par lui. C'est exactement l'effet de la maquette. */
+  inset:0 0 -820px 0 !important;
+  mask-image: linear-gradient(180deg,#000 0%,#000 62%,rgba(0,0,0,.55) 82%,transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg,#000 0%,#000 62%,rgba(0,0,0,.55) 82%,transparent 100%);
 }
+/* Le contenu qui suit doit rester au-dessus du calque, sauf le verre qui
+   le laisse transparaître en l'atténuant. */
+.chest-spot ~ .chest-section{ position:relative; z-index:1; }
 
 
 /* ════════ 3. Titres en dégradé : jambages et « % » rognés ════════ */
@@ -739,3 +749,156 @@ small{ color:var(--chest-ink-3); }
 /* Le pied de page ne colle plus au contenu */
 .chest-main + .site-footer,
 .chest-shell ~ .site-footer{ margin-top:0; }
+
+
+/* ════════ 14. CORRECTIFS D'APRÈS CAPTURES ════════ */
+
+/* ---- Calendrier : le hero était noyé de rose ----
+   data-tone="neutral" retombait sur la lueur de marque à pleine
+   intensité, et sans fondu latéral : le magenta envahissait tout l'écran
+   au lieu d'une lumière posée derrière le titre. Même densité que la
+   maquette, et la teinte neutre devient sobre. */
+.sentiment-hero::before{
+  background:radial-gradient(ellipse 46% 52% at 50% 20%, var(--glow, rgba(140,140,160,.22)), transparent 70%) !important;
+}
+.sentiment-hero[data-tone="neutral"]{ --glow: rgba(140,140,160,.22) !important; }
+.sentiment-hero[data-tone="pos"]{ --glow: rgba(51,230,166,.4) !important; }
+.sentiment-hero[data-tone="neg"]{ --glow: rgba(255,77,94,.4) !important; }
+/* Fondu latéral en plus du fondu bas : plus de bord net à gauche/droite */
+.sentiment-hero{ position:relative; }
+.sentiment-hero__inner{ position:relative; z-index:1; }
+
+/* Même dosage pour les autres héros, pour que les pages se répondent */
+.scnr-hero::before{
+  background:radial-gradient(ellipse 46% 54% at 50% 22%, var(--glow, rgba(140,140,160,.32)), transparent 70%) !important;
+}
+.berich-hero::before{
+  background:radial-gradient(ellipse 46% 54% at 50% 22%, rgba(8,153,129,.38), transparent 70%) !important;
+}
+
+
+/* ---- Stratégies : barre de contrôle et graphique alignés ----
+   Le graphique débordait plus large que la barre au-dessus. Les deux
+   partagent désormais la même gouttière, et le graphique gagne en
+   largeur ce qu'il perd légèrement en hauteur. */
+.chest-main > main.container{
+  max-width:none !important;
+  padding:0 clamp(20px,3vw,30px) !important;
+}
+.chest-main > main.container > *{ margin-left:0 !important; margin-right:0 !important; }
+
+/* La barre de contrôle redevient une fenêtre, alignée au graphique */
+.scnr-topbar.card{
+  border:1px solid var(--chest-border) !important;
+  border-radius:var(--chest-r-lg) !important;
+  background:rgba(255,255,255,.025) !important;
+  border-top:1px solid var(--chest-border) !important;
+  padding:22px 26px 24px !important;
+  margin:0 0 14px !important;
+}
+.scnr-topbar .scnr-field{ padding:0 22px; }
+.scnr-topbar .scnr-field:first-child{ padding-left:0; }
+
+/* Graphique : plus large, un peu moins haut, même gouttière */
+.scnr-media.card{ margin:0 0 16px !important; }
+#scnrChart{
+  height:min(74vh,720px) !important;
+  min-height:480px !important;
+}
+
+
+/* ---- BERICH : même alignement pour son graphique ---- */
+#tvChart{ height:min(70vh,640px) !important; }
+
+
+/* ════════ 15. CORRECTIFS D'APRÈS CAPTURES (2) ════════ */
+
+/* ---- Volet : la bulle restait invisible ----
+   Son fond avait exactement la teinte du fond de page, sans bordure :
+   il ne restait qu'un chevron flottant. Elle gagne une matière un peu
+   plus claire, un liseré, et une taille cliquable. */
+.chest-sidebar__toggle{ width:20px !important; height:104px !important; right:-20px !important; }
+.chest-sidebar__toggle-bg path{
+  fill:#131317 !important;
+  stroke:rgba(255,255,255,.14) !important; stroke-width:1 !important;
+}
+[data-theme="light"] .chest-sidebar__toggle-bg path{ fill:#e8e8ea !important; stroke:rgba(0,0,0,.12) !important; }
+.chest-sidebar__toggle svg:last-child{ width:12px !important; height:12px !important; margin-left:-4px !important; }
+.chest-sidebar__toggle{ color:var(--chest-ink) !important; }
+/* Le filet de bord ne doit pas traverser la bulle */
+.chest-sidebar::after{
+  content:''; position:absolute; top:0; bottom:0; right:0; width:1px;
+  background:rgba(255,255,255,.1); pointer-events:none; z-index:1;
+}
+
+
+/* ---- Calendrier : en-tête de la journée ----
+   Le libellé et le navigateur se retrouvaient au milieu de la page.
+   Libellé à gauche, filet qui s'étire, navigateur calé à droite. */
+.day-nav-head{
+  display:flex !important; align-items:center !important;
+  gap:16px !important; margin:0 0 14px !important;
+}
+.day-nav-head .eyebrow{ flex:1 1 auto !important; min-width:0 !important; margin:0 !important; }
+.day-nav-head .day-nav{ margin-left:auto !important; flex-shrink:0 !important; }
+
+/* Filtre d'importance : sur la même ligne que son libellé, resserré */
+.imp-filter{ margin:18px 0 22px !important; }
+.imp-filter__label{ font-size:10px !important; letter-spacing:.16em; text-transform:uppercase; color:var(--chest-ink-3) !important; }
+
+
+/* ---- Calendrier : « Prochains jours » en colonnes ----
+   Le site les empile verticalement sur toute la largeur ; la maquette
+   les range en colonnes, chacune dans son cadre avec son en-tête. */
+#upcomingZone{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr)) !important;
+  gap:14px !important;
+  align-items:start !important;
+}
+#upcomingZone > .cal-state{ grid-column:1/-1; }
+.upcoming-day{
+  margin:0 !important;
+  border:1px solid var(--chest-border);
+  border-radius:var(--chest-r);
+  background:rgba(255,255,255,.025);
+  overflow:hidden;
+}
+.upcoming-day__label{
+  margin:0 !important; padding:14px 18px !important;
+  border-bottom:1px solid var(--chest-rule);
+  font-size:12px !important; letter-spacing:.06em !important;
+  color:var(--chest-ink) !important; font-weight:700 !important;
+}
+/* Les tableaux internes perdent leur cadre : la colonne le porte déjà */
+.upcoming-day .day-table,
+.upcoming-day .upcoming-table{
+  border:none !important; border-radius:0 !important;
+  background:transparent !important; backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important; box-shadow:none !important;
+}
+.upcoming-day .day-table::after,
+.upcoming-day .upcoming-table::after{ display:none !important; }
+.upcoming-day .day-row,
+.upcoming-day .upcoming-row{ padding:11px 18px !important; }
+/* Dans une colonne étroite, Précédent disparaît avant le reste */
+@media (min-width:641px){
+  #upcomingZone .day-row{ grid-template-columns:52px 26px minmax(0,1fr) 64px !important; }
+  #upcomingZone .day-row .col:nth-of-type(1){ display:none; }
+}
+
+/* Zone du jour : le cadre vide reste lisible */
+#bubbleZone .cal-state{ padding:44px 24px !important; font-size:13px; }
+
+
+/* ---- Calendrier : titre de la page ----
+   Il lui manquait l'étiquette numérotée et le filet de la maquette. */
+.chest-root .page-head h1{ margin-bottom:12px !important; }
+.chest-root .page-head::after{
+  content:''; display:block; height:1px; margin-top:26px;
+  background:var(--chest-rule);
+}
+
+/* ---- Lignes du jour : colonnes Prévu / Réel lisibles ---- */
+.day-row .col{ font-size:12.5px !important; }
+.day-row .col span{ font-size:9px !important; letter-spacing:.14em !important; margin-bottom:2px; }

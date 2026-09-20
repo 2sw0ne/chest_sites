@@ -16,6 +16,18 @@ Ce fichier vit dans `projects/chest/` et complète (ne remplace pas) le `CLAUDE.
 - Code d'accès par défaut : `2123`.
 - Librairies externes (toutes via CDN, jamais installées) : Chart.js 4.4.0 (courbes d'équity), SheetJS/xlsx 0.18.5 (import Excel côté navigateur), flag-icons 7.2.3 (vrais drapeaux SVG — **jamais** d'emoji drapeau, ils s'affichent en texte brut "US"/"EU" sur Windows faute de police dédiée, bug plateforme réel et non contournable en CSS).
 
+## Site unifié : shell `app.html` (PRIORITAIRE sur la description multi-pages ci-dessus)
+
+Le site se comporte comme **un seul produit** : `app.html` est le shell (sidebar repliable + topbar avec fil d'Ariane « catégorie / page » + barre de progression) et charge chaque page dans l'iframe `#chestView`. La sidebar et la topbar ne se rechargent jamais ; seul le contenu change (fondu + progression).
+
+- **Pourquoi une iframe et pas un échange de contenu (pjax)** : chaque page a des IIFE inline, des écouteurs `document`/`window`, des minuteries et des instances Chart.js qui fuiraient ou planteraient si on les échangeait à chaud. L'iframe les isole sans réécrire les pages.
+- **`js/theme.js` (premier script du `<head>` de chaque page)** détecte le contexte : dans une iframe → `html.is-embedded` (le CSS cache alors la sidebar/topbar propres à la page) ; page applicative ouverte à nu → `location.replace('app.html#/page?query')` ; pages d'auth (`login`, `signup`, `index`) → sortent de l'iframe via `top.location`.
+- **`js/shell.js`** : table `PAGES` (catégorie, libellé, entrée de menu à allumer — ex. `backtest-view` allume « Backtesting »), routage par hash `#/page?query`, synchro iframe → shell (adresse via `replaceState`, titre, fil d'Ariane, entrée active) et fondu de sortie via `postMessage('chest:nav-start')` envoyé par `beforeunload`. Le thème se synchronise par l'évènement `storage`. Le bouton Retour du navigateur fonctionne (historique de l'iframe).
+- **Ajouter une page** : créer le `.html` avec le même `<head>`/CSS que les autres, l'ajouter à `PAGES` (`shell.js`) et à `APP_PAGES` (`theme.js`), et un lien `href="#/nom"` dans la sidebar d'`app.html`.
+- **Ne pas** tester la création de compte/connexion contre le backend local réel (`accounts.db`) : ça crée de vrais comptes.
+- Les pages `backtesting-swyper.html` / `backtesting-allin.html` (legacy) ne sont plus liées nulle part et restent hors shell.
+- Feuilles de style : `css/chest-da.css` (design system + shell) puis `css/patch-chest-da.css` (correctifs par page fournis par la DA, chargé après). Incrémenter le `?v=` à chaque modification.
+
 ## Plan du site (`site/*.html`)
 
 | Page | Rôle |
