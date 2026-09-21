@@ -34,26 +34,19 @@ html.is-welcome.is-sheet{ overflow:hidden; }
   padding:0 clamp(20px,5vw,56px) 6vh;
 }
 
-/* La lumière suit le curseur : --mx / --my sont posés par welcome.js. */
-.wel__glow{
-  position:absolute; inset:-25% -15% auto -15%; height:145%;
-  pointer-events:none;
+/* Les rayons de lumière : un shader (welcome.js) qui bouge tout seul, jamais avec la souris.
+   Ils occupent ~80 % de la hauteur puis s'éteignent dans le noir. Repli sans WebGL : dégradé fixe. */
+.wel__light{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+.wel__hero.no-gl{
   background:
-    radial-gradient(46% 40% at var(--mx,50%) calc(var(--my,22%) * .55), rgba(252,18,131,.62), transparent 64%),
-    radial-gradient(38% 33% at calc(100% - var(--mx,50%) * .7) 14%, rgba(249,164,94,.34), transparent 70%),
-    radial-gradient(52% 42% at 50% 0%, rgba(252,18,131,.42), transparent 70%);
+    linear-gradient(118deg, rgba(255,170,215,.0) 8%, rgba(255,140,205,.5) 30%, rgba(252,18,131,.28) 52%, transparent 74%),
+    radial-gradient(90% 70% at 0% 0%, rgba(252,18,131,.7), transparent 70%),
+    #050505;
 }
-/* Une traînée de lumière claire qui traverse le haut de l'écran */
-.wel__aurora{
-  position:absolute; left:-24%; top:-34%; width:96%; height:78%;
-  transform:rotate(-23deg); pointer-events:none; filter:blur(58px);
-  background:linear-gradient(90deg, rgba(255,170,215,0) 0%, rgba(255,150,210,.55) 40%, rgba(252,18,131,.24) 78%, transparent 100%);
-}
+/* Fondu noir sous les rayons */
 .wel__vignette{
-  position:absolute; inset:0; pointer-events:none;
-  background:
-    radial-gradient(130% 82% at 50% -6%, transparent 30%, rgba(5,5,5,.55) 72%, #050505 100%),
-    linear-gradient(180deg, transparent 46%, rgba(5,5,5,.8) 86%, #050505 100%);
+  position:absolute; inset:0; pointer-events:none; z-index:2;
+  background:linear-gradient(180deg, transparent 56%, rgba(5,5,5,.72) 78%, #050505 96%);
 }
 .wel__stars{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:3; }
 .wel__hero::after{
@@ -71,7 +64,6 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 .wel__logo{
   position:relative; z-index:1; display:block;
   width:clamp(96px, 15vh, 150px); height:auto; margin-bottom:calc(clamp(96px, 15vh, 150px) * -.2);
-  transform:translate(calc(var(--px,0) * -8px), calc(var(--py,0) * -6px));
   mix-blend-mode:screen; pointer-events:none; user-select:none;
   filter:drop-shadow(0 18px 46px rgba(252,18,131,.55));
   animation: welLogoIn 1.2s cubic-bezier(.16,1,.3,1) both, welFloat 8s ease-in-out 1.2s infinite;
@@ -103,6 +95,7 @@ html.is-welcome.is-sheet{ overflow:hidden; }
   padding:clamp(72px,12vh,140px) clamp(16px,4vw,48px) clamp(56px,9vh,110px);
 }
 .wel__page--news .wel__glow{
+  position:absolute; pointer-events:none;
   inset:auto -20% -46% -20%; height:120%;
   background:
     radial-gradient(44% 40% at 50% 96%, rgba(252,18,131,.26), transparent 70%),

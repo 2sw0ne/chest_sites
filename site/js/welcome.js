@@ -21,13 +21,13 @@
   const nameEl = document.getElementById('welName');
   const skipBtn = document.getElementById('welSkip');
   const stars = document.getElementById('welStars');
+  const lightCv = document.getElementById('welLight');
   const hero = root.querySelector('.wel__hero');
   const sheet = document.getElementById('welSheet');
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let closed = true;
   let sraf = null;
-  let mraf = null;
   let settleTimer = null;
   let touching = false;
   let lastFocus = null;
@@ -67,23 +67,11 @@
     } catch (e) { /* stockage indisponible : sans conséquence */ }
   }
 
-  /* ---------- La lumière suit le curseur ---------- */
+  /* ---------- La souris : un effet par-dessus, sans jamais bouger le fond ni le logo ---------- */
   function onMove(e) {
-    if (mraf || closed) return;
-    mraf = requestAnimationFrame(() => {
-      mraf = null;
-      const r = hero.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      const fx = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-      const fy = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
-      root.style.setProperty('--mx', (fx * 100).toFixed(1) + '%');
-      root.style.setProperty('--my', (fy * 100).toFixed(1) + '%');
-      root.style.setProperty('--px', (fx * 2 - 1).toFixed(3));
-      root.style.setProperty('--py', (fy * 2 - 1).toFixed(3));
-    });
-    // position brute, lue à chaque image par le moteur de neige
-    const r0 = hero.getBoundingClientRect();
-    cur.x = e.clientX - r0.left; cur.y = e.clientY - r0.top;
+    if (closed) return;
+    const r = hero.getBoundingClientRect();
+    cur.x = e.clientX - r.left; cur.y = e.clientY - r.top;
     if (!cur.on) { cur.on = true; cur.sx = cur.x; cur.sy = cur.y; }
   }
 
@@ -138,6 +126,79 @@
     setTimeout(() => { if (!closed && window.scrollY >= endY() - 2) finish(); }, 1500);
   }
 
+  /* ---------- Rayons de lumière : un shader qui bouge tout seul ----------
+     Des rayons issus d'un foyer hors champ (haut gauche), deux nappes qui glissent en sens contraires,
+     une brume magenta, ~80 % de la hauteur puis un fondu noir. Aucune interaction avec la souris. */
+  const VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  const FRAG = [
+    'precision highp float;',
+    'uniform vec2 uRes;uniform float uTime;',
+    'float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}',
+    'float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);',
+    ' return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x),mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x),f.y);}',
+    'float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*vn(p);p=p*2.03+vec2(17.1,9.2);a*=.5;}return s;}',
+    'void main(){',
+    ' vec2 uv=gl_FragCoord.xy/uRes;uv.y=1.-uv.y;',
+    ' float asp=uRes.x/uRes.y;vec2 p=vec2(uv.x*asp,uv.y);float t=uTime;',
+    ' vec2 o=vec2(.02+.09*sin(t*.11),-.52+.05*cos(t*.09));',   // le foyer dérive lentement
+    ' vec2 d=p-o;float len=length(d);float a=atan(d.y,d.x);',
+    ' float r1=fbm(vec2(a*6.5+t*.075,len*.55-t*.05));',
+    ' float r2=fbm(vec2(a*11.+(-t*.06),len*.8+t*.035));',
+    ' float r3=fbm(vec2(a*3.2+t*.04,t*.03));',
+    ' float rays=smoothstep(.28,.85,r1)*.9+smoothstep(.36,.88,r2)*.6;',
+    ' rays*=.5+1.0*r3;',                                           // les rayons respirent
+    ' float inten=rays*(.34+exp(-len*.42)*1.35);',
+    ' float haze=fbm(p*1.1+vec2(t*.02,-t*.015));',
+    ' inten+=haze*.5*exp(-len*.3);',
+    ' float mask=1.-smoothstep(.34,.84,uv.y);',                    // fondu noir sous ~80 % de la hauteur
+    ' float b=clamp(inten*mask*.8,0.,1.7);',
+    ' vec3 deep=vec3(.32,.01,.17),mag=vec3(.99,.07,.51),pink=vec3(1.,.55,.8),wht=vec3(1.,.93,.96);',
+    ' vec3 c=mix(deep,mag,smoothstep(.05,.6,b));',
+    ' c=mix(c,pink,smoothstep(.55,1.1,b));',
+    ' c=mix(c,wht,smoothstep(1.05,1.7,b));',
+    ' c+=vec3(.98,.62,.34)*smoothstep(.45,1.,uv.x)*haze*.2*mask;', // un souffle d'orange à droite
+    ' c*=smoothstep(0.,.3,b);',
+    ' c+=(h21(gl_FragCoord.xy+t)-.5)/255.;',                       // grain : évite les bandes
+    ' gl_FragColor=vec4(c,1.);',
+    '}'
+  ].join('\n');
+  let gl = null, uRes = null, uTime = null, lightOK = false, t0 = 0;
+
+  function initLight() {
+    if (lightOK || !lightCv) return lightOK;
+    try { gl = lightCv.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' }); } catch (e) { gl = null; }
+    if (!gl) { hero.classList.add('no-gl'); return false; }
+    const mk = (type, src) => { const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh); return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null; };
+    const vs = mk(gl.VERTEX_SHADER, VERT), fs = mk(gl.FRAGMENT_SHADER, FRAG);
+    const prog = vs && fs && gl.createProgram();
+    if (!prog) { gl = null; hero.classList.add('no-gl'); return false; }
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { gl = null; hero.classList.add('no-gl'); return false; }
+    gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW); // un seul grand triangle
+    const loc = gl.getAttribLocation(prog, 'p');
+    gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    uRes = gl.getUniformLocation(prog, 'uRes'); uTime = gl.getUniformLocation(prog, 'uTime');
+    lightCv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); gl = null; lightOK = false; hero.classList.add('no-gl'); });
+    lightOK = true; t0 = performance.now();
+    return true;
+  }
+  function sizeLight() {
+    if (!initLight()) return;
+    // demi-résolution : de la lumière douce, étirée par le navigateur, coûte 4 fois moins
+    const w = Math.max(2, Math.round(lightCv.clientWidth * 0.5)), h = Math.max(2, Math.round(lightCv.clientHeight * 0.5));
+    lightCv.width = w; lightCv.height = h;
+    gl.viewport(0, 0, w, h);
+  }
+  function drawLight(ts) {
+    if (!lightOK) return;
+    gl.uniform2f(uRes, lightCv.width, lightCv.height);
+    gl.uniform1f(uTime, 18 + (ts - t0) / 1000);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
   /* ---------- Neige : des flocons qui tombent, et la souris qui les écarte et les allume ---------- */
   // Trois plans de profondeur : petits et vifs au loin, gros et flous au premier plan (effet de flou d'objectif).
   const cur = { x: 0, y: 0, sx: 0, sy: 0, on: false }; // souris (px dans le hero) et sa version lissée
@@ -180,6 +241,7 @@
     const n = Math.min(320, Math.round((cw * ch) / 6200));
     flakes = Array.from({ length: n }, () => spawn({}, true));
     if (!sprite) sprite = makeSprite();
+    sizeLight();
   }
   function heroVisible() { return !closed && window.scrollY < window.innerHeight * 1.05 && !document.hidden; }
 
@@ -187,6 +249,7 @@
     loop = 0;
     if (!heroVisible()) return;
     const dt = Math.min(0.05, (ts - last) / 1000 || 0.016); last = ts;
+    drawLight(ts);
     const ctx = stars.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cw, ch);
@@ -199,8 +262,9 @@
       ctx.globalCompositeOperation = 'lighter';
       const R = Math.max(220, Math.min(cw, ch) * 0.34);
       const g = ctx.createRadialGradient(cur.sx, cur.sy, 0, cur.sx, cur.sy, R);
-      g.addColorStop(0, 'rgba(255,140,205,.36)');
-      g.addColorStop(0.45, 'rgba(252,18,131,.11)');
+      g.addColorStop(0, 'rgba(255,225,240,.30)');
+      g.addColorStop(0.18, 'rgba(255,140,205,.22)');
+      g.addColorStop(0.55, 'rgba(252,18,131,.08)');
       g.addColorStop(1, 'rgba(252,18,131,0)');
       ctx.fillStyle = g; ctx.fillRect(cur.sx - R, cur.sy - R, R * 2, R * 2);
     }
@@ -235,6 +299,7 @@
     if (!stars) return;
     if (reduce) { // sans animation : quelques flocons fixes, c'est tout
       sizeCanvas();
+      drawLight(performance.now());
       const ctx = stars.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       flakes.forEach((f) => { ctx.globalAlpha = f.a * 0.8; ctx.drawImage(sprite, f.x - f.r, f.y - f.r, f.r * 2, f.r * 2); });
@@ -274,10 +339,6 @@
     root.classList.remove('is-past');
     html.classList.add('is-welcome');
     if (shell) shell.setAttribute('inert', ''); // le dashboard n'est ni cliquable ni atteignable au clavier tant qu'on n'y est pas
-    root.style.setProperty('--mx', '50%');
-    root.style.setProperty('--my', '22%');
-    root.style.setProperty('--px', '0');
-    root.style.setProperty('--py', '0');
 
     const n = firstName();
     if (nameEl) nameEl.textContent = n;
