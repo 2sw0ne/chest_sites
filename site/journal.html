@@ -84,6 +84,85 @@
   .jr-toolbar{ display:flex; align-items:center; justify-content:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
 
   /* ================= Formulaire — grille compacte, hauteur uniforme ================= */
+  .bt-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+  @media (max-width:1000px){ .bt-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:640px){ .bt-grid{ grid-template-columns:1fr; } }
+
+  .bt-card{ position:relative; cursor:pointer; }
+  .bt-card__hit{ position:absolute; inset:0; z-index:1; border-radius:inherit; }
+  .bt-card__top{ position:relative; z-index:2; padding:20px 20px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; pointer-events:none; }
+  .bt-card__title{ font-size:19px; font-weight:700; letter-spacing:-.025em; }
+  .bt-card__menu{ position:relative; z-index:3; flex-shrink:0; pointer-events:auto; }
+  .bt-card__menu-btn{
+    width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04);
+    color:var(--chest-ink-2); font-size:13px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:color .18s, border-color .18s;
+  }
+  .bt-card__menu-btn:hover{ color:var(--chest-ink); border-color:rgba(255,255,255,.3); }
+  .bt-card__menu-list{
+    position:absolute; top:32px; right:0; min-width:150px; background:rgba(14,14,16,.97); border:1px solid var(--chest-border);
+    border-radius:12px; box-shadow:0 14px 34px rgba(0,0,0,.4); overflow:hidden; padding:5px; z-index:4;
+  }
+  .bt-card__menu-list a, .bt-card__menu-list button{
+    display:block; width:100%; text-align:left; padding:9px 11px; border-radius:8px; border:none; background:transparent;
+    color:var(--chest-ink); font-size:13px; font-family:inherit; text-decoration:none; cursor:pointer;
+  }
+  .bt-card__menu-list a:hover, .bt-card__menu-list button:hover{ background:rgba(255,255,255,.06); }
+  .bt-card__menu-list .danger{ color:var(--chest-red); }
+  .bt-card__desc{ position:relative; z-index:2; margin:6px 0 0; padding:0 20px; font-size:12.5px; line-height:1.55; color:var(--chest-ink-2); pointer-events:none; }
+  .bt-card__spark{ position:relative; height:86px; margin:16px 0 0; pointer-events:none; }
+  .bt-card__meta{
+    position:relative; z-index:2; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:14px 20px 18px; border-top:1px solid var(--chest-rule); font-size:11.5px; color:var(--chest-ink-3);
+    font-variant-numeric:tabular-nums; pointer-events:none;
+  }
+  .bt-card__meta b{ color:var(--chest-ink); }
+  .bt-card__add{
+    display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:10px;
+    min-height:250px; padding:24px; border:1px dashed rgba(255,255,255,.18); border-radius:18px; text-decoration:none;
+    color:inherit; transition:border-color .2s, background .2s;
+  }
+  .bt-card__add:hover{ border-color:rgba(249,164,94,.5); background:linear-gradient(135deg,rgba(252,18,131,.07),rgba(249,164,94,.05)); }
+  .bt-card__add-icon{ width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:17px; color:var(--chest-ink-2); }
+  .bt-card__add-title{ font-size:15px; font-weight:700; color:var(--chest-ink); }
+  .bt-card__add-desc{ font-size:12px; color:var(--chest-ink-3); line-height:1.5; max-width:210px; }
+
+  .jr-back{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; }
+  .jr-back:hover{ color:var(--ink); }
+  .jr-acc-switcher__btn{ pointer-events:none; cursor:default; }
+  .jr-acc-switcher__btn .chev{ display:none; }
+  .jr-balance-warn{ margin:0 34px 22px; padding:12px 16px; border-radius:12px; border:1px solid rgba(232,179,57,.45); background:rgba(232,179,57,.07); font-size:13px; line-height:1.55; color:var(--ink); display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .jr-balance-warn button{ margin-left:auto; }
+  .jr-cell input::placeholder{ color:var(--faint); font-style:italic; }
+  .jr-sizes{ display:flex; flex-wrap:wrap; gap:6px; }
+  .jr-sizes button{ height:32px; padding:0 13px; border-radius:999px; border:1px solid var(--line2); background:var(--bg); color:var(--muted); font:inherit; font-size:12px; font-weight:700; cursor:pointer; transition:.15s; }
+  .jr-sizes button:hover{ border-color:rgba(249,164,94,.55); color:var(--ink); }
+  .jr-sizes button.is-active{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; border-color:transparent; }
+  /* Sources et backtests associés */
+  .jr-src-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  @media (max-width:900px){ .jr-src-grid{ grid-template-columns:1fr; } }
+  .jr-src{ padding:14px 16px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .jr-src.is-on{ border-color:rgba(51,230,166,.4); background:rgba(51,230,166,.05); }
+  .jr-src__top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .jr-src__name{ font-size:14px; font-weight:700; letter-spacing:-.01em; }
+  .jr-src__tag{ font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); border:1px solid var(--line2); border-radius:999px; padding:2px 8px; }
+  .jr-src__tag.auto{ color:#f9a45e; border-color:rgba(249,164,94,.45); }
+  .jr-src__count{ font-size:12.5px; color:var(--muted); }
+  .jr-src__count b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .jr-src__note{ font-size:12px; line-height:1.55; color:var(--muted); }
+  .jr-src__note.warn{ color:var(--amber); }
+  .jr-switch{ width:40px; height:22px; border-radius:999px; border:1px solid var(--line2); background:var(--bg); position:relative; cursor:pointer; padding:0; transition:.15s; flex-shrink:0; }
+  .jr-switch::after{ content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--muted); transition:.15s; }
+  .jr-switch.is-on{ background:rgba(51,230,166,.25); border-color:rgba(51,230,166,.5); }
+  .jr-switch.is-on::after{ left:20px; background:var(--green); }
+  .jr-bt{ margin-top:18px; }
+  .jr-bt__head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .jr-bt__head select{ height:36px; border-radius:9px; border:1px solid var(--line2); background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px; padding:0 10px; min-width:220px; }
+  .jr-bt table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .jr-bt th{ text-align:left; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--line); }
+  .jr-bt td{ padding:10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  .jr-bt td .pos{ color:var(--green); font-weight:700; } .jr-bt td .neg{ color:var(--red); font-weight:700; }
+  .jr-bt__note{ font-size:12px; color:var(--muted); line-height:1.55; margin-top:8px; }
   .jr-form{ padding:22px 24px; margin:0 auto 20px; width:100%; max-width:760px; }
   #jrPageHead.is-narrow{ max-width:760px; margin-left:auto; margin-right:auto; padding-left:4px !important; padding-right:4px !important; }
   .jr-row2--challenge{ grid-template-columns:1.35fr 1fr; }
@@ -299,14 +378,26 @@
 
     <main>
   <div class="page-head chest-titleglow" id="jrPageHead" style="padding:40px 34px 26px">
-    <div class="chest-step" style="margin-bottom:16px">01 — Compte du journal</div>
-    <h1 class="chest-h1">Journal de trading</h1>
-    <p id="jrPageDesc" class="chest-body" style="max-width:520px;margin-top:14px">Toutes tes positions au même endroit — prises via BERICH ou ajoutées à la main.</p>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:40px;flex-wrap:wrap">
+      <div style="min-width:0">
+        <div class="chest-step" style="margin-bottom:16px" id="jrStepLabel">01 — Bibliothèque</div>
+        <h1 class="chest-h1">Journal de trading</h1>
+        <p id="jrPageDesc" class="chest-body" style="max-width:520px;margin-top:14px">Un journal par compte : suis tes trades réels, les règles de ton challenge, et compare avec tes backtests.</p>
+      </div>
+      <button type="button" class="chest-btn" id="jrHubNewBtn" style="white-space:nowrap">+ Nouveau journal</button>
+    </div>
   </div>
 
-  <!-- ============ Page 1 : aucun compte — rien d'autre qu'un lien ============ -->
-  <div class="jr-empty-view" id="jrEmptyView">
-    <a href="#" class="chest-btn" id="jrEmptyLink" style="text-decoration:none">+ Créer un compte</a>
+  <!-- ============ Page 1 : hub des journaux (comme la bibliothèque Backtesting) ============ -->
+  <div id="jrHub">
+    <section class="chest-kpis" id="jrHubKpis" style="padding:26px 34px 34px"></section>
+    <section class="chest-section" style="border-top:1px solid var(--chest-rule)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px">
+        <span class="chest-step">02 — Journaux</span>
+        <span style="font-size:11.5px;color:var(--chest-ink-3)">Un journal par compte</span>
+      </div>
+      <div class="bt-grid" id="jrGrid"></div>
+    </section>
   </div>
 
   <!-- ============ Page 2 : création / édition de compte ============ -->
@@ -332,13 +423,14 @@
             <div class="jr-combo__list" id="jaPropfirmList"></div>
           </div>
         </div>
-        <div class="jr-cell"><label for="jaBalance">Solde du compte ($)</label><input id="jaBalance" type="number" step="any" placeholder="10000"></div>
+        <div class="jr-cell"><label for="jaBalance">Solde du compte ($)</label><input id="jaBalance" type="number" step="any" placeholder="ex. 10 000" required></div>
       </div>
 
       <div id="jaChallengeRow" class="jr-row2 jr-row2--challenge" hidden>
         <div class="jr-cell"><label>Challenge</label><div class="jr-segmented" id="jaModelToggle"></div></div>
         <div class="jr-cell"><label>Étape du compte</label><div class="jr-segmented" id="jaStageToggle"></div></div>
       </div>
+      <div id="jaSizeRow" class="jr-cell" style="margin-bottom:12px" hidden><label>Taille du compte</label><div class="jr-sizes" id="jaSizes"></div></div>
       <div id="jaRulesNote" class="jr-rules-note" hidden></div>
       <div id="jaRulesRow" class="jr-row-top" style="grid-template-columns:repeat(4,1fr)" hidden>
         <div class="jr-cell"><label>Perte / jour max (%)</label><input id="jaDailyLoss" type="number" step="any"></div>
@@ -364,11 +456,11 @@
           <label>Connexion</label>
           <div class="jr-segmented" id="jaConnToggle">
             <button type="button" data-conn="manual" class="is-active">Réel (manuel)</button>
-            <button type="button" data-conn="mt5">Auto (MT5)</button>
+            <button type="button" data-conn="myfxbook">Auto (Myfxbook)</button>
           </div>
         </div>
       </div>
-      <p id="jaMt5Note" class="jr-rules-note" hidden><b>Pas encore branché — ce compte reste en saisie manuelle.</b> Deux voies possibles : <b>via Myfxbook</b> (tu relies ton compte MT5 à Myfxbook avec le mot de passe investisseur, puis CHEST lit solde, équité, drawdown et courbe journalière par leur API officielle ; historique limité aux 50 dernières transactions, session liée à l'IP, heures du courtier — demande un petit service serveur) ou <b>un pont local MT5</b> (<code>mt5-bridge/export_mt5.py</code> : historique complet, mais MT5 doit tourner sur ton PC).</p>
+      <p id="jaMt5Note" class="jr-rules-note" hidden><b>Via Myfxbook.</b> Tu relies ton compte MT5 à Myfxbook (mot de passe investisseur) ; CHEST lira ensuite ses données par l'API officielle. Elle ne renvoie que les <b>50 dernières transactions</b> : chaque synchronisation s'ajoute aux trades déjà importés dans ce journal (doublons ignorés) et CHEST te prévient quand un lot arrive plein, car des trades ont pu passer entre deux synchronisations. Pas encore branché : en attendant, ce journal reste en saisie manuelle.</p>
 
       <div class="jr-form__actions">
         <button type="button" class="btn btn-secondary" id="jaSave">Enregistrer le compte</button>
@@ -379,6 +471,7 @@
 
   <!-- ============ Page 3 : dashboard du compte ============ -->
   <div id="jrDashboard" hidden>
+    <div style="padding:0 34px 14px"><a href="journal.html" class="jr-back" id="jrBackLink">← Journaux</a></div>
     <div class="jr-acc-bar" style="padding:0 34px 26px">
       <div class="jr-acc-switcher" id="jrAccSwitcher">
         <button class="jr-acc-switcher__btn" id="jrAccSwitcherBtn">
@@ -395,6 +488,8 @@
       <button type="button" class="chest-btn-2" id="jrAccEditBtn">✎ Modifier ce compte</button>
       <button type="button" class="chest-btn" id="jrAddBtn" style="margin-left:auto">+ Ajouter un trade</button>
     </div>
+
+    <div class="jr-balance-warn" id="jrBalanceWarn" hidden><span><b>Le solde de ce compte n'est pas renseigné.</b> Sans lui, le P&amp;L en % et les limites du challenge ne peuvent pas se calculer.</span><button type="button" class="chest-btn-2" id="jrBalanceWarnBtn">Renseigner le solde</button></div>
 
     <section class="chest-kpis" id="jrStats" style="padding:0 34px 30px;border-top:1px solid var(--chest-rule);padding-top:26px"></section>
 
@@ -565,9 +660,14 @@
       </div>
     </div>
 
+    <section class="chest-section" id="jrSourcesCard" style="border-top:1px solid var(--chest-rule)">
+      <div class="chest-step" style="margin-bottom:14px">03 — Sources et backtests</div>
+      <div id="jrSourcesBody"></div>
+    </section>
+
     <div class="chest-section" style="border-top:1px solid var(--chest-rule)">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px">
-      <span class="chest-step">03 — Positions</span>
+      <span class="chest-step">04 — Positions</span>
     </div>
     <div class="chest-glass jr-table-wrap" id="jrTableWrap">
       <table class="jr-table">
@@ -594,12 +694,14 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/berich-store.js"></script>
+<script src="js/backtest-store.js"></script>
+<script src="js/backtest-engine.js?v=20"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
-<script src="js/journal-store.js?v=2"></script>
+<script src="js/journal-store.js?v=3"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '#jrEmptyView', title: 'Journal de trading', text: 'Crée un premier compte (propre ou propfirm) pour commencer à suivre tes trades — pris via BERICH ou ajoutés à la main.' },
+  { selector: '#jrHub', title: 'Tes journaux', text: 'Un journal par compte (propre ou propfirm). Clique sur une carte pour ouvrir son suivi, ou crée-en un nouveau.' },
   { selector: '#jrAccSwitcher', title: 'Tes comptes', text: 'Bascule entre tes comptes de journal, ou ajoutes-en un nouveau.' },
   { selector: '#jrConditionsCard', title: 'Règles du challenge', text: 'Pour un compte propfirm : suivi en direct des règles (perte max, objectif de profit, jours minimum).' },
   { selector: '#jrStats', title: 'Statistiques', text: 'Winrate, RR moyen et P&L calculés automatiquement sur tous les trades de ce compte.' },
@@ -648,14 +750,216 @@ CHESTTour.init([
   // 'accountForm' : création/édition d'un compte (page 2)
   // 'dashboard' : compte actif — switcher, stats, conditions, trades (page 3)
   function showView(view) {
-    document.getElementById('jrEmptyView').hidden = view !== 'empty';
+    document.getElementById('jrHub').hidden = view !== 'hub';
     document.getElementById('jrAccountForm').hidden = view !== 'accountForm';
     document.getElementById('jrDashboard').hidden = view !== 'dashboard';
-    // Le grand titre + descriptif n'a de sens que sur l'écran vide — une fois
-    // un compte en jeu, on veut arriver direct sur le dashboard.
-    document.getElementById('jrPageHead').classList.toggle('is-compact', view !== 'empty');
+    // Le grand titre n'a de sens que sur le hub — une fois dans un journal, on arrive direct sur ses données.
+    document.getElementById('jrPageHead').classList.toggle('is-compact', view !== 'hub');
     document.getElementById('jrPageHead').classList.toggle('is-narrow', view === 'accountForm');
-    document.getElementById('jrPageDesc').hidden = view !== 'empty';
+    document.getElementById('jrPageDesc').hidden = view !== 'hub';
+    document.getElementById('jrHubNewBtn').hidden = view !== 'hub';
+    document.getElementById('jrStepLabel').textContent = view === 'hub' ? '01 — Bibliothèque' : view === 'accountForm' ? '01 — Compte du journal' : '01 — Journal';
+  }
+
+  // ================= Hub : un journal = une carte =================
+  function buildSpark(values) {
+    const w = 400, h = 86;
+    const start = values[0];
+    const min = Math.min(...values, start), max = Math.max(...values, start);
+    const range = (max - min) || 1;
+    const n = values.length;
+    const x = (i) => (n > 1 ? (i / (n - 1)) * w : 0);
+    const y = (v) => h - ((v - min) / range) * h;
+    const line = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    return { line, area: `${line} L${w},${h} L0,${h} Z`, zeroT: Math.max(0.04, Math.min(0.96, y(start) / h)), allAbove: min >= start, allBelow: max <= start };
+  }
+  function sparkStops(spark) {
+    if (spark.allAbove) return { lineStops: '<stop offset="0" stop-color="#6ef2c9"/><stop offset="1" stop-color="#33e6a6"/>', areaStops: '<stop offset="0" stop-color="#33e6a6" stop-opacity=".45"/><stop offset="1" stop-color="#33e6a6" stop-opacity="0"/>' };
+    if (spark.allBelow) return { lineStops: '<stop offset="0" stop-color="#ff4d5e"/><stop offset="1" stop-color="#ff4d5e"/>', areaStops: '<stop offset="0" stop-color="#ff4d5e" stop-opacity="0"/><stop offset="1" stop-color="#ff4d5e" stop-opacity=".4"/>' };
+    const t = spark.zeroT.toFixed(3);
+    return {
+      lineStops: `<stop offset="0" stop-color="#6ef2c9"/><stop offset="${t}" stop-color="#33e6a6"/><stop offset="${t}" stop-color="#dcdce0"/><stop offset="1" stop-color="#ff4d5e"/>`,
+      areaStops: `<stop offset="0" stop-color="#33e6a6" stop-opacity=".45"/><stop offset="${t}" stop-color="#33e6a6" stop-opacity="0"/><stop offset="${t}" stop-color="#ff4d5e" stop-opacity="0"/><stop offset="1" stop-color="#ff4d5e" stop-opacity=".4"/>`,
+    };
+  }
+  function accountSubtitle(a) {
+    if (a.type !== 'propfirm') return 'Compte propre';
+    const firm = (CHESTJournal.propfirms().find((p) => p.id === a.propfirmId) || {}).name || 'Propfirm';
+    const m = a.modelId ? window.CHESTPropRules.models.find((x) => x.id === a.modelId) : null;
+    const stage = m && a.stage ? (CHESTJournal.stageList(m).find((x) => x.id === a.stage) || {}).label : null;
+    return [firm, m ? m.label : null, stage].filter(Boolean).join(' · ');
+  }
+
+  async function renderHub() {
+    const accounts = CHESTJournal.listAccounts();
+    const items = [];
+    for (const a of accounts) items.push({ a, rows: await CHESTJournal.entriesFor(a) });
+    const stats = items.map((it) => ({ it, s: CHESTJournal.computeStats(it.rows) }));
+    const totalTrades = stats.reduce((n, x) => n + x.s.total, 0);
+    const totalPnl = stats.reduce((n, x) => n + (x.s.totalPnl || 0), 0);
+    const propCount = accounts.filter((a) => a.type === 'propfirm').length;
+    const allRowsFlat = items.flatMap((it) => it.rows).filter((r) => r.date).sort((x, y) => new Date(y.date) - new Date(x.date));
+    const last = allRowsFlat[0];
+    const pnlCls = totalPnl > 0 ? 'is-pos' : totalPnl < 0 ? 'is-neg' : '';
+    document.getElementById('jrHubKpis').innerHTML = `
+      <div><div class="chest-label" style="margin-bottom:8px">Journaux</div><div class="chest-kpi__val">${accounts.length}</div><div class="chest-kpi__note">${propCount} propfirm · ${accounts.length - propCount} compte${accounts.length - propCount > 1 ? 's' : ''} propre${accounts.length - propCount > 1 ? 's' : ''}</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Trades</div><div class="chest-kpi__val">${totalTrades.toLocaleString('fr-FR')}</div><div class="chest-kpi__note">tous journaux</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">P&amp;L total</div><div class="chest-kpi__val ${pnlCls}">${accounts.length ? money(totalPnl) : '—'}</div><div class="chest-kpi__note">${accounts.length ? 'sur tous les journaux' : 'crée un journal'}</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Dernier trade</div><div class="chest-kpi__val">${last ? new Date(last.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}</div><div class="chest-kpi__note">${last ? (last.pair || '') : 'aucun trade pour l\'instant'}</div></div>`;
+
+    const cards = stats.map(({ it, s }) => {
+      const a = it.a;
+      const closed = it.rows.filter((r) => r.result && r.pnl != null).sort((x, y) => new Date(x.date) - new Date(y.date));
+      let cum = a.balance > 0 ? a.balance : 0;
+      const values = [cum];
+      closed.forEach((r) => { cum += r.pnl; values.push(cum); });
+      if (values.length < 2) values.push(values[0]);
+      const spark = buildSpark(values);
+      const stops = sparkStops(spark);
+      const uid = String(a.id).replace(/[^a-zA-Z0-9]/g, '');
+      const pnl = s.totalPnl || 0;
+      const pct = a.balance > 0 ? pnl / a.balance * 100 : null;
+      const tone = pnl >= 0 ? '#33e6a6' : '#ff4d5e';
+      const href = `journal.html?acc=${encodeURIComponent(a.id)}`;
+      return `
+      <div class="bt-card chest-glass--mini">
+        <a class="bt-card__hit" href="${href}" aria-label="Ouvrir ${a.name}"></a>
+        <div class="bt-card__top">
+          <div class="bt-card__title">${a.name}</div>
+          <div class="bt-card__menu">
+            <button type="button" class="bt-card__menu-btn" data-menu-toggle aria-label="Options du journal">⋮</button>
+            <div class="bt-card__menu-list" data-menu-list hidden>
+              <a href="${href}">Ouvrir le journal</a>
+              <button type="button" data-edit-acc="${a.id}">Modifier</button>
+              <button type="button" class="danger" data-delete-acc="${a.id}">Supprimer</button>
+            </div>
+          </div>
+        </div>
+        <p class="bt-card__desc">${accountSubtitle(a)}</p>
+        <div class="bt-card__spark">
+          <svg viewBox="0 0 400 86" preserveAspectRatio="none" style="width:100%;height:86px;display:block;overflow:visible">
+            <defs>
+              <linearGradient id="jl-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="86">${stops.lineStops}</linearGradient>
+              <linearGradient id="ja-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="86">${stops.areaStops}</linearGradient>
+            </defs>
+            <line x1="0" y1="${(spark.zeroT * 86).toFixed(1)}" x2="400" y2="${(spark.zeroT * 86).toFixed(1)}" stroke="rgba(255,255,255,.16)" stroke-width="1"></line>
+            <path d="${spark.area}" fill="url(#ja-${uid})"></path>
+            <path d="${spark.line}" fill="none" stroke="url(#jl-${uid})" stroke-width="2.5" stroke-linecap="round" style="filter:drop-shadow(0 2px 8px rgba(51,230,166,.35))"></path>
+          </svg>
+        </div>
+        <div class="bt-card__meta">
+          <span><b style="color:${tone}">${pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(2).replace('.', ',') + '%' : money(pnl)}</b> P&amp;L</span>
+          <span><b>${s.total}</b> trade${s.total > 1 ? 's' : ''}</span>
+          <span><b>${money(a.balance).replace(',00', '')}</b> solde</span>
+          ${s.winRatePct != null ? `<span><b>${s.winRatePct}%</b> winrate</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('jrGrid').innerHTML = cards + `
+      <a href="#" class="bt-card__add" id="jrHubAdd">
+        <span class="bt-card__add-icon">+</span>
+        <div class="bt-card__add-title">Nouveau journal</div>
+        <div class="bt-card__add-desc">Un compte propre ou propfirm, avec ses règles et son solde.</div>
+      </a>`;
+
+    const closeMenus = () => document.querySelectorAll('[data-menu-list]').forEach((l) => { l.hidden = true; });
+    document.querySelectorAll('#jrGrid [data-menu-toggle]').forEach((btn) => btn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const list = btn.nextElementSibling, open = !list.hidden;
+      closeMenus(); list.hidden = open;
+    }));
+    document.querySelectorAll('#jrGrid .bt-card__menu-list a').forEach((x) => x.addEventListener('click', (e) => e.stopPropagation()));
+    document.querySelectorAll('#jrGrid [data-edit-acc]').forEach((btn) => btn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      CHESTJournal.setActiveAccountId(btn.dataset.editAcc);
+      openAccountForm(CHESTJournal.getActiveAccount());
+    }));
+    document.querySelectorAll('#jrGrid [data-delete-acc]').forEach((btn) => btn.addEventListener('click', async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (!(await CHESTConfirm('Supprimer ce journal ? Les trades saisis à la main pour ce compte resteront enregistrés mais ne seront plus rattachés à un journal.'))) return;
+      CHESTJournal.removeAccount(btn.dataset.deleteAcc);
+      renderHub();
+    }));
+    document.getElementById('jrHubAdd').addEventListener('click', (e) => { e.preventDefault(); openAccountForm(null); });
+  }
+  document.addEventListener('click', () => document.querySelectorAll('[data-menu-list]').forEach((l) => { l.hidden = true; }));
+  document.getElementById('jrHubNewBtn').addEventListener('click', () => openAccountForm(null));
+
+  // ================= Sources et backtests associés =================
+  async function renderSources() {
+    const active = CHESTJournal.getActiveAccount();
+    if (!active) return;
+    const src = CHESTJournal.sourcesOf(active);
+    const manualN = allRows.filter((r) => r.source === 'manual').length;
+    const berichN = allRows.filter((r) => r.source === 'berich').length;
+    const extN = allRows.filter((r) => r.source === 'myfxbook').length;
+    const mfx = src.myfxbook;
+    const mfxNote = mfx && mfx.lastLimitReached
+      ? `<div class="jr-src__note warn">Le dernier lot est arrivé plein (50 trades) : des trades ont pu passer entre deux synchronisations. Synchronise plus souvent, ou complète à la main.</div>`
+      : `<div class="jr-src__note">L'API Myfxbook ne renvoie que les <b>50 dernières transactions</b>. Chaque synchronisation s'ajoute aux trades déjà importés ici (doublons ignorés) ; CHEST te prévient quand un lot arrive plein.</div>`;
+    const btIds = (active.backtestIds || []).filter((id) => window.CHESTBacktests.get(id));
+    const all = window.CHESTBacktests.list();
+    const free = all.filter((b) => !btIds.includes(b.id));
+    const stats = CHESTJournal.computeStats(allRows);
+    const real = active.balance > 0 && stats.totalPnl != null ? stats.totalPnl / active.balance * 100 : null;
+    const btRows = btIds.map((id) => {
+      const b = window.CHESTBacktests.get(id);
+      const cfg = active.type === 'propfirm' && b.pf ? b.pf : b.cp;
+      const rep = window.CHESTBacktestEngine.computeReport(b.trades || [], b.capital, cfg || { risk: 1, tiers: [] });
+      const perf = rep.stats.performancePct;
+      const fmt = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} %`;
+      const gap = real != null ? real - perf : null;
+      return `<tr>
+        <td><a href="backtest-view.html?id=${encodeURIComponent(b.id)}" style="color:inherit"><b>${b.title}</b></a><div style="font-size:11.5px;color:var(--muted)">${(b.trades || []).length} positions · ${active.type === 'propfirm' && b.pf ? 'réglage propfirm' : 'compte propre'}</div></td>
+        <td><span class="${perf >= 0 ? 'pos' : 'neg'}">${fmt(perf)}</span></td>
+        <td>-${rep.stats.maxDrawdownPct.toFixed(1).replace('.', ',')} %</td>
+        <td>${real != null ? `<span class="${real >= 0 ? 'pos' : 'neg'}">${fmt(real)}</span>` : '—'}</td>
+        <td>${gap != null ? `<span class="${gap >= 0 ? 'pos' : 'neg'}">${gap >= 0 ? '+' : '−'}${Math.abs(gap).toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} pt</span>` : '—'}</td>
+        <td style="text-align:right"><button type="button" class="btn btn-ghost" data-unlink-bt="${b.id}" title="Dissocier">✕</button></td>
+      </tr>`;
+    }).join('');
+    document.getElementById('jrSourcesBody').innerHTML = `
+      <div class="jr-src-grid">
+        <div class="jr-src is-on">
+          <div class="jr-src__top"><span class="jr-src__name">Saisie manuelle</span><span class="jr-src__tag">Manuel</span></div>
+          <div class="jr-src__count"><b>${manualN}</b> trade${manualN > 1 ? 's' : ''} saisi${manualN > 1 ? 's' : ''} à la main</div>
+          <div class="jr-src__note">Toujours active : « + Ajouter un trade » ajoute ici.</div>
+        </div>
+        <div class="jr-src ${src.berich ? 'is-on' : ''}">
+          <div class="jr-src__top"><span class="jr-src__name">BERICH</span><span class="jr-src__tag auto">Automatique</span><button type="button" class="jr-switch ${src.berich ? 'is-on' : ''}" id="jrBerichSwitch" aria-label="Activer BERICH pour ce journal"></button></div>
+          <div class="jr-src__count"><b>${berichN}</b> position${berichN > 1 ? 's' : ''} prise${berichN > 1 ? 's' : ''} via BERICH</div>
+          <div class="jr-src__note">Les positions confirmées sur BERICH entrent dans ce journal quand la source est activée. Tu peux l'activer sur plusieurs journaux.</div>
+        </div>
+        <div class="jr-src ${mfx ? 'is-on' : ''}">
+          <div class="jr-src__top"><span class="jr-src__name">Myfxbook</span><span class="jr-src__tag auto">Automatique</span></div>
+          <div class="jr-src__count">${mfx ? `<b>${extN}</b> trade${extN > 1 ? 's' : ''} importé${extN > 1 ? 's' : ''}` : 'Pas encore relié'}</div>
+          ${mfxNote}
+          <div class="jr-src__note">Plusieurs comptes Myfxbook pourront être associés au même journal.</div>
+        </div>
+      </div>
+      <div class="jr-bt">
+        <div class="jr-bt__head">
+          <span class="chest-label" style="margin:0">Backtests associés</span>
+          ${free.length ? `<select id="jrBtSelect"><option value="">Associer un backtest…</option>${free.map((b) => `<option value="${b.id}">${b.title}</option>`).join('')}</select><button type="button" class="chest-btn-2" id="jrBtLink">Associer</button>` : `<span style="font-size:12.5px;color:var(--muted)">${all.length ? 'Tous tes backtests sont déjà associés.' : 'Aucun backtest dans la bibliothèque pour l\'instant.'}</span>`}
+        </div>
+        ${btIds.length ? `<table><thead><tr><th>Backtest</th><th>Perf. backtest</th><th>DD max</th><th>Réel (ce journal)</th><th>Écart</th><th></th></tr></thead><tbody>${btRows}</tbody></table>
+        <div class="jr-bt__note">${real == null ? 'Renseigne le solde du compte pour comparer en %.' : 'Le réel est le P&amp;L du journal rapporté au solde du compte ; le backtest est sa performance sur tout son historique : les périodes ne sont pas les mêmes, c\'est une comparaison d\'ordre de grandeur.'}</div>` : ''}
+      </div>`;
+    document.getElementById('jrBerichSwitch').addEventListener('click', () => {
+      CHESTJournal.updateAccount(active.id, { sources: { berich: !src.berich, myfxbook: src.myfxbook } });
+      loadAndRender();
+    });
+    const link = document.getElementById('jrBtLink');
+    if (link) link.addEventListener('click', () => {
+      const id = document.getElementById('jrBtSelect').value;
+      if (!id) return;
+      CHESTJournal.updateAccount(active.id, { backtestIds: [...(active.backtestIds || []), id] });
+      renderSources();
+    });
+    document.querySelectorAll('[data-unlink-bt]').forEach((b) => b.addEventListener('click', () => {
+      CHESTJournal.updateAccount(active.id, { backtestIds: (active.backtestIds || []).filter((x) => x !== b.dataset.unlinkBt) });
+      renderSources();
+    }));
   }
 
   function renderAccSwitcher() {
@@ -722,8 +1026,8 @@ CHESTTour.init([
     const isPropfirm = type === 'propfirm';
     document.getElementById('jaPropfirmCombo').hidden = !isPropfirm;
     document.getElementById('jaBalanceRow').classList.toggle('is-single', !isPropfirm);
-    document.getElementById('jaBalance').placeholder = isPropfirm ? '100000' : '10000';
-    if (!isPropfirm) { ['jaRulesNote', 'jaRulesRow', 'jaChallengeRow', 'jaRulesCard'].forEach((id) => { document.getElementById(id).hidden = true; }); }
+    document.getElementById('jaBalance').placeholder = isPropfirm ? 'ex. 100 000' : 'ex. 10 000';
+    if (!isPropfirm) { ['jaRulesNote', 'jaRulesRow', 'jaChallengeRow', 'jaRulesCard', 'jaSizeRow'].forEach((id) => { document.getElementById(id).hidden = true; }); }
   }
   document.querySelectorAll('#jaTypeToggle button').forEach((btn) => btn.addEventListener('click', () => reflectAccType(btn.dataset.type)));
 
@@ -763,12 +1067,22 @@ CHESTTour.init([
   function renderChallenge() {
     const models = selectedPropfirm ? CHESTJournal.challengeModels(selectedPropfirm) : [];
     document.getElementById('jaChallengeRow').hidden = !models.length;
+    document.getElementById('jaSizeRow').hidden = true;
     if (!models.length) { selectedModel = null; return; }
     if (!selectedModel || !models.some((m) => m.id === selectedModel)) selectedModel = models[0].id;
     document.getElementById('jaModelToggle').innerHTML = models.map((m) => `<button type="button" data-model="${m.id}" class="${m.id === selectedModel ? 'is-active' : ''}">${escHtmlJ(m.label)}</button>`).join('');
     const stages = CHESTJournal.stageList(modelOf(selectedModel));
     if (!stages.some((x) => x.id === selectedStage)) selectedStage = 'p1';
     document.getElementById('jaStageToggle').innerHTML = stages.map((x) => `<button type="button" data-stage="${x.id}" class="${x.id === selectedStage ? 'is-active' : ''}">${x.label}</button>`).join('');
+    const sizes = (modelOf(selectedModel).prices && modelOf(selectedModel).prices.sizes) || [];
+    const sizeRow = document.getElementById('jaSizeRow');
+    sizeRow.hidden = !sizes.length;
+    const curBal = parseFloat(document.getElementById('jaBalance').value) || 0;
+    document.getElementById('jaSizes').innerHTML = sizes.map((z) => `<button type="button" data-size="${z.size}" class="${z.size === curBal ? 'is-active' : ''}">${nFrJ(z.size)} $</button>`).join('');
+    document.querySelectorAll('#jaSizes button').forEach((b) => b.addEventListener('click', () => {
+      document.getElementById('jaBalance').value = b.dataset.size;
+      document.querySelectorAll('#jaSizes button').forEach((x) => x.classList.toggle('is-active', x === b));
+    }));
     document.querySelectorAll('#jaModelToggle button').forEach((b) => b.addEventListener('click', () => { selectedModel = b.dataset.model; renderChallenge(); applyPropfirmPreset(); }));
     document.querySelectorAll('#jaStageToggle button').forEach((b) => b.addEventListener('click', () => { selectedStage = b.dataset.stage; renderChallenge(); applyPropfirmPreset(); }));
   }
@@ -788,9 +1102,8 @@ CHESTTour.init([
       if (o.consistency) bits.push(consJ(o.consistency));
       return `<li><b>${escHtmlJ(o.label)}</b> — ${bits.join(' · ')}</li>`;
     }).join('');
-    const d = m.source.pageDate ? new Date(m.source.pageDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date(window.CHESTPropRules.verifiedOn).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     return `
-      <div class="jr-rules-card__head"><b>${escHtmlJ(m.firm)} · ${escHtmlJ(m.label)}</b><span>${stageLabel}</span><em>page officielle du ${d}</em></div>
+      <div class="jr-rules-card__head"><b>${escHtmlJ(m.firm)} · ${escHtmlJ(m.label)}</b><span>${stageLabel}</span></div>
       <div class="jr-rules-grid">
         <div class="is-wide"><label>Challenge</label><p>${stage === 'funded' ? challenge : cur('p1', challenge)}</p></div>
         <div class="is-wide"><label>Compte financé</label><p>${stage === 'funded' ? `<span class="is-current">${funded}</span>` : funded}</p></div>
@@ -832,7 +1145,7 @@ CHESTTour.init([
   }));
   document.querySelectorAll('#jaConnToggle button').forEach((btn) => btn.addEventListener('click', () => {
     document.querySelectorAll('#jaConnToggle button').forEach((b) => b.classList.toggle('is-active', b === btn));
-    document.getElementById('jaMt5Note').hidden = btn.dataset.conn !== 'mt5';
+    document.getElementById('jaMt5Note').hidden = btn.dataset.conn !== 'myfxbook';
   }));
 
   function openAccountForm(account) {
@@ -858,34 +1171,32 @@ CHESTTour.init([
     } else {
       document.getElementById('jaPropfirmTrigger').innerHTML = '<span class="placeholder">Choisir…</span>';
       selectedModel = null; selectedStage = 'p1';
-      ['jaRulesRow', 'jaRulesNote', 'jaChallengeRow', 'jaRulesCard'].forEach((id) => { document.getElementById(id).hidden = true; });
+      ['jaRulesRow', 'jaRulesNote', 'jaChallengeRow', 'jaRulesCard', 'jaSizeRow'].forEach((id) => { document.getElementById(id).hidden = true; });
     }
     document.getElementById('jaBalance').value = account ? account.balance : '';
     document.getElementById('jaRiskValue').value = account ? account.riskValue : 1;
     const riskUnit = account ? account.riskUnit : 'pct';
     document.querySelectorAll('#jaRiskUnitToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.unit === riskUnit));
-    const conn = account ? account.connectionMode : 'manual';
+    const conn = account ? (account.connectionMode === 'mt5' ? 'myfxbook' : account.connectionMode) : 'manual';
     document.querySelectorAll('#jaConnToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.conn === conn));
-    document.getElementById('jaMt5Note').hidden = conn !== 'mt5';
+    document.getElementById('jaMt5Note').hidden = conn !== 'myfxbook';
     document.getElementById('jaDelete').hidden = !account;
 
     document.getElementById('jrForm').hidden = true;
     showView('accountForm');
   }
 
-  document.getElementById('jrEmptyLink').addEventListener('click', (e) => { e.preventDefault(); openAccountForm(null); });
   document.getElementById('jrAccAddBtn').addEventListener('click', () => { document.getElementById('jrAccMenu').classList.remove('is-open'); openAccountForm(null); });
   document.getElementById('jrAccEditBtn').addEventListener('click', () => openAccountForm(CHESTJournal.getActiveAccount()));
+  document.getElementById('jrBalanceWarnBtn').addEventListener('click', () => openAccountForm(CHESTJournal.getActiveAccount()));
   document.getElementById('jaCancel').addEventListener('click', () => {
-    showView(CHESTJournal.listAccounts().length ? 'dashboard' : 'empty');
+    window.location.href = editingAccountId ? `journal.html?acc=${encodeURIComponent(editingAccountId)}` : 'journal.html';
   });
   document.getElementById('jaDelete').addEventListener('click', async () => {
     if (!editingAccountId) return;
     if (!(await CHESTConfirm('Supprimer ce compte ? Les trades manuels qui lui sont liés resteront dans le journal mais perdront leur rattachement.'))) return;
     CHESTJournal.removeAccount(editingAccountId);
-    const hasAccounts = CHESTJournal.listAccounts().length > 0;
-    showView(hasAccounts ? 'dashboard' : 'empty');
-    if (hasAccounts) onAccountChanged();
+    window.location.href = 'journal.html';
   });
 
   document.getElementById('jaSave').addEventListener('click', () => {
@@ -894,6 +1205,7 @@ CHESTTour.init([
     const type = document.querySelector('#jaTypeToggle button.is-active').dataset.type;
     if (type === 'propfirm' && !selectedPropfirm) { showToast('Choisis un propfirm.'); return; }
     const balance = parseFloat(document.getElementById('jaBalance').value) || 0;
+    if (!(balance > 0)) { showToast('Renseigne le solde du compte : il sert à calculer le P&L en % et les limites du challenge.'); document.getElementById('jaBalance').focus(); return; }
     const account = {
       name, type,
       propfirmId: type === 'propfirm' ? selectedPropfirm : null,
@@ -910,12 +1222,14 @@ CHESTTour.init([
         minDays: parseInt(document.getElementById('jaMinDays').value, 10) || 0,
       } : null,
     };
-    if (editingAccountId) CHESTJournal.updateAccount(editingAccountId, account);
-    else CHESTJournal.addAccount(account);
-
-    showToast(editingAccountId ? 'Compte modifié ✓' : 'Compte ajouté ✓');
-    showView('dashboard');
-    onAccountChanged();
+    let saved;
+    if (editingAccountId) {
+      saved = CHESTJournal.updateAccount(editingAccountId, account);
+      // Les trades saisis avec un risque en % suivent le nouveau solde (leur P&L = RR × solde × risque %).
+      CHESTJournal.list().filter((e) => e.accountId === editingAccountId && e.riskUnit === 'pct' && e.rrActual != null)
+        .forEach((e) => CHESTJournal.update(e.id, { pnl: Math.round(e.rrActual * balance * (e.riskValue || 0)) / 100 }));
+    } else saved = CHESTJournal.addAccount(Object.assign({ sources: { berich: false, myfxbook: null }, backtestIds: [] }, account));
+    window.location.href = `journal.html?acc=${encodeURIComponent(saved.id)}`;
   });
 
   // ================= Combobox générique (ouverture/fermeture, clic-dehors) =================
@@ -1034,8 +1348,14 @@ CHESTTour.init([
   }
   function reflectPnl() {
     const rr = document.getElementById('jrRR').value !== '' ? parseFloat(document.getElementById('jrRR').value) : null;
-    const pnl = rr != null ? Math.round(rr * effectiveRiskAmount() * 100) / 100 : null;
+    const active = CHESTJournal.getActiveAccount();
     const el = document.getElementById('jrPnlDisplay');
+    if (rr != null && currentRiskUnit === 'pct' && !(active && active.balance > 0)) {
+      el.textContent = 'Solde du compte à renseigner';
+      el.className = 'jr-readonly neg';
+      return null;
+    }
+    const pnl = rr != null ? Math.round(rr * effectiveRiskAmount() * 100) / 100 : null;
     el.textContent = pnl != null ? money(pnl) : '—';
     el.className = 'jr-readonly' + (pnl > 0 ? ' pos' : pnl < 0 ? ' neg' : '');
     return pnl;
@@ -1224,7 +1544,7 @@ CHESTTour.init([
     return `<span class="jr-result ${result.toLowerCase()}">${result}</span>`;
   }
   function sourceLabel(row) {
-    return row.source === 'berich' ? 'Live' : 'Manuel';
+    return row.source === 'berich' ? 'Live' : row.source === 'myfxbook' ? 'Myfxbook' : 'Manuel';
   }
 
   function renderTable() {
@@ -1329,6 +1649,8 @@ CHESTTour.init([
       rrActual: rr,
       result: rr == null ? null : currentReward,
       pnl: rr != null ? Math.round(rr * riskAmount * 100) / 100 : null,
+      riskValue: parseFloat(document.getElementById('jrRisk').value) || 0,
+      riskUnit: currentRiskUnit,
       chartLink: document.getElementById('jrChart').value.trim() || null,
       correctionChartLink: document.getElementById('jrChartCorrection').value.trim() || null,
       tags: selectedTags.slice(),
@@ -1345,13 +1667,20 @@ CHESTTour.init([
   });
 
   async function loadAndRender() {
-    if (!CHESTJournal.listAccounts().length) { showView('empty'); return; }
+    const accounts = CHESTJournal.listAccounts();
+    const accId = new URLSearchParams(window.location.search).get('acc');
+    const acc = accId ? accounts.find((a) => a.id === accId) : null;
+    if (!acc) { showView('hub'); await renderHub(); return; }
+    CHESTJournal.setActiveAccountId(acc.id);
     showView('dashboard');
-    allRows = await CHESTJournal.allEntries();
+    allRows = await CHESTJournal.entriesFor(acc);
+    document.getElementById('jrBalanceWarn').hidden = acc.balance > 0;
     renderAccSwitcher();
     renderConditions();
     renderStats(allRows);
     renderTable();
+    renderSources();
+    onAccountChanged();
   }
 
   loadAndRender();

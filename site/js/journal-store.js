@@ -28,6 +28,7 @@
   const FAV_PAIRS_KEY = 'chest_journal_fav_pairs';
   const ACCOUNTS_KEY = 'chest_journal_accounts';
   const ACTIVE_ACCOUNT_KEY = 'chest_journal_active_account';
+  const EXT_KEY = 'chest_journal_ext'; // trades venus de sources automatiques (Myfxbook…), par compte
 
   // ---------- Propfirms sélectionnables (mêmes que BERICH) ----------
   const PROPFIRMS = [
@@ -224,6 +225,46 @@
     return [...manual, ...live].sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
+  // ---------- Sources d'un journal ----------
+  // Un journal se nourrit de : la saisie manuelle (toujours), BERICH (automatique, à activer) et, à terme, un ou
+  // plusieurs comptes Myfxbook (automatique). Les comptes créés avant cette option gardent BERICH activé.
+  function sourcesOf(acc) {
+    const s = acc && acc.sources;
+    return { manual: true, berich: s ? !!s.berich : true, myfxbook: s && s.myfxbook ? s.myfxbook : null };
+  }
+  function extAll() {
+    try { return JSON.parse(localStorage.getItem(EXT_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function extEntries(accountId) { return (extAll()[accountId] || []).slice(); }
+
+  // Ajoute un lot de trades d'une source automatique aux données DÉJÀ importées du journal (doublons ignorés par id).
+  // L'API Myfxbook ne renvoie que les 50 dernières transactions : si un lot arrive plein (≥ limit), des trades ont pu
+  // passer entre deux synchronisations — le résultat le dit pour que l'interface prévienne l'utilisateur.
+  function mergeExternal(accountId, incoming, opts) {
+    const limit = (opts && opts.limit) || 50;
+    const all = extAll();
+    const cur = all[accountId] || [];
+    const before = cur.length;
+    const ids = new Set(cur.map((e) => e.id));
+    let added = 0;
+    incoming.forEach((e) => { if (!ids.has(e.id)) { cur.push(e); ids.add(e.id); added++; } });
+    all[accountId] = cur;
+    try { localStorage.setItem(EXT_KEY, JSON.stringify(all)); } catch (e) { /* tant pis */ }
+    const limitReached = incoming.length >= limit;
+    return { added, total: cur.length, limitReached, firstBatch: before === 0, possibleGap: limitReached && before > 0 && added === incoming.length };
+  }
+
+  // Toutes les entrées d'UN journal : saisie manuelle de ce compte (les anciennes entrées sans compte vont au plus ancien),
+  // BERICH si activé, puis les sources automatiques. Chaque entrée porte l'id du journal.
+  async function entriesFor(account) {
+    const accounts = listAccounts();
+    const oldest = accounts[0];
+    const manual = list().filter((e) => e.accountId === account.id || (!e.accountId && oldest && oldest.id === account.id));
+    const live = sourcesOf(account).berich ? await berichEntries() : [];
+    const ext = extEntries(account.id);
+    return [...manual, ...live, ...ext].map((e) => Object.assign({}, e, { accountId: account.id })).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
   // ---------- Stats — arithmétique directe (pas de simulation de capital,
   // pas de forfait sur le moteur de backtesting qui répond à un besoin
   // différent : projeter un capital, pas totaliser un P&L réel). BE est
@@ -281,7 +322,7 @@
   }
 
   window.CHESTJournal = {
-    list, add, update, remove, berichEntries, allEntries, computeStats,
+    list, add, update, remove, berichEntries, allEntries, entriesFor, sourcesOf, extEntries, mergeExternal, computeStats,
     knownTags, rememberTag, favoritePairs, toggleFavoritePair,
     propfirms, challengeModels, stageList, stageRules, propfirmLogo,
     listAccounts, addAccount, updateAccount, removeAccount,
