@@ -199,8 +199,8 @@
     ' c1=mix(c1,wht,smoothstep(1.1,1.5,b));',
     ' c1+=vec3(.18,.02,.3)*aur*.5*(1.-uv.x/asp)*mask+vec3(.3,.11,.04)*aur*.16*smoothstep(.5,1.,uv.x/asp)*mask;',
     // orange (pêche puis orange franc) et violet, fondus dans la palette : discrets, jamais saturés
-    ' c1=mix(c1,c1*vec3(1.1,.94,.62)+vec3(.12,.06,.0),warm*smoothstep(.1,.55,b)*.5);',
-    ' c1+=vec3(.95,.55,.18)*warm*smoothstep(.2,.8,b)*.1;',
+    ' vec3 og=mix(vec3(.5,.13,.05),vec3(.95,.46,.13),smoothstep(.1,.6,b));og=mix(og,vec3(1.,.72,.4),smoothstep(.6,1.1,b));',
+    ' c1=mix(c1,og,clamp(warm*1.15,0.,1.)*smoothstep(.12,.5,b)*.5);',
     ' c1=mix(c1,c1*vec3(.86,.78,1.32)+vec3(.05,.01,.16),vio*smoothstep(.02,.35,b)*1.0);',
     ' c1+=vec3(.36,.14,.72)*vio*smoothstep(.05,.45,b)*.22*mask;',
     ' c1*=smoothstep(0.,.16,b);',
