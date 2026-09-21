@@ -142,6 +142,9 @@
   .pd-mm .mm__grp{ flex:1 1 150px; }
   .mm__gname{ font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#f9a45e; text-shadow:0 0 10px rgba(249,164,94,.45); }
   .pd-mm .mm--split{ flex-direction:row; flex-wrap:wrap; gap:14px 30px; }
+  .auto-min{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:0 0 10px; font-size:12.5px; color:var(--muted); }
+  .auto-min .field{ width:84px; height:34px; }
+  .auto-min__pct{ color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
   .auto-split{ margin:0 0 10px; }
   .auto-split__row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .auto-split__row .si-btn{ margin-left:0; }
@@ -305,6 +308,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
         </div>
         <div class="mm-auto" data-account="cp" style="display:none">
           <p class="hint" style="margin:0 0 10px">Trois réglages aux objectifs différents (croissance, meilleur ratio, prudent), calculés tout seuls sur ton historique. Ils tiennent compte des bonus de ton fichier, des sessions, des jours et des heures, mais seulement quand l'effet est net et se répète — jamais sur un petit échantillon.</p>
+          <div class="auto-min" data-account="cp"><span>Plus petit risque réalisable</span><input type="number" class="field auto-min-usd" min="0.5" step="0.5" value="5" aria-label="Plus petit risque réalisable en dollars"><span>$ par trade</span><b class="auto-min__pct"></b></div>
           <div class="auto-split" data-account="cp"><div class="auto-split__row"><span class="auto-split__chip"></span><span class="si-wrap"><button type="button" class="btn btn-ghost si-btn auto-si">+ Si</button></span></div><div class="auto-split__hint"></div></div>
           <div class="auto-result" data-account="cp" style="display:none"></div>
         </div>
@@ -331,7 +335,8 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
           </div>
           <div class="mm-auto" data-account="pf" style="display:none">
             <p class="hint" style="margin:0 0 10px">Trois réglages aux objectifs différents (régularité, performance pure, sécurité), toujours dans les limites propfirm : jamais plus de 5% de drawdown journalier ni 10% de drawdown max. Nécessite les heures de clôture pour un résultat fiable.</p>
-            <div class="auto-split" data-account="pf"><div class="auto-split__row"><span class="auto-split__chip"></span><span class="si-wrap"><button type="button" class="btn btn-ghost si-btn auto-si">+ Si</button></span></div><div class="auto-split__hint"></div></div>
+            <div class="auto-min" data-account="pf"><span>Plus petit risque réalisable</span><input type="number" class="field auto-min-usd" min="0.5" step="0.5" value="5" aria-label="Plus petit risque réalisable en dollars"><span>$ par trade</span><b class="auto-min__pct"></b></div>
+          <div class="auto-split" data-account="pf"><div class="auto-split__row"><span class="auto-split__chip"></span><span class="si-wrap"><button type="button" class="btn btn-ghost si-btn auto-si">+ Si</button></span></div><div class="auto-split__hint"></div></div>
           <div class="auto-result" data-account="pf" style="display:none"></div>
           </div>
         </div>
@@ -356,7 +361,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=11"></script>
+<script src="js/backtest-engine.js?v=16"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js"></script>
 <script src="js/page-tour.js"></script>
@@ -445,7 +450,7 @@ CHESTTour.init([
   const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fr = (n, d = 1) => Number(n).toFixed(d).replace('.', ',');
   const signed = (n) => (n >= 0 ? '+' : '−') + fr(Math.abs(n), 1) + ' %';
-  const riskTxt = (r) => (r === 0 ? 'ignoré' : fr(r, 2).replace(/,?0+$/, '') + ' %');
+  const riskTxt = (r) => (r === 0 ? 'ignoré' : fr(r, 3).replace(/,?0+$/, '') + ' %');
   const fieldLabel = (key) => ENG.fieldLabel(key);
 
   function refreshBonus() {
@@ -453,7 +458,7 @@ CHESTTour.init([
     let html;
     if (bonusFields.length) {
       const list = bonusFields.map((f) => `<b>${esc(f.label)}</b> (${f.values.slice(0, 6).map((v) => esc(v.value)).join(', ')}${f.values.length > 6 ? '…' : ''})`).join(' · ');
-      html = `Bonus détectés dans ton fichier : ${list}. Session et Jour sont déduits de l'heure d'ouverture (UTC, marchés ouverts seulement) ; « Heures » cible une plage comme 1h-3h. Clique sur « + Si » dans un palier pour régler le risque d'un bonus. Risque <b>0 %</b> = trade ignoré ; la règle la plus précise l'emporte (Si + Après &gt; Si &gt; Après).`;
+      html = `Bonus détectés dans ton fichier : ${list}. « Après N SL » d'une règle « Si » compte les SL de ce bonus seul, sur les trades déjà clôturés. Session et Jour sont déduits de l'heure d'ouverture (UTC, marchés ouverts seulement) ; « Heures » cible une plage comme 1h-3h. Clique sur « + Si » dans un palier pour régler le risque d'un bonus. Risque <b>0 %</b> = trade ignoré ; la règle la plus précise l'emporte (Si + Après &gt; Si &gt; Après).`;
     } else if (parsedTrades && parsedTrades.length) {
       html = `Aucun bonus exploitable détecté (il faut une colonne avec 2 à 15 valeurs différentes, par exemple Source ou Facultatif).`;
     } else {
@@ -571,6 +576,16 @@ CHESTTour.init([
 
   // Le mode Automatique calcule tout seul les trois réglages (à l'activation, à l'import, au changement de capital).
   const autoToken = { cp: 0, pf: 0 };
+  // Plus petit risque réalisable : un lot de 0,01 ne descend pas sous un certain montant (ex. 0,012 % de 10 000 $ = 1,2 $
+  // est irréalisable). Aucun risque, palier ou règle n'ira en dessous ; la pause (0 %) reste possible.
+  const minUsd = () => Math.max(0.5, Number(document.querySelector('.auto-min-usd').value) || 5);
+  const capitalNow = () => Number(document.getElementById('btCapital').value) || 10000;
+  const minRiskPct = () => minUsd() / capitalNow() * 100;
+  function paintMin() {
+    const txt = `= ${fr(minRiskPct(), 3).replace(/,?0+$/, '')} % de ${Math.round(capitalNow()).toLocaleString('fr-FR')} $`;
+    document.querySelectorAll('.auto-min__pct').forEach((el) => { el.textContent = txt; });
+  }
+  function setMinUsd(v) { document.querySelectorAll('.auto-min-usd').forEach((el) => { el.value = v; }); paintMin(); }
   // « + Si » du mode Automatique : bonus imposé, chaque valeur reçoit son propre money management.
   const autoSplit = { cp: null, pf: null };
   function paintSplit(account) {
@@ -649,14 +664,16 @@ CHESTTour.init([
       const capital = Number(document.getElementById('btCapital').value) || 10000;
       let split = autoSplit[account];
       if (split && !bonusFields.some((f) => f.key === split)) { split = autoSplit[account] = null; paintSplit(account); }
-      const res = ENG.optimizeProfiles(parsedTrades, capital, account, { split });
+      const res = ENG.optimizeProfiles(parsedTrades, capital, account, { split, minRiskPct: minRiskPct() });
       if (res.error) { clearAuto(resultEl); resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
       renderPremium(resultEl, res, account);
     }, 30);
   }
   const runAutoAll = () => ['cp', 'pf'].forEach((a) => { if (isAutoActive(a)) runAuto(a); });
   let capTimer = null;
-  document.getElementById('btCapital').addEventListener('input', () => { clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); });
+  document.getElementById('btCapital').addEventListener('input', () => { paintMin(); clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); });
+  document.querySelectorAll('.auto-min-usd').forEach((el) => el.addEventListener('input', () => { setMinUsd(el.value); clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); }));
+  paintMin();
 
 
   // Réglage premium : trois profils par compte, chacun avec son objectif (voir optimizeProfiles).
@@ -691,7 +708,7 @@ CHESTTour.init([
     }
     return { tone, html };
   }
-  const tierTxt = (t) => `<b>${riskTxt(t.newRisk)}</b> après ${t.afterSl === 1 ? '1 SL' : `${t.afterSl} SL d'affilée`}`;
+  const tierTxt = (t) => `<b>${t.newRisk === 0 ? 'pause' : riskTxt(t.newRisk)}</b> après ${t.afterSl === 1 ? '1 SL' : `${t.afterSl} SL d'affilée`}`;
   // Money management d'un profil : risque de base, palier, règles. `max` = nombre de règles montrées (cartes).
   function mmHtml(p, max) {
     if (p.split) {
@@ -725,7 +742,7 @@ CHESTTour.init([
       resultEl.dataset.risk = p.config.risk;
       resultEl.dataset.tiers = JSON.stringify(p.config.tiers);
       resultEl.dataset.rules = JSON.stringify(p.config.rules);
-      resultEl.dataset.premium = JSON.stringify({ profile: p.id, name: p.name, logic: p.logic, perf: p.perf, mult: p.finalMult, avgM: p.avgM, posM: p.posM, dd: p.dd, holds: p.trust === 'ok' ? true : p.trust === 'warn' ? false : null, split: p.split ? { field: p.split.field, label: p.split.label, groups: p.split.groups } : null });
+      resultEl.dataset.premium = JSON.stringify({ profile: p.id, name: p.name, logic: p.logic, perf: p.perf, mult: p.finalMult, avgM: p.avgM, posM: p.posM, dd: p.dd, holds: p.trust === 'ok' ? true : p.trust === 'warn' ? false : null, split: p.split ? { field: p.split.field, label: p.split.label, groups: p.split.groups } : null, minRiskUsd: minUsd() });
     };
     const detail = (p) => {
       const rows = [];
@@ -746,6 +763,7 @@ CHESTTour.init([
         + chip('mute', `${p.maxSlStreak} SL`, 'pire série')
         + (p.skipped ? chip('mute', `${p.skipped}`, `trade${p.skipped > 1 ? 's' : ''} ignoré${p.skipped > 1 ? 's' : ''}`) : '');
       rows.push(`<div class="pd-label">Pire cas</div><div class="pd-stats">${worst}</div>`);
+      if (p.split) rows.push(`<div class="prof-detail__row">Les séries de SL se comptent par logique (${p.split.groups.filter((g) => g.value != null).map((g) => esc(g.value)).join(', ')}), en ne regardant que les trades déjà clôturés à l'ouverture ; une pause s'arrête au prochain trade non-SL.</div>`);
       if (p.finalMult >= 1000) rows.push(`<div class="prof-detail__row">Chiffres composés théoriques : sans limite de lots ni de liquidité.</div>`);
       if (p.note) rows.push(`<div class="prof-detail__row warn">${esc(p.note)}</div>`);
       return rows.join('');
@@ -805,6 +823,7 @@ CHESTTour.init([
       resultEl.dataset.rules = JSON.stringify(cfg.rules || []);
       resultEl.dataset.tiers = JSON.stringify(cfg.tiers || []);
       if (cfg.premium) resultEl.dataset.premium = JSON.stringify(cfg.premium);
+      if (cfg.premium && cfg.premium.minRiskUsd) setMinUsd(cfg.premium.minRiskUsd);
       if (cfg.premium && cfg.premium.split) { autoSplit[account] = cfg.premium.split.field; paintSplit(account); }
     } else {
       manualEl.querySelector('.risk-input').value = cfg.risk;

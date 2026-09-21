@@ -313,7 +313,7 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=11"></script>
+<script src="js/backtest-engine.js?v=16"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/propfirm-fit.js?v=6"></script>
 <script src="js/page-tour.js"></script>
@@ -353,16 +353,16 @@ CHESTTour.init([
   const riskTxt = (r) => (r === 0 ? 'ignoré' : String(r).replace('.', ',') + ' %');
   // Réglage « Si » séparé : un money management par valeur du bonus.
   function splitSummary(sp) {
-    return sp.groups.map((g) => `<b>${g.value == null ? 'Autres trades' : g.value}</b> ${riskTxt(g.base)} par trade${g.tier ? `, puis ${riskTxt(g.tier.newRisk)} après ${g.tier.afterSl === 1 ? '1 SL' : g.tier.afterSl + " SL d'affilée"}` : ''}`).join(' · ');
+    return sp.groups.map((g) => `<b>${g.value == null ? 'Autres trades' : g.value}</b> ${riskTxt(g.base)} par trade${g.tier ? `, puis ${g.tier.newRisk === 0 ? 'pause' : riskTxt(g.tier.newRisk)} après ${g.tier.afterSl === 1 ? '1 SL' : g.tier.afterSl + " SL d'affilée"}` : ''}`).join(' · ');
   }
   // Réglage lisible : risque de base, palier, puis règles « Si ».
   function rulesSummary(cfg) {
     const parts = [`Risque <b>${riskTxt(cfg.risk)}</b>`];
-    (cfg.tiers || []).forEach((t) => parts.push(`<b>${riskTxt(t.newRisk)}</b> après ${t.afterSl} SL`));
+    (cfg.tiers || []).forEach((t) => parts.push(`<b>${t.newRisk === 0 ? 'pause' : riskTxt(t.newRisk)}</b> après ${t.afterSl} SL`));
     (cfg.rules || []).forEach((r) => {
       const c = r.conds.map((x) => (x.field.indexOf('d:') === 0 && x.field !== 'd:window' ? x.value : `${bonusLabel(x.field)} ${x.value}`)).join(' + ');
       const after = r.afterSl ? ` après ${r.afterSl} SL` : '';
-      parts.push(`${c}${after} → <b>${riskTxt(r.risk)}</b>`);
+      parts.push(`${c}${after} → <b>${r.afterSl && r.risk === 0 ? 'pause' : riskTxt(r.risk)}</b>`);
     });
     return parts.join(' · ');
   }

@@ -178,11 +178,26 @@
     return out;
   }
 
+  // Série de SL d'un « périmètre » : les trades qui vérifient les conditions d'une règle (ou tous les trades
+  // pour un palier global). Elle compte les résultats de TOUS les trades du périmètre, pris ou non : un
+  // trade mis en pause (risque 0) continue donc de « compter » et la pause s'arrête au prochain trade non-SL
+  // (« CONTRE à 3 SL d'affilée → 0 % jusqu'à son prochain trade non-SL »).
+  function scopeKey(conds) { return (conds || []).map((c) => c.field + '=' + norm(c.value)).sort().join('&'); }
+
+  function collectScopes(cfg) {
+    const m = new Map();
+    (cfg.tiers || []).forEach((x) => { if (x.afterSl > 0) m.set('', []); });
+    (cfg.rules || []).forEach((x) => { if (x.afterSl > 0) { const k = scopeKey(x.conds); if (!m.has(k)) m.set(k, x.conds || []); } });
+    return [...m.entries()].map(([key, conds]) => ({ key, conds }));
+  }
+
   // Risque d'un trade : base, paliers (afterSl) et règles « Si », la plus précise l'emporte.
-  function resolveRisk(t, cfg, consecutiveSl) {
+  // streakOf(key) : série de SL courante du périmètre (ou un nombre, valable pour tous les périmètres).
+  function resolveRisk(t, cfg, streakOf) {
+    const so = typeof streakOf === 'function' ? streakOf : () => streakOf || 0;
     let best = null, bestScore = -1;
     const test = (conds, afterSl, risk, order) => {
-      if (afterSl != null && afterSl > 0 && consecutiveSl < afterSl) return;
+      if (afterSl != null && afterSl > 0 && so(scopeKey(conds)) < afterSl) return;
       if (!condsMatch(conds, t)) return;
       const score = (conds ? conds.length : 0) * 1000000 + (afterSl || 0) * 1000 + order;
       if (score >= bestScore) { best = risk; bestScore = score; }
@@ -193,23 +208,48 @@
     return best == null ? cfg.risk : best;
   }
 
+  // Chronologie réelle d'un backtest : le risque d'un trade est décidé à son OUVERTURE, en ne regardant que
+  // les trades DÉJÀ CLÔTURÉS à cet instant ; le capital bouge à la clôture. (Décider à la clôture, comme si on
+  // connaissait déjà les trades qui se sont terminés pendant que la position était ouverte, serait tricher.)
+  // À égalité d'horaire, une clôture passe avant une ouverture. Sans heure d'ouverture, l'ouverture précède
+  // la clôture de 1 ms.
+  function buildEvents(ordered) {
+    const evs = [];
+    ordered.forEach((t, i) => {
+      const c = toDate(t.close || t.open || t.date), o = toDate(t.open || t.date || t.close);
+      const ct = c ? c.getTime() : 0;
+      let ot = o ? o.getTime() : ct;
+      if (ot >= ct) ot = ct - 1;
+      evs.push([ot, 1, i], [ct, 0, i]);
+    });
+    evs.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+    return evs;
+  }
+
   // riskConfig : { risk, tiers:[{afterSl,newRisk}], rules:[{conds,afterSl,risk}] }.
-  // Un trade dont le risque résolu est 0 est IGNORÉ : il n'entre ni dans la
-  // courbe, ni dans les stats, ni dans la série de SL consécutifs.
+  // Un trade dont le risque résolu est 0 est IGNORÉ : il n'entre ni dans la courbe ni dans les stats,
+  // mais son résultat continue de compter dans les séries de SL de son périmètre.
   function simulate(trades, capital0, riskConfig) {
     const ordered = sortedTrades(trades);
     let capital = capital0;
-    let consecutiveSl = 0;
     let skipped = 0;
+    const scopes = collectScopes(riskConfig);
+    const streaks = new Map(scopes.map((sc) => [sc.key, 0]));
+    const streakOf = (k) => streaks.get(k) || 0;
+    const assigned = new Array(ordered.length).fill(0);
     const curve = [{ date: toDate(ordered[0] && (ordered[0].open || ordered[0].date)), capital, trade: null, riskUsed: null }];
-    ordered.forEach((t) => {
-      const risk = resolveRisk(t, riskConfig, consecutiveSl);
-      if (!(risk > 0)) { skipped++; return; }
-      const rr = isBE(t) ? 0 : Number(t.rr) || 0;
-      capital = capital * (1 + (risk / 100) * rr);
-      const d = toDate(t.close || t.open || t.date);
-      curve.push({ date: d, capital, trade: t, riskUsed: risk });
-      consecutiveSl = isSL(t) ? consecutiveSl + 1 : 0;
+    buildEvents(ordered).forEach(([, kind, i]) => {
+      const t = ordered[i];
+      if (kind === 1) { assigned[i] = resolveRisk(t, riskConfig, streakOf); return; }
+      const risk = assigned[i];
+      if (!(risk > 0)) skipped++;
+      else {
+        const rr = isBE(t) ? 0 : Number(t.rr) || 0;
+        capital = capital * (1 + (risk / 100) * rr);
+        curve.push({ date: toDate(t.close || t.open || t.date), capital, trade: t, riskUsed: risk });
+      }
+      const sl = isSL(t);
+      scopes.forEach((sc) => { if (condsMatch(sc.conds, t)) streaks.set(sc.key, sl ? streakOf(sc.key) + 1 : 0); });
     });
     curve.skipped = skipped;
     return curve;
@@ -404,12 +444,16 @@
   const MULTS = [0, 0.5, 0.75, 1, 1.25, 1.5, 2]; // multiplicateur du risque de base par groupe (1 = pas de règle)
   const M_ONE = 3;
   const TIERS = [null];
-  [1, 2, 3, 4].forEach((a) => [0.1, 0.25, 0.5, 0.75].forEach((f) => TIERS.push({ a, f })));
+  [1, 2, 3, 4, 5].forEach((a) => [0, 0.1, 0.25, 1 / 3, 0.5, 0.75].forEach((f) => TIERS.push({ a, f })));
   const GRID_CP_BOLD = [1, 2, 3, 4, 5, 6, 8, 10, 12];
   const GRID_CP = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5];
   const GRID_PF = [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
   const mean = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
   const round2 = (x) => Math.round(x * 100) / 100;
+  const round3 = (x) => Math.round(x * 1000) / 1000;
+  // Risque d'un palier / d'un multiplicateur : jamais sous le plus petit risque réalisable (lot minimum), 0 = pause.
+  const minOf = (prof) => (prof.minRisk == null ? 0.05 : prof.minRisk);
+  const tierRisk = (prof, base, f) => (f === 0 ? 0 : Math.max(round3(base * f), minOf(prof)));
 
   // steps : limites de plus en plus souples, essayées dans l'ordre tant qu'aucun réglage ne les respecte.
   const PROFILES = {
@@ -430,7 +474,7 @@
     pf: [
       { id: 'regular', name: 'Régularité', short: 'Rendement mensuel le plus stable',
         goal: 'Le rendement mensuel le plus stable d\'un mois à l\'autre (meilleur ratio rendement / variation), puis le plus haut possible parmi les réglages aussi stables, dans les limites de la propfirm.',
-        grid: GRID_PF, steps: [{ maxDd: 10, maxDaily: 5 }],
+        grid: GRID_PF, steps: [{ maxDd: 8, maxDaily: 4 }, { maxDd: 10, maxDaily: 5 }],
         score: (m) => (m.stdM > 0 ? Math.round((m.avgM / m.stdM) * 20) * 1e6 : 0) + Math.min(m.avgM, 9e5) },
       { id: 'perf', name: 'Performance pure', short: 'Le plus de profit possible',
         goal: 'La plus forte performance totale qui respecte les limites de perte de la propfirm.',
@@ -460,7 +504,10 @@
       const k = d ? d.toISOString() : '';
       dk[i] = k.slice(0, 10); mk[i] = k.slice(0, 7);
     });
-    return { n, rr, sl, hr, dk, mk, zeros: new Int16Array(n) };
+    const evs = buildEvents(ordered);
+    const ev = new Int32Array(evs.length);
+    evs.forEach((e, k) => { ev[k] = e[2] * 2 + e[1]; }); // idx × 2 + 1 (ouverture) ou 0 (clôture)
+    return { n, rr, sl, hr, dk, mk, ev, zeros: new Int16Array(n) };
   }
 
   // Un état = { bi (risque de base), ti (palier), mi[] (multiplicateur par groupe) } ; groupe 0 = « le reste ».
@@ -469,8 +516,8 @@
     const t = TIERS[st.ti];
     const rg = [-1];
     const cap = prof.grid[prof.grid.length - 1];
-    if (gs) for (let g = 1; g < gs.groups.length; g++) rg.push(MULTS[st.mi[g]] === 1 ? -1 : Math.min(cap, round2(base * MULTS[st.mi[g]])));
-    return { base, tier: t ? { a: t.a, r: Math.max(round2(base * t.f), 0.05) } : null, rg };
+    if (gs) for (let g = 1; g < gs.groups.length; g++) rg.push(MULTS[st.mi[g]] === 1 ? -1 : MULTS[st.mi[g]] === 0 ? 0 : Math.min(cap, Math.max(round3(base * MULTS[st.mi[g]]), minOf(prof))));
+    return { base, tier: t ? { a: t.a, r: tierRisk(prof, base, t.f) } : null, rg };
   }
 
   function stateConfig(prof, st, gs) {
@@ -485,6 +532,8 @@
   // Évaluation rapide (sans allocation de courbe) d'une configuration sur les trades [lo, hi).
   function evalRange(pre, lo, hi, gid, cfg) {
     let cap = 1, peak = 1, maxDd = 0, streak = 0;
+    const gstk = cfg.gcfg ? new Int32Array(cfg.gcfg.length) : null; // séries propres à chaque valeur (mode « séparé »)
+    const asg = new Float64Array(pre.n);
     let lastD = null, prevEnd = 1, dayEnd = 1, maxDaily = 0, bestDay = 0, sumPos = 0;
     let lastM = null, mStart = 1;
     const months = [];
@@ -494,21 +543,32 @@
       if (ret > 0) { sumPos += ret; if (ret > bestDay) bestDay = ret; }
       prevEnd = dayEnd;
     };
-    for (let i = lo; i < hi; i++) {
+    const ev = pre.ev;
+    for (let e = 0; e < ev.length; e++) {
+      const code = ev[e], i = code >> 1;
+      if (i < lo || i >= hi) continue;
+      const g = gid[i];
+      if (code & 1) { // ouverture : risque décidé avec les séries des trades déjà clôturés
+        const gc = cfg.gcfg ? cfg.gcfg[g] : null;
+        const rg = cfg.rg[g];
+        const tr = gc ? gc.tier : cfg.tier;
+        const sk = gc && g > 0 ? gstk[g] : streak;
+        asg[i] = rg >= 0 ? rg : (tr && sk >= tr.a ? tr.r : (gc ? gc.base : cfg.base));
+        continue;
+      }
       const d = pre.dk[i];
       if (d !== lastD) { if (lastD !== null) closeDay(); lastD = d; }
       const mk = pre.mk[i];
       if (mk !== lastM) { if (lastM !== null) months.push(cap / mStart - 1); mStart = cap; lastM = mk; }
-      const gc = cfg.gcfg ? cfg.gcfg[gid[i]] : null;
-      const rg = cfg.rg[gid[i]];
-      const tr = gc ? gc.tier : cfg.tier;
-      const r = rg >= 0 ? rg : (tr && streak >= tr.a ? tr.r : (gc ? gc.base : cfg.base));
+      const r = asg[i];
       if (r > 0) {
         cap *= 1 + (r / 100) * pre.rr[i];
         if (cap > peak) peak = cap;
         const dd = (peak - cap) / peak; if (dd > maxDd) maxDd = dd;
-        streak = pre.sl[i] ? streak + 1 : 0;
       }
+      const isSl = pre.sl[i];
+      streak = isSl ? streak + 1 : 0;
+      if (gstk && g > 0) gstk[g] = isSl ? gstk[g] + 1 : 0;
       dayEnd = cap;
     }
     if (lastD !== null) closeDay();
@@ -694,18 +754,22 @@
       for (let i = 0; i < n; i++) ord[i] = i;
       for (let i = n - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const tmp = ord[i]; ord[i] = ord[j]; ord[j] = tmp; }
       let cap = 1, peak = 1, maxDd = 0, streak = 0;
+      const gstk = cfg.gcfg ? new Int32Array(cfg.gcfg.length) : null;
       for (let k = 0; k < n; k++) {
         const i = ord[k];
-        const gc = cfg.gcfg ? cfg.gcfg[gid[i]] : null;
-        const rg = cfg.rg[gid[i]];
+        const g = gid[i];
+        const gc = cfg.gcfg ? cfg.gcfg[g] : null;
+        const rg = cfg.rg[g];
         const tr = gc ? gc.tier : cfg.tier;
-        const r = rg >= 0 ? rg : (tr && streak >= tr.a ? tr.r : (gc ? gc.base : cfg.base));
+        const sk = gc && g > 0 ? gstk[g] : streak;
+        const r = rg >= 0 ? rg : (tr && sk >= tr.a ? tr.r : (gc ? gc.base : cfg.base));
         if (r > 0) {
           cap *= 1 + (r / 100) * pre.rr[i];
           if (cap > peak) peak = cap;
           const dd = (peak - cap) / peak; if (dd > maxDd) maxDd = dd;
-          streak = pre.sl[i] ? streak + 1 : 0;
         }
+        streak = pre.sl[i] ? streak + 1 : 0;
+        if (gstk && g > 0) gstk[g] = pre.sl[i] ? gstk[g] + 1 : 0;
       }
       dds.push(maxDd * 100);
     }
@@ -737,7 +801,7 @@
   function splitCfg(prof, st) {
     const gcfg = st.gb.map((bi, g) => {
       const base = prof.grid[bi], t = TIERS[st.gt[g]];
-      return { base, tier: t ? { a: t.a, r: Math.max(round2(base * t.f), 0.05) } : null };
+      return { base, tier: t ? { a: t.a, r: tierRisk(prof, base, t.f) } : null };
     });
     return { base: gcfg[0].base, tier: gcfg[0].tier, rg: gcfg.map(() => -1), gcfg };
   }
@@ -752,7 +816,6 @@
     gs.groups.forEach((grp, g) => {
       if (g === 0) return;
       const gc = c.gcfg[g];
-      if (gc.base === g0.base && sameTier(gc.tier, g0.tier)) return;
       const conds = grp.conds.map((x) => ({ field: x.field, value: x.value }));
       config.rules.push({ conds, afterSl: null, risk: gc.base });
       if (gc.tier) config.rules.push({ conds: conds.map((x) => Object.assign({}, x)), afterSl: gc.tier.a, risk: gc.tier.r });
@@ -821,6 +884,8 @@
    *            posM, worstM, nM, bestShare, finalMult, mc:{p95, breach}, trust:'ok'|'warn'|'none', oos, note }
    */
   function optimizeProfiles(trades, capital0, kind, opts) {
+    // Plus petit risque réalisable (lot minimum) : aucun risque, palier ou multiplicateur n'ira en dessous (0 = pause).
+    const minRisk = opts && opts.minRiskPct > 0 ? opts.minRiskPct : 0.05;
     const ordered = sortedTrades(trades);
     const n = ordered.length;
     if (n < 20) return { error: 'Il faut au moins 20 trades pour calculer un réglage premium.' };
@@ -846,6 +911,7 @@
     };
     const cut = n >= 60 ? Math.floor(n * 0.6) : 0;
     const built = [];
+    const debug = {};
     // Bonus imposé par l'utilisateur (« + Si » en mode Automatique) : un money management par valeur.
     const splitField = opts && opts.split ? opts.split : null;
     let splitGs = null;
@@ -856,26 +922,37 @@
       if (!splitGs) return { error: `Trop peu de trades par valeur de « ${fieldLabel(splitField)} » pour séparer les réglages (il faut au moins ${minGroupOf(n)} trades par valeur).` };
     }
 
-    for (const prof of PROFILES[kind]) {
+    const PROFS = PROFILES[kind].map((pr) => {
+      let grid = pr.grid.filter((g) => g >= minRisk - 1e-9);
+      if (!grid.length) grid = [Math.ceil(minRisk * 100) / 100];
+      return Object.assign({}, pr, { grid, minRisk });
+    });
+    // Ajoute un réglage « séparé » (un money management par valeur) : pire cas, note, résultat.
+    const pushSplit = (prof, stepIdx, stS, gsS, field, oos) => {
+      let dds = mcDrawdowns(pre, gsS.gid, splitCfg(prof, stS));
+      let note = stepIdx > 0 ? 'Limite assouplie : aucun réglage ne tenait la limite visée sur cet historique.' : null;
+      if (prof.mc) {
+        let backed = 0;
+        while (mcBreach(dds, prof.mc.dd) > prof.mc.p / 100 && stS.gb.some((b) => b > 0)) {
+          stS.gb = stS.gb.map((b) => Math.max(0, b - 1)); backed++;
+          dds = mcDrawdowns(pre, gsS.gid, splitCfg(prof, stS));
+        }
+        if (backed) note = (note ? note + ' ' : '') + `Risques réduits de ${backed} cran${backed > 1 ? 's' : ''} pour que le pire cas reste sous ${prof.mc.dd} % de DD.`;
+      }
+      const cfgS = splitCfg(prof, stS);
+      built.push({ prof, cfg: cfgS, config: splitConfigOut(prof, stS, gsS), gid: gsS.gid, logic: `${fieldLabel(field)} séparé`, oos, note, dds,
+        score: prof.score(evalRange(pre, 0, n, gsS.gid, cfgS)), stepIdx, split: splitInfo(prof, stS, gsS, field) });
+    };
+
+    for (const prof of PROFS) {
       const flat = searchFlat(pre, 0, n, prof);
       if (!flat) {
         return { error: kind === 'pf'
           ? 'Aucun réglage de risque ne respecte les limites propfirm (5 % de DD journalier, 10 % de DD max) sur cet historique, même au risque minimal.'
           : 'Aucun réglage de risque trouvé sur cet historique.' };
       }
-      if (splitGs) {
+      if (splitGs) { // « + Si » imposé par l'utilisateur
         const r = ascentSplit(pre, 0, n, splitGs, prof, flat.stepIdx, flat);
-        const stS = r.state;
-        let dds = mcDrawdowns(pre, splitGs.gid, splitCfg(prof, stS));
-        let note = flat.stepIdx > 0 ? 'Limite assouplie : aucun réglage ne tenait la limite visée sur cet historique.' : null;
-        if (prof.mc) {
-          let backed = 0;
-          while (mcBreach(dds, prof.mc.dd) > prof.mc.p / 100 && stS.gb.some((b) => b > 0)) {
-            stS.gb = stS.gb.map((b) => Math.max(0, b - 1)); backed++;
-            dds = mcDrawdowns(pre, splitGs.gid, splitCfg(prof, stS));
-          }
-          if (backed) note = (note ? note + ' ' : '') + `Risques réduits de ${backed} cran${backed > 1 ? 's' : ''} pour que le pire cas reste sous ${prof.mc.dd} % de DD.`;
-        }
         let oosS = null;
         if (cut) {
           const tf = searchFlat(pre, 0, cut, prof);
@@ -888,9 +965,7 @@
             oosS = { trainN: cut, testN: n - cut, perf: lt.perf, maxDd: lt.maxDd, flatPerf: ft.perf, holds: okS && prof.score(lt) > prof.score(ft) };
           }
         }
-        const cfgS = splitCfg(prof, stS);
-        built.push({ prof, cfg: cfgS, config: splitConfigOut(prof, stS, splitGs), gid: splitGs.gid, logic: `${fieldLabel(splitField)} séparé`, oos: oosS, note, dds,
-          score: prof.score(evalRange(pre, 0, n, splitGs.gid, cfgS)), stepIdx: flat.stepIdx, split: splitInfo(prof, stS, splitGs, splitField) });
+        pushSplit(prof, flat.stepIdx, r.state, splitGs, splitField, oosS);
         continue;
       }
       // Logiques candidates : chaque bonus seul (étiquettes, session, jour), une à deux plages d'heures,
@@ -905,11 +980,19 @@
       };
       fields.forEach((f) => addLogic(() => groupsFor([f]), [f]));
       addLogic((lo, hi) => windowGs(pre, scanWindows(pre, lo, hi, 2)), [{ key: 'd:window', derived: true }]);
-      const topExplicit = logics.filter((l) => l.nRules > 0 && !l.fields[0].derived).sort((p, q) => q.score - p.score).slice(0, 2);
+      const topExplicit = logics.filter((l) => l.nRules > 0 && !l.isSplit && !l.fields[0].derived).sort((p, q) => q.score - p.score).slice(0, 2);
       if (topExplicit.length === 2) {
         const fs = [topExplicit[0].fields[0], topExplicit[1].fields[0]];
         addLogic(() => groupsFor(fs), fs);
       }
+      // Un money management complet PAR valeur d'une étiquette (ex. TREND / CONTRE, W / L / P), séries de SL propres
+      // à chaque valeur : c'est ainsi qu'on règle deux logiques qui vivent leur propre vie.
+      fields.filter((f) => !f.derived && f.values.length <= 6).forEach((f) => {
+        const raw = groupsFor([f]);
+        const gsS = raw ? activeGroups(raw, n, minGroupOf(n)) : null;
+        if (!gsS) return;
+        logics.push(Object.assign(ascentSplit(pre, 0, n, gsS, prof, flat.stepIdx, flat), { gs: gsS, isSplit: true, field: f.key, nRules: 1, fields: [f] }));
+      });
 
       // Vérification sur les trades récents, jamais vus par le réglage.
       const lim = prof.steps[0];
@@ -923,19 +1006,33 @@
       let pick = null;
       if (flatTest) {
         const margin = Math.max(Math.abs(flat.score) * 0.02, 1e-9);
-        const cands = logics.filter((l) => l.nRules > 0 && l.score > flat.score + margin).sort((a, b) => b.score - a.score).slice(0, 3);
+        const cands = logics.filter((l) => l.nRules > 0 && l.score > flat.score + margin).sort((x, y) => y.score - x.score).slice(0, 5);
+        // Parmi les logiques qui tiennent sur les trades jamais vus, on garde celle qui y fait le mieux (et non celle
+        // qui a le mieux collé à l'apprentissage) : c'est la moins sujette à la sur-optimisation.
+        const passed = [];
         for (const c of cands) {
-          const gsT = c.mkGs(0, cut); // réglage refait sur les seuls trades d'apprentissage (plages d'heures comprises)
-          if (!gsT) continue;
-          const tl = ascent(pre, 0, cut, gsT, prof, trainFlat.stepIdx, trainFlat);
-          const lt = evalRange(pre, cut, n, gsT.gid, stateCfg(prof, tl.state, gsT));
-          if (okTest(lt) && prof.score(lt) > prof.score(flatTest) && lt.avgM >= flatTest.avgM * 0.75) {
-            pick = { c, oos: { trainN: cut, testN: n - cut, perf: lt.perf, maxDd: lt.maxDd, flatPerf: flatTest.perf, holds: true, beatsFlat: true } };
-            break;
+          let lt;
+          if (c.isSplit) {
+            const tl = ascentSplit(pre, 0, cut, c.gs, prof, trainFlat.stepIdx, trainFlat);
+            lt = evalRange(pre, cut, n, c.gs.gid, splitCfg(prof, tl.state));
+          } else {
+            const gsT = c.mkGs(0, cut); // réglage refait sur les seuls trades d'apprentissage (plages d'heures comprises)
+            if (!gsT) continue;
+            const tl = ascent(pre, 0, cut, gsT, prof, trainFlat.stepIdx, trainFlat);
+            lt = evalRange(pre, cut, n, gsT.gid, stateCfg(prof, tl.state, gsT));
           }
+          const ok = okTest(lt) && prof.score(lt) > prof.score(flatTest) && lt.avgM >= flatTest.avgM * 0.75;
+          if (opts && opts.debug) (debug[prof.id] = debug[prof.id] || []).push({ logic: c.isSplit ? 'split ' + c.field : c.fields.map((f) => f.key).join('+'), inScore: c.score, testPerf: lt.perf, testDd: lt.maxDd, testScore: prof.score(lt), flatTestScore: prof.score(flatTest), flatTestPerf: flatTest.perf, ok });
+          if (ok) passed.push({ c, lt, sc: prof.score(lt) });
+        }
+        if (passed.length) {
+          passed.sort((x, y) => y.sc - x.sc);
+          const w = passed[0];
+          pick = { c: w.c, oos: { trainN: cut, testN: n - cut, perf: w.lt.perf, maxDd: w.lt.maxDd, flatPerf: flatTest.perf, holds: true, beatsFlat: true } };
         }
       }
 
+      if (pick && pick.c.isSplit) { pushSplit(prof, flat.stepIdx, pick.c.state, pick.c.gs, pick.c.field, pick.oos); continue; }
       const st = pick ? pick.c.state : flat.state;
       const gs = pick ? pick.c.gs : null;
       const gid = gs ? gs.gid : pre.zeros;
@@ -958,7 +1055,7 @@
     // Cohérence : un profil ne doit jamais être battu, sur SON objectif, par le réglage d'un autre profil
     // (validé sur des trades jamais vus, dans les mêmes limites). Sinon on lui donne ce meilleur réglage.
     const snapshot = built.slice();
-    if (!splitGs) built.forEach((P, idx) => {
+    built.forEach((P, idx) => {
       let best = null;
       snapshot.forEach((Q) => {
         if (Q === P || !Q.oos || !Q.oos.holds) return;
@@ -989,7 +1086,7 @@
         trust: B.oos ? (B.oos.holds ? 'ok' : 'warn') : 'none', oos: B.oos, note: B.note, split: B.split || null,
       };
     });
-    return { profiles: out, fields: fields.map((f) => f.label), kind };
+    return { profiles: out, fields: fields.map((f) => f.label), kind, debug: opts && opts.debug ? debug : undefined };
   }
 
   // ---------------------------------------------------------------
