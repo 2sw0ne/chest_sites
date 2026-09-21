@@ -62,7 +62,7 @@
   //
   // Garde-fous assumés : la durée de détention n'est PAS proposée (connue seulement à
   // la clôture : les SL sortent vite, les TP durent — tricher avec l'avenir) ; le
-  // week-end n'existe pas (marchés fermés du vendredi 22 h au dimanche 22 h UTC, crypto
+  // week-end n'existe pas (samedi et dimanche du calendrier du fichier, crypto
   // non prise en compte) : ces trades n'ont ni session, ni jour, ni plage horaire.
   // ---------------------------------------------------------------
   const BONUS_LABELS = { source: 'Source', confirmation: 'Confirmation', order: 'Ordre' };
@@ -83,11 +83,13 @@
     return BONUS_LABELS[key] || DERIVED_LABELS[key] || key;
   }
 
-  // Date d'ouverture si le marché est ouvert (forex/indices : du dimanche 22 h au vendredi 22 h UTC), sinon null.
+  // Date d'OUVERTURE (jamais la clôture : elle est inconnue à l'entrée) si le marché est ouvert, sinon null.
+  // Jour = jour calendaire de l'heure d'ouverture telle qu'elle est écrite dans le fichier ; samedi et dimanche = fermé.
+  // (Le forex ouvre le dimanche 22 h UTC = lundi 0 h en UTC+2, l'heure d'un fichier TradingView : le calendrier est exact.)
   function openMarketDate(t) {
     const d = toDate(t.open || t.date);
     if (!d) return null;
-    const wd = new Date(d.getTime() + 2 * 3600000).getUTCDay();
+    const wd = d.getUTCDay();
     return wd === 0 || wd === 6 ? null : d;
   }
 
@@ -109,7 +111,7 @@
   function derivedValue(t, key) {
     const d = openMarketDate(t);
     if (!d) return undefined;
-    if (key === 'd:weekday') return WEEKDAYS[new Date(d.getTime() + 2 * 3600000).getUTCDay()];
+    if (key === 'd:weekday') return WEEKDAYS[d.getUTCDay()];
     if (key === 'd:session') {
       const h = d.getUTCHours();
       const s = SESSIONS.find((x) => h >= x[0] && h < x[1]);
