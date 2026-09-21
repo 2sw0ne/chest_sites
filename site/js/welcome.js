@@ -140,26 +140,30 @@
     'void main(){',
     ' vec2 uv=gl_FragCoord.xy/uRes;uv.y=1.-uv.y;',
     ' float asp=uRes.x/uRes.y;vec2 p=vec2(uv.x*asp,uv.y);float t=uTime;',
-    ' vec2 o=vec2(.02+.09*sin(t*.11),-.52+.05*cos(t*.09));',   // le foyer dérive lentement
-    ' vec2 d=p-o;float len=length(d);float a=atan(d.y,d.x);',
-    ' float r1=fbm(vec2(a*6.5+t*.075,len*.55-t*.05));',
-    ' float r2=fbm(vec2(a*11.+(-t*.06),len*.8+t*.035));',
-    ' float r3=fbm(vec2(a*3.2+t*.04,t*.03));',
-    ' float rays=smoothstep(.28,.85,r1)*.9+smoothstep(.36,.88,r2)*.6;',
-    ' rays*=.5+1.0*r3;',                                           // les rayons respirent
-    ' float inten=rays*(.34+exp(-len*.42)*1.35);',
-    ' float haze=fbm(p*1.1+vec2(t*.02,-t*.015));',
-    ' inten+=haze*.5*exp(-len*.3);',
-    ' float mask=1.-smoothstep(.34,.84,uv.y);',                    // fondu noir sous ~80 % de la hauteur
-    ' float b=clamp(inten*mask*.8,0.,1.7);',
-    ' vec3 deep=vec3(.32,.01,.17),mag=vec3(.99,.07,.51),pink=vec3(1.,.55,.8),wht=vec3(1.,.93,.96);',
-    ' vec3 c=mix(deep,mag,smoothstep(.05,.6,b));',
-    ' c=mix(c,pink,smoothstep(.55,1.1,b));',
-    ' c=mix(c,wht,smoothstep(1.05,1.7,b));',
-    ' c+=vec3(.98,.62,.34)*smoothstep(.45,1.,uv.x)*haze*.2*mask;', // un souffle d'orange à droite
-    ' c*=smoothstep(0.,.3,b);',
-    ' c+=(h21(gl_FragCoord.xy+t)-.5)/255.;',                       // grain : évite les bandes
-    ' gl_FragColor=vec4(c,1.);',
+    // brume : de grandes nappes lentes qui se déforment l'une l'autre
+    ' float n1=fbm(p*vec2(.85,1.05)+vec2(t*.016,-t*.011));',
+    ' float n2=fbm(p*1.6+vec2(-t*.02,t*.014)+n1*.9);',
+    // bande de lumière claire, en diagonale depuis le coin haut gauche ; son axe et sa largeur respirent
+    ' vec2 dir=normalize(vec2(1.,.5+.06*sin(t*.09)));vec2 nrm=vec2(-dir.y,dir.x);',
+    ' vec2 c=vec2(-.05+.05*sin(t*.07),-.05+.04*cos(t*.06));',
+    ' float q=dot(p-c,nrm)+(n1-.5)*.4;float al=dot(p-c,dir);',
+    ' float band=exp(-pow(q/(.3+.05*sin(t*.13)),2.))*exp(-max(al,0.)*.5)*smoothstep(-.7,.15,al);',
+    // très peu de rayons : juste de quoi donner du volume
+    ' vec2 o=vec2(-.15,-.65);vec2 d=p-o;float len=length(d);float a=atan(d.y,d.x);',
+    ' float rr=fbm(vec2(a*3.4+t*.045,len*.3-t*.03));',
+    ' float ray=smoothstep(.3,.9,rr);',
+    ' float inten=band*1.3+n2*.5*exp(-len*.46)+ray*.24*exp(-len*.42);',
+    // fondu noir sous ~80 % de la hauteur
+    ' float mask=1.-smoothstep(.26,.84,uv.y);',
+    ' float b=clamp(inten*mask*.78,0.,1.5);',
+    ' vec3 deep=vec3(.13,.0,.07),wine=vec3(.42,.03,.22),mauve=vec3(.74,.13,.44),soft=vec3(.93,.58,.76),wht=vec3(1.,.87,.93);',
+    ' vec3 c1=mix(deep,wine,smoothstep(.04,.34,b));',
+    ' c1=mix(c1,mauve,smoothstep(.3,.7,b));',
+    ' c1=mix(c1,soft,smoothstep(.66,1.05,b));',
+    ' c1=mix(c1,wht,smoothstep(1.0,1.5,b));',
+    ' c1*=smoothstep(0.,.16,b);',
+    ' c1+=(h21(gl_FragCoord.xy+t)-.5)/255.;',   // grain : évite les bandes
+    ' gl_FragColor=vec4(c1,1.);',
     '}'
   ].join('\n');
   let gl = null, uRes = null, uTime = null, lightOK = false, t0 = 0;
