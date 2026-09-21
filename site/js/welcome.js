@@ -1,149 +1,220 @@
-// CHEST · Page « Welcome » (par-dessus le shell app.html).
-// - S'ouvre à chaque connexion (login.html pose `chest_welcome` en sessionStorage) et au clic sur le logo « CHEST » en haut à gauche.
-// - On la fait défiler vers le bas : elle se dissout en fondu enchaîné avec le dashboard ; une fois tout en bas elle disparaît
-//   et on ne peut plus y remonter (seul le logo la rouvre).
 (() => {
   'use strict';
+  // CHEST · Page « Welcome » (par-dessus la coque de app.html).
+  //
+  // Le défilement est RÉEL : le calque contient son propre scroll avec
+  // deux écrans opaques (hero, nouveautés) puis un troisième transparent.
+  // En traversant ce dernier, on découvre le site qui attend dessous —
+  // il n'y a donc pas de fondu, la page arrive comme dans un scroll
+  // normal. Arrivé en bas, tout se verrouille : plus de retour en arrière.
+  //
+  // Contrat inchangé : sessionStorage `chest_welcome`, #chestWelcome,
+  // #welScroll, classe `is-welcome` sur <html>, window.CHESTWelcome.show().
 
   const FLAG = 'chest_welcome';
   const root = document.getElementById('chestWelcome');
   if (!root) return;
+
   const scroller = document.getElementById('welScroll');
-  const shell = document.getElementById('chestShell');
-  const cue = document.getElementById('welCue');
-  const canvas = document.getElementById('welStars');
-  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const html = document.documentElement;
-
-  let open = false;
-  let touching = false;
+  const nameEl = document.getElementById('welName');
+  const helloEl = document.getElementById('welHello');
+  const skipBtn = document.getElementById('welSkip');
+  const exitEl = root.querySelector('.wel__exit');
+  const stars = document.getElementById('welStars');
+  const hero = root.querySelector('.wel__page');
+  const shell = document.getElementById('chestShell');
   let settleTimer = null;
-  let raf = 0;
-  let stars = [];
-  let starsRaf = 0;
 
-  const maxScroll = () => Math.max(1, scroller.scrollHeight - scroller.clientHeight);
-  const progress = () => Math.min(1, scroller.scrollTop / maxScroll());
+  let closed = false;
+  let sraf = null;
+  let mraf = null;
 
-  // ---------- Étoiles : quelques points qui scintillent, très discrets ----------
-  function resizeStars() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = root.clientWidth, h = root.clientHeight;
-    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-    const n = Math.round((w * h) / 9000);
-    stars = Array.from({ length: n }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: (Math.random() * 1.1 + .3) * dpr,
-      a: Math.random() * .6 + .15, t: Math.random() * Math.PI * 2, s: Math.random() * .015 + .004, vy: (Math.random() * .05 + .01) * dpr,
-    }));
-  }
-  function drawStars() {
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    stars.forEach((st) => {
-      st.t += st.s; st.y -= st.vy; if (st.y < -2) { st.y = canvas.height + 2; st.x = Math.random() * canvas.width; }
-      ctx.globalAlpha = st.a * (0.55 + 0.45 * Math.sin(st.t));
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-    if (open && !reduce) starsRaf = requestAnimationFrame(drawStars);
-  }
-
-  // ---------- Défilement : progression, aimantation, fin ----------
-  // fondu enchaîné : Welcome se dissout (--wel-out 1 -> 0) pendant que le dashboard émerge (--wel-in 0 -> 1)
-  const ease = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
-  function setFade(p) {
-    html.style.setProperty('--wel-out', (1 - ease(p / .85)).toFixed(4));
-    html.style.setProperty('--wel-in', ease((p - .1) / .9).toFixed(4));
-  }
-  function paint() {
-    raf = 0;
-    setFade(progress());
-  }
-  function finish() {
-    if (!open) return;
-    open = false;
-    clearTimeout(settleTimer);
-    cancelAnimationFrame(starsRaf);
-    root.hidden = true;
-    root.classList.remove('is-in');
-    html.classList.remove('is-welcome');
-    html.style.removeProperty('--wel-out');
-    html.style.removeProperty('--wel-in');
-    if (shell) shell.removeAttribute('inert');
-    window.scrollTo(0, 0);
-  }
-  function settle() {
-    if (!open || touching) return;
-    const p = progress();
-    if (p >= .995) { finish(); return; }
-    scroller.scrollTo({ top: p > .3 ? maxScroll() : 0, behavior: reduce ? 'auto' : 'smooth' });
-  }
-  scroller.addEventListener('scroll', () => {
-    if (!open) return;
-    if (!raf) raf = requestAnimationFrame(paint);
-    if (progress() >= .995) { finish(); return; }
-    clearTimeout(settleTimer);
-    settleTimer = setTimeout(settle, 160);
-  }, { passive: true });
-  scroller.addEventListener('touchstart', () => { touching = true; clearTimeout(settleTimer); }, { passive: true });
-  scroller.addEventListener('touchend', () => { touching = false; settleTimer = setTimeout(settle, 120); }, { passive: true });
-  scroller.addEventListener('touchcancel', () => { touching = false; settleTimer = setTimeout(settle, 120); }, { passive: true });
-  const enter = () => scroller.scrollTo({ top: maxScroll(), behavior: reduce ? 'auto' : 'smooth' });
-  cue.addEventListener('click', enter);
-  scroller.addEventListener('keydown', (e) => {
-    if (['ArrowDown', 'PageDown', 'End', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); enter(); }
-  });
-  // lueur qui suit doucement le curseur
-  root.addEventListener('pointermove', (e) => {
-    const r = root.getBoundingClientRect();
-    root.style.setProperty('--mx', ((e.clientX - r.left) / r.width - .5) * 60 + 'px');
-    root.style.setProperty('--my', ((e.clientY - r.top) / r.height - .5) * 40 + 'px');
-  });
-  window.addEventListener('resize', () => { if (open) resizeStars(); });
-
-  // ---------- Ouverture ----------
+  /* ---------- Prénom et salutation ---------- */
   function firstName() {
-    try { const u = window.CHESTAccounts && CHESTAccounts.getUser(); const n = u && u.firstName ? String(u.firstName).trim() : ''; return n ? n.charAt(0).toLocaleUpperCase('fr-FR') + n.slice(1) : ''; } catch (e) { return ''; }
+    try {
+      const u = window.CHESTAccounts && CHESTAccounts.getUser();
+      const n = u && u.firstName ? String(u.firstName).trim() : '';
+      return n ? n.charAt(0).toLocaleUpperCase('fr-FR') + n.slice(1) : '';
+    } catch (e) { return ''; }
   }
-  function show() {
-    const name = firstName();
-    document.getElementById('welName').textContent = name;
-    document.getElementById('welName').hidden = !name;
+  function greeting() {
     const h = new Date().getHours();
-    document.getElementById('welHello').textContent = h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour';
-    open = true;
+    if (h < 6) return 'Bonne nuit';
+    if (h < 12) return 'Bonjour';
+    if (h < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }
+
+  /* ---------- Compteur de nouveautés ---------- */
+  function newsCount() {
+    const cards = root.querySelectorAll('[data-news-id]');
+    if (!cards.length) return 0;
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('chest_news_seen') || '[]'); } catch (e) { seen = []; }
+    let n = 0;
+    cards.forEach((c) => { if (seen.indexOf(c.dataset.newsId) === -1) n++; });
+    return n;
+  }
+  function markNewsSeen() {
+    const ids = [].map.call(root.querySelectorAll('[data-news-id]'), (c) => c.dataset.newsId);
+    if (!ids.length) return;
+    try {
+      const seen = JSON.parse(localStorage.getItem('chest_news_seen') || '[]');
+      ids.forEach((id) => { if (seen.indexOf(id) === -1) seen.push(id); });
+      localStorage.setItem('chest_news_seen', JSON.stringify(seen.slice(-40)));
+    } catch (e) { /* stockage indisponible : sans conséquence */ }
+  }
+
+  /* ---------- La lumière suit le curseur ---------- */
+  function onMove(e) {
+    if (mraf || closed || root.hidden) return;
+    mraf = requestAnimationFrame(() => {
+      mraf = null;
+      const r = root.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const x = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+      const y = Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100));
+      root.style.setProperty('--mx', x.toFixed(1) + '%');
+      root.style.setProperty('--my', y.toFixed(1) + '%');
+    });
+  }
+
+  /* ---------- Défilement : le menu se pose à l'approche du site ---------- */
+  function onScroll() {
+    if (closed || sraf) return;
+    sraf = requestAnimationFrame(() => {
+      sraf = null;
+      if (!exitEl) return;
+      const top = exitEl.offsetTop;
+      const h = scroller.clientHeight;
+      // Le menu commence à apparaître sur la dernière moitié d'écran.
+      const t = Math.max(0, Math.min(1, (scroller.scrollTop - (top - h * 0.55)) / (h * 0.55)));
+      html.style.setProperty('--wel-in', t.toFixed(3));
+      if (scroller.scrollTop >= top - 2) { finish(); return; }
+      // Lâché en cours de route dans la zone transparente : on finit le trajet (plus de demi-état).
+      clearTimeout(settleTimer);
+      if (t > 0) settleTimer = setTimeout(() => { if (!closed && t > 0.25) glide(); }, 220);
+    });
+  }
+
+  /* ---------- Sortie : on ne remonte plus ---------- */
+  function finish() {
+    if (closed) return;
+    closed = true;
+    clearTimeout(settleTimer);
+    markNewsSeen();
+    try { sessionStorage.removeItem(FLAG); } catch (e) {}
+
+    root.classList.add('is-locked');
+    if (exitEl) scroller.scrollTop = exitEl.offsetTop;
+    html.style.setProperty('--wel-in', '1');
+
+    // Le calque s'efface une fois le site entièrement découvert.
+    setTimeout(() => {
+      root.classList.add('is-gone');
+      html.classList.remove('is-welcome');
+      setTimeout(() => {
+        root.hidden = true;
+        root.classList.remove('is-gone', 'is-locked');
+        html.style.removeProperty('--wel-in');
+        if (shell) shell.removeAttribute('inert');
+        window.dispatchEvent(new Event('resize'));
+      }, 320);
+    }, 340);
+  }
+
+  // Descente directe (cloche, boutons, Échap) : même trajet, en plus rapide.
+  function glide() {
+    if (closed || !exitEl) return;
+    scroller.scrollTo({ top: exitEl.offsetTop, behavior: 'smooth' });
+    setTimeout(finish, 850);
+  }
+
+  /* ---------- Ciel étoilé ---------- */
+  function paintStars() {
+    if (!stars) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const w = stars.offsetWidth, h = stars.offsetHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    stars.width = w * dpr; stars.height = h * dpr;
+    const ctx = stars.getContext('2d');
+    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
+    const n = Math.round((w * h) / 13000);
+    for (let i = 0; i < n; i++) {
+      const x = Math.random() * w, y = Math.random() * h, r = Math.random() * 1.05 + 0.22;
+      const edge = Math.min(1, Math.abs(x / w - 0.5) * 2.3 + Math.abs(y / h - 0.42) * 1.5);
+      ctx.globalAlpha = (0.1 + Math.random() * 0.48) * edge;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  /* ---------- Ouverture ---------- */
+  function show() {
+    closed = false;
     root.hidden = false;
+    root.classList.remove('is-gone', 'is-locked');
     html.classList.add('is-welcome');
-    setFade(0);
-    if (shell) shell.setAttribute('inert', '');
+    html.style.setProperty('--wel-in', '0');
+    if (shell) shell.setAttribute('inert', ''); // le site dessous n'est pas atteignable au clavier tant que Welcome est là
+    root.style.setProperty('--mx', '50%');
+    root.style.setProperty('--my', '22%');
+
+    const n = firstName();
+    if (nameEl) nameEl.textContent = n;
+    if (helloEl) helloEl.textContent = n ? greeting() : 'Bienvenue';
+    if (skipBtn) skipBtn.setAttribute('data-count', String(newsCount()));
+
+    // Les cartes repartent fermées à chaque ouverture.
+    root.querySelectorAll('.wel__card.is-open').forEach((c) => c.classList.remove('is-open'));
+
     scroller.scrollTop = 0;
-    resizeStars();
-    cancelAnimationFrame(starsRaf);
-    drawStars();
-    root.classList.remove('is-in');
-    void root.offsetWidth; // relance l'animation d'entrée
-    root.classList.add('is-in');
+    requestAnimationFrame(paintStars);
     scroller.focus({ preventScroll: true });
   }
 
-  // clic sur le logo CHEST (en haut à gauche) : retour au dashboard sous la page Welcome
-  const brand = document.querySelector('.chest-topbar .brand');
-  if (brand) {
-    brand.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (location.hash !== '#/dashboard') location.hash = '#/dashboard';
-      show();
-    });
-  }
+  /* ---------- Branchements ---------- */
+  scroller.addEventListener('scroll', onScroll, { passive: true });
+  if (hero) hero.addEventListener('mousemove', onMove, { passive: true });
+  window.addEventListener('resize', () => { paintStars(); onScroll(); });
 
-  // à la connexion
-  let fresh = false;
-  try { fresh = sessionStorage.getItem(FLAG) === '1'; sessionStorage.removeItem(FLAG); } catch (e) { /* tant pis */ }
-  if (fresh) {
+  if (skipBtn) skipBtn.addEventListener('click', glide);
+  root.querySelectorAll('[data-wel-enter]').forEach((b) => b.addEventListener('click', glide));
+  root.querySelectorAll('[data-wel-next]').forEach((b) => b.addEventListener('click', () => {
+    scroller.scrollBy({ top: scroller.clientHeight, behavior: 'smooth' });
+  }));
+
+  // Une carte s'ouvre au clic et déroule son explication.
+  root.addEventListener('click', (e) => {
+    const card = e.target.closest && e.target.closest('.wel__card');
+    if (!card || !root.contains(card)) return;
+    const wasOpen = card.classList.contains('is-open');
+    root.querySelectorAll('.wel__card.is-open').forEach((c) => c.classList.remove('is-open'));
+    if (!wasOpen) card.classList.add('is-open');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (root.hidden || closed) return;
+    if (e.key === 'Escape') { e.preventDefault(); glide(); }
+  });
+
+  // Clic sur le logo CHEST de la barre du haut : rouvrir le Welcome.
+  document.addEventListener('click', (e) => {
+    const brand = e.target.closest && e.target.closest('.chest-topbar .brand');
+    if (!brand) return;
+    e.preventDefault();
+    if (location.hash !== '#/dashboard') location.hash = '#/dashboard'; // le site qui attend dessous est le dashboard
+    show();
+  });
+
+  let wanted = false;
+  try { wanted = sessionStorage.getItem(FLAG) === '1'; } catch (e) {}
+  if (wanted) {
     if (location.hash && location.hash !== '#/dashboard' && location.hash !== '#/') location.hash = '#/dashboard';
     show();
-  }
+  } else root.hidden = true;
 
-  window.CHESTWelcome = { show };
+  window.CHESTWelcome = { show, close: finish };
 })();

@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CHEST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/welcome.css?v=3">
+<link rel="stylesheet" href="css/welcome.css?v=8">
 <script src="js/theme.js"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
@@ -79,27 +79,140 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════
+     Page « Welcome ».
+     Deux écrans opaques (hero, nouveautés) puis un troisième
+     TRANSPARENT : en le traversant on découvre le site qui attend
+     dessous. Le défilement est donc réel — la page arrive comme
+     dans un scroll normal, et se verrouille une fois en bas.
+
+     Pour mettre une photo sur une carte : renseigner --img sur
+     .wel__card-media, ex.
+       style="--img:url(assets/news-school.jpg)"
+     Le texte d'attente disparaît tout seul dès qu'elle est posée.
+     data-news-id alimente le compteur de la cloche.
+     ══════════════════════════════════════════════════════════════ -->
 <div class="wel" id="chestWelcome" role="dialog" aria-label="Bienvenue" hidden>
+
+  <button type="button" class="wel__skip" id="welSkip" data-count="0" aria-label="Aller au dashboard">
+    <span class="wel__skip-bell">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5Z" stroke-linejoin="round"/><path d="M10.3 19a2 2 0 0 0 3.4 0" stroke-linecap="round"/></svg>
+      <span class="wel__skip-count">0</span>
+    </span>
+    <span class="wel__skip-label">Entrer</span>
+  </button>
+
   <div class="wel__scroll" id="welScroll" tabindex="-1">
+
+    <!-- ─── 1 · Le hero ─── -->
     <section class="wel__page">
       <canvas class="wel__stars" id="welStars" aria-hidden="true"></canvas>
       <div class="wel__glow" aria-hidden="true"></div>
       <div class="wel__vignette" aria-hidden="true"></div>
+
+      <div class="wel__bar">
+        <img src="assets/logo-chest.png" alt="">
+        <span class="is-on">Dashboard</span>
+        <span>Backtesting</span>
+        <span>Journal</span>
+        <span>Stratégies</span>
+        <span>Calendrier</span>
+        <span>School</span>
+      </div>
+
       <div class="wel__inner">
         <img class="wel__logo" src="assets/logo-chest.png" alt="CHEST">
         <p class="wel__eyebrow" id="welHello">Bonjour</p>
         <h1 class="wel__title"><span>Welcome</span><em id="welName"></em></h1>
-        <p class="wel__sub">Ton espace CHEST : suivi, backtests, journal, marchés et formation, au même endroit.</p>
-        <div class="wel__news" id="welNews"><b>Nouveautés</b> les informations arrivent ici</div>
+        <p class="wel__sub">Ton espace de trading complet — suivi de comptes, backtests, journal, marchés et formation.</p>
+        <div class="wel__actions">
+          <button type="button" class="wel__btn" data-wel-enter>Entrer dans CHEST</button>
+          <button type="button" class="wel__btn wel__btn--ghost" data-wel-next>Les nouveautés</button>
+        </div>
       </div>
-      <button type="button" class="wel__cue" id="welCue" aria-label="Entrer dans le dashboard"><span>Scroll</span><i></i></button>
+
+      <button type="button" class="wel__cue" data-wel-next aria-label="Descendre"><span>Scroll</span><i></i></button>
     </section>
-    <div class="wel__spacer" aria-hidden="true"></div>
+
+    <!-- ─── 2 · Les nouveautés ─── -->
+    <section class="wel__page wel__page--news">
+      <div class="wel__glow" aria-hidden="true"></div>
+
+      <div style="position:relative;z-index:2;width:100%;max-width:1180px;margin:0 auto">
+        <div class="wel__news-head">
+          <p class="wel__kicker">Nouveautés</p>
+          <h2 class="wel__h2">Ce qui vient d'arriver</h2>
+        </div>
+
+        <div class="wel__grid">
+
+          <article class="wel__card" data-news-id="school-2026-09">
+            <div class="wel__card-media" data-empty="Dépose ici la photo de School"></div>
+            <span class="wel__card-tag">Nouvelle rubrique</span>
+            <div class="wel__card-body">
+              <div class="wel__card-head">
+                <h3>School est ouvert</h3>
+                <span class="wel__card-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <div class="wel__card-fold">
+                <div>
+                  <p>Les cours écrits (Trading, UGC, Psychologie, autres ressources) et les cours vidéo (Mindset, Business), réunis au même endroit. Tout s'ouvre directement dans le site, sans passer par Telegram.</p>
+                  <div class="wel__card-date">Ajouté le 21 septembre</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="wel__card" data-news-id="allin-2026-09">
+            <div class="wel__card-media" data-empty="Dépose ici la photo du moteur ALL IN"></div>
+            <span class="wel__card-tag">Backtesting</span>
+            <div class="wel__card-body">
+              <div class="wel__card-head">
+                <h3>Le moteur ALL IN</h3>
+                <span class="wel__card-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <div class="wel__card-fold">
+                <div>
+                  <p>Un second moteur de backtest à côté de SWYPER. Il produit le rapport complet : courbe d'equity, drawdown maximum, R:R moyen, répartition par session, et la compatibilité avec chaque modèle de propfirm.</p>
+                  <div class="wel__card-date">Ajouté le 15 septembre</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="wel__card" data-news-id="shell-2026-09">
+            <div class="wel__card-media" data-empty="Dépose ici la photo de la nouvelle navigation"></div>
+            <span class="wel__card-tag">Interface</span>
+            <div class="wel__card-body">
+              <div class="wel__card-head">
+                <h3>Navigation instantanée</h3>
+                <span class="wel__card-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <div class="wel__card-fold">
+                <div>
+                  <p>Le menu ne se recharge plus entre les pages : seul le contenu change. Le volet de gauche se replie sur sa poignée courbée pour laisser toute la largeur aux graphiques, et retient ton choix d'une visite à l'autre.</p>
+                  <div class="wel__card-date">Ajouté le 12 septembre</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <div class="wel__handoff">
+          <b>Continue à descendre</b>
+          <span>Ton dashboard arrive</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 3 · La sortie : transparent, le site apparaît dessous ─── -->
+    <div class="wel__exit" aria-hidden="true"></div>
   </div>
 </div>
 
 <script src="js/nav.js?v=3"></script>
 <script src="js/shell.js?v=2"></script>
-<script src="js/welcome.js?v=2"></script>
+<script src="js/welcome.js?v=5"></script>
 </body>
 </html>
