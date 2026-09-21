@@ -1,6 +1,6 @@
 // CHEST · Page « Welcome » (par-dessus le shell app.html).
 // - S'ouvre à chaque connexion (login.html pose `chest_welcome` en sessionStorage) et au clic sur le logo « CHEST » en haut à gauche.
-// - On la fait défiler vers le bas : elle monte et laisse apparaître le dashboard ; une fois tout en bas elle disparaît
+// - On la fait défiler vers le bas : elle se dissout en fondu enchaîné avec le dashboard ; une fois tout en bas elle disparaît
 //   et on ne peut plus y remonter (seul le logo la rouvre).
 (() => {
   'use strict';
@@ -50,9 +50,15 @@
   }
 
   // ---------- Défilement : progression, aimantation, fin ----------
+  // fondu enchaîné : Welcome se dissout (--wel-out 1 -> 0) pendant que le dashboard émerge (--wel-in 0 -> 1)
+  const ease = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  function setFade(p) {
+    html.style.setProperty('--wel-out', (1 - ease(p / .85)).toFixed(4));
+    html.style.setProperty('--wel-in', ease((p - .1) / .9).toFixed(4));
+  }
   function paint() {
     raf = 0;
-    html.style.setProperty('--wel-p', progress().toFixed(4));
+    setFade(progress());
   }
   function finish() {
     if (!open) return;
@@ -62,7 +68,8 @@
     root.hidden = true;
     root.classList.remove('is-in');
     html.classList.remove('is-welcome');
-    html.style.removeProperty('--wel-p');
+    html.style.removeProperty('--wel-out');
+    html.style.removeProperty('--wel-in');
     if (shell) shell.removeAttribute('inert');
     window.scrollTo(0, 0);
   }
@@ -97,7 +104,7 @@
 
   // ---------- Ouverture ----------
   function firstName() {
-    try { const u = window.CHESTAccounts && CHESTAccounts.getUser(); return u && u.firstName ? String(u.firstName).trim() : ''; } catch (e) { return ''; }
+    try { const u = window.CHESTAccounts && CHESTAccounts.getUser(); const n = u && u.firstName ? String(u.firstName).trim() : ''; return n ? n.charAt(0).toLocaleUpperCase('fr-FR') + n.slice(1) : ''; } catch (e) { return ''; }
   }
   function show() {
     const name = firstName();
@@ -108,7 +115,7 @@
     open = true;
     root.hidden = false;
     html.classList.add('is-welcome');
-    html.style.setProperty('--wel-p', '0');
+    setFade(0);
     if (shell) shell.setAttribute('inert', '');
     scroller.scrollTop = 0;
     resizeStars();

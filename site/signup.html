@@ -135,13 +135,14 @@
       <div class="auth-row2">
         <div class="auth-field">
           <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
-          <input id="firstName" type="text" placeholder="Prénom" required>
+          <input id="firstName" type="text" placeholder="Prénom" autocomplete="given-name" aria-describedby="firstNameHint" required>
         </div>
         <div class="auth-field">
           <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
-          <input id="lastName" type="text" placeholder="Nom" required>
+          <input id="lastName" type="text" placeholder="Nom" autocomplete="family-name" required>
         </div>
       </div>
+      <p class="auth-hint" id="firstNameHint" style="margin:-6px 2px 14px;font-size:12px;color:var(--chest-ink-3, #77777e)">Ton prénom s'affichera sur ta page d'accueil, sous « Welcome ».</p>
 
       <div class="auth-field">
         <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M3 6l9 7 9-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -193,8 +194,10 @@
     errEl.textContent = '';
     statusEl.className = 'signup-status';
 
-    const firstName = document.getElementById('firstName').value.trim();
-    const lastName = document.getElementById('lastName').value.trim();
+    // Prénom et nom avec majuscule (« jean-pierre » -> « Jean-Pierre ») : le prénom est repris tel quel sous « Welcome ».
+    const cap = (v) => v.trim().replace(/(^|[\s'-])(\p{L})/gu, (m, a, b) => a + b.toLocaleUpperCase('fr-FR'));
+    const firstName = cap(document.getElementById('firstName').value);
+    const lastName = cap(document.getElementById('lastName').value);
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
