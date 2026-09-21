@@ -199,10 +199,13 @@
     ' c1=mix(c1,wht,smoothstep(1.1,1.5,b));',
     ' c1+=vec3(.18,.02,.3)*aur*.5*(1.-uv.x/asp)*mask+vec3(.3,.11,.04)*aur*.16*smoothstep(.5,1.,uv.x/asp)*mask;',
     // orange (pêche puis orange franc) et violet, fondus dans la palette : discrets, jamais saturés
-    ' vec3 og=mix(vec3(.5,.13,.05),vec3(.95,.46,.13),smoothstep(.1,.6,b));og=mix(og,vec3(1.,.72,.4),smoothstep(.6,1.1,b));',
-    ' c1=mix(c1,og,clamp(warm*1.15,0.,1.)*smoothstep(.12,.5,b)*.5);',
-    ' c1=mix(c1,c1*vec3(.86,.78,1.32)+vec3(.05,.01,.16),vio*smoothstep(.02,.35,b)*1.0);',
-    ' c1+=vec3(.36,.14,.72)*vio*smoothstep(.05,.45,b)*.22*mask;',
+    // COUCHER DE SOLEIL : violet à gauche -> rose au centre -> orange puis jaune doré à droite (le centre garde le rose de la marque)
+    ' float sunR=smoothstep(.34,.96,uv.x);float vioL=1.-smoothstep(.02,.56,uv.x);',
+    ' vec3 gold=mix(vec3(.5,.15,.05),vec3(.97,.62,.14),smoothstep(.1,.5,b));gold=mix(gold,vec3(1.,.86,.4),smoothstep(.45,1.,b));',
+    ' gold=mix(gold,vec3(1.,.9,.5),smoothstep(.8,1.3,b)*sunR);',
+    ' c1=mix(c1,gold,clamp(sunR*.85+warm*smoothstep(.3,.7,uv.x)*.35,0.,1.)*smoothstep(.1,.42,b)*.6);',
+    ' vec3 vv=mix(vec3(.17,.04,.32),vec3(.5,.2,.86),smoothstep(.05,.5,b));vv=mix(vv,vec3(.82,.66,.98),smoothstep(.55,1.1,b));',
+    ' c1=mix(c1,vv,clamp(vioL*.95+vio*.35*(1.-sunR),0.,1.)*smoothstep(.05,.36,b)*.55);',
     ' c1*=smoothstep(0.,.16,b);',
     // queue du fondu : un lie-de-vin très sombre qui s'étire jusqu'à ~80 % de la hauteur, pour adoucir la démarcation
     ' c1+=mix(vec3(.1,.008,.056),vec3(.075,.014,.11),smoothstep(.2,.8,n1))*(.55+.45*n2)*smoothstep(.16,.5,uv.y)*(1.-smoothstep(.5,.84,uv.y))*(1.-.5*smoothstep(.4,1.,uv.x/asp));',
