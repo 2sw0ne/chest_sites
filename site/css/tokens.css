@@ -19,12 +19,7 @@
   --radius: 20px; --radius-sm: 12px; --radius-pill: 999px;
 }
 
-[data-theme="light"]{
-  --bg:#ffffff; --panel:#f5f5f6; --panel-2:#eeeef0;
-  --ink:#0a0a0b; --muted:#65656b; --faint:#77777e;
-  --line:rgba(0,0,0,.08); --line2:rgba(0,0,0,.14);
-  --navbg:rgba(255,255,255,.74);
-}
+/* Thème clair : voir css/patch-chest-da.css (inversion de la page ; les variables ne changent pas). */
 
 *,*::before,*::after{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; background:var(--bg); }

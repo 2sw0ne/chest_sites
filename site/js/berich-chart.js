@@ -523,7 +523,7 @@ if barstate.islast and showJournal
       symbol: SYMBOL_DISPLAY,
       timeframe: VELA_TIMEFRAME,
       data: candles,
-      theme: (window.CHESTTheme && CHESTTheme.current() === 'light') ? 'light' : 'dark',
+      theme: 'dark', // le thème clair inverse la page entière
     });
 
     chart.registerEngine('pine', new PineEngine());

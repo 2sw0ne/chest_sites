@@ -14,7 +14,6 @@
    de page — et le bouton gagne la même zone de clic. */
 .chest-sidebar__toggle{ width:18px; }
 .chest-sidebar__toggle-bg path{ fill:#0a0a0c !important; }
-[data-theme="light"] .chest-sidebar__toggle-bg path{ fill:#f0f0f1 !important; }
 /* Filet de raccord : prolonge le bord de la sidebar derrière la bulle,
    pour qu'aucune couture n'apparaisse au-dessus ni en dessous. */
 .chest-sidebar::after{
@@ -826,7 +825,6 @@ small{ color:var(--chest-ink-3); }
   fill:#131317 !important;
   stroke:rgba(255,255,255,.14) !important; stroke-width:1 !important;
 }
-[data-theme="light"] .chest-sidebar__toggle-bg path{ fill:#e8e8ea !important; stroke:rgba(0,0,0,.12) !important; }
 .chest-sidebar__toggle svg:last-child{ width:12px !important; height:12px !important; margin-left:-4px !important; }
 .chest-sidebar__toggle{ color:var(--chest-ink) !important; }
 /* Le filet de bord ne doit pas traverser la bulle */
@@ -922,4 +920,67 @@ small{ color:var(--chest-ink-3); }
 .chest-sidebar__toggle{ color:#f6f6f7 !important; }
 .chest-sidebar__toggle:hover .chest-sidebar__toggle-bg path{
   fill:#1e1e24 !important; stroke:rgba(249,164,94,.6) !important;
+}
+
+
+/* =====================================================================
+   Survol des fenêtres / cartes : illuminées ENTIÈREMENT (fond rose→orange uniforme,
+   anneau complet, halo), plus de demi-teinte qui laisse passer le noir.
+   ===================================================================== */
+:root{
+  --lit-fill: linear-gradient(135deg, rgba(252,18,131,.58), rgba(249,164,94,.5));
+  --lit-base: #241018;
+  --lit-ring: rgba(255,160,130,.9);
+  --lit-glow: 0 0 0 1px rgba(255,160,130,.55), 0 14px 40px rgba(252,18,131,.36), 0 0 36px rgba(249,164,94,.24);
+}
+.broker-card:hover, .broker-card-sm:hover, .method-card:hover, .mfx-account-row:hover, .jr-mfx-row:hover,
+.mm-card:hover, .driver-card:hover, .dd-square:hover, .bt-card:hover, .bt-card__add:hover, .bubble:hover,
+.dropzone:hover, .prof:hover, .prem-opt:hover, .si-pop__val:hover,
+.sc-ctile:hover, .sc-tile:hover, .sc-shelf-tile:hover, .sc-door:hover, .sc-course:hover, .sc-flow__item:hover, .sc-check label:hover{
+  border-color: var(--lit-ring) !important;
+  background: var(--lit-fill), var(--lit-base) !important;
+  box-shadow: var(--lit-glow) !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+/* les reflets internes du verre ne doivent pas re-noircir la carte allumée */
+.bt-card:hover::before, .bt-card:hover::after{ opacity:0 !important; }
+.sc-door:hover::before{ opacity:0 !important; }
+.sc-ctile:hover .sc-ctile__d, .sc-tile:hover .sc-tile__d, .sc-shelf-tile:hover .sc-shelf-tile__d, .sc-door:hover .sc-door__d{ color: rgba(255,255,255,.86) !important; }
+
+
+/* =====================================================================
+   THÈME CLAIR
+   La DA est dessinée en sombre (des centaines de teintes en dur). Le thème clair inverse donc la luminosité de
+   TOUTE la page (noir -> blanc, blanc -> encre) en gardant les teintes (rose, orange, vert, rouge), plutôt que de
+   maintenir une seconde palette page par page. Le filtre est posé une seule fois, sur le document racine hors
+   iframe (le shell app.html, ou une page d'auth) : les pages chargées dans l'iframe sont inversées avec lui.
+   Ce qui ne doit PAS être inversé (médias, éléments de marque à dégradé + texte blanc) est ré-inversé ci-dessous.
+   ===================================================================== */
+html[data-theme="light"]:not(.is-embedded){ filter: invert(1) hue-rotate(180deg); background:#050505; }
+
+html[data-theme="light"] img,
+html[data-theme="light"] video,
+html[data-theme="light"] iframe[src*="youtube"],
+html[data-theme="light"] iframe[src*="vimeo"],
+html[data-theme="light"] .flag-icon,
+html[data-theme="light"] .fi,
+html[data-theme="light"] .chest-btn,
+html[data-theme="light"] .chest-topbar__btn--round,
+html[data-theme="light"] .chest-sidebar__account-avatar,
+html[data-theme="light"] .avatar,
+html[data-theme="light"] .sc-door__ic,
+html[data-theme="light"] .sc-shelf__ic,
+html[data-theme="light"] .sc-news__new,
+html[data-theme="light"] .sc-ctile__cover,
+html[data-theme="light"] .sc-news__img,
+html[data-theme="light"] .sc-poster__img,
+html[data-theme="light"] .sc-vthumb,
+html[data-theme="light"] .sc-video,
+html[data-theme="light"] .sc-flyer__prev,
+html[data-theme="light"] .sc-steps li::before,
+html[data-theme="light"] .wz-card h2 .step,
+html[data-theme="light"] .jr-segmented button.is-active,
+html[data-theme="light"] .sc-toc a.is-current i,
+html[data-theme="light"] .brand img{
+  filter: invert(1) hue-rotate(180deg);
 }

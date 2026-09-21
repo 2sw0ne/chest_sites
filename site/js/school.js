@@ -408,8 +408,7 @@
     const items = visibleItems();
     $('#doorWritten').textContent = `${D.shelves.length} catégories · ${items.length} cours, fiches et documents`;
     $('#doorVideo').textContent = `${nDone} vidéo${nDone > 1 ? 's' : ''}${nPending ? ` · ${nPending} rediffusions à compléter` : ''}`;
-    const start = `<div class="sc-news__start"><span class="chest-label">Commence ici</span><button type="button" class="sc-video" data-src="https://www.youtube.com/watch?v=et552Md8yzo" data-title="À regarder avant de commencer" aria-label="Lire la vidéo d'introduction"><span class="sc-video__play">${svg('play')}</span><span class="sc-video__cap">À regarder avant de commencer</span></button></div>`;
-    $('#scNews').innerHTML = start + newsList().map(newsCard).join('');
+    $('#scNews').innerHTML = newsList().map(newsCard).join('');
     const tiles = D.shelves.map((s) => ({ s, n: items.filter((i) => i.shelf === s.id).length, st: { v: 'written', s: s.id }, k: 'Cours écrits', unit: 'élément' }))
       .concat(D.videoSections.map((s) => ({ s: Object.assign({ tone: s.id === 'mindset' ? 'pink' : 'amber' }, s), n: videos.filter((v) => v.section === s.id && done(v)).length, st: { v: 'video', s: s.id }, k: 'Cours vidéo', unit: 'vidéo' })));
     $('#scShelfTiles').innerHTML = tiles.map((t) => `<button type="button" class="sc-shelf-tile" data-st='${esc(JSON.stringify(t.st))}'><span class="sc-shelf-tile__ic">${svg(t.s.icon)}</span><span class="sc-shelf-tile__k">${t.k}</span><span class="sc-shelf-tile__t">${esc(t.s.title)}</span><span class="sc-shelf-tile__n">${t.n} ${t.unit}${t.n > 1 ? 's' : ''}</span></button>`).join('');

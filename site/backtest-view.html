@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=9">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=9">
+<link rel="stylesheet" href="css/chest-da.css?v=12">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=12">
 <link rel="stylesheet" href="css/backtest-da.css?v=10">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
@@ -303,10 +303,11 @@
       <div class="bt-sec__head"><span class="chest-step">05 — Journal</span></div>
       <div class="journal-head">
         <div class="journal-head__row"><span class="journal-head__count" id="journalCount">0</span><span class="journal-head__count-label">positions</span></div>
-        <p class="journal-head__sub">Historique complet des positions, regroupé par mois.</p>
+        <p class="journal-head__sub" id="journalSub">Historique complet des positions, regroupé par mois.</p>
       </div>
       <div class="journal-filters">
         <div class="pill-group" id="journalAccountGroup" style="display:none"></div>
+        <div class="pill-group" id="journalOrderGroup" style="display:none" title="Ordre d'affichage des positions"></div>
         <div class="pill-group" id="journalResultGroup"></div>
         <div class="pill-group pill-group--wrap" id="journalMonthGroup"></div>
       </div>
@@ -470,6 +471,7 @@ CHESTTour.init([
   let journalAccount = 'cp';
   let journalResultFilter = 'ALL';
   let journalMonth = 'ALL';
+  let journalOrder = 'close'; // 'close' (défaut) | 'open' : visible seulement si les heures d'ouverture ET de clôture sont dans le fichier
   let chart = null;
 
   function filteredTrades() {
@@ -578,7 +580,7 @@ CHESTTour.init([
         </div>`).join('');
     }
 
-    const isDark = !document.documentElement.hasAttribute('data-theme') || document.documentElement.getAttribute('data-theme') !== 'light';
+    const isDark = true; // thème clair = page inversée, graphiques dessinés en sombre
     const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
     const tick = isDark ? '#9b9ba1' : '#65656b';
     const series = report.curve.map((pt) => pt.capital);
@@ -661,7 +663,7 @@ CHESTTour.init([
     resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; renderAll(); }));
 
     const optionalCols = collectOptionalColumns(trades);
-    const rowsAll = report.curve.slice(1).map((pt, i) => {
+    let rowsAll = report.curve.slice(1).map((pt, i) => {
       const prevCapital = report.curve[i].capital;
       const t = pt.trade;
       const pctChange = prevCapital > 0 ? (pt.capital / prevCapital - 1) * 100 : 0;
@@ -669,7 +671,26 @@ CHESTTour.init([
       return { idx: i + 1, trade: t, capital: pt.capital, pctChange, variation, monthKey: pt.date ? pt.date.toISOString().slice(0, 7) : 'inconnu' };
     });
 
+    // Ordre d'affichage : par défaut l'ordre de clôture (celui de la courbe). Si le fichier donne l'ouverture ET la clôture,
+    // on peut aussi ranger par ouverture ; « Capital après » et « Variation » restent ceux de la clôture (le capital bouge à la clôture).
+    const orderGroup = document.getElementById('journalOrderGroup');
+    const canOrder = rowsAll.some((r) => r.trade.open && r.trade.close);
+    if (!canOrder) journalOrder = 'close';
+    if (canOrder) {
+      orderGroup.style.display = '';
+      orderGroup.innerHTML = `<button type="button" data-jorder="close" class="${journalOrder === 'close' ? 'is-active' : ''}">Par clôture</button><button type="button" data-jorder="open" class="${journalOrder === 'open' ? 'is-active' : ''}">Par ouverture</button>`;
+      orderGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalOrder = b.dataset.jorder; journalMonth = 'ALL'; renderAll(); }));
+    } else {
+      orderGroup.style.display = 'none';
+    }
+    if (canOrder && journalOrder === 'open') {
+      const openMs = (r) => { const d = new Date(r.trade.open || r.trade.close || r.trade.date); return Number.isNaN(d.getTime()) ? Infinity : d.getTime(); };
+      rowsAll = rowsAll.map((r) => Object.assign({}, r, { openMs: openMs(r) })).sort((a, b) => a.openMs - b.openMs || a.idx - b.idx)
+        .map((r, i) => Object.assign(r, { idx: i + 1, monthKey: Number.isFinite(r.openMs) ? new Date(r.openMs).toISOString().slice(0, 7) : 'inconnu' }));
+    }
+
     document.getElementById('journalCount').textContent = rowsAll.length;
+    document.getElementById('journalSub').textContent = journalOrder === 'open' ? 'Positions rangées par heure d\'ouverture, regroupées par mois d\'ouverture. Le capital et la variation sont ceux de la clôture.' : 'Historique complet des positions, regroupé par mois.';
 
     const monthsPresent = [...new Set(rowsAll.map((r) => r.monthKey))].sort();
     const monthGroup = document.getElementById('journalMonthGroup');

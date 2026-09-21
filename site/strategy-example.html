@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=9">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=9">
+<link rel="stylesheet" href="css/chest-da.css?v=12">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=12">
 <style>
   .strat{ max-width:1180px; }
   .strat-head{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin:32px 0 6px; }
@@ -259,7 +259,7 @@
   });
 
   // Illustrative price chart with sample S/R levels.
-  const isDark = () => !document.documentElement.hasAttribute('data-theme') || document.documentElement.getAttribute('data-theme') !== 'light';
+  const isDark = () => true; // thème clair = page inversée, graphiques dessinés en sombre
   function drawChart() {
     const grid = isDark() ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
     const tick = isDark() ? '#9b9ba1' : '#65656b';

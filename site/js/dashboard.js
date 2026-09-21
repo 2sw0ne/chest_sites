@@ -1718,7 +1718,7 @@
   };
 
   function drawChart(d) {
-    const isDark = !document.documentElement.hasAttribute('data-theme') || document.documentElement.getAttribute('data-theme') !== 'light';
+    const isDark = true; // le thème clair inverse la page entière : les graphiques restent dessinés pour un fond sombre
     const grid = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
     const tick = isDark ? '#9b9ba1' : '#65656b';
 

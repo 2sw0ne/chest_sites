@@ -120,7 +120,7 @@
       symbol: symbolDisplay,
       timeframe: VELA_TIMEFRAME_MAP[timeframe] || '15m',
       data: candleData,
-      theme: (window.CHESTTheme && CHESTTheme.current() === 'light') ? 'light' : 'dark',
+      theme: 'dark', // le thème clair inverse la page entière
       drawings: true,
     });
 
