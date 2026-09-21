@@ -38,9 +38,12 @@
     return !isNaN(d.getTime());
   }
 
+  // Les heures d'un fichier Excel sont des heures « murales » sans fuseau : on les lit telles quelles (comme si c'était
+  // de l'UTC), à la seconde près. Ne surtout pas passer par les dates locales de SheetJS (cellDates) : elles décalent de
+  // 1 à 2 h selon l'heure d'été et ajoutent ~20 s (fuseau historique de Paris).
   function excelSerialToDate(n) {
     const epoch = Date.UTC(1899, 11, 30); // epoque Excel (inclut son bug historique du 29/02/1900)
-    return new Date(epoch + n * 86400000);
+    return new Date(epoch + Math.round(n * 86400) * 1000);
   }
 
   function toIsoDate(v) {
@@ -61,7 +64,7 @@
   async function parseXlsxFile(file) {
     if (!window.XLSX) throw new Error('Librairie de lecture Excel non chargée.');
     const buf = await file.arrayBuffer();
-    const wb = window.XLSX.read(buf, { type: 'array', cellDates: true });
+    const wb = window.XLSX.read(buf, { type: 'array', cellDates: false });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
 

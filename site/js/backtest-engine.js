@@ -145,15 +145,61 @@
     return n ? c / n : 0;
   }
 
-  // Bonus exploitables : au moins 2 valeurs, au plus 15, renseignés sur ≥ 30 % des trades.
-  function detectBonusFields(trades, opts) {
-    const maxValues = (opts && opts.maxValues) || 15;
-    const withDerived = !opts || opts.derived !== false;
+  // Colonnes qui « trichent » : leurs valeurs recopient le résultat du trade (ex. une IA a mis TP2 / SL / BE dans
+  // « Facultatif ») ou le RR. Ces informations ne sont connues qu'APRÈS le trade : s'en servir comme bonus reviendrait
+  // à ignorer les SL à l'avance. Renvoie 'result', 'rr' ou null.
+  function leakKind(trades, key) {
+    if (key.indexOf('d:') === 0) return null;
+    const by = new Map(), all = { SL: 0, BE: 0, TP: 0 };
+    let total = 0, numN = 0, numEq = 0;
+    trades.forEach((t) => {
+      const v = bonusValue(t, key);
+      if (v == null || norm(v) === '') return;
+      total++;
+      const r = isSL(t) ? 'SL' : isBE(t) ? 'BE' : 'TP';
+      all[r]++;
+      const k = norm(v);
+      if (!by.has(k)) by.set(k, { SL: 0, BE: 0, TP: 0 });
+      by.get(k)[r]++;
+      const nv = Number(String(v).replace(',', '.'));
+      if (isFinite(nv)) { numN++; const rr = Number(t.rr) || 0; if (Math.abs(nv - rr) < 1e-9 || Math.abs(nv - Math.abs(rr)) < 1e-9) numEq++; }
+    });
+    if (total < 20) return null;
+    if (numN >= total * 0.9 && numEq >= numN * 0.85) return 'rr';
+    if (by.size < 2 || by.size > total / 5) return null;
+    let good = 0;
+    by.forEach((c) => { good += Math.max(c.SL, c.BE, c.TP); });
+    const base = Math.max(all.SL, all.BE, all.TP);
+    return good >= total * 0.97 && good - base >= total * 0.1 ? 'result' : null;
+  }
+
+  function explicitKeys(trades) {
     const keys = new Map();
     trades.forEach((t) => {
       Object.keys(BONUS_LABELS).forEach((k) => { if (t[k] != null && norm(t[k]) !== '') keys.set(k, BONUS_LABELS[k]); });
       if (t.extra) Object.keys(t.extra).forEach((h) => { if (t.extra[h] != null && norm(t.extra[h]) !== '') keys.set('x:' + h, h); });
     });
+    return keys;
+  }
+
+  // Colonnes écartées des bonus parce qu'elles trichent : [{ key, label, kind, values }].
+  function detectLeakFields(trades) {
+    const out = [];
+    explicitKeys(trades).forEach((label, key) => {
+      const kind = leakKind(trades, key);
+      if (!kind) return;
+      const vals = [...new Set(trades.map((t) => bonusValue(t, key)).filter((v) => v != null && norm(v) !== '').map((v) => String(v).trim()))];
+      out.push({ key, label, kind, values: kind === 'result' ? vals.slice(0, 6) : [] });
+    });
+    return out;
+  }
+
+  // Bonus exploitables : au moins 2 valeurs, au plus 15, renseignés sur ≥ 30 % des trades ; jamais une colonne qui triche.
+  function detectBonusFields(trades, opts) {
+    const maxValues = (opts && opts.maxValues) || 15;
+    const withDerived = !opts || opts.derived !== false;
+    const keys = explicitKeys(trades);
+    [...keys.keys()].forEach((k) => { if (leakKind(trades, k)) keys.delete(k); });
     if (withDerived && trades.length >= 20) {
       keys.set('d:weekday', DERIVED_LABELS['d:weekday']);
       if (clockShare(trades) >= 0.5) keys.set('d:session', DERIVED_LABELS['d:session']);
@@ -1123,6 +1169,6 @@
 
   window.CHESTBacktestEngine = {
     sortedTrades, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizeProfiles,
-    detectBonusFields, findInsights, fieldLabel, condsMatch, bonusValue, RISK_GRID,
+    detectBonusFields, detectLeakFields, findInsights, fieldLabel, condsMatch, bonusValue, RISK_GRID,
   };
 })();

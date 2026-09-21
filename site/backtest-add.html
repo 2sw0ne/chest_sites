@@ -37,6 +37,7 @@
   .import-result{ margin-top:14px; font-size:13px; }
   .import-result.ok{ color:var(--green); }
   .import-result.err{ color:var(--red); }
+  .import-warn{ margin-top:10px; font-size:12.5px; line-height:1.6; color:var(--amber); }
   .import-errors{ margin-top:8px; font-size:12px; color:var(--muted); max-height:140px; overflow-y:auto; background:var(--bg); border-radius:10px; padding:10px 12px; }
   .import-errors div{ margin-bottom:4px; }
 
@@ -248,6 +249,8 @@ Colonnes suivantes, dans l'ordre de ton choix, à ajouter UNIQUEMENT si l'inform
 
 Si mon fichier original contient d'autres informations utiles qui ne correspondent à aucune de ces catégories, garde-les quand même : ajoute-les dans des colonnes supplémentaires nommées "Facultatif" (ou "Facultatif 2", "Facultatif 3"... s'il y en a plusieurs) plutôt que de les supprimer.
 
+IMPORTANT : n'écris JAMAIS dans « Facultatif » le résultat de la position (TP, SL, BE, TP2…) ni le RR : ils sont déjà en colonnes B et C. N'y garde que des informations connues À L'OUVERTURE de la position (signal, contexte, session…). Une tendance du type TREND / CONTRE va dans « Confirmation ».
+
 Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 [colle ou attache ton fichier ici]</div>
       <button class="btn btn-secondary copy-btn" id="copyPromptBtn" type="button">Copier le prompt</button>
@@ -284,6 +287,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
         <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
       </div>
       <div class="import-result" id="importResult"></div>
+      <div class="import-warn" id="importWarn" style="display:none"></div>
       <div class="import-errors" id="importErrors" style="display:none"></div>
     </div>
 
@@ -361,9 +365,9 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=16"></script>
+<script src="js/backtest-engine.js?v=17"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="js/xlsx-import.js"></script>
+<script src="js/xlsx-import.js?v=2"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -455,6 +459,13 @@ CHESTTour.init([
 
   function refreshBonus() {
     bonusFields = parsedTrades && parsedTrades.length ? ENG.detectBonusFields(parsedTrades) : [];
+    // Colonnes qui recopient le résultat ou le RR : écartées (elles ne sont connues qu'après le trade).
+    const leaks = parsedTrades && parsedTrades.length ? ENG.detectLeakFields(parsedTrades) : [];
+    const warn = document.getElementById('importWarn');
+    warn.style.display = leaks.length ? 'block' : 'none';
+    warn.innerHTML = leaks.map((l) => l.kind === 'rr'
+      ? `Colonne « ${esc(l.label)} » ignorée : elle recopie le RR.`
+      : `Colonne « ${esc(l.label)} » ignorée : elle recopie le résultat de chaque position (${l.values.map(esc).join(', ')}), connu seulement après coup. L'utiliser comme bonus reviendrait à ignorer les SL à l'avance.`).join('<br>');
     let html;
     if (bonusFields.length) {
       const list = bonusFields.map((f) => `<b>${esc(f.label)}</b> (${f.values.slice(0, 6).map((v) => esc(v.value)).join(', ')}${f.values.length > 6 ? '…' : ''})`).join(' · ');
