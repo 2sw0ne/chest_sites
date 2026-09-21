@@ -313,7 +313,7 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=10"></script>
+<script src="js/backtest-engine.js?v=11"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/propfirm-fit.js?v=6"></script>
 <script src="js/page-tour.js"></script>
@@ -351,6 +351,10 @@ CHESTTour.init([
     : null;
   const bonusLabel = (key) => window.CHESTBacktestEngine.fieldLabel(key);
   const riskTxt = (r) => (r === 0 ? 'ignoré' : String(r).replace('.', ',') + ' %');
+  // Réglage « Si » séparé : un money management par valeur du bonus.
+  function splitSummary(sp) {
+    return sp.groups.map((g) => `<b>${g.value == null ? 'Autres trades' : g.value}</b> ${riskTxt(g.base)} par trade${g.tier ? `, puis ${riskTxt(g.tier.newRisk)} après ${g.tier.afterSl === 1 ? '1 SL' : g.tier.afterSl + " SL d'affilée"}` : ''}`).join(' · ');
+  }
   // Réglage lisible : risque de base, palier, puis règles « Si ».
   function rulesSummary(cfg) {
     const parts = [`Risque <b>${riskTxt(cfg.risk)}</b>`];
@@ -492,7 +496,7 @@ CHESTTour.init([
     const oosNote = holds === true ? ' <span class="mm-card__ok">· confirmé sur des trades jamais vus</span>' : holds === false ? ' <span class="mm-card__warn">· non confirmé sur des trades jamais vus : prudence</span>' : '';
     const showCfg = nRules || pm || (cfg.tiers || []).length;
     const rulesHtml = showCfg
-      ? `<div class="mm-card__rules"><span class="mm-card__rules-k">${pm ? `Réglage premium${pm.name ? ' · ' + pm.name : ''}` : 'Réglage du risque'}</span> ${rulesSummary(cfg)}${skipped ? ` · <b>${skipped}</b> trade${skipped > 1 ? 's' : ''} ignoré${skipped > 1 ? 's' : ''}` : ''}${oosNote}</div>`
+      ? `<div class="mm-card__rules"><span class="mm-card__rules-k">${pm ? `Réglage premium${pm.name ? ' · ' + pm.name : ''}${pm.split ? ' · Si ' + pm.split.label + ' séparé' : ''}` : 'Réglage du risque'}</span> ${pm && pm.split && pm.split.groups ? splitSummary(pm.split) : rulesSummary(cfg)}${skipped ? ` · <b>${skipped}</b> trade${skipped > 1 ? 's' : ''} ignoré${skipped > 1 ? 's' : ''}` : ''}${oosNote}</div>`
       : '';
     const isSelected = mmDetailAccount === account;
     return `

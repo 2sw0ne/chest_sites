@@ -127,17 +127,30 @@
   .pd-mm .mm__base{ font-size:15px; }
   .pd-mm .mm__num{ font-size:20px; }
   .pd-mm .mm__rule{ font-size:13.5px; }
-  .pd-chips{ display:flex; flex-wrap:wrap; gap:8px; }
-  .pchip{ display:inline-flex; align-items:baseline; gap:7px; padding:7px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); white-space:nowrap; }
-  .pchip b{ font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
-  .pchip i{ font-style:normal; font-size:11.5px; color:var(--muted); }
-  .pchip.is-pos{ border-color:rgba(51,230,166,.45); background:rgba(51,230,166,.07); box-shadow:0 0 22px rgba(51,230,166,.14); }
-  .pchip.is-pos b{ color:#33e6a6; text-shadow:0 0 14px rgba(51,230,166,.55); }
-  .pchip.is-neg{ border-color:rgba(255,77,94,.4); background:rgba(255,77,94,.06); box-shadow:0 0 22px rgba(255,77,94,.12); }
-  .pchip.is-neg b{ color:#ff4d5e; text-shadow:0 0 14px rgba(255,77,94,.5); }
-  .pchip.is-warn{ border-color:rgba(232,179,57,.45); background:rgba(232,179,57,.07); box-shadow:0 0 22px rgba(232,179,57,.12); }
-  .pchip.is-warn b{ color:#e8b339; text-shadow:0 0 14px rgba(232,179,57,.5); }
-  .pchip.is-mute b{ color:var(--ink); }
+  .pd-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); }
+  .pd-stat{ display:flex; flex-direction:column; gap:2px; padding:2px 14px; border-left:1px solid rgba(255,255,255,.16); min-width:0; }
+  .pd-stat:first-child{ padding-left:0; border-left:0; }
+  .pd-stat b{ font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.01em; white-space:nowrap; }
+  .pd-stat i{ font-style:normal; font-size:11.5px; color:var(--muted); line-height:1.35; }
+  .pd-stat.is-pos b{ color:#33e6a6; text-shadow:0 0 16px rgba(51,230,166,.55); }
+  .pd-stat.is-neg b{ color:#ff4d5e; text-shadow:0 0 16px rgba(255,77,94,.5); }
+  .pd-stat.is-warn b{ color:#e8b339; text-shadow:0 0 16px rgba(232,179,57,.5); }
+  .pd-stat.is-mute b{ color:var(--ink); }
+  @media (max-width:560px){ .pd-stats{ grid-template-columns:1fr 1fr; row-gap:12px; } .pd-stat:nth-child(odd){ padding-left:0; border-left:0; } }
+  .mm--split{ gap:8px; }
+  .mm__grp{ display:flex; flex-direction:column; gap:2px; flex:0 0 auto; min-width:0; }
+  .pd-mm .mm__grp{ flex:1 1 150px; }
+  .mm__gname{ font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#f9a45e; text-shadow:0 0 10px rgba(249,164,94,.45); }
+  .pd-mm .mm--split{ flex-direction:row; flex-wrap:wrap; gap:14px 30px; }
+  .auto-split{ margin:0 0 10px; }
+  .auto-split__row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .auto-split__row .si-btn{ margin-left:0; }
+  .auto-split__hint{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5; }
+  .si-pop__catbtn{ display:block; width:100%; text-align:left; font:inherit; color:var(--ink); cursor:pointer; padding:10px 12px; margin-bottom:8px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); transition:border-color .2s; }
+  .si-pop__catbtn:last-child{ margin-bottom:0; }
+  .si-pop__catbtn:hover{ border-color:rgba(249,164,94,.55); }
+  .si-pop__catbtn.is-on{ border-color:#fc1283; box-shadow:0 0 0 3px rgba(252,18,131,.14); }
+  .si-pop__val--static{ pointer-events:none; cursor:default; }
   .prof-detail__row{ font-size:12.5px; line-height:1.6; color:var(--muted); margin-top:6px; }
   .prof-detail__row b{ color:var(--ink); font-weight:600; }
   .prof-detail__row.warn{ color:var(--amber); }
@@ -292,6 +305,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
         </div>
         <div class="mm-auto" data-account="cp" style="display:none">
           <p class="hint" style="margin:0 0 10px">Trois réglages aux objectifs différents (croissance, meilleur ratio, prudent), calculés tout seuls sur ton historique. Ils tiennent compte des bonus de ton fichier, des sessions, des jours et des heures, mais seulement quand l'effet est net et se répète — jamais sur un petit échantillon.</p>
+          <div class="auto-split" data-account="cp"><div class="auto-split__row"><span class="auto-split__chip"></span><span class="si-wrap"><button type="button" class="btn btn-ghost si-btn auto-si">+ Si</button></span></div><div class="auto-split__hint"></div></div>
           <div class="auto-result" data-account="cp" style="display:none"></div>
         </div>
       </div>
@@ -317,7 +331,8 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
           </div>
           <div class="mm-auto" data-account="pf" style="display:none">
             <p class="hint" style="margin:0 0 10px">Trois réglages aux objectifs différents (régularité, performance pure, sécurité), toujours dans les limites propfirm : jamais plus de 5% de drawdown journalier ni 10% de drawdown max. Nécessite les heures de clôture pour un résultat fiable.</p>
-            <div class="auto-result" data-account="pf" style="display:none"></div>
+            <div class="auto-split" data-account="pf"><div class="auto-split__row"><span class="auto-split__chip"></span><span class="si-wrap"><button type="button" class="btn btn-ghost si-btn auto-si">+ Si</button></span></div><div class="auto-split__hint"></div></div>
+          <div class="auto-result" data-account="pf" style="display:none"></div>
           </div>
         </div>
       </div>
@@ -341,7 +356,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=10"></script>
+<script src="js/backtest-engine.js?v=11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js"></script>
 <script src="js/page-tour.js"></script>
@@ -445,6 +460,7 @@ CHESTTour.init([
       html = `Importe ton fichier pour voir les bonus détectés (étiquettes, tendance, confirmations…) et les utiliser avec « Si ».`;
     }
     document.querySelectorAll('.rules-hint').forEach((el) => { el.innerHTML = html; });
+    if (typeof paintSplit === 'function') { paintSplit('cp'); paintSplit('pf'); }
   }
 
   function closePops() { document.querySelectorAll('.si-pop').forEach((p) => p.remove()); }
@@ -555,6 +571,62 @@ CHESTTour.init([
 
   // Le mode Automatique calcule tout seul les trois réglages (à l'activation, à l'import, au changement de capital).
   const autoToken = { cp: 0, pf: 0 };
+  // « + Si » du mode Automatique : bonus imposé, chaque valeur reçoit son propre money management.
+  const autoSplit = { cp: null, pf: null };
+  function paintSplit(account) {
+    const bar = document.querySelector(`.auto-split[data-account="${account}"]`);
+    if (!bar) return;
+    const key = autoSplit[account];
+    const f = key ? bonusFields.find((x) => x.key === key) : null;
+    bar.querySelector('.auto-split__chip').innerHTML = f
+      ? `<span class="cond-chip"><span class="cond-chip__k">Si</span>${esc(f.label)} = <b>${f.values.map((v) => esc(v.value)).join(' | ')}</b><button type="button" data-x aria-label="Retirer le Si">×</button></span>` : '';
+    bar.querySelector('.auto-si').textContent = f ? 'Changer' : '+ Si';
+    bar.querySelector('.auto-split__hint').textContent = f
+      ? 'Chaque valeur a son propre money management, calculé séparément.'
+      : 'Optionnel : sépare le calcul par bonus (ex. TREND / CONTRE) pour que chaque valeur ait son propre money management.';
+  }
+  function openSplitPop(account, wrap) {
+    const pop = document.createElement('div');
+    pop.className = 'si-pop';
+    pop.setAttribute('role', 'dialog');
+    const cats = bonusFields.filter((f) => f.values.length <= 6);
+    if (!cats.length) {
+      pop.innerHTML = `<p class="si-pop__title">Séparer par…</p><p class="si-pop__empty">${parsedTrades && parsedTrades.length
+        ? "Aucun bonus exploitable : il faut une colonne avec 2 à 6 valeurs différentes (Source, Facultatif, Jour, Session…)."
+        : "Importe d'abord ton fichier (étape 3) : les bonus détectés (TREND / CONTRE, W / L / P…) apparaîtront ici."}</p>`;
+    } else {
+      pop.innerHTML = `<p class="si-pop__title">Calculer séparément pour chaque valeur de…</p>` + cats.map((f) =>
+        `<button type="button" class="si-pop__catbtn${autoSplit[account] === f.key ? ' is-on' : ''}" data-f="${esc(f.key)}"><span class="si-pop__name">${esc(f.label)}</span><span class="si-pop__vals">${f.values.map((v) => `<span class="si-pop__val si-pop__val--static">${esc(v.value)}<small>${v.count}</small></span>`).join('')}</span></button>`).join('');
+    }
+    pop.addEventListener('click', (ev) => {
+      const b = ev.target.closest('.si-pop__catbtn');
+      if (!b) return;
+      autoSplit[account] = b.dataset.f;
+      paintSplit(account);
+      closePops();
+      runAuto(account);
+    });
+    wrap.appendChild(pop);
+    const r = pop.getBoundingClientRect();
+    if (r.right > window.innerWidth - 8) pop.style.left = `${-(r.right - window.innerWidth + 12)}px`;
+  }
+  function setupSplitBar(account) {
+    const bar = document.querySelector(`.auto-split[data-account="${account}"]`);
+    bar.querySelector('.auto-si').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wrap = bar.querySelector('.si-wrap');
+      const wasOpen = !!wrap.querySelector('.si-pop');
+      closePops();
+      if (!wasOpen) openSplitPop(account, wrap);
+    });
+    bar.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-x]')) return;
+      autoSplit[account] = null;
+      paintSplit(account);
+      runAuto(account);
+    });
+    paintSplit(account);
+  }
   function isAutoActive(account) {
     if (account === 'pf' && !document.getElementById('pfEnable').checked) return false;
     return document.querySelector(`.mode-toggle[data-target="${account}"] button.is-active`).dataset.mode === 'auto';
@@ -575,7 +647,9 @@ CHESTTour.init([
     setTimeout(() => {
       if (token !== autoToken[account]) return;
       const capital = Number(document.getElementById('btCapital').value) || 10000;
-      const res = ENG.optimizeProfiles(parsedTrades, capital, account);
+      let split = autoSplit[account];
+      if (split && !bonusFields.some((f) => f.key === split)) { split = autoSplit[account] = null; paintSplit(account); }
+      const res = ENG.optimizeProfiles(parsedTrades, capital, account, { split });
       if (res.error) { clearAuto(resultEl); resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
       renderPremium(resultEl, res, account);
     }, 30);
@@ -620,6 +694,11 @@ CHESTTour.init([
   const tierTxt = (t) => `<b>${riskTxt(t.newRisk)}</b> après ${t.afterSl === 1 ? '1 SL' : `${t.afterSl} SL d'affilée`}`;
   // Money management d'un profil : risque de base, palier, règles. `max` = nombre de règles montrées (cartes).
   function mmHtml(p, max) {
+    if (p.split) {
+      return `<span class="mm mm--split">` + p.split.groups.map((g) =>
+        `<span class="mm__grp"><b class="mm__gname">${esc(g.value == null ? 'Autres trades' : g.value)}</b>`
+        + `<span class="mm__base"><b class="mm__num">${riskTxt(g.base)}</b> par trade${g.tier ? `, puis ${tierTxt(g.tier)}` : ''}</span></span>`).join('') + `</span>`;
+    }
     const c = p.config;
     const rules = c.rules.map((r) => ruleLine(r, c.risk));
     const shown = max ? rules.slice(0, max) : rules;
@@ -630,7 +709,7 @@ CHESTTour.init([
       + (!rules.length ? `<span class="mm__rule is-none">Même risque sur tous les trades</span>` : '')
       + `</span>`;
   }
-  const chip = (cls, main, sub) => `<span class="pchip is-${cls}"><b>${main}</b>${sub ? `<i>${sub}</i>` : ''}</span>`;
+  const chip = (cls, main, sub) => `<div class="pd-stat is-${cls}"><b>${main}</b><i>${sub || ''}</i></div>`;
   const trustShort = (p) => {
     if (p.trust === 'ok') return { cls: 'ok', tag: 'Fiable', txt: `Confirmé sur les ${p.oos.testN} derniers trades, jamais vus par le calcul.` };
     if (p.trust === 'warn') return { cls: 'warn', tag: 'Prudence', txt: `Non confirmé sur les ${p.oos.testN} derniers trades, jamais vus par le calcul.` };
@@ -646,11 +725,11 @@ CHESTTour.init([
       resultEl.dataset.risk = p.config.risk;
       resultEl.dataset.tiers = JSON.stringify(p.config.tiers);
       resultEl.dataset.rules = JSON.stringify(p.config.rules);
-      resultEl.dataset.premium = JSON.stringify({ profile: p.id, name: p.name, logic: p.logic, perf: p.perf, mult: p.finalMult, avgM: p.avgM, posM: p.posM, dd: p.dd, holds: p.trust === 'ok' ? true : p.trust === 'warn' ? false : null });
+      resultEl.dataset.premium = JSON.stringify({ profile: p.id, name: p.name, logic: p.logic, perf: p.perf, mult: p.finalMult, avgM: p.avgM, posM: p.posM, dd: p.dd, holds: p.trust === 'ok' ? true : p.trust === 'warn' ? false : null, split: p.split ? { field: p.split.field, label: p.split.label, groups: p.split.groups } : null });
     };
     const detail = (p) => {
       const rows = [];
-      rows.push(`<div class="pd-label">Money management · ${esc(p.name)}</div><div class="pd-mm">${mmHtml(p, 0)}</div>`);
+      rows.push(`<div class="pd-label">Money management · ${esc(p.name)}${p.split ? ` · Si ${esc(p.split.label)}` : ''}</div><div class="pd-mm">${mmHtml(p, 0)}</div>`);
       const o = p.oos;
       let test;
       if (!o) test = chip('mute', 'Test impossible', 'moins de 60 trades');
@@ -658,15 +737,15 @@ CHESTTour.init([
         const good = p.trust === 'ok';
         test = chip(good ? 'pos' : 'warn', fmtSigned(o.perf, 0), `${o.testN} derniers trades`)
           + chip('neg', `${fr(o.maxDd, 1)} %`, 'DD max')
-          + (o.flatPerf != null ? chip('mute', fmtSigned(o.flatPerf, 0), 'sans la règle « Si »') : '')
+          + (o.flatPerf != null ? chip('mute', fmtSigned(o.flatPerf, 0), p.split ? 'sans séparer' : 'sans la règle « Si »') : '')
           + (good ? '' : chip('warn', 'Non confirmé', 'prudence'));
       }
-      rows.push(`<div class="pd-label">Test sur des trades jamais vus</div><div class="pd-chips">${test}</div>`);
-      const worst = chip('mute', `< ${fr(p.mc.p95, 1)} %`, 'DD dans 95 % des cas')
-        + (p.mc.breach != null ? chip(p.mc.breach <= 5 ? 'pos' : 'neg', `${fr(p.mc.breach, 1)} %`, `de dépasser ${p.mc.breachDd} % de DD`) : '')
-        + chip('mute', `${p.maxSlStreak} SL`, 'pire série d\'affilée')
+      rows.push(`<div class="pd-label">Test sur des trades jamais vus</div><div class="pd-stats">${test}</div>`);
+      const worst = chip('mute', `< ${fr(p.mc.p95, 1)} %`, 'DD, 95 % des cas')
+        + (p.mc.breach != null ? chip(p.mc.breach <= 5 ? 'pos' : 'neg', `${fr(p.mc.breach, 1)} %`, `risque de passer ${p.mc.breachDd} % de DD`) : '')
+        + chip('mute', `${p.maxSlStreak} SL`, 'pire série')
         + (p.skipped ? chip('mute', `${p.skipped}`, `trade${p.skipped > 1 ? 's' : ''} ignoré${p.skipped > 1 ? 's' : ''}`) : '');
-      rows.push(`<div class="pd-label">Pire cas</div><div class="pd-chips">${worst}</div>`);
+      rows.push(`<div class="pd-label">Pire cas</div><div class="pd-stats">${worst}</div>`);
       if (p.finalMult >= 1000) rows.push(`<div class="prof-detail__row">Chiffres composés théoriques : sans limite de lots ni de liquidité.</div>`);
       if (p.note) rows.push(`<div class="prof-detail__row warn">${esc(p.note)}</div>`);
       return rows.join('');
@@ -689,7 +768,7 @@ CHESTTour.init([
             + `</button>`;
         }).join('')}</div>`
         + `<div class="prof-detail">${detail(profiles[sel])}</div>`
-        + `<div class="prem-note" style="margin-top:8px">Bonus pris en compte : ${res.fields.map(esc).join(', ')}, plages d'heures. Recherche sur ton historique, pas une prédiction.${account === 'pf' && !parsedTrades.some((t) => t.close) ? ' <span class="warn">Aucune heure de clôture : le drawdown journalier est estimé à partir de la date seule.</span>' : ''}</div>`;
+        + `<div class="prem-note" style="margin-top:8px">${profiles[0].split ? `Calcul séparé pour chaque valeur de ${esc(profiles[0].split.label)}.` : `Bonus pris en compte : ${res.fields.map(esc).join(', ')}, plages d'heures.`} Recherche sur ton historique, pas une prédiction.${account === 'pf' && !parsedTrades.some((t) => t.close) ? ' <span class="warn">Aucune heure de clôture : le drawdown journalier est estimé à partir de la date seule.</span>' : ''}</div>`;
       resultEl.querySelectorAll('.prof').forEach((b) => b.addEventListener('click', () => { sel = Number(b.dataset.i); store(); draw(); }));
     };
     store();
@@ -697,6 +776,8 @@ CHESTTour.init([
   }
   setupAccountBlock('cp');
   setupAccountBlock('pf');
+  setupSplitBar('cp');
+  setupSplitBar('pf');
 
   document.getElementById('pfEnable').addEventListener('change', (e) => {
     document.getElementById('pfInner').style.display = e.target.checked ? '' : 'none';
@@ -724,6 +805,7 @@ CHESTTour.init([
       resultEl.dataset.rules = JSON.stringify(cfg.rules || []);
       resultEl.dataset.tiers = JSON.stringify(cfg.tiers || []);
       if (cfg.premium) resultEl.dataset.premium = JSON.stringify(cfg.premium);
+      if (cfg.premium && cfg.premium.split) { autoSplit[account] = cfg.premium.split.field; paintSplit(account); }
     } else {
       manualEl.querySelector('.risk-input').value = cfg.risk;
       (cfg.tiers || []).forEach((t) => addTierRow(account, { afterSl: t.afterSl, newRisk: t.newRisk }));
