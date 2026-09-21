@@ -1,36 +1,43 @@
 (() => {
   'use strict';
-  // CHEST · Page « Welcome » (par-dessus la coque de app.html).
+  // CHEST · Page « Welcome » (posée avant le shell, dans le même défilement).
   //
-  // Le défilement est RÉEL : le calque contient son propre scroll avec
-  // deux écrans opaques (hero, nouveautés) puis un troisième transparent.
-  // En traversant ce dernier, on découvre le site qui attend dessous —
-  // il n'y a donc pas de fondu, la page arrive comme dans un scroll
-  // normal. Arrivé en bas, tout se verrouille : plus de retour en arrière.
+  // La page défile nativement : hero (100vh), Newsletter, puis le shell
+  // (le dashboard) qui suit dans le flux. Rien n'est en surimpression, donc
+  // le dashboard arrive collé sous la Newsletter, au pixel près, sans retard.
+  // Quand le sommet du dashboard atteint le haut de l'écran, on retire le
+  // calque et on remet le défilement à 0 dans la même image : visuellement rien
+  // ne bouge, mais il n'y a plus rien au-dessus, on ne peut plus remonter.
   //
-  // Contrat inchangé : sessionStorage `chest_welcome`, #chestWelcome,
-  // #welScroll, classe `is-welcome` sur <html>, window.CHESTWelcome.show().
+  // Contrat : sessionStorage `chest_welcome`, #chestWelcome, classe
+  // `is-welcome` sur <html>, window.CHESTWelcome.show() / .close().
 
   const FLAG = 'chest_welcome';
   const root = document.getElementById('chestWelcome');
   if (!root) return;
 
-  const scroller = document.getElementById('welScroll');
   const html = document.documentElement;
-  const nameEl = document.getElementById('welName');
-  const helloEl = document.getElementById('welHello');
-  const skipBtn = document.getElementById('welSkip');
-  const exitEl = root.querySelector('.wel__exit');
-  const stars = document.getElementById('welStars');
-  const hero = root.querySelector('.wel__page');
   const shell = document.getElementById('chestShell');
-  let settleTimer = null;
+  const nameEl = document.getElementById('welName');
+  const skipBtn = document.getElementById('welSkip');
+  const stars = document.getElementById('welStars');
+  const hero = root.querySelector('.wel__hero');
+  const sheet = document.getElementById('welSheet');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  let closed = false;
+  let closed = true;
   let sraf = null;
   let mraf = null;
+  let settleTimer = null;
+  let touching = false;
+  let lastFocus = null;
 
-  /* ---------- Prénom et salutation ---------- */
+  // Position du dashboard dans la page = fin de la Newsletter.
+  const endY = () => shell.getBoundingClientRect().top + window.scrollY;
+  const vh = () => window.innerHeight;
+  const scrollTo = (top) => window.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' });
+
+  /* ---------- Prénom ---------- */
   function firstName() {
     try {
       const u = window.CHESTAccounts && CHESTAccounts.getUser();
@@ -38,26 +45,20 @@
       return n ? n.charAt(0).toLocaleUpperCase('fr-FR') + n.slice(1) : '';
     } catch (e) { return ''; }
   }
-  function greeting() {
-    const h = new Date().getHours();
-    if (h < 6) return 'Bonne nuit';
-    if (h < 12) return 'Bonjour';
-    if (h < 18) return 'Bon après-midi';
-    return 'Bonsoir';
-  }
 
   /* ---------- Compteur de nouveautés ---------- */
+  const cards = () => root.querySelectorAll('[data-news-id]');
   function newsCount() {
-    const cards = root.querySelectorAll('[data-news-id]');
-    if (!cards.length) return 0;
+    const list = cards();
+    if (!list.length) return 0;
     let seen = [];
     try { seen = JSON.parse(localStorage.getItem('chest_news_seen') || '[]'); } catch (e) { seen = []; }
     let n = 0;
-    cards.forEach((c) => { if (seen.indexOf(c.dataset.newsId) === -1) n++; });
+    list.forEach((c) => { if (seen.indexOf(c.dataset.newsId) === -1) n++; });
     return n;
   }
   function markNewsSeen() {
-    const ids = [].map.call(root.querySelectorAll('[data-news-id]'), (c) => c.dataset.newsId);
+    const ids = [].map.call(cards(), (c) => c.dataset.newsId);
     if (!ids.length) return;
     try {
       const seen = JSON.parse(localStorage.getItem('chest_news_seen') || '[]');
@@ -68,144 +69,172 @@
 
   /* ---------- La lumière suit le curseur ---------- */
   function onMove(e) {
-    if (mraf || closed || root.hidden) return;
+    if (mraf || closed) return;
     mraf = requestAnimationFrame(() => {
       mraf = null;
-      const r = root.getBoundingClientRect();
+      const r = hero.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      const x = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
-      const y = Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100));
-      root.style.setProperty('--mx', x.toFixed(1) + '%');
-      root.style.setProperty('--my', y.toFixed(1) + '%');
+      const fx = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+      const fy = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+      root.style.setProperty('--mx', (fx * 100).toFixed(1) + '%');
+      root.style.setProperty('--my', (fy * 100).toFixed(1) + '%');
+      root.style.setProperty('--px', (fx * 2 - 1).toFixed(3));
+      root.style.setProperty('--py', (fy * 2 - 1).toFixed(3));
     });
   }
 
-  /* ---------- Défilement : le menu se pose à l'approche du site ---------- */
+  /* ---------- Défilement ---------- */
   function onScroll() {
     if (closed || sraf) return;
     sraf = requestAnimationFrame(() => {
       sraf = null;
-      if (!exitEl) return;
-      const top = exitEl.offsetTop;
-      const h = scroller.clientHeight;
-      // Le menu commence à apparaître sur la dernière moitié d'écran.
-      const t = Math.max(0, Math.min(1, (scroller.scrollTop - (top - h * 0.55)) / (h * 0.55)));
-      html.style.setProperty('--wel-in', t.toFixed(3));
-      if (scroller.scrollTop >= top - 2) { finish(); return; }
-      // Lâché en cours de route dans la zone transparente : on finit le trajet (plus de demi-état).
+      if (closed) return;
+      const end = endY();
+      const y = window.scrollY;
+      if (y >= end - 1) { finish(); return; }
+      // r = part du dashboard déjà visible (0 = tout juste caché, 1 = plein écran)
+      const r = (y - (end - vh())) / vh();
+      root.classList.toggle('is-past', r > 0.06);
       clearTimeout(settleTimer);
-      if (t > 0) settleTimer = setTimeout(() => { if (!closed && t > 0.25) glide(); }, 220);
+      if (r > 0 && !touching && !sheet.classList.contains('is-open')) settleTimer = setTimeout(settle, 150);
     });
   }
+  // Lâché à mi-chemin : au-delà de 25 % le dashboard finit d'arriver, sinon il repart.
+  function settle() {
+    if (closed || touching) return;
+    const end = endY();
+    const r = (window.scrollY - (end - vh())) / vh();
+    if (r <= 0 || r >= 1) return;
+    scrollTo(r > 0.25 ? end : end - vh());
+  }
 
-  /* ---------- Sortie : on ne remonte plus ---------- */
+  /* ---------- Sortie : plus rien au-dessus ---------- */
   function finish() {
     if (closed) return;
     closed = true;
     clearTimeout(settleTimer);
+    closeSheet(true);
     markNewsSeen();
     try { sessionStorage.removeItem(FLAG); } catch (e) {}
-
-    root.classList.add('is-locked');
-    if (exitEl) scroller.scrollTop = exitEl.offsetTop;
-    html.style.setProperty('--wel-in', '1');
-
-    // Le calque s'efface une fois le site entièrement découvert.
-    setTimeout(() => {
-      root.classList.add('is-gone');
-      html.classList.remove('is-welcome');
-      setTimeout(() => {
-        root.hidden = true;
-        root.classList.remove('is-gone', 'is-locked');
-        html.style.removeProperty('--wel-in');
-        if (shell) shell.removeAttribute('inert');
-        window.dispatchEvent(new Event('resize'));
-      }, 320);
-    }, 340);
+    // Dans la même image : le calque disparaît et le dashboard prend sa place en haut.
+    root.hidden = true;
+    root.classList.remove('is-past');
+    html.classList.remove('is-welcome');
+    if (shell) shell.removeAttribute('inert');
+    window.scrollTo(0, 0);
+    window.dispatchEvent(new Event('resize'));
   }
 
-  // Descente directe (cloche, boutons, Échap) : même trajet, en plus rapide.
+  // Descente directe (cloche, repère, Échap) : même trajet, en douceur.
   function glide() {
-    if (closed || !exitEl) return;
-    scroller.scrollTo({ top: exitEl.offsetTop, behavior: 'smooth' });
-    setTimeout(finish, 850);
+    if (closed) return;
+    scrollTo(endY());
+    setTimeout(() => { if (!closed && window.scrollY >= endY() - 2) finish(); }, 1500);
   }
 
   /* ---------- Ciel étoilé ---------- */
   function paintStars() {
-    if (!stars) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!stars || reduce) return;
     const w = stars.offsetWidth, h = stars.offsetHeight;
     if (!w || !h) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     stars.width = w * dpr; stars.height = h * dpr;
     const ctx = stars.getContext('2d');
     ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
-    const n = Math.round((w * h) / 13000);
+    const n = Math.round((w * h) / 12000);
     for (let i = 0; i < n; i++) {
       const x = Math.random() * w, y = Math.random() * h, r = Math.random() * 1.05 + 0.22;
       const edge = Math.min(1, Math.abs(x / w - 0.5) * 2.3 + Math.abs(y / h - 0.42) * 1.5);
-      ctx.globalAlpha = (0.1 + Math.random() * 0.48) * edge;
+      ctx.globalAlpha = (0.1 + Math.random() * 0.5) * edge;
       ctx.fillStyle = '#fff';
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
+  }
+
+  /* ---------- Fenêtre d'une nouveauté ---------- */
+  function openSheet(card) {
+    const full = card.querySelector('.wel__card-full');
+    const media = card.querySelector('.wel__card-media');
+    document.getElementById('welSheetTitle').textContent = (card.querySelector('.wel__card-title') || {}).textContent || '';
+    document.getElementById('welSheetTag').textContent = card.dataset.tag || '';
+    document.getElementById('welSheetDate').textContent = card.dataset.date || '';
+    document.getElementById('welSheetText').innerHTML = full ? full.innerHTML : '';
+    const sm = document.getElementById('welSheetMedia');
+    const img = media && media.style.getPropertyValue('--img');
+    if (img) sm.style.setProperty('--img', img); else sm.style.removeProperty('--img');
+    lastFocus = document.activeElement;
+    sheet.classList.add('is-open');
+    html.classList.add('is-sheet');
+    sheet.querySelector('.wel__sheet-win').scrollTop = 0;
+    sheet.querySelector('[data-wel-close]').focus({ preventScroll: true });
+  }
+  function closeSheet(silent) {
+    if (!sheet.classList.contains('is-open')) return;
+    sheet.classList.remove('is-open');
+    html.classList.remove('is-sheet');
+    if (!silent && lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
   }
 
   /* ---------- Ouverture ---------- */
   function show() {
     closed = false;
     root.hidden = false;
-    root.classList.remove('is-gone', 'is-locked');
+    root.classList.remove('is-past');
     html.classList.add('is-welcome');
-    html.style.setProperty('--wel-in', '0');
-    if (shell) shell.setAttribute('inert', ''); // le site dessous n'est pas atteignable au clavier tant que Welcome est là
+    if (shell) shell.setAttribute('inert', ''); // le dashboard n'est ni cliquable ni atteignable au clavier tant qu'on n'y est pas
     root.style.setProperty('--mx', '50%');
     root.style.setProperty('--my', '22%');
+    root.style.setProperty('--px', '0');
+    root.style.setProperty('--py', '0');
 
     const n = firstName();
     if (nameEl) nameEl.textContent = n;
-    if (helloEl) helloEl.textContent = n ? greeting() : 'Bienvenue';
     if (skipBtn) skipBtn.setAttribute('data-count', String(newsCount()));
 
-    // Les cartes repartent fermées à chaque ouverture.
-    root.querySelectorAll('.wel__card.is-open').forEach((c) => c.classList.remove('is-open'));
-
-    scroller.scrollTop = 0;
+    window.scrollTo(0, 0);
     requestAnimationFrame(paintStars);
-    scroller.focus({ preventScroll: true });
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
   /* ---------- Branchements ---------- */
-  scroller.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('touchstart', () => { touching = true; clearTimeout(settleTimer); }, { passive: true });
+  const release = () => { touching = false; if (!closed) settleTimer = setTimeout(settle, 150); };
+  window.addEventListener('touchend', release, { passive: true });
+  window.addEventListener('touchcancel', release, { passive: true });
   if (hero) hero.addEventListener('mousemove', onMove, { passive: true });
-  window.addEventListener('resize', () => { paintStars(); onScroll(); });
+  window.addEventListener('resize', () => { if (!closed) { paintStars(); onScroll(); } });
 
   if (skipBtn) skipBtn.addEventListener('click', glide);
-  root.querySelectorAll('[data-wel-enter]').forEach((b) => b.addEventListener('click', glide));
   root.querySelectorAll('[data-wel-next]').forEach((b) => b.addEventListener('click', () => {
-    scroller.scrollBy({ top: scroller.clientHeight, behavior: 'smooth' });
+    scrollTo(Math.min(vh(), endY() - vh()));
   }));
 
-  // Une carte s'ouvre au clic et déroule son explication.
+  // Une carte s'ouvre au clic (ou Entrée / Espace) dans une fenêtre.
   root.addEventListener('click', (e) => {
     const card = e.target.closest && e.target.closest('.wel__card');
-    if (!card || !root.contains(card)) return;
-    const wasOpen = card.classList.contains('is-open');
-    root.querySelectorAll('.wel__card.is-open').forEach((c) => c.classList.remove('is-open'));
-    if (!wasOpen) card.classList.add('is-open');
+    if (card && root.contains(card)) { openSheet(card); return; }
+    if (e.target === sheet || (e.target.closest && e.target.closest('[data-wel-close]'))) closeSheet();
+  });
+  root.addEventListener('keydown', (e) => {
+    const card = e.target.closest && e.target.closest('.wel__card');
+    if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openSheet(card); }
   });
 
   document.addEventListener('keydown', (e) => {
-    if (root.hidden || closed) return;
-    if (e.key === 'Escape') { e.preventDefault(); glide(); }
+    if (closed || root.hidden) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (sheet.classList.contains('is-open')) closeSheet(); else glide();
+    }
   });
 
-  // Clic sur le logo CHEST de la barre du haut : rouvrir le Welcome.
+  // Clic sur le logo CHEST de la barre du haut : rouvrir le Welcome (le dashboard est dessous).
   document.addEventListener('click', (e) => {
     const brand = e.target.closest && e.target.closest('.chest-topbar .brand');
     if (!brand) return;
     e.preventDefault();
-    if (location.hash !== '#/dashboard') location.hash = '#/dashboard'; // le site qui attend dessous est le dashboard
+    if (location.hash !== '#/dashboard') location.hash = '#/dashboard';
     show();
   });
 
@@ -214,7 +243,9 @@
   if (wanted) {
     if (location.hash && location.hash !== '#/dashboard' && location.hash !== '#/') location.hash = '#/dashboard';
     show();
-  } else root.hidden = true;
+  } else {
+    root.hidden = true;
+  }
 
   window.CHESTWelcome = { show, close: finish };
 })();
