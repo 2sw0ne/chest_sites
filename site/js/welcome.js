@@ -33,8 +33,6 @@
 
   let closed = true;
   let sraf = null;
-  let settleTimer = null;
-  let touching = false;
   let lastFocus = null;
 
   // Position du dashboard dans la page = fin de la Newsletter.
@@ -90,26 +88,15 @@
       const y = window.scrollY;
       if (y >= end - 1) { finish(); return; }
       startSnow();
-      // r = part du dashboard déjà visible (0 = tout juste caché, 1 = plein écran)
-      const r = (y - (end - vh())) / vh();
-      clearTimeout(settleTimer);
-      if (r > 0 && !touching && !sheet.classList.contains('is-open')) settleTimer = setTimeout(settle, 150);
+      // Aucune aimantation : entre la Newsletter et le dashboard on défile librement, dans les deux sens.
+      // La page ne se referme (et on ne peut plus remonter) que lorsque le dashboard est entièrement arrivé.
     });
-  }
-  // Lâché à mi-chemin : au-delà de 25 % le dashboard finit d'arriver, sinon il repart.
-  function settle() {
-    if (closed || touching) return;
-    const end = endY();
-    const r = (window.scrollY - (end - vh())) / vh();
-    if (r <= 0 || r >= 1) return;
-    scrollTo(r > 0.25 ? end : end - vh());
   }
 
   /* ---------- Sortie : plus rien au-dessus ---------- */
   function finish() {
     if (closed) return;
     closed = true;
-    clearTimeout(settleTimer);
     cancelAnimationFrame(loop); loop = 0;
     closeSheet(true);
     markNewsSeen();
@@ -372,118 +359,117 @@
   /* ---------- CHEST qui parle ----------
      Une phrase choisie selon l'heure et la session de marché en cours (heures en UTC, comme les sessions du reste du site :
      Asie 0-7, Londres 7-12, Londres × New York 12-16, New York 16-21), écrite lettre à lettre comme si l'algo s'adressait à toi.
-     Volontairement prudent : « généralement », « souvent » — jamais une prédiction ni une promesse. {name} = prénom (retiré s'il manque). */
+     Chaque phrase est un PRÉTEXTE pour entrer sur la plateforme (dashboard, journal, backtest, calendrier, School) — pas un « tu peux respirer »
+     (décision utilisateur). Volontairement prudent : « souvent », « probable » — jamais une prédiction ni une promesse. {name} = prénom (retiré s'il manque). */
   const SAY = {
     asiaOpen: [
-      "Tu arrives pile pour l'ouverture de la session asiatique.",
-      "Tokyo ouvre ses portes. Je surveille, tu peux respirer.",
-      "L'Asie se réveille : les premiers mouvements de la journée se dessinent.",
-      "Une nouvelle journée de marché démarre. Je suis prêt quand tu l'es.",
-      "Ouverture asiatique : le calme avant l'arrivée de l'Europe.",
-      "{name}, la session asiatique s'ouvre. Rien ne presse."
+      "Tu arrives pile pour l'ouverture de la session asiatique : ouvre ton dashboard et prépare ta journée.",
+      "Tokyo ouvre. Le bon moment pour vérifier tes comptes avant que le marché s'agite.",
+      "L'Asie se réveille : viens voir où en sont tes comptes.",
+      "Une nouvelle journée de marché démarre. Entre, on s'y met ensemble.",
+      "Ouverture asiatique : le calme avant Londres, idéal pour préparer ta journée dans le calendrier.",
+      "{name}, la session asiatique s'ouvre. Viens jeter un œil au calendrier économique."
     ],
     mondayOpen: [
-      "Nouvelle semaine de marché. On repart de zéro, ensemble.",
-      "La semaine commence. Les écarts du week-end sont souvent les premiers à regarder.",
-      "Lundi, ouverture de la semaine : un bon moment pour relire ton plan.",
-      "Les marchés rouvrent. {name}, commence par ton plan, pas par les graphiques."
+      "Nouvelle semaine de marché : viens poser ton plan avant que ça bouge.",
+      "La semaine commence. Ouvre ton dashboard et fixe tes objectifs.",
+      "Lundi : le calendrier de la semaine t'attend. Viens voir ce qui arrive.",
+      "Les marchés rouvrent. {name}, entre et commence par ton plan."
     ],
     asia: [
-      "L'Asie mène la danse, généralement plus calme : idéal pour préparer la suite.",
-      "Le marché est plutôt lent en ce moment : parfait pour travailler ton trading.",
-      "Session asiatique en cours. Un bon moment pour relire ton journal.",
-      "Pendant que l'Europe dort, je garde un œil sur Tokyo.",
-      "Les volumes sont souvent plus faibles en Asie. Profites-en pour revoir tes backtests.",
-      "Ambiance tranquille sur les marchés. Ton plan, ton rythme.",
-      "{name}, l'Asie est calme : c'est le moment de préparer Londres.",
-      "Session asiatique : l'heure où l'on prépare, plutôt que de courir.",
-      "Un café, un backtest, et Londres arrive bientôt."
+      "En Asie, le marché est souvent plus lent : parfait pour travailler ton trading. Viens lancer un backtest.",
+      "Session asiatique : un bon prétexte pour relire ton journal.",
+      "Ambiance calme sur les marchés : profites-en pour explorer un cours dans School.",
+      "Pendant que l'Europe dort, avance sur tes backtests.",
+      "{name}, l'Asie est calme : c'est le moment de préparer Londres. Viens voir le calendrier.",
+      "Peu de volume en Asie : idéal pour analyser tes derniers trades. Ton journal t'attend.",
+      "Un café, un backtest, et Londres arrive bientôt. Viens t'y mettre.",
+      "Session calme : le meilleur moment pour améliorer ta stratégie, sans pression."
     ],
     londonOpen: [
-      "Londres vient d'ouvrir : les premiers vrais mouvements arrivent souvent maintenant.",
-      "Ouverture de Londres. Le marché se réveille pour de bon.",
-      "Londres est là. Respire, applique ton plan.",
-      "L'Europe prend le relais. Pas de précipitation, {name}.",
-      "Les volumes montent, la discipline aussi.",
-      "Tu arrives pile pour l'ouverture de Londres.",
-      "Le ballet européen commence. Je surveille les premières minutes avec toi."
+      "Londres vient d'ouvrir : entre et voyons ce qui bouge.",
+      "Ouverture de Londres. Viens vérifier tes comptes et le calendrier avant que ça s'active.",
+      "Tu arrives pile pour l'ouverture de Londres : ton dashboard est prêt.",
+      "L'Europe prend le relais. {name}, ouvre ton dashboard et garde le cap.",
+      "Les volumes montent : viens fixer ton plan avant de trader.",
+      "Londres démarre : un coup d'œil au calendrier économique, et c'est parti."
     ],
     london: [
-      "Londres est en pleine action. Garde la tête froide.",
-      "Session de Londres en cours : souvent l'une des plus actives de la journée.",
-      "Le marché a de l'énergie ce matin. Ton plan reste ton meilleur allié.",
-      "Londres bat son plein. Un trade propre vaut mieux que dix trades pressés.",
-      "{name}, l'Europe est réveillée, et toi aussi. Bonne session.",
-      "Beaucoup de mouvement en Europe : reste sur tes setups, pas sur ceux des autres.",
-      "Session de Londres : le bon moment pour être patient."
+      "Londres est en pleine action : viens suivre tes comptes.",
+      "Session de Londres en cours, souvent l'une des plus actives. Entre pour ne rien rater.",
+      "Le marché a de l'énergie ce matin. Ouvre ton journal et note tes idées.",
+      "{name}, l'Europe est réveillée. Viens voir où en sont tes comptes.",
+      "Beaucoup de mouvement en Europe : le calendrier te dit pourquoi. Viens y jeter un œil.",
+      "Un trade propre vaut mieux que dix trades pressés. Prépare le prochain dans ton journal.",
+      "Session de Londres : entre, vérifie ton plan, et avance."
     ],
     nyOpen: [
-      "New York ouvre ses portes, et le marché avec.",
-      "Wall Street se réveille pendant que Londres bat encore son plein.",
-      "Ouverture de New York : ça peut bouger vite. Prends ton souffle.",
-      "Tu arrives pile pour l'ouverture de New York.",
-      "Les Américains arrivent. Reste sur ton plan, {name}.",
-      "Nouvelle vague de volume : New York rejoint la séance."
+      "New York ouvre ses portes : entre, le marché s'anime.",
+      "Wall Street se réveille pendant que Londres bat encore son plein : viens tout suivre d'ici.",
+      "Ouverture de New York : ça peut bouger vite. Ton dashboard est prêt.",
+      "Tu arrives pile pour l'ouverture de New York. Viens voir le calendrier américain.",
+      "Les Américains arrivent. {name}, ouvre ton dashboard et reste sur ton plan.",
+      "Nouvelle vague de volume : viens vérifier tes positions."
     ],
     overlap: [
-      "Londres et New York sont ouvertes en même temps : souvent le moment le plus animé.",
-      "Le chevauchement des deux sessions : de l'énergie, mais aussi des faux départs. Prudence.",
-      "Pic d'activité probable. Une position à la fois.",
-      "Gros volumes en vue. La discipline avant tout, {name}.",
-      "Les deux grandes places sont ouvertes : ça vit fort sur les graphiques.",
-      "Le cœur de la journée de trading. Concentre-toi, je m'occupe du reste."
+      "Londres et New York sont ouvertes en même temps : le moment le plus animé. Viens suivre ça de près.",
+      "Pic d'activité probable : entre et garde un œil sur tes comptes.",
+      "Le cœur de la journée de trading. Ton dashboard t'attend.",
+      "Gros volumes en vue. {name}, ouvre ton journal avant de prendre position.",
+      "Les deux grandes places sont ouvertes : viens voir ce que ça donne.",
+      "C'est maintenant que ça se passe. Ouvre ton dashboard."
     ],
     ny: [
-      "Londres a fermé, New York finit la journée. Le rythme ralentit souvent.",
-      "Session américaine : l'après-midi peut rester calme… ou surprendre. Reste attentif.",
-      "L'Europe est partie se coucher. Il reste New York.",
-      "Le marché commence à ralentir. Pense à faire un bilan de ta journée.",
-      "Le jour touche à sa fin. Un petit tour dans ton journal, {name} ?",
-      "Fin de journée : le moment idéal pour noter ce que tu as appris."
+      "Londres a fermé, New York finit la journée : viens faire le point sur tes comptes.",
+      "Fin de séance américaine : le bon moment pour noter ta journée dans ton journal.",
+      "Le marché ralentit. {name}, viens faire un bilan de ta journée.",
+      "Le jour touche à sa fin : un passage dans ton journal, et tu clôtures proprement.",
+      "Après la séance, la progression : viens relire tes trades.",
+      "Il reste New York. Entre pour suivre la fin de journée."
     ],
     late: [
-      "La journée de trading se termine. Bravo si tu as tenu ton plan, ou su t'arrêter.",
-      "Les marchés se calment. Ferme aussi tes graphiques.",
-      "Dernière heure de la séance américaine. Le repos fait partie du plan.",
-      "Bonne soirée {name}. Demain, un nouveau marché t'attend.",
-      "Coupe les écrans de trading : tes décisions de demain n'en seront que meilleures."
+      "La journée se termine : viens noter ce que tu as appris avant de couper.",
+      "Bilan du soir : ouvre ton journal, ça prend cinq minutes.",
+      "Dernière heure de la séance américaine. Passe faire le point sur tes comptes.",
+      "Bonne soirée {name}. Un dernier tour sur ton dashboard avant de couper ?",
+      "Prépare demain dès ce soir : viens regarder le calendrier de la journée à venir."
     ],
     friday: [
-      "Dernière ligne droite de la semaine. Certaines propfirms interdisent de garder une position le week-end : vérifie les tiennes.",
-      "Vendredi soir : bilan, journal, puis repos.",
-      "La semaine se termine. Qu'as-tu appris cette semaine, {name} ?",
-      "Le week-end approche : pense à tes positions ouvertes avant la fermeture."
+      "Vendredi soir : certaines propfirms interdisent de garder une position le week-end. Viens vérifier les tiennes.",
+      "Dernière ligne droite de la semaine : ouvre ton journal et fais ton bilan.",
+      "La semaine se termine. {name}, viens voir ce que tu en retiens.",
+      "Le week-end approche : passe sur ton dashboard vérifier tes positions ouvertes."
     ],
     weekend: [
-      "Les marchés forex et actions sont fermés. Profites-en pour souffler, ou pour préparer la semaine.",
-      "Week-end : les graphiques dorment. Ton journal, lui, t'attend.",
-      "Rien ne bouge sur le forex : le moment idéal pour un backtest.",
-      "Marchés fermés jusqu'à dimanche soir. Un passage par School ne coûte rien.",
-      "C'est le week-end, {name}. Fais une pause, tu l'as sans doute méritée.",
-      "Pas de nouvelles bougies aujourd'hui. Un bon jour pour revoir les erreurs de la semaine.",
-      "Marchés fermés : parfait pour ranger ton journal et lire un cours."
+      "Marchés fermés : le moment idéal pour lancer un backtest tranquillement.",
+      "Week-end : les graphiques dorment, pas ta progression. Viens faire un tour dans School.",
+      "Rien ne bouge sur le forex : parfait pour relire ton journal.",
+      "Marchés fermés jusqu'à dimanche soir. Prépare ta semaine, viens voir le calendrier.",
+      "C'est le week-end, {name}. Viens analyser les erreurs de la semaine, sans pression.",
+      "Pas de nouvelles bougies aujourd'hui : c'est le bon jour pour améliorer ta stratégie.",
+      "Marchés fermés : viens ranger ton journal et lire un cours."
     ],
     night: [
-      "Il est tard, {name}. Un trade fatigué reste un trade fatigué.",
-      "Les meilleures décisions se prennent reposé. Je serai encore là demain.",
-      "Encore debout ? Je veille, mais dors un peu.",
-      "Le sommeil est aussi un outil de trader."
+      "Il est tard, {name}. Un petit tour rapide dans ton journal, puis dors.",
+      "Encore debout ? Viens jeter un œil à tes comptes, puis repose-toi.",
+      "Les meilleures décisions se prennent reposé : note tes idées dans ton journal, et à demain.",
+      "Pas de trade fatigué : viens plutôt préparer ceux de demain."
     ],
     morning: [
-      "Bon matin {name}. Un café, un plan, et c'est parti.",
-      "Nouvelle journée, nouvelle page de ton journal.",
-      "Le matin, c'est fait pour préparer. Tout est prêt de mon côté."
+      "Bon matin {name}. Un café, ton dashboard, et c'est parti.",
+      "Nouvelle journée, nouvelle page de ton journal : viens l'ouvrir.",
+      "Le matin, c'est fait pour préparer. Viens voir ton calendrier du jour."
     ],
     generic: [
-      "Tout est prêt : tes comptes, tes backtests, ton journal.",
-      "Content de te revoir, {name}. On reprend là où on s'est arrêtés.",
-      "Je ne prédis rien, je t'aide à décider. C'est déjà beaucoup.",
-      "Un bon trader est d'abord un trader patient.",
-      "Aujourd'hui : discipline d'abord, résultats ensuite.",
-      "Ici, chaque chiffre est vérifié. Pas de promesses, seulement des simulations honnêtes.",
-      "Ton journal est le meilleur des mentors : il ne ment jamais.",
+      "Tout est prêt : tes comptes, tes backtests, ton journal. Entre.",
+      "Content de te revoir, {name}. On reprend là où on s'est arrêtés ?",
+      "Je ne prédis rien, je t'aide à décider. Viens voir par toi-même.",
+      "Un bon trader est d'abord régulier. Connecte-toi, même cinq minutes.",
+      "Ici, chaque chiffre est vérifié. Viens le constater sur ton dashboard.",
+      "Ton journal est le meilleur des mentors. Il t'attend.",
       "Et si tu regardais tes derniers backtests avant d'ouvrir une position ?",
-      "Un plan, un risque, un stop. Le reste, c'est du bruit."
+      "Un plan, un risque, un stop. Viens vérifier les tiens.",
+      "Cinq minutes sur ton dashboard valent mieux qu'un trade impulsif."
     ]
   };
 
@@ -591,10 +577,6 @@
 
   /* ---------- Branchements ---------- */
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('touchstart', () => { touching = true; clearTimeout(settleTimer); }, { passive: true });
-  const release = () => { touching = false; if (!closed) settleTimer = setTimeout(settle, 150); };
-  window.addEventListener('touchend', release, { passive: true });
-  window.addEventListener('touchcancel', release, { passive: true });
   if (hero) hero.addEventListener('mousemove', onMove, { passive: true });
   window.addEventListener('resize', () => { if (!closed) { sizeCanvas(); startSnow(); onScroll(); } });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) startSnow(); });
