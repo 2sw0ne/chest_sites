@@ -143,24 +143,31 @@
     // brume : de grandes nappes lentes qui se déforment l'une l'autre
     ' float n1=fbm(p*vec2(.85,1.05)+vec2(t*.016,-t*.011));',
     ' float n2=fbm(p*1.6+vec2(-t*.02,t*.014)+n1*.9);',
-    // bande de lumière claire, en diagonale depuis le coin haut gauche ; son axe et sa largeur respirent
+    // deux bandes de lumière en diagonale, d'inclinaisons différentes ; leur intensité varie le long de l'axe
     ' vec2 dir=normalize(vec2(1.,.5+.06*sin(t*.09)));vec2 nrm=vec2(-dir.y,dir.x);',
     ' vec2 c=vec2(-.05+.05*sin(t*.07),-.05+.04*cos(t*.06));',
     ' float q=dot(p-c,nrm)+(n1-.5)*.4;float al=dot(p-c,dir);',
-    ' float band=exp(-pow(q/(.3+.05*sin(t*.13)),2.))*exp(-max(al,0.)*.5)*smoothstep(-.7,.15,al);',
+    ' float v1=.55+.9*fbm(vec2(al*1.3-t*.03,q*1.4+t*.02));',
+    ' float band=exp(-pow(q/(.32+.05*sin(t*.13)),2.))*exp(-max(al,0.)*.42)*smoothstep(-.7,.15,al)*v1;',
+    ' vec2 dir2=normalize(vec2(1.,.95+.08*cos(t*.07)));vec2 nrm2=vec2(-dir2.y,dir2.x);',
+    ' vec2 c2=vec2(.62*asp+.08*sin(t*.05),-.2);',
+    ' float q2=dot(p-c2,nrm2)+(n2-.5)*.45;float al2=dot(p-c2,dir2);',
+    ' float v2=.4+1.0*fbm(vec2(al2*1.1+t*.025,q2*1.2-t*.03));',
+    ' float band2=exp(-pow(q2/.4,2.))*exp(-max(al2,0.)*.3)*smoothstep(-.5,.2,al2)*v2;',
     // très peu de rayons : juste de quoi donner du volume
     ' vec2 o=vec2(-.15,-.65);vec2 d=p-o;float len=length(d);float a=atan(d.y,d.x);',
     ' float rr=fbm(vec2(a*3.4+t*.045,len*.3-t*.03));',
     ' float ray=smoothstep(.3,.9,rr);',
-    ' float inten=band*1.3+n2*.5*exp(-len*.46)+ray*.24*exp(-len*.42);',
-    // fondu noir sous ~80 % de la hauteur
-    ' float mask=1.-smoothstep(.26,.84,uv.y);',
-    ' float b=clamp(inten*mask*.78,0.,1.5);',
-    ' vec3 deep=vec3(.13,.0,.07),wine=vec3(.42,.03,.22),mauve=vec3(.74,.13,.44),soft=vec3(.93,.58,.76),wht=vec3(1.,.87,.93);',
-    ' vec3 c1=mix(deep,wine,smoothstep(.04,.34,b));',
-    ' c1=mix(c1,mauve,smoothstep(.3,.7,b));',
-    ' c1=mix(c1,soft,smoothstep(.66,1.05,b));',
-    ' c1=mix(c1,wht,smoothstep(1.0,1.5,b));',
+    ' float inten=band*2.1+band2*.42+n2*.34*exp(-len*.34)+ray*.2*exp(-len*.34);',
+    // fondu noir : démarre au même endroit qu'avant (~26 %) mais descend beaucoup plus bas
+    ' float mask=1.-smoothstep(.26,1.06,uv.y);',
+    ' float b=clamp(inten*mask*.56,0.,1.5);',
+    ' vec3 deep=vec3(.1,.0,.055),wine=vec3(.33,.03,.19),mag=vec3(.6,.075,.385),rose=vec3(.82,.36,.6),soft=vec3(.92,.64,.77),wht=vec3(.97,.82,.89);',
+    ' vec3 c1=mix(deep,wine,smoothstep(.03,.3,b));',
+    ' c1=mix(c1,mag,smoothstep(.34,.72,b));',
+    ' c1=mix(c1,rose,smoothstep(.55,.9,b));',
+    ' c1=mix(c1,soft,smoothstep(.82,1.15,b));',
+    ' c1=mix(c1,wht,smoothstep(1.1,1.5,b));',
     ' c1*=smoothstep(0.,.16,b);',
     ' c1+=(h21(gl_FragCoord.xy+t)-.5)/255.;',   // grain : évite les bandes
     ' gl_FragColor=vec4(c1,1.);',
