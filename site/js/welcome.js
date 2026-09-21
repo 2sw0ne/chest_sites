@@ -140,20 +140,23 @@
     'float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);',
     ' return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x),mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x),f.y);}',
     'float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*vn(p);p=p*2.03+vec2(17.1,9.2);a*=.5;}return s;}',
+    // axe de la lueur : descend du coin haut gauche, s'aplatit vers le centre, plonge puis remonte vers la droite (x et y en hauteurs d'écran)
+    'float pathY(float x,float t){float xc=max(x,0.);float base=.02+.34*(1.-exp(-1.5*xc));',
+    ' float w=.075*sin((xc-.9)*3.-t*.12)*smoothstep(.45,1.,xc)-.14*smoothstep(1.35+.08*sin(t*.05),1.95,xc);return base+w;}',
     'void main(){',
     ' vec2 uv=gl_FragCoord.xy/uRes;uv.y=1.-uv.y;',
     ' float asp=uRes.x/uRes.y;vec2 p=vec2(uv.x*asp,uv.y);float t=uTime;',
     // brume : de grandes nappes lentes qui se déforment l'une l'autre
     ' float n1=fbm(p*vec2(.85,1.05)+vec2(t*.034,-t*.021));',
     ' float n2=fbm(p*1.6+vec2(-t*.04,t*.028)+n1*.9);',
-    // deux bandes de lumière en diagonale, d'inclinaisons différentes ; elles respirent, en opposition de phase
-    ' vec2 dir=normalize(vec2(1.,.5+.02*sin(t*.05)));vec2 nrm=vec2(-dir.y,dir.x);',
-    ' vec2 c=vec2(-.05+.02*sin(t*.04),-.05+.015*cos(t*.035));',
-    ' float q=dot(p-c,nrm)+(n1-.5)*.05;float al=dot(p-c,dir);',
+    // la bande claire suit la courbe pathY ; elle s'amincit et s'adoucit en avançant vers la droite
+    ' float yc=pathY(p.x,t);float sl=(pathY(p.x+.02,t)-pathY(p.x-.02,t))/.04;',
+    ' float q=(p.y-yc)/sqrt(1.+sl*sl)+(n1-.5)*.05;float al=max(p.x,0.);',
+    ' float wd=mix(.31,.19,smoothstep(.5,1.4,al));',
     ' float v1=.55+.9*fbm(vec2(al*1.3-t*.03,q*1.4+t*.02));',
-    ' float band=(exp(-pow(q/.34,2.))*.8+exp(-pow(q/.11,2.))*.55)*exp(-max(al,0.)*.3)*smoothstep(-.7,.15,al)*(.75+.35*v1)*(.94+.06*sin(t*.09));',
-    // la lumière et les couleurs PARTENT de la bande : elles s'éteignent avec la distance à son axe et le long de sa direction
-    ' float prox=.28+.72*exp(-abs(q)*1.15)*exp(-max(al,0.)*.14);',
+    ' float band=(exp(-pow(q/wd,2.))*.8+exp(-pow(q/(wd*.32),2.))*.55)*(.32+.68*exp(-al*.9))*smoothstep(-.1,.2,p.x)*(.75+.35*v1)*(.94+.06*sin(t*.09));',
+    // la lumière et les couleurs PARTENT de la bande : elles s'éteignent avec la distance à son axe et le long de sa course
+    ' float prox=.28+.72*exp(-abs(q)*1.15)*exp(-al*.14);',
     ' vec2 dir2=normalize(vec2(1.,.95+.08*cos(t*.07)));vec2 nrm2=vec2(-dir2.y,dir2.x);',
     ' vec2 c2=vec2(.62*asp+.08*sin(t*.05),-.2);',
     ' float q2=dot(p-c2,nrm2)+(n2-.5)*.45;float al2=dot(p-c2,dir2);',
@@ -177,7 +180,7 @@
     ' float ray=smoothstep(.3,.9,rr);',
     // brume plus présente, bandes moins dominantes : le contraste général baisse
     ' float rd=1.-.62*smoothstep(.3,.95,uv.x/asp);',
-    ' float inten=band*1.5+band2*.42+(glow*.3+aur*1.65+n2*.34*exp(-len*.3)+ray*.12*exp(-len*.34))*rd*prox;',
+    ' float inten=band*1.95+band2*.42+(glow*.3+aur*1.65+n2*.34*exp(-len*.3)+ray*.12*exp(-len*.34))*rd*prox;',
     // fondu noir : démarre à ~26 % de la hauteur et descend jusqu'en bas
     ' float mask=pow(1.-smoothstep(-.1,1.,uv.y),1.35);',
     ' float b=clamp(inten*mask*.72,0.,1.5);',
@@ -189,11 +192,14 @@
     ' c1=mix(c1,wht,smoothstep(1.1,1.5,b));',
     ' c1+=vec3(.18,.02,.3)*aur*.5*(1.-uv.x/asp)*mask+vec3(.3,.11,.04)*aur*.16*smoothstep(.5,1.,uv.x/asp)*mask;',
     ' c1*=smoothstep(0.,.16,b);',
+    // queue du fondu : un lie-de-vin très sombre qui s'étire jusqu'à ~80 % de la hauteur, pour adoucir la démarcation
+    ' c1+=vec3(.1,.008,.056)*(.55+.45*n2)*smoothstep(.16,.5,uv.y)*(1.-smoothstep(.5,.84,uv.y))*(1.-.5*smoothstep(.4,1.,uv.x/asp));',
     ' c1+=(h21(gl_FragCoord.xy+t)-.5)/255.;',   // grain : évite les bandes
     ' gl_FragColor=vec4(c1,1.);',
     '}'
   ].join('\n');
   let gl = null, uRes = null, uTime = null, lightOK = false, t0 = 0;
+  let lightScale = 0.5, dtAvg = 0, dtN = 0;   // résolution du rendu de la lumière, réduite toute seule sur une machine lente
 
   function initLight() {
     if (lightOK || !lightCv) return lightOK;
@@ -219,7 +225,7 @@
   function sizeLight() {
     if (!initLight()) return;
     // demi-résolution : de la lumière douce, étirée par le navigateur, coûte 4 fois moins
-    const w = Math.max(2, Math.round(lightCv.clientWidth * 0.5)), h = Math.max(2, Math.round(lightCv.clientHeight * 0.5));
+    const w = Math.max(2, Math.round(lightCv.clientWidth * lightScale)), h = Math.max(2, Math.round(lightCv.clientHeight * lightScale));
     lightCv.width = w; lightCv.height = h;
     gl.viewport(0, 0, w, h);
   }
@@ -236,7 +242,7 @@
   let flakes = [];
   let sprite = null;
   let cw = 0, ch = 0, dpr = 1;
-  let loop = 0, last = 0;
+  let loop = 0, last = 0, tsPrev = 0;
 
   function makeSprite() {
     const c = document.createElement('canvas');
@@ -281,6 +287,11 @@
     if (!heroVisible()) return;
     const dt = Math.min(0.05, (ts - last) / 1000 || 0.016); last = ts;
     drawLight(ts);
+    // qualité adaptative : durée moyenne entre deux images ; au-dessus de 45 ms (< 22 i/s) on baisse la résolution de la lumière,
+    // qui est douce : ça ne se voit pas, et l'écriture de la phrase / la souris restent fluides
+    const raw = tsPrev ? (ts - tsPrev) / 1000 : 0; tsPrev = ts;
+    if (raw > 0 && raw < 1) { dtAvg = dtAvg ? dtAvg * 0.9 + raw * 0.1 : raw; dtN++; }
+    if (dtN >= 24 && dtAvg > 0.045 && lightScale > 0.2) { lightScale = Math.max(0.2, lightScale * 0.7); dtAvg = 0; dtN = 0; sizeLight(); }
     const ctx = stars.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cw, ch);
