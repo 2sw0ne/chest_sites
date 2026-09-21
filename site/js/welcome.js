@@ -81,6 +81,10 @@
       root.style.setProperty('--px', (fx * 2 - 1).toFixed(3));
       root.style.setProperty('--py', (fy * 2 - 1).toFixed(3));
     });
+    // position brute, lue à chaque image par le moteur de neige
+    const r0 = hero.getBoundingClientRect();
+    cur.x = e.clientX - r0.left; cur.y = e.clientY - r0.top;
+    if (!cur.on) { cur.on = true; cur.sx = cur.x; cur.sy = cur.y; }
   }
 
   /* ---------- Défilement ---------- */
@@ -92,6 +96,7 @@
       const end = endY();
       const y = window.scrollY;
       if (y >= end - 1) { finish(); return; }
+      startSnow();
       // r = part du dashboard déjà visible (0 = tout juste caché, 1 = plein écran)
       const r = (y - (end - vh())) / vh();
       root.classList.toggle('is-past', r > 0.06);
@@ -113,6 +118,7 @@
     if (closed) return;
     closed = true;
     clearTimeout(settleTimer);
+    cancelAnimationFrame(loop); loop = 0;
     closeSheet(true);
     markNewsSeen();
     try { sessionStorage.removeItem(FLAG); } catch (e) {}
@@ -132,23 +138,109 @@
     setTimeout(() => { if (!closed && window.scrollY >= endY() - 2) finish(); }, 1500);
   }
 
-  /* ---------- Ciel étoilé ---------- */
-  function paintStars() {
-    if (!stars || reduce) return;
-    const w = stars.offsetWidth, h = stars.offsetHeight;
-    if (!w || !h) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    stars.width = w * dpr; stars.height = h * dpr;
+  /* ---------- Neige : des flocons qui tombent, et la souris qui les écarte et les allume ---------- */
+  // Trois plans de profondeur : petits et vifs au loin, gros et flous au premier plan (effet de flou d'objectif).
+  const cur = { x: 0, y: 0, sx: 0, sy: 0, on: false }; // souris (px dans le hero) et sa version lissée
+  let flakes = [];
+  let sprite = null;
+  let cw = 0, ch = 0, dpr = 1;
+  let loop = 0, last = 0;
+
+  function makeSprite() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.35, 'rgba(255,255,255,.55)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+    return c;
+  }
+  function spawn(f, anywhere) {
+    const z = Math.random();                    // 0 = loin, 1 = près
+    const near = z > 0.86;                      // quelques gros flocons flous au premier plan
+    f.z = z;
+    f.r = near ? 5 + Math.random() * 8 : 0.9 + z * 2.4;
+    f.a = near ? 0.13 + Math.random() * 0.14 : 0.34 + z * 0.6;
+    f.v = near ? 34 + Math.random() * 26 : 12 + z * 34;   // px/s vers le bas
+    f.sw = 6 + Math.random() * 16;              // amplitude de la dérive latérale
+    f.w = 0.4 + Math.random() * 0.9;            // vitesse de la dérive
+    f.p = Math.random() * Math.PI * 2;
+    f.x = Math.random() * cw;
+    f.y = anywhere ? Math.random() * ch : -12 - Math.random() * 60;
+    f.push = 0;
+    return f;
+  }
+  function sizeCanvas() {
+    if (!stars) return;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    cw = stars.offsetWidth; ch = stars.offsetHeight;
+    stars.width = Math.round(cw * dpr); stars.height = Math.round(ch * dpr);
+    const n = Math.min(320, Math.round((cw * ch) / 6200));
+    flakes = Array.from({ length: n }, () => spawn({}, true));
+    if (!sprite) sprite = makeSprite();
+  }
+  function heroVisible() { return !closed && window.scrollY < window.innerHeight * 1.05 && !document.hidden; }
+
+  function tick(ts) {
+    loop = 0;
+    if (!heroVisible()) return;
+    const dt = Math.min(0.05, (ts - last) / 1000 || 0.016); last = ts;
     const ctx = stars.getContext('2d');
-    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
-    const n = Math.round((w * h) / 12000);
-    for (let i = 0; i < n; i++) {
-      const x = Math.random() * w, y = Math.random() * h, r = Math.random() * 1.05 + 0.22;
-      const edge = Math.min(1, Math.abs(x / w - 0.5) * 2.3 + Math.abs(y / h - 0.42) * 1.5);
-      ctx.globalAlpha = (0.1 + Math.random() * 0.5) * edge;
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    // la souris est suivie avec un peu de retard : le mouvement de la lumière reste doux
+    cur.sx += (cur.x - cur.sx) * Math.min(1, dt * 7);
+    cur.sy += (cur.y - cur.sy) * Math.min(1, dt * 7);
+
+    // halo de lumière sous le curseur
+    if (cur.on) {
+      ctx.globalCompositeOperation = 'lighter';
+      const R = Math.max(220, Math.min(cw, ch) * 0.34);
+      const g = ctx.createRadialGradient(cur.sx, cur.sy, 0, cur.sx, cur.sy, R);
+      g.addColorStop(0, 'rgba(255,140,205,.36)');
+      g.addColorStop(0.45, 'rgba(252,18,131,.11)');
+      g.addColorStop(1, 'rgba(252,18,131,0)');
+      ctx.fillStyle = g; ctx.fillRect(cur.sx - R, cur.sy - R, R * 2, R * 2);
     }
+
+    ctx.globalCompositeOperation = 'lighter';
+    const t = ts / 1000;
+    const RM = 130; // rayon d'influence de la souris
+    for (let i = 0; i < flakes.length; i++) {
+      const f = flakes[i];
+      f.y += f.v * dt;
+      f.x += Math.cos(t * f.w + f.p) * f.sw * dt;
+      let boost = 0;
+      if (cur.on) {
+        const dx = f.x - cur.sx, dy = f.y - cur.sy, d = Math.hypot(dx, dy);
+        if (d < RM && d > 0.01) {
+          const k = 1 - d / RM;
+          f.x += (dx / d) * k * k * 240 * dt * (0.4 + f.z); // les flocons s'écartent du curseur
+          f.y += (dy / d) * k * k * 120 * dt;
+          boost = k;                                          // et s'allument à son approche
+        }
+      }
+      if (f.y > ch + 14 || f.x < -30 || f.x > cw + 30) { spawn(f, false); continue; }
+      const r = f.r * (1 + boost * 0.5);
+      ctx.globalAlpha = Math.min(1, f.a + boost * 0.55);
+      ctx.drawImage(sprite, f.x - r, f.y - r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    loop = requestAnimationFrame(tick);
+  }
+  function startSnow() {
+    if (!stars) return;
+    if (reduce) { // sans animation : quelques flocons fixes, c'est tout
+      sizeCanvas();
+      const ctx = stars.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      flakes.forEach((f) => { ctx.globalAlpha = f.a * 0.8; ctx.drawImage(sprite, f.x - f.r, f.y - f.r, f.r * 2, f.r * 2); });
+      return;
+    }
+    if (!loop && heroVisible()) { last = performance.now(); loop = requestAnimationFrame(tick); }
   }
 
   /* ---------- Fenêtre d'une nouveauté ---------- */
@@ -192,7 +284,7 @@
     if (skipBtn) skipBtn.setAttribute('data-count', String(newsCount()));
 
     window.scrollTo(0, 0);
-    requestAnimationFrame(paintStars);
+    requestAnimationFrame(() => { sizeCanvas(); startSnow(); });
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
@@ -203,12 +295,11 @@
   window.addEventListener('touchend', release, { passive: true });
   window.addEventListener('touchcancel', release, { passive: true });
   if (hero) hero.addEventListener('mousemove', onMove, { passive: true });
-  window.addEventListener('resize', () => { if (!closed) { paintStars(); onScroll(); } });
+  window.addEventListener('resize', () => { if (!closed) { sizeCanvas(); startSnow(); onScroll(); } });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) startSnow(); });
+  if (hero) hero.addEventListener('mouseleave', () => { cur.on = false; });
 
   if (skipBtn) skipBtn.addEventListener('click', glide);
-  root.querySelectorAll('[data-wel-next]').forEach((b) => b.addEventListener('click', () => {
-    scrollTo(Math.min(vh(), endY() - vh()));
-  }));
 
   // Une carte s'ouvre au clic (ou Entrée / Espace) dans une fenêtre.
   root.addEventListener('click', (e) => {
