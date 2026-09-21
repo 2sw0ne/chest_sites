@@ -313,16 +313,23 @@
     const label = (c) => (c.field === 'd:window' ? 'Heures ' + c.value : c.field.indexOf('d:') === 0 ? c.value : fieldLabel(c.field) + ' ' + c.value);
     const lines = [];
     const gv = [...groups.values()];
-    const isGroupMM = gv.some((g) => g.tiers.length) || (gv.length > 0 && gv.every((g) => g.base != null && g.base > 0));
+    const isGroupMM = gv.some((g) => g.tiers.length); // une logique avec son propre palier = un money management par logique
     const tiers = (cfg.tiers || []).map((t) => ({ afterSl: t.afterSl, risk: r3(t.newRisk) }));
     if (isGroupMM) {
       groups.forEach((g) => lines.push({ name: g.cond.field === 'd:window' ? 'Heures ' + g.cond.value : g.cond.value, base: g.base != null ? g.base : r3(cfg.risk), tiers: g.tiers.sort((a, b) => a.afterSl - b.afterSl) }));
     } else {
-      lines.push({ name: null, base: r3(cfg.risk), tiers });
+      lines.push({ name: groups.size || others.length ? 'Autres trades' : null, base: r3(cfg.risk), tiers });
       groups.forEach((g) => lines.push({ name: label(g.cond), base: g.base != null ? g.base : null, tiers: g.tiers, text: g.base === 0 ? 'ignoré' : null }));
     }
     others.forEach((r) => lines.push({ name: r.conds.map(label).join(' + '), base: r3(r.risk), tiers: [], text: r.risk === 0 ? 'ignoré' : null }));
     return lines;
+  }
+
+  // Idem à partir d'un réglage « séparé » du calcul automatique (une ligne par valeur du bonus).
+  function describeSplit(split, scale) {
+    const s = scale == null ? 1 : scale;
+    const r3 = (x) => Math.round(x * s * 1000) / 1000;
+    return split.groups.map((g) => ({ name: g.value == null ? 'Autres trades' : g.value, base: r3(g.base), tiers: g.tier ? [{ afterSl: g.tier.afterSl, risk: r3(g.tier.newRisk) }] : [] }));
   }
 
   function simulate(trades, capital0, riskConfig) {
@@ -1218,7 +1225,7 @@
   }
 
   window.CHESTBacktestEngine = {
-    sortedTrades, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizeProfiles, riskSeries, describeConfig,
+    sortedTrades, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizeProfiles, riskSeries, describeConfig, describeSplit,
     detectBonusFields, detectLeakFields, findInsights, fieldLabel, condsMatch, bonusValue, RISK_GRID,
   };
 })();

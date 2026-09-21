@@ -264,6 +264,26 @@
     return (bal - 1) * 100;
   }
 
+  // Indice de recommandation (0-100). Ce n'est pas « le plus gros retrait » : il mélange ce qu'on retire (30 %), la
+  // rapidité du 1er retrait (15 %), la part des départs qui retirent (15 %) et qui finissent gagnants (15 %), la
+  // validation du challenge (10 %), l'absence de comptes perdus (10 %) et de retraits reportés par la cohérence (5 %).
+  const INDEX_WEIGHTS = { net: 0.30, speed: 0.15, paid: 0.15, positive: 0.15, funded: 0.10, safe: 0.10, smooth: 0.05 };
+  function scoreEv(ev, ctx) {
+    const clamp = (x) => Math.max(0, Math.min(1, x));
+    const delayedShare = ev.payoutCount ? ev.delayedPayouts / ev.payoutCount : 0;
+    const parts = [
+      { id: 'net', raw: ev.meanNet, score: clamp(ev.meanNet / ctx.maxNet) },
+      { id: 'speed', raw: ev.medianFirstPay, score: ev.medianFirstPay != null ? clamp(1 - ev.medianFirstPay / ctx.horizonDays) : 0 },
+      { id: 'paid', raw: ev.paidPct, score: clamp(ev.paidPct / 100) },
+      { id: 'positive', raw: ev.netPositivePct, score: clamp(ev.netPositivePct / 100) },
+      { id: 'funded', raw: ev.fundedPct, score: clamp(ev.fundedPct / 100) },
+      { id: 'safe', raw: ev.lostPerStart, score: clamp(1 - ev.lostPerStart / MAX_LOST_PER_START) },
+      { id: 'smooth', raw: delayedShare * 100, score: clamp(1 - delayedShare) },
+    ];
+    parts.forEach((p) => { p.weight = INDEX_WEIGHTS[p.id]; });
+    return { index: 100 * parts.reduce((s, p) => s + p.weight * p.score, 0), parts };
+  }
+
   function statusOf(best) {
     if (!best) return 'na';
     if (best.meanNet > 0 && best.netPositivePct >= 60) return 'good';
@@ -301,7 +321,7 @@
     const candidates = [{ id: 'flat', name: 'Sans money management', P, starts, ref: 1, wMax: 1, config: null, trust: null }];
     if (!(opts && opts.mm === false)) {
       const seen = new Set();
-      const addPolicy = (id, name, config, trust) => {
+      const addPolicy = (id, name, config, trust, split) => {
         const key = JSON.stringify(config);
         if (seen.has(key)) return;
         seen.add(key);
@@ -313,34 +333,47 @@
         if (Pp.n < 30) return;
         const st = startIndexes(Pp, horizonDays);
         if (st.length < MIN_STARTS) return;
-        candidates.push({ id, name, P: Pp, starts: st, ref, wMax: Math.max(...pos) / ref, config, trust });
+        candidates.push({ id, name, P: Pp, starts: st, ref, wMax: Math.max(...pos) / ref, config, trust, split: split || null });
       };
       if (opts && opts.userConfig) addPolicy('user', 'Ton réglage', { risk: opts.userConfig.risk, tiers: opts.userConfig.tiers || [], rules: opts.userConfig.rules || [] }, null);
       const auto = E.optimizeProfiles(trades, capital0, 'pf', { minRiskPct: 0.05 });
-      if (!auto.error) auto.profiles.forEach((p) => addPolicy(p.id, p.name, p.config, p.trust));
+      if (!auto.error) auto.profiles.forEach((p) => addPolicy(p.id, p.name, p.config, p.trust, p.split));
     }
 
-    const rows = window.CHESTPropRules.models.map((m) => {
-      // Meilleur (option de retrait, risque) pour un money management donné.
-      const bestFor = (c) => {
+    // Phase 1 : toutes les simulations (firme × money management × option de retrait × risque).
+    const sims = window.CHESTPropRules.models.map((m) => {
+      const perCand = candidates.map((c) => {
         const risks = RISKS.filter((r) => !m.riskCapPct || r * c.wMax <= m.riskCapPct + 1e-9);
         if (!risks.length) return null;
-        const perOption = m.funded.payoutOptions.map((opt) => {
-          const curve = risks.map((risk) => evaluate(c.P, c.starts, m, opt, risk, horizonDays));
-          // Risque conseillé : le plus rentable parmi ceux qui ne perdent pas plus
-          // d'un demi-compte en moyenne ; sinon le moins destructeur.
-          const safe = curve.filter((ev) => ev.lostPerStart <= MAX_LOST_PER_START);
-          const best = safe.length
-            ? safe.reduce((a, b) => (b.meanNet > a.meanNet + 1e-9 ? b : a))
-            : curve.reduce((a, b) => (b.lostPerStart < a.lostPerStart ? b : a));
-          return { opt, best, curve };
-        });
-        const top = perOption.reduce((a, b) => (b.best.meanNet > a.best.meanNet + 1e-9 ? b : a));
-        return { c, perOption, top };
+        return { c, perOption: m.funded.payoutOptions.map((opt) => ({ opt, curve: risks.map((risk) => evaluate(c.P, c.starts, m, opt, risk, horizonDays)) })) };
+      }).filter(Boolean);
+      return { m, perCand };
+    });
+    // Échelle des retraits nets : le meilleur retrait net « sûr » toutes firmes confondues.
+    let maxNet = 0;
+    sims.forEach((sm) => sm.perCand.forEach((pc) => pc.perOption.forEach((po) => po.curve.forEach((ev) => {
+      if (ev.lostPerStart <= MAX_LOST_PER_START && ev.meanNet > maxNet) maxNet = ev.meanNet;
+    }))));
+    if (!(maxNet > 0)) maxNet = 1;
+    const ctx = { maxNet, horizonDays };
+
+    // Phase 2 : pour chaque firme, on garde la combinaison (money management, option, risque) au meilleur INDICE parmi
+    // celles qui ne perdent pas plus d'un demi-compte par période ; sinon la moins destructrice.
+    const rows = sims.map(({ m, perCand }) => {
+      const pick = (curve) => {
+        curve.forEach((ev) => { const r = scoreEv(ev, ctx); ev.index = r.index; ev.parts = r.parts; });
+        const safe = curve.filter((ev) => ev.lostPerStart <= MAX_LOST_PER_START);
+        return safe.length
+          ? safe.reduce((a, b) => (b.index > a.index + 1e-9 ? b : a))
+          : curve.reduce((a, b) => (b.lostPerStart < a.lostPerStart ? b : a));
       };
-      const results = candidates.map(bestFor).filter(Boolean);
+      const results = perCand.map((pc) => {
+        const perOption = pc.perOption.map((po) => ({ opt: po.opt, curve: po.curve, best: pick(po.curve) }));
+        const top = perOption.reduce((a, b) => (b.best.index > a.best.index + 1e-9 ? b : a));
+        return { c: pc.c, perOption, top };
+      });
       const flatRes = results.find((r) => r.c.id === 'flat') || results[0];
-      const chosen = results.reduce((a, b) => (b.top.best.meanNet > a.top.best.meanNet + 1e-9 ? b : a), flatRes);
+      const chosen = results.reduce((a, b) => (b.top.best.index > a.top.best.index + 1e-9 ? b : a), flatRes);
       const top = chosen.top, perOption = chosen.perOption, Pc = chosen.c.P;
       const best = top.best;
       best.delayedShare = best.payoutCount ? best.delayedPayouts / best.payoutCount * 100 : 0;
@@ -359,14 +392,24 @@
       let mm = null;
       if (chosen.c.id !== 'flat') {
         const scale = best.risk / chosen.c.ref;
-        mm = { id: chosen.c.id, name: chosen.c.name, trust: chosen.c.trust, refRisk: best.risk, scale, lines: E.describeConfig(chosen.c.config, scale) };
+        mm = { id: chosen.c.id, name: chosen.c.name, trust: chosen.c.trust, refRisk: best.risk, scale, lines: chosen.c.split ? E.describeSplit(chosen.c.split, scale) : E.describeConfig(chosen.c.config, scale) };
       }
       const flat = flatRes ? { best: flatRes.top.best, option: flatRes.top.opt } : null;
-      return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best), issue, mm, flat };
+      return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best), issue, mm, flat, index: best.index, parts: best.parts };
     });
 
+    // Classement. Si des positions traversent le week-end : les comptes qui l'interdisent passent derrière, et les
+    // comptes Swing (faits pour ça) reçoivent un bonus de 15 % sur leur indice.
+    const swingIds = new Set(window.CHESTPropRules.models.map((x) => x.holding && x.holding.swingModelId).filter(Boolean));
+    const swingPriority = P.withTimes > 0 && P.wkCount > 0;
     const rank = { good: 0, mid: 1, bad: 2 };
-    rows.sort((a, b) => (rank[a.status] - rank[b.status]) || (b.best.meanNet - a.best.meanNet) || (a.best.risk - b.best.risk));
+    rows.forEach((r) => {
+      r.swing = swingIds.has(r.model.id);
+      r.compatible = !r.issue || r.issue.kind === 'unknown';
+      r.rankScore = r.index * (swingPriority && r.swing ? 1.15 : 1);
+    });
+    rows.sort((a, b) => (swingPriority ? Number(b.compatible) - Number(a.compatible) : 0)
+      || (rank[a.status] - rank[b.status]) || (b.rankScore - a.rankScore) || (a.best.risk - b.best.risk));
 
     // Compte propre : risque optimisé, rendement moyen sur la même fenêtre.
     const ownOpt = E.optimizeCp(trades, capital0);
@@ -396,7 +439,7 @@
     return {
       rows, own, prop, verdict: { kind, top },
       holding: { trades: P.n, withTimes: P.withTimes, weekendCount: P.wkCount, weekendPct: P.n ? P.wkCount / P.n * 100 : 0, overnightCount: P.ovCount, overnightPct: P.n ? P.ovCount / P.n * 100 : 0 },
-      meta: { mm: candidates.length > 1, mmNames: candidates.filter((c) => c.id !== 'flat').map((c) => c.name), starts: starts.length, spanDays, trades: P.n, horizonMonths, horizonDays, refAccount: ref },
+      meta: { swingPriority, mm: candidates.length > 1, mmNames: candidates.filter((c) => c.id !== 'flat').map((c) => c.name), starts: starts.length, spanDays, trades: P.n, horizonMonths, horizonDays, refAccount: ref },
     };
   }
 
