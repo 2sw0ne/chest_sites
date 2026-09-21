@@ -275,6 +275,54 @@
   // riskConfig : { risk, tiers:[{afterSl,newRisk}], rules:[{conds,afterSl,risk}] }.
   // Un trade dont le risque résolu est 0 est IGNORÉ : il n'entre ni dans la courbe ni dans les stats,
   // mais son résultat continue de compter dans les séries de SL de son périmètre.
+  // Risque décidé pour chaque trade (même ordre que sortedTrades), en %, 0 = ignoré. Il ne dépend que des résultats
+  // des trades (séries de SL en ombre), jamais du capital : on peut donc le calculer une fois pour toutes.
+  function riskSeries(trades, riskConfig) {
+    const ordered = sortedTrades(trades);
+    const scopes = collectScopes(riskConfig);
+    const streaks = new Map(scopes.map((sc) => [sc.key, 0]));
+    const streakOf = (k) => streaks.get(k) || 0;
+    const assigned = new Array(ordered.length).fill(0);
+    buildEvents(ordered).forEach(([, kind, i]) => {
+      const t = ordered[i];
+      if (kind === 1) { assigned[i] = resolveRisk(t, riskConfig, streakOf); return; }
+      const sl = isSL(t);
+      scopes.forEach((sc) => { if (condsMatch(sc.conds, t)) streaks.set(sc.key, sl ? streakOf(sc.key) + 1 : 0); });
+    });
+    return assigned;
+  }
+
+  // Money management lisible : une ligne par logique (valeur de bonus) avec son risque et son palier, ou une ligne
+  // globale. `scale` multiplie tous les risques (la simulation propfirm recale le risque par firme).
+  function describeConfig(cfg, scale) {
+    const s = scale == null ? 1 : scale;
+    const r3 = (x) => Math.round(x * s * 1000) / 1000;
+    const rules = cfg.rules || [];
+    const groups = new Map();
+    const others = [];
+    rules.forEach((r) => {
+      if ((r.conds || []).length === 1) {
+        const c = r.conds[0], k = scopeKey(r.conds);
+        if (!groups.has(k)) groups.set(k, { cond: c, base: null, tiers: [] });
+        const g = groups.get(k);
+        if (r.afterSl > 0) g.tiers.push({ afterSl: r.afterSl, risk: r3(r.risk) }); else g.base = r3(r.risk);
+      } else others.push(r);
+    });
+    const label = (c) => (c.field === 'd:window' ? 'Heures ' + c.value : c.field.indexOf('d:') === 0 ? c.value : fieldLabel(c.field) + ' ' + c.value);
+    const lines = [];
+    const gv = [...groups.values()];
+    const isGroupMM = gv.some((g) => g.tiers.length) || (gv.length > 0 && gv.every((g) => g.base != null && g.base > 0));
+    const tiers = (cfg.tiers || []).map((t) => ({ afterSl: t.afterSl, risk: r3(t.newRisk) }));
+    if (isGroupMM) {
+      groups.forEach((g) => lines.push({ name: g.cond.field === 'd:window' ? 'Heures ' + g.cond.value : g.cond.value, base: g.base != null ? g.base : r3(cfg.risk), tiers: g.tiers.sort((a, b) => a.afterSl - b.afterSl) }));
+    } else {
+      lines.push({ name: null, base: r3(cfg.risk), tiers });
+      groups.forEach((g) => lines.push({ name: label(g.cond), base: g.base != null ? g.base : null, tiers: g.tiers, text: g.base === 0 ? 'ignoré' : null }));
+    }
+    others.forEach((r) => lines.push({ name: r.conds.map(label).join(' + '), base: r3(r.risk), tiers: [], text: r.risk === 0 ? 'ignoré' : null }));
+    return lines;
+  }
+
   function simulate(trades, capital0, riskConfig) {
     const ordered = sortedTrades(trades);
     let capital = capital0;
@@ -1168,7 +1216,7 @@
   }
 
   window.CHESTBacktestEngine = {
-    sortedTrades, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizeProfiles,
+    sortedTrades, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizeProfiles, riskSeries, describeConfig,
     detectBonusFields, detectLeakFields, findInsights, fieldLabel, condsMatch, bonusValue, RISK_GRID,
   };
 })();

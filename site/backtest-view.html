@@ -95,6 +95,11 @@
   .mm-card__rules-k{ display:block; font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#f9a45e; margin-bottom:3px; }
   .mm-card__rules b{ color:var(--ink); }
   .mm-card__ok{ color:var(--green); }
+  .bt-mm{ display:flex; flex-direction:column; gap:5px; margin:6px 0 10px; font-size:13px; line-height:1.5; }
+  .bt-mm__line b{ color:#f6f6f7; font-variant-numeric:tabular-nums; }
+  .bt-mm__line em{ font-style:normal; font-weight:700; letter-spacing:.06em; color:#f9a45e; margin-right:6px; text-shadow:0 0 10px rgba(249,164,94,.4); }
+  .bt-mm__tag{ display:block; font-size:10.5px; letter-spacing:.06em; color:#f9a45e; margin-top:1px; }
+  .bt-mm__warn{ color:#e8b339; }
   .bt-insights{ margin-top:34px; padding-top:18px; border-top:1px solid rgba(255,255,255,.08); font-size:12.5px; line-height:1.65; color:var(--muted); max-width:720px; }
   .bt-insights__k{ display:block; font-size:10px; letter-spacing:.24em; text-transform:uppercase; margin-bottom:6px; }
   .bt-insights p{ margin:0 0 6px; }
@@ -313,9 +318,9 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=17"></script>
+<script src="js/backtest-engine.js?v=18"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
-<script src="js/propfirm-fit.js?v=6"></script>
+<script src="js/propfirm-fit.js?v=7"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -342,13 +347,8 @@ CHESTTour.init([
 
   const hasPf = !!record.pf;
   const riskCfg = (c) => ({ risk: c.risk, tiers: c.tiers || [], rules: c.rules || [] });
-  // Règles « Si » du compte suivi par la recommandation (propfirm si présent) : multiplicateur
-  // de risque par trade (risque de la règle / risque de base) pour la simulation des comptes.
-  const fitCfg = hasPf ? record.pf : record.cp;
-  const fitRules = (fitCfg.rules || []).filter((r) => !r.afterSl);
-  const fitWeightOf = fitRules.length && fitCfg.risk > 0
-    ? (t) => window.CHESTBacktestEngine.resolveRisk(t, { risk: fitCfg.risk, tiers: [], rules: fitRules }, 0) / fitCfg.risk
-    : null;
+  // Réglage propfirm enregistré du backtest : candidat de money management de la recommandation.
+  const fitUserCfg = hasPf ? record.pf : null;
   const bonusLabel = (key) => window.CHESTBacktestEngine.fieldLabel(key);
   const riskTxt = (r) => (r === 0 ? 'ignoré' : String(r).replace('.', ',') + ' %');
   // Réglage « Si » séparé : un money management par valeur du bonus.
@@ -718,6 +718,17 @@ CHESTTour.init([
   function signedPct(n, d = 0) { const f = Math.pow(10, d), r = Math.round(n * f) / f; return r === 0 ? pctFr(0, d) : (r > 0 ? '+' : '−') + pctFr(Math.abs(r), d); }
   function usdFr(n) { return (n >= 0 ? '' : '−') + nFr(Math.abs(n)) + ' $'; }
   function longDate(iso) { return iso ? new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; }
+  const riskFr = (v) => String(+Number(v).toFixed(3)).replace('.', ',');
+  const tierFr = (t) => `${t.risk === 0 ? 'pause' : riskFr(t.risk) + ' %'} après ${t.afterSl === 1 ? '1 SL' : t.afterSl + " SL d'affilée"}`;
+  // Money management retenu pour une firme, une ligne par logique (TREND, CONTRE…).
+  function mmLinesHtml(mm) {
+    return `<div class="bt-mm">${mm.lines.map((l) => {
+      if (l.text) return `<span class="bt-mm__line"><em>${escHtml(l.name)}</em> ${escHtml(l.text)}</span>`;
+      const tiers = l.tiers.length ? ', puis ' + l.tiers.map((t) => `<b>${tierFr(t)}</b>`).join(', ') : '';
+      return `<span class="bt-mm__line">${l.name ? `<em>${escHtml(l.name)}</em> ` : ''}<b>${riskFr(l.base)} %</b> par trade${tiers}</span>`;
+    }).join('')}</div>`;
+  }
+  const mmShort = (mm) => mm.lines.map((l) => (l.text ? `${l.name} ${l.text}` : `${l.name ? l.name + ' ' : ''}${riskFr(l.base)} %${l.tiers.length ? ' → ' + l.tiers.map(tierFr).join(', ') : ''}`)).join(' · ');
   function escHtml(v) { return String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
   function minDaysText(md) {
@@ -794,13 +805,14 @@ CHESTTour.init([
     const t = v.top, b = t.best, m = t.model;
     const name = `${m.firm} ${m.label}`;
     const H = meta.horizonMonths;
+    const riskPhrase = t.mm ? `money management « ${t.mm.name} » : ${escHtml(mmShort(t.mm))}` : `risque ${nFr(b.risk, 2)} %`;
     const money = `${signedPct(b.meanNet)} du compte financé, frais déduits, soit ≈ ${usdFr(res.prop.horizonUsd)} sur un compte de ${nFr(meta.refAccount)} $`;
     const ownTxt = own ? ` À titre de comparaison, le compte propre à risque optimisé (${nFr(own.risk, 2)} %) ferait ${signedPct(own.horizonPct)} de ton capital, avec un drawdown de ${pctFr(own.maxDdPct, 1)}.` : '';
     if (v.kind === 'propfirm') {
-      return `Sur ${H} mois, ${name} (option « ${t.option.label} », risque ${nFr(b.risk, 2)} %) aurait permis de retirer en moyenne ${money}. ${nFr(b.fundedPct)} % des départs sont validés (médiane ${b.medianFundedDay} j) et le premier retrait tombe après ${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}.${consistencySentence(res)}${ownTxt}`;
+      return `Sur ${H} mois, ${name} (option « ${t.option.label} », ${riskPhrase}) aurait permis de retirer en moyenne ${money}. ${nFr(b.fundedPct)} % des départs sont validés (médiane ${b.medianFundedDay} j) et le premier retrait tombe après ${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}.${consistencySentence(res)}${ownTxt}`;
     }
     if (v.kind === 'both') {
-      return `Le meilleur modèle (${name}, risque ${nFr(b.risk, 2)} %) rapporte en moyenne ${money}, mais seulement ${pctFr(b.netPositivePct)} des départs finissent gagnants sur ${H} mois.${consistencySentence(res)}${ownTxt}`;
+      return `Le meilleur modèle (${name}, ${riskPhrase}) rapporte en moyenne ${money}, mais seulement ${pctFr(b.netPositivePct)} des départs finissent gagnants sur ${H} mois.${consistencySentence(res)}${ownTxt}`;
     }
     return `Aucun modèle vérifié ne rapporte de façon fiable sur ${H} mois : le meilleur (${name}) finit gagnant dans ${pctFr(b.netPositivePct)} des départs seulement.${consistencySentence(res)} Ce style de trading est mieux servi par un compte propre, sans règle imposée.${ownTxt}`;
   }
@@ -865,6 +877,15 @@ CHESTTour.init([
       <a class="bt-fit-row__src" href="${m.prices.source}" target="_blank" rel="noopener noreferrer">Page des tarifs ↗</a>`;
   }
 
+  function mmBlock(r, meta) {
+    if (!meta.mm) return '';
+    const flatTxt = r.flat ? `Sans money management (risque plat ${nFr(r.flat.best.risk, 2)} %) : ${signedPct(r.flat.best.meanNet, 1)} de retraits nets.` : '';
+    if (!r.mm) return `<div class="chest-label">Money management</div><p class="bt-fit-row__rules">Aucun money management ne fait mieux que le risque plat pour ce modèle. ${flatTxt}</p>`;
+    const gain = r.flat ? r.best.meanNet - r.flat.best.meanNet : 0;
+    return `<div class="chest-label">Money management retenu · ${escHtml(r.mm.name)}</div>${mmLinesHtml(r.mm)}
+      <p class="bt-fit-row__rules">${flatTxt} Avec ce money management : <b>${signedPct(r.best.meanNet, 1)}</b>${r.flat ? ` (${gain >= 0 ? '+' : '−'}${nFr(Math.abs(gain), 1)} points)` : ''}.${r.mm.trust === 'warn' ? ' <span class="bt-mm__warn">Ce réglage n\'est pas confirmé sur des trades jamais vus : prudence.</span>' : ''}</p>`;
+  }
+
   function fitRowHtml(r, isTop, meta) {
     const m = r.model, b = r.best;
     const src = m.source;
@@ -893,7 +914,7 @@ CHESTTour.init([
         <summary>
           <span class="bt-fit-row__name"><b>${m.firm}</b><small>${m.label}</small></span>
           <span class="bt-fit-row__pass bt-tone--${tone}"><b>${signedPct(b.meanNet)}</b><span class="bt-fit-row__bar"><i style="width:${barW}%"></i></span></span>
-          <span class="bt-fit-row__cell" data-label="Risque">${nFr(b.risk, 2)} %</span>
+          <span class="bt-fit-row__cell" data-label="Risque">${nFr(b.risk, 2)} %${r.mm ? `<small class="bt-mm__tag">${escHtml(r.mm.name)}</small>` : ''}</span>
           <span class="bt-fit-row__cell" data-label="Validation">${nFr(b.fundedPct)} %</span>
           <span class="bt-fit-row__cell" data-label="1er retrait">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</span>
           <span class="bt-fit-row__cell bt-fit-row__block${watch.warn ? ' is-warn' : ''}" data-label="À surveiller">${escHtml(watch.text)}</span>
@@ -915,6 +936,7 @@ CHESTTour.init([
             ${priceBlock(m)}
           </div>
           <div>
+            ${mmBlock(r, meta)}
             <div class="chest-label">Options de retrait · meilleur risque de chacune</div>
             <div class="bt-opts">${opts}</div>
             <div class="chest-label bt-fit-row__unv">Retraits nets selon le risque par trade (option retenue)</div>
@@ -949,7 +971,9 @@ CHESTTour.init([
           <div><div class="chest-label">Retraits potentiels · ${H} mois</div><div class="chest-kpi__val ${positive}">${signedPct(b.meanNet)}</div><div class="chest-kpi__note">≈ ${usdFr(res.prop.horizonUsd)} sur ${nFr(res.meta.refAccount)} $ financés</div></div>
           <div><div class="chest-label">Validation</div><div class="chest-kpi__val">${nFr(b.fundedPct)} %</div><div class="chest-kpi__note">des départs financés · médiane ${b.medianFundedDay != null ? b.medianFundedDay + ' j' : '—'}</div></div>
           <div><div class="chest-label">Premier retrait</div><div class="chest-kpi__val">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</div><div class="chest-kpi__note">${nFr(b.paidPct)} % des départs retirent</div></div>
-          <div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>
+          ${v.top.mm
+            ? `<div><div class="chest-label">Money management</div><div class="chest-kpi__val">${escHtml(v.top.mm.name)}</div><div class="chest-kpi__note">${escHtml(mmShort(v.top.mm))} · ≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>`
+            : `<div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>`}
         </div>
         <details class="bt-fit-fold">
           <summary><span class="bt-fit-fold__title">Top 3 des prop firms</span><span class="bt-fit-fold__sub">classées selon les retraits nets à leur risque conseillé · 3 sur ${res.rows.length} modèles testés${swingExtra.length ? ` · + ${swingExtra.length} compte${swingExtra.length > 1 ? 's' : ''} Swing` : ''}</span><span class="bt-fit-fold__caret" aria-hidden="true"></span></summary>
@@ -961,7 +985,7 @@ CHESTTour.init([
         </details>
       </div>
 
-      ${res.meta.weighted ? `<p class="bt-note">Tes règles « Si » sont appliquées à la simulation : chaque trade est pondéré par le risque de sa règle rapporté au risque de base, et les trades à 0 % sont ignorés. Le risque conseillé ci-dessus est le risque de base.</p>` : ''}
+      ${res.meta.mm ? `<p class="bt-note">Money management : pour chaque firme, la simulation essaie ${fitUserCfg ? 'ton réglage propfirm enregistré et ' : ''}les trois profils propfirm du calcul automatique (${res.meta.mmNames.filter((n) => n !== 'Ton réglage').join(', ')}) — paliers après SL, pause, logiques séparées, décidés à l'ouverture d'après les trades déjà clôturés — recale leur risque sur celui de la firme et garde ce qui retire le plus. Réglages calculés sur cet historique, sans test hors échantillon dans cette simulation.</p>` : ''}
       <p class="bt-note">Simulation sur l'historique de ce backtest, pas une prédiction ni un conseil financier. Chaque jour de l'historique sert de départ (${res.meta.starts} départs de ${H} mois, qui se recoupent) : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Les trades qui traversent un week-end ou la nuit sont détectés grâce aux heures d'ouverture et de clôture ; une détention interdite fait perdre le compte. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais du challenge sont les prix affichés sur les pages officielles (tarif normal quand il est connu), remboursements compris quand ils sont documentés. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
   }
 
@@ -986,7 +1010,7 @@ CHESTTour.init([
     document.getElementById('fitBody').innerHTML = '<div class="cal-state">Simulation de la vie des comptes…</div>';
     clearTimeout(fitTimer);
     fitTimer = setTimeout(() => {
-      const res = window.CHESTPropFit.fit(trades, record.capital, { horizonMonths: fitHorizon, weightOf: fitWeightOf });
+      const res = window.CHESTPropFit.fit(trades, record.capital, { horizonMonths: fitHorizon, userConfig: fitUserCfg });
       fitCache.set(key, res);
       paintFit(res, key);
     }, 30);

@@ -34,17 +34,17 @@
   // « Week-end » = le trade est resté ouvert au moins un samedi (ouverture avant,
   // clôture à partir du samedi) ; « nuit » = clôturé un autre jour UTC que son
   // ouverture. Sans heures d'ouverture ET de clôture, on ne peut pas les détecter.
-  // weightOf(trade) (facultatif) : multiplicateur de risque des règles « Si » du
-  // backtest (risque de la règle / risque de base). 0 = trade ignoré, 2 = le trade
-  // pèse le double du risque conseillé.
+  // weightOf(trade, index) (facultatif) : multiplicateur de risque du money management
+  // (risque du trade / risque de référence). 0 = trade ignoré (pause), 2 = le trade
+  // pèse le double du risque de référence.
   function prepare(trades, weightOf) {
     const ordered = window.CHESTBacktestEngine.sortedTrades(trades);
     const rr = [], day = [], wk = [], ov = [];
     let withTimes = 0, wkCount = 0, ovCount = 0;
-    ordered.forEach((t) => {
+    ordered.forEach((t, idx) => {
       const d = new Date(t.close || t.open || t.date);
       if (isNaN(d.getTime())) return;
-      const w = weightOf ? weightOf(t) : 1;
+      const w = weightOf ? weightOf(t, idx) : 1;
       if (!(w > 0)) return;
       const res = String(t.result).toUpperCase();
       rr.push(res === 'BE' ? 0 : (Number(t.rr) || 0) * w);
@@ -286,8 +286,7 @@
     const E = window.CHESTBacktestEngine;
     const horizonMonths = (opts && opts.horizonMonths) || 6;
     const horizonDays = Math.round(horizonMonths * 30.4);
-    const weightOf = opts && opts.weightOf;
-    const P = prepare(trades, weightOf);
+    const P = prepare(trades);
     if (P.n < 30) return { error: 'Il faut au moins 30 trades datés pour simuler un compte.' };
     const spanDays = P.day[P.n - 1] - P.day[0] + 1;
     const starts = startIndexes(P, horizonDays);
@@ -295,33 +294,75 @@
       return { error: `L'historique (${spanDays} jours) est trop court pour simuler ${horizonMonths} mois de vie d'un compte. Choisis un horizon plus court ou allonge le backtest.` };
     }
 
+    // Money management candidats : sans MM (risque plat), le réglage enregistré du backtest, puis les trois profils
+    // propfirm du calcul automatique (régularité, performance pure, sécurité). Chacun est un risque par trade
+    // (paliers après SL, pause, logiques séparées) décidé à l'ouverture ; la simulation recale ensuite son risque
+    // de référence pour chaque firme (grille RISKS) et garde ce qui retire le plus.
+    const candidates = [{ id: 'flat', name: 'Sans money management', P, starts, ref: 1, wMax: 1, config: null, trust: null }];
+    if (!(opts && opts.mm === false)) {
+      const seen = new Set();
+      const addPolicy = (id, name, config, trust) => {
+        const key = JSON.stringify(config);
+        if (seen.has(key)) return;
+        seen.add(key);
+        const series = E.riskSeries(trades, config);
+        const pos = series.filter((x) => x > 0);
+        if (!pos.length) return;
+        const ref = mean(pos);
+        const Pp = prepare(trades, (t, idx) => series[idx] / ref);
+        if (Pp.n < 30) return;
+        const st = startIndexes(Pp, horizonDays);
+        if (st.length < MIN_STARTS) return;
+        candidates.push({ id, name, P: Pp, starts: st, ref, wMax: Math.max(...pos) / ref, config, trust });
+      };
+      if (opts && opts.userConfig) addPolicy('user', 'Ton réglage', { risk: opts.userConfig.risk, tiers: opts.userConfig.tiers || [], rules: opts.userConfig.rules || [] }, null);
+      const auto = E.optimizeProfiles(trades, capital0, 'pf', { minRiskPct: 0.05 });
+      if (!auto.error) auto.profiles.forEach((p) => addPolicy(p.id, p.name, p.config, p.trust));
+    }
+
     const rows = window.CHESTPropRules.models.map((m) => {
-      const risks = RISKS.filter((r) => !m.riskCapPct || r <= m.riskCapPct);
-      const perOption = m.funded.payoutOptions.map((opt) => {
-        const curve = risks.map((risk) => evaluate(P, starts, m, opt, risk, horizonDays));
-        // Risque conseillé : le plus rentable parmi ceux qui ne perdent pas plus
-        // d'un demi-compte en moyenne ; sinon le moins destructeur.
-        const safe = curve.filter((ev) => ev.lostPerStart <= MAX_LOST_PER_START);
-        const best = safe.length
-          ? safe.reduce((a, b) => (b.meanNet > a.meanNet + 1e-9 ? b : a))
-          : curve.reduce((a, b) => (b.lostPerStart < a.lostPerStart ? b : a));
-        return { opt, best, curve };
-      });
-      const top = perOption.reduce((a, b) => (b.best.meanNet > a.best.meanNet + 1e-9 ? b : a));
+      // Meilleur (option de retrait, risque) pour un money management donné.
+      const bestFor = (c) => {
+        const risks = RISKS.filter((r) => !m.riskCapPct || r * c.wMax <= m.riskCapPct + 1e-9);
+        if (!risks.length) return null;
+        const perOption = m.funded.payoutOptions.map((opt) => {
+          const curve = risks.map((risk) => evaluate(c.P, c.starts, m, opt, risk, horizonDays));
+          // Risque conseillé : le plus rentable parmi ceux qui ne perdent pas plus
+          // d'un demi-compte en moyenne ; sinon le moins destructeur.
+          const safe = curve.filter((ev) => ev.lostPerStart <= MAX_LOST_PER_START);
+          const best = safe.length
+            ? safe.reduce((a, b) => (b.meanNet > a.meanNet + 1e-9 ? b : a))
+            : curve.reduce((a, b) => (b.lostPerStart < a.lostPerStart ? b : a));
+          return { opt, best, curve };
+        });
+        const top = perOption.reduce((a, b) => (b.best.meanNet > a.best.meanNet + 1e-9 ? b : a));
+        return { c, perOption, top };
+      };
+      const results = candidates.map(bestFor).filter(Boolean);
+      const flatRes = results.find((r) => r.c.id === 'flat') || results[0];
+      const chosen = results.reduce((a, b) => (b.top.best.meanNet > a.top.best.meanNet + 1e-9 ? b : a), flatRes);
+      const top = chosen.top, perOption = chosen.perOption, Pc = chosen.c.P;
       const best = top.best;
       best.delayedShare = best.payoutCount ? best.delayedPayouts / best.payoutCount * 100 : 0;
       // Conflit entre ce que la stratégie fait (week-end / nuit) et ce que le compte permet.
       let issue = null;
       const h = m.holding;
       if (h && (h.weekend === 'forbidden' || h.overnight === 'forbidden')) {
-        if (!P.withTimes) issue = { kind: 'unknown', appliesTo: h.appliesTo, swingModelId: h.swingModelId };
+        if (!Pc.withTimes) issue = { kind: 'unknown', appliesTo: h.appliesTo, swingModelId: h.swingModelId };
         else {
-          const wkHit = h.weekend === 'forbidden' && P.wkCount > 0;
-          const ovHit = h.overnight === 'forbidden' && P.ovCount > 0;
-          if (wkHit || ovHit) issue = { kind: wkHit ? 'weekend' : 'overnight', count: wkHit ? P.wkCount : P.ovCount, share: (wkHit ? P.wkCount : P.ovCount) / P.n * 100, appliesTo: h.appliesTo, swingModelId: h.swingModelId };
+          const wkHit = h.weekend === 'forbidden' && Pc.wkCount > 0;
+          const ovHit = h.overnight === 'forbidden' && Pc.ovCount > 0;
+          if (wkHit || ovHit) issue = { kind: wkHit ? 'weekend' : 'overnight', count: wkHit ? Pc.wkCount : Pc.ovCount, share: (wkHit ? Pc.wkCount : Pc.ovCount) / Pc.n * 100, appliesTo: h.appliesTo, swingModelId: h.swingModelId };
         }
       }
-      return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best), issue };
+      // Money management retenu (null = risque plat) et ce que donnerait le risque plat, pour comparer.
+      let mm = null;
+      if (chosen.c.id !== 'flat') {
+        const scale = best.risk / chosen.c.ref;
+        mm = { id: chosen.c.id, name: chosen.c.name, trust: chosen.c.trust, refRisk: best.risk, scale, lines: E.describeConfig(chosen.c.config, scale) };
+      }
+      const flat = flatRes ? { best: flatRes.top.best, option: flatRes.top.opt } : null;
+      return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best), issue, mm, flat };
     });
 
     const rank = { good: 0, mid: 1, bad: 2 };
@@ -332,9 +373,7 @@
     let own = null;
     if (ownOpt) {
       // Le compte propre est comparé sur les trades tels quels (risque plat optimisé).
-      const Pown = weightOf ? prepare(trades) : P;
-      const startsOwn = weightOf ? startIndexes(Pown, horizonDays) : starts;
-      const rets = startsOwn.map((s) => windowReturn(Pown, s, ownOpt.risk, horizonDays));
+      const rets = starts.map((s) => windowReturn(P, s, ownOpt.risk, horizonDays));
       const meanRet = mean(rets);
       own = {
         risk: ownOpt.risk, relaxedNote: ownOpt.relaxed ? ownOpt.relaxedNote : null,
@@ -357,7 +396,7 @@
     return {
       rows, own, prop, verdict: { kind, top },
       holding: { trades: P.n, withTimes: P.withTimes, weekendCount: P.wkCount, weekendPct: P.n ? P.wkCount / P.n * 100 : 0, overnightCount: P.ovCount, overnightPct: P.n ? P.ovCount / P.n * 100 : 0 },
-      meta: { weighted: !!weightOf, starts: starts.length, spanDays, trades: P.n, horizonMonths, horizonDays, refAccount: ref },
+      meta: { mm: candidates.length > 1, mmNames: candidates.filter((c) => c.id !== 'flat').map((c) => c.name), starts: starts.length, spanDays, trades: P.n, horizonMonths, horizonDays, refAccount: ref },
     };
   }
 
