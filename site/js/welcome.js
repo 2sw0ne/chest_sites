@@ -163,10 +163,10 @@
     ' float glow=exp(-dot(p-g1,p-g1)/.11)*(.5+.5*sin(t*.29))+exp(-dot(p-g2,p-g2)/.15)*(.5+.5*sin(t*.23+2.5));',
     // aurore : des rideaux verticaux déformés par une houle lente, qui glissent d'un côté à l'autre
     ' float wav=fbm(vec2(p.x*.85+t*.05,p.y*.7-t*.03))*1.7+sin(p.x*1.25+t*.11+n1*2.2)*.3;',
-    ' float cur1=fbm(vec2(p.x*2.1+wav*1.5,p.y*.32+t*.05));',
-    ' float cur2=fbm(vec2(p.x*3.4-wav*1.1+7.3,p.y*.4-t*.04));',
+    ' float cur1=fbm(vec2(p.x*2.1+wav*1.5,p.y*.6+t*.05));',
+    ' float cur2=fbm(vec2(p.x*3.4-wav*1.1+7.3,p.y*.7-t*.04));',
     ' float rib=smoothstep(.3,.74,cur1)*.8+smoothstep(.36,.8,cur2)*.5;',
-    ' float ah=smoothstep(-.02,.2,uv.y)*(1.-smoothstep(.34,.98,uv.y));',
+    ' float ah=smoothstep(-.02,.18,uv.y)*(1.-smoothstep(.2,.78,uv.y));',
     ' float aw=1.-.75*exp(-dot(p-vec2(.05,.0),p-vec2(.05,.0))/.3);',   // le coin haut gauche reste calme
     ' float aur=rib*ah*aw*(.62+.38*sin(t*.11+p.x*1.6));',
     // très peu de rayons : juste de quoi donner du volume
@@ -174,17 +174,18 @@
     ' float rr=fbm(vec2(a*3.4+t*.045,len*.3-t*.03));',
     ' float ray=smoothstep(.3,.9,rr);',
     // brume plus présente, bandes moins dominantes : le contraste général baisse
-    ' float inten=band*1.3+band2*.36+glow*.3+aur*1.35+n2*.34*exp(-len*.3)+ray*.14*exp(-len*.34);',
+    ' float rd=1.-.62*smoothstep(.3,.95,uv.x/asp);',
+    ' float inten=band*1.3+band2*.42+(glow*.3+aur*1.25+n2*.34*exp(-len*.3))*rd+ray*.12*exp(-len*.34)*rd;',
     // fondu noir : démarre à ~26 % de la hauteur et descend jusqu'en bas
-    ' float mask=1.-smoothstep(.26,1.06,uv.y);',
-    ' float b=clamp(inten*mask*.56,0.,1.5);',
+    ' float mask=1.-smoothstep(.08,.95,uv.y);',
+    ' float b=clamp(inten*mask*.58,0.,1.5);',
     ' vec3 deep=vec3(.15,.012,.085),wine=vec3(.37,.05,.225),mag=vec3(.56,.09,.37),rose=vec3(.75,.33,.55),soft=vec3(.83,.53,.68),wht=vec3(.9,.7,.8);',
     ' vec3 c1=mix(deep,wine,smoothstep(.03,.28,b));',
     ' c1=mix(c1,mag,smoothstep(.3,.66,b));',
     ' c1=mix(c1,rose,smoothstep(.58,.92,b));',
     ' c1=mix(c1,soft,smoothstep(.84,1.16,b));',
     ' c1=mix(c1,wht,smoothstep(1.1,1.5,b));',
-    ' c1+=vec3(.18,.02,.3)*aur*.5*(1.-uv.x/asp)*mask+vec3(.3,.11,.04)*aur*.45*smoothstep(.5,1.,uv.x/asp)*mask;',
+    ' c1+=vec3(.18,.02,.3)*aur*.5*(1.-uv.x/asp)*mask+vec3(.3,.11,.04)*aur*.16*smoothstep(.5,1.,uv.x/asp)*mask;',
     ' c1*=smoothstep(0.,.16,b);',
     ' c1+=(h21(gl_FragCoord.xy+t)-.5)/255.;',   // grain : évite les bandes
     ' gl_FragColor=vec4(c1,1.);',
