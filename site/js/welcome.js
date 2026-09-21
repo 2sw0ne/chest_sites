@@ -149,9 +149,11 @@
     // deux bandes de lumière en diagonale, d'inclinaisons différentes ; elles respirent, en opposition de phase
     ' vec2 dir=normalize(vec2(1.,.5+.02*sin(t*.05)));vec2 nrm=vec2(-dir.y,dir.x);',
     ' vec2 c=vec2(-.05+.02*sin(t*.04),-.05+.015*cos(t*.035));',
-    ' float q=dot(p-c,nrm)+(n1-.5)*.4;float al=dot(p-c,dir);',
+    ' float q=dot(p-c,nrm)+(n1-.5)*.05;float al=dot(p-c,dir);',
     ' float v1=.55+.9*fbm(vec2(al*1.3-t*.03,q*1.4+t*.02));',
-    ' float band=exp(-pow(q/(.32+.015*sin(t*.08)),2.))*exp(-max(al,0.)*.36)*smoothstep(-.7,.15,al)*v1*(.92+.1*sin(t*.09));',
+    ' float band=(exp(-pow(q/.34,2.))*.8+exp(-pow(q/.11,2.))*.55)*exp(-max(al,0.)*.3)*smoothstep(-.7,.15,al)*(.75+.35*v1)*(.94+.06*sin(t*.09));',
+    // la lumière et les couleurs PARTENT de la bande : elles s'éteignent avec la distance à son axe et le long de sa direction
+    ' float prox=.28+.72*exp(-abs(q)*1.15)*exp(-max(al,0.)*.14);',
     ' vec2 dir2=normalize(vec2(1.,.95+.08*cos(t*.07)));vec2 nrm2=vec2(-dir2.y,dir2.x);',
     ' vec2 c2=vec2(.62*asp+.08*sin(t*.05),-.2);',
     ' float q2=dot(p-c2,nrm2)+(n2-.5)*.45;float al2=dot(p-c2,dir2);',
@@ -175,10 +177,10 @@
     ' float ray=smoothstep(.3,.9,rr);',
     // brume plus présente, bandes moins dominantes : le contraste général baisse
     ' float rd=1.-.62*smoothstep(.3,.95,uv.x/asp);',
-    ' float inten=band*1.3+band2*.42+(glow*.3+aur*1.25+n2*.34*exp(-len*.3))*rd+ray*.12*exp(-len*.34)*rd;',
+    ' float inten=band*1.5+band2*.42+(glow*.3+aur*1.65+n2*.34*exp(-len*.3)+ray*.12*exp(-len*.34))*rd*prox;',
     // fondu noir : démarre à ~26 % de la hauteur et descend jusqu'en bas
-    ' float mask=1.-smoothstep(.08,.95,uv.y);',
-    ' float b=clamp(inten*mask*.58,0.,1.5);',
+    ' float mask=pow(1.-smoothstep(-.1,1.,uv.y),1.35);',
+    ' float b=clamp(inten*mask*.72,0.,1.5);',
     ' vec3 deep=vec3(.15,.012,.085),wine=vec3(.37,.05,.225),mag=vec3(.56,.09,.37),rose=vec3(.75,.33,.55),soft=vec3(.83,.53,.68),wht=vec3(.9,.7,.8);',
     ' vec3 c1=mix(deep,wine,smoothstep(.03,.28,b));',
     ' c1=mix(c1,mag,smoothstep(.3,.66,b));',
