@@ -225,44 +225,144 @@
     return [...manual, ...live].sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
-  // ---------- Sources d'un journal ----------
-  // Un journal se nourrit de : la saisie manuelle (toujours), BERICH (automatique, à activer) et, à terme, un ou
-  // plusieurs comptes Myfxbook (automatique). Les comptes créés avant cette option gardent BERICH activé.
-  function sourcesOf(acc) {
-    const s = acc && acc.sources;
-    return { manual: true, berich: s ? !!s.berich : true, myfxbook: s && s.myfxbook ? s.myfxbook : null };
-  }
+  // ---------- Un journal = une famille : journal principal (manuel) + comptes live Myfxbook ----------
+  // mode 'manual' : journal principal saisi à la main, auquel on peut ajouter des comptes live ;
+  // mode 'auto'   : journal alimenté uniquement par des comptes live.
+  // Compte live : { id, name, email, password, accountId (Myfxbook), demo, currency, info, lastSync, lastError,
+  //   lastLimitReached, possibleGap, firstBatch } — l'e-mail et le mot de passe MYFXBOOK (pas ceux du broker) sont gardés
+  // dans ce navigateur, comme pour les comptes du Dashboard.
+  function liveAccounts(acc) { return (acc && acc.live) || []; }
   function extAll() {
     try { return JSON.parse(localStorage.getItem(EXT_KEY) || '{}'); } catch (e) { return {}; }
   }
-  function extEntries(accountId) { return (extAll()[accountId] || []).slice(); }
+  function extEntries(liveId) { return (extAll()[liveId] || []).slice(); }
+  function clearExt(liveId) {
+    const all = extAll();
+    delete all[liveId];
+    try { localStorage.setItem(EXT_KEY, JSON.stringify(all)); } catch (e) { /* tant pis */ }
+  }
 
-  // Ajoute un lot de trades d'une source automatique aux données DÉJÀ importées du journal (doublons ignorés par id).
+  // Ajoute un lot de trades d'une source automatique aux données DÉJÀ importées (doublons ignorés par id).
   // L'API Myfxbook ne renvoie que les 50 dernières transactions : si un lot arrive plein (≥ limit), des trades ont pu
   // passer entre deux synchronisations — le résultat le dit pour que l'interface prévienne l'utilisateur.
-  function mergeExternal(accountId, incoming, opts) {
+  function mergeExternal(key, incoming, opts) {
     const limit = (opts && opts.limit) || 50;
     const all = extAll();
-    const cur = all[accountId] || [];
+    const cur = all[key] || [];
     const before = cur.length;
     const ids = new Set(cur.map((e) => e.id));
     let added = 0;
     incoming.forEach((e) => { if (!ids.has(e.id)) { cur.push(e); ids.add(e.id); added++; } });
-    all[accountId] = cur;
+    all[key] = cur;
     try { localStorage.setItem(EXT_KEY, JSON.stringify(all)); } catch (e) { /* tant pis */ }
     const limitReached = incoming.length >= limit;
     return { added, total: cur.length, limitReached, firstBatch: before === 0, possibleGap: limitReached && before > 0 && added === incoming.length };
   }
 
-  // Toutes les entrées d'UN journal : saisie manuelle de ce compte (les anciennes entrées sans compte vont au plus ancien),
-  // BERICH si activé, puis les sources automatiques. Chaque entrée porte l'id du journal.
-  async function entriesFor(account) {
+  function addLiveAccount(accountId, live) {
+    const acc = listAccounts().find((a) => a.id === accountId);
+    if (!acc) return null;
+    const rec = Object.assign({ id: 'live_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), addedAt: new Date().toISOString() }, live);
+    updateAccount(accountId, { live: [...liveAccounts(acc), rec] });
+    return rec;
+  }
+  function updateLiveAccount(accountId, liveId, patch) {
+    const acc = listAccounts().find((a) => a.id === accountId);
+    if (!acc) return null;
+    return updateAccount(accountId, { live: liveAccounts(acc).map((l) => (l.id === liveId ? Object.assign({}, l, patch) : l)) });
+  }
+  function removeLiveAccount(accountId, liveId) {
+    const acc = listAccounts().find((a) => a.id === accountId);
+    if (!acc) return;
+    updateAccount(accountId, { live: liveAccounts(acc).filter((l) => l.id !== liveId) });
+    clearExt(liveId);
+  }
+
+  // ---------- Myfxbook -> entrées de journal ----------
+  const numOf = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(n) ? null : n; };
+  const pickOf = (o, ...keys) => { for (const k of keys) if (o[k] != null && o[k] !== '') return o[k]; return null; };
+  // « 03/01/2010 14:13 » (MM/JJ/AAAA, heure du courtier lue comme heure locale)
+  function parseMfxDate(str) {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(String(str || ''));
+    return m ? new Date(+m[3], +m[1] - 1, +m[2], +(m[4] || 0), +(m[5] || 0)) : null;
+  }
+  function mfxToEntry(tx, live) {
+    const openS = pickOf(tx, 'openTime', 'openDate'), closeS = pickOf(tx, 'closeTime', 'closeDate');
+    const openAt = parseMfxDate(openS), closeAt = parseMfxDate(closeS);
+    const symbol = String(tx.symbol || '').toUpperCase();
+    const pair = symbol.replace(/[^A-Z0-9].*$/, ''); // XAUUSD.m -> XAUUSD
+    const side = String(tx.action || '').toLowerCase().indexOf('sell') === 0 ? 'sell' : 'buy';
+    const open = numOf(tx.openPrice), close = numOf(tx.closePrice);
+    const sl = numOf(tx.sl) || null, tp = numOf(tx.tp) || null;
+    const pnl = Math.round(((numOf(tx.profit) || 0) + (numOf(tx.interest) || 0) + (numOf(tx.commission) || 0)) * 100) / 100;
+    const risk = open != null && sl != null ? Math.abs(open - sl) : 0;
+    const rrActual = risk > 0 && close != null ? Math.round((pnl >= 0 ? 1 : -1) * Math.abs(close - open) / risk * 100) / 100 : null;
+    const rrTarget = risk > 0 && tp != null ? Math.round(Math.abs(tp - open) / risk * 100) / 100 : null;
+    return {
+      id: `mfx-${live.id}-${openS}-${symbol}-${open}`,
+      date: (closeAt || openAt || new Date()).toISOString(),
+      openAt: openAt ? openAt.toISOString() : null, closeAt: closeAt ? closeAt.toISOString() : null,
+      pair, side, entry: open, sl, tp, rrTarget, rrActual,
+      result: pnl > 0 ? 'TP' : pnl < 0 ? 'SL' : 'BE', pnl,
+      tags: [], chartLink: null, notes: tx.comment || '',
+      source: 'myfxbook', sourceLabel: live.name,
+    };
+  }
+
+  // Lit Myfxbook (e-mail + mot de passe Myfxbook) : infos du compte + 50 dernières transactions, ajoutées à l'existant.
+  async function syncLiveAccount(accountId, liveId) {
+    const acc = listAccounts().find((a) => a.id === accountId);
+    const live = liveAccounts(acc).find((l) => l.id === liveId);
+    if (!live) throw new Error('Compte live introuvable.');
+    if (!window.CHESTMyfxbook) throw new Error('Client Myfxbook non chargé.');
+    const session = await window.CHESTMyfxbook.login(live.email, live.password);
+    try {
+      const accounts = await window.CHESTMyfxbook.getMyAccounts(session);
+      const info = accounts.find((a) => String(a.id) === String(live.accountId));
+      if (!info) throw new Error("Ce compte n'existe plus sur ton profil Myfxbook.");
+      const history = (await window.CHESTMyfxbook.getHistory(session, live.accountId)).map((h) => (Array.isArray(h) ? h[0] : h)).filter(Boolean);
+      const res = mergeExternal(live.id, history.map((tx) => mfxToEntry(tx, live)).filter((e) => e.pair), { limit: 50 });
+      updateLiveAccount(accountId, liveId, {
+        lastSync: new Date().toISOString(), lastError: null, lastLimitReached: res.limitReached, possibleGap: res.possibleGap, firstBatch: res.firstBatch,
+        info: { balance: numOf(info.balance), equity: numOf(info.equity), profit: numOf(info.profit), gain: numOf(info.gain), drawdown: numOf(info.drawdown), deposits: numOf(info.deposits), currency: info.currency || null, demo: info.demo === true || info.demo === 'true' },
+      });
+      return res;
+    } finally {
+      window.CHESTMyfxbook.logout(session);
+    }
+  }
+
+  // Entrées d'UN journal, pour tout ou partie de sa famille : member = 'all' | 'main' | id d'un compte live.
+  // Journal principal = saisie manuelle du compte (les anciennes entrées sans compte vont au plus ancien) + positions BERICH
+  // (rattachées au premier journal manuel, comme avant). En vue agrégée, une saisie manuelle qui double une position d'un
+  // compte live (même paire et même sens, à moins d'une heure) est masquée : le live prend le dessus.
+  async function entriesFor(account, member) {
+    const m = member || 'all';
     const accounts = listAccounts();
-    const oldest = accounts[0];
-    const manual = list().filter((e) => e.accountId === account.id || (!e.accountId && oldest && oldest.id === account.id));
-    const live = sourcesOf(account).berich ? await berichEntries() : [];
-    const ext = extEntries(account.id);
-    return [...manual, ...live, ...ext].map((e) => Object.assign({}, e, { accountId: account.id })).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const isAuto = account.mode === 'auto';
+    let main = [];
+    if (!isAuto && (m === 'all' || m === 'main')) {
+      const manual = list().filter((e) => e.accountId === account.id || (!e.accountId && accounts[0] && accounts[0].id === account.id));
+      const owner = accounts.find((a) => a.mode !== 'auto');
+      const live = owner && owner.id === account.id ? await berichEntries() : [];
+      main = [...manual, ...live];
+    }
+    let liveRows = [];
+    liveAccounts(account).forEach((l) => {
+      if (m === 'all' || m === l.id) liveRows = liveRows.concat(extEntries(l.id).map((e) => Object.assign({}, e, { liveId: l.id, sourceLabel: l.name })));
+    });
+    let hidden = 0;
+    if (m === 'all' && liveRows.length && main.length) {
+      main = main.filter((e) => {
+        const t = new Date(e.date).getTime();
+        const dup = e.source === 'manual' && liveRows.some((x) => x.pair === e.pair && x.side === e.side && Math.abs(new Date(x.date).getTime() - t) <= 3600000);
+        if (dup) hidden++;
+        return !dup;
+      });
+    }
+    const rows = [...main, ...liveRows].map((e) => Object.assign({}, e, { accountId: account.id })).sort((a, b) => new Date(b.date) - new Date(a.date));
+    rows.hiddenDuplicates = hidden;
+    return rows;
   }
 
   // ---------- Stats — arithmétique directe (pas de simulation de capital,
@@ -322,7 +422,7 @@
   }
 
   window.CHESTJournal = {
-    list, add, update, remove, berichEntries, allEntries, entriesFor, sourcesOf, extEntries, mergeExternal, computeStats,
+    list, add, update, remove, berichEntries, allEntries, entriesFor, liveAccounts, addLiveAccount, updateLiveAccount, removeLiveAccount, syncLiveAccount, extEntries, mergeExternal, mfxToEntry, computeStats,
     knownTags, rememberTag, favoritePairs, toggleFavoritePair,
     propfirms, challengeModels, stageList, stageRules, propfirmLogo,
     listAccounts, addAccount, updateAccount, removeAccount,

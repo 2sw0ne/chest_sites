@@ -138,31 +138,65 @@
   .jr-sizes button{ height:32px; padding:0 13px; border-radius:999px; border:1px solid var(--line2); background:var(--bg); color:var(--muted); font:inherit; font-size:12px; font-weight:700; cursor:pointer; transition:.15s; }
   .jr-sizes button:hover{ border-color:rgba(249,164,94,.55); color:var(--ink); }
   .jr-sizes button.is-active{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; border-color:transparent; }
-  /* Sources et backtests associés */
-  .jr-src-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-  @media (max-width:900px){ .jr-src-grid{ grid-template-columns:1fr; } }
-  .jr-src{ padding:14px 16px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); display:flex; flex-direction:column; gap:6px; min-width:0; }
-  .jr-src.is-on{ border-color:rgba(51,230,166,.4); background:rgba(51,230,166,.05); }
-  .jr-src__top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .jr-src__name{ font-size:14px; font-weight:700; letter-spacing:-.01em; }
-  .jr-src__tag{ font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); border:1px solid var(--line2); border-radius:999px; padding:2px 8px; }
-  .jr-src__tag.auto{ color:#f9a45e; border-color:rgba(249,164,94,.45); }
-  .jr-src__count{ font-size:12.5px; color:var(--muted); }
-  .jr-src__count b{ color:var(--ink); font-variant-numeric:tabular-nums; }
-  .jr-src__note{ font-size:12px; line-height:1.55; color:var(--muted); }
-  .jr-src__note.warn{ color:var(--amber); }
-  .jr-switch{ width:40px; height:22px; border-radius:999px; border:1px solid var(--line2); background:var(--bg); position:relative; cursor:pointer; padding:0; transition:.15s; flex-shrink:0; }
-  .jr-switch::after{ content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--muted); transition:.15s; }
-  .jr-switch.is-on{ background:rgba(51,230,166,.25); border-color:rgba(51,230,166,.5); }
-  .jr-switch.is-on::after{ left:20px; background:var(--green); }
-  .jr-bt{ margin-top:18px; }
-  .jr-bt__head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
-  .jr-bt__head select{ height:36px; border-radius:9px; border:1px solid var(--line2); background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px; padding:0 10px; min-width:220px; }
-  .jr-bt table{ width:100%; border-collapse:collapse; font-size:13px; }
-  .jr-bt th{ text-align:left; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--line); }
-  .jr-bt td{ padding:10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
-  .jr-bt td .pos{ color:var(--green); font-weight:700; } .jr-bt td .neg{ color:var(--red); font-weight:700; }
-  .jr-bt__note{ font-size:12px; color:var(--muted); line-height:1.55; margin-top:8px; }
+  .acc-menu__family-head{
+    display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; cursor:pointer;
+    padding:9px 10px; border-radius:9px; color:var(--ink); font:inherit; text-align:left; font-weight:700; font-size:12.5px;
+  }
+  .acc-menu__family-head:hover{ background:var(--panel-2); }
+  .acc-menu__family-head .chev{ margin-left:auto; color:var(--muted); font-size:10px; transition:transform .15s; }
+  .acc-menu__family-head.is-open .chev{ transform:rotate(180deg); }
+  .acc-menu__family-accounts{ padding-left:14px; border-left:1px solid var(--line); margin:0 0 4px 20px; }
+  .acc-menu__family-add{ color:var(--acc); font-weight:600; }
+  .acc-menu__family-row{ display:flex; align-items:center; gap:4px; }
+  .acc-menu__family-row .acc-menu__family-head{ flex:1; }
+  .acc-menu__family-hover{ position:relative; flex-shrink:0; }
+  .acc-menu__family-hover-btn{
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--line2); background:var(--bg);
+    color:var(--muted); cursor:pointer; font:inherit; font-size:13px; display:flex; align-items:center; justify-content:center;
+  }
+  .acc-menu__family-hover-btn:hover{ color:var(--acc); border-color:var(--acc); }
+  .acc-menu__family-flyout{
+    display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60; width:180px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
+    box-shadow:0 16px 40px rgba(0,0,0,.35); padding:6px;
+  }
+  .acc-menu__family-hover:hover .acc-menu__family-flyout,
+  .acc-menu__family-hover:focus-within .acc-menu__family-flyout{ display:block; }
+  .acc-menu__family-flyout button{
+    display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; cursor:pointer;
+    padding:8px 9px; border-radius:8px; color:var(--acc); font:inherit; font-size:12.5px; font-weight:600; text-align:left;
+  }
+  .acc-menu__family-flyout button:hover{ background:var(--panel-2); }
+  .acc-menu__family-flyout button.is-backtest-btn{ color:var(--blue); }
+
+
+  .jr-acc-menu{ width:300px; }
+  .jr-acc-switcher__btn{ pointer-events:auto; cursor:pointer; }
+  .jr-acc-switcher__btn .chev{ display:inline; }
+  .acc-menu__family-row{ margin-top:2px; }
+  .jr-live-bar{ margin:0 34px 20px; padding:12px 16px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); display:flex; flex-direction:column; gap:8px; }
+  .jr-live-row{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 14px; font-size:12.5px; color:var(--muted); }
+  .jr-live-row b{ color:var(--ink); font-size:13px; }
+  .jr-live-dot{ width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 10px rgba(51,230,166,.6); flex-shrink:0; }
+  .jr-live-dot.err{ background:var(--red); box-shadow:0 0 10px rgba(255,77,94,.6); }
+  .jr-live-warn{ color:var(--amber); flex-basis:100%; line-height:1.5; }
+  .jr-live-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+  .jr-modal{ position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.62); display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(6px); }
+  .jr-modal[hidden]{ display:none; }
+  .jr-modal__box{ position:relative; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; padding:26px; border-radius:20px; border:1px solid rgba(255,255,255,.14); background:linear-gradient(180deg,rgba(24,24,28,.97),rgba(12,12,15,.98)); box-shadow:0 30px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12); }
+  .jr-modal__box h2{ font-size:18px; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; }
+  .jr-modal__close{ position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid var(--line2); background:transparent; color:var(--muted); cursor:pointer; }
+  .jr-modal__close:hover{ color:var(--ink); }
+  .jr-modal ol{ margin:10px 0 16px; padding-left:18px; font-size:12.5px; line-height:1.65; color:var(--muted); }
+  .jr-modal label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin:12px 0 5px; }
+  .jr-modal input{ width:100%; height:40px; border:1px solid var(--line2); border-radius:10px; background:var(--bg); color:var(--ink); font:inherit; font-size:13.5px; padding:0 12px; }
+  .jr-modal input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(252,18,131,.14); }
+  .jr-modal__err{ color:var(--red); font-size:12.5px; margin:10px 0 0; }
+  .jr-modal__foot{ margin-top:18px; display:flex; gap:10px; }
+  .jr-mfx-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; padding:12px 14px; border-radius:12px; border:1px solid var(--line2); background:rgba(255,255,255,.03); color:var(--ink); font:inherit; cursor:pointer; margin-bottom:8px; }
+  .jr-mfx-row:hover{ border-color:rgba(249,164,94,.55); }
+  .jr-mfx-row[disabled]{ opacity:.5; cursor:default; }
+  .jr-mfx-row small{ display:block; color:var(--muted); font-size:11.5px; }
   .jr-form{ padding:22px 24px; margin:0 auto 20px; width:100%; max-width:760px; }
   #jrPageHead.is-narrow{ max-width:760px; margin-left:auto; margin-right:auto; padding-left:4px !important; padding-right:4px !important; }
   .jr-row2--challenge{ grid-template-columns:1.35fr 1fr; }
@@ -455,12 +489,12 @@
         <div class="jr-cell">
           <label>Connexion</label>
           <div class="jr-segmented" id="jaConnToggle">
-            <button type="button" data-conn="manual" class="is-active">Réel (manuel)</button>
-            <button type="button" data-conn="myfxbook">Auto (Myfxbook)</button>
+            <button type="button" data-conn="manual" class="is-active">Manuel</button>
+            <button type="button" data-conn="myfxbook">Automatique</button>
           </div>
         </div>
       </div>
-      <p id="jaMt5Note" class="jr-rules-note" hidden><b>Via Myfxbook.</b> Tu relies ton compte MT5 à Myfxbook (mot de passe investisseur) ; CHEST lira ensuite ses données par l'API officielle. Elle ne renvoie que les <b>50 dernières transactions</b> : chaque synchronisation s'ajoute aux trades déjà importés dans ce journal (doublons ignorés) et CHEST te prévient quand un lot arrive plein, car des trades ont pu passer entre deux synchronisations. Pas encore branché : en attendant, ce journal reste en saisie manuelle.</p>
+      <p id="jaMt5Note" class="jr-rules-note" hidden><b>Journal automatique.</b> Il est alimenté par tes comptes live Myfxbook : tu les ajoutes juste après avoir créé le journal. À chaque synchronisation CHEST lit les 50 dernières transactions et les ajoute à l'historique déjà importé (doublons ignorés) ; si un lot arrive plein, il te prévient que des trades ont pu être ratés. Avec un journal <b>manuel</b>, tu saisis toi-même le journal principal et tu peux y ajouter des comptes live quand tu veux.</p>
 
       <div class="jr-form__actions">
         <button type="button" class="btn btn-secondary" id="jaSave">Enregistrer le compte</button>
@@ -482,12 +516,14 @@
         <div class="jr-acc-menu" id="jrAccMenu">
           <div id="jrAccMenuList"></div>
           <div class="jr-acc-menu__divider"></div>
-          <button class="jr-acc-menu__item jr-acc-menu__add" id="jrAccAddBtn"><span>＋</span> Ajouter un compte</button>
+          <button class="jr-acc-menu__item jr-acc-menu__add" id="jrAccAddBtn"><span>＋</span> Nouveau journal</button>
         </div>
       </div>
       <button type="button" class="chest-btn-2" id="jrAccEditBtn">✎ Modifier ce compte</button>
       <button type="button" class="chest-btn" id="jrAddBtn" style="margin-left:auto">+ Ajouter un trade</button>
     </div>
+
+    <div class="jr-live-bar" id="jrLiveBar" hidden></div>
 
     <div class="jr-balance-warn" id="jrBalanceWarn" hidden><span><b>Le solde de ce compte n'est pas renseigné.</b> Sans lui, le P&amp;L en % et les limites du challenge ne peuvent pas se calculer.</span><button type="button" class="chest-btn-2" id="jrBalanceWarnBtn">Renseigner le solde</button></div>
 
@@ -660,14 +696,9 @@
       </div>
     </div>
 
-    <section class="chest-section" id="jrSourcesCard" style="border-top:1px solid var(--chest-rule)">
-      <div class="chest-step" style="margin-bottom:14px">03 — Sources et backtests</div>
-      <div id="jrSourcesBody"></div>
-    </section>
-
     <div class="chest-section" style="border-top:1px solid var(--chest-rule)">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px">
-      <span class="chest-step">04 — Positions</span>
+      <span class="chest-step">03 — Positions</span>
     </div>
     <div class="chest-glass jr-table-wrap" id="jrTableWrap">
       <table class="jr-table">
@@ -687,6 +718,32 @@
 </div>
 </div>
 
+<div class="jr-modal" id="jrLiveModal" hidden>
+  <div class="jr-modal__box">
+    <button type="button" class="jr-modal__close" id="jrLiveClose" aria-label="Fermer">✕</button>
+    <h2>Ajouter un compte live (Myfxbook)</h2>
+    <p style="margin:0;font-size:12.5px;color:var(--muted)" id="jrLiveFor"></p>
+    <div id="jrLiveStep1">
+      <ol>
+        <li>Une seule fois sur <a href="https://www.myfxbook.com" target="_blank" rel="noopener" style="color:var(--ink)">myfxbook.com</a> : Portfolio → Add Account → ton broker MT4/MT5, ton numéro de compte et ton <b>mot de passe investisseur</b> (lecture seule).</li>
+        <li>Choisis « Auto Update » (gratuit) : aucune application à laisser ouverte.</li>
+        <li>Reviens ici et connecte-toi avec ton e-mail et ton mot de passe <b>Myfxbook</b> (pas ceux de ton broker).</li>
+      </ol>
+      <label for="jrLiveEmail">E-mail Myfxbook</label>
+      <input id="jrLiveEmail" type="email" autocomplete="off">
+      <label for="jrLivePass">Mot de passe Myfxbook</label>
+      <input id="jrLivePass" type="password" autocomplete="off">
+      <p class="jr-modal__err" id="jrLiveErr" hidden></p>
+      <div class="jr-modal__foot"><button type="button" class="chest-btn" id="jrLiveConnect">Se connecter</button></div>
+      <p style="margin:12px 0 0;font-size:11.5px;color:var(--faint);line-height:1.5">Ces identifiants restent dans ce navigateur (comme pour les comptes du Dashboard) et ne servent qu'à lire ton historique.</p>
+    </div>
+    <div id="jrLiveStep2" hidden>
+      <label>Quel compte relié à ton profil Myfxbook ?</label>
+      <div id="jrLiveList"></div>
+    </div>
+  </div>
+</div>
+
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js?v=2"></script>
@@ -694,15 +751,14 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/berich-store.js"></script>
-<script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=20"></script>
+<script src="js/myfxbook-store.js"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
-<script src="js/journal-store.js?v=3"></script>
+<script src="js/journal-store.js?v=4"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
   { selector: '#jrHub', title: 'Tes journaux', text: 'Un journal par compte (propre ou propfirm). Clique sur une carte pour ouvrir son suivi, ou crée-en un nouveau.' },
-  { selector: '#jrAccSwitcher', title: 'Tes comptes', text: 'Bascule entre tes comptes de journal, ou ajoutes-en un nouveau.' },
+  { selector: '#jrAccSwitcher', title: 'Ta famille de comptes', text: 'Un journal est une famille : le journal principal (manuel) et ses comptes live Myfxbook. Survole la flèche → pour ajouter un compte live.' },
   { selector: '#jrConditionsCard', title: 'Règles du challenge', text: 'Pour un compte propfirm : suivi en direct des règles (perte max, objectif de profit, jours minimum).' },
   { selector: '#jrStats', title: 'Statistiques', text: 'Winrate, RR moyen et P&L calculés automatiquement sur tous les trades de ce compte.' },
   { selector: '#jrAddBtn', title: 'Ajouter un trade', text: 'Enregistre une position manuellement — ou laisse BERICH le faire automatiquement pour toi.' },
@@ -789,6 +845,10 @@ CHESTTour.init([
     const stage = m && a.stage ? (CHESTJournal.stageList(m).find((x) => x.id === a.stage) || {}).label : null;
     return [firm, m ? m.label : null, stage].filter(Boolean).join(' · ');
   }
+  function familyNote(a) {
+    const n = CHESTJournal.liveAccounts(a).length;
+    return [a.mode === 'auto' ? 'Automatique' : 'Manuel', n ? `${n} compte${n > 1 ? 's' : ''} live` : null].filter(Boolean).join(' · ');
+  }
 
   async function renderHub() {
     const accounts = CHESTJournal.listAccounts();
@@ -835,7 +895,7 @@ CHESTTour.init([
             </div>
           </div>
         </div>
-        <p class="bt-card__desc">${accountSubtitle(a)}</p>
+        <p class="bt-card__desc">${accountSubtitle(a)}<br><span style="color:var(--chest-ink-3)">${familyNote(a)}</span></p>
         <div class="bt-card__spark">
           <svg viewBox="0 0 400 86" preserveAspectRatio="none" style="width:100%;height:86px;display:block;overflow:visible">
             <defs>
@@ -885,81 +945,16 @@ CHESTTour.init([
   document.addEventListener('click', () => document.querySelectorAll('[data-menu-list]').forEach((l) => { l.hidden = true; }));
   document.getElementById('jrHubNewBtn').addEventListener('click', () => openAccountForm(null));
 
-  // ================= Sources et backtests associés =================
-  async function renderSources() {
-    const active = CHESTJournal.getActiveAccount();
-    if (!active) return;
-    const src = CHESTJournal.sourcesOf(active);
-    const manualN = allRows.filter((r) => r.source === 'manual').length;
-    const berichN = allRows.filter((r) => r.source === 'berich').length;
-    const extN = allRows.filter((r) => r.source === 'myfxbook').length;
-    const mfx = src.myfxbook;
-    const mfxNote = mfx && mfx.lastLimitReached
-      ? `<div class="jr-src__note warn">Le dernier lot est arrivé plein (50 trades) : des trades ont pu passer entre deux synchronisations. Synchronise plus souvent, ou complète à la main.</div>`
-      : `<div class="jr-src__note">L'API Myfxbook ne renvoie que les <b>50 dernières transactions</b>. Chaque synchronisation s'ajoute aux trades déjà importés ici (doublons ignorés) ; CHEST te prévient quand un lot arrive plein.</div>`;
-    const btIds = (active.backtestIds || []).filter((id) => window.CHESTBacktests.get(id));
-    const all = window.CHESTBacktests.list();
-    const free = all.filter((b) => !btIds.includes(b.id));
-    const stats = CHESTJournal.computeStats(allRows);
-    const real = active.balance > 0 && stats.totalPnl != null ? stats.totalPnl / active.balance * 100 : null;
-    const btRows = btIds.map((id) => {
-      const b = window.CHESTBacktests.get(id);
-      const cfg = active.type === 'propfirm' && b.pf ? b.pf : b.cp;
-      const rep = window.CHESTBacktestEngine.computeReport(b.trades || [], b.capital, cfg || { risk: 1, tiers: [] });
-      const perf = rep.stats.performancePct;
-      const fmt = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} %`;
-      const gap = real != null ? real - perf : null;
-      return `<tr>
-        <td><a href="backtest-view.html?id=${encodeURIComponent(b.id)}" style="color:inherit"><b>${b.title}</b></a><div style="font-size:11.5px;color:var(--muted)">${(b.trades || []).length} positions · ${active.type === 'propfirm' && b.pf ? 'réglage propfirm' : 'compte propre'}</div></td>
-        <td><span class="${perf >= 0 ? 'pos' : 'neg'}">${fmt(perf)}</span></td>
-        <td>-${rep.stats.maxDrawdownPct.toFixed(1).replace('.', ',')} %</td>
-        <td>${real != null ? `<span class="${real >= 0 ? 'pos' : 'neg'}">${fmt(real)}</span>` : '—'}</td>
-        <td>${gap != null ? `<span class="${gap >= 0 ? 'pos' : 'neg'}">${gap >= 0 ? '+' : '−'}${Math.abs(gap).toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} pt</span>` : '—'}</td>
-        <td style="text-align:right"><button type="button" class="btn btn-ghost" data-unlink-bt="${b.id}" title="Dissocier">✕</button></td>
-      </tr>`;
-    }).join('');
-    document.getElementById('jrSourcesBody').innerHTML = `
-      <div class="jr-src-grid">
-        <div class="jr-src is-on">
-          <div class="jr-src__top"><span class="jr-src__name">Saisie manuelle</span><span class="jr-src__tag">Manuel</span></div>
-          <div class="jr-src__count"><b>${manualN}</b> trade${manualN > 1 ? 's' : ''} saisi${manualN > 1 ? 's' : ''} à la main</div>
-          <div class="jr-src__note">Toujours active : « + Ajouter un trade » ajoute ici.</div>
-        </div>
-        <div class="jr-src ${src.berich ? 'is-on' : ''}">
-          <div class="jr-src__top"><span class="jr-src__name">BERICH</span><span class="jr-src__tag auto">Automatique</span><button type="button" class="jr-switch ${src.berich ? 'is-on' : ''}" id="jrBerichSwitch" aria-label="Activer BERICH pour ce journal"></button></div>
-          <div class="jr-src__count"><b>${berichN}</b> position${berichN > 1 ? 's' : ''} prise${berichN > 1 ? 's' : ''} via BERICH</div>
-          <div class="jr-src__note">Les positions confirmées sur BERICH entrent dans ce journal quand la source est activée. Tu peux l'activer sur plusieurs journaux.</div>
-        </div>
-        <div class="jr-src ${mfx ? 'is-on' : ''}">
-          <div class="jr-src__top"><span class="jr-src__name">Myfxbook</span><span class="jr-src__tag auto">Automatique</span></div>
-          <div class="jr-src__count">${mfx ? `<b>${extN}</b> trade${extN > 1 ? 's' : ''} importé${extN > 1 ? 's' : ''}` : 'Pas encore relié'}</div>
-          ${mfxNote}
-          <div class="jr-src__note">Plusieurs comptes Myfxbook pourront être associés au même journal.</div>
-        </div>
-      </div>
-      <div class="jr-bt">
-        <div class="jr-bt__head">
-          <span class="chest-label" style="margin:0">Backtests associés</span>
-          ${free.length ? `<select id="jrBtSelect"><option value="">Associer un backtest…</option>${free.map((b) => `<option value="${b.id}">${b.title}</option>`).join('')}</select><button type="button" class="chest-btn-2" id="jrBtLink">Associer</button>` : `<span style="font-size:12.5px;color:var(--muted)">${all.length ? 'Tous tes backtests sont déjà associés.' : 'Aucun backtest dans la bibliothèque pour l\'instant.'}</span>`}
-        </div>
-        ${btIds.length ? `<table><thead><tr><th>Backtest</th><th>Perf. backtest</th><th>DD max</th><th>Réel (ce journal)</th><th>Écart</th><th></th></tr></thead><tbody>${btRows}</tbody></table>
-        <div class="jr-bt__note">${real == null ? 'Renseigne le solde du compte pour comparer en %.' : 'Le réel est le P&amp;L du journal rapporté au solde du compte ; le backtest est sa performance sur tout son historique : les périodes ne sont pas les mêmes, c\'est une comparaison d\'ordre de grandeur.'}</div>` : ''}
-      </div>`;
-    document.getElementById('jrBerichSwitch').addEventListener('click', () => {
-      CHESTJournal.updateAccount(active.id, { sources: { berich: !src.berich, myfxbook: src.myfxbook } });
-      loadAndRender();
-    });
-    const link = document.getElementById('jrBtLink');
-    if (link) link.addEventListener('click', () => {
-      const id = document.getElementById('jrBtSelect').value;
-      if (!id) return;
-      CHESTJournal.updateAccount(active.id, { backtestIds: [...(active.backtestIds || []), id] });
-      renderSources();
-    });
-    document.querySelectorAll('[data-unlink-bt]').forEach((b) => b.addEventListener('click', () => {
-      CHESTJournal.updateAccount(active.id, { backtestIds: (active.backtestIds || []).filter((x) => x !== b.dataset.unlinkBt) });
-      renderSources();
-    }));
+  // ================= Famille : journal principal + comptes live =================
+  let currentMember = 'all';
+  const openFamilies = new Set();
+  const timeFr = (iso) => (iso ? new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+
+  function memberLabel(acc, member) {
+    if (member === 'main') return 'Journal principal';
+    const l = CHESTJournal.liveAccounts(acc).find((x) => x.id === member);
+    if (l) return `Live · ${l.name}`;
+    return CHESTJournal.liveAccounts(acc).length ? 'Tous les comptes' : (acc.mode === 'auto' ? 'Aucun compte live' : 'Journal principal');
   }
 
   function renderAccSwitcher() {
@@ -968,22 +963,146 @@ CHESTTour.init([
     if (!active) return;
     document.getElementById('jrAccAvatar').textContent = initials(active.name);
     document.getElementById('jrAccName').textContent = active.name;
-    const activeModel = active.modelId ? (window.CHESTPropRules.models.find((m) => m.id === active.modelId) || null) : null;
-    document.getElementById('jrAccSub').textContent = active.type === 'propfirm'
-      ? ((CHESTJournal.propfirms().find((p) => p.id === active.propfirmId) || {}).name || 'Propfirm') + (activeModel ? ' · ' + activeModel.label : '')
-      : 'Compte propre';
+    document.getElementById('jrAccSub').textContent = memberLabel(active, currentMember);
 
-    document.getElementById('jrAccMenuList').innerHTML = accounts.map((a) => `
-      <button type="button" class="jr-acc-menu__item ${a.id === active.id ? 'is-active' : ''}" data-pick-acc="${a.id}">
-        <span class="jr-acc-avatar">${initials(a.name)}</span>
-        <span><strong>${a.name}</strong><span>${money(a.balance)}</span></span>
-      </button>`).join('');
-    document.querySelectorAll('[data-pick-acc]').forEach((btn) => btn.addEventListener('click', () => {
-      CHESTJournal.setActiveAccountId(btn.dataset.pickAcc);
+    const rowHtml = (accId, member, avatar, title, sub, isActive) => `
+      <button type="button" class="jr-acc-menu__item ${isActive ? 'is-active' : ''}" data-open="${accId}" data-member="${member}">
+        <span class="jr-acc-avatar">${avatar}</span>
+        <span><strong>${title}</strong><span>${sub}</span></span>
+      </button>`;
+    document.getElementById('jrAccMenuList').innerHTML = accounts.map((a) => {
+      const lives = CHESTJournal.liveAccounts(a);
+      const isFam = a.id === active.id;
+      const isOpen = openFamilies.has(a.id) || isFam;
+      const inner = [];
+      if (a.mode !== 'auto') inner.push(rowHtml(a.id, 'main', 'JP', 'Journal principal', 'Manuel', isFam && currentMember === 'main'));
+      lives.forEach((l) => inner.push(rowHtml(a.id, l.id, '🟢', l.name, `#${l.accountId} · ${l.info && l.info.balance != null ? money(l.info.balance) : (l.demo ? 'Démo' : 'Réel')}`, isFam && currentMember === l.id)));
+      if (!inner.length) inner.push('<div class="jr-acc-menu__item" style="cursor:default;color:var(--faint);font-size:12px">Vide — survole la flèche → pour ajouter un compte live.</div>');
+      return `
+        <div class="acc-menu__family">
+          <div class="acc-menu__family-row">
+            <button type="button" class="acc-menu__family-head ${isOpen ? 'is-open' : ''} ${isFam && currentMember === 'all' ? 'is-active' : ''}" data-open="${a.id}" data-member="all">
+              <span>${a.name}</span><span class="chev">▾</span>
+            </button>
+            <div class="acc-menu__family-hover">
+              <button type="button" class="acc-menu__family-hover-btn" aria-label="Ajouter un compte live à ${a.name}">→</button>
+              <div class="acc-menu__family-flyout"><button type="button" data-add-live="${a.id}">＋ Ajouter un compte live</button></div>
+            </div>
+          </div>
+          <div class="acc-menu__family-accounts" ${isOpen ? '' : 'hidden'}>${inner.join('')}</div>
+        </div>`;
+    }).join('');
+    document.querySelectorAll('#jrAccMenuList [data-open]').forEach((btn) => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const m = btn.dataset.member;
+      window.location.href = `journal.html?acc=${encodeURIComponent(btn.dataset.open)}${m === 'all' ? '' : '&m=' + encodeURIComponent(m)}`;
+    }));
+    document.querySelectorAll('#jrAccMenuList [data-add-live]').forEach((btn) => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       document.getElementById('jrAccMenu').classList.remove('is-open');
-      onAccountChanged();
+      openLiveModal(btn.dataset.addLive);
     }));
   }
+
+  // Comptes live : état de synchro, avertissements de limite, actions.
+  function renderLiveBar(acc) {
+    const bar = document.getElementById('jrLiveBar');
+    const lives = CHESTJournal.liveAccounts(acc).filter((l) => currentMember === 'all' || currentMember === l.id);
+    if (!CHESTJournal.liveAccounts(acc).length) {
+      bar.hidden = acc.mode !== 'auto';
+      bar.innerHTML = acc.mode === 'auto' ? `<div class="jr-live-row"><span>Ce journal automatique n'a pas encore de compte live.</span><span class="jr-live-actions"><button type="button" class="chest-btn-2" id="jrLiveAddBtn">＋ Ajouter un compte live</button></span></div>` : '';
+      const b = document.getElementById('jrLiveAddBtn'); if (b) b.addEventListener('click', () => openLiveModal(acc.id));
+      return;
+    }
+    bar.hidden = false;
+    bar.innerHTML = lives.map((l) => {
+      const i = l.info || {};
+      const warn = l.lastError ? `<span class="jr-live-warn">Synchro impossible : ${l.lastError}${l.lastSync ? ` — dernières données du ${timeFr(l.lastSync)}` : ''}</span>`
+        : l.possibleGap ? `<span class="jr-live-warn">Le lot est arrivé plein (50 trades) sans recouvrement avec ce qui était déjà importé : des trades ont pu être ratés entre deux synchronisations. Synchronise plus souvent, ou complète à la main.</span>`
+        : l.firstBatch && l.lastLimitReached ? `<span class="jr-live-warn">Myfxbook ne fournit que les 50 dernières transactions : les trades plus anciens ne sont pas repris. Ils s'ajouteront désormais à chaque synchronisation.</span>` : '';
+      return `<div class="jr-live-row"><span class="jr-live-dot ${l.lastError ? 'err' : ''}"></span><b>${l.name}</b><span>${i.demo || l.demo ? 'Démo' : 'Réel'} · #${l.accountId}</span><span>Solde ${i.balance != null ? money(i.balance) : '—'}</span>${i.equity != null ? `<span>Équité ${money(i.equity)}</span>` : ''}${i.drawdown != null ? `<span>DD ${i.drawdown}%</span>` : ''}<span>synchro ${timeFr(l.lastSync)}</span>${warn}</div>`;
+    }).join('') + `<div class="jr-live-row"><span class="jr-live-actions"><button type="button" class="chest-btn-2" id="jrSyncBtn">↻ Synchroniser</button><button type="button" class="chest-btn-2" id="jrLiveAddBtn">＋ Ajouter un compte live</button>${currentMember !== 'all' && currentMember !== 'main' ? '<button type="button" class="btn btn-ghost" id="jrLiveRemoveBtn" style="color:var(--red)">Retirer ce compte live</button>' : ''}</span></div>`;
+    document.getElementById('jrSyncBtn').addEventListener('click', () => syncLives(acc, true));
+    document.getElementById('jrLiveAddBtn').addEventListener('click', () => openLiveModal(acc.id));
+    const rm = document.getElementById('jrLiveRemoveBtn');
+    if (rm) rm.addEventListener('click', async () => {
+      if (!(await CHESTConfirm('Retirer ce compte live du journal ? Les trades déjà importés depuis lui seront supprimés du journal.'))) return;
+      CHESTJournal.removeLiveAccount(acc.id, currentMember);
+      window.location.href = `journal.html?acc=${encodeURIComponent(acc.id)}`;
+    });
+  }
+
+  const STALE_MS = 5 * 60 * 1000;
+  async function syncLives(acc, force, quiet) {
+    const fresh = () => CHESTJournal.listAccounts().find((a) => a.id === acc.id);
+    const lives = CHESTJournal.liveAccounts(acc).filter((l) => force || !l.lastSync || Date.now() - new Date(l.lastSync).getTime() > STALE_MS);
+    if (!lives.length) return false;
+    const btn = document.getElementById('jrSyncBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Synchronisation…'; }
+    for (const l of lives) {
+      try { await CHESTJournal.syncLiveAccount(acc.id, l.id); }
+      catch (e) { CHESTJournal.updateAccount(acc.id, { live: CHESTJournal.liveAccounts(fresh()).map((x) => (x.id === l.id ? Object.assign({}, x, { lastError: e.message }) : x)) }); }
+    }
+    if (quiet) return true;
+    const a2 = fresh();
+    allRows = await CHESTJournal.entriesFor(a2, currentMember);
+    renderLiveBar(a2); renderConditions(); renderStats(allRows); renderTable();
+    return true;
+  }
+
+  // ---- Modale « Ajouter un compte live » : e-mail + mot de passe Myfxbook -> choix du compte relié ----
+  let liveTarget = null;
+  function openLiveModal(accId) {
+    liveTarget = accId;
+    const acc = CHESTJournal.listAccounts().find((a) => a.id === accId);
+    document.getElementById('jrLiveFor').textContent = `Dans le journal « ${acc.name} »`;
+    document.getElementById('jrLiveStep1').hidden = false;
+    document.getElementById('jrLiveStep2').hidden = true;
+    document.getElementById('jrLiveErr').hidden = true;
+    document.getElementById('jrLivePass').value = '';
+    document.getElementById('jrLiveModal').hidden = false;
+    setTimeout(() => document.getElementById('jrLiveEmail').focus(), 50);
+  }
+  const closeLiveModal = () => { document.getElementById('jrLiveModal').hidden = true; document.getElementById('jrLivePass').value = ''; };
+  document.getElementById('jrLiveClose').addEventListener('click', closeLiveModal);
+  document.getElementById('jrLiveModal').addEventListener('click', (e) => { if (e.target.id === 'jrLiveModal') closeLiveModal(); });
+  document.getElementById('jrLiveConnect').addEventListener('click', async () => {
+    const email = document.getElementById('jrLiveEmail').value.trim();
+    const password = document.getElementById('jrLivePass').value;
+    const err = document.getElementById('jrLiveErr');
+    err.hidden = true;
+    if (!email || !password) { err.textContent = 'E-mail et mot de passe Myfxbook requis.'; err.hidden = false; return; }
+    const btn = document.getElementById('jrLiveConnect');
+    btn.disabled = true; btn.textContent = 'Connexion…';
+    try {
+      const session = await CHESTMyfxbook.login(email, password);
+      const accounts = await CHESTMyfxbook.getMyAccounts(session);
+      CHESTMyfxbook.logout(session);
+      if (!accounts.length) { err.textContent = "Aucun compte relié à ce profil Myfxbook : va d'abord sur myfxbook.com → Portfolio → Add Account."; err.hidden = false; return; }
+      const target = CHESTJournal.listAccounts().find((a) => a.id === liveTarget);
+      const already = new Set(CHESTJournal.liveAccounts(target).map((l) => String(l.accountId)));
+      document.getElementById('jrLiveList').innerHTML = accounts.map((a, i) => `
+        <button type="button" class="jr-mfx-row" data-i="${i}" ${already.has(String(a.id)) ? 'disabled' : ''}>
+          <span><strong>${a.name}</strong><small>${a.demo === true || a.demo === 'true' ? 'Démo' : 'Réel'} · ${a.currency || ''}${already.has(String(a.id)) ? ' · déjà dans ce journal' : ''}</small></span>
+          <b>${money(parseFloat(a.balance) || 0)}</b>
+        </button>`).join('');
+      document.getElementById('jrLiveStep1').hidden = true;
+      document.getElementById('jrLiveStep2').hidden = false;
+      document.querySelectorAll('#jrLiveList .jr-mfx-row').forEach((row) => row.addEventListener('click', async () => {
+        const a = accounts[Number(row.dataset.i)];
+        const rec = CHESTJournal.addLiveAccount(liveTarget, { name: a.name, email, password, accountId: a.id, demo: a.demo === true || a.demo === 'true', currency: a.currency || null });
+        row.disabled = true;
+        try { await CHESTJournal.syncLiveAccount(liveTarget, rec.id); }
+        catch (e2) { CHESTJournal.updateLiveAccount(liveTarget, rec.id, { lastError: e2.message }); }
+        window.location.href = `journal.html?acc=${encodeURIComponent(liveTarget)}&m=${encodeURIComponent(rec.id)}`;
+      }));
+    } catch (e) {
+      err.textContent = e.message;
+      err.hidden = false;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Se connecter';
+    }
+  });
 
   function renderConditions() {
     const active = CHESTJournal.getActiveAccount();
@@ -1215,6 +1334,7 @@ CHESTTour.init([
       riskUnit: document.querySelector('#jaRiskUnitToggle button.is-active').dataset.unit,
       riskValue: parseFloat(document.getElementById('jaRiskValue').value) || 1,
       connectionMode: document.querySelector('#jaConnToggle button.is-active').dataset.conn,
+      mode: document.querySelector('#jaConnToggle button.is-active').dataset.conn === 'myfxbook' ? 'auto' : 'manual',
       rules: type === 'propfirm' ? {
         dailyLossPct: parseFloat(document.getElementById('jaDailyLoss').value) || 0,
         maxLossPct: parseFloat(document.getElementById('jaMaxLoss').value) || 0,
@@ -1228,8 +1348,8 @@ CHESTTour.init([
       // Les trades saisis avec un risque en % suivent le nouveau solde (leur P&L = RR × solde × risque %).
       CHESTJournal.list().filter((e) => e.accountId === editingAccountId && e.riskUnit === 'pct' && e.rrActual != null)
         .forEach((e) => CHESTJournal.update(e.id, { pnl: Math.round(e.rrActual * balance * (e.riskValue || 0)) / 100 }));
-    } else saved = CHESTJournal.addAccount(Object.assign({ sources: { berich: false, myfxbook: null }, backtestIds: [] }, account));
-    window.location.href = `journal.html?acc=${encodeURIComponent(saved.id)}`;
+    } else saved = CHESTJournal.addAccount(Object.assign({ live: [] }, account));
+    window.location.href = `journal.html?acc=${encodeURIComponent(saved.id)}${!editingAccountId && account.mode === 'auto' ? '&addlive=1' : ''}`;
   });
 
   // ================= Combobox générique (ouverture/fermeture, clic-dehors) =================
@@ -1668,19 +1788,32 @@ CHESTTour.init([
 
   async function loadAndRender() {
     const accounts = CHESTJournal.listAccounts();
-    const accId = new URLSearchParams(window.location.search).get('acc');
-    const acc = accId ? accounts.find((a) => a.id === accId) : null;
-    if (!acc) { showView('hub'); await renderHub(); return; }
+    const params = new URLSearchParams(window.location.search);
+    const acc = params.get('acc') ? accounts.find((a) => a.id === params.get('acc')) : null;
+    if (!acc) {
+      showView('hub');
+      await renderHub();
+      // Synchro discrète des comptes live (max toutes les 5 min), puis les cartes se remettent à jour.
+      let changed = false;
+      for (const a of accounts) if (CHESTJournal.liveAccounts(a).length) { try { changed = (await syncLives(a, false, true)) || changed; } catch (e) { /* silencieux sur le hub */ } }
+      if (changed) renderHub();
+      return;
+    }
+    const m = params.get('m') || 'all';
+    currentMember = m === 'all' || m === 'main' || CHESTJournal.liveAccounts(acc).some((l) => l.id === m) ? m : 'all';
     CHESTJournal.setActiveAccountId(acc.id);
     showView('dashboard');
-    allRows = await CHESTJournal.entriesFor(acc);
+    allRows = await CHESTJournal.entriesFor(acc, currentMember);
     document.getElementById('jrBalanceWarn').hidden = acc.balance > 0;
+    document.getElementById('jrAddBtn').hidden = acc.mode === 'auto' || !(currentMember === 'all' || currentMember === 'main');
     renderAccSwitcher();
+    renderLiveBar(acc);
     renderConditions();
     renderStats(allRows);
     renderTable();
-    renderSources();
     onAccountChanged();
+    if (params.get('addlive') === '1') { openLiveModal(acc.id); history.replaceState(null, '', `journal.html?acc=${encodeURIComponent(acc.id)}`); }
+    else syncLives(acc, false);
   }
 
   loadAndRender();
