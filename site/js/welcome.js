@@ -144,14 +144,14 @@
     ' vec2 uv=gl_FragCoord.xy/uRes;uv.y=1.-uv.y;',
     ' float asp=uRes.x/uRes.y;vec2 p=vec2(uv.x*asp,uv.y);float t=uTime;',
     // brume : de grandes nappes lentes qui se déforment l'une l'autre
-    ' float n1=fbm(p*vec2(.85,1.05)+vec2(t*.016,-t*.011));',
-    ' float n2=fbm(p*1.6+vec2(-t*.02,t*.014)+n1*.9);',
+    ' float n1=fbm(p*vec2(.85,1.05)+vec2(t*.034,-t*.021));',
+    ' float n2=fbm(p*1.6+vec2(-t*.04,t*.028)+n1*.9);',
     // deux bandes de lumière en diagonale, d'inclinaisons différentes ; elles respirent, en opposition de phase
-    ' vec2 dir=normalize(vec2(1.,.5+.06*sin(t*.09)));vec2 nrm=vec2(-dir.y,dir.x);',
-    ' vec2 c=vec2(-.05+.05*sin(t*.07),-.05+.04*cos(t*.06));',
+    ' vec2 dir=normalize(vec2(1.,.5+.02*sin(t*.05)));vec2 nrm=vec2(-dir.y,dir.x);',
+    ' vec2 c=vec2(-.05+.02*sin(t*.04),-.05+.015*cos(t*.035));',
     ' float q=dot(p-c,nrm)+(n1-.5)*.4;float al=dot(p-c,dir);',
     ' float v1=.55+.9*fbm(vec2(al*1.3-t*.03,q*1.4+t*.02));',
-    ' float band=exp(-pow(q/(.32+.05*sin(t*.13)),2.))*exp(-max(al,0.)*.36)*smoothstep(-.7,.15,al)*v1*(.78+.3*sin(t*.17));',
+    ' float band=exp(-pow(q/(.32+.015*sin(t*.08)),2.))*exp(-max(al,0.)*.36)*smoothstep(-.7,.15,al)*v1*(.92+.1*sin(t*.09));',
     ' vec2 dir2=normalize(vec2(1.,.95+.08*cos(t*.07)));vec2 nrm2=vec2(-dir2.y,dir2.x);',
     ' vec2 c2=vec2(.62*asp+.08*sin(t*.05),-.2);',
     ' float q2=dot(p-c2,nrm2)+(n2-.5)*.45;float al2=dot(p-c2,dir2);',
@@ -161,21 +161,30 @@
     ' vec2 g1=vec2(asp*(.5+.38*sin(t*.083)),.24+.14*cos(t*.117));',
     ' vec2 g2=vec2(asp*(.5+.4*cos(t*.061+1.)),.38+.12*sin(t*.097+2.));',
     ' float glow=exp(-dot(p-g1,p-g1)/.11)*(.5+.5*sin(t*.29))+exp(-dot(p-g2,p-g2)/.15)*(.5+.5*sin(t*.23+2.5));',
+    // aurore : des rideaux verticaux déformés par une houle lente, qui glissent d'un côté à l'autre
+    ' float wav=fbm(vec2(p.x*.85+t*.05,p.y*.7-t*.03))*1.7+sin(p.x*1.25+t*.11+n1*2.2)*.3;',
+    ' float cur1=fbm(vec2(p.x*2.1+wav*1.5,p.y*.32+t*.05));',
+    ' float cur2=fbm(vec2(p.x*3.4-wav*1.1+7.3,p.y*.4-t*.04));',
+    ' float rib=smoothstep(.3,.74,cur1)*.8+smoothstep(.36,.8,cur2)*.5;',
+    ' float ah=smoothstep(-.02,.2,uv.y)*(1.-smoothstep(.34,.98,uv.y));',
+    ' float aw=1.-.75*exp(-dot(p-vec2(.05,.0),p-vec2(.05,.0))/.3);',   // le coin haut gauche reste calme
+    ' float aur=rib*ah*aw*(.62+.38*sin(t*.11+p.x*1.6));',
     // très peu de rayons : juste de quoi donner du volume
     ' vec2 o=vec2(-.15,-.65);vec2 d=p-o;float len=length(d);float a=atan(d.y,d.x);',
     ' float rr=fbm(vec2(a*3.4+t*.045,len*.3-t*.03));',
     ' float ray=smoothstep(.3,.9,rr);',
     // brume plus présente, bandes moins dominantes : le contraste général baisse
-    ' float inten=band*1.6+band2*.42+glow*.3+n2*.46*exp(-len*.3)+ray*.16*exp(-len*.34);',
+    ' float inten=band*1.3+band2*.36+glow*.3+aur*1.35+n2*.34*exp(-len*.3)+ray*.14*exp(-len*.34);',
     // fondu noir : démarre à ~26 % de la hauteur et descend jusqu'en bas
     ' float mask=1.-smoothstep(.26,1.06,uv.y);',
     ' float b=clamp(inten*mask*.56,0.,1.5);',
-    ' vec3 deep=vec3(.15,.012,.085),wine=vec3(.37,.05,.225),mag=vec3(.56,.09,.37),rose=vec3(.75,.33,.55),soft=vec3(.87,.58,.72),wht=vec3(.93,.75,.84);',
+    ' vec3 deep=vec3(.15,.012,.085),wine=vec3(.37,.05,.225),mag=vec3(.56,.09,.37),rose=vec3(.75,.33,.55),soft=vec3(.83,.53,.68),wht=vec3(.9,.7,.8);',
     ' vec3 c1=mix(deep,wine,smoothstep(.03,.28,b));',
     ' c1=mix(c1,mag,smoothstep(.3,.66,b));',
     ' c1=mix(c1,rose,smoothstep(.58,.92,b));',
     ' c1=mix(c1,soft,smoothstep(.84,1.16,b));',
     ' c1=mix(c1,wht,smoothstep(1.1,1.5,b));',
+    ' c1+=vec3(.18,.02,.3)*aur*.5*(1.-uv.x/asp)*mask+vec3(.3,.11,.04)*aur*.45*smoothstep(.5,1.,uv.x/asp)*mask;',
     ' c1*=smoothstep(0.,.16,b);',
     ' c1+=(h21(gl_FragCoord.xy+t)-.5)/255.;',   // grain : évite les bandes
     ' gl_FragColor=vec4(c1,1.);',
@@ -305,12 +314,15 @@
       }
       if (f.y > ch + 14 || f.x < -30 || f.x > cw + 30) { spawn(f, false); continue; }
       const r = f.r * (1 + boost * 0.5);
-      let k = (f.y / ch - 0.58) / 0.36; k = k < 0 ? 0 : k > 1 ? 1 : k;   // ils s'éteignent proprement en bas
-      const fade = 1 - k * k * (3 - 2 * k);
-      ctx.globalAlpha = Math.min(1, f.a + boost * 0.55) * fade;
+      ctx.globalAlpha = Math.min(1, f.a + boost * 0.55);
       ctx.drawImage(sprite, f.x - r, f.y - r, r * 2, r * 2);
     }
+    // fondu de tout (halo + flocons) vers le bas du hero : aucune bordure nette, raccord noir avec la Newsletter
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'destination-out';
+    const fg = ctx.createLinearGradient(0, ch * 0.5, 0, ch);
+    fg.addColorStop(0, 'rgba(0,0,0,0)'); fg.addColorStop(0.55, 'rgba(0,0,0,.7)'); fg.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.fillStyle = fg; ctx.fillRect(0, ch * 0.5, cw, ch * 0.5);
     ctx.globalCompositeOperation = 'source-over';
     loop = requestAnimationFrame(tick);
   }
