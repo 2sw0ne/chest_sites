@@ -10,8 +10,9 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=9">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=9">
-<link rel="stylesheet" href="css/school-da.css?v=12">
-<link rel="stylesheet" href="css/school-v2.css?v=2">
+<link rel="stylesheet" href="css/school-da.css?v=13">
+<link rel="stylesheet" href="css/school-v2.css?v=3">
+<link rel="stylesheet" href="css/school-v3.css?v=3">
 <style>
   [hidden]{ display:none !important; }
 </style>
@@ -90,7 +91,7 @@
           <span class="sc-door__ic"><svg class="sc-ic " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5V5.5z"/><path d="M4 19V5M8 7h8M8 11h6"/></svg></span>
           <span class="sc-door__n">01</span>
           <span class="sc-door__t">Cours écrits</span>
-          <span class="sc-door__d">Cours, fiches, documents et ressources, rangés par rayon : trading, psychologie, UGC, flyers, crédibilité…</span>
+          <span class="sc-door__d">Trading, UGC, psychologie et autres ressources : les cours, les fiches et les documents.</span>
           <span class="sc-door__meta" id="doorWritten"></span>
           <span class="sc-door__go">Entrer <i>→</i></span>
         </button>
@@ -98,7 +99,7 @@
           <span class="sc-door__ic"><svg class="sc-ic " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5v5l4.2-2.5-4.2-2.5z"/></svg></span>
           <span class="sc-door__n">02</span>
           <span class="sc-door__t">Cours vidéo</span>
-          <span class="sc-door__d">Rediffusions, formations et recommandations YouTube, chacune avec son flyer. Ajoute tes propres liens.</span>
+          <span class="sc-door__d">Mindset pour s'inspirer, Business pour revoir toutes les rediffusions, chacune avec son affiche.</span>
           <span class="sc-door__meta" id="doorVideo"></span>
           <span class="sc-door__go">Entrer <i>→</i></span>
         </button>
@@ -106,19 +107,12 @@
     </section>
 
     <section class="chest-section">
-      <div class="sc-section-title"><span class="chest-step">01 — À la une</span></div>
-      <div class="sc-feature">
-        <div class="sc-feature__courses" id="scFeatured"></div>
-        <div class="sc-feature__start">
-          <span class="chest-label">Commence ici</span>
-          <button type="button" class="sc-video" data-src="https://www.youtube.com/watch?v=et552Md8yzo" data-title="À regarder avant de commencer" aria-label="Lire la vidéo : À regarder avant de commencer"><span class="sc-video__play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span><span class="sc-video__cap">À regarder avant de commencer</span></button>
-          <p class="chest-body" style="margin:12px 0 0;font-size:12.5px">Regarde cette vidéo avant de commencer ton aventure dans ces cours.</p>
-        </div>
-      </div>
+      <div class="sc-section-title"><span class="chest-step">01 — Nouveautés</span></div>
+      <div class="sc-news" id="scNews"></div>
     </section>
 
     <section class="chest-section">
-      <div class="sc-section-title"><span class="chest-step">02 — Les rayons</span></div>
+      <div class="sc-section-title"><span class="chest-step">02 — Explorer</span></div>
       <div class="sc-shelves" id="scShelfTiles"></div>
     </section>
   </div>
@@ -126,27 +120,27 @@
   <!-- ============ COURS ÉCRITS ============ -->
   <div class="sc-view" id="scWritten" hidden>
     <section class="sc-head">
-      <span class="chest-step">01 — École</span>
-      <h1>Cours écrits</h1>
-      <p>Tout ce qu'il faut lire : les cours, les fiches et les documents, rangés par rayon.</p>
+      <span class="chest-step" id="wStep">01 — École</span>
+      <h1 id="wTitle">Cours écrits</h1>
+      <p id="wBlurb"></p>
     </section>
-    <section class="chest-section sc-lib" style="border-top:none;padding-top:8px">
-      <nav class="sc-rail" id="scRail" aria-label="Rayons"></nav>
-      <div class="sc-lib__main" id="scShelves"></div>
+    <section class="chest-section" style="border-top:none;padding-top:14px">
+      <div class="chest-seg sc-chips" id="wChips" role="group" aria-label="Catégories" hidden></div>
+      <div id="wBody"></div>
     </section>
   </div>
 
   <!-- ============ COURS VIDÉO ============ -->
   <div class="sc-view" id="scVideo" hidden>
     <section class="sc-head">
-      <span class="chest-step">02 — École</span>
-      <h1>Cours vidéo</h1>
-      <p>Tes vidéos, chacune avec son flyer. Colle un lien YouTube ou Vimeo, ajoute ton flyer, et regarde sans quitter CHEST.</p>
+      <span class="chest-step" id="vhStep">02 — École</span>
+      <h1 id="vhTitle">Cours vidéo</h1>
+      <p id="vhBlurb"></p>
     </section>
-    <section class="chest-section" style="border-top:none;padding-top:8px">
-      <div class="sc-vbar"><div class="chest-seg sc-chips" id="vChips" role="group" aria-label="Rayons vidéo"></div><button type="button" class="chest-btn" id="vAdd">+ Ajouter une vidéo</button></div>
-      <p class="sc-vblurb" id="vBlurb"></p>
-      <div class="sc-vgrid" id="vGrid"></div>
+    <section class="chest-section" style="border-top:none;padding-top:14px">
+      <div class="sc-doors" id="vDoors"></div>
+      <div class="sc-vbar" id="vBar" hidden><div class="chest-seg sc-chips" id="vChips" role="group" aria-label="Catégories vidéo"></div><button type="button" class="chest-btn" id="vAdd">+ Ajouter une vidéo</button></div>
+      <div id="vBody"></div>
     </section>
   </div>
 
@@ -175,17 +169,17 @@
 <script src="js/nav.js?v=2"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/school-data.js?v=1"></script>
-<script src="js/school.js?v=4"></script>
+<script src="js/school-data.js?v=2"></script>
+<script src="js/school.js?v=6"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
   { selector: '.sc-hero', title: 'School', text: "Ton école. Cherche un cours, un document ou une vidéo dans la barre, ou choisis un parcours juste en dessous." },
-  { selector: '.sc-doors', title: 'Lire ou regarder', text: "« Cours écrits » regroupe les cours, fiches et documents par rayon. « Cours vidéo » regroupe tes vidéos, avec leur flyer." },
-  { selector: '#scFeatured', title: 'À la une', text: "Les trois grands cours : Ressources Trading, VVS et Psychologie & Money Management." },
-  { selector: '#scShelfTiles', title: 'Les rayons', text: "Un clic ouvre directement un rayon : trading, psychologie, UGC, flyers, crédibilité, business, liens et outils." },
-  { selector: '#scRail', title: 'Change de rayon', text: "Le menu de gauche liste les rayons avec le nombre de documents. Les documents lourds s'ouvrent dans Telegram." },
-  { selector: '#vAdd', title: 'Ajoute une vidéo', text: "Colle un lien YouTube ou Vimeo, choisis un rayon, ajoute son flyer : la vidéo rejoint ta bibliothèque. Le crayon et la croix d'une carte la modifient ou la retirent." },
+  { selector: '.sc-doors', title: 'Lire ou regarder', text: "« Cours écrits » rassemble Trading, UGC, Psychologie et Autres ressources. « Cours vidéo » rassemble Mindset et Business." },
+  { selector: '#scNews', title: 'Nouveautés', text: "Les derniers cours, documents et vidéos ajoutés, les plus récents en premier. Un clic les ouvre." },
+  { selector: '#scShelfTiles', title: 'Explorer', text: "Un raccourci vers chaque catégorie et chaque section vidéo." },
+  { selector: '#wBody', title: 'Les éléments', text: "Chaque carte ouvre un cours, une fiche, ou le document dans Telegram. Les documents lourds s'ouvrent dans Telegram." },
+  { selector: '#vAdd', title: 'Ajoute une vidéo', text: "Colle un lien YouTube, choisis la section et la catégorie (ou crées-en une), ajoute la miniature. Les rediffusions listées dans « À compléter » attendent seulement leur lien." },
   { selector: '.sc-panel.is-active .sc-toc', title: 'Sommaire du cours', text: "Le sommaire suit ta lecture. Les liens « Ressources trading » des cours te renvoient à la notion expliquée." },
   { selector: '#vvsStatus', title: 'Checklist VVS', text: "Coche chaque case avant un trade : tant qu'elles ne sont pas toutes cochées, pas de trade. Tes cases sont mémorisées sur cet appareil." },
 ]);
