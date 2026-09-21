@@ -84,7 +84,26 @@
   .jr-toolbar{ display:flex; align-items:center; justify-content:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
 
   /* ================= Formulaire — grille compacte, hauteur uniforme ================= */
-  .jr-form{ padding:22px 24px; margin-bottom:20px; }
+  .jr-form{ padding:22px 24px; margin:0 auto 20px; width:100%; max-width:760px; }
+  #jrPageHead.is-narrow{ max-width:760px; margin-left:auto; margin-right:auto; padding-left:4px !important; padding-right:4px !important; }
+  .jr-row2--challenge{ grid-template-columns:1.35fr 1fr; }
+  @media (max-width:640px){ .jr-row2--challenge{ grid-template-columns:1fr; } }
+  .jr-segmented button.is-active[data-model], .jr-segmented button.is-active[data-stage]{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; }
+  .jr-rules-card{ margin:2px 0 14px; padding:16px 18px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); }
+  .jr-rules-card__head{ display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 12px; margin-bottom:12px; }
+  .jr-rules-card__head b{ font-size:14px; letter-spacing:-.01em; }
+  .jr-rules-card__head span{ font-size:12px; color:var(--acc2, #f9a45e); font-weight:700; }
+  .jr-rules-card__head em{ font-style:normal; font-size:11px; color:var(--muted); margin-left:auto; }
+  .jr-rules-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px 22px; }
+  @media (max-width:640px){ .jr-rules-grid{ grid-template-columns:1fr; } }
+  .jr-rules-grid > div.is-wide{ grid-column:1 / -1; }
+  .jr-rules-grid label{ margin-bottom:3px; }
+  .jr-rules-grid p, .jr-rules-grid li{ margin:0; font-size:12.5px; line-height:1.6; color:var(--muted); }
+  .jr-rules-grid ul{ margin:0; padding-left:16px; }
+  .jr-rules-grid b{ color:var(--ink); font-weight:600; }
+  .jr-rules-grid .is-current{ color:var(--ink); }
+  .jr-rules-card__src{ display:inline-block; margin-top:12px; font-size:12px; color:var(--muted); text-decoration:underline; text-underline-offset:3px; }
+  .jr-rules-card__src:hover{ color:var(--ink); }
   .jr-form label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:5px; }
   .jr-form__actions{ display:flex; align-items:center; gap:10px; margin-top:20px; }
 
@@ -316,6 +335,10 @@
         <div class="jr-cell"><label for="jaBalance">Solde du compte ($)</label><input id="jaBalance" type="number" step="any" placeholder="10000"></div>
       </div>
 
+      <div id="jaChallengeRow" class="jr-row2 jr-row2--challenge" hidden>
+        <div class="jr-cell"><label>Challenge</label><div class="jr-segmented" id="jaModelToggle"></div></div>
+        <div class="jr-cell"><label>Étape du compte</label><div class="jr-segmented" id="jaStageToggle"></div></div>
+      </div>
       <div id="jaRulesNote" class="jr-rules-note" hidden></div>
       <div id="jaRulesRow" class="jr-row-top" style="grid-template-columns:repeat(4,1fr)" hidden>
         <div class="jr-cell"><label>Perte / jour max (%)</label><input id="jaDailyLoss" type="number" step="any"></div>
@@ -323,6 +346,8 @@
         <div class="jr-cell"><label>Objectif profit (%)</label><input id="jaProfitTarget" type="number" step="any"></div>
         <div class="jr-cell"><label>Jours min.</label><input id="jaMinDays" type="number" step="1"></div>
       </div>
+
+      <div id="jaRulesCard" class="jr-rules-card" hidden></div>
 
       <div class="jr-row2">
         <div class="jr-cell">
@@ -343,7 +368,7 @@
           </div>
         </div>
       </div>
-      <p id="jaMt5Note" class="jr-rules-note" hidden>Bientôt — nécessitera un pont local dédié au journal (comme <code>mt5-bridge/export_mt5.py</code>, mais distinct de celui du Dashboard). En attendant, ce compte reste en saisie manuelle.</p>
+      <p id="jaMt5Note" class="jr-rules-note" hidden><b>Pas encore branché — ce compte reste en saisie manuelle.</b> Deux voies possibles : <b>via Myfxbook</b> (tu relies ton compte MT5 à Myfxbook avec le mot de passe investisseur, puis CHEST lit solde, équité, drawdown et courbe journalière par leur API officielle ; historique limité aux 50 dernières transactions, session liée à l'IP, heures du courtier — demande un petit service serveur) ou <b>un pont local MT5</b> (<code>mt5-bridge/export_mt5.py</code> : historique complet, mais MT5 doit tourner sur ton PC).</p>
 
       <div class="jr-form__actions">
         <button type="button" class="btn btn-secondary" id="jaSave">Enregistrer le compte</button>
@@ -569,7 +594,8 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/berich-store.js"></script>
-<script src="js/journal-store.js"></script>
+<script src="js/propfirm-rules.js?v=5"></script>
+<script src="js/journal-store.js?v=2"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -628,6 +654,7 @@ CHESTTour.init([
     // Le grand titre + descriptif n'a de sens que sur l'écran vide — une fois
     // un compte en jeu, on veut arriver direct sur le dashboard.
     document.getElementById('jrPageHead').classList.toggle('is-compact', view !== 'empty');
+    document.getElementById('jrPageHead').classList.toggle('is-narrow', view === 'accountForm');
     document.getElementById('jrPageDesc').hidden = view !== 'empty';
   }
 
@@ -637,8 +664,9 @@ CHESTTour.init([
     if (!active) return;
     document.getElementById('jrAccAvatar').textContent = initials(active.name);
     document.getElementById('jrAccName').textContent = active.name;
+    const activeModel = active.modelId ? (window.CHESTPropRules.models.find((m) => m.id === active.modelId) || null) : null;
     document.getElementById('jrAccSub').textContent = active.type === 'propfirm'
-      ? (CHESTJournal.propfirms().find((p) => p.id === active.propfirmId) || {}).name || 'Propfirm'
+      ? ((CHESTJournal.propfirms().find((p) => p.id === active.propfirmId) || {}).name || 'Propfirm') + (activeModel ? ' · ' + activeModel.label : '')
       : 'Compte propre';
 
     document.getElementById('jrAccMenuList').innerHTML = accounts.map((a) => `
@@ -695,7 +723,7 @@ CHESTTour.init([
     document.getElementById('jaPropfirmCombo').hidden = !isPropfirm;
     document.getElementById('jaBalanceRow').classList.toggle('is-single', !isPropfirm);
     document.getElementById('jaBalance').placeholder = isPropfirm ? '100000' : '10000';
-    if (!isPropfirm) { document.getElementById('jaRulesNote').hidden = true; document.getElementById('jaRulesRow').hidden = true; }
+    if (!isPropfirm) { ['jaRulesNote', 'jaRulesRow', 'jaChallengeRow', 'jaRulesCard'].forEach((id) => { document.getElementById(id).hidden = true; }); }
   }
   document.querySelectorAll('#jaTypeToggle button').forEach((btn) => btn.addEventListener('click', () => reflectAccType(btn.dataset.type)));
 
@@ -708,6 +736,7 @@ CHESTTour.init([
       </div>`).join('');
     document.querySelectorAll('[data-pick-propfirm]').forEach((row) => row.addEventListener('click', () => {
       selectedPropfirm = row.dataset.pickPropfirm;
+      selectedModel = null; selectedStage = 'p1';
       const p = CHESTJournal.propfirms().find((x) => x.id === selectedPropfirm);
       document.getElementById('jaPropfirmTrigger').innerHTML = `<img src="${CHESTJournal.propfirmLogo(p.domain)}" alt="">${p.name}`;
       document.getElementById('jaPropfirmPanel').hidden = true;
@@ -721,24 +750,80 @@ CHESTTour.init([
   });
   document.getElementById('jaPropfirmPanel').addEventListener('click', (e) => e.stopPropagation());
 
-  function applyPropfirmPreset() {
-    const preset = CHESTJournal.propfirmRulePreset(selectedPropfirm);
+  // ---- Challenge, étape et règles (js/propfirm-rules.js : règles lues sur les pages officielles) ----
+  let selectedModel = null, selectedStage = 'p1';
+  const nFrJ = (n, d = 0) => Number(n).toLocaleString('fr-FR', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const pctJ = (n) => `${nFrJ(n, n % 1 ? 2 : 0)} %`;
+  const lossTypeJ = (t) => (t === 'trailing_eod' ? 'suiveuse, recalculée après minuit' : t === 'trailing_eod_lock' ? 'suiveuse sur le solde de fin de journée, verrouillée au capital initial une fois atteint' : 'fixe');
+  const dailyJ = (v) => (v == null ? 'aucune (optionnelle)' : pctJ(v));
+  const consJ = (c) => (c ? `meilleur jour ≤ ${pctJ(c.maxPct)} ${c.basis === 'positive_days' ? 'du profit des jours positifs' : c.basis === 'target' ? 'de l\'objectif de profit' : 'du profit du cycle'}` : null);
+  const minDaysJ = (md) => (!md ? 'jours minimum non précisés' : md.kind === 'trading' ? `${md.count} jour${md.count > 1 ? 's' : ''} de trading minimum` : `${md.count} jours profitables (≥ ${nFrJ(md.minPct, 1)} %)`);
+  const modelOf = (id) => CHESTJournal.challengeModels(selectedPropfirm).find((m) => m.id === id) || null;
+
+  function renderChallenge() {
+    const models = selectedPropfirm ? CHESTJournal.challengeModels(selectedPropfirm) : [];
+    document.getElementById('jaChallengeRow').hidden = !models.length;
+    if (!models.length) { selectedModel = null; return; }
+    if (!selectedModel || !models.some((m) => m.id === selectedModel)) selectedModel = models[0].id;
+    document.getElementById('jaModelToggle').innerHTML = models.map((m) => `<button type="button" data-model="${m.id}" class="${m.id === selectedModel ? 'is-active' : ''}">${escHtmlJ(m.label)}</button>`).join('');
+    const stages = CHESTJournal.stageList(modelOf(selectedModel));
+    if (!stages.some((x) => x.id === selectedStage)) selectedStage = 'p1';
+    document.getElementById('jaStageToggle').innerHTML = stages.map((x) => `<button type="button" data-stage="${x.id}" class="${x.id === selectedStage ? 'is-active' : ''}">${x.label}</button>`).join('');
+    document.querySelectorAll('#jaModelToggle button').forEach((b) => b.addEventListener('click', () => { selectedModel = b.dataset.model; renderChallenge(); applyPropfirmPreset(); }));
+    document.querySelectorAll('#jaStageToggle button').forEach((b) => b.addEventListener('click', () => { selectedStage = b.dataset.stage; renderChallenge(); applyPropfirmPreset(); }));
+  }
+  const escHtmlJ = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function rulesCardHtml(m, stage) {
+    const f = m.funded;
+    const stageLabel = CHESTJournal.stageList(m).find((x) => x.id === stage).label;
+    const cur = (id, txt) => (id === stage || (id === 'p1' && stage === 'p2') ? `<span class="is-current">${txt}</span>` : txt);
+    const challenge = `Objectif ${m.phases.map((p) => pctJ(p)).join(' puis ')} · perte du jour ${dailyJ(m.dailyLossPct)} · perte max ${pctJ(m.maxLossPct)} (${lossTypeJ(m.maxLossType)}) · ${minDaysJ(m.minDays)}${m.bestDay ? ' · ' + consJ(m.bestDay) : ''}`;
+    const funded = `Perte du jour ${dailyJ(f.dailyLossPct)} · perte max ${pctJ(f.maxLossPct)} (${lossTypeJ(f.maxLossType)})${f.consistency ? ' · ' + consJ(f.consistency) : ''}${m.riskCapPct ? ` · risque ≤ ${pctJ(m.riskCapPct)} par trade` : ''}`;
+    const payouts = f.payoutOptions.map((o) => {
+      const bits = [`partage ${pctJ(o.splitPct)}`, o.firstAfterDays ? `1er retrait à ${o.firstAfterDays} j` : '1er retrait immédiat', `puis tous les ${o.cycleDays} j`];
+      if (o.minProfitableDays) bits.push(`${o.minProfitableDays.count} jours profitables ≥ ${nFrJ(o.minProfitableDays.minPct, 1)} %`);
+      if (o.minActiveDays) bits.push(`${o.minActiveDays} jours actifs`);
+      if (o.minGrowthPct) bits.push(`+${nFrJ(o.minGrowthPct)} % de croissance`);
+      if (o.consistency) bits.push(consJ(o.consistency));
+      return `<li><b>${escHtmlJ(o.label)}</b> — ${bits.join(' · ')}</li>`;
+    }).join('');
+    const d = m.source.pageDate ? new Date(m.source.pageDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date(window.CHESTPropRules.verifiedOn).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    return `
+      <div class="jr-rules-card__head"><b>${escHtmlJ(m.firm)} · ${escHtmlJ(m.label)}</b><span>${stageLabel}</span><em>page officielle du ${d}</em></div>
+      <div class="jr-rules-grid">
+        <div class="is-wide"><label>Challenge</label><p>${stage === 'funded' ? challenge : cur('p1', challenge)}</p></div>
+        <div class="is-wide"><label>Compte financé</label><p>${stage === 'funded' ? `<span class="is-current">${funded}</span>` : funded}</p></div>
+        <div><label>Cohérence</label><p>${escHtmlJ(m.consistencyNote)}</p></div>
+        <div><label>Week-end / nuit</label><p>${m.holding ? escHtmlJ(m.holding.note) : 'Non précisé.'}</p></div>
+        <div class="is-wide"><label>Retraits</label><ul>${payouts}</ul></div>
+        <div class="is-wide"><label>Frais</label><p>${escHtmlJ(m.fee.note)}</p></div>
+      </div>
+      <a class="jr-rules-card__src" href="${m.source.url}" target="_blank" rel="noopener noreferrer">Règles officielles ↗</a>`;
+  }
+
+  function applyPropfirmPreset(keepValues) {
+    renderChallenge();
+    const m = selectedModel ? modelOf(selectedModel) : null;
     document.getElementById('jaRulesRow').hidden = false;
     const note = document.getElementById('jaRulesNote');
-    if (preset) {
-      note.hidden = false;
-      note.innerHTML = `<b>Règles vérifiées :</b> ${preset.label}. Modifiables si ton offre diffère.`;
-      document.getElementById('jaDailyLoss').value = preset.dailyLossPct;
-      document.getElementById('jaMaxLoss').value = preset.maxLossPct;
-      document.getElementById('jaProfitTarget').value = preset.profitTargetPct;
-      document.getElementById('jaMinDays').value = preset.minDays;
+    const card = document.getElementById('jaRulesCard');
+    if (m) {
+      const r = CHESTJournal.stageRules(m, selectedStage);
+      note.hidden = true;
+      card.hidden = false;
+      card.innerHTML = rulesCardHtml(m, selectedStage);
+      if (!keepValues) {
+        document.getElementById('jaDailyLoss').value = r.dailyLossPct == null ? '' : r.dailyLossPct;
+        document.getElementById('jaMaxLoss').value = r.maxLossPct;
+        document.getElementById('jaProfitTarget').value = r.profitTargetPct || '';
+        document.getElementById('jaMinDays').value = r.minDays || '';
+      }
     } else {
+      card.hidden = true;
       note.hidden = false;
-      note.innerHTML = `<b>Pas de préréglage fiable pour ce propfirm</b> — plusieurs offres existent avec des paramètres différents. Renseigne les règles de TON offre précisément ci-dessous.`;
-      document.getElementById('jaDailyLoss').value = '';
-      document.getElementById('jaMaxLoss').value = '';
-      document.getElementById('jaProfitTarget').value = '';
-      document.getElementById('jaMinDays').value = '';
+      note.innerHTML = `<b>Pas de règles vérifiées pour ce propfirm</b> — plusieurs offres existent avec des paramètres différents. Renseigne les règles de TON offre précisément ci-dessous.`;
+      if (!keepValues) ['jaDailyLoss', 'jaMaxLoss', 'jaProfitTarget', 'jaMinDays'].forEach((id) => { document.getElementById(id).value = ''; });
     }
   }
 
@@ -761,7 +846,9 @@ CHESTTour.init([
     if (selectedPropfirm) {
       const p = CHESTJournal.propfirms().find((x) => x.id === selectedPropfirm);
       document.getElementById('jaPropfirmTrigger').innerHTML = `<img src="${CHESTJournal.propfirmLogo(p.domain)}" alt="">${p.name}`;
-      applyPropfirmPreset();
+      selectedModel = account && account.modelId ? account.modelId : null;
+      selectedStage = account && account.stage ? account.stage : 'p1';
+      applyPropfirmPreset(!!account);
       if (account) {
         document.getElementById('jaDailyLoss').value = account.rules?.dailyLossPct ?? '';
         document.getElementById('jaMaxLoss').value = account.rules?.maxLossPct ?? '';
@@ -770,8 +857,8 @@ CHESTTour.init([
       }
     } else {
       document.getElementById('jaPropfirmTrigger').innerHTML = '<span class="placeholder">Choisir…</span>';
-      document.getElementById('jaRulesRow').hidden = true;
-      document.getElementById('jaRulesNote').hidden = true;
+      selectedModel = null; selectedStage = 'p1';
+      ['jaRulesRow', 'jaRulesNote', 'jaChallengeRow', 'jaRulesCard'].forEach((id) => { document.getElementById(id).hidden = true; });
     }
     document.getElementById('jaBalance').value = account ? account.balance : '';
     document.getElementById('jaRiskValue').value = account ? account.riskValue : 1;
@@ -810,6 +897,8 @@ CHESTTour.init([
     const account = {
       name, type,
       propfirmId: type === 'propfirm' ? selectedPropfirm : null,
+      modelId: type === 'propfirm' ? selectedModel : null,
+      stage: type === 'propfirm' && selectedModel ? selectedStage : null,
       balance,
       riskUnit: document.querySelector('#jaRiskUnitToggle button.is-active').dataset.unit,
       riskValue: parseFloat(document.getElementById('jaRiskValue').value) || 1,

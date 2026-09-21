@@ -11,7 +11,10 @@
 <link rel="stylesheet" href="css/chest-da.css?v=8">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=8">
 <style>
-  .wizard{ display:flex; flex-direction:column; gap:20px; max-width:760px; }
+  .wizard{ display:flex; flex-direction:column; gap:20px; max-width:760px; width:100%; margin-left:auto; margin-right:auto; }
+  /* Colonne centrée : lien de retour, titre et étapes partagent la même largeur */
+  .chest-root main.container > .back-link, .chest-root main.container > .page-head{ max-width:760px; width:100%; margin-left:auto; margin-right:auto; }
+  .chest-root main.container > .back-link{ display:flex; }
   .wz-card{ padding:26px; }
   .wz-card h2{ font-size:16px; font-weight:700; letter-spacing:-.01em; margin:0 0 6px; display:flex; align-items:center; gap:10px; }
   .wz-card h2 .step{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:var(--acc); color:#fff; font-size:12px; font-weight:800; }

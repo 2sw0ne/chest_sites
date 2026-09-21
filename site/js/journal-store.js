@@ -9,7 +9,7 @@
 //   accountId (compte de journal concerné, entrées manuelles uniquement),
 //   source:'manual'|'berich' }
 //
-// Compte de journal : { id, name, type:'own'|'propfirm', propfirmId,
+// Compte de journal : { id, name, type:'own'|'propfirm', propfirmId, modelId (challenge, ex. 'ftmo-2step'), stage ('p1'|'p2'|'funded'),
 //   balance, riskUnit:'usd'|'pct', riskValue,
 //   rules:{ dailyLossPct, maxLossPct, profitTargetPct, minDays } | null,
 //   rulesVerified: bool (true seulement pour un préréglage vérifié en direct),
@@ -17,10 +17,9 @@
 //
 // Honnêteté : le P&L des entrées 'berich' est celui réellement choisi au
 // moment de la prise de position (mémorisé par berich-store.js), pas
-// recalculé après coup. Les règles propfirm ne sont préremplies QUE pour
-// FTMO (Challenge 2 étapes, Phase 1 — vérifié en direct le 2026-09-09) :
-// les autres varient trop selon l'offre choisie pour être devinées sans
-// risquer de mal représenter un vrai compte — saisie manuelle uniquement.
+// recalculé après coup. Les règles propfirm viennent de js/propfirm-rules.js
+// (pages officielles, datées) et se choisissent par firme, challenge et étape ;
+// une firme absente de cette base reste en saisie manuelle.
 (() => {
   'use strict';
 
@@ -36,22 +35,36 @@
     { id: 'alphacapital', name: 'Alpha Capital Group', domain: 'alphacapitalgroup.uk' },
     { id: 'smartfundtrader', name: 'Smart Fund Trader', domain: 'smartraderfunds.com' },
     { id: 'topstep', name: 'TopStep', domain: 'topstep.com' },
+    { id: 'fundednext', name: 'FundedNext', domain: 'fundednext.com' },
+    { id: 'the5ers', name: 'The5ers', domain: 'the5ers.com' },
+    { id: 'fundingpips', name: 'Funding Pips', domain: 'fundingpips.com' },
+    { id: 'blueberry', name: 'Blueberry Funded', domain: 'blueberryfunded.com' },
   ];
 
-  // Règles vérifiées en direct (recherche du 2026-09-09) — uniquement FTMO,
-  // dont le format Challenge 2 étapes a des paramètres fixes et documentés.
-  // Alpha Capital Group, Smart Fund Trader et TopStep proposent plusieurs
-  // offres avec des paramètres différents (% vs $, statique vs trailing) :
-  // pas de préréglage fiable possible, saisie manuelle obligatoire pour eux.
-  const PROPFIRM_RULE_PRESETS = {
-    ftmo: {
-      label: 'FTMO — Challenge 2 étapes, Phase 1 (vérifié 09/2026)',
-      dailyLossPct: 5, maxLossPct: 10, profitTargetPct: 10, minDays: 4,
-    },
-  };
+  // Nom de la firme dans js/propfirm-rules.js (règles lues sur les pages officielles, datées).
+  const RULES_FIRM = { ftmo: 'FTMO', alphacapital: 'Alpha Capital', topstep: 'Topstep', fundednext: 'FundedNext', the5ers: 'The5ers', fundingpips: 'Funding Pips', blueberry: 'Blueberry Funded' };
+
+  // Challenges disponibles pour une firme (1 étape, 2 étapes, Swing…) et règles d'une étape : elles viennent de
+  // js/propfirm-rules.js (règles vérifiées sur les pages officielles) — jamais devinées. Smart Fund Trader n'y est
+  // pas : saisie manuelle.
+  function challengeModels(propfirmId) {
+    const firm = RULES_FIRM[propfirmId];
+    return firm && window.CHESTPropRules ? window.CHESTPropRules.models.filter((m) => m.firm === firm) : [];
+  }
+  // stage : 'p1' | 'p2' | 'funded'
+  function stageList(m) {
+    const out = m.phases.length > 1 ? [{ id: 'p1', label: 'Phase 1' }, { id: 'p2', label: 'Phase 2' }] : [{ id: 'p1', label: 'Challenge' }];
+    out.push({ id: 'funded', label: 'Compte financé' });
+    return out;
+  }
+  function stageRules(m, stage) {
+    if (!m) return null;
+    if (stage === 'funded') return { dailyLossPct: m.funded.dailyLossPct, maxLossPct: m.funded.maxLossPct, maxLossType: m.funded.maxLossType, profitTargetPct: 0, minDays: 0 };
+    const i = stage === 'p2' ? 1 : 0;
+    return { dailyLossPct: m.dailyLossPct, maxLossPct: m.maxLossPct, maxLossType: m.maxLossType, profitTargetPct: m.phases[i] != null ? m.phases[i] : 0, minDays: m.minDays ? m.minDays.count : 0 };
+  }
 
   function propfirms() { return PROPFIRMS.slice(); }
-  function propfirmRulePreset(id) { return PROPFIRM_RULE_PRESETS[id] || null; }
   function propfirmLogo(domain) { return `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`; }
 
   // ---------- Comptes du journal (propre ou propfirm) ----------
@@ -270,7 +283,7 @@
   window.CHESTJournal = {
     list, add, update, remove, berichEntries, allEntries, computeStats,
     knownTags, rememberTag, favoritePairs, toggleFavoritePair,
-    propfirms, propfirmRulePreset, propfirmLogo,
+    propfirms, challengeModels, stageList, stageRules, propfirmLogo,
     listAccounts, addAccount, updateAccount, removeAccount,
     activeAccountId, setActiveAccountId, getActiveAccount, riskAmountFor, accountConditions,
   };
