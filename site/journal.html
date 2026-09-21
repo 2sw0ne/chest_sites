@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=8">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=8">
+<link rel="stylesheet" href="css/chest-da.css?v=9">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=9">
 <style>
   /* Filet de sécurité : sans ça, une règle de classe qui fixe elle-même
      `display` (ex. .jr-empty-view{display:flex}) a la même spécificité que
@@ -381,6 +381,7 @@
       <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
       <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
       <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+      <a href="school.html" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
     </nav>
     <div class="chest-sidebar__account">
       <div class="chest-sidebar__account-label">Compte</div>
@@ -751,18 +752,21 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/berich-store.js"></script>
+<script src="js/berich-brokers.js"></script>
 <script src="js/myfxbook-store.js"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
-<script src="js/journal-store.js?v=4"></script>
+<script src="js/journal-store.js?v=5"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '#jrHub', title: 'Tes journaux', text: 'Un journal par compte (propre ou propfirm). Clique sur une carte pour ouvrir son suivi, ou crée-en un nouveau.' },
-  { selector: '#jrAccSwitcher', title: 'Ta famille de comptes', text: 'Un journal est une famille : le journal principal (manuel) et ses comptes live Myfxbook. Survole la flèche → pour ajouter un compte live.' },
-  { selector: '#jrConditionsCard', title: 'Règles du challenge', text: 'Pour un compte propfirm : suivi en direct des règles (perte max, objectif de profit, jours minimum).' },
-  { selector: '#jrStats', title: 'Statistiques', text: 'Winrate, RR moyen et P&L calculés automatiquement sur tous les trades de ce compte.' },
-  { selector: '#jrAddBtn', title: 'Ajouter un trade', text: 'Enregistre une position manuellement — ou laisse BERICH le faire automatiquement pour toi.' },
-  { selector: '#jrTableWrap', title: 'Historique', text: 'Toutes les positions de ce compte, filtrables par paire, résultat ou mois.' },
+  { selector: '#jrHubNewBtn', title: 'Crée un journal', text: 'Un journal suit un compte (propre ou propfirm). Pour une propfirm, choisis la firme, le challenge et l\'étape : les règles se remplissent toutes seules.' },
+  { selector: '#jrHubKpis', title: 'Vue d\'ensemble', text: 'Le résumé de tous tes journaux : nombre de journaux, trades, P&L total et dernier trade.' },
+  { selector: '#jrGrid', title: 'Un journal = une carte', text: 'Clique une carte pour ouvrir son suivi. Le menu ⋮ permet d\'ouvrir, modifier ou supprimer le journal.' },
+  { selector: '#jrAccSwitcher', title: 'Ta famille de comptes', text: 'Un journal est une famille : le journal principal (saisi à la main) et ses comptes live Myfxbook. Survole la flèche → pour ajouter un compte live.' },
+  { selector: '#jrConditionsCard', title: 'Règles du challenge', text: 'Pour un compte propfirm : suivi en direct de la perte max, de l\'objectif de profit et des jours minimum.' },
+  { selector: '#jrStats', title: 'Statistiques', text: 'Winrate, RR moyen et P&L calculés automatiquement sur tous les trades du compte.' },
+  { selector: '#jrAddBtn', title: 'Ajoute un trade', text: 'Enregistre une position à la main. Pour un compte live, ce sont les trades de Myfxbook qui arrivent tout seuls.' },
+  { selector: '#jrTableWrap', title: 'Historique', text: 'Toutes les positions du compte, filtrables par paire, résultat ou mois.' },
 ]);
 </script>
 <script>
@@ -1152,11 +1156,15 @@ CHESTTour.init([
 
   let selectedPropfirm = null;
   function renderPropfirmList() {
-    document.getElementById('jaPropfirmList').innerHTML = CHESTJournal.propfirms().map((p) => `
+    const firms = CHESTJournal.propfirms();
+    const row = (p) => `
       <div class="jr-combo__row" data-pick-propfirm="${p.id}">
         <img src="${CHESTJournal.propfirmLogo(p.domain)}" alt="" onerror="this.remove()">
         <span>${p.name}</span>
-      </div>`).join('');
+      </div>`;
+    document.getElementById('jaPropfirmList').innerHTML =
+      '<div class="jr-combo__group-label">Propfirms</div>' + firms.filter((p) => p.kind === 'propfirm').map(row).join('') +
+      '<div class="jr-combo__group-label">Brokers (saisie manuelle des règles)</div>' + firms.filter((p) => p.kind !== 'propfirm').map(row).join('');
     document.querySelectorAll('[data-pick-propfirm]').forEach((row) => row.addEventListener('click', () => {
       selectedPropfirm = row.dataset.pickPropfirm;
       selectedModel = null; selectedStage = 'p1';
@@ -1254,7 +1262,7 @@ CHESTTour.init([
     } else {
       card.hidden = true;
       note.hidden = false;
-      note.innerHTML = `<b>Pas de règles vérifiées pour ce propfirm</b> — plusieurs offres existent avec des paramètres différents. Renseigne les règles de TON offre précisément ci-dessous.`;
+      note.innerHTML = `<b>Pas de règles vérifiées pour cette firme</b> — plusieurs offres existent avec des paramètres différents. Renseigne les règles de TON offre précisément ci-dessous.`;
       if (!keepValues) ['jaDailyLoss', 'jaMaxLoss', 'jaProfitTarget', 'jaMinDays'].forEach((id) => { document.getElementById(id).value = ''; });
     }
   }

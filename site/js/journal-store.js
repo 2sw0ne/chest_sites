@@ -30,17 +30,24 @@
   const ACTIVE_ACCOUNT_KEY = 'chest_journal_active_account';
   const EXT_KEY = 'chest_journal_ext'; // trades venus de sources automatiques (Myfxbook…), par compte
 
-  // ---------- Propfirms sélectionnables (mêmes que BERICH) ----------
-  const PROPFIRMS = [
-    { id: 'ftmo', name: 'FTMO', domain: 'ftmo.com' },
-    { id: 'alphacapital', name: 'Alpha Capital Group', domain: 'alphacapitalgroup.uk' },
-    { id: 'smartfundtrader', name: 'Smart Fund Trader', domain: 'smartraderfunds.com' },
-    { id: 'topstep', name: 'TopStep', domain: 'topstep.com' },
-    { id: 'fundednext', name: 'FundedNext', domain: 'fundednext.com' },
-    { id: 'the5ers', name: 'The5ers', domain: 'the5ers.com' },
-    { id: 'fundingpips', name: 'Funding Pips', domain: 'fundingpips.com' },
-    { id: 'blueberry', name: 'Blueberry Funded', domain: 'blueberryfunded.com' },
+  // ---------- Firmes sélectionnables : TOUTE la liste BERICH (propfirms puis brokers) + les firmes vérifiées en plus ----------
+  // Source : js/berich-brokers.js (`window.CHEST_BROKERS`). Les firmes de js/propfirm-rules.js qui n'y sont pas
+  // (FundedNext, The5ers, Funding Pips, Blueberry Funded) sont ajoutées. Les brokers ont un id préfixé `br_` (Blueberry
+  // existe des deux côtés : propfirm `blueberry`, broker `br_blueberry`).
+  const EXTRA_PROPFIRMS = [
+    { id: 'fundednext', name: 'FundedNext', domain: 'fundednext.com', kind: 'propfirm' },
+    { id: 'the5ers', name: 'The5ers', domain: 'the5ers.com', kind: 'propfirm' },
+    { id: 'fundingpips', name: 'Funding Pips', domain: 'fundingpips.com', kind: 'propfirm' },
+    { id: 'blueberry', name: 'Blueberry Funded', domain: 'blueberryfunded.com', kind: 'propfirm' },
   ];
+  function buildFirms() {
+    const berich = Array.isArray(window.CHEST_BROKERS) ? window.CHEST_BROKERS : [];
+    const props = berich.filter((b) => b.kind === 'propfirm').map((b) => ({ id: b.id, name: b.name, domain: b.domain, kind: 'propfirm' }));
+    EXTRA_PROPFIRMS.forEach((e) => { if (!props.some((p) => p.id === e.id)) props.push(e); });
+    const brokers = berich.filter((b) => b.kind !== 'propfirm').map((b) => ({ id: 'br_' + b.id, name: b.name, domain: b.domain, kind: 'broker' }));
+    return props.concat(brokers);
+  }
+  const PROPFIRMS = buildFirms();
 
   // Nom de la firme dans js/propfirm-rules.js (règles lues sur les pages officielles, datées).
   const RULES_FIRM = { ftmo: 'FTMO', alphacapital: 'Alpha Capital', topstep: 'Topstep', fundednext: 'FundedNext', the5ers: 'The5ers', fundingpips: 'Funding Pips', blueberry: 'Blueberry Funded' };

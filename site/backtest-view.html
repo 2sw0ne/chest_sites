@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=8">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=8">
+<link rel="stylesheet" href="css/chest-da.css?v=9">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=9">
 <link rel="stylesheet" href="css/backtest-da.css?v=10">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
@@ -202,6 +202,7 @@
       <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
       <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
       <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+      <a href="school.html" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
     </nav>
     <div class="chest-sidebar__account">
       <div class="chest-sidebar__account-label">Compte</div>
@@ -334,10 +335,11 @@
 <script>
 CHESTTour.init([
   { selector: '.bt-hero-glow', title: 'Ce backtest', text: 'Capital initial, nombre de trades, période couverte et une note globale calculée sur le retour, le drawdown et le winrate.' },
-  { selector: '#mmSection', title: 'Deux possibilités', text: 'Compare la simulation en compte propre et en propfirm — clique une carte pour voir son détail juste en dessous.' },
-  { selector: '#detailSection', title: 'Détail', text: 'Stats complètes, courbe d\'équity et zones de drawdown pour la possibilité sélectionnée.' },
-  { selector: '#fitSection', title: 'Recommandation', text: 'Ce backtest rejoué sous les règles vérifiées de chaque prop firm : taux de passage historique, risque conseillé, délai — et ce qui te fait échouer. Indicatif, pas une garantie.' },
-  { selector: '#journalSection', title: 'Journal', text: 'Chaque position du backtest, filtrable par compte, résultat ou mois.' },
+  { selector: '#mmSection', title: '01 — Deux possibilités', text: 'La même stratégie simulée en compte propre et en propfirm. Clique une carte pour voir son détail juste en dessous ; le filtre par année recalcule les deux.' },
+  { selector: '#detailSection', title: '02 — Détail', text: 'Statistiques complètes, courbe d\'equity et zones de drawdown de la possibilité sélectionnée.' },
+  { selector: '#fitSection', title: '03 — Recommandation', text: 'Ton backtest rejoué sous les règles vérifiées de chaque propfirm, avec le meilleur money management pour chacune. Le classement combine retraits nets, rapidité du premier retrait et chances de réussite. Indicatif, pas une garantie.' },
+  { selector: '#monthlySection', title: '04 — Mensuel', text: 'Résultat mois par mois, compte propre et propfirm côte à côte.' },
+  { selector: '#journalSection', title: '05 — Journal', text: 'Chaque position du backtest, filtrable par compte, résultat ou mois.' },
 ]);
 </script>
 <script>

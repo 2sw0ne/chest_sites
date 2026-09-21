@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=8">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=8">
+<link rel="stylesheet" href="css/chest-da.css?v=9">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=9">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : une regle de classe qui fixe elle-meme `display`
@@ -415,6 +415,7 @@
       <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
       <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
       <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+      <a href="school.html" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
     </nav>
     <div class="chest-sidebar__account">
       <div class="chest-sidebar__account-label">Compte</div>
@@ -818,13 +819,14 @@
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '#accSwitcher', title: 'Tes comptes', text: 'Bascule entre tes comptes, ou entre les familles (des comptes liés — ex. Phase 1 → Phase 2 → Financé — dont les résultats s\'additionnent). Survole la flèche d\'une famille pour lui ajouter un compte ou un backtesting de départ.' },
-  { selector: '.results-card', title: 'Current Results', text: 'Balance, equity, PnL non réalisé et profit du jour du compte actif — synchronisés via Myfxbook (ou le pont MT5 local).' },
-  { selector: '#periodPills', title: 'Période', text: 'Change la fenêtre affichée par les KPI et la courbe juste en dessous : jour, semaine, mois, ou depuis le début.' },
-  { selector: '.kpi-grid', title: 'Indicateurs clés', text: 'Profit, R:R moyen, winrate et drawdown max sur la période choisie.' },
-  { selector: '.chart-card', title: 'Courbe d\'equity', text: 'Si un backtesting de départ a été associé à ce compte ou à sa famille, son historique simulé apparaît ici avant tes vraies positions, qui continuent directement à la suite (onglet "Tout" uniquement).' },
-  { selector: '.objectives', title: 'Objectifs & calendrier', text: 'Les règles de ton challenge propfirm (si renseignées) et les 14 derniers jours de performance juste à côté.' },
-  { selector: '#toolsToggle', title: 'Outils', text: 'Timeline des sessions de trading (Sydney/Tokyo/Londres/New York) et force des devises en direct — repliés ici, un clic les déplie.' },
+  { selector: '#accSwitcher', title: 'Choisis ton compte', text: 'Ici tu changes de compte. Un compte peut vivre seul ou dans une famille (ex. Phase 1, Phase 2, Compte financé) : les résultats d\'une famille s\'additionnent. Survole la flèche d\'une famille pour lui ajouter un compte ou un backtesting de départ.' },
+  { selector: '#kpiProfit', title: 'Ton résultat', text: 'Le profit du compte actif sur la période choisie, avec l\'equity juste dessous. À droite : balance, PnL non réalisé et profit du jour, synchronisés via Myfxbook (ou le pont MT5 local).' },
+  { selector: '#heroSpot .chest-kpis', title: 'Indicateurs clés', text: 'Profit en dollars, R:R moyen, winrate, drawdown max et jours tradés sur la période choisie.' },
+  { selector: '#periodPills', title: 'Choisis la période', text: 'Jour, semaine, mois, année ou tout : la fenêtre s\'applique à la courbe et aux indicateurs. À côté, « + Backtest / Réel seul » masque le backtest de départ, et $ / % change l\'unité.' },
+  { selector: '.chest-glass--chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde. Si un backtesting de départ est associé au compte ou à sa famille, son historique simulé apparaît avant tes vraies positions, qui continuent à la suite.' },
+  { selector: '#objectivesList', title: 'Objectifs du challenge', text: 'Les règles de ton challenge propfirm (objectif de profit, perte du jour, perte max, jours minimum) et où tu en es. La roue dentée à côté du titre les règle.' },
+  { selector: '#miniCalGrid', title: 'Performance par jour', text: 'Le résultat de chaque jour de trading, avec les totaux par semaine. Les flèches font défiler la fenêtre affichée.' },
+  { selector: '#toolsToggle', title: 'Outils', text: 'Un clic déplie la timeline des sessions (Sydney, Tokyo, Londres, New York) et la force des devises en direct.' },
 ]);
 </script>
 </body>

@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=8">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=8">
+<link rel="stylesheet" href="css/chest-da.css?v=9">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=9">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Vrais drapeaux SVG - les emoji "indicateur regional" s'affichent en
@@ -153,6 +153,7 @@
       <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
       <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
       <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+      <a href="school.html" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
     </nav>
     <div class="chest-sidebar__account">
       <div class="chest-sidebar__account-label">Compte</div>
@@ -430,8 +431,8 @@
 CHESTTour.init([
   { selector: '.settings-row:has(#themeRowValue)', title: 'Apparence', text: 'Bascule entre thème sombre et clair pour tout le site.' },
   { selector: '.settings-row:has(#pairRowValue)', title: 'Paire suivie', text: 'La paire (forex, matière première ou crypto) dont le calendrier économique analyse le sentiment.' },
-  { selector: '#connexion', title: 'Connexion trading', text: 'Le broker/propfirm et les réglages de risque partagés par BERICH et Stratégies.' },
-  { selector: '.settings-row:has(#profileRowValue)', title: 'Profil', text: 'Ton prénom, nom et email, plus le mot de passe qui protège l\'accès à CHEST sur cet appareil.' },
+  { selector: '#connexion', title: 'Connexion trading', text: 'Ton broker ou ta propfirm et les réglages de risque, partagés par BERICH et Stratégies.' },
+  { selector: '.settings-row:has(#profileRowValue)', title: 'Profil', text: 'Ton prénom, ton nom, ton email et le mot de passe qui protège l\'accès à CHEST sur cet appareil.' },
 ]);
 </script>
 <script>

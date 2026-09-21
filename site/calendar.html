@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=8">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=8">
+<link rel="stylesheet" href="css/chest-da.css?v=9">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=9">
 <link rel="stylesheet" href="css/calendar-da.css?v=5">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
@@ -354,6 +354,7 @@
       <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
       <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
       <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+      <a href="school.html" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
     </nav>
     <div class="chest-sidebar__account">
       <div class="chest-sidebar__account-label">Compte</div>
@@ -527,13 +528,13 @@
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '.ticker-wrap', title: 'Ticker en direct', text: 'Les principales paires forex qui défilent, en continu.' },
-  { selector: '.sentiment-hero', title: 'Sentiment', text: 'Biais haussier/baissier estimé pour la paire suivie, à partir des annonces macro de la semaine (ou, pour une crypto, du calendrier US + Fear & Greed + momentum). Change la paire suivie dans Compte.' },
-  { selector: '#moversSection', title: 'Marché crypto', text: 'Visible uniquement quand la paire suivie est une crypto — meilleures et moins bonnes performances sur 24h, parmi les 100 plus grandes capitalisations.' },
-  { selector: '#importanceFilter', title: 'Filtrer par importance', text: 'Ne garde que les annonces à fort impact si tu veux aller à l\'essentiel.' },
-  { selector: '.day-nav-head', title: 'Navigateur de jour', text: 'Parcours les jours passés/à venir — la liste "Prochains jours" plus bas reste elle toujours ancrée sur aujourd\'hui.' },
-  { selector: '#bubbleZone', title: 'Annonces du jour', text: 'Le détail des annonces économiques du jour sélectionné, avec prévu/réel et l\'impact estimé sur XAU/DXY.' },
-  { selector: '#upcomingZone', title: 'Prochains jours', text: 'Vue d\'ensemble des jours suivants, pour anticiper les annonces à fort impact.' },
+  { selector: '.ticker-wrap', title: 'Ticker en direct', text: 'Les principales paires forex qui défilent en continu.' },
+  { selector: '.sentiment-hero', title: 'Sentiment', text: 'Biais haussier ou baissier estimé pour la paire suivie, à partir des annonces macro de la semaine (pour une crypto : calendrier US, Fear & Greed et momentum). Change la paire suivie dans Compte.' },
+  { selector: '#moversSection', title: 'Marché crypto', text: 'Visible seulement quand la paire suivie est une crypto : meilleures et moins bonnes performances sur 24 h parmi les 100 plus grosses capitalisations.' },
+  { selector: '#importanceFilter', title: 'Filtre l\'importance', text: 'Ne garde que les annonces à fort impact si tu veux aller à l\'essentiel.' },
+  { selector: '.day-nav-head', title: 'Navigue de jour en jour', text: 'Parcours les jours passés et à venir. La liste « Prochains jours » plus bas reste toujours ancrée sur aujourd\'hui.' },
+  { selector: '#bubbleZone', title: 'Annonces du jour', text: 'Le détail des annonces du jour choisi : prévu, réel et impact estimé sur l\'or et le dollar.' },
+  { selector: '#upcomingZone', title: 'Prochains jours', text: 'Vue d\'ensemble des jours suivants pour anticiper les annonces à fort impact.' },
 ]);
 </script>
 </body>

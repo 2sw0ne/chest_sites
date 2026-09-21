@@ -18,6 +18,7 @@
     'strategies':       { cat: 'Scanners',  label: 'Stratégies' },
     'calendar':         { cat: 'Marché',    label: 'Calendrier économique' },
     'berich':           { cat: 'Exécution', label: 'BERICH' },
+    'school':           { cat: 'Formation', label: 'School' },
     'account':          { cat: 'Réglages',  label: 'Compte' },
     'admin-members':    { cat: 'Admin',     label: 'Gestion des membres' },
     'backtest-add':     { cat: 'Recherche', label: 'Nouveau backtest',    nav: 'backtesting' },
