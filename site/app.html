@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/welcome.css?v=15">
+<link rel="stylesheet" href="css/welcome.css?v=16">
 <script src="js/theme.js"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
@@ -30,17 +30,9 @@
        style="--img:url(assets/news-school.jpg)"
      Le texte d'attente disparaît seul. Le contenu détaillé (fenêtre
      qui s'ouvre au clic) est dans .wel__card-full.
-     data-news-id alimente le compteur de la cloche.
+     data-news-id alimente le +N rouge du bouton Newsletter.
      ══════════════════════════════════════════════════════════════ -->
 <div class="wel" id="chestWelcome" aria-label="Bienvenue" hidden>
-
-  <button type="button" class="wel__skip" id="welSkip" data-count="0" aria-label="Aller au dashboard">
-    <span class="wel__skip-bell">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5Z" stroke-linejoin="round"/><path d="M10.3 19a2 2 0 0 0 3.4 0" stroke-linecap="round"/></svg>
-      <span class="wel__skip-count">0</span>
-    </span>
-    <span class="wel__skip-label">Entrer</span>
-  </button>
 
   <div id="welScroll">
 
@@ -51,14 +43,21 @@
       <div class="wel__vignette" aria-hidden="true"></div>
 
       <div class="wel__stage">
-        <img class="wel__logo" src="assets/logo-chest-glow.png" alt="">
+        <img class="wel__logo" src="assets/logo-chest-hero.webp" alt="">
         <h1 class="wel__title"><span>Welcome</span><em id="welName"></em></h1>
+        <p class="wel__say" id="welSay" aria-live="off"><span class="wel__say-sr" id="welSaySr"></span><span class="wel__say-fx" id="welSayFx" aria-hidden="true"></span></p>
+        <div class="wel__actions">
+          <button type="button" class="wel__btn wel__btn--ghost" id="welNewsBtn" data-count="0">
+            <span>Newsletter</span><i class="wel__badge" id="welBadge" aria-hidden="true">+0</i>
+          </button>
+          <button type="button" class="wel__btn wel__btn--main" id="welStart">Start</button>
+        </div>
       </div>
 
     </section>
 
     <!-- ─── 2 · Newsletter ─── -->
-    <section class="wel__page wel__page--news">
+    <section class="wel__page wel__page--news" id="welNews">
       <div class="wel__glow" aria-hidden="true"></div>
 
       <div class="wel__news-wrap">
@@ -212,6 +211,6 @@
 
 <script src="js/nav.js?v=3"></script>
 <script src="js/shell.js?v=2"></script>
-<script src="js/welcome.js?v=16"></script>
+<script src="js/welcome.js?v=18"></script>
 </body>
 </html>

@@ -19,7 +19,12 @@
   const html = document.documentElement;
   const shell = document.getElementById('chestShell');
   const nameEl = document.getElementById('welName');
-  const skipBtn = document.getElementById('welSkip');
+  const newsBtn = document.getElementById('welNewsBtn');
+  const badge = document.getElementById('welBadge');
+  const startBtn = document.getElementById('welStart');
+  const newsEl = document.getElementById('welNews');
+  const sayFx = document.getElementById('welSayFx');
+  const saySr = document.getElementById('welSaySr');
   const stars = document.getElementById('welStars');
   const lightCv = document.getElementById('welLight');
   const hero = root.querySelector('.wel__hero');
@@ -87,7 +92,6 @@
       startSnow();
       // r = part du dashboard déjà visible (0 = tout juste caché, 1 = plein écran)
       const r = (y - (end - vh())) / vh();
-      root.classList.toggle('is-past', r > 0.06);
       clearTimeout(settleTimer);
       if (r > 0 && !touching && !sheet.classList.contains('is-open')) settleTimer = setTimeout(settle, 150);
     });
@@ -112,7 +116,6 @@
     try { sessionStorage.removeItem(FLAG); } catch (e) {}
     // Dans la même image : le calque disparaît et le dashboard prend sa place en haut.
     root.hidden = true;
-    root.classList.remove('is-past');
     html.classList.remove('is-welcome');
     if (shell) shell.removeAttribute('inert');
     window.scrollTo(0, 0);
@@ -143,30 +146,35 @@
     // brume : de grandes nappes lentes qui se déforment l'une l'autre
     ' float n1=fbm(p*vec2(.85,1.05)+vec2(t*.016,-t*.011));',
     ' float n2=fbm(p*1.6+vec2(-t*.02,t*.014)+n1*.9);',
-    // deux bandes de lumière en diagonale, d'inclinaisons différentes ; leur intensité varie le long de l'axe
+    // deux bandes de lumière en diagonale, d'inclinaisons différentes ; elles respirent, en opposition de phase
     ' vec2 dir=normalize(vec2(1.,.5+.06*sin(t*.09)));vec2 nrm=vec2(-dir.y,dir.x);',
     ' vec2 c=vec2(-.05+.05*sin(t*.07),-.05+.04*cos(t*.06));',
     ' float q=dot(p-c,nrm)+(n1-.5)*.4;float al=dot(p-c,dir);',
     ' float v1=.55+.9*fbm(vec2(al*1.3-t*.03,q*1.4+t*.02));',
-    ' float band=exp(-pow(q/(.32+.05*sin(t*.13)),2.))*exp(-max(al,0.)*.42)*smoothstep(-.7,.15,al)*v1;',
+    ' float band=exp(-pow(q/(.32+.05*sin(t*.13)),2.))*exp(-max(al,0.)*.36)*smoothstep(-.7,.15,al)*v1*(.78+.3*sin(t*.17));',
     ' vec2 dir2=normalize(vec2(1.,.95+.08*cos(t*.07)));vec2 nrm2=vec2(-dir2.y,dir2.x);',
     ' vec2 c2=vec2(.62*asp+.08*sin(t*.05),-.2);',
     ' float q2=dot(p-c2,nrm2)+(n2-.5)*.45;float al2=dot(p-c2,dir2);',
     ' float v2=.4+1.0*fbm(vec2(al2*1.1+t*.025,q2*1.2-t*.03));',
-    ' float band2=exp(-pow(q2/.4,2.))*exp(-max(al2,0.)*.3)*smoothstep(-.5,.2,al2)*v2;',
+    ' float band2=exp(-pow(q2/.4,2.))*exp(-max(al2,0.)*.3)*smoothstep(-.5,.2,al2)*v2*(.7+.5*sin(t*.11+2.));',
+    // deux lueurs qui dérivent, apparaissent et s'effacent à tour de rôle : c'est ce qui fait vivre le fond
+    ' vec2 g1=vec2(asp*(.5+.38*sin(t*.083)),.24+.14*cos(t*.117));',
+    ' vec2 g2=vec2(asp*(.5+.4*cos(t*.061+1.)),.38+.12*sin(t*.097+2.));',
+    ' float glow=exp(-dot(p-g1,p-g1)/.11)*(.5+.5*sin(t*.29))+exp(-dot(p-g2,p-g2)/.15)*(.5+.5*sin(t*.23+2.5));',
     // très peu de rayons : juste de quoi donner du volume
     ' vec2 o=vec2(-.15,-.65);vec2 d=p-o;float len=length(d);float a=atan(d.y,d.x);',
     ' float rr=fbm(vec2(a*3.4+t*.045,len*.3-t*.03));',
     ' float ray=smoothstep(.3,.9,rr);',
-    ' float inten=band*2.1+band2*.42+n2*.34*exp(-len*.34)+ray*.2*exp(-len*.34);',
-    // fondu noir : démarre au même endroit qu'avant (~26 %) mais descend beaucoup plus bas
+    // brume plus présente, bandes moins dominantes : le contraste général baisse
+    ' float inten=band*1.6+band2*.42+glow*.3+n2*.46*exp(-len*.3)+ray*.16*exp(-len*.34);',
+    // fondu noir : démarre à ~26 % de la hauteur et descend jusqu'en bas
     ' float mask=1.-smoothstep(.26,1.06,uv.y);',
     ' float b=clamp(inten*mask*.56,0.,1.5);',
-    ' vec3 deep=vec3(.1,.0,.055),wine=vec3(.33,.03,.19),mag=vec3(.6,.075,.385),rose=vec3(.82,.36,.6),soft=vec3(.92,.64,.77),wht=vec3(.97,.82,.89);',
-    ' vec3 c1=mix(deep,wine,smoothstep(.03,.3,b));',
-    ' c1=mix(c1,mag,smoothstep(.34,.72,b));',
-    ' c1=mix(c1,rose,smoothstep(.55,.9,b));',
-    ' c1=mix(c1,soft,smoothstep(.82,1.15,b));',
+    ' vec3 deep=vec3(.15,.012,.085),wine=vec3(.37,.05,.225),mag=vec3(.56,.09,.37),rose=vec3(.75,.33,.55),soft=vec3(.87,.58,.72),wht=vec3(.93,.75,.84);',
+    ' vec3 c1=mix(deep,wine,smoothstep(.03,.28,b));',
+    ' c1=mix(c1,mag,smoothstep(.3,.66,b));',
+    ' c1=mix(c1,rose,smoothstep(.58,.92,b));',
+    ' c1=mix(c1,soft,smoothstep(.84,1.16,b));',
     ' c1=mix(c1,wht,smoothstep(1.1,1.5,b));',
     ' c1*=smoothstep(0.,.16,b);',
     ' c1+=(h21(gl_FragCoord.xy+t)-.5)/255.;',   // grain : évite les bandes
@@ -264,9 +272,7 @@
     const ctx = stars.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cw, ch);
-    // la souris est suivie avec un peu de retard : le mouvement de la lumière reste doux
-    cur.sx += (cur.x - cur.sx) * Math.min(1, dt * 7);
-    cur.sy += (cur.y - cur.sy) * Math.min(1, dt * 7);
+    cur.sx = cur.x; cur.sy = cur.y; // suivi direct, sans inertie
 
     // halo de lumière sous le curseur
     if (cur.on) {
@@ -299,7 +305,9 @@
       }
       if (f.y > ch + 14 || f.x < -30 || f.x > cw + 30) { spawn(f, false); continue; }
       const r = f.r * (1 + boost * 0.5);
-      ctx.globalAlpha = Math.min(1, f.a + boost * 0.55);
+      let k = (f.y / ch - 0.58) / 0.36; k = k < 0 ? 0 : k > 1 ? 1 : k;   // ils s'éteignent proprement en bas
+      const fade = 1 - k * k * (3 - 2 * k);
+      ctx.globalAlpha = Math.min(1, f.a + boost * 0.55) * fade;
       ctx.drawImage(sprite, f.x - r, f.y - r, r * 2, r * 2);
     }
     ctx.globalAlpha = 1;
@@ -317,6 +325,183 @@
       return;
     }
     if (!loop && heroVisible()) { last = performance.now(); loop = requestAnimationFrame(tick); }
+  }
+
+  /* ---------- CHEST qui parle ----------
+     Une phrase choisie selon l'heure et la session de marché en cours (heures en UTC, comme les sessions du reste du site :
+     Asie 0-7, Londres 7-12, Londres × New York 12-16, New York 16-21), écrite lettre à lettre comme si l'algo s'adressait à toi.
+     Volontairement prudent : « généralement », « souvent » — jamais une prédiction ni une promesse. {name} = prénom (retiré s'il manque). */
+  const SAY = {
+    asiaOpen: [
+      "Tu arrives pile pour l'ouverture de la session asiatique.",
+      "Tokyo ouvre ses portes. Je surveille, tu peux respirer.",
+      "L'Asie se réveille : les premiers mouvements de la journée se dessinent.",
+      "Une nouvelle journée de marché démarre. Je suis prêt quand tu l'es.",
+      "Ouverture asiatique : le calme avant l'arrivée de l'Europe.",
+      "{name}, la session asiatique s'ouvre. Rien ne presse."
+    ],
+    mondayOpen: [
+      "Nouvelle semaine de marché. On repart de zéro, ensemble.",
+      "La semaine commence. Les écarts du week-end sont souvent les premiers à regarder.",
+      "Lundi, ouverture de la semaine : un bon moment pour relire ton plan.",
+      "Les marchés rouvrent. {name}, commence par ton plan, pas par les graphiques."
+    ],
+    asia: [
+      "L'Asie mène la danse, généralement plus calme : idéal pour préparer la suite.",
+      "Le marché est plutôt lent en ce moment : parfait pour travailler ton trading.",
+      "Session asiatique en cours. Un bon moment pour relire ton journal.",
+      "Pendant que l'Europe dort, je garde un œil sur Tokyo.",
+      "Les volumes sont souvent plus faibles en Asie. Profites-en pour revoir tes backtests.",
+      "Ambiance tranquille sur les marchés. Ton plan, ton rythme.",
+      "{name}, l'Asie est calme : c'est le moment de préparer Londres.",
+      "Session asiatique : l'heure où l'on prépare, plutôt que de courir.",
+      "Un café, un backtest, et Londres arrive bientôt."
+    ],
+    londonOpen: [
+      "Londres vient d'ouvrir : les premiers vrais mouvements arrivent souvent maintenant.",
+      "Ouverture de Londres. Le marché se réveille pour de bon.",
+      "Londres est là. Respire, applique ton plan.",
+      "L'Europe prend le relais. Pas de précipitation, {name}.",
+      "Les volumes montent, la discipline aussi.",
+      "Tu arrives pile pour l'ouverture de Londres.",
+      "Le ballet européen commence. Je surveille les premières minutes avec toi."
+    ],
+    london: [
+      "Londres est en pleine action. Garde la tête froide.",
+      "Session de Londres en cours : souvent l'une des plus actives de la journée.",
+      "Le marché a de l'énergie ce matin. Ton plan reste ton meilleur allié.",
+      "Londres bat son plein. Un trade propre vaut mieux que dix trades pressés.",
+      "{name}, l'Europe est réveillée, et toi aussi. Bonne session.",
+      "Beaucoup de mouvement en Europe : reste sur tes setups, pas sur ceux des autres.",
+      "Session de Londres : le bon moment pour être patient."
+    ],
+    nyOpen: [
+      "New York ouvre ses portes, et le marché avec.",
+      "Wall Street se réveille pendant que Londres bat encore son plein.",
+      "Ouverture de New York : ça peut bouger vite. Prends ton souffle.",
+      "Tu arrives pile pour l'ouverture de New York.",
+      "Les Américains arrivent. Reste sur ton plan, {name}.",
+      "Nouvelle vague de volume : New York rejoint la séance."
+    ],
+    overlap: [
+      "Londres et New York sont ouvertes en même temps : souvent le moment le plus animé.",
+      "Le chevauchement des deux sessions : de l'énergie, mais aussi des faux départs. Prudence.",
+      "Pic d'activité probable. Une position à la fois.",
+      "Gros volumes en vue. La discipline avant tout, {name}.",
+      "Les deux grandes places sont ouvertes : ça vit fort sur les graphiques.",
+      "Le cœur de la journée de trading. Concentre-toi, je m'occupe du reste."
+    ],
+    ny: [
+      "Londres a fermé, New York finit la journée. Le rythme ralentit souvent.",
+      "Session américaine : l'après-midi peut rester calme… ou surprendre. Reste attentif.",
+      "L'Europe est partie se coucher. Il reste New York.",
+      "Le marché commence à ralentir. Pense à faire un bilan de ta journée.",
+      "Le jour touche à sa fin. Un petit tour dans ton journal, {name} ?",
+      "Fin de journée : le moment idéal pour noter ce que tu as appris."
+    ],
+    late: [
+      "La journée de trading se termine. Bravo si tu as tenu ton plan, ou su t'arrêter.",
+      "Les marchés se calment. Ferme aussi tes graphiques.",
+      "Dernière heure de la séance américaine. Le repos fait partie du plan.",
+      "Bonne soirée {name}. Demain, un nouveau marché t'attend.",
+      "Coupe les écrans de trading : tes décisions de demain n'en seront que meilleures."
+    ],
+    friday: [
+      "Dernière ligne droite de la semaine. Certaines propfirms interdisent de garder une position le week-end : vérifie les tiennes.",
+      "Vendredi soir : bilan, journal, puis repos.",
+      "La semaine se termine. Qu'as-tu appris cette semaine, {name} ?",
+      "Le week-end approche : pense à tes positions ouvertes avant la fermeture."
+    ],
+    weekend: [
+      "Les marchés forex et actions sont fermés. Profites-en pour souffler, ou pour préparer la semaine.",
+      "Week-end : les graphiques dorment. Ton journal, lui, t'attend.",
+      "Rien ne bouge sur le forex : le moment idéal pour un backtest.",
+      "Marchés fermés jusqu'à dimanche soir. Un passage par School ne coûte rien.",
+      "C'est le week-end, {name}. Fais une pause, tu l'as sans doute méritée.",
+      "Pas de nouvelles bougies aujourd'hui. Un bon jour pour revoir les erreurs de la semaine.",
+      "Marchés fermés : parfait pour ranger ton journal et lire un cours."
+    ],
+    night: [
+      "Il est tard, {name}. Un trade fatigué reste un trade fatigué.",
+      "Les meilleures décisions se prennent reposé. Je serai encore là demain.",
+      "Encore debout ? Je veille, mais dors un peu.",
+      "Le sommeil est aussi un outil de trader."
+    ],
+    morning: [
+      "Bon matin {name}. Un café, un plan, et c'est parti.",
+      "Nouvelle journée, nouvelle page de ton journal.",
+      "Le matin, c'est fait pour préparer. Tout est prêt de mon côté."
+    ],
+    generic: [
+      "Tout est prêt : tes comptes, tes backtests, ton journal.",
+      "Content de te revoir, {name}. On reprend là où on s'est arrêtés.",
+      "Je ne prédis rien, je t'aide à décider. C'est déjà beaucoup.",
+      "Un bon trader est d'abord un trader patient.",
+      "Aujourd'hui : discipline d'abord, résultats ensuite.",
+      "Ici, chaque chiffre est vérifié. Pas de promesses, seulement des simulations honnêtes.",
+      "Ton journal est le meilleur des mentors : il ne ment jamais.",
+      "Et si tu regardais tes derniers backtests avant d'ouvrir une position ?",
+      "Un plan, un risque, un stop. Le reste, c'est du bruit."
+    ]
+  };
+
+  function sayContext(d) {
+    const day = d.getUTCDay(), h = d.getUTCHours();   // 0 = dimanche
+    if (day === 6 || (day === 5 && h >= 22) || (day === 0 && h < 22)) return 'weekend';
+    if (day === 0) return 'mondayOpen';               // dimanche soir : réouverture
+    if (day === 5 && h >= 20) return 'friday';
+    if (day === 1 && h < 2) return 'mondayOpen';
+    if (h >= 22 || h === 0) return 'asiaOpen';
+    if (h < 7) return 'asia';
+    if (h === 7) return 'londonOpen';
+    if (h < 12) return 'london';
+    if (h === 12) return 'nyOpen';
+    if (h < 16) return 'overlap';
+    if (h < 21) return 'ny';
+    return 'late';
+  }
+  function pickSay() {
+    const d = new Date(), lh = d.getHours(), r = Math.random();
+    let pool = SAY[sayContext(d)];
+    if (lh < 5 && r < 0.35) pool = SAY.night;
+    else if (lh >= 5 && lh < 9 && r < 0.25) pool = SAY.morning;
+    else if (r < 0.2) pool = SAY.generic;
+    let last = -1, lastKey = '';
+    try { const v = (localStorage.getItem('chest_wel_say') || '').split('|'); lastKey = v[0]; last = +v[1]; } catch (e) {}
+    const key = Object.keys(SAY).find((k) => SAY[k] === pool);
+    let i = Math.floor(Math.random() * pool.length);
+    if (pool.length > 1 && key === lastKey && i === last) i = (i + 1) % pool.length;   // jamais deux fois la même d'affilée
+    try { localStorage.setItem('chest_wel_say', key + '|' + i); } catch (e) {}
+    let txt = pool[i];
+    const n = firstName();
+    txt = n ? txt.replace(/\{name\}/g, n) : txt.replace(/\{name\},\s*/g, '').replace(/,\s*\{name\}/g, '').replace(/\s*\{name\}/g, '');
+    txt = txt.replace(/\s+([,.!?])/g, '$1').trim();
+    return txt.charAt(0).toLocaleUpperCase('fr-FR') + txt.slice(1);
+  }
+  let sayTimer = 0;
+  function say() {
+    if (!sayFx) return;
+    clearInterval(sayTimer);
+    const txt = pickSay();
+    if (saySr) saySr.textContent = txt;
+    // mots insécables > lettres : la mise en page est figée d'avance, rien ne bouge pendant l'écriture
+    sayFx.innerHTML = '';
+    const chars = [];
+    txt.split(' ').forEach((w, wi, arr) => {
+      const ws = document.createElement('span'); ws.className = 'wel__say-w';
+      [...w].forEach((ch) => { const c = document.createElement('span'); c.className = 'wel__say-c'; c.textContent = ch; ws.appendChild(c); chars.push(c); });
+      sayFx.appendChild(ws);
+      if (wi < arr.length - 1) sayFx.appendChild(document.createTextNode(' '));
+    });
+    if (reduce) { chars.forEach((c) => c.classList.add('is-on')); return; }
+    let i = 0, prev = null;
+    setTimeout(() => {
+      sayTimer = setInterval(() => {
+        if (prev) prev.classList.remove('is-cur');
+        if (i >= chars.length) { clearInterval(sayTimer); setTimeout(() => prev && prev.classList.remove('is-cur'), 1400); return; }
+        prev = chars[i++]; prev.classList.add('is-on', 'is-cur');
+      }, 26);
+    }, 1000);
   }
 
   /* ---------- Fenêtre d'une nouveauté ---------- */
@@ -347,13 +532,15 @@
   function show() {
     closed = false;
     root.hidden = false;
-    root.classList.remove('is-past');
     html.classList.add('is-welcome');
     if (shell) shell.setAttribute('inert', ''); // le dashboard n'est ni cliquable ni atteignable au clavier tant qu'on n'y est pas
 
     const n = firstName();
     if (nameEl) nameEl.textContent = n;
-    if (skipBtn) skipBtn.setAttribute('data-count', String(newsCount()));
+    const nb = newsCount();
+    if (newsBtn) newsBtn.setAttribute('data-count', String(nb));
+    if (badge) badge.textContent = '+' + nb;
+    say();
 
     window.scrollTo(0, 0);
     requestAnimationFrame(() => { sizeCanvas(); startSnow(); });
@@ -371,7 +558,8 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) startSnow(); });
   if (hero) hero.addEventListener('mouseleave', () => { cur.on = false; });
 
-  if (skipBtn) skipBtn.addEventListener('click', glide);
+  if (startBtn) startBtn.addEventListener('click', glide);
+  if (newsBtn) newsBtn.addEventListener('click', () => scrollTo(newsEl.getBoundingClientRect().top + window.scrollY));
 
   // Une carte s'ouvre au clic (ou Entrée / Espace) dans une fenêtre.
   root.addEventListener('click', (e) => {
