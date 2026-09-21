@@ -105,14 +105,39 @@
   .prof__kpis span{ display:flex; flex-direction:column; gap:2px; min-width:0; }
   .prof__kpis i{ font-style:normal; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
   .prof__kpis b{ font-size:14px; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .prof__rules{ font-size:11.5px; line-height:1.55; color:var(--muted); }
-  .prof__rules b{ color:var(--ink); font-weight:600; }
+  .prof__rules{ width:100%; font-size:12px; line-height:1.5; }
+  .mm{ display:flex; flex-direction:column; gap:5px; }
+  .mm__base{ color:var(--ink); font-size:13px; line-height:1.45; }
+  .mm__num{ font-weight:800; font-size:15px; background:linear-gradient(90deg,#fc1283,#f9a45e); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 8px rgba(252,18,131,.4)); }
+  .mm b{ font-weight:700; }
+  .mm__base b:not(.mm__num){ color:#f9a45e; text-shadow:0 0 12px rgba(249,164,94,.45); }
+  .mm__rule{ position:relative; padding-left:14px; color:var(--muted); }
+  .mm__rule::before{ content:''; position:absolute; left:2px; top:.55em; width:6px; height:6px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; }
+  .mm__rule b{ color:inherit; }
+  .mm__rule.is-skip{ color:#ff4d5e; } .mm__rule.is-down{ color:#e8b339; } .mm__rule.is-up{ color:#33e6a6; } .mm__rule.is-none{ color:var(--muted); }
+  .mm__more{ padding-left:14px; font-size:11.5px; color:var(--muted); }
   .prof-tag{ display:inline-block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:999px; border:1px solid currentColor; }
   .prof-tag.is-ok{ color:var(--green); }
   .prof-tag.is-warn{ color:var(--amber); }
   .prof-tag.is-none{ color:var(--muted); }
   .prof-detail{ margin-top:10px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); }
-  .prof-detail__goal{ font-size:13px; font-weight:600; margin-bottom:6px; }
+  .pd-label{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); margin:14px 0 8px; }
+  .pd-label:first-child{ margin-top:0; }
+  .pd-mm .mm{ gap:7px; }
+  .pd-mm .mm__base{ font-size:15px; }
+  .pd-mm .mm__num{ font-size:20px; }
+  .pd-mm .mm__rule{ font-size:13.5px; }
+  .pd-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pchip{ display:inline-flex; align-items:baseline; gap:7px; padding:7px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); white-space:nowrap; }
+  .pchip b{ font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .pchip i{ font-style:normal; font-size:11.5px; color:var(--muted); }
+  .pchip.is-pos{ border-color:rgba(51,230,166,.45); background:rgba(51,230,166,.07); box-shadow:0 0 22px rgba(51,230,166,.14); }
+  .pchip.is-pos b{ color:#33e6a6; text-shadow:0 0 14px rgba(51,230,166,.55); }
+  .pchip.is-neg{ border-color:rgba(255,77,94,.4); background:rgba(255,77,94,.06); box-shadow:0 0 22px rgba(255,77,94,.12); }
+  .pchip.is-neg b{ color:#ff4d5e; text-shadow:0 0 14px rgba(255,77,94,.5); }
+  .pchip.is-warn{ border-color:rgba(232,179,57,.45); background:rgba(232,179,57,.07); box-shadow:0 0 22px rgba(232,179,57,.12); }
+  .pchip.is-warn b{ color:#e8b339; text-shadow:0 0 14px rgba(232,179,57,.5); }
+  .pchip.is-mute b{ color:var(--ink); }
   .prof-detail__row{ font-size:12.5px; line-height:1.6; color:var(--muted); margin-top:6px; }
   .prof-detail__row b{ color:var(--ink); font-weight:600; }
   .prof-detail__row.warn{ color:var(--amber); }
@@ -568,18 +593,44 @@ CHESTTour.init([
     return Math.round(x).toLocaleString('fr-FR');
   }
   const fmtPerf = (p) => (p.finalMult >= 1000 ? `×${fmtBig(p.finalMult)}` : `${p.perf >= 0 ? '+' : '−'}${Math.round(Math.abs(p.perf)).toLocaleString('fr-FR')} %`);
-  const fmtSigned = (v, d = 1) => `${v >= 0 ? '+' : '−'}${fr(Math.abs(v), d)} %`;
-  const ruleTxt = (r) => {
-    const cond = r.conds.map((c) => (c.field.indexOf('d:') === 0 && c.field !== 'd:window' ? esc(c.value) : `${esc(fieldLabel(c.field))} ${esc(c.value)}`)).join(' + ');
-    return `<b>${cond}</b> → ${riskTxt(r.risk)}`;
-  };
-  const summaryTxt = (p) => {
+  const fmtSigned = (v, d = 1) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d })} %`;
+  const DAYS_FULL = { Lun: 'lundi', Mar: 'mardi', Mer: 'mercredi', Jeu: 'jeudi', Ven: 'vendredi' };
+  const winRange = (v) => String(v).replace(/^(\d+)h-(\d+)h$/, '$1h à $2h');
+  // Une règle « Si » en phrase de trader : « Pas de trading de 1h à 3h », « Session Londres : risque 0,5 % »…
+  function ruleLine(r, base) {
+    const skip = r.risk === 0;
+    const tone = skip ? 'skip' : r.risk < base ? 'down' : 'up';
+    const subj = r.conds.map((c) => {
+      if (c.field === 'd:window') return { win: winRange(c.value) };
+      if (c.field === 'd:session') return { ses: c.value };
+      if (c.field === 'd:weekday') return { day: DAYS_FULL[c.value] || c.value };
+      return { tag: `${fieldLabel(c.field)} ${c.value}` };
+    });
+    let html;
+    if (subj.length === 1) {
+      const x = subj[0];
+      if (skip) html = x.win ? `Pas de trading de <b>${esc(x.win)}</b>` : x.ses ? `Pas de trading en session <b>${esc(x.ses)}</b>` : x.day ? `Pas de trading le <b>${esc(x.day)}</b>` : `Ignorer les trades <b>${esc(x.tag)}</b>`;
+      else html = (x.win ? `De <b>${esc(x.win)}</b>` : x.ses ? `Session <b>${esc(x.ses)}</b>` : x.day ? `Le <b>${esc(x.day)}</b>` : `<b>${esc(x.tag)}</b>`) + ` : risque <b>${riskTxt(r.risk)}</b>`;
+    } else {
+      const names = subj.map((x) => `<b>${esc(x.win || x.ses || x.day || x.tag)}</b>`).join(' + ');
+      html = skip ? `Ignorer les trades ${names}` : `${names} : risque <b>${riskTxt(r.risk)}</b>`;
+    }
+    return { tone, html };
+  }
+  const tierTxt = (t) => `<b>${riskTxt(t.newRisk)}</b> après ${t.afterSl === 1 ? '1 SL' : `${t.afterSl} SL d'affilée`}`;
+  // Money management d'un profil : risque de base, palier, règles. `max` = nombre de règles montrées (cartes).
+  function mmHtml(p, max) {
     const c = p.config;
-    const parts = [`Risque <b>${riskTxt(c.risk)}</b>`];
-    if (c.tiers.length) parts.push(`<b>${riskTxt(c.tiers[0].newRisk)}</b> après ${c.tiers[0].afterSl} SL`);
-    parts.push(c.rules.length ? `<b>${c.rules.length}</b> règle${c.rules.length > 1 ? 's' : ''} « Si » (${esc(p.logic)})` : 'sans règle « Si »');
-    return parts.join(' · ');
-  };
+    const rules = c.rules.map((r) => ruleLine(r, c.risk));
+    const shown = max ? rules.slice(0, max) : rules;
+    return `<span class="mm">`
+      + `<span class="mm__base"><b class="mm__num">${riskTxt(c.risk)}</b> par trade${c.tiers.length ? `, puis ${tierTxt(c.tiers[0])}` : ''}</span>`
+      + shown.map((r) => `<span class="mm__rule is-${r.tone}">${r.html}</span>`).join('')
+      + (max && rules.length > max ? `<span class="mm__more">+ ${rules.length - max} autre${rules.length - max > 1 ? 's' : ''} règle${rules.length - max > 1 ? 's' : ''}</span>` : '')
+      + (!rules.length ? `<span class="mm__rule is-none">Même risque sur tous les trades</span>` : '')
+      + `</span>`;
+  }
+  const chip = (cls, main, sub) => `<span class="pchip is-${cls}"><b>${main}</b>${sub ? `<i>${sub}</i>` : ''}</span>`;
   const trustShort = (p) => {
     if (p.trust === 'ok') return { cls: 'ok', tag: 'Fiable', txt: `Confirmé sur les ${p.oos.testN} derniers trades, jamais vus par le calcul.` };
     if (p.trust === 'warn') return { cls: 'warn', tag: 'Prudence', txt: `Non confirmé sur les ${p.oos.testN} derniers trades, jamais vus par le calcul.` };
@@ -598,22 +649,27 @@ CHESTTour.init([
       resultEl.dataset.premium = JSON.stringify({ profile: p.id, name: p.name, logic: p.logic, perf: p.perf, mult: p.finalMult, avgM: p.avgM, posM: p.posM, dd: p.dd, holds: p.trust === 'ok' ? true : p.trust === 'warn' ? false : null });
     };
     const detail = (p) => {
-      const t = trustShort(p);
-      const lines = [];
-      lines.push(`<div class="prof-detail__goal">${esc(p.goal)}</div>`);
-      lines.push(`<div class="prof-detail__row">${p.config.rules.length ? p.config.rules.map(ruleTxt).join(' · ') : 'Même risque sur tous les trades, sans distinction de bonus.'}</div>`);
-      if (p.oos) {
-        lines.push(`<div class="prof-detail__row"><span class="prof-tag is-${t.cls}">${t.tag}</span> Réglé sur les ${p.oos.trainN} premiers trades, puis testé sur les ${p.oos.testN} derniers : <b>${fmtSigned(p.oos.perf, 0)}</b> avec un drawdown de <b>${fr(p.oos.maxDd, 1)} %</b>${p.oos.flatPerf != null ? ` (sans règle « Si » : ${fmtSigned(p.oos.flatPerf, 0)})` : ''}.</div>`);
-      } else {
-        lines.push(`<div class="prof-detail__row"><span class="prof-tag is-none">${t.tag}</span> ${t.txt}</div>`);
+      const rows = [];
+      rows.push(`<div class="pd-label">Money management · ${esc(p.name)}</div><div class="pd-mm">${mmHtml(p, 0)}</div>`);
+      const o = p.oos;
+      let test;
+      if (!o) test = chip('mute', 'Test impossible', 'moins de 60 trades');
+      else {
+        const good = p.trust === 'ok';
+        test = chip(good ? 'pos' : 'warn', fmtSigned(o.perf, 0), `${o.testN} derniers trades`)
+          + chip('neg', `${fr(o.maxDd, 1)} %`, 'DD max')
+          + (o.flatPerf != null ? chip('mute', fmtSigned(o.flatPerf, 0), 'sans la règle « Si »') : '')
+          + (good ? '' : chip('warn', 'Non confirmé', 'prudence'));
       }
-      let worst = `Pire cas (ordre des trades mélangé, 95 % des tirages) : drawdown sous <b>${fr(p.mc.p95, 1)} %</b>`;
-      if (p.mc.breach != null) worst += ` · limite de ${p.mc.breachDd} % dépassée dans <b>${fr(p.mc.breach, 1)} %</b> des tirages`;
-      lines.push(`<div class="prof-detail__row">${worst}. Ton pire enchaînement réel : <b>${p.maxSlStreak}</b> SL d'affilée.</div>`);
-      if (p.finalMult >= 1000) lines.push(`<div class="prof-detail__row">Chiffres composés théoriques : sans limite de lots ni de liquidité.</div>`);
-      if (p.skipped) lines.push(`<div class="prof-detail__row">${p.skipped} trade${p.skipped > 1 ? 's' : ''} ignoré${p.skipped > 1 ? 's' : ''} par ces règles.</div>`);
-      if (p.note) lines.push(`<div class="prof-detail__row warn">${esc(p.note)}</div>`);
-      return lines.join('');
+      rows.push(`<div class="pd-label">Test sur des trades jamais vus</div><div class="pd-chips">${test}</div>`);
+      const worst = chip('mute', `< ${fr(p.mc.p95, 1)} %`, 'DD dans 95 % des cas')
+        + (p.mc.breach != null ? chip(p.mc.breach <= 5 ? 'pos' : 'neg', `${fr(p.mc.breach, 1)} %`, `de dépasser ${p.mc.breachDd} % de DD`) : '')
+        + chip('mute', `${p.maxSlStreak} SL`, 'pire série d\'affilée')
+        + (p.skipped ? chip('mute', `${p.skipped}`, `trade${p.skipped > 1 ? 's' : ''} ignoré${p.skipped > 1 ? 's' : ''}`) : '');
+      rows.push(`<div class="pd-label">Pire cas</div><div class="pd-chips">${worst}</div>`);
+      if (p.finalMult >= 1000) rows.push(`<div class="prof-detail__row">Chiffres composés théoriques : sans limite de lots ni de liquidité.</div>`);
+      if (p.note) rows.push(`<div class="prof-detail__row warn">${esc(p.note)}</div>`);
+      return rows.join('');
     };
     const draw = () => {
       resultEl.innerHTML = `<div class="prem-title">Réglage premium · 3 façons de voir</div>`
@@ -628,8 +684,8 @@ CHESTTour.init([
             + `<span title="Drawdown maximum"><i>DD max</i><b>${fr(p.dd, 1)} %</b></span>`
             + `<span title="Part des mois gagnants"><i>Mois +</i><b>${Math.round(p.posM * 100)} %</b></span>`
             + `</span>`
-            + `<span class="prof__rules">${summaryTxt(p)}</span>`
-            + `<span class="prof-tag is-${t.cls}">${t.tag}</span>`
+            + `<span class="prof__rules">${mmHtml(p, 3)}</span>`
+            + (p.trust === 'ok' ? '' : `<span class="prof-tag is-${t.cls}">${t.tag}</span>`)
             + `</button>`;
         }).join('')}</div>`
         + `<div class="prof-detail">${detail(profiles[sel])}</div>`
