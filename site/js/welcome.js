@@ -165,7 +165,7 @@
     // deux lueurs qui dérivent, apparaissent et s'effacent à tour de rôle : c'est ce qui fait vivre le fond
     ' vec2 g1=vec2(asp*(.5+.38*sin(t*.083)),.24+.14*cos(t*.117));',
     ' vec2 g2=vec2(asp*(.5+.4*cos(t*.061+1.)),.38+.12*sin(t*.097+2.));',
-    ' float glow=exp(-dot(p-g1,p-g1)/.11)*(.5+.5*sin(t*.29))+exp(-dot(p-g2,p-g2)/.15)*(.5+.5*sin(t*.23+2.5));',
+    ' float glow=exp(-dot(p-g1,p-g1)/.11)*(.5+.5*sin(t*.29))+exp(-dot(p-g2,p-g2)/.15)*(.5+.5*sin(t*.23+2.5))*.6;',
     // aurore : des rideaux verticaux déformés par une houle lente, qui glissent d'un côté à l'autre
     ' float wav=fbm(vec2(p.x*.85+t*.05,p.y*.7-t*.03))*1.7+sin(p.x*1.25+t*.11+n1*2.2)*.3;',
     ' float cur1=fbm(vec2(p.x*2.1+wav*1.5,p.y*.6+t*.05));',
@@ -179,6 +179,13 @@
     ' float rr=fbm(vec2(a*3.4+t*.045,len*.3-t*.03));',
     ' float ray=smoothstep(.3,.9,rr);',
     // brume plus présente, bandes moins dominantes : le contraste général baisse
+    // ORANGE : la lueur se réchauffe en avançant le long de son trajet (rose -> pêche -> orange), son bord inférieur est plus chaud,
+    // et une des deux lueurs qui dérivent est orange. VIOLET : les zones éloignées de l'axe, à gauche et en haut à droite.
+    ' float along=smoothstep(.35+.3*sin(t*.07),1.9,p.x);',
+    ' float fringe=smoothstep(-.02,.3,q)*exp(-max(q,0.)*3.2);',
+    ' float gw=exp(-dot(p-g2,p-g2)/.2)*(.5+.5*sin(t*.23+2.5));',
+    ' float warm=clamp((along*.8+fringe*.75)*exp(-abs(q)*1.8)+gw*.9,0.,1.);',
+    ' float vio=smoothstep(.15,.95,1.-prox)*(.45+.55*n1)*(1.-.6*warm);',
     ' float rd=1.-.62*smoothstep(.3,.95,uv.x/asp);',
     ' float inten=band*1.95+band2*.42+(glow*.3+aur*1.65+n2*.34*exp(-len*.3)+ray*.12*exp(-len*.34))*rd*prox;',
     // fondu noir : démarre à ~26 % de la hauteur et descend jusqu'en bas
@@ -191,9 +198,14 @@
     ' c1=mix(c1,soft,smoothstep(.84,1.16,b));',
     ' c1=mix(c1,wht,smoothstep(1.1,1.5,b));',
     ' c1+=vec3(.18,.02,.3)*aur*.5*(1.-uv.x/asp)*mask+vec3(.3,.11,.04)*aur*.16*smoothstep(.5,1.,uv.x/asp)*mask;',
+    // orange (pêche puis orange franc) et violet, fondus dans la palette : discrets, jamais saturés
+    ' c1=mix(c1,c1*vec3(1.1,.94,.62)+vec3(.12,.06,.0),warm*smoothstep(.1,.55,b)*.5);',
+    ' c1+=vec3(.95,.55,.18)*warm*smoothstep(.2,.8,b)*.1;',
+    ' c1=mix(c1,c1*vec3(.86,.78,1.32)+vec3(.05,.01,.16),vio*smoothstep(.02,.35,b)*1.0);',
+    ' c1+=vec3(.36,.14,.72)*vio*smoothstep(.05,.45,b)*.22*mask;',
     ' c1*=smoothstep(0.,.16,b);',
     // queue du fondu : un lie-de-vin très sombre qui s'étire jusqu'à ~80 % de la hauteur, pour adoucir la démarcation
-    ' c1+=vec3(.1,.008,.056)*(.55+.45*n2)*smoothstep(.16,.5,uv.y)*(1.-smoothstep(.5,.84,uv.y))*(1.-.5*smoothstep(.4,1.,uv.x/asp));',
+    ' c1+=mix(vec3(.1,.008,.056),vec3(.075,.014,.11),smoothstep(.2,.8,n1))*(.55+.45*n2)*smoothstep(.16,.5,uv.y)*(1.-smoothstep(.5,.84,uv.y))*(1.-.5*smoothstep(.4,1.,uv.x/asp));',
     ' c1+=(h21(gl_FragCoord.xy+t)-.5)/255.;',   // grain : évite les bandes
     ' gl_FragColor=vec4(c1,1.);',
     '}'
