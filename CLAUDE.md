@@ -128,6 +128,10 @@ Le formulaire « Nouveau compte » de `journal.html` (fenêtre centrée, 760 px,
 - **Journal du rapport de backtest** (`backtest-view.html`, section 05) : par défaut rangé **par clôture** (ordre de la courbe) ; quand le fichier donne l'heure d'ouverture ET de clôture, un sélecteur « Par clôture / Par ouverture » apparaît (`journalOrder`). En mode ouverture : tri par heure d'ouverture, mois = mois d'ouverture, numéros recalculés ; « Capital après » et « Variation » restent ceux de la clôture (le capital bouge à la clôture) — une phrase le rappelle sous le titre.
 - School : la vidéo « Commence ici » de l'accueil a été retirée (décision utilisateur).
 
+## Page « Welcome » (ouverture)
+
+`css/welcome.css` + `js/welcome.js` + le bloc `#chestWelcome` d'`app.html` : page plein écran (fond noir, étoiles discrètes, logo CHEST lumineux, gros « Welcome » + prénom, sous-titre, emplacement « Nouveautés » vide pour plus tard) posée **par-dessus le shell**. Elle s'affiche à **chaque connexion** (`login.html` pose `sessionStorage.chest_welcome = '1'` avant la redirection ; jamais à la simple réouverture d'une session) et au **clic sur le logo « CHEST »** en haut à gauche (qui ramène aussi au dashboard). On défile vers le bas : la page monte, le shell dessous prend de l'échelle et de l'opacité (`--wel-p`), puis **aimantation** (au-delà de 30 % elle finit toute seule, en dessous elle revient) ; arrivée en bas, elle est masquée et **on ne peut plus y remonter**. Le shell est `inert` tant qu'elle est ouverte. Le bouton « Scroll » ou les touches ↓ / Entrée / Espace font défiler d'un coup ; `prefers-reduced-motion` supprime les animations. Inspiration de mise en page : la première page de backgrounds.supply (logo, grand titre, on descend, le contenu apparaît), sans reprise de son contenu. À retravailler plus tard (décision utilisateur) : nouveautés et informations pour les membres à la place de l'encart « Nouveautés ».
+
 ## Plan du site (`site/*.html`)
 
 | Page | Rôle |

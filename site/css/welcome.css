@@ -1,0 +1,73 @@
+/* =====================================================================
+   CHEST — page d'accueil « Welcome » (par-dessus le shell)
+   Affichée à chaque connexion et au clic sur le logo CHEST. On la fait défiler vers le bas : elle monte et
+   laisse apparaître le dashboard ; une fois tout en bas, elle disparaît et on ne peut plus y remonter.
+   ===================================================================== */
+html.is-welcome{ overflow:hidden; }
+html.is-welcome .chest-shell{
+  transform: translateY(calc((1 - var(--wel-p, 0)) * 9vh)) scale(calc(.965 + var(--wel-p, 0) * .035));
+  transform-origin: 50% 0;
+  opacity: calc(.4 + var(--wel-p, 0) * .6);
+  transition: none;
+  pointer-events: none;
+}
+.wel{ position:fixed; inset:0; z-index:400; color:var(--chest-ink); font-family:'Instrument Sans', system-ui, sans-serif; }
+.wel[hidden]{ display:none; }
+.wel__scroll{ position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; outline:none; }
+.wel__scroll::-webkit-scrollbar{ display:none; }
+.wel__page{ position:relative; height:100vh; height:100dvh; background:#050505; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 24px; }
+.wel__spacer{ height:100vh; height:100dvh; pointer-events:none; }
+
+.wel__stars{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.wel__glow{
+  position:absolute; left:50%; top:38%; width:min(1100px,120vw); height:min(760px,90vh); transform:translate(calc(-50% + var(--mx, 0px)), calc(-50% + var(--my, 0px)));
+  background: radial-gradient(38% 46% at 42% 46%, rgba(252,18,131,.32), transparent 70%), radial-gradient(34% 40% at 62% 56%, rgba(249,164,94,.22), transparent 72%);
+  filter:blur(46px); pointer-events:none; transition:transform .5s cubic-bezier(.16,1,.3,1);
+}
+.wel__vignette{ position:absolute; inset:0; pointer-events:none; background:radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,0,0,.65)); }
+
+.wel__inner{ position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; max-width:1100px; }
+.wel__logo{ width:92px; height:92px; object-fit:contain; margin-bottom:34px; filter:drop-shadow(0 0 34px rgba(252,18,131,.55)) drop-shadow(0 10px 30px rgba(249,164,94,.3)); }
+.wel__eyebrow{ margin:0 0 6px; font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--chest-ink-2); }
+.wel__title{ margin:0; display:flex; flex-direction:column; align-items:center; font-weight:700; letter-spacing:-.06em; line-height:.9; font-size:clamp(68px, 15vw, 230px); }
+.wel__title span{ background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.62)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; padding:0 .04em .06em; }
+.wel__title em{ font-style:italic; font-weight:400; letter-spacing:-.045em; font-size:.3em; line-height:1.15; margin-top:.12em; background:linear-gradient(120deg,#fc1283,#f9a45e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; padding:0 .1em .08em; }
+.wel__sub{ margin:26px 0 0; max-width:520px; font-size:15px; line-height:1.6; color:var(--chest-ink-2); text-wrap:balance; }
+.wel__news{
+  margin-top:34px; padding:10px 20px; border-radius:999px; border:1px dashed rgba(255,255,255,.2); font-size:12px; color:var(--chest-ink-3);
+  display:inline-flex; gap:10px; align-items:center;
+}
+.wel__news b{ font-weight:600; color:var(--chest-ink-2); letter-spacing:.14em; text-transform:uppercase; font-size:10px; }
+
+.wel__cue{
+  position:absolute; z-index:3; left:50%; bottom:30px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:10px;
+  background:none; border:none; color:var(--chest-ink-2); font:inherit; font-size:10px; letter-spacing:.3em; text-transform:uppercase; cursor:pointer; padding:8px 14px;
+}
+.wel__cue:hover{ color:var(--chest-ink); }
+.wel__cue i{ width:1px; height:44px; background:linear-gradient(180deg,rgba(255,255,255,.7),transparent); position:relative; overflow:hidden; }
+.wel__cue i::after{ content:''; position:absolute; left:0; top:-40%; width:1px; height:40%; background:#fff; animation:welCue 1.8s cubic-bezier(.6,0,.2,1) infinite; }
+@keyframes welCue{ from{ top:-40%; } to{ top:110%; } }
+
+/* entrée en scène */
+.wel.is-in .wel__logo, .wel.is-in .wel__eyebrow, .wel.is-in .wel__title span, .wel.is-in .wel__title em, .wel.is-in .wel__sub, .wel.is-in .wel__news, .wel.is-in .wel__cue{
+  animation: welUp .9s cubic-bezier(.16,1,.3,1) both;
+}
+.wel.is-in .wel__eyebrow{ animation-delay:.12s; }
+.wel.is-in .wel__title span{ animation-delay:.2s; }
+.wel.is-in .wel__title em{ animation-delay:.34s; }
+.wel.is-in .wel__sub{ animation-delay:.46s; }
+.wel.is-in .wel__news{ animation-delay:.56s; }
+.wel.is-in .wel__cue{ animation-delay:.8s; }
+@keyframes welUp{ from{ opacity:0; transform:translateY(26px); } to{ opacity:1; transform:none; } }
+.wel.is-in .wel__cue{ animation-name:welFade; }
+@keyframes welFade{ from{ opacity:0; } to{ opacity:1; } }
+
+@media (max-width:640px){
+  .wel__logo{ width:72px; height:72px; margin-bottom:26px; }
+  .wel__sub{ font-size:14px; }
+}
+@media (prefers-reduced-motion:reduce){
+  html.is-welcome .chest-shell{ transform:none; opacity:1; }
+  .wel.is-in *{ animation:none !important; }
+  .wel__cue i::after{ animation:none; }
+}

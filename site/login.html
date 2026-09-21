@@ -227,6 +227,7 @@
     submitLabel.textContent = 'Connexion…';
     try {
       await CHESTAccounts.login({ email, password, remember });
+      try { sessionStorage.setItem('chest_welcome', '1'); } catch (e) { /* tant pis */ } // page Welcome à chaque connexion
       window.location.href = 'app.html';
     } catch (err) {
       errEl.textContent = err.message;

@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
+<link rel="stylesheet" href="css/welcome.css?v=1">
 <script src="js/theme.js"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
@@ -78,7 +79,27 @@
   </div>
 </div>
 
+<div class="wel" id="chestWelcome" role="dialog" aria-label="Bienvenue" hidden>
+  <div class="wel__scroll" id="welScroll" tabindex="-1">
+    <section class="wel__page">
+      <canvas class="wel__stars" id="welStars" aria-hidden="true"></canvas>
+      <div class="wel__glow" aria-hidden="true"></div>
+      <div class="wel__vignette" aria-hidden="true"></div>
+      <div class="wel__inner">
+        <img class="wel__logo" src="assets/logo-chest.png" alt="CHEST">
+        <p class="wel__eyebrow" id="welHello">Bonjour</p>
+        <h1 class="wel__title"><span>Welcome</span><em id="welName"></em></h1>
+        <p class="wel__sub">Ton espace CHEST : suivi, backtests, journal, marchés et formation, au même endroit.</p>
+        <div class="wel__news" id="welNews"><b>Nouveautés</b> les informations arrivent ici</div>
+      </div>
+      <button type="button" class="wel__cue" id="welCue" aria-label="Entrer dans le dashboard"><span>Scroll</span><i></i></button>
+    </section>
+    <div class="wel__spacer" aria-hidden="true"></div>
+  </div>
+</div>
+
 <script src="js/nav.js?v=3"></script>
 <script src="js/shell.js?v=2"></script>
+<script src="js/welcome.js?v=1"></script>
 </body>
 </html>
