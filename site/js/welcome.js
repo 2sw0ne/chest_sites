@@ -200,12 +200,13 @@
     ' c1+=vec3(.18,.02,.3)*aur*.5*(1.-uv.x/asp)*mask+vec3(.3,.11,.04)*aur*.16*smoothstep(.5,1.,uv.x/asp)*mask;',
     // orange (pêche puis orange franc) et violet, fondus dans la palette : discrets, jamais saturés
     // COUCHER DE SOLEIL : violet à gauche -> rose au centre -> orange puis jaune doré à droite (le centre garde le rose de la marque)
-    ' float sunR=smoothstep(.34,.96,uv.x);float vioL=1.-smoothstep(.02,.56,uv.x);',
-    ' vec3 gold=mix(vec3(.5,.15,.05),vec3(.97,.62,.14),smoothstep(.1,.5,b));gold=mix(gold,vec3(1.,.86,.4),smoothstep(.45,1.,b));',
-    ' gold=mix(gold,vec3(1.,.9,.5),smoothstep(.8,1.3,b)*sunR);',
-    ' c1=mix(c1,gold,clamp(sunR*.85+warm*smoothstep(.3,.7,uv.x)*.35,0.,1.)*smoothstep(.1,.42,b)*.6);',
-    ' vec3 vv=mix(vec3(.17,.04,.32),vec3(.5,.2,.86),smoothstep(.05,.5,b));vv=mix(vv,vec3(.82,.66,.98),smoothstep(.55,1.1,b));',
-    ' c1=mix(c1,vv,clamp(vioL*.95+vio*.35*(1.-sunR),0.,1.)*smoothstep(.05,.36,b)*.55);',
+    ' float sunR=smoothstep(.5,.92,uv.x);float vioL=1.-smoothstep(.06,.44,uv.x);',
+    // droite : on privilégie le jaune-orange (le rose disparaît sous la teinte) ; gauche : violet franc ; centre : le rose de la marque
+    ' vec3 gold=mix(vec3(.44,.2,.04),vec3(.98,.68,.16),smoothstep(.06,.5,b));gold=mix(gold,vec3(1.,.9,.45),smoothstep(.4,1.,b));',
+    ' gold=mix(gold,vec3(1.,.94,.6),smoothstep(.8,1.3,b)*sunR);',
+    ' c1=mix(c1,gold,clamp(sunR*1.05+warm*smoothstep(.4,.75,uv.x)*.3,0.,1.)*smoothstep(.02,.22,b)*.92);',
+    ' vec3 vv=mix(vec3(.2,.04,.36),vec3(.52,.16,.82),smoothstep(.04,.5,b));vv=mix(vv,vec3(.84,.66,.99),smoothstep(.55,1.1,b));',
+    ' c1=mix(c1,vv,clamp(vioL*1.05+vio*.3*(1.-sunR),0.,1.)*smoothstep(.02,.22,b)*.92);',
     ' c1*=smoothstep(0.,.16,b);',
     // queue du fondu : un lie-de-vin très sombre qui s'étire jusqu'à ~80 % de la hauteur, pour adoucir la démarcation
     ' c1+=mix(vec3(.1,.008,.056),vec3(.075,.014,.11),smoothstep(.2,.8,n1))*(.55+.45*n2)*smoothstep(.16,.5,uv.y)*(1.-smoothstep(.5,.84,uv.y))*(1.-.5*smoothstep(.4,1.,uv.x/asp));',
