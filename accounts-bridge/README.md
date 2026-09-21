@@ -73,3 +73,17 @@ pour l'instant dans le `localStorage` du navigateur, comme avant — leur
 migration vers ce backend (rattachée à chaque compte utilisateur) est une
 étape suivante, à faire outil par outil plutôt que d'un bloc, pour pouvoir
 vérifier chaque migration sans perdre de données existantes.
+
+## School (contenu partagé)
+
+Le contenu de la page School ajouté par l'admin (documents, fiches, vidéos, miniatures) est enregistré ici,
+donc visible par tous les membres approuvés. Les fichiers vont dans `school_files/` (à côté de la base ; sur
+Railway, dans le Volume) sous des noms aléatoires.
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| GET | `/school` | membre | Toutes les entrées (`items`, `videos`, `cats`) |
+| POST | `/school/entries` | admin | Crée ou met à jour (multipart : `data` JSON + `file` + `thumb`) |
+| POST | `/school/entries/<id>/delete` | admin | Supprime l'entrée et ses fichiers |
+| POST | `/school/seed` | admin | Premier remplissage, une seule fois |
+| GET | `/school/files/<clé>` | — (clé aléatoire) | Sert un fichier (lecture vidéo par plages) |

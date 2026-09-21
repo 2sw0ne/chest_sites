@@ -35,3 +35,6 @@ accounts-bridge/accounts.db
 
 # Brouillons locaux
 scratch/
+
+# School : fichiers déposés par l admin (documents, vidéos, miniatures), propres à chaque serveur
+accounts-bridge/school_files/

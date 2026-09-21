@@ -28,6 +28,7 @@ Usage local :
 Sur Railway, c'est le CMD du Dockerfile qui lance cette commande.
 """
 
+import json
 import os
 import re
 import secrets
@@ -37,13 +38,19 @@ import threading
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, g, jsonify, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 from werkzeug.serving import WSGIRequestHandler
 
 DB_DIR = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH") or os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(DB_DIR, "accounts.db")
 SESSION_LIFETIME_DAYS = 30
+
+# School : contenu partagé (cours, documents, vidéos) ajouté par l'admin, lu par tous les membres.
+# Les fichiers (documents, vidéos, miniatures) vivent à côté de la base, sous des noms aléatoires.
+FILES_DIR = os.path.join(DB_DIR, "school_files")
+MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
 
 # Notification email a chaque nouvelle inscription en attente - toutes ces
 # variables sont optionnelles ; s'il en manque une, on logue et on continue
@@ -56,6 +63,7 @@ SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER)
 NOTIFY_EMAIL_TO = os.environ.get("NOTIFY_EMAIL_TO", "")
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 db_lock = threading.Lock()
 
 
@@ -120,6 +128,16 @@ def init_db():
                 expires_at TEXT NOT NULL
             )
         """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS school_entries (
+                id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL,
+                data TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        db.execute("CREATE TABLE IF NOT EXISTS school_meta (key TEXT PRIMARY KEY, value TEXT)")
         db.commit()
 
 
@@ -146,7 +164,7 @@ def add_cors_headers(resp):
     # depuis un navigateur, pas qui peut atteindre le serveur. Meme
     # convention que calendar-bridge/server.py.
     resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Range"
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
 
@@ -351,6 +369,151 @@ def reset_member_password(member_id):
         db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
         db.commit()
     return jsonify({"newPassword": new_password})
+
+
+# ---------------------------------------------------------------- School
+def approved_user():
+    u = current_user()
+    return u if u and u["status"] == "approved" else None
+
+
+def entry_public(row):
+    d = json.loads(row["data"])
+    d["id"] = row["id"]
+    d["kind"] = row["kind"]
+    d["createdAt"] = row["created_at"]
+    return d
+
+
+def save_upload(field, entry_id):
+    """Enregistre le fichier du champ multipart `field` sous un nom aléatoire. Renvoie un dict ou None."""
+    f = request.files.get(field)
+    if not f or not f.filename:
+        return None
+    os.makedirs(FILES_DIR, exist_ok=True)
+    ext = os.path.splitext(secure_filename(f.filename))[1][:12].lower()
+    key = secrets.token_urlsafe(12).replace("-", "a").replace("_", "b") + ext
+    f.save(os.path.join(FILES_DIR, key))
+    return {"key": key, "name": f.filename, "size": os.path.getsize(os.path.join(FILES_DIR, key)), "mime": f.mimetype or ""}
+
+
+def delete_file(info):
+    if info and info.get("key"):
+        try:
+            os.remove(os.path.join(FILES_DIR, os.path.basename(info["key"])))
+        except OSError:
+            pass
+
+
+@app.route("/school")
+def school_list():
+    if not approved_user():
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    rows = db.execute("SELECT * FROM school_entries ORDER BY created_at DESC").fetchall()
+    seeded = db.execute("SELECT value FROM school_meta WHERE key = 'seeded'").fetchone()
+    return jsonify({"entries": [entry_public(r) for r in rows], "seeded": bool(seeded)})
+
+
+@app.route("/school/entries", methods=["POST"])
+def school_save():
+    admin = approved_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if request.files or request.form:
+        try:
+            data = json.loads(request.form.get("data", "{}"))
+        except ValueError:
+            return jsonify({"error": "Données invalides."}), 400
+    else:
+        data = request.get_json(silent=True) or {}
+    kind = data.get("kind")
+    if kind not in ("item", "video", "cat"):
+        return jsonify({"error": "Type d'élément inconnu."}), 400
+    entry_id = str(data.get("id") or "e" + secrets.token_hex(6))
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", entry_id):
+        return jsonify({"error": "Identifiant invalide."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db = get_db()
+        row = db.execute("SELECT * FROM school_entries WHERE id = ?", (entry_id,)).fetchone()
+        cur = json.loads(row["data"]) if row else {}
+        new = dict(cur)
+        for k, v in data.items():
+            if k in ("id", "kind", "createdAt", "file", "thumb", "removeFile", "removeThumb"):
+                continue
+            new[k] = v
+        # fichier principal et miniature : remplacés, retirés ou conservés
+        up = save_upload("file", entry_id)
+        if up:
+            delete_file(cur.get("file"))
+            new["file"] = up
+        elif data.get("removeFile"):
+            delete_file(cur.get("file"))
+            new.pop("file", None)
+        th = save_upload("thumb", entry_id)
+        if th:
+            delete_file(cur.get("thumb"))
+            new["thumb"] = th
+        elif data.get("removeThumb"):
+            delete_file(cur.get("thumb"))
+            new.pop("thumb", None)
+        if row:
+            db.execute("UPDATE school_entries SET data = ?, updated_at = ? WHERE id = ?", (json.dumps(new, ensure_ascii=False), now, entry_id))
+        else:
+            db.execute("INSERT INTO school_entries (id, kind, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                       (entry_id, kind, json.dumps(new, ensure_ascii=False), now, now))
+        db.commit()
+        row = db.execute("SELECT * FROM school_entries WHERE id = ?", (entry_id,)).fetchone()
+    return jsonify(entry_public(row))
+
+
+@app.route("/school/entries/<entry_id>/delete", methods=["POST"])
+def school_delete(entry_id):
+    admin = approved_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    with db_lock:
+        db = get_db()
+        row = db.execute("SELECT * FROM school_entries WHERE id = ?", (entry_id,)).fetchone()
+        if row:
+            d = json.loads(row["data"])
+            delete_file(d.get("file"))
+            delete_file(d.get("thumb"))
+            db.execute("DELETE FROM school_entries WHERE id = ?", (entry_id,))
+            db.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/school/seed", methods=["POST"])
+def school_seed():
+    """Premier remplissage (vidéos recommandées et rediffusions à compléter) : une seule fois."""
+    admin = approved_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    body = request.get_json(silent=True) or {}
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db = get_db()
+        if db.execute("SELECT 1 FROM school_meta WHERE key = 'seeded'").fetchone():
+            return jsonify({"seeded": False})
+        for e in body.get("entries", []):
+            eid = str(e.get("id", ""))
+            kind = e.get("kind")
+            if kind not in ("item", "video", "cat") or not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", eid):
+                continue
+            data = {k: v for k, v in e.items() if k not in ("id", "kind", "createdAt")}
+            db.execute("INSERT OR IGNORE INTO school_entries (id, kind, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                       (eid, kind, json.dumps(data, ensure_ascii=False), e.get("createdAt") or "1970-01-01T00:00:00+00:00", now))
+        db.execute("INSERT OR REPLACE INTO school_meta (key, value) VALUES ('seeded', ?)", (now,))
+        db.commit()
+    return jsonify({"seeded": True})
+
+
+@app.route("/school/files/<key>")
+def school_file(key):
+    # Noms aléatoires impossibles à deviner : la liste des fichiers n'est visible que des membres connectés.
+    return send_from_directory(FILES_DIR, os.path.basename(key), conditional=True, max_age=3600)
 
 
 @app.route("/health")

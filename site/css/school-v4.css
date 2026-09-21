@@ -1,0 +1,35 @@
+/* CHEST — School v4 : contenu partagé géré par l'admin (formulaires, outils sur les cartes, envoi de fichiers). */
+
+.chest-root .sc-notice{ margin:16px 34px 0; padding:11px 16px; border-radius:12px; border:1px solid rgba(232,179,57,.35); background:rgba(232,179,57,.08); color:var(--chest-amber-lite); font-size:12.5px; }
+
+/* Cartes : lien plein-cadre + outils admin */
+.chest-root .sc-ctile{ position:relative; cursor:pointer; }
+.chest-root .sc-ctile__link{ position:absolute; inset:0; z-index:1; border-radius:inherit; }
+.chest-root .sc-ctile__tools{ position:absolute; z-index:3; right:10px; top:10px; display:flex; gap:6px; }
+.chest-root .sc-ctile__tools > span{ width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.2); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); opacity:0; transition:opacity .2s, border-color .2s; }
+.chest-root .sc-ctile:hover .sc-ctile__tools > span, .chest-root .sc-ctile:focus-within .sc-ctile__tools > span{ opacity:1; }
+.chest-root .sc-ctile__tools > span:hover{ border-color:rgba(255,255,255,.5); }
+.chest-root .sc-ctile__tools > span[data-idel]:hover{ color:var(--chest-red); border-color:rgba(255,77,94,.6); }
+.chest-root .sc-ctile__tools .sc-ic{ width:14px; height:14px; }
+.chest-root .sc-ctile.is-pending{ border-style:dashed; border-color:rgba(232,179,57,.4); }
+.chest-root .sc-ctile.is-pending .sc-ctile__cover{ opacity:.55; }
+.chest-root .sc-ctile.is-pending .sc-ctile__m b{ color:var(--chest-amber); }
+
+/* Barre de la vue écrite */
+.chest-root #wChips:not([hidden]) + #wAdd{ margin-left:auto; }
+.chest-root #wAdd{ margin-left:auto; }
+.chest-root #scWritten .sc-vbar{ margin-bottom:22px; }
+
+/* Formulaires */
+.chest-root .sc-typeseg{ justify-self:start; }
+.chest-root .sc-form__cur{ font-style:normal; letter-spacing:0; text-transform:none; color:var(--chest-amber-lite); font-weight:500; }
+.chest-root .sc-form input[type=file]{ height:auto; padding:9px 12px; font-size:12.5px; border-radius:12px; border:1px dashed rgba(255,255,255,.22); background:rgba(255,255,255,.02); color:var(--chest-ink-2); width:100%; letter-spacing:0; text-transform:none; }
+.chest-root .sc-progress{ display:grid; gap:6px; font-size:12px; color:var(--chest-ink-2); }
+.chest-root .sc-progress__bar{ height:6px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; }
+.chest-root .sc-progress__bar i{ display:block; height:100%; width:0; background:var(--chest-grad); transition:width .2s; }
+.chest-root .sc-player video{ position:absolute; inset:0; width:100%; height:100%; background:#000; }
+
+@media (max-width:760px){
+  .chest-root .sc-notice{ margin:12px 18px 0; }
+  .chest-root .sc-ctile__tools > span{ opacity:1; }
+}

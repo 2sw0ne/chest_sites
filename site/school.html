@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="css/school-da.css?v=13">
 <link rel="stylesheet" href="css/school-v2.css?v=3">
 <link rel="stylesheet" href="css/school-v3.css?v=3">
+<link rel="stylesheet" href="css/school-v4.css?v=1">
 <style>
   [hidden]{ display:none !important; }
 </style>
@@ -71,6 +72,7 @@
 
     <main>
   <div class="sc-crumbs" id="scCrumbs" hidden></div>
+  <div class="sc-notice" id="scNotice" hidden></div>
 
   <!-- ============ ACCUEIL : l'école ============ -->
   <div class="sc-view" id="scHome">
@@ -125,7 +127,7 @@
       <p id="wBlurb"></p>
     </section>
     <section class="chest-section" style="border-top:none;padding-top:14px">
-      <div class="chest-seg sc-chips" id="wChips" role="group" aria-label="Catégories" hidden></div>
+      <div class="sc-vbar"><div class="chest-seg sc-chips" id="wChips" role="group" aria-label="Catégories" hidden></div><button type="button" class="chest-btn" id="wAdd" hidden>+ Ajouter un élément</button></div>
       <div id="wBody"></div>
     </section>
   </div>
@@ -170,7 +172,7 @@
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
 <script src="js/school-data.js?v=2"></script>
-<script src="js/school.js?v=6"></script>
+<script src="js/school.js?v=7"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
