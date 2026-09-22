@@ -84,8 +84,8 @@
   function populateMarquees() {
     const menuTrack = document.getElementById('welMenuTrack');
     if (menuTrack) {
-      const chips = MENU_ITEMS.map(([ic, label]) => `<span class="wel__menu-chip"><i class="chest-ic-${ic}"></i>${label}</span>`).join('');
-      menuTrack.innerHTML = chips + chips;
+      const wins = MENU_ITEMS.map(([ic, label]) => `<span class="wel__menu-win"><span class="wel__menu-win__bar"><i></i><i></i><i></i></span><span class="wel__menu-win__body"><i class="chest-ic-${ic}"></i></span><span class="wel__menu-win__label">${label}</span></span>`).join('');
+      menuTrack.innerHTML = wins + wins;
     }
     const schoolTrack = document.getElementById('welSchoolTrack');
     if (schoolTrack) {
