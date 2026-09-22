@@ -89,11 +89,29 @@
      Chaque page du site (mêmes libellés/icônes que PAGES dans shell.js) s'affiche plein cadre quelques secondes,
      se fond en transparence (`.is-out`), puis la suivante prend sa place APRÈS la transition (pas pendant : sinon
      deux bannières se chevauchent) — un seul élément DOM réutilisé et repeint, plutôt que plusieurs empilés, pour
-     rester simple. En pause au survol comme les autres bandeaux. */
+     rester simple. En pause au survol comme les autres bandeaux.
+     Design relevé le 2026-09-23 (demande utilisateur : « pousse le design, qu'on ait un échantillon visuel de
+     chaque thème ») : chaque page a sa propre couleur d'accent (pas toujours le rose/orange de marque — un
+     échantillon de thèmes, pas une répétition) et un petit motif SVG en filigrane qui évoque son contenu réel
+     (barres pour un dashboard, courbe pour un backtest, lignes pour un journal, etc.), plutôt qu'un simple icône
+     sur fond plat. */
   const MENU_ITEMS = [
-    ['dashboard', 'Dashboard'], ['backtesting', 'Backtesting'], ['journal', 'Journal de trading'],
-    ['strategies', 'Stratégies'], ['calendar', 'Calendrier économique'], ['berich', 'BERICH'],
-    ['school', 'School'], ['account', 'Compte'],
+    { ic: 'dashboard', label: 'Dashboard', c1: '#1de9a6', c2: '#0a8f68',
+      art: '<path d="M20 78V58M40 78V38M60 78V50M80 78V22" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>' },
+    { ic: 'backtesting', label: 'Backtesting', c1: '#fc1283', c2: '#f9a45e',
+      art: '<path d="M6 66l16-8 14 10 18-30 14 12 24-34" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 66l16-8 14 10 18-30 14 12 24-34V90H6z" fill="currentColor" opacity=".16" stroke="none"/>' },
+    { ic: 'journal', label: 'Journal de trading', c1: '#5470c2', c2: '#2c3d7a',
+      art: '<rect x="10" y="8" width="70" height="84" rx="6" stroke="currentColor" stroke-width="4" fill="none"/><path d="M22 28h46M22 44h46M22 60h30" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' },
+    { ic: 'strategies', label: 'Stratégies', c1: '#a26bff', c2: '#5b2ea6',
+      art: '<circle cx="30" cy="50" r="26" stroke="currentColor" stroke-width="5" fill="none"/><circle cx="66" cy="34" r="16" stroke="currentColor" stroke-width="5" fill="none"/><circle cx="70" cy="70" r="10" stroke="currentColor" stroke-width="5" fill="none"/>' },
+    { ic: 'calendar', label: 'Calendrier économique', c1: '#e8b339', c2: '#a97a15',
+      art: '<rect x="8" y="14" width="76" height="70" rx="8" stroke="currentColor" stroke-width="4" fill="none"/><path d="M8 34h76" stroke="currentColor" stroke-width="4"/><circle cx="26" cy="52" r="5" fill="currentColor"/><circle cx="46" cy="52" r="5" fill="currentColor" opacity=".45"/><circle cx="66" cy="52" r="5" fill="currentColor" opacity=".45"/><circle cx="26" cy="70" r="5" fill="currentColor" opacity=".45"/><circle cx="46" cy="70" r="5" fill="currentColor" opacity=".8"/>' },
+    { ic: 'berich', label: 'BERICH', c1: '#ff8a3d', c2: '#c24a12',
+      art: '<path d="M50 6L18 54h24l-8 40 42-56H52z" fill="currentColor" opacity=".85"/>' },
+    { ic: 'school', label: 'School', c1: '#ff5da2', c2: '#a3216b',
+      art: '<circle cx="40" cy="46" r="34" stroke="currentColor" stroke-width="4" fill="none"/><path d="M33 31l20 15-20 15z" fill="currentColor"/>' },
+    { ic: 'account', label: 'Compte', c1: '#9aa3b2', c2: '#4b5563',
+      art: '<circle cx="46" cy="32" r="17" stroke="currentColor" stroke-width="5" fill="none"/><path d="M14 88c4-22 20-34 32-34s28 12 32 34" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/>' },
   ];
   function initMenuSlideshow() {
     const stage = document.getElementById('welMenuStage');
@@ -103,8 +121,10 @@
     stage.appendChild(banner);
     let i = 0, timer = null, hovered = false;
     function paint() {
-      const [ic, label] = MENU_ITEMS[i];
-      banner.innerHTML = `<span class="wel__menu-banner__ic"><i class="chest-ic-${ic}"></i></span><span class="wel__menu-banner__label">${label}</span>`;
+      const it = MENU_ITEMS[i];
+      banner.style.setProperty('--c1', it.c1);
+      banner.style.setProperty('--c2', it.c2);
+      banner.innerHTML = `<svg class="wel__menu-banner__art" viewBox="0 0 100 100" aria-hidden="true">${it.art}</svg><span class="wel__menu-banner__ic"><i class="chest-ic-${it.ic}"></i></span><span class="wel__menu-banner__label">${it.label}</span>`;
     }
     function step() {
       if (hovered) return;
@@ -141,7 +161,13 @@
     const resetBtn = document.getElementById('welLayoutReset');
     if (!toggle) return;
     const KEY = 'chest_wel_bento_crop';
-    const DEFAULTS = { hero: { x: 50, y: 50 }, scanner: { x: 50, y: 50 }, founder: { dx: 0, dy: 0 } };
+    // Valeurs enregistrées comme défaut le 2026-09-23 (décision utilisateur : « enregistre comme je l'ai mis ») —
+    // réglées à la main via le bouton Recadrer, elles remplacent le centrage neutre d'origine pour tout le monde.
+    const DEFAULTS = {
+      hero: { x: 0, y: 24.39 },
+      scanner: { x: 67.49, y: 94.6 },
+      founder: { dx: 3, dy: 170, s: 1 },
+    };
     function load() {
       try { return Object.assign({ hero: {}, scanner: {}, founder: {} }, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return { hero: {}, scanner: {}, founder: {} }; }
     }
@@ -156,6 +182,7 @@
       const c = Object.assign({}, DEFAULTS.founder, crop.founder);
       el.style.setProperty('--dx', c.dx + 'px');
       el.style.setProperty('--dy', c.dy + 'px');
+      el.style.setProperty('--zs', c.s);
     }
 
     const heroMedia = document.querySelector('.wel__card--hero .wel__card-media');
@@ -193,13 +220,24 @@
         const start = Object.assign({}, DEFAULTS.founder, crop.founder);
         const sx = ev.clientX, sy = ev.clientY;
         function onMove(mv) {
-          crop.founder = { dx: start.dx + (mv.clientX - sx), dy: start.dy + (mv.clientY - sy) };
+          crop.founder = Object.assign({}, crop.founder, { dx: start.dx + (mv.clientX - sx), dy: start.dy + (mv.clientY - sy) });
           applyPhone(el);
         }
         function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); save(); }
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
       });
+      // Molette = agrandir/réduire le téléphone (demande utilisateur 2026-09-23 : « permets-moi de l'agrandir »),
+      // superposé au décalage --dx/--dy sans y toucher. Bornes larges (0,5 à 2,2) mais raisonnables.
+      el.addEventListener('wheel', (ev) => {
+        if (!active) return;
+        ev.preventDefault();
+        const cur = Object.assign({}, DEFAULTS.founder, crop.founder);
+        const next = Math.max(0.5, Math.min(2.2, cur.s - ev.deltaY * 0.0015));
+        crop.founder = Object.assign({}, crop.founder, { s: Math.round(next * 1000) / 1000 });
+        applyPhone(el);
+        save();
+      }, { passive: false });
     }
     bindMediaDrag('hero', heroMedia);
     bindMediaDrag('scanner', scannerMedia);

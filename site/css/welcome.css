@@ -282,20 +282,21 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 .wel__card--founder{ background:#050505; }
 .wel__founder-stage{ position:absolute; inset:0; display:flex; justify-content:center; }
 .wel__founder-phone{
-  --dx:0px; --dy:0px;
+  --dx:0px; --dy:0px; --zs:1;
   position:absolute; z-index:2; top:6%; left:50%; width:clamp(150px,20vw,230px); height:auto; aspect-ratio:1125/2000;
   object-fit:cover; object-position:top center; display:block;
   filter:drop-shadow(0 18px 40px rgba(0,0,0,.6)); transform-origin:top center;
-  transform:translate(calc(-50% + var(--dx)), var(--dy));
+  transform:translate(calc(-50% + var(--dx)), var(--dy)) scale(var(--zs));
   transition:transform .5s cubic-bezier(.16,1,.3,1), filter .5s cubic-bezier(.16,1,.3,1);
 }
 /* Centré horizontalement (correction 2026-09-22 : position:absolute sort l'image du flux flex, le
    justify-content:center du parent ne s'appliquait donc plus — left:50% + translateX(-50%) le recentre), ancré en
-   HAUT et coupé en bas par la carte (comme la référence : on ne voit jamais le bas de l'appareil). Au survol, il
-   rétrécit et recule VERS LE BAS (scale + translateY additionnel) en gardant le décalage --dx/--dy du recadrage
-   manuel, pour dégager la place des réseaux qui sortent de derrière lui. */
+   HAUT et coupé en bas par la carte (comme la référence : on ne voit jamais le bas de l'appareil). `--zs` = zoom
+   manuel (molette en mode Recadrer, 2026-09-23 : « permets-moi de l'agrandir »), multiplié avec le rétrécissement
+   du survol via calc(). Au survol, il rétrécit et recule VERS LE BAS en gardant le décalage --dx/--dy/--zs du
+   recadrage manuel, pour dégager la place des réseaux qui sortent de derrière lui. */
 .wel__card--founder:hover .wel__founder-phone{
-  transform:translate(calc(-50% + var(--dx)), calc(var(--dy) + 6%)) scale(.66);
+  transform:translate(calc(-50% + var(--dx)), calc(var(--dy) + 6%)) scale(calc(var(--zs) * .66));
   filter:blur(3px) drop-shadow(0 18px 40px rgba(0,0,0,.6));
 }
 
@@ -318,22 +319,35 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 /* ─── MENU : UNE bannière à la fois, qui se fond dans la suivante — décision utilisateur 2026-09-22, 3e passe
    (« je t'ai dit je veux un élément horizontal qui disparaît puis laisse apparaître un autre ») : la carte Banners
    de référence est bien un slideshow à une seule fenêtre (vérifié en direct sur le site), pas un défilement de
-   plusieurs éléments — corrigé pour de bon cette fois. Chaque page du site devient une bannière pleine largeur
-   (icône + nom), fondu enchaîné géré par `welcome.js` (classe `.is-out` pendant la transition). ─── */
+   plusieurs éléments — corrigé pour de bon cette fois. Chaque page du site devient une bannière pleine largeur,
+   fondu enchaîné géré par `welcome.js` (classe `.is-out` pendant la transition).
+   Design relevé le 2026-09-23 (demande utilisateur : « pousse le design, un échantillon visuel de chaque
+   thème ») : chaque page a sa PROPRE couleur d'accent (`--c1`/`--c2`, posées par `welcome.js`) et un motif SVG en
+   filigrane évoquant son contenu (barres, courbe, lignes, anneaux…) plutôt qu'un simple icône sur fond plat
+   toujours rose/orange. ─── */
 .wel__menu-stage{ position:absolute; inset:clamp(14px,2vw,20px); top:auto; bottom:clamp(14px,2vw,20px); height:62%; }
 .wel__menu-banner{
-  position:absolute; inset:0; display:flex; align-items:center; gap:16px; padding:0 22px;
-  border-radius:16px; border:1px solid rgba(255,255,255,.12); overflow:hidden;
-  background:radial-gradient(140% 160% at 15% 0%, rgba(252,18,131,.22), transparent 62%), #0b0b0f;
-  opacity:1; transition:opacity .5s cubic-bezier(.16,1,.3,1);
+  position:absolute; inset:0; display:flex; align-items:center; gap:16px; padding:0 24px;
+  border-radius:16px; border:1px solid rgba(255,255,255,.14); overflow:hidden;
+  background:
+    radial-gradient(120% 150% at 8% -10%, color-mix(in srgb, var(--c1,#fc1283) 30%, transparent), transparent 60%),
+    radial-gradient(90% 120% at 100% 120%, color-mix(in srgb, var(--c2,#f9a45e) 26%, transparent), transparent 65%),
+    #0a0a0d;
+  opacity:1; transition:opacity .5s cubic-bezier(.16,1,.3,1), background .1s;
 }
 .wel__menu-banner.is-out{ opacity:0; }
-.wel__menu-banner__ic{
-  flex:none; width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(135deg,#fc1283,#f9a45e);
+.wel__menu-banner__art{
+  position:absolute; z-index:0; right:-8px; top:50%; translate:0 -50%; width:58%; max-width:180px;
+  color:var(--c1,#fc1283); opacity:.28; filter:drop-shadow(0 0 18px color-mix(in srgb, var(--c1,#fc1283) 45%, transparent));
 }
-.wel__menu-banner__ic i{ width:22px; height:22px; background:#fff; }
-.wel__menu-banner__label{ font-size:15px; font-weight:600; letter-spacing:-.02em; color:#fff; }
+.wel__menu-banner__ic{
+  position:relative; z-index:1; flex:none; width:46px; height:46px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, var(--c1,#fc1283), var(--c2,#f9a45e));
+  box-shadow:0 6px 18px color-mix(in srgb, var(--c1,#fc1283) 45%, transparent);
+}
+.wel__menu-banner__ic i{ width:23px; height:23px; background:#fff; }
+.wel__menu-banner__label{ position:relative; z-index:1; font-size:15.5px; font-weight:600; letter-spacing:-.02em; color:#fff; }
 
 .wel__school-track{
   position:absolute; inset:0; overflow:hidden;
