@@ -273,6 +273,12 @@
     // Moyenne sur les seuls départs financés (`monthlyNets`) : un départ jamais financé n'a, par définition,
     // aucun rythme de retrait à mesurer — il compte déjà dans `fundedPct`, pas ici.
     const meanNetPerMonth = monthlyNets.length ? mean(monthlyNets) : 0;
+    // Pire et meilleur scénario (décision utilisateur, 2026-09-22) : le 10e et le 90e centile du RYTHME mensuel
+    // (pas du montant brut, pour rester comparables au chiffre moyen), chacun étendu sur la période comme la
+    // moyenne — pas le départ le plus extrême isolé (un centile évite qu'un seul département hors norme domine).
+    const sortedMonthly = monthlyNets.slice().sort((a, b) => a - b);
+    const worstNetPerMonth = quantile(sortedMonthly, 0.1);
+    const bestNetPerMonth = quantile(sortedMonthly, 0.9);
     return {
       risk, challengeRisk, starts: n,
       // « Retraits potentiels » affiché : le rythme mensuel moyen UNE FOIS FINANCÉ, étendu sur toute la période
@@ -281,6 +287,9 @@
       // volontairement le temps de validation (déjà donné à part par « Validation »/« Premier retrait ») : ce
       // chiffre répond à « une fois lancé, à quel rythme ça retire », pas « en tenant compte du démarrage ».
       meanNet: meanNetPerMonth * spanMonths, meanNetPerMonth,
+      worstNetPerMonth, bestNetPerMonth,
+      worstNet: worstNetPerMonth != null ? worstNetPerMonth * spanMonths : null,
+      bestNet: bestNetPerMonth != null ? bestNetPerMonth * spanMonths : null,
       medianNet: quantile(sortedNets, 0.5), p25Net: quantile(sortedNets, 0.25),
       meanPayout: mean(pays),
       netPositivePct: nets.filter((v) => v > 0).length / n * 100,

@@ -1421,7 +1421,16 @@ CHESTTour.init([
   document.querySelectorAll('#jrSideSwitch button').forEach((btn) => btn.addEventListener('click', () => { currentSide = btn.dataset.side; reflectSide(); }));
 
   function reflectReward() { document.querySelectorAll('#jrRewardToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.reward === currentReward)); }
-  document.querySelectorAll('#jrRewardToggle button').forEach((btn) => btn.addEventListener('click', () => { currentReward = btn.dataset.reward; reflectReward(); }));
+  // SL = -1 R et BE = 0 R par définition (la perte d'un SL égale exactement le risque pris) : remplir le RR
+  // automatiquement évite de le retaper à chaque trade — le P&L (RR × risque) se recalcule tout seul juste
+  // après (décision utilisateur, 2026-09-22 : « si j'ai risqué 1 % et que je mets SL sur un 100k, ça met
+  // direct -1000 $ »). Un TP garde son RR propre à chaque trade, à saisir à la main.
+  document.querySelectorAll('#jrRewardToggle button').forEach((btn) => btn.addEventListener('click', () => {
+    currentReward = btn.dataset.reward;
+    reflectReward();
+    if (currentReward === 'SL') { document.getElementById('jrRR').value = -1; reflectPnl(); }
+    else if (currentReward === 'BE') { document.getElementById('jrRR').value = 0; reflectPnl(); }
+  }));
 
   function reflectRiskUnit() { document.querySelectorAll('#jrRiskUnitToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.unit === currentRiskUnit)); }
   document.querySelectorAll('#jrRiskUnitToggle button').forEach((btn) => btn.addEventListener('click', () => { currentRiskUnit = btn.dataset.unit; reflectRiskUnit(); reflectPnl(); }));
