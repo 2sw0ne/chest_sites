@@ -316,38 +316,64 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 .wel__founder-social--tt{ right:-14px; top:38%; background:#0a0a0c; border:1px solid rgba(255,255,255,.18); transition-delay:.13s; }
 .wel__card--founder:hover .wel__founder-social{ opacity:1; pointer-events:auto; transform:scale(1) translateY(0); }
 
-/* ─── MENU : UNE bannière à la fois, qui se fond dans la suivante — décision utilisateur 2026-09-22, 3e passe
-   (« je t'ai dit je veux un élément horizontal qui disparaît puis laisse apparaître un autre ») : la carte Banners
-   de référence est bien un slideshow à une seule fenêtre (vérifié en direct sur le site), pas un défilement de
-   plusieurs éléments — corrigé pour de bon cette fois. Chaque page du site devient une bannière pleine largeur,
-   fondu enchaîné géré par `welcome.js` (classe `.is-out` pendant la transition).
-   Design relevé le 2026-09-23 (demande utilisateur : « pousse le design, un échantillon visuel de chaque
-   thème ») : chaque page a sa PROPRE couleur d'accent (`--c1`/`--c2`, posées par `welcome.js`) et un motif SVG en
-   filigrane évoquant son contenu (barres, courbe, lignes, anneaux…) plutôt qu'un simple icône sur fond plat
-   toujours rose/orange. ─── */
-.wel__menu-stage{ position:absolute; inset:clamp(14px,2vw,20px); top:auto; bottom:clamp(14px,2vw,20px); height:62%; }
+/* ─── MENU : UNE bannière à la fois, qui se fond dans la suivante. Design refait le 2026-09-23 (retour
+   utilisateur : « le menu tu m'as mis des visuels nuls, je veux des visuels de ce style — motion design » +
+   3 bannières de designers freelance envoyées en référence) : grammaire commune à ces 3 réfs reproduite avec nos
+   pages/couleurs — pastille kicker, immense titre sur 2 poids (blanc + mot en accent lumineux via `<b>`), badge
+   d'icône flottant incliné avec halo et légère respiration, fond en glow radial + grille fine + vignette. Jamais
+   copié : structure et ambiance seulement, contenu 100 % CHEST. ─── */
+.wel__menu-stage{ position:absolute; inset:clamp(14px,2vw,20px); top:auto; bottom:clamp(14px,2vw,20px); height:78%; }
 .wel__menu-banner{
-  position:absolute; inset:0; display:flex; align-items:center; gap:16px; padding:0 24px;
-  border-radius:16px; border:1px solid rgba(255,255,255,.14); overflow:hidden;
+  position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; gap:10px;
+  padding:0 26px; border-radius:18px; border:1px solid rgba(255,255,255,.14); overflow:hidden;
   background:
-    radial-gradient(120% 150% at 8% -10%, color-mix(in srgb, var(--c1,#fc1283) 30%, transparent), transparent 60%),
-    radial-gradient(90% 120% at 100% 120%, color-mix(in srgb, var(--c2,#f9a45e) 26%, transparent), transparent 65%),
-    #0a0a0d;
-  opacity:1; transition:opacity .5s cubic-bezier(.16,1,.3,1), background .1s;
+    radial-gradient(70% 90% at 6% 8%, color-mix(in srgb, var(--c1,#fc1283) 38%, transparent), transparent 62%),
+    radial-gradient(55% 80% at 96% 100%, color-mix(in srgb, var(--c2,#f9a45e) 30%, transparent), transparent 68%),
+    #08080a;
+  opacity:1; transition:opacity .5s cubic-bezier(.16,1,.3,1);
 }
 .wel__menu-banner.is-out{ opacity:0; }
-.wel__menu-banner__art{
-  position:absolute; z-index:0; right:-8px; top:50%; translate:0 -50%; width:58%; max-width:180px;
-  color:var(--c1,#fc1283); opacity:.28; filter:drop-shadow(0 0 18px color-mix(in srgb, var(--c1,#fc1283) 45%, transparent));
+/* Grille fine façon "vactig" (référence 3) : quelques lignes discrètes, jamais un quadrillage plein. */
+.wel__menu-banner__grid{
+  position:absolute; inset:0; z-index:0; opacity:.5; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(75% 100% at 15% 50%, #000 40%, transparent 92%);
+  mask-image:radial-gradient(75% 100% at 15% 50%, #000 40%, transparent 92%);
 }
-.wel__menu-banner__ic{
-  position:relative; z-index:1; flex:none; width:46px; height:46px; border-radius:13px;
-  display:flex; align-items:center; justify-content:center;
+.wel__menu-banner__glow{
+  position:absolute; z-index:0; inset:-30% -10% auto auto; width:60%; aspect-ratio:1; border-radius:50%;
+  background:color-mix(in srgb, var(--c1,#fc1283) 55%, transparent); filter:blur(46px); opacity:.5;
+}
+.wel__menu-banner__kicker{
+  position:relative; z-index:1; align-self:flex-start; font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--c1,#fc1283); padding:5px 12px; border-radius:999px; border:1px solid color-mix(in srgb, var(--c1,#fc1283) 55%, transparent);
+  background:color-mix(in srgb, var(--c1,#fc1283) 14%, transparent);
+}
+.wel__menu-banner__title{
+  position:relative; z-index:1; margin:0; max-width:78%; font-size:clamp(19px,2.4vw,25px); font-weight:600;
+  letter-spacing:-.03em; line-height:1.15; color:#fff; text-wrap:balance;
+}
+.wel__menu-banner__title b{
+  font-weight:800; color:var(--c1,#fc1283);
+  text-shadow:0 0 18px color-mix(in srgb, var(--c1,#fc1283) 70%, transparent), 0 0 40px color-mix(in srgb, var(--c1,#fc1283) 35%, transparent);
+}
+.wel__menu-banner__badge{
+  position:absolute; z-index:2; right:18px; top:18px; width:52px; height:52px; border-radius:15px;
+  display:flex; align-items:center; justify-content:center; transform:rotate(-9deg);
   background:linear-gradient(135deg, var(--c1,#fc1283), var(--c2,#f9a45e));
-  box-shadow:0 6px 18px color-mix(in srgb, var(--c1,#fc1283) 45%, transparent);
+  border:1px solid rgba(255,255,255,.25);
+  box-shadow:0 10px 24px color-mix(in srgb, var(--c1,#fc1283) 50%, transparent), inset 0 1px 0 rgba(255,255,255,.35);
+  animation:welMenuBadgeFloat 4.5s ease-in-out infinite;
 }
-.wel__menu-banner__ic i{ width:23px; height:23px; background:#fff; }
-.wel__menu-banner__label{ position:relative; z-index:1; font-size:15.5px; font-weight:600; letter-spacing:-.02em; color:#fff; }
+.wel__menu-banner__badge i{ width:25px; height:25px; background:#fff; }
+@keyframes welMenuBadgeFloat{
+  0%, 100%{ transform:translateY(0) rotate(-9deg); }
+  50%{ transform:translateY(-5px) rotate(-4deg); }
+}
+@media (prefers-reduced-motion:reduce){ .wel__menu-banner__badge{ animation:none; } }
 
 .wel__school-track{
   position:absolute; inset:0; overflow:hidden;
