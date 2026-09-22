@@ -1027,7 +1027,6 @@ CHESTTour.init([
           ${v.top.mm
             ? `<div><div class="chest-label">Money management</div><div class="chest-kpi__val">${escHtml(v.top.mm.name)}</div><div class="chest-kpi__note">${escHtml(mmShort(v.top.mm))} · ≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>`
             : `<div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>`}
-          ${res.own ? `<div><div class="chest-label">Compte propre · ${H} mois</div><div class="chest-kpi__val ${res.own.horizonPct >= 0 ? 'is-pos' : 'is-neg'}">${signedPct(res.own.horizonPct)}</div><div class="chest-kpi__note">${res.own.mm ? `money management « ${escHtml(res.own.mm.name)} »` : `risque plat ${nFr(res.own.risk, 2)} %`} · drawdown ${pctFr(res.own.maxDdPct, 1)}</div></div>` : ''}
         </div>
         <details class="bt-fit-fold">
           <summary><span class="bt-fit-fold__title">Top 3 des prop firms</span><span class="bt-fit-fold__sub">classées selon un indice : retraits nets, rapidité du 1er retrait, départs qui retirent ou finissent gagnants, validation, comptes perdus · 3 sur ${res.rows.length} modèles testés${swingExtra.length ? ` · + ${swingExtra.length} compte${swingExtra.length > 1 ? 's' : ''} Swing` : ''}</span><span class="bt-fit-fold__caret" aria-hidden="true"></span></summary>
