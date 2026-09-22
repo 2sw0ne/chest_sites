@@ -128,99 +128,98 @@
   }
   initMenuSlideshow();
 
-  /* ---------- Bento v2 : réglage manuel de la disposition (provisoire, voir CLAUDE.md) ----------
-     Bouton « Disposition » → poignées de redimensionnement (droite = colonnes, bas = rangées) sur chaque carte,
-     calées sur la grille 5 colonnes × 3 rangées. Persisté en localStorage (par navigateur, pas encore partagé —
-     le vrai stockage admin viendra avec le CMS). */
-  function initBentoResize() {
-    const grid = document.getElementById('welBentoGrid');
+  /* ---------- Bento v2 : recadrage des photos/éléments DANS leur fenêtre (2026-09-22, correction utilisateur :
+     « c'est les photos et éléments dans leur fenêtre que je veux recadrer, pas la disposition ») ----------
+     Le 1er jet (redimensionner les cartes dans la grille) répondait à la mauvaise question — la carte elle-même
+     ne bouge pas, c'est la PHOTO (Chest Is Here, Scanner) ou le TÉLÉPHONE (Founder) qu'on doit pouvoir glisser à
+     l'intérieur du cadre fixe pour choisir ce qui se voit. Bouton « Recadrer » → curseur de déplacement sur les
+     3 éléments concernés ; le glisser ajuste `background-position` (photos) ou un décalage `--dx/--dy` en px
+     (téléphone, superposé à son centrage). Persisté en localStorage (par navigateur, pas encore le stockage
+     admin partagé du futur CMS). Provisoire : accessible à tout le monde en attendant la Vue Admin/Client. */
+  function initPhotoReposition() {
     const toggle = document.getElementById('welLayoutToggle');
-    if (!grid || !toggle) return;
-    const KEY = 'chest_wel_bento_spans';
-    const COLS = 5, ROWS = 3;
-    const DEFAULTS = {
-      hero: { c0: 0, cs: 3, r0: 0, rs: 1 },
-      scanner: { c0: 3, cs: 2, r0: 0, rs: 1 },
-      founder: { c0: 0, cs: 2, r0: 1, rs: 2 },
-      menu: { c0: 2, cs: 3, r0: 1, rs: 1 },
-      school: { c0: 2, cs: 3, r0: 2, rs: 1 },
-    };
+    const resetBtn = document.getElementById('welLayoutReset');
+    if (!toggle) return;
+    const KEY = 'chest_wel_bento_crop';
+    const DEFAULTS = { hero: { x: 50, y: 50 }, scanner: { x: 50, y: 50 }, founder: { dx: 0, dy: 0 } };
     function load() {
-      try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return Object.assign({}, DEFAULTS); }
+      try { return Object.assign({ hero: {}, scanner: {}, founder: {} }, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return { hero: {}, scanner: {}, founder: {} }; }
     }
-    function save(spans) {
-      try { localStorage.setItem(KEY, JSON.stringify(spans)); } catch (e) { /* stockage indisponible */ }
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(crop)); } catch (e) { /* stockage indisponible */ } }
+    let crop = load();
+
+    function applyMedia(id, el) {
+      const c = Object.assign({}, DEFAULTS[id], crop[id]);
+      el.style.backgroundPosition = c.x + '% ' + c.y + '%';
     }
-    let spans = load();
-    function apply() {
-      grid.querySelectorAll('[data-bento-id]').forEach((card) => {
-        const id = card.dataset.bentoId, s = spans[id] || DEFAULTS[id];
-        if (!s) return;
-        card.style.gridColumn = (s.c0 + 1) + ' / span ' + s.cs;
-        card.style.gridRow = (s.r0 + 1) + ' / span ' + s.rs;
+    function applyPhone(el) {
+      const c = Object.assign({}, DEFAULTS.founder, crop.founder);
+      el.style.setProperty('--dx', c.dx + 'px');
+      el.style.setProperty('--dy', c.dy + 'px');
+    }
+
+    const heroMedia = document.querySelector('.wel__card--hero .wel__card-media');
+    const scannerMedia = document.querySelector('.wel__card--scanner .wel__card-media');
+    const phone = document.querySelector('.wel__founder-phone');
+    if (heroMedia) applyMedia('hero', heroMedia);
+    if (scannerMedia) applyMedia('scanner', scannerMedia);
+    if (phone) applyPhone(phone);
+
+    let active = false;
+    function bindMediaDrag(id, el) {
+      if (!el) return;
+      el.addEventListener('mousedown', (ev) => {
+        if (!active) return;
+        ev.preventDefault();
+        const rect = el.getBoundingClientRect();
+        const start = Object.assign({}, DEFAULTS[id], crop[id]);
+        const sx = ev.clientX, sy = ev.clientY;
+        function onMove(mv) {
+          const dxPct = ((mv.clientX - sx) / rect.width) * 100;
+          const dyPct = ((mv.clientY - sy) / rect.height) * 100;
+          crop[id] = { x: Math.max(0, Math.min(100, start.x - dxPct)), y: Math.max(0, Math.min(100, start.y - dyPct)) };
+          applyMedia(id, el);
+        }
+        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); save(); }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
       });
     }
-    apply();
-
-    const resetBtn = document.getElementById('welLayoutReset');
-    let active = false;
-    function addHandles(card) {
-      const e = document.createElement('span'); e.className = 'wel__resize-handle wel__resize-handle--e';
-      const s = document.createElement('span'); s.className = 'wel__resize-handle wel__resize-handle--s';
-      card.appendChild(e); card.appendChild(s);
-      e.addEventListener('mousedown', (ev) => startDrag(ev, card, 'e'));
-      s.addEventListener('mousedown', (ev) => startDrag(ev, card, 's'));
-    }
-    function startDrag(ev, card, axis) {
-      ev.preventDefault();
-      const id = card.dataset.bentoId;
-      const s = Object.assign({}, spans[id] || DEFAULTS[id]);
-      const gridRect = grid.getBoundingClientRect();
-      const colW = gridRect.width / COLS;
-      const rowH = gridRect.height / ROWS;
-      function onMove(mv) {
-        if (axis === 'e') {
-          const rel = mv.clientX - gridRect.left;
-          const endCol = Math.round(rel / colW);
-          const cs = Math.max(1, Math.min(COLS - s.c0, endCol - s.c0));
-          s.cs = cs;
-        } else {
-          const rel = mv.clientY - gridRect.top;
-          const endRow = Math.round(rel / rowH);
-          const rs = Math.max(1, Math.min(ROWS - s.r0, endRow - s.r0));
-          s.rs = rs;
+    function bindPhoneDrag(el) {
+      if (!el) return;
+      el.addEventListener('mousedown', (ev) => {
+        if (!active) return;
+        ev.preventDefault();
+        const start = Object.assign({}, DEFAULTS.founder, crop.founder);
+        const sx = ev.clientX, sy = ev.clientY;
+        function onMove(mv) {
+          crop.founder = { dx: start.dx + (mv.clientX - sx), dy: start.dy + (mv.clientY - sy) };
+          applyPhone(el);
         }
-        spans[id] = s;
-        apply();
-      }
-      function onUp() {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-        save(spans);
-      }
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
+        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); save(); }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
     }
+    bindMediaDrag('hero', heroMedia);
+    bindMediaDrag('scanner', scannerMedia);
+    bindPhoneDrag(phone);
+
     toggle.addEventListener('click', () => {
       active = !active;
       toggle.classList.toggle('is-active', active);
-      grid.classList.toggle('is-resizing', active);
+      document.body.classList.toggle('wel-is-cropping', active);
       if (resetBtn) resetBtn.hidden = !active;
-      if (active && !grid.dataset.handlesReady) {
-        grid.dataset.handlesReady = '1';
-        grid.querySelectorAll('[data-bento-id]').forEach(addHandles);
-      }
     });
-    // Poignées non contraintes entre elles (décision assumée : outil manuel rapide, pas un solveur de collisions) —
-    // un chevauchement reste possible si on agrandit une carte dans l'espace d'une voisine ; ce bouton remet les
-    // 5 valeurs par défaut d'un coup en cas de disposition cassée.
     if (resetBtn) resetBtn.addEventListener('click', () => {
-      spans = Object.assign({}, DEFAULTS);
-      save(spans);
-      apply();
+      crop = { hero: {}, scanner: {}, founder: {} };
+      save();
+      if (heroMedia) applyMedia('hero', heroMedia);
+      if (scannerMedia) applyMedia('scanner', scannerMedia);
+      if (phone) applyPhone(phone);
     });
   }
-  initBentoResize();
+  initPhotoReposition();
 
   /* ---------- La souris : un effet par-dessus, sans jamais bouger le fond ni le logo ---------- */
   function onMove(e) {

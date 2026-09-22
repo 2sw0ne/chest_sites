@@ -148,7 +148,7 @@ html.is-welcome.is-sheet{ overflow:hidden; }
     radial-gradient(36% 32% at 76% 88%, rgba(249,164,94,.18), transparent 72%);
 }
 .wel__news-wrap{ position:relative; z-index:2; width:100%; max-width:1240px; margin:0 auto; }
-.wel__news-head{ text-align:center; margin-bottom:clamp(30px,6vh,64px); }
+.wel__news-head{ position:relative; text-align:center; margin-bottom:clamp(30px,6vh,64px); }
 .wel__kicker{
   margin:0 0 14px; font-size:11.5px; font-weight:700;
   letter-spacing:.26em; text-transform:uppercase; color:#fc1283;
@@ -282,14 +282,22 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 .wel__card--founder{ background:#050505; }
 .wel__founder-stage{ position:absolute; inset:0; display:flex; justify-content:center; }
 .wel__founder-phone{
-  position:absolute; z-index:2; top:6%; width:clamp(150px,20vw,230px); height:auto; aspect-ratio:1125/2000;
+  --dx:0px; --dy:0px;
+  position:absolute; z-index:2; top:6%; left:50%; width:clamp(150px,20vw,230px); height:auto; aspect-ratio:1125/2000;
   object-fit:cover; object-position:top center; display:block;
-  filter:drop-shadow(0 18px 40px rgba(0,0,0,.6)); transform-origin:top center; transform:scale(1) translateY(0);
+  filter:drop-shadow(0 18px 40px rgba(0,0,0,.6)); transform-origin:top center;
+  transform:translate(calc(-50% + var(--dx)), var(--dy));
   transition:transform .5s cubic-bezier(.16,1,.3,1), filter .5s cubic-bezier(.16,1,.3,1);
 }
-/* Origine en HAUT cette fois (photo ancrée en haut, coupée en bas) : rétrécir + descendre légèrement dégage de la
-   place tout en gardant le haut du téléphone (et le futur point d'ancrage des bulles) bien en place. */
-.wel__card--founder:hover .wel__founder-phone{ transform:scale(.66) translateY(6%); filter:blur(3px) drop-shadow(0 18px 40px rgba(0,0,0,.6)); }
+/* Centré horizontalement (correction 2026-09-22 : position:absolute sort l'image du flux flex, le
+   justify-content:center du parent ne s'appliquait donc plus — left:50% + translateX(-50%) le recentre), ancré en
+   HAUT et coupé en bas par la carte (comme la référence : on ne voit jamais le bas de l'appareil). Au survol, il
+   rétrécit et recule VERS LE BAS (scale + translateY additionnel) en gardant le décalage --dx/--dy du recadrage
+   manuel, pour dégager la place des réseaux qui sortent de derrière lui. */
+.wel__card--founder:hover .wel__founder-phone{
+  transform:translate(calc(-50% + var(--dx)), calc(var(--dy) + 6%)) scale(.66);
+  filter:blur(3px) drop-shadow(0 18px 40px rgba(0,0,0,.6));
+}
 
 .wel__founder-social{
   position:absolute; z-index:4;
@@ -342,26 +350,35 @@ html.is-welcome.is-sheet{ overflow:hidden; }
   background:#111 center/cover no-repeat; box-shadow:0 10px 24px rgba(0,0,0,.45);
 }
 
-/* ─── Réglage manuel de la disposition (provisoire, accessible à tous en attendant le vrai Admin/Client — voir
-   CLAUDE.md) : bouton « Disposition », poignées de redimensionnement par carte, calées sur les 5 colonnes/3
-   rangées de la grille. `welcome.js` calcule les spans en fonction du glisser et les persiste en localStorage. ─── */
+/* ─── Recadrage manuel des photos/éléments DANS leur fenêtre (provisoire, accessible à tous en attendant le vrai
+   Admin/Client — voir CLAUDE.md). Bouton « Recadrer » : en mode actif, la photo de Chest Is Here/Scanner et le
+   téléphone de Founder deviennent glissables (curseur "grab"/"grabbing"), sans bouger ni redimensionner la carte
+   elle-même — correction utilisateur 2026-09-22 : le 1er jet redimensionnait les CARTES dans la grille, ce n'était
+   pas la demande. `welcome.js` déplace `background-position` (photos) ou `--dx/--dy` (téléphone) et persiste en
+   localStorage. ─── */
 .wel__layout-toggle{
-  margin-left:auto; align-self:center; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  position:absolute; right:0; top:2px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
   padding:8px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.72);
   background:none; font-family:inherit; cursor:pointer; transition:background .18s, border-color .18s, color .18s;
 }
 .wel__layout-toggle:hover{ background:rgba(255,255,255,.06); color:#fff; }
 .wel__layout-toggle.is-active{ color:#fc1283; border-color:rgba(252,18,131,.5); background:rgba(252,18,131,.1); }
-.wel__news-head{ display:flex; align-items:baseline; flex-wrap:wrap; gap:16px; }
+#welLayoutReset{ right:auto; left:0; }
 
-.wel__grid--v2.is-resizing .wel__card{ transition:none; }
-.wel__resize-handle{
-  position:absolute; z-index:9; background:transparent;
+body.wel-is-cropping .wel__card--hero .wel__card-media,
+body.wel-is-cropping .wel__card--scanner .wel__card-media,
+body.wel-is-cropping .wel__founder-phone{
+  cursor:grab; outline:2px dashed rgba(252,18,131,.55); outline-offset:-2px;
 }
-.wel__resize-handle--e{ right:0; top:0; bottom:0; width:12px; cursor:ew-resize; }
-.wel__resize-handle--s{ left:0; right:0; bottom:0; height:12px; cursor:ns-resize; }
-.wel__grid--v2.is-resizing .wel__resize-handle{ background:rgba(252,18,131,.25); }
-.wel__grid--v2.is-resizing .wel__card{ outline:1px dashed rgba(255,255,255,.25); outline-offset:-1px; }
+body.wel-is-cropping .wel__card--hero .wel__card-media:active,
+body.wel-is-cropping .wel__card--scanner .wel__card-media:active,
+body.wel-is-cropping .wel__founder-phone:active{ cursor:grabbing; }
+/* En mode recadrage, plus de survol/clic normal sur les cartes (pas de fenêtre de détail, pas d'effet Founder qui
+   interfère avec le glisser). */
+body.wel-is-cropping .wel__card{ pointer-events:none; }
+body.wel-is-cropping .wel__card--hero .wel__card-media,
+body.wel-is-cropping .wel__card--scanner .wel__card-media,
+body.wel-is-cropping .wel__founder-phone{ pointer-events:auto; }
 
 @media (max-width:820px){
   .wel__grid--v2{ grid-template-columns:1fr; grid-template-rows:none; }
