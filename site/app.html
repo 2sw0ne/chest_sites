@@ -4,8 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CHEST</title>
+<!-- Fond sombre IMMÉDIAT, avant toute feuille de style externe (retour utilisateur 2026-09-23 : « on a un
+     bug au chargement, je veux vraiment garder le visuel fluide sur le fond, pas ce sentiment que ça
+     charge ») : sans ça, le navigateur affiche un blanc par défaut tant que les polices Google Fonts (une
+     requête réseau externe, potentiellement lente) et les CSS locales n'ont pas fini de charger, puisqu'un
+     <link rel="stylesheet"> bloque le premier rendu de toute la page. Ce style inline n'a besoin d'aucun
+     fichier externe : il s'applique donc dès l'analyse du <head>. -->
+<style>html,body{background:#050505}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Polices en chargement non bloquant (motif "loadCSS") : le rendu ne les attend plus, elles s'appliquent
+     dès qu'elles arrivent (bascule media print -> all), au lieu de retarder le premier affichage. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap"></noscript>
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
