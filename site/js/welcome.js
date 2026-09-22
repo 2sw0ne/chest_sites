@@ -749,6 +749,10 @@
     closed = false;
     root.hidden = false;
     html.classList.add('is-welcome');
+    // Cache-flash temporaire posé tout en haut du <head> d'app.html (avant même que le <body> soit analysé) :
+    // une fois ici, Welcome a la main, on peut le retirer — le shell (positionné SOUS la Newsletter dans le
+    // flux) redevient visible normalement pour le défilement, sans jamais avoir été vu avant ce point.
+    html.classList.remove('wel-boot-hide');
     if (shell) shell.setAttribute('inert', ''); // le dashboard n'est ni cliquable ni atteignable au clavier tant qu'on n'y est pas
 
     const n = firstName();
