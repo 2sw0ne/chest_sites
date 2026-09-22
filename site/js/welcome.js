@@ -88,64 +88,9 @@
       const y = window.scrollY;
       if (y >= end - 1) { finish(); return; }
       startSnow();
-      pixDraw(false);
       // Aucune aimantation : entre la Newsletter et le dashboard on défile librement, dans les deux sens.
       // La page ne se referme (et on ne peut plus remonter) que lorsque le dashboard est entièrement arrivé.
     });
-  }
-
-  /* ---------- Transition en pixels à la jonction Newsletter / dashboard ----------
-     Le haut du dashboard est d'abord recouvert de carrés noirs, qui disparaissent un à un (dégradé tramé de haut en bas) pendant que la
-     jonction monte : on dirait que c'est le haut du site lui-même qui se construit en pixels. Quelques carrés prennent les couleurs du site
-     au bord de la trame. Tout dépend de la position de défilement : à l'envers, le dashboard se re-pixelise. Quand la jonction atteint le
-     haut de l'écran, la couverture est nulle : le calque peut disparaître sans le moindre saut. */
-  const pixCv = document.getElementById('welPix');
-  const PIX_COL = ['#fc1283', '#f9a45e', '#8b3cf2', '#ffd23f', '#ff6a3d', '#fc1283', '#f9a45e', '#f6f6f7'];
-  let pixF = -1, pixW = 0;
-  const hash = (i, j, k) => {
-    let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(k, 2147483647)) | 0;
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-  };
-  const sstep = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-  function pixDraw(force) {
-    if (!pixCv) return;
-    const vhh = vh(), seamTop = shell.getBoundingClientRect().top;
-    // couverture : pleine tant que la jonction est dans la moitié basse de l'écran, nulle quand elle touche le haut
-    const f = sstep(0, vhh * 0.42, seamTop);
-    const wNow = window.innerWidth;
-    if (!force && Math.abs(f - pixF) < 0.004 && wNow === pixW) return;
-    if (seamTop > vhh + 40) { if (pixF !== 0.999) { pixCv.getContext('2d').clearRect(0, 0, pixCv.width, pixCv.height); pixF = 0.999; } return; }   // dashboard hors écran : rien à dessiner
-    pixF = f; pixW = wNow;
-    const S = Math.max(9, Math.min(18, Math.round(wNow / 112)));      // taille d'un carré
-    const H = Math.round(Math.min(340, vhh * 0.36) / S) * S;          // hauteur de la zone de trame, côté dashboard
-    const UP = S * 4;                                                 // marge côté Newsletter : on croit que la trame vient du haut du site
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const cwid = wNow, chei = H + UP;
-    pixCv.style.top = 'calc(100% - ' + UP + 'px)'; pixCv.style.height = chei + 'px';
-    if (pixCv.width !== Math.round(cwid * dpr) || pixCv.height !== Math.round(chei * dpr)) { pixCv.width = Math.round(cwid * dpr); pixCv.height = Math.round(chei * dpr); }
-    const ctx = pixCv.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cwid, chei);
-    const cols = Math.ceil(cwid / S), rows = chei / S;
-    for (let j = 0; j < rows; j++) {
-      const ys = j * S - UP + S / 2;                                  // ordonnée du carré par rapport à la jonction (+ = dans le dashboard)
-      const c = ys < 0 ? 0 : f * (1 - sstep(0, H, ys));               // part de carrés noirs
-      for (let i = 0; i < cols; i++) {
-        const r = hash(i, j, 1);
-        if (r < c) { ctx.fillStyle = '#050505'; ctx.fillRect(i * S, j * S, S, S); continue; }
-        // carrés colorés : au bord de la trame, plus quelques étincelles au-dessus de la jonction
-        let a = 0;
-        if (c > 0.05 && r < c + 0.075) a = (1 - (r - c) / 0.075) * Math.min(1, f * 2.5);
-        else if (ys < 0 && f > 0.05 && r < 0.05 * (1 + ys / UP)) a = 0.9 * Math.min(1, f * 2.5);
-        if (a > 0 && hash(i, j, 2) > 0.35) {
-          ctx.globalAlpha = Math.min(1, a);
-          ctx.fillStyle = PIX_COL[Math.floor(hash(i, j, 3) * PIX_COL.length)];
-          ctx.fillRect(i * S, j * S, S, S);
-          ctx.globalAlpha = 1;
-        }
-      }
-    }
   }
 
   /* ---------- Sortie : plus rien au-dessus ---------- */
@@ -626,14 +571,14 @@
     say();
 
     window.scrollTo(0, 0);
-    requestAnimationFrame(() => { sizeCanvas(); startSnow(); pixDraw(true); });
+    requestAnimationFrame(() => { sizeCanvas(); startSnow(); });
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
   /* ---------- Branchements ---------- */
   window.addEventListener('scroll', onScroll, { passive: true });
   if (hero) hero.addEventListener('mousemove', onMove, { passive: true });
-  window.addEventListener('resize', () => { if (!closed) { sizeCanvas(); startSnow(); pixDraw(true); onScroll(); } });
+  window.addEventListener('resize', () => { if (!closed) { sizeCanvas(); startSnow(); onScroll(); } });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) startSnow(); });
   if (hero) hero.addEventListener('mouseleave', () => { cur.on = false; });
 
