@@ -249,29 +249,37 @@
       const o = lifecycle(P, s, m, opt, challengeRisk, endDay, risk);
       const netPct = o.net * 100;
       nets.push(netPct);
-      // Chaque départ court jusqu'à la fin de la période sélectionnée (voir lifecycle/startIndexes) : un départ
-      // pris hier n'a presque pas de recul, un départ pris en janvier en a huit mois. Faire la moyenne des % bruts
-      // écrase donc le résultat vers le bas dès qu'une partie des départs est récente (décision utilisateur,
-      // 2026-09-22 : « comment j'arrive à 49 % si chaque mois je retire mon profit, ta simulation est mauvaise »).
-      // On calcule d'abord un TAUX MENSUEL par départ (% ÷ mois de recul), on moyenne ces taux (chaque départ
-      // pèse pour son rythme, pas pour sa part du montant brut), puis on étend ce rythme sur toute la période
-      // sélectionnée pour obtenir un montant global comparable, qui ne s'effondre plus avec des départs récents.
-      const runwayMonths = Math.max((endDay - P.day[s]) / 30.4, 1 / 30.4);
-      monthlyNets.push(netPct / runwayMonths);
       pays.push(o.payouts * 100);
-      if (o.fundedDay !== null) { funded++; fundedDays.push(o.fundedDay); }
+      if (o.fundedDay !== null) {
+        funded++; fundedDays.push(o.fundedDay);
+        // Taux mensuel calculé sur le temps RÉELLEMENT FINANCÉ, pas sur tout le calendrier depuis l'achat du
+        // challenge (décision utilisateur, 2026-09-22 : « si on prend une durée moyenne de 70j avant le premier
+        // retrait, ça exclut 2 mois et 10 jours » — le temps de validation n'a AUCUN retrait possible par
+        // construction, le compter dans le dénominateur écrase le taux pour rien). Un départ dont la majeure
+        // partie du recul est mangée par le challenge (proche de la fin de la période sélectionnée) ressortait
+        // avec un taux artificiellement bas alors que, UNE FOIS financé, son rythme réel peut être tout à fait
+        // normal. Seuls les départs qui ont eu le temps de valider comptent dans cette moyenne (`fundedDays`
+        // capture déjà, séparément, le taux de ceux qui n'ont pas eu le temps).
+        const fundedDayAbs = P.day[s] + o.fundedDay - 1;
+        const activeMonths = Math.max((endDay - fundedDayAbs) / 30.4, 1 / 30.4);
+        monthlyNets.push(netPct / activeMonths);
+      }
       if (o.count > 0) { paid++; firstPays.push(o.firstPay); }
       if (o.violations > 0) violStarts++;
       lost += o.lost; fails += o.challFails; delayed += o.delayed; delaySum += o.delayDays; payoutCount += o.count;
     });
     const n = starts.length;
     const sortedNets = nets.slice().sort((a, b) => a - b);
-    const meanNetPerMonth = mean(monthlyNets);
+    // Moyenne sur les seuls départs financés (`monthlyNets`) : un départ jamais financé n'a, par définition,
+    // aucun rythme de retrait à mesurer — il compte déjà dans `fundedPct`, pas ici.
+    const meanNetPerMonth = monthlyNets.length ? mean(monthlyNets) : 0;
     return {
       risk, challengeRisk, starts: n,
-      // « Retraits potentiels » affiché : le rythme mensuel moyen étendu sur toute la période sélectionnée —
-      // PAS la moyenne brute des % de chaque départ (nets/medianNet/p25Net restent sur la durée propre, variable,
-      // de chaque départ : gardés pour la dispersion, pas pour un chiffre global).
+      // « Retraits potentiels » affiché : le rythme mensuel moyen UNE FOIS FINANCÉ, étendu sur toute la période
+      // sélectionnée — PAS la moyenne brute des % de chaque départ (nets/medianNet/p25Net restent sur la durée
+      // propre, variable, de chaque départ : gardés pour la dispersion, pas pour un chiffre global). Ignore
+      // volontairement le temps de validation (déjà donné à part par « Validation »/« Premier retrait ») : ce
+      // chiffre répond à « une fois lancé, à quel rythme ça retire », pas « en tenant compte du démarrage ».
       meanNet: meanNetPerMonth * spanMonths, meanNetPerMonth,
       medianNet: quantile(sortedNets, 0.5), p25Net: quantile(sortedNets, 0.25),
       meanPayout: mean(pays),
