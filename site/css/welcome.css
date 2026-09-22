@@ -243,6 +243,10 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 }
 .wel__handoff b{ font-size:15px; letter-spacing:-.01em; text-transform:none; font-weight:700; color:#fff; }
 
+/* ──────────────── Jonction : le haut du site qui se forme en pixels ────────────────
+   Bande posée à cheval sur la jonction Newsletter / dashboard (débord sur le haut du dashboard, sous lequel elle passe). */
+.wel__pix{ position:absolute; left:0; width:100%; z-index:5; pointer-events:none; image-rendering:pixelated; }
+
 /* ──────────────── Fenêtre d'une nouveauté ──────────────── */
 .wel__sheet{
   position:fixed; inset:0; z-index:3200; display:none;
