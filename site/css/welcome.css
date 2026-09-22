@@ -243,6 +243,19 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 }
 .wel__handoff b{ font-size:15px; letter-spacing:-.01em; text-transform:none; font-weight:700; color:#fff; }
 
+/* ──────────────── Fondu vers le dashboard ────────────────
+   Hauteur nulle (ne prend pas de place dans le flux) : son ::before déborde par-dessus le haut du dashboard qui suit
+   immédiatement, en dégradé du noir de la Newsletter vers transparent. Défile naturellement avec la page, sans JS. */
+.wel__seam{ position:relative; height:0; z-index:5; pointer-events:none; }
+.wel__seam::before{
+  content:''; position:absolute; left:0; right:0; top:0; height:clamp(200px,34vh,420px);
+  background:linear-gradient(180deg, #050505 0%, rgba(5,5,5,.92) 24%, rgba(5,5,5,.62) 52%, rgba(5,5,5,.18) 80%, rgba(5,5,5,0) 100%);
+}
+
+/* Le dashboard reste inerte (ni cliquable, ni "scrollable" à la molette) tant qu'on ne l'a pas atteint en entier :
+   sans ça la molette, une fois le curseur au-dessus de sa zone visible, faisait défiler l'iframe plutôt que la page. */
+html.is-welcome .chest-shell, html.is-welcome .chest-shell *{ pointer-events:none !important; }
+
 /* ──────────────── Fenêtre d'une nouveauté ──────────────── */
 .wel__sheet{
   position:fixed; inset:0; z-index:3200; display:none;
