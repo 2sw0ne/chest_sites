@@ -931,13 +931,20 @@ CHESTTour.init([
     return `<div class="chest-label">Indice de recommandation · ${Math.round(r.index)} / 100</div><div class="bt-idxlist">${rows}</div>${note ? `<p class="bt-fit-row__rules">${note}</p>` : ''}`;
   }
 
+  // Risque du challenge cherché séparément de celui du compte financé (décision utilisateur, 2026-09-22) : sans
+  // ça, une firme qui force un risque très prudent pour survivre une fois financée (ex. détention interdite pour
+  // une stratégie qui en a besoin) ralentissait aussi, à tort, la validation elle-même. Affiché seulement quand
+  // les deux diffèrent réellement.
+  const chRiskNote = (r) => (r.challengeRisk != null && Math.abs(r.challengeRisk - r.best.risk) >= 0.01
+    ? `<p class="bt-fit-row__rules">Risque pendant le challenge : <b>${nFr(r.challengeRisk, 2)} %</b> (cherché à part, pour valider le plus vite possible sans sacrifier la fiabilité) — une fois financé, le risque repasse à ${nFr(r.best.risk, 2)} %.</p>`
+    : '');
   function mmBlock(r, meta) {
     if (!meta.mm) return '';
     const flatTxt = r.flat ? `Sans money management (risque plat ${nFr(r.flat.best.risk, 2)} %) : ${signedPct(r.flat.best.meanNet, 1)} de retraits nets.` : '';
-    if (!r.mm) return `<div class="chest-label">Money management</div><p class="bt-fit-row__rules">Aucun money management ne fait mieux que le risque plat pour ce modèle. ${flatTxt}</p>`;
+    if (!r.mm) return `<div class="chest-label">Money management</div><p class="bt-fit-row__rules">Aucun money management ne fait mieux que le risque plat pour ce modèle. ${flatTxt}</p>${chRiskNote(r)}`;
     const gain = r.flat ? r.best.meanNet - r.flat.best.meanNet : 0;
     return `<div class="chest-label">Money management retenu · ${escHtml(r.mm.name)}</div>${mmLinesHtml(r.mm)}
-      <p class="bt-fit-row__rules">${flatTxt} Avec ce money management : <b>${signedPct(r.best.meanNet, 1)}</b>${r.flat ? ` (${gain >= 0 ? '+' : '−'}${nFr(Math.abs(gain), 1)} points)` : ''}.${r.mm.trust === 'warn' ? ' <span class="bt-mm__warn">Ce réglage n\'est pas confirmé sur des trades jamais vus : prudence.</span>' : ''}</p>`;
+      <p class="bt-fit-row__rules">${flatTxt} Avec ce money management : <b>${signedPct(r.best.meanNet, 1)}</b>${r.flat ? ` (${gain >= 0 ? '+' : '−'}${nFr(Math.abs(gain), 1)} points)` : ''}.${r.mm.trust === 'warn' ? ' <span class="bt-mm__warn">Ce réglage n\'est pas confirmé sur des trades jamais vus : prudence.</span>' : ''}</p>${chRiskNote(r)}`;
   }
 
   function fitRowHtml(r, isTop, meta) {

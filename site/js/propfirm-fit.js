@@ -76,9 +76,17 @@
   /**
    * Vie complète d'un compte à partir du trade `start`, sur `horizonDays` jours.
    * Capital initial = 1 ; les montants sont des fractions du compte.
+   *
+   * `riskPct` = risque PENDANT LE CHALLENGE, `fundedRiskPct` = risque UNE FOIS FINANCÉ (par défaut le même que
+   * `riskPct` si omis). Décision utilisateur (2026-09-22) : les deux sont cherchés indépendamment ailleurs
+   * (`bestChallengeRisk` / la grille RISKS du compte financé) — sans ça, un seul risque partagé pour tout le
+   * cycle force le calcul à choisir un risque très bas pour survivre une fois financé (ex. une firme qui interdit
+   * la détention le week-end pour une stratégie qui en traverse), et ce même risque bas ralentit alors le
+   * challenge alors que ses règles n'ont rien à voir avec la détention.
    */
-  function lifecycle(P, start, m, opt, riskPct, horizonDays) {
-    const k = riskPct / 100;
+  function lifecycle(P, start, m, opt, riskPct, horizonDays, fundedRiskPct) {
+    const kChallenge = riskPct / 100;
+    const kFunded = (fundedRiskPct != null ? fundedRiskPct : riskPct) / 100;
     const f = m.funded;
     const feeF = m.fee.pct / 100;
     const startDay = P.day[start];
@@ -162,7 +170,7 @@
         continue;
       }
 
-      bal *= 1 + k * P.rr[i];
+      bal *= 1 + (stage === 0 ? kChallenge : kFunded) * P.rr[i];
       if (!dayHas) { dayHas = true; if (stage === 0) tDays++; }
       if (stage === 1 && clock === null) clock = d;
 
@@ -226,11 +234,11 @@
     return out;
   }
 
-  function evaluate(P, starts, m, opt, risk, horizonDays) {
+  function evaluate(P, starts, m, opt, challengeRisk, risk, horizonDays) {
     const nets = [], pays = [], fundedDays = [], firstPays = [];
     let funded = 0, paid = 0, lost = 0, delayed = 0, delaySum = 0, payoutCount = 0, fails = 0, violStarts = 0;
     starts.forEach((s) => {
-      const o = lifecycle(P, s, m, opt, risk, horizonDays);
+      const o = lifecycle(P, s, m, opt, challengeRisk, horizonDays, risk);
       nets.push(o.net * 100);
       pays.push(o.payouts * 100);
       if (o.fundedDay !== null) { funded++; fundedDays.push(o.fundedDay); }
@@ -241,7 +249,7 @@
     const n = starts.length;
     const sortedNets = nets.slice().sort((a, b) => a - b);
     return {
-      risk, starts: n,
+      risk, challengeRisk, starts: n,
       meanNet: mean(nets), medianNet: quantile(sortedNets, 0.5), p25Net: quantile(sortedNets, 0.25),
       meanPayout: mean(pays),
       netPositivePct: nets.filter((v) => v > 0).length / n * 100,
@@ -258,6 +266,38 @@
       payoutCount, delayedPayouts: delayed, avgDelayDays: delayed ? delaySum / delayed : 0,
       violatedPct: violStarts / n * 100,
     };
+  }
+
+  // Risque utilisé PENDANT LE CHALLENGE, cherché une seule fois par (firme, money management) — indépendamment
+  // du risque du compte financé, et réutilisé pour toutes les options de retrait (qui ne jouent aucun rôle avant
+  // d'être financé). Décision utilisateur (2026-09-22, retour : « un compte pas swing n'est pas possible, donc
+  // on adapte ; les résultats doivent être le reflet de la réalité ») : le challenge doit se valider au risque le
+  // plus RAPIDE tant qu'il reste FIABLE (≥ 90 % des départs valident) — jamais au prix de la fiabilité, et jamais
+  // ralenti par un risque choisi pour des raisons propres au compte financé (ex. une détention interdite).
+  function bestChallengeRisk(P, starts, m, horizonDays, wMax) {
+    const opt0 = m.funded.payoutOptions[0];
+    const risks = RISKS.filter((r) => !m.riskCapPct || r * (wMax || 1) <= m.riskCapPct + 1e-9);
+    if (!risks.length) return { risk: RISKS[0], fundedPct: 0, meanDay: null };
+    let best = null;
+    risks.forEach((risk) => {
+      const days = [];
+      let funded = 0;
+      starts.forEach((s) => {
+        const o = lifecycle(P, s, m, opt0, risk, horizonDays, risk);
+        if (o.fundedDay !== null) { funded++; days.push(o.fundedDay); }
+      });
+      const fundedPct = funded / starts.length * 100;
+      const meanDay = days.length ? mean(days) : null;
+      const cand = { risk, fundedPct, meanDay };
+      if (!best) { best = cand; return; }
+      const bReliable = best.fundedPct >= 90, cReliable = fundedPct >= 90;
+      if (cReliable && !bReliable) { best = cand; return; }
+      if (cReliable === bReliable) {
+        if (cReliable) { if (cand.meanDay < best.meanDay) best = cand; }
+        else if (cand.fundedPct > best.fundedPct) best = cand;
+      }
+    });
+    return best;
   }
 
   // Rendement d'un compte propre sur la même fenêtre (moyenne des départs).
@@ -344,12 +384,13 @@
       if (!auto.error) auto.profiles.forEach((p) => addPolicy(p.id, p.name, p.config, p.trust, p.split));
     }
 
-    // Phase 1 : toutes les simulations (firme × money management × option de retrait × risque).
+    // Phase 1 : toutes les simulations (firme × money management × option de retrait × risque du compte financé).
     const sims = window.CHESTPropRules.models.map((m) => {
       const perCand = candidates.map((c) => {
         const risks = RISKS.filter((r) => !m.riskCapPct || r * c.wMax <= m.riskCapPct + 1e-9);
         if (!risks.length) return null;
-        return { c, perOption: m.funded.payoutOptions.map((opt) => ({ opt, curve: risks.map((risk) => evaluate(c.P, c.starts, m, opt, risk, horizonDays)) })) };
+        const chRisk = bestChallengeRisk(c.P, c.starts, m, horizonDays, c.wMax).risk;
+        return { c, chRisk, perOption: m.funded.payoutOptions.map((opt) => ({ opt, curve: risks.map((risk) => evaluate(c.P, c.starts, m, opt, chRisk, risk, horizonDays)) })) };
       }).filter(Boolean);
       return { m, perCand };
     });
@@ -374,7 +415,7 @@
       const results = perCand.map((pc) => {
         const perOption = pc.perOption.map((po) => ({ opt: po.opt, curve: po.curve, best: pick(po.curve) }));
         const top = perOption.reduce((a, b) => (b.best.index > a.best.index + 1e-9 ? b : a));
-        return { c: pc.c, perOption, top };
+        return { c: pc.c, chRisk: pc.chRisk, perOption, top };
       });
       const flatRes = results.find((r) => r.c.id === 'flat') || results[0];
       const chosen = results.reduce((a, b) => (b.top.best.index > a.top.best.index + 1e-9 ? b : a), flatRes);
@@ -399,7 +440,7 @@
         mm = { id: chosen.c.id, name: chosen.c.name, trust: chosen.c.trust, refRisk: best.risk, scale, lines: chosen.c.split ? E.describeSplit(chosen.c.split, scale) : E.describeConfig(chosen.c.config, scale) };
       }
       const flat = flatRes ? { best: flatRes.top.best, option: flatRes.top.opt } : null;
-      return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best), issue, mm, flat, index: best.index, parts: best.parts };
+      return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best), issue, mm, flat, challengeRisk: chosen.chRisk, index: best.index, parts: best.parts };
     });
 
     // Classement. Si des positions traversent le week-end : les comptes qui l'interdisent passent derrière, et les
