@@ -842,7 +842,7 @@ CHESTTour.init([
     const money = `${signedPct(b.meanNet)} du compte financé, frais déduits, soit ≈ ${usdFr(res.prop.horizonUsd)} sur un compte de ${nFr(meta.refAccount)} $`;
     const ownTxt = own ? ` À titre de comparaison, le compte propre à risque optimisé (${nFr(own.risk, 2)} %) ferait ${signedPct(own.horizonPct)} de ton capital, avec un drawdown de ${pctFr(own.maxDdPct, 1)}.` : '';
     if (v.kind === 'propfirm') {
-      return `Sur ${H} mois, ${name} (option « ${t.option.label} », ${riskPhrase}) aurait permis de retirer en moyenne ${money}. ${nFr(b.fundedPct)} % des départs sont validés (médiane ${b.medianFundedDay} j) et le premier retrait tombe après ${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}.${consistencySentence(res)}${swingSentence(res)}${ownTxt}`;
+      return `Sur ${H} mois, ${name} (option « ${t.option.label} », ${riskPhrase}) aurait permis de retirer en moyenne ${money}. ${nFr(b.fundedPct)} % des départs sont validés (médiane ${b.medianFundedDay} j, moyenne ${b.meanFundedDay != null ? nFr(b.meanFundedDay, 1) + ' j' : '—'}) et le premier retrait tombe après ${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}.${consistencySentence(res)}${swingSentence(res)}${ownTxt}`;
     }
     if (v.kind === 'both') {
       return `Le meilleur modèle (${name}, ${riskPhrase}) rapporte en moyenne ${money}, mais seulement ${pctFr(b.netPositivePct)} des départs finissent gagnants sur ${H} mois.${consistencySentence(res)}${ownTxt}`;
@@ -949,7 +949,7 @@ CHESTTour.init([
       <div class="bt-opt${po.opt.id === r.option.id ? ' is-picked' : ''}">
         <div class="bt-opt__head"><b>${escHtml(po.opt.label)}</b><span class="bt-opt__net ${po.best.meanNet >= 0 ? 'is-pos' : 'is-neg'}">${signedPct(po.best.meanNet, 1)}</span></div>
         <div class="bt-opt__rule">${escHtml(optionRule(po.opt))}</div>
-        <div class="bt-opt__meta">Risque ${nFr(po.best.risk, 2)} % · 1er retrait ${po.best.medianFirstPay != null ? po.best.medianFirstPay + ' j' : '—'} · ${nFr(po.best.paidPct)} % des départs retirent${po.best.delayedPayouts ? ` · ${nFr(po.best.payoutCount ? po.best.delayedPayouts / po.best.payoutCount * 100 : 0)} % des retraits reportés (+${nFr(po.best.avgDelayDays)} j)` : ''}</div>
+        <div class="bt-opt__meta">Risque ${nFr(po.best.risk, 2)} % · validation moy. ${po.best.meanFundedDay != null ? nFr(po.best.meanFundedDay, 1) + ' j' : '—'} · 1er retrait ${po.best.medianFirstPay != null ? po.best.medianFirstPay + ' j' : '—'} · ${nFr(po.best.paidPct)} % des départs retirent${po.best.delayedPayouts ? ` · ${nFr(po.best.payoutCount ? po.best.delayedPayouts / po.best.payoutCount * 100 : 0)} % des retraits reportés (+${nFr(po.best.avgDelayDays)} j)` : ''}</div>
       </div>`).join('');
     const curve = r.curve.map((c) => `
       <div class="bt-curve__row${c.risk === b.risk ? ' is-picked' : ''}">
@@ -966,7 +966,7 @@ CHESTTour.init([
           <span class="bt-fit-row__name"><b>${m.firm}</b><small>${m.label}</small><span class="bt-idx" title="Indice de recommandation (0-100)"><b>${Math.round(r.index)}</b> / 100${meta.swingPriority && r.swing ? '<em class="bt-swing">Swing</em>' : ''}</span></span>
           <span class="bt-fit-row__pass bt-tone--${tone}"><b>${signedPct(b.meanNet)}</b><span class="bt-fit-row__bar"><i style="width:${barW}%"></i></span></span>
           <span class="bt-fit-row__cell" data-label="Risque">${nFr(b.risk, 2)} %${r.mm ? `<small class="bt-mm__tag">${escHtml(r.mm.name)}</small>` : ''}</span>
-          <span class="bt-fit-row__cell" data-label="Validation">${nFr(b.fundedPct)} %</span>
+          <span class="bt-fit-row__cell" data-label="Validation">${nFr(b.fundedPct)} %${b.meanFundedDay != null ? `<small class="bt-mm__tag">moy. ${nFr(b.meanFundedDay, 1)} j</small>` : ''}</span>
           <span class="bt-fit-row__cell" data-label="1er retrait">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</span>
           <span class="bt-fit-row__cell bt-fit-row__block${watch.warn ? ' is-warn' : ''}" data-label="À surveiller">${escHtml(watch.text)}</span>
         </summary>
@@ -1021,8 +1021,8 @@ CHESTTour.init([
         </div>
         <div class="chest-kpis bt-verdict__nums">
           <div><div class="chest-label">Retraits potentiels · ${H} mois</div><div class="chest-kpi__val ${positive}">${signedPct(b.meanNet)}</div><div class="chest-kpi__note">≈ ${usdFr(res.prop.horizonUsd)} sur ${nFr(res.meta.refAccount)} $ financés</div></div>
-          <div><div class="chest-label">Validation</div><div class="chest-kpi__val">${nFr(b.fundedPct)} %</div><div class="chest-kpi__note">des départs financés · médiane ${b.medianFundedDay != null ? b.medianFundedDay + ' j' : '—'}</div></div>
-          <div><div class="chest-label">Premier retrait</div><div class="chest-kpi__val">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</div><div class="chest-kpi__note">${nFr(b.paidPct)} % des départs retirent</div></div>
+          <div><div class="chest-label">Validation</div><div class="chest-kpi__val">${nFr(b.fundedPct)} %</div><div class="chest-kpi__note">des départs financés · médiane ${b.medianFundedDay != null ? b.medianFundedDay + ' j' : '—'}, moyenne ${b.meanFundedDay != null ? nFr(b.meanFundedDay, 1) + ' j' : '—'}</div></div>
+          <div><div class="chest-label">Premier retrait</div><div class="chest-kpi__val">${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}</div><div class="chest-kpi__note">${nFr(b.paidPct)} % des départs retirent · validation en ${b.meanFundedDay != null ? nFr(b.meanFundedDay, 1) + ' j' : '—'} en moyenne</div></div>
           ${v.top.mm
             ? `<div><div class="chest-label">Money management</div><div class="chest-kpi__val">${escHtml(v.top.mm.name)}</div><div class="chest-kpi__note">${escHtml(mmShort(v.top.mm))} · ≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>`
             : `<div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>`}

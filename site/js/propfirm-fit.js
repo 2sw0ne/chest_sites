@@ -248,6 +248,10 @@
       fundedPct: funded / n * 100,
       paidPct: paid / n * 100,
       medianFundedDay: fundedDays.length ? quantile(fundedDays.slice().sort((a, b) => a - b), 0.5) : null,
+      // Moyenne (pas seulement la médiane) sur le même grand échantillon de départs (jusqu'à MAX_STARTS,
+      // un par date de l'historique) : décision utilisateur, pour donner une validation « en jours » plus
+      // représentative qu'un seul jour médian quand la distribution est étalée (peu de très longs départs).
+      meanFundedDay: fundedDays.length ? mean(fundedDays) : null,
       medianFirstPay: firstPays.length ? quantile(firstPays.slice().sort((a, b) => a - b), 0.5) : null,
       lostPerStart: (lost + fails) / n,
       fundedLostPerStart: lost / n,
