@@ -322,7 +322,10 @@ html.is-welcome.is-sheet{ overflow:hidden; }
    pages/couleurs — pastille kicker, immense titre sur 2 poids (blanc + mot en accent lumineux via `<b>`), badge
    d'icône flottant incliné avec halo et légère respiration, fond en glow radial + grille fine + vignette. Jamais
    copié : structure et ambiance seulement, contenu 100 % CHEST. ─── */
-.wel__menu-stage{ position:absolute; inset:clamp(14px,2vw,20px); top:auto; bottom:clamp(14px,2vw,20px); height:78%; }
+/* Hauteur réduite (retour utilisateur 2026-09-23, capture annotée : le haut de la bannière chevauchait le titre
+   « Menu ») : 78 % laissait trop peu de dégagement sous le titre de la carte — 66 % redonne cette marge, comme
+   Chest Is Here/Founder/Scanner où le titre ne touche jamais la vitrine en dessous. */
+.wel__menu-stage{ position:absolute; inset:clamp(14px,2vw,20px); top:auto; bottom:clamp(14px,2vw,20px); height:66%; }
 .wel__menu-banner{
   position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; gap:10px;
   padding:0 26px; border-radius:18px; border:1px solid rgba(255,255,255,.14); overflow:hidden;
