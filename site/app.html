@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/welcome.css?v=22">
+<link rel="stylesheet" href="css/welcome.css?v=23">
 <script src="js/theme.js"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
@@ -68,25 +68,29 @@
         <div class="wel__news-head">
           <p class="wel__kicker">Nouveautés</p>
           <h2 class="wel__h2">Newsletter</h2>
+          <!-- Réglage manuel de la disposition des 5 vitrines (provisoire : accessible à tous en attendant le
+               vrai réglage Admin/Client — voir CLAUDE.md). Stocké en localStorage, par navigateur. -->
+          <button type="button" class="wel__layout-toggle" id="welLayoutToggle">Disposition</button>
+          <button type="button" class="wel__layout-toggle" id="welLayoutReset" hidden>Réinitialiser</button>
         </div>
 
-        <div class="wel__grid wel__grid--v2">
+        <div class="wel__grid wel__grid--v2" id="welBentoGrid">
 
           <!-- CHEST IS HERE : vitrine statique, même esprit que la carte "Presentations" de référence -->
-          <article class="wel__card wel__card--v2 wel__card--hero" data-no-sheet="1">
+          <article class="wel__card wel__card--v2 wel__card--hero" data-no-sheet="1" data-bento-id="hero">
             <div class="wel__card-media" style="--img:url(/assets/wel-chest-here.webp)"></div>
             <h3 class="wel__card-title">Chest Is Here</h3>
           </article>
 
           <!-- SCANNER : porte le badge +1 de nouveauté (compté par le bouton Newsletter du hero) -->
-          <article class="wel__card wel__card--v2 wel__card--scanner" data-no-sheet="1" data-news-id="scanner-2026-09">
+          <article class="wel__card wel__card--v2 wel__card--scanner" data-no-sheet="1" data-news-id="scanner-2026-09" data-bento-id="scanner">
             <div class="wel__card-media" style="--img:url(/assets/wel-scanner.webp)"></div>
             <span class="wel__card-badge">+1</span>
             <h3 class="wel__card-title">SCANNER</h3>
           </article>
 
           <!-- Founder : le téléphone recule et se floute au survol, les réseaux apparaissent derrière -->
-          <article class="wel__card wel__card--v2 wel__card--founder" data-no-sheet="1">
+          <article class="wel__card wel__card--v2 wel__card--founder" data-no-sheet="1" data-bento-id="founder">
             <h3 class="wel__card-title">Founder</h3>
             <div class="wel__founder-stage">
               <a class="wel__founder-social wel__founder-social--ig" href="https://instagram.com/2sw0ne" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
@@ -98,20 +102,18 @@
               <a class="wel__founder-social wel__founder-social--tg" href="#" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 4L2.6 11.2c-.9.4-.9 1.6.1 1.9l4.6 1.4 1.8 5.6c.3.9 1.4 1.1 2 .4l2.6-2.8 4.7 3.5c.8.6 2 .2 2.2-.8L22 4.9c.2-1-.7-1.7-1.5-1.3z"/><path d="M8.3 14.5L17 7"/></svg>
               </a>
-              <div class="wel__founder-phone"><img src="assets/wel-founder-photo.webp" alt="Profil Instagram du fondateur"></div>
+              <img class="wel__founder-phone" src="/assets/wel-founder-phone.webp" alt="Profil Instagram du fondateur">
             </div>
           </article>
 
-          <!-- MENU : les pages du site défilent en boucle, fondu sur les bords -->
-          <article class="wel__card wel__card--v2 wel__card--menu" data-no-sheet="1">
+          <!-- MENU : une bannière à la fois, qui se fond dans la suivante (une par page du site) -->
+          <article class="wel__card wel__card--v2 wel__card--menu" data-no-sheet="1" data-bento-id="menu">
             <h3 class="wel__card-title">MENU</h3>
-            <div class="wel__menu-track">
-              <div class="wel__menu-track-inner" id="welMenuTrack"></div>
-            </div>
+            <div class="wel__menu-stage" id="welMenuStage"></div>
           </article>
 
           <!-- SCHOOLE : miniatures vidéo de la rubrique School, défilement lent -->
-          <article class="wel__card wel__card--v2 wel__card--school" data-no-sheet="1">
+          <article class="wel__card wel__card--v2 wel__card--school" data-no-sheet="1" data-bento-id="school">
             <h3 class="wel__card-title">SCHOOLE</h3>
             <div class="wel__school-track">
               <div class="wel__school-track-inner" id="welSchoolTrack"></div>
@@ -207,6 +209,6 @@
 
 <script src="js/nav.js?v=3"></script>
 <script src="js/shell.js?v=2"></script>
-<script src="js/welcome.js?v=42"></script>
+<script src="js/welcome.js?v=44"></script>
 </body>
 </html>

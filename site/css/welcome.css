@@ -274,90 +274,103 @@ html.is-welcome.is-sheet{ overflow:hidden; }
   box-shadow:0 0 16px rgba(252,18,131,.55);
 }
 
-/* ─── Founder : carte verticale (2/5 de large × 2 rangées de haut, ≈1:2) — le téléphone net au repos, recule et se
-   floute au survol pendant que les réseaux sortent PAR LE HAUT (bug corrigé 2026-09-22, 2e passe : à cause du
-   manque de hauteur avant la mesure exacte de la référence, le haut du téléphone et les bulles étaient rognés par
-   overflow:hidden et invisibles — la carte est maintenant deux fois plus haute que large, largement assez de
-   place). ─── */
+/* ─── Founder : photo RÉELLE fournie par l'utilisateur (iPhone + capture Instagram déjà composités dans l'image,
+   décision 2026-09-22 : « je t'ai fourni l'iPhone + insta ça sera plus simple » — plus de bezel dessiné en CSS).
+   Le téléphone est volontairement COUPÉ EN BAS par la carte (comme la référence Social Media : on ne voit jamais
+   le bas de l'appareil) ; au survol il recule et se floute pendant que 3 réseaux sortent de derrière, disposés
+   comme sur la référence (2 en haut écartés + 1 de chaque côté, légèrement rognés par le bord de la carte). ─── */
 .wel__card--founder{ background:#050505; }
-.wel__founder-stage{
-  position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center;
-  padding-bottom:clamp(20px,4vh,34px);
-}
+.wel__founder-stage{ position:absolute; inset:0; display:flex; justify-content:center; }
 .wel__founder-phone{
-  position:relative; z-index:2; width:clamp(120px,15vw,168px); aspect-ratio:9/19.5; max-height:78%;
-  border-radius:24px; border:3px solid #1c1c20; background:#000; overflow:hidden;
-  box-shadow:0 18px 44px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06);
-  transform-origin:bottom center; transform:scale(1); filter:blur(0);
+  position:absolute; z-index:2; top:6%; width:clamp(150px,20vw,230px); height:auto; aspect-ratio:1125/2000;
+  object-fit:cover; object-position:top center; display:block;
+  filter:drop-shadow(0 18px 40px rgba(0,0,0,.6)); transform-origin:top center; transform:scale(1) translateY(0);
   transition:transform .5s cubic-bezier(.16,1,.3,1), filter .5s cubic-bezier(.16,1,.3,1);
 }
-.wel__founder-phone img{ width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
-.wel__founder-phone::after{
-  content:''; position:absolute; left:50%; top:8px; translate:-50% 0; width:34%; height:5px; border-radius:3px; background:#000;
-}
-/* Origine en bas : le téléphone rétrécit VERS le bas, libérant l'espace du haut pour les réseaux. */
-.wel__card--founder:hover .wel__founder-phone{ transform:scale(.58); filter:blur(3px); }
+/* Origine en HAUT cette fois (photo ancrée en haut, coupée en bas) : rétrécir + descendre légèrement dégage de la
+   place tout en gardant le haut du téléphone (et le futur point d'ancrage des bulles) bien en place. */
+.wel__card--founder:hover .wel__founder-phone{ transform:scale(.66) translateY(6%); filter:blur(3px) drop-shadow(0 18px 40px rgba(0,0,0,.6)); }
 
 .wel__founder-social{
-  position:absolute; z-index:4; bottom:clamp(34px,6vh,54px);
-  width:56px; height:56px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+  position:absolute; z-index:4;
+  width:clamp(46px,5.5vw,58px); height:clamp(46px,5.5vw,58px); border-radius:999px;
+  display:flex; align-items:center; justify-content:center;
   color:#fff; opacity:0; pointer-events:none; transform:scale(.3) translateY(10px);
   transition:opacity .4s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1);
   box-shadow:0 10px 26px rgba(0,0,0,.5);
 }
-.wel__founder-social svg{ width:26px; height:26px; }
-.wel__founder-social--ig{ left:calc(50% - 108px); background:radial-gradient(circle at 30% 110%, #fdf497, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%); transition-delay:.03s; }
-.wel__founder-social--tt{ left:calc(50% + 52px); background:#0a0a0c; border:1px solid rgba(255,255,255,.18); transition-delay:.08s; }
-/* Telegram sort PAR LE HAUT de la carte (au-dessus du titre, dans la zone dégagée par le rétrécissement du
-   téléphone) : c'est la bulle qui doit visiblement « sortir de derrière » au survol. */
-.wel__founder-social--tg{ left:50%; translate:-50% 0; bottom:auto; top:clamp(56px,9vh,78px); background:#28A8E9; transition-delay:.13s; z-index:5; }
+.wel__founder-social svg{ width:56%; height:56%; }
+/* Disposition mesurée sur la carte Social Media de référence : 1 au centre-haut, 1 à gauche et 1 à droite à
+   mi-hauteur, légèrement rognés par le bord de la carte (Instagram déborde à gauche, comme dans la référence). */
+.wel__founder-social--tg{ left:50%; translate:-50% 0; top:8%; background:#28A8E9; transition-delay:.03s; }
+.wel__founder-social--ig{ left:-14px; top:38%; background:radial-gradient(circle at 30% 110%, #fdf497, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%); transition-delay:.08s; }
+.wel__founder-social--tt{ right:-14px; top:38%; background:#0a0a0c; border:1px solid rgba(255,255,255,.18); transition-delay:.13s; }
 .wel__card--founder:hover .wel__founder-social{ opacity:1; pointer-events:auto; transform:scale(1) translateY(0); }
 
-/* ─── MENU : petites fenêtres (façon capture d'app, pas des pastilles de menu) qui défilent en boucle avec fondu
-   sur les bords — décision utilisateur 2026-09-22, 2e passe (« c'est pas ce que j'ai demandé, ça ressemble pas au
-   modèle ») : inspection de la carte Banners de référence = un slideshow d'UNE fenêtre à la fois qui se fond dans
-   la suivante, mais la demande initiale de l'utilisateur (« des éléments horizontaux ») décrit plusieurs petites
-   fenêtres en rangée façon Websites and Apps — parti pris : garder le défilement horizontal continu déjà validé,
-   corriger seulement le style de chaque élément pour que ce soit une VRAIE petite fenêtre (barre façon navigateur
-   à 3 points + corps illustré + légende dessous), pas un bouton de navigation. ─── */
-.wel__menu-track, .wel__school-track{
+/* ─── MENU : UNE bannière à la fois, qui se fond dans la suivante — décision utilisateur 2026-09-22, 3e passe
+   (« je t'ai dit je veux un élément horizontal qui disparaît puis laisse apparaître un autre ») : la carte Banners
+   de référence est bien un slideshow à une seule fenêtre (vérifié en direct sur le site), pas un défilement de
+   plusieurs éléments — corrigé pour de bon cette fois. Chaque page du site devient une bannière pleine largeur
+   (icône + nom), fondu enchaîné géré par `welcome.js` (classe `.is-out` pendant la transition). ─── */
+.wel__menu-stage{ position:absolute; inset:clamp(14px,2vw,20px); top:auto; bottom:clamp(14px,2vw,20px); height:62%; }
+.wel__menu-banner{
+  position:absolute; inset:0; display:flex; align-items:center; gap:16px; padding:0 22px;
+  border-radius:16px; border:1px solid rgba(255,255,255,.12); overflow:hidden;
+  background:radial-gradient(140% 160% at 15% 0%, rgba(252,18,131,.22), transparent 62%), #0b0b0f;
+  opacity:1; transition:opacity .5s cubic-bezier(.16,1,.3,1);
+}
+.wel__menu-banner.is-out{ opacity:0; }
+.wel__menu-banner__ic{
+  flex:none; width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#fc1283,#f9a45e);
+}
+.wel__menu-banner__ic i{ width:22px; height:22px; background:#fff; }
+.wel__menu-banner__label{ font-size:15px; font-weight:600; letter-spacing:-.02em; color:#fff; }
+
+.wel__school-track{
   position:absolute; inset:0; overflow:hidden;
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
   mask-image:linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
 }
-.wel__menu-track-inner, .wel__school-track-inner{ position:absolute; top:50%; translate:0 -50%; display:flex; align-items:center; gap:14px; width:max-content; padding:0 6px; }
-.wel__menu-track-inner{ animation:welMenuScroll 30s linear infinite; }
+.wel__school-track-inner{ position:absolute; top:50%; translate:0 -50%; display:flex; align-items:center; gap:14px; width:max-content; padding:0 6px; }
 .wel__school-track-inner{ animation:welMenuScroll 46s linear infinite; }
-.wel__card--menu:hover .wel__menu-track-inner, .wel__card--school:hover .wel__school-track-inner{ animation-play-state:paused; }
+.wel__card--school:hover .wel__school-track-inner{ animation-play-state:paused; }
 @keyframes welMenuScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
-
-.wel__menu-win{
-  flex:none; width:132px; border-radius:14px; overflow:hidden; background:#0c0c0f;
-  border:1px solid rgba(255,255,255,.12); box-shadow:0 10px 26px rgba(0,0,0,.45);
-}
-.wel__menu-win__bar{ display:flex; align-items:center; gap:4px; padding:7px 9px; background:rgba(255,255,255,.04); }
-.wel__menu-win__bar i{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.18); }
-.wel__menu-win__body{
-  height:52px; display:flex; align-items:center; justify-content:center;
-  background:radial-gradient(120% 140% at 30% 0%, rgba(252,18,131,.28), transparent 60%), #111116;
-}
-.wel__menu-win__body i{ width:22px; height:22px; background:linear-gradient(135deg,#fc1283,#f9a45e); }
-.wel__menu-win__label{ padding:7px 10px 9px; font-size:11px; font-weight:600; letter-spacing:-.01em; color:rgba(255,255,255,.78); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .wel__school-thumb{
   flex:none; width:150px; height:88px; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,.12);
   background:#111 center/cover no-repeat; box-shadow:0 10px 24px rgba(0,0,0,.45);
 }
 
+/* ─── Réglage manuel de la disposition (provisoire, accessible à tous en attendant le vrai Admin/Client — voir
+   CLAUDE.md) : bouton « Disposition », poignées de redimensionnement par carte, calées sur les 5 colonnes/3
+   rangées de la grille. `welcome.js` calcule les spans en fonction du glisser et les persiste en localStorage. ─── */
+.wel__layout-toggle{
+  margin-left:auto; align-self:center; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  padding:8px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.72);
+  background:none; font-family:inherit; cursor:pointer; transition:background .18s, border-color .18s, color .18s;
+}
+.wel__layout-toggle:hover{ background:rgba(255,255,255,.06); color:#fff; }
+.wel__layout-toggle.is-active{ color:#fc1283; border-color:rgba(252,18,131,.5); background:rgba(252,18,131,.1); }
+.wel__news-head{ display:flex; align-items:baseline; flex-wrap:wrap; gap:16px; }
+
+.wel__grid--v2.is-resizing .wel__card{ transition:none; }
+.wel__resize-handle{
+  position:absolute; z-index:9; background:transparent;
+}
+.wel__resize-handle--e{ right:0; top:0; bottom:0; width:12px; cursor:ew-resize; }
+.wel__resize-handle--s{ left:0; right:0; bottom:0; height:12px; cursor:ns-resize; }
+.wel__grid--v2.is-resizing .wel__resize-handle{ background:rgba(252,18,131,.25); }
+.wel__grid--v2.is-resizing .wel__card{ outline:1px dashed rgba(255,255,255,.25); outline-offset:-1px; }
+
 @media (max-width:820px){
   .wel__grid--v2{ grid-template-columns:1fr; grid-template-rows:none; }
-  .wel__card--hero, .wel__card--scanner, .wel__card--founder, .wel__card--menu, .wel__card--school{ grid-column:auto; grid-row:auto; }
+  .wel__card--hero, .wel__card--scanner, .wel__card--founder, .wel__card--menu, .wel__card--school{ grid-column:auto !important; grid-row:auto !important; }
   .wel__card--founder{ min-height:380px; }
-  .wel__founder-social{ width:46px; height:46px; }
-  .wel__founder-social svg{ width:21px; height:21px; }
 }
 @media (prefers-reduced-motion:reduce){
-  .wel__menu-track-inner, .wel__school-track-inner{ animation:none; }
+  .wel__school-track-inner{ animation:none; }
+  .wel__menu-banner{ transition:none; }
 }
 
 .wel__handoff{

@@ -70,23 +70,13 @@
     } catch (e) { /* stockage indisponible : sans conséquence */ }
   }
 
-  /* ---------- Bento v2 : bandeaux MENU (pages du site) et SCHOOLE (miniatures vidéo) ----------
+  /* ---------- Bento v2 : bandeau SCHOOLE (miniatures vidéo) ----------
      Contenu doublé (×2) pour boucler sans coupure visible (`welMenuScroll` translate à -50%, soit exactement
-     un jeu de cartes). Pages reprises de PAGES dans shell.js (mêmes libellés, mêmes icônes .chest-ic-*) ; les
-     miniatures viennent des vidéos StepUp déjà listées dans school-data.js (vignette YouTube publique par id,
-     aucun appel serveur). Round 1 (statique) : pas encore piloté par l'admin, voir CLAUDE.md. */
-  const MENU_ITEMS = [
-    ['dashboard', 'Dashboard'], ['backtesting', 'Backtesting'], ['journal', 'Journal'],
-    ['strategies', 'Stratégies'], ['calendar', 'Calendrier'], ['berich', 'BERICH'],
-    ['school', 'School'], ['account', 'Compte'],
-  ];
+     un jeu de cartes). Les miniatures viennent des vidéos StepUp déjà listées dans school-data.js (vignette
+     YouTube publique par id, aucun appel serveur). Round 1 (statique) : pas encore piloté par l'admin, voir
+     CLAUDE.md. */
   const SCHOOL_THUMB_IDS = ['wU8i9-MbdWQ', 'd4sZy3AChZs', '6xjpusd9EMQ', 'iba0283havo', '7AHz5QoXL9U', 'QZxD5aotAAo', 'b9sc84WGlyw', 'LnV_Pz-qejs', 'iTb4oeGqEBs', 'uyyqD2M-71c'];
   function populateMarquees() {
-    const menuTrack = document.getElementById('welMenuTrack');
-    if (menuTrack) {
-      const wins = MENU_ITEMS.map(([ic, label]) => `<span class="wel__menu-win"><span class="wel__menu-win__bar"><i></i><i></i><i></i></span><span class="wel__menu-win__body"><i class="chest-ic-${ic}"></i></span><span class="wel__menu-win__label">${label}</span></span>`).join('');
-      menuTrack.innerHTML = wins + wins;
-    }
     const schoolTrack = document.getElementById('welSchoolTrack');
     if (schoolTrack) {
       const thumbs = SCHOOL_THUMB_IDS.map((id) => `<span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/${id}/mqdefault.jpg)"></span>`).join('');
@@ -94,6 +84,143 @@
     }
   }
   populateMarquees();
+
+  /* ---------- Bento v2 : MENU — une bannière à la fois, fondu enchaîné (2026-09-22, 3e passe) ----------
+     Chaque page du site (mêmes libellés/icônes que PAGES dans shell.js) s'affiche plein cadre quelques secondes,
+     se fond en transparence (`.is-out`), puis la suivante prend sa place APRÈS la transition (pas pendant : sinon
+     deux bannières se chevauchent) — un seul élément DOM réutilisé et repeint, plutôt que plusieurs empilés, pour
+     rester simple. En pause au survol comme les autres bandeaux. */
+  const MENU_ITEMS = [
+    ['dashboard', 'Dashboard'], ['backtesting', 'Backtesting'], ['journal', 'Journal de trading'],
+    ['strategies', 'Stratégies'], ['calendar', 'Calendrier économique'], ['berich', 'BERICH'],
+    ['school', 'School'], ['account', 'Compte'],
+  ];
+  function initMenuSlideshow() {
+    const stage = document.getElementById('welMenuStage');
+    if (!stage) return;
+    const banner = document.createElement('div');
+    banner.className = 'wel__menu-banner';
+    stage.appendChild(banner);
+    let i = 0, timer = null, hovered = false;
+    function paint() {
+      const [ic, label] = MENU_ITEMS[i];
+      banner.innerHTML = `<span class="wel__menu-banner__ic"><i class="chest-ic-${ic}"></i></span><span class="wel__menu-banner__label">${label}</span>`;
+    }
+    function step() {
+      if (hovered) return;
+      banner.classList.add('is-out');
+      setTimeout(() => {
+        if (hovered) { banner.classList.remove('is-out'); return; }
+        i = (i + 1) % MENU_ITEMS.length;
+        paint();
+        // repaint puis on relève is-out au prochain frame pour que la transition d'entrée rejoue à chaque fois
+        requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.remove('is-out')));
+      }, 500);
+    }
+    paint();
+    timer = setInterval(step, 3200);
+    const card = stage.closest('.wel__card--menu');
+    if (card) {
+      card.addEventListener('mouseenter', () => { hovered = true; });
+      card.addEventListener('mouseleave', () => { hovered = false; });
+    }
+    if (reduce) { clearInterval(timer); }
+  }
+  initMenuSlideshow();
+
+  /* ---------- Bento v2 : réglage manuel de la disposition (provisoire, voir CLAUDE.md) ----------
+     Bouton « Disposition » → poignées de redimensionnement (droite = colonnes, bas = rangées) sur chaque carte,
+     calées sur la grille 5 colonnes × 3 rangées. Persisté en localStorage (par navigateur, pas encore partagé —
+     le vrai stockage admin viendra avec le CMS). */
+  function initBentoResize() {
+    const grid = document.getElementById('welBentoGrid');
+    const toggle = document.getElementById('welLayoutToggle');
+    if (!grid || !toggle) return;
+    const KEY = 'chest_wel_bento_spans';
+    const COLS = 5, ROWS = 3;
+    const DEFAULTS = {
+      hero: { c0: 0, cs: 3, r0: 0, rs: 1 },
+      scanner: { c0: 3, cs: 2, r0: 0, rs: 1 },
+      founder: { c0: 0, cs: 2, r0: 1, rs: 2 },
+      menu: { c0: 2, cs: 3, r0: 1, rs: 1 },
+      school: { c0: 2, cs: 3, r0: 2, rs: 1 },
+    };
+    function load() {
+      try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return Object.assign({}, DEFAULTS); }
+    }
+    function save(spans) {
+      try { localStorage.setItem(KEY, JSON.stringify(spans)); } catch (e) { /* stockage indisponible */ }
+    }
+    let spans = load();
+    function apply() {
+      grid.querySelectorAll('[data-bento-id]').forEach((card) => {
+        const id = card.dataset.bentoId, s = spans[id] || DEFAULTS[id];
+        if (!s) return;
+        card.style.gridColumn = (s.c0 + 1) + ' / span ' + s.cs;
+        card.style.gridRow = (s.r0 + 1) + ' / span ' + s.rs;
+      });
+    }
+    apply();
+
+    const resetBtn = document.getElementById('welLayoutReset');
+    let active = false;
+    function addHandles(card) {
+      const e = document.createElement('span'); e.className = 'wel__resize-handle wel__resize-handle--e';
+      const s = document.createElement('span'); s.className = 'wel__resize-handle wel__resize-handle--s';
+      card.appendChild(e); card.appendChild(s);
+      e.addEventListener('mousedown', (ev) => startDrag(ev, card, 'e'));
+      s.addEventListener('mousedown', (ev) => startDrag(ev, card, 's'));
+    }
+    function startDrag(ev, card, axis) {
+      ev.preventDefault();
+      const id = card.dataset.bentoId;
+      const s = Object.assign({}, spans[id] || DEFAULTS[id]);
+      const gridRect = grid.getBoundingClientRect();
+      const colW = gridRect.width / COLS;
+      const rowH = gridRect.height / ROWS;
+      function onMove(mv) {
+        if (axis === 'e') {
+          const rel = mv.clientX - gridRect.left;
+          const endCol = Math.round(rel / colW);
+          const cs = Math.max(1, Math.min(COLS - s.c0, endCol - s.c0));
+          s.cs = cs;
+        } else {
+          const rel = mv.clientY - gridRect.top;
+          const endRow = Math.round(rel / rowH);
+          const rs = Math.max(1, Math.min(ROWS - s.r0, endRow - s.r0));
+          s.rs = rs;
+        }
+        spans[id] = s;
+        apply();
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        save(spans);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }
+    toggle.addEventListener('click', () => {
+      active = !active;
+      toggle.classList.toggle('is-active', active);
+      grid.classList.toggle('is-resizing', active);
+      if (resetBtn) resetBtn.hidden = !active;
+      if (active && !grid.dataset.handlesReady) {
+        grid.dataset.handlesReady = '1';
+        grid.querySelectorAll('[data-bento-id]').forEach(addHandles);
+      }
+    });
+    // Poignées non contraintes entre elles (décision assumée : outil manuel rapide, pas un solveur de collisions) —
+    // un chevauchement reste possible si on agrandit une carte dans l'espace d'une voisine ; ce bouton remet les
+    // 5 valeurs par défaut d'un coup en cas de disposition cassée.
+    if (resetBtn) resetBtn.addEventListener('click', () => {
+      spans = Object.assign({}, DEFAULTS);
+      save(spans);
+      apply();
+    });
+  }
+  initBentoResize();
 
   /* ---------- La souris : un effet par-dessus, sans jamais bouger le fond ni le logo ---------- */
   function onMove(e) {
