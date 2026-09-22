@@ -400,11 +400,22 @@
       return { error: `La période sélectionnée en haut de page (${spanDays} jours) est trop courte pour simuler la vie d'un compte. Sélectionne une période plus longue.` };
     }
 
+    // Money management BRUT (décision utilisateur, 2026-09-22 : « je veux trouver l'efficacité et la rapidité,
+    // quitte à s'exposer à quelque danger ») : au lieu de laisser le moteur recaler ton réglage sur la grille RISKS
+    // pour trouver le risque le plus sûr, on teste UNIQUEMENT ton réglage enregistré, à son risque RÉEL (celui que
+    // tu utilises vraiment en compte propre), sans filtrer sur MAX_LOST_PER_START. Utile pour un compte propre : le
+    // Max DD affiché en section 01/02 est mesuré sur une courbe qui compound (le pic de référence grossit avec le
+    // capital), alors que le plancher de perte d'une propfirm est FIXE par rapport au capital financé — un même
+    // réglage peut donc paraître très sûr sur la courbe compoundée et rester dangereux une fois rejoué dans une
+    // vraie propfirm. Ce mode montre ce danger réel au lieu de le masquer derrière un risque rabaissé.
+    const raw = !!(opts && opts.rawMM && opts.userConfig);
+
     // Money management candidats : sans MM (risque plat), le réglage enregistré du backtest, puis les trois profils
     // propfirm du calcul automatique (régularité, performance pure, sécurité). Chacun est un risque par trade
     // (paliers après SL, pause, logiques séparées) décidé à l'ouverture ; la simulation recale ensuite son risque
-    // de référence pour chaque firme (grille RISKS) et garde ce qui retire le plus.
-    const candidates = [{ id: 'flat', name: 'Sans money management', P, starts, ref: 1, wMax: 1, config: null, trust: null }];
+    // de référence pour chaque firme (grille RISKS) et garde ce qui retire le plus. En mode brut, un seul candidat
+    // (ton réglage), jamais recalé.
+    const candidates = raw ? [] : [{ id: 'flat', name: 'Sans money management', P, starts, ref: 1, wMax: 1, config: null, trust: null }];
     if (!(opts && opts.mm === false)) {
       const seen = new Set();
       const addPolicy = (id, name, config, trust, split) => {
@@ -427,33 +438,44 @@
       // (retour utilisateur : « que je mette propfirm ou compte propre, aucune différence ») : cette ligne restait
       // figée sur 'pf' quel que soit le compte choisi, donc dès que le meilleur candidat n'était PAS « Ton
       // réglage » (le seul qui dépendait vraiment du compte), basculer le bouton ne changeait rien à l'écran.
-      const auto = E.optimizeProfiles(trades, capital0, (opts && opts.accountKind) || 'pf', { minRiskPct: 0.05 });
-      if (!auto.error) auto.profiles.forEach((p) => addPolicy(p.id, p.name, p.config, p.trust, p.split));
+      if (!raw) {
+        const auto = E.optimizeProfiles(trades, capital0, (opts && opts.accountKind) || 'pf', { minRiskPct: 0.05 });
+        if (!auto.error) auto.profiles.forEach((p) => addPolicy(p.id, p.name, p.config, p.trust, p.split));
+      }
     }
 
     // Phase 1 : toutes les simulations (firme × money management × option de retrait × risque du compte financé).
+    // En mode brut, un seul point testé par firme (le risque réel du réglage) au lieu de toute la grille RISKS —
+    // et ce point disparaît si le risque réel dépasse le plafond par trade de la firme (règle réelle, jamais
+    // ignorée, même en brut).
     const sims = window.CHESTPropRules.models.map((m) => {
       const perCand = candidates.map((c) => {
-        const risks = RISKS.filter((r) => !m.riskCapPct || r * c.wMax <= m.riskCapPct + 1e-9);
+        const risks = raw
+          ? ((!m.riskCapPct || c.ref * c.wMax <= m.riskCapPct + 1e-9) ? [c.ref] : [])
+          : RISKS.filter((r) => !m.riskCapPct || r * c.wMax <= m.riskCapPct + 1e-9);
         if (!risks.length) return null;
         const chRisk = bestChallengeRisk(c.P, c.starts, m, c.wMax).risk;
         return { c, chRisk, perOption: m.funded.payoutOptions.map((opt) => ({ opt, curve: risks.map((risk) => evaluate(c.P, c.starts, m, opt, chRisk, risk)) })) };
       }).filter(Boolean);
       return { m, perCand };
     });
-    // Échelle des retraits nets : le meilleur retrait net « sûr » toutes firmes confondues.
+    // Échelle des retraits nets : le meilleur retrait net « sûr » toutes firmes confondues (en mode brut, le
+    // filtre de sécurité ne s'applique plus nulle part, donc on ne filtre pas non plus ici).
     let maxNet = 0;
     sims.forEach((sm) => sm.perCand.forEach((pc) => pc.perOption.forEach((po) => po.curve.forEach((ev) => {
-      if (ev.lostPerStart <= MAX_LOST_PER_START && ev.meanNet > maxNet) maxNet = ev.meanNet;
+      if ((raw || ev.lostPerStart <= MAX_LOST_PER_START) && ev.meanNet > maxNet) maxNet = ev.meanNet;
     }))));
     if (!(maxNet > 0)) maxNet = 1;
     const ctx = { maxNet, horizonDays };
 
     // Phase 2 : pour chaque firme, on garde la combinaison (money management, option, risque) au meilleur INDICE parmi
-    // celles qui ne perdent pas plus d'un demi-compte par période ; sinon la moins destructrice.
+    // celles qui ne perdent pas plus d'un demi-compte par période ; sinon la moins destructrice. En mode brut, il n'y
+    // a qu'un seul point : on le garde tel quel, sans filtre de sécurité (c'est tout l'intérêt du mode).
     const rows = sims.map(({ m, perCand }) => {
+      if (!perCand.length) return null; // le risque réel dépasse le plafond de cette firme : elle ne peut pas être simulée brute
       const pick = (curve) => {
         curve.forEach((ev) => { const r = scoreEv(ev, ctx); ev.index = r.index; ev.parts = r.parts; });
+        if (raw) return curve[0];
         const safe = curve.filter((ev) => ev.lostPerStart <= MAX_LOST_PER_START);
         return safe.length
           ? safe.reduce((a, b) => (b.index > a.index + 1e-9 ? b : a))
@@ -464,8 +486,8 @@
         const top = perOption.reduce((a, b) => (b.best.index > a.best.index + 1e-9 ? b : a));
         return { c: pc.c, chRisk: pc.chRisk, perOption, top };
       });
-      const flatRes = results.find((r) => r.c.id === 'flat') || results[0];
-      const chosen = results.reduce((a, b) => (b.top.best.index > a.top.best.index + 1e-9 ? b : a), flatRes);
+      const flatRes = raw ? null : (results.find((r) => r.c.id === 'flat') || results[0]);
+      const chosen = results.reduce((a, b) => (b.top.best.index > a.top.best.index + 1e-9 ? b : a), flatRes || results[0]);
       const top = chosen.top, perOption = chosen.perOption, Pc = chosen.c.P;
       const best = top.best;
       best.delayedShare = best.payoutCount ? best.delayedPayouts / best.payoutCount * 100 : 0;
@@ -488,7 +510,11 @@
       }
       const flat = flatRes ? { best: flatRes.top.best, option: flatRes.top.opt } : null;
       return { model: m, best, option: top.opt, options: perOption, curve: top.curve, status: statusOf(best), issue, mm, flat, challengeRisk: chosen.chRisk, index: best.index, parts: best.parts };
-    });
+    }).filter(Boolean);
+
+    if (raw && !rows.length) {
+      return { error: `Ton réglage brut (risque réel trop élevé) dépasse le risque maximum autorisé par trade de toutes les prop firms testées — aucune ne peut être simulée sans le réduire.` };
+    }
 
     // Classement. Si des positions traversent le week-end : les comptes qui l'interdisent passent derrière, et les
     // comptes Swing (faits pour ça) reçoivent un bonus de 15 % sur leur indice.
@@ -539,7 +565,7 @@
     return {
       rows, own, prop, verdict: { kind, top },
       holding: { trades: P.n, withTimes: P.withTimes, weekendCount: P.wkCount, weekendPct: P.n ? P.wkCount / P.n * 100 : 0, overnightCount: P.ovCount, overnightPct: P.n ? P.ovCount / P.n * 100 : 0 },
-      meta: { swingPriority, mm: candidates.length > 1, mmNames: candidates.filter((c) => c.id !== 'flat').map((c) => c.name), starts: starts.length, spanDays, trades: P.n, horizonDays, refAccount: ref },
+      meta: { swingPriority, mm: candidates.length > 1, mmNames: candidates.filter((c) => c.id !== 'flat').map((c) => c.name), raw, starts: starts.length, spanDays, trades: P.n, horizonDays, refAccount: ref },
     };
   }
 

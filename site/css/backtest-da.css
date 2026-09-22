@@ -207,6 +207,16 @@
 .chest-root .bt-fit-row__stress b{ color:var(--chest-ink-2); }
 
 .chest-root .bt-note{ max-width:840px; margin:22px 0 0; font-size:11px; line-height:1.6; color:var(--chest-ink-3); }
+.chest-root .bt-note--warn{ color:var(--chest-amber); background:rgba(232,179,57,.07); border:1px solid rgba(232,179,57,.22); border-radius:10px; padding:10px 14px; }
+
+.chest-root .bt-raw-toggle{
+  display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  padding:5px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.16); color:var(--chest-ink-3);
+  background:none; font-family:inherit; cursor:pointer; transition:background .18s, border-color .18s, color .18s;
+}
+.chest-root .bt-raw-toggle:hover{ background:rgba(255,255,255,.06); color:var(--chest-ink-2); }
+.chest-root .bt-raw-toggle:focus-visible{ outline:2px solid currentColor; outline-offset:2px; }
+.chest-root .bt-raw-toggle.is-active{ color:var(--chest-amber); border-color:rgba(232,179,57,.45); background:rgba(232,179,57,.1); }
 
 @media (max-width:820px){
   .chest-root .bt-fit-head{ display:none; }

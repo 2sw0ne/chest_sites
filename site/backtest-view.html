@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/backtest-da.css?v=11">
+<link rel="stylesheet" href="css/backtest-da.css?v=12">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -289,7 +289,10 @@
     <section class="bt-sec" id="fitSection">
       <div class="bt-sec__head">
         <span class="chest-step">03 — Recommandation · prop firm ou compte propre</span>
-        <div class="bt-sec__tools"><span class="bt-sec__aside" id="fitAside"></span></div>
+        <div class="bt-sec__tools">
+          <button type="button" id="rawMmToggle" class="bt-raw-toggle" aria-pressed="false" title="Teste ton réglage tel quel, sans que le calcul le rabaisse pour rester prudent">MM brut</button>
+          <span class="bt-sec__aside" id="fitAside"></span>
+        </div>
       </div>
       <div id="fitBody"><div class="cal-state">Calcul de la compatibilité…</div></div>
     </section>
@@ -471,6 +474,7 @@ CHESTTour.init([
   document.getElementById('heroGrade').textContent = computeGrade(heroReport.stats);
 
   let mmDetailAccount = 'cp';
+  let rawMM = false;
   let journalAccount = 'cp';
   let journalResultFilter = 'ALL';
   let journalMonth = 'ALL';
@@ -1063,7 +1067,8 @@ CHESTTour.init([
         </details>
       </div>
 
-      ${res.meta.mm ? `<p class="bt-note">Money management « ${mmDetailAccount === 'pf' ? 'Propfirm' : 'Compte propre'} » : pour chaque firme, la simulation essaie ${fitUserCfgFor(mmDetailAccount) ? `ton réglage ${mmDetailAccount === 'pf' ? 'propfirm' : 'compte propre'} enregistré et ` : ''}les trois profils du calcul automatique ${mmDetailAccount === 'pf' ? 'propfirm' : 'compte propre'} (${res.meta.mmNames.filter((n) => n !== 'Ton réglage').join(', ')}) — paliers après SL, pause, logiques séparées, décidés à l'ouverture d'après les trades déjà clôturés — recale leur risque sur celui de la firme et garde ce qui retire le plus. Réglages calculés sur cet historique, sans test hors échantillon dans cette simulation. Change de compte en section 01 pour voir la recommandation avec l'autre money management.</p>` : ''}
+      ${res.meta.raw ? `<p class="bt-note bt-note--warn">Money management <b>brut</b> : ton réglage ${mmDetailAccount === 'pf' ? 'propfirm' : 'compte propre'} enregistré est testé tel quel, à son risque réel, dans chaque prop firm — le calcul ne le rabaisse plus pour rester sous le seuil de sécurité (0,5 compte perdu / période en moyenne). Regarde bien « ≈ X compte perdu / période » à côté du money management avant de miser dessus : un chiffre au-dessus de 0,5 veut dire que tu perdrais le compte plus d'une fois sur deux périodes comme celle-ci. Une firme dont le plafond de risque par trade est plus bas que ton risque réel n'apparaît pas ici (règle qu'on ne peut pas contourner).</p>`
+        : res.meta.mm ? `<p class="bt-note">Money management « ${mmDetailAccount === 'pf' ? 'Propfirm' : 'Compte propre'} » : pour chaque firme, la simulation essaie ${fitUserCfgFor(mmDetailAccount) ? `ton réglage ${mmDetailAccount === 'pf' ? 'propfirm' : 'compte propre'} enregistré et ` : ''}les trois profils du calcul automatique ${mmDetailAccount === 'pf' ? 'propfirm' : 'compte propre'} (${res.meta.mmNames.filter((n) => n !== 'Ton réglage').join(', ')}) — paliers après SL, pause, logiques séparées, décidés à l'ouverture d'après les trades déjà clôturés — recale leur risque sur celui de la firme et garde ce qui retire le plus. Réglages calculés sur cet historique, sans test hors échantillon dans cette simulation. Change de compte en section 01 pour voir la recommandation avec l'autre money management.</p>` : ''}
       <p class="bt-note">Indice de recommandation (0 à 100) : retraits nets 30 %, rapidité du 1er retrait 15 %, départs qui retirent 15 %, départs gagnants 15 %, challenge validé 10 %, comptes non perdus 10 %, retraits sans report de cohérence 5 %. Le choix du risque, de l'option de retrait et du money management de chaque firme suit le même indice, parmi ceux qui perdent au plus un demi-compte par période.</p>
       <p class="bt-note">Simulation sur la période sélectionnée en haut de page (${periodLabel()}), pas une prédiction ni un conseil financier. Chaque jour de cette période sert de départ (${res.meta.starts} départs, qui se recoupent), jusqu'à la fin de la même période : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Les trades qui traversent un week-end ou la nuit sont détectés grâce aux heures d'ouverture et de clôture ; une détention interdite fait perdre le compte. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais du challenge sont les prix affichés sur les pages officielles (tarif normal quand il est connu), remboursements compris quand ils sont documentés. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
 
@@ -1085,15 +1090,15 @@ CHESTTour.init([
     // toujours sur exactement les années sélectionnées en haut de page — la clé de cache suit donc seulement
     // cette sélection et le compte choisi en section 01 (basculer « Compte propre » / « Propfirm » redéclenche
     // un calcul distinct ici, pas un résultat resté en cache pour l'autre).
-    const key = [...selectedYears].sort().join(',') + '|' + mmDetailAccount;
+    const key = [...selectedYears].sort().join(',') + '|' + mmDetailAccount + '|' + (rawMM ? 'raw' : 'opt');
     const accountLabel = mmDetailAccount === 'pf' ? 'Propfirm' : 'Compte propre';
-    document.getElementById('fitAside').textContent = `Money management « ${accountLabel} » · sur ${periodLabel()} · règles vérifiées le ${longDate(window.CHESTPropRules.verifiedOn)}`;
+    document.getElementById('fitAside').textContent = `Money management « ${accountLabel} »${rawMM ? ' · réglage brut, non ajusté' : ''} · sur ${periodLabel()} · règles vérifiées le ${longDate(window.CHESTPropRules.verifiedOn)}`;
     if (fitPaintedKey === key) return;
     if (fitCache.has(key)) { paintFit(fitCache.get(key), key); return; }
     document.getElementById('fitBody').innerHTML = '<div class="cal-state">Simulation de la vie des comptes…</div>';
     clearTimeout(fitTimer);
     fitTimer = setTimeout(() => {
-      const res = window.CHESTPropFit.fit(trades, record.capital, { userConfig: fitUserCfgFor(mmDetailAccount), accountKind: mmDetailAccount });
+      const res = window.CHESTPropFit.fit(trades, record.capital, { userConfig: fitUserCfgFor(mmDetailAccount), accountKind: mmDetailAccount, rawMM });
       fitCache.set(key, res);
       paintFit(res, key);
     }, 30);
@@ -1139,6 +1144,13 @@ CHESTTour.init([
     el.innerHTML = `<span class="bt-insights__k">Piste détectée · à confirmer</span>${rows.join('')}<p>À tester avec « + Si » ou le Réglage premium. Mesuré sur cet historique (heures lues en UTC), ce n'est pas une prédiction.</p>`;
     el.hidden = false;
   })();
+
+  document.getElementById('rawMmToggle').addEventListener('click', () => {
+    rawMM = !rawMM;
+    document.getElementById('rawMmToggle').classList.toggle('is-active', rawMM);
+    document.getElementById('rawMmToggle').setAttribute('aria-pressed', String(rawMM));
+    renderFit(filteredTrades());
+  });
 
   renderYearFilter();
   renderAll();
