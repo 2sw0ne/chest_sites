@@ -11,6 +11,16 @@
      <link rel="stylesheet"> bloque le premier rendu de toute la page. Ce style inline n'a besoin d'aucun
      fichier externe : il s'applique donc dès l'analyse du <head>. -->
 <style>html,body{background:#050505}</style>
+<!-- Marque très tôt (avant même que le shell n'existe dans le DOM) si Welcome va s'ouvrir, pour que la
+     CSS puisse le cacher dès le tout premier rendu — retour utilisateur 2026-09-23 : « ça ouvre 1 sec le
+     chargement du dashboard et ça revient, le welcome apparaît » : `pointer-events:none` (déjà en place)
+     empêche seulement le CLIC pendant que Welcome est ouvert, pas l'AFFICHAGE — le shell restait donc
+     visible à l'écran le temps que welcome.js (chargé/exécuté après tout le reste du corps de page) se
+     charge et retire l'attribut `hidden` de #chestWelcome. Ce script inline, synchrone, tourne pendant
+     l'analyse du <head>, donc avant même que le <body> (et le shell qu'il contient) ne soit analysé. -->
+<script>
+  try { if (sessionStorage.getItem('chest_welcome') === '1') document.documentElement.classList.add('is-welcome'); } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Polices en chargement non bloquant (motif "loadCSS") : le rendu ne les attend plus, elles s'appliquent
