@@ -130,6 +130,12 @@
 .chest-root .bt-verdict__nums .chest-label{ margin-bottom:6px; }
 .chest-root .bt-verdict__nums .chest-kpi__note{ margin-top:4px; }
 
+/* Panneau « Compte propre — money management retenu » : même patron que le détail d'une firme (bt-fit-row__body),
+   mais toujours visible sous le verdict — pas caché dans une firme propfirm, un compte propre n'en est pas une. */
+.chest-root .bt-own{ padding:18px 30px 22px; border-top:1px solid var(--chest-rule); }
+.chest-root .bt-own .chest-label{ margin-bottom:10px; }
+.chest-root .bt-own .bt-fit-row__rules:last-child{ margin-bottom:0; }
+
 /* Tableau des modèles */
 .chest-root .bt-fit-table{ padding:0; border-radius:var(--chest-r-lg); }
 .chest-root .bt-fit-head,
@@ -207,7 +213,7 @@
     content:attr(data-label); display:block; margin-bottom:2px; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--chest-ink-3);
   }
   .chest-root .bt-fit-row__body{ grid-template-columns:1fr; gap:22px; padding:4px 18px 22px; }
-  .chest-root .bt-verdict__main, .chest-root .bt-verdict__nums{ padding-left:20px; padding-right:20px; }
+  .chest-root .bt-verdict__main, .chest-root .bt-verdict__nums, .chest-root .bt-own{ padding-left:20px; padding-right:20px; }
 }
 
 /* ---------- 04 · Mensuel ---------- */
