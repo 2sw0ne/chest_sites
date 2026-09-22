@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/backtest-da.css?v=11">
+<link rel="stylesheet" href="css/backtest-da.css?v=10">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -1029,13 +1029,6 @@ CHESTTour.init([
             : `<div><div class="chest-label">Risque conseillé</div><div class="chest-kpi__val">${nFr(b.risk, 2)} %</div><div class="chest-kpi__note">≈ ${nFr(b.lostPerStart, 2)} compte perdu / période</div></div>`}
           ${res.own ? `<div><div class="chest-label">Compte propre · ${H} mois</div><div class="chest-kpi__val ${res.own.horizonPct >= 0 ? 'is-pos' : 'is-neg'}">${signedPct(res.own.horizonPct)}</div><div class="chest-kpi__note">${res.own.mm ? `money management « ${escHtml(res.own.mm.name)} »` : `risque plat ${nFr(res.own.risk, 2)} %`} · drawdown ${pctFr(res.own.maxDdPct, 1)}</div></div>` : ''}
         </div>
-        ${res.own ? `<div class="bt-own">
-          <div class="chest-label">Compte propre — money management retenu${res.own.mm ? ` · ${escHtml(res.own.mm.name)}` : ''}</div>
-          ${res.own.mm
-            ? mmLinesHtml(res.own.mm)
-            : `<p class="bt-fit-row__rules">Risque plat optimisé <b>${nFr(res.own.risk, 2)} %</b> — aucun des money management testés (ton réglage compte propre, ni les 3 profils automatiques) ne fait mieux sur cet historique.${res.own.relaxedNote ? ' ' + escHtml(res.own.relaxedNote) : ''}</p>`}
-          <p class="bt-fit-row__rules">Sur ${H} mois, en moyenne : <b>${signedPct(res.own.horizonPct, 1)}</b> de ton capital, pour un drawdown de <b>${pctFr(res.own.maxDdPct, 1)}</b>. C'est le money management propre au compte personnel — différent de celui retenu ci-dessus pour la propfirm : un compte propre n'a ni challenge ni plafond de perte imposé, donc rien ne borne ce risque comme pour une firme (décision : on garde le réglage le plus rentable même si le drawdown grimpe).</p>
-        </div>` : ''}
         <details class="bt-fit-fold">
           <summary><span class="bt-fit-fold__title">Top 3 des prop firms</span><span class="bt-fit-fold__sub">classées selon un indice : retraits nets, rapidité du 1er retrait, départs qui retirent ou finissent gagnants, validation, comptes perdus · 3 sur ${res.rows.length} modèles testés${swingExtra.length ? ` · + ${swingExtra.length} compte${swingExtra.length > 1 ? 's' : ''} Swing` : ''}</span><span class="bt-fit-fold__caret" aria-hidden="true"></span></summary>
           <div class="bt-fit-table">
