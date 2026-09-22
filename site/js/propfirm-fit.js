@@ -2,9 +2,12 @@
 //
 // Une prop firm ne se juge pas seulement sur « est-ce que je valide le
 // challenge ? » mais sur ce qu'on RETIRE ensuite. On rejoue donc les trades du
-// backtest sous la vie complète d'un compte, depuis chaque jour de l'historique
-// (comme si on avait acheté le challenge ce jour-là) et sur un horizon fixe
-// (3, 6 ou 12 mois) :
+// backtest sous la vie complète d'un compte, depuis chaque jour de la période
+// SÉLECTIONNÉE EN HAUT DE PAGE (comme si on avait acheté le challenge ce
+// jour-là), jusqu'à la fin de cette même période (pas un horizon fixe en mois
+// indépendant — décision utilisateur, 2026-09-22 : un horizon de 3/6/12 mois
+// plaqué sur une sélection d'années plus courte ne laissait presque plus de
+// place à des départs différents, et les corrélait artificiellement) :
 //
 //   challenge (1 ou 2 phases)  →  compte financé  →  retraits (cycles,
 //   jours profitables, règle de cohérence, partage)  →  compte perdu ?  →  on
@@ -74,8 +77,9 @@
   }
 
   /**
-   * Vie complète d'un compte à partir du trade `start`, sur `horizonDays` jours.
-   * Capital initial = 1 ; les montants sont des fractions du compte.
+   * Vie complète d'un compte à partir du trade `start`, jusqu'au jour `endDay` (exclu) — la fin de la période
+   * sélectionnée, la MÊME pour tous les départs d'un même calcul (voir `fit()`). Capital initial = 1 ; les
+   * montants sont des fractions du compte.
    *
    * `riskPct` = risque PENDANT LE CHALLENGE, `fundedRiskPct` = risque UNE FOIS FINANCÉ (par défaut le même que
    * `riskPct` si omis). Décision utilisateur (2026-09-22) : les deux sont cherchés indépendamment ailleurs
@@ -84,13 +88,12 @@
    * la détention le week-end pour une stratégie qui en traverse), et ce même risque bas ralentit alors le
    * challenge alors que ses règles n'ont rien à voir avec la détention.
    */
-  function lifecycle(P, start, m, opt, riskPct, horizonDays, fundedRiskPct) {
+  function lifecycle(P, start, m, opt, riskPct, endDay, fundedRiskPct) {
     const kChallenge = riskPct / 100;
     const kFunded = (fundedRiskPct != null ? fundedRiskPct : riskPct) / 100;
     const f = m.funded;
     const feeF = m.fee.pct / 100;
     const startDay = P.day[start];
-    const endDay = startDay + horizonDays;
     const chMinDays = opt.challengeMinDays !== undefined ? opt.challengeMinDays : m.minDays;
 
     let stage = 0;                 // 0 = challenge, 1 = compte financé
@@ -222,11 +225,14 @@
     return o;
   }
 
-  function startIndexes(P, horizonDays) {
-    const lastDay = P.day[P.n - 1];
+  // Chaque jour distinct de la période sert de départ (jusqu'à MAX_STARTS, répartis régulièrement) : tous
+  // courent jusqu'à la MÊME fin (le dernier jour de la période), pas jusqu'à un horizon fixe compté depuis leur
+  // propre départ — un départ proche de la fin a donc naturellement moins de temps pour valider, ce qui est
+  // honnête plutôt que de l'exclure ou de déborder sur des trades hors de la période sélectionnée.
+  function startIndexes(P) {
     const all = [];
     for (let i = 0; i < P.n; i++) {
-      if ((i === 0 || P.day[i] !== P.day[i - 1]) && P.day[i] + horizonDays <= lastDay) all.push(i);
+      if (i === 0 || P.day[i] !== P.day[i - 1]) all.push(i);
     }
     if (all.length <= MAX_STARTS) return all;
     const out = [];
@@ -234,12 +240,24 @@
     return out;
   }
 
-  function evaluate(P, starts, m, opt, challengeRisk, risk, horizonDays) {
-    const nets = [], pays = [], fundedDays = [], firstPays = [];
+  function evaluate(P, starts, m, opt, challengeRisk, risk) {
+    const endDay = P.day[P.n - 1] + 1;
+    const spanMonths = (P.day[P.n - 1] - P.day[0] + 1) / 30.4;
+    const nets = [], monthlyNets = [], pays = [], fundedDays = [], firstPays = [];
     let funded = 0, paid = 0, lost = 0, delayed = 0, delaySum = 0, payoutCount = 0, fails = 0, violStarts = 0;
     starts.forEach((s) => {
-      const o = lifecycle(P, s, m, opt, challengeRisk, horizonDays, risk);
-      nets.push(o.net * 100);
+      const o = lifecycle(P, s, m, opt, challengeRisk, endDay, risk);
+      const netPct = o.net * 100;
+      nets.push(netPct);
+      // Chaque départ court jusqu'à la fin de la période sélectionnée (voir lifecycle/startIndexes) : un départ
+      // pris hier n'a presque pas de recul, un départ pris en janvier en a huit mois. Faire la moyenne des % bruts
+      // écrase donc le résultat vers le bas dès qu'une partie des départs est récente (décision utilisateur,
+      // 2026-09-22 : « comment j'arrive à 49 % si chaque mois je retire mon profit, ta simulation est mauvaise »).
+      // On calcule d'abord un TAUX MENSUEL par départ (% ÷ mois de recul), on moyenne ces taux (chaque départ
+      // pèse pour son rythme, pas pour sa part du montant brut), puis on étend ce rythme sur toute la période
+      // sélectionnée pour obtenir un montant global comparable, qui ne s'effondre plus avec des départs récents.
+      const runwayMonths = Math.max((endDay - P.day[s]) / 30.4, 1 / 30.4);
+      monthlyNets.push(netPct / runwayMonths);
       pays.push(o.payouts * 100);
       if (o.fundedDay !== null) { funded++; fundedDays.push(o.fundedDay); }
       if (o.count > 0) { paid++; firstPays.push(o.firstPay); }
@@ -248,9 +266,14 @@
     });
     const n = starts.length;
     const sortedNets = nets.slice().sort((a, b) => a - b);
+    const meanNetPerMonth = mean(monthlyNets);
     return {
       risk, challengeRisk, starts: n,
-      meanNet: mean(nets), medianNet: quantile(sortedNets, 0.5), p25Net: quantile(sortedNets, 0.25),
+      // « Retraits potentiels » affiché : le rythme mensuel moyen étendu sur toute la période sélectionnée —
+      // PAS la moyenne brute des % de chaque départ (nets/medianNet/p25Net restent sur la durée propre, variable,
+      // de chaque départ : gardés pour la dispersion, pas pour un chiffre global).
+      meanNet: meanNetPerMonth * spanMonths, meanNetPerMonth,
+      medianNet: quantile(sortedNets, 0.5), p25Net: quantile(sortedNets, 0.25),
       meanPayout: mean(pays),
       netPositivePct: nets.filter((v) => v > 0).length / n * 100,
       fundedPct: funded / n * 100,
@@ -274,7 +297,8 @@
   // on adapte ; les résultats doivent être le reflet de la réalité ») : le challenge doit se valider au risque le
   // plus RAPIDE tant qu'il reste FIABLE (≥ 90 % des départs valident) — jamais au prix de la fiabilité, et jamais
   // ralenti par un risque choisi pour des raisons propres au compte financé (ex. une détention interdite).
-  function bestChallengeRisk(P, starts, m, horizonDays, wMax) {
+  function bestChallengeRisk(P, starts, m, wMax) {
+    const endDay = P.day[P.n - 1] + 1;
     const opt0 = m.funded.payoutOptions[0];
     const risks = RISKS.filter((r) => !m.riskCapPct || r * (wMax || 1) <= m.riskCapPct + 1e-9);
     if (!risks.length) return { risk: RISKS[0], fundedPct: 0, meanDay: null };
@@ -283,7 +307,7 @@
       const days = [];
       let funded = 0;
       starts.forEach((s) => {
-        const o = lifecycle(P, s, m, opt0, risk, horizonDays, risk);
+        const o = lifecycle(P, s, m, opt0, risk, endDay, risk);
         if (o.fundedDay !== null) { funded++; days.push(o.fundedDay); }
       });
       const fundedPct = funded / starts.length * 100;
@@ -300,9 +324,9 @@
     return best;
   }
 
-  // Rendement d'un compte propre sur la même fenêtre (moyenne des départs).
-  function windowReturn(P, s, riskPct, horizonDays) {
-    const k = riskPct / 100, endDay = P.day[s] + horizonDays;
+  // Rendement d'un compte propre depuis le départ `s` jusqu'à la fin de la période sélectionnée.
+  function windowReturn(P, s, riskPct) {
+    const k = riskPct / 100, endDay = P.day[P.n - 1] + 1;
     let bal = 1;
     for (let i = s; i < P.n && P.day[i] < endDay; i++) bal *= 1 + k * P.rr[i];
     return (bal - 1) * 100;
@@ -342,20 +366,21 @@
   }
 
   /**
-   * trades : trades du backtest (déjà filtrés par année si besoin)
+   * trades : trades du backtest, DÉJÀ filtrés par année (c'est cette sélection qui fixe la période simulée —
+   * plus d'horizon en mois indépendant, décision utilisateur 2026-09-22, voir l'en-tête du fichier)
    * capital0 : capital initial du backtest
-   * opts.horizonMonths : 3 | 6 | 12 (défaut 6)
    */
   function fit(trades, capital0, opts) {
     const E = window.CHESTBacktestEngine;
-    const horizonMonths = (opts && opts.horizonMonths) || 6;
-    const horizonDays = Math.round(horizonMonths * 30.4);
     const P = prepare(trades);
     if (P.n < 30) return { error: 'Il faut au moins 30 trades datés pour simuler un compte.' };
     const spanDays = P.day[P.n - 1] - P.day[0] + 1;
-    const starts = startIndexes(P, horizonDays);
+    // « horizonDays » = la durée de la période sélectionnée elle-même (pas un horizon fixe) : sert à normaliser
+    // le score de rapidité et à annualiser les retraits, cohérent avec ce que chaque départ court réellement.
+    const horizonDays = spanDays;
+    const starts = startIndexes(P);
     if (starts.length < MIN_STARTS) {
-      return { error: `L'historique (${spanDays} jours) est trop court pour simuler ${horizonMonths} mois de vie d'un compte. Choisis un horizon plus court ou allonge le backtest.` };
+      return { error: `La période sélectionnée en haut de page (${spanDays} jours) est trop courte pour simuler la vie d'un compte. Sélectionne une période plus longue.` };
     }
 
     // Money management candidats : sans MM (risque plat), le réglage enregistré du backtest, puis les trois profils
@@ -375,7 +400,7 @@
         const ref = mean(pos);
         const Pp = prepare(trades, (t, idx) => series[idx] / ref);
         if (Pp.n < 30) return;
-        const st = startIndexes(Pp, horizonDays);
+        const st = startIndexes(Pp);
         if (st.length < MIN_STARTS) return;
         candidates.push({ id, name, P: Pp, starts: st, ref, wMax: Math.max(...pos) / ref, config, trust, split: split || null });
       };
@@ -389,8 +414,8 @@
       const perCand = candidates.map((c) => {
         const risks = RISKS.filter((r) => !m.riskCapPct || r * c.wMax <= m.riskCapPct + 1e-9);
         if (!risks.length) return null;
-        const chRisk = bestChallengeRisk(c.P, c.starts, m, horizonDays, c.wMax).risk;
-        return { c, chRisk, perOption: m.funded.payoutOptions.map((opt) => ({ opt, curve: risks.map((risk) => evaluate(c.P, c.starts, m, opt, chRisk, risk, horizonDays)) })) };
+        const chRisk = bestChallengeRisk(c.P, c.starts, m, c.wMax).risk;
+        return { c, chRisk, perOption: m.funded.payoutOptions.map((opt) => ({ opt, curve: risks.map((risk) => evaluate(c.P, c.starts, m, opt, chRisk, risk)) })) };
       }).filter(Boolean);
       return { m, perCand };
     });
@@ -456,16 +481,24 @@
     rows.sort((a, b) => (swingPriority ? Number(b.compatible) - Number(a.compatible) : 0)
       || (rank[a.status] - rank[b.status]) || (b.rankScore - a.rankScore) || (a.best.risk - b.best.risk));
 
-    // Compte propre : risque optimisé, rendement moyen sur la même fenêtre.
+    // Compte propre : risque optimisé, rendement moyen sur la même fenêtre. Même correction que pour la
+    // propfirm ci-dessus : taux mensuel par départ, moyenné, puis étendu sur toute la période sélectionnée —
+    // sinon les départs récents (peu de recul) écrasent la moyenne brute vers le bas.
     const ownOpt = E.optimizeCp(trades, capital0);
     let own = null;
     if (ownOpt) {
-      // Le compte propre est comparé sur les trades tels quels (risque plat optimisé).
-      const rets = starts.map((s) => windowReturn(P, s, ownOpt.risk, horizonDays));
-      const meanRet = mean(rets);
+      const endDayOwn = P.day[P.n - 1] + 1;
+      const spanMonthsOwn = (P.day[P.n - 1] - P.day[0] + 1) / 30.4;
+      const rets = starts.map((s) => windowReturn(P, s, ownOpt.risk));
+      const monthlyRets = starts.map((s, i) => {
+        const runwayMonths = Math.max((endDayOwn - P.day[s]) / 30.4, 1 / 30.4);
+        return rets[i] / runwayMonths;
+      });
+      const meanRetPerMonth = mean(monthlyRets);
+      const meanRet = meanRetPerMonth * spanMonthsOwn;
       own = {
         risk: ownOpt.risk, relaxedNote: ownOpt.relaxed ? ownOpt.relaxedNote : null,
-        horizonPct: meanRet, horizonUsd: capital0 * meanRet / 100,
+        horizonPct: meanRet, horizonPctPerMonth: meanRetPerMonth, horizonUsd: capital0 * meanRet / 100,
         positivePct: rets.filter((v) => v > 0).length / rets.length * 100,
         maxDdPct: ownOpt.report.stats.maxDrawdownPct,
         annualPct: annualized(meanRet, horizonDays),
@@ -484,7 +517,7 @@
     return {
       rows, own, prop, verdict: { kind, top },
       holding: { trades: P.n, withTimes: P.withTimes, weekendCount: P.wkCount, weekendPct: P.n ? P.wkCount / P.n * 100 : 0, overnightCount: P.ovCount, overnightPct: P.n ? P.ovCount / P.n * 100 : 0 },
-      meta: { swingPriority, mm: candidates.length > 1, mmNames: candidates.filter((c) => c.id !== 'flat').map((c) => c.name), starts: starts.length, spanDays, trades: P.n, horizonMonths, horizonDays, refAccount: ref },
+      meta: { swingPriority, mm: candidates.length > 1, mmNames: candidates.filter((c) => c.id !== 'flat').map((c) => c.name), starts: starts.length, spanDays, trades: P.n, horizonDays, refAccount: ref },
     };
   }
 
