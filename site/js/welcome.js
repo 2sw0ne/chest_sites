@@ -103,10 +103,14 @@
     try { sessionStorage.removeItem(FLAG); } catch (e) {}
     // Dans la même image : le calque disparaît et le dashboard prend sa place en haut.
     root.hidden = true;
+    // Le dashboard reste verrouillé un court instant de plus (`.wel-lock`) : l'inertie d'un trackpad
+    // continue d'envoyer des deltas de molette juste après ce point, et sans ce sursis ils atterrissaient
+    // sur le dashboard fraîchement ouvert et le faisaient défiler tout seul (bug signalé par l'utilisateur).
+    if (shell) shell.classList.add('wel-lock');
     html.classList.remove('is-welcome');
-    if (shell) shell.removeAttribute('inert');
     window.scrollTo(0, 0);
     window.dispatchEvent(new Event('resize'));
+    setTimeout(() => { if (shell) { shell.classList.remove('wel-lock'); shell.removeAttribute('inert'); } }, 380);
   }
 
   // Descente directe (cloche, repère, Échap) : même trajet, en douceur.
