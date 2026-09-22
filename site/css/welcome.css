@@ -236,6 +236,104 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 .wel__card-plus::after{ width:1.6px; height:12px; }
 .wel__card:hover .wel__card-plus, .wel__card:focus-visible .wel__card-plus{ transform:rotate(90deg); border-color:rgba(249,164,94,.7); background:rgba(30,20,22,.7); }
 
+/* ──────────────── Bento v2 : les 5 vitrines fixes (Founder, CHEST IS HERE, SCANNER, MENU, SCHOOLE) ────────────────
+   Disposition calquée sur la démo "See it in action" de backgrounds.supply : 2 colonnes, la gauche porte 2 blocs
+   empilés (hero plus haut, Founder en dessous sur 2 rangées), la droite porte 3 blocs (Scanner, Menu, School) —
+   décision utilisateur 2026-09-22 : reprendre la structure et les mécaniques de cette référence, jamais son code
+   ni ses images. Ces 5 cartes n'ouvrent plus la fenêtre de détail générique (data-no-sheet, voir welcome.js) :
+   chacune est déjà sa propre vitrine interactive. */
+.wel__grid--v2{
+  grid-template-columns:1.5fr 1fr;
+  grid-template-rows:clamp(220px,30vh,320px) clamp(120px,15vh,170px) clamp(120px,15vh,170px);
+}
+.wel__card--v2{ grid-column:1; }
+.wel__card--hero{ grid-row:1; }
+.wel__card--scanner{ grid-column:2; grid-row:1; }
+.wel__card--founder{ grid-row:2 / span 2; }
+.wel__card--menu{ grid-column:2; grid-row:2; }
+.wel__card--school{ grid-column:2; grid-row:3; }
+
+/* Badge +1 : posé par l'admin pour annoncer une nouveauté (voir welcome.js, compté par le bouton Newsletter). */
+.wel__card-badge{
+  position:absolute; z-index:3; right:clamp(16px,1.8vw,24px); top:clamp(20px,2.4vw,30px);
+  min-width:26px; height:26px; padding:0 8px; border-radius:999px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:#fff;
+  background:linear-gradient(135deg, #fc1283, #f9a45e);
+  box-shadow:0 0 16px rgba(252,18,131,.55);
+}
+
+/* ─── Founder : téléphone net au repos, recule + se floute au survol pendant que les réseaux grossissent ─── */
+.wel__card--founder{ background:#08080a; }
+.wel__founder-stage{
+  position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center;
+  padding-bottom:clamp(14px,2vh,22px);
+}
+.wel__founder-phone{
+  position:relative; z-index:2; width:clamp(108px,13vw,150px); aspect-ratio:9/19.5;
+  border-radius:22px; border:3px solid #1c1c20; background:#000; overflow:hidden;
+  box-shadow:0 18px 44px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06);
+  transform-origin:bottom center; transform:scale(1); filter:blur(0);
+  transition:transform .5s cubic-bezier(.16,1,.3,1), filter .5s cubic-bezier(.16,1,.3,1);
+}
+.wel__founder-phone img{ width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
+.wel__founder-phone::after{
+  content:''; position:absolute; left:50%; top:8px; translate:-50% 0; width:34%; height:5px; border-radius:3px; background:#000;
+}
+/* Origine en bas : le téléphone rétrécit VERS le bas, libérant tout l'espace du haut pour les réseaux — sinon un
+   rétrécissement centré ne dégage presque rien en haut vu que le téléphone occupe déjà quasi toute la hauteur
+   de la carte (bug rencontré : Telegram restait caché derrière malgré opacity:1, toujours sous le téléphone). */
+.wel__card--founder:hover .wel__founder-phone{ transform:scale(.6); filter:blur(3px); }
+
+.wel__founder-social{
+  position:absolute; z-index:1; bottom:clamp(30px,4.5vh,46px);
+  width:52px; height:52px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+  color:#fff; opacity:0; pointer-events:none; transform:scale(.35) translateY(6px);
+  transition:opacity .4s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1);
+  box-shadow:0 10px 26px rgba(0,0,0,.45);
+}
+.wel__founder-social svg{ width:24px; height:24px; }
+.wel__founder-social--ig{ left:calc(50% - 100px); background:radial-gradient(circle at 30% 110%, #fdf497, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%); transition-delay:.03s; }
+.wel__founder-social--tt{ left:calc(50% + 48px); background:#0a0a0c; border:1px solid rgba(255,255,255,.18); transition-delay:.08s; }
+.wel__founder-social--tg{ left:50%; translate:-50% 0; bottom:auto; top:clamp(48px,7vh,64px); background:#28A8E9; transition-delay:.13s; }
+.wel__card--founder:hover .wel__founder-social{ opacity:1; pointer-events:auto; transform:scale(1) translateY(0); }
+
+/* ─── MENU / SCHOOLE : bandeaux qui défilent en boucle, fondu sur les bords (mask), doublés pour boucler sans coupure ─── */
+.wel__menu-track, .wel__school-track{
+  position:absolute; inset:0; top:auto; bottom:0; height:68%; overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.wel__menu-track-inner, .wel__school-track-inner{ display:flex; align-items:center; gap:10px; width:max-content; padding:0 4px; }
+.wel__menu-track-inner{ animation:welMenuScroll 26s linear infinite; }
+.wel__school-track-inner{ animation:welMenuScroll 42s linear infinite; }
+.wel__card--menu:hover .wel__menu-track-inner, .wel__card--school:hover .wel__school-track-inner{ animation-play-state:paused; }
+@keyframes welMenuScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+.wel__menu-chip{
+  flex:none; display:flex; align-items:center; gap:9px; height:40px; padding:0 16px 0 12px;
+  border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  font-size:12.5px; font-weight:600; letter-spacing:-.01em; color:rgba(255,255,255,.82); white-space:nowrap;
+}
+.wel__menu-chip i{ width:16px; height:16px; flex:none; background:linear-gradient(135deg,#fc1283,#f9a45e); }
+
+.wel__school-thumb{
+  flex:none; width:120px; height:68px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,.12);
+  background:#111 center/cover no-repeat; box-shadow:0 8px 20px rgba(0,0,0,.4);
+}
+
+@media (max-width:820px){
+  .wel__grid--v2{ grid-template-columns:1fr; grid-template-rows:none; }
+  .wel__card--v2{ grid-column:auto; grid-row:auto; }
+  .wel__card--founder{ min-height:340px; }
+  .wel__founder-social{ width:44px; height:44px; }
+  .wel__founder-social svg{ width:20px; height:20px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .wel__menu-track-inner, .wel__school-track-inner{ animation:none; }
+}
+
 .wel__handoff{
   display:flex; flex-direction:column; align-items:center; gap:10px;
   margin-top:clamp(40px,7vh,80px); pointer-events:none; text-align:center;

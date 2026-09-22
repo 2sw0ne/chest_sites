@@ -70,6 +70,31 @@
     } catch (e) { /* stockage indisponible : sans conséquence */ }
   }
 
+  /* ---------- Bento v2 : bandeaux MENU (pages du site) et SCHOOLE (miniatures vidéo) ----------
+     Contenu doublé (×2) pour boucler sans coupure visible (`welMenuScroll` translate à -50%, soit exactement
+     un jeu de cartes). Pages reprises de PAGES dans shell.js (mêmes libellés, mêmes icônes .chest-ic-*) ; les
+     miniatures viennent des vidéos StepUp déjà listées dans school-data.js (vignette YouTube publique par id,
+     aucun appel serveur). Round 1 (statique) : pas encore piloté par l'admin, voir CLAUDE.md. */
+  const MENU_ITEMS = [
+    ['dashboard', 'Dashboard'], ['backtesting', 'Backtesting'], ['journal', 'Journal'],
+    ['strategies', 'Stratégies'], ['calendar', 'Calendrier'], ['berich', 'BERICH'],
+    ['school', 'School'], ['account', 'Compte'],
+  ];
+  const SCHOOL_THUMB_IDS = ['wU8i9-MbdWQ', 'd4sZy3AChZs', '6xjpusd9EMQ', 'iba0283havo', '7AHz5QoXL9U', 'QZxD5aotAAo', 'b9sc84WGlyw', 'LnV_Pz-qejs', 'iTb4oeGqEBs', 'uyyqD2M-71c'];
+  function populateMarquees() {
+    const menuTrack = document.getElementById('welMenuTrack');
+    if (menuTrack) {
+      const chips = MENU_ITEMS.map(([ic, label]) => `<span class="wel__menu-chip"><i class="chest-ic-${ic}"></i>${label}</span>`).join('');
+      menuTrack.innerHTML = chips + chips;
+    }
+    const schoolTrack = document.getElementById('welSchoolTrack');
+    if (schoolTrack) {
+      const thumbs = SCHOOL_THUMB_IDS.map((id) => `<span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/${id}/mqdefault.jpg)"></span>`).join('');
+      schoolTrack.innerHTML = thumbs + thumbs;
+    }
+  }
+  populateMarquees();
+
   /* ---------- La souris : un effet par-dessus, sans jamais bouger le fond ni le logo ---------- */
   function onMove(e) {
     if (closed) return;
@@ -589,15 +614,17 @@
   if (startBtn) startBtn.addEventListener('click', glide);
   if (newsBtn) newsBtn.addEventListener('click', () => scrollTo(newsEl.getBoundingClientRect().top + window.scrollY));
 
-  // Une carte s'ouvre au clic (ou Entrée / Espace) dans une fenêtre.
+  // Une carte s'ouvre au clic (ou Entrée / Espace) dans une fenêtre — sauf les 5 vitrines fixes du bento v2
+  // (data-no-sheet) : chacune est déjà sa propre vitrine interactive (Founder, Menu, School…), pas une fiche
+  // de nouveauté à développer.
   root.addEventListener('click', (e) => {
     const card = e.target.closest && e.target.closest('.wel__card');
-    if (card && root.contains(card)) { openSheet(card); return; }
+    if (card && root.contains(card) && !card.dataset.noSheet) { openSheet(card); return; }
     if (e.target === sheet || (e.target.closest && e.target.closest('[data-wel-close]'))) closeSheet();
   });
   root.addEventListener('keydown', (e) => {
     const card = e.target.closest && e.target.closest('.wel__card');
-    if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openSheet(card); }
+    if (card && !card.dataset.noSheet && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openSheet(card); }
   });
 
   document.addEventListener('keydown', (e) => {

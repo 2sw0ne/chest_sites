@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/welcome.css?v=20">
+<link rel="stylesheet" href="css/welcome.css?v=21">
 <script src="js/theme.js"></script>
 <script src="js/config.js"></script>
 <script src="js/config.local.js"></script>
@@ -27,7 +27,11 @@
      on ne peut plus remonter.
 
      Photo d'une carte : renseigner --img sur .wel__card-media, ex.
-       style="--img:url(assets/news-school.jpg)"
+       style="--img:url(/assets/news-school.jpg)"
+     Chemin RACINE obligatoire (/assets/...), jamais relatif (assets/...) : un url()
+     dans une variable CSS se résout depuis la feuille de style qui l'UTILISE
+     (css/welcome.css), pas depuis app.html — un chemin relatif cherche alors
+     dans css/assets/ et échoue en silence (404, dégradé de repli affiché).
      Le texte d'attente disparaît seul. Le contenu détaillé (fenêtre
      qui s'ouvre au clic) est dans .wel__card-full.
      data-news-id alimente le +N rouge du bouton Newsletter.
@@ -66,60 +70,51 @@
           <h2 class="wel__h2">Newsletter</h2>
         </div>
 
-        <div class="wel__grid">
+        <div class="wel__grid wel__grid--v2">
 
-          <article class="wel__card wel__card--7" data-news-id="school-2026-09" data-date="Septembre 2026" data-tag="Nouvelle rubrique" tabindex="0" role="button" aria-haspopup="dialog">
-            <div class="wel__card-media"></div>
-            <h3 class="wel__card-title">School est ouvert</h3>
-            <span class="wel__card-tag">Nouvelle rubrique</span>
-            <span class="wel__card-plus" aria-hidden="true"></span>
-            <div class="wel__card-full" hidden>
-              <p>Les cours écrits (Trading, UGC, Psychologie, autres ressources) et les cours vidéo (Mindset, Business) sont réunis dans une seule rubrique, directement dans le site : plus aucun renvoi vers Telegram.</p>
-              <p>Les nouveautés passent en tête : les derniers ajouts sont toujours devant. Les contenus sont ajoutés par l'administrateur et visibles par tous les membres.</p>
+          <!-- CHEST IS HERE : vitrine statique, même esprit que la carte "Presentations" de référence -->
+          <article class="wel__card wel__card--v2 wel__card--hero" data-no-sheet="1">
+            <div class="wel__card-media" style="--img:url(/assets/wel-chest-here.webp)"></div>
+            <h3 class="wel__card-title">CHEST IS HERE</h3>
+          </article>
+
+          <!-- SCANNER : porte le badge +1 de nouveauté (compté par le bouton Newsletter du hero) -->
+          <article class="wel__card wel__card--v2 wel__card--scanner" data-no-sheet="1" data-news-id="scanner-2026-09">
+            <div class="wel__card-media" style="--img:url(/assets/wel-scanner.webp)"></div>
+            <span class="wel__card-badge">+1</span>
+            <h3 class="wel__card-title">SCANNER</h3>
+          </article>
+
+          <!-- Founder : le téléphone recule et se floute au survol, les réseaux apparaissent derrière -->
+          <article class="wel__card wel__card--v2 wel__card--founder" data-no-sheet="1">
+            <h3 class="wel__card-title">Founder</h3>
+            <div class="wel__founder-stage">
+              <a class="wel__founder-social wel__founder-social--ig" href="https://instagram.com/2sw0ne" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>
+              </a>
+              <a class="wel__founder-social wel__founder-social--tt" href="#" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 3c.4 2.2 1.9 3.8 4.4 4v3c-1.6.1-3-.4-4.4-1.3v6.6c0 3.5-2.8 6.2-6.3 6.2S4 18.8 4 15.3s2.8-6.2 6.3-6.2c.4 0 .8 0 1.2.1v3.2c-.4-.1-.8-.2-1.2-.2-1.7 0-3.1 1.4-3.1 3.1s1.4 3.1 3.1 3.1 3.2-1.3 3.2-3V3h3.1z"/></svg>
+              </a>
+              <a class="wel__founder-social wel__founder-social--tg" href="#" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 4L2.6 11.2c-.9.4-.9 1.6.1 1.9l4.6 1.4 1.8 5.6c.3.9 1.4 1.1 2 .4l2.6-2.8 4.7 3.5c.8.6 2 .2 2.2-.8L22 4.9c.2-1-.7-1.7-1.5-1.3z"/><path d="M8.3 14.5L17 7"/></svg>
+              </a>
+              <div class="wel__founder-phone"><img src="assets/wel-founder-photo.webp" alt="Profil Instagram du fondateur"></div>
             </div>
           </article>
 
-          <article class="wel__card wel__card--5" data-news-id="propfirm-2026-09" data-date="Septembre 2026" data-tag="Backtesting" tabindex="0" role="button" aria-haspopup="dialog">
-            <div class="wel__card-media"></div>
-            <h3 class="wel__card-title">Recommandation propfirm</h3>
-            <span class="wel__card-tag">Backtesting</span>
-            <span class="wel__card-plus" aria-hidden="true"></span>
-            <div class="wel__card-full" hidden>
-              <p>Chaque rapport de backtest simule la vie complète d'un compte sur 13 modèles de propfirm (FTMO, FundedNext, The5ers, Funding Pips, Topstep, Alpha Capital, Blueberry…) : validation du challenge, retraits, comptes perdus, classés par retraits nets.</p>
-              <p>Les règles sont lues sur les pages officielles, datées et vérifiées. Ce sont des simulations sur l'historique, jamais une promesse.</p>
+          <!-- MENU : les pages du site défilent en boucle, fondu sur les bords -->
+          <article class="wel__card wel__card--v2 wel__card--menu" data-no-sheet="1">
+            <h3 class="wel__card-title">MENU</h3>
+            <div class="wel__menu-track">
+              <div class="wel__menu-track-inner" id="welMenuTrack"></div>
             </div>
           </article>
 
-          <article class="wel__card wel__card--5" data-news-id="journal-2026-09" data-date="Septembre 2026" data-tag="Journal" tabindex="0" role="button" aria-haspopup="dialog">
-            <div class="wel__card-media"></div>
-            <h3 class="wel__card-title">Journal connecté à Myfxbook</h3>
-            <span class="wel__card-tag">Journal</span>
-            <span class="wel__card-plus" aria-hidden="true"></span>
-            <div class="wel__card-full" hidden>
-              <p>Ajoute un compte live à ton journal : les trades se synchronisent depuis Myfxbook, sans doublons, et se rangent avec ceux que tu saisis à la main. Un journal peut regrouper plusieurs comptes.</p>
-              <p>À la création, tu peux choisir ta firme (toute la liste BERICH) puis le challenge et l'étape : les règles se remplissent toutes seules.</p>
-            </div>
-          </article>
-
-          <article class="wel__card wel__card--7" data-news-id="reglage-2026-09" data-date="Septembre 2026" data-tag="Backtesting" tabindex="0" role="button" aria-haspopup="dialog">
-            <div class="wel__card-media"></div>
-            <h3 class="wel__card-title">Un réglage automatique, vérifié sur les trades jamais vus</h3>
-            <span class="wel__card-tag">Backtesting</span>
-            <span class="wel__card-plus" aria-hidden="true"></span>
-            <div class="wel__card-full" hidden>
-              <p>Le mode Automatique propose trois profils par compte (Croissance, Meilleur ratio, Prudent ; Régularité, Performance pure, Sécurité pour une propfirm). Chacun est appris sur le début de l'historique puis jugé sur les derniers trades, jamais vus.</p>
-              <p>Le journal du rapport peut aussi se lire par ordre de clôture (par défaut) ou d'ouverture.</p>
-            </div>
-          </article>
-
-          <article class="wel__card wel__card--12" data-news-id="interface-2026-09" data-date="Septembre 2026" data-tag="Interface" tabindex="0" role="button" aria-haspopup="dialog">
-            <div class="wel__card-media"></div>
-            <h3 class="wel__card-title">Un menu qui ne se recharge plus, et un thème clair</h3>
-            <span class="wel__card-tag">Interface</span>
-            <span class="wel__card-plus" aria-hidden="true"></span>
-            <div class="wel__card-full" hidden>
-              <p>Le menu et la barre du haut restent en place d'une page à l'autre : seul le contenu change. Le volet de gauche se replie sur sa poignée et retient ton choix.</p>
-              <p>Le site a maintenant un thème clair. Le site retient ton choix d'une visite à l'autre.</p>
+          <!-- SCHOOLE : miniatures vidéo de la rubrique School, défilement lent -->
+          <article class="wel__card wel__card--v2 wel__card--school" data-no-sheet="1">
+            <h3 class="wel__card-title">SCHOOLE</h3>
+            <div class="wel__school-track">
+              <div class="wel__school-track-inner" id="welSchoolTrack"></div>
             </div>
           </article>
 
@@ -212,6 +207,6 @@
 
 <script src="js/nav.js?v=3"></script>
 <script src="js/shell.js?v=2"></script>
-<script src="js/welcome.js?v=40"></script>
+<script src="js/welcome.js?v=41"></script>
 </body>
 </html>
