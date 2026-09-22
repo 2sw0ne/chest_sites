@@ -72,6 +72,18 @@
     const i = Math.min(sorted.length - 1, Math.max(0, Math.floor(q * (sorted.length - 1))));
     return sorted[i];
   }
+  // Une config { risk, tiers, rules } à l'échelle d'un money management (candidats compte propre) : mêmes
+  // proportions entre les paliers/règles, tous les nombres multipliés par `scale`. Sert à faire tourner le vrai
+  // moteur (E.computeReport) sur l'historique complet pour obtenir un max drawdown réel, pas seulement le
+  // rendement moyen sur les fenêtres glissantes.
+  function scaleRiskConfig(cfg, scale) {
+    const r = (x) => Math.round(x * scale * 100000) / 100000;
+    return {
+      risk: r(cfg.risk),
+      tiers: (cfg.tiers || []).map((t) => ({ afterSl: t.afterSl, newRisk: r(t.newRisk) })),
+      rules: (cfg.rules || []).map((x) => ({ conds: x.conds, afterSl: x.afterSl, risk: r(x.risk) })),
+    };
+  }
 
   /**
    * Vie complète d'un compte à partir du trade `start`, sur `horizonDays` jours.
@@ -318,12 +330,14 @@
       return { error: `L'historique (${spanDays} jours) est trop court pour simuler ${horizonMonths} mois de vie d'un compte. Choisis un horizon plus court ou allonge le backtest.` };
     }
 
-    // Money management candidats : sans MM (risque plat), le réglage enregistré du backtest, puis les trois profils
-    // propfirm du calcul automatique (régularité, performance pure, sécurité). Chacun est un risque par trade
-    // (paliers après SL, pause, logiques séparées) décidé à l'ouverture ; la simulation recale ensuite son risque
-    // de référence pour chaque firme (grille RISKS) et garde ce qui retire le plus.
-    const candidates = [{ id: 'flat', name: 'Sans money management', P, starts, ref: 1, wMax: 1, config: null, trust: null }];
-    if (!(opts && opts.mm === false)) {
+    // Money management candidats — factorisé pour servir aussi bien à la propfirm (ci-dessous) qu'au compte
+    // propre (plus bas) : le réglage enregistré du backtest pour ce type de compte, puis les trois profils du
+    // calcul automatique pour ce type de compte (propfirm : régularité/performance pure/sécurité ; compte propre :
+    // croissance/meilleur ratio/prudent). Chacun est un risque par trade (paliers après SL, pause, logiques
+    // séparées) décidé à l'ouverture ; la simulation recale ensuite son risque de référence (grille RISKS) et
+    // garde ce qui retire le plus.
+    function buildMmCandidates(userConfig, kind) {
+      const list = [];
       const seen = new Set();
       const addPolicy = (id, name, config, trust, split) => {
         const key = JSON.stringify(config);
@@ -337,11 +351,17 @@
         if (Pp.n < 30) return;
         const st = startIndexes(Pp, horizonDays);
         if (st.length < MIN_STARTS) return;
-        candidates.push({ id, name, P: Pp, starts: st, ref, wMax: Math.max(...pos) / ref, config, trust, split: split || null });
+        list.push({ id, name, P: Pp, starts: st, ref, wMax: Math.max(...pos) / ref, config, trust, split: split || null });
       };
-      if (opts && opts.userConfig) addPolicy('user', 'Ton réglage', { risk: opts.userConfig.risk, tiers: opts.userConfig.tiers || [], rules: opts.userConfig.rules || [] }, null);
-      const auto = E.optimizeProfiles(trades, capital0, 'pf', { minRiskPct: 0.05 });
+      if (userConfig) addPolicy('user', 'Ton réglage', { risk: userConfig.risk, tiers: userConfig.tiers || [], rules: userConfig.rules || [] }, null);
+      const auto = E.optimizeProfiles(trades, capital0, kind, { minRiskPct: 0.05 });
       if (!auto.error) auto.profiles.forEach((p) => addPolicy(p.id, p.name, p.config, p.trust, p.split));
+      return list;
+    }
+
+    const candidates = [{ id: 'flat', name: 'Sans money management', P, starts, ref: 1, wMax: 1, config: null, trust: null }];
+    if (!(opts && opts.mm === false)) {
+      candidates.push(...buildMmCandidates(opts && opts.userConfig, 'pf'));
     }
 
     // Phase 1 : toutes les simulations (firme × money management × option de retrait × risque).
@@ -415,19 +435,45 @@
     rows.sort((a, b) => (swingPriority ? Number(b.compatible) - Number(a.compatible) : 0)
       || (rank[a.status] - rank[b.status]) || (b.rankScore - a.rankScore) || (a.best.risk - b.best.risk));
 
-    // Compte propre : risque optimisé, rendement moyen sur la même fenêtre.
+    // Compte propre : la même recherche de money management que la propfirm (décision utilisateur, 2026-09-22),
+    // mais SANS sa contrainte de sécurité (perdre ≤ 0,5 compte par période) — un compte propre n'a pas de
+    // challenge à repasser, l'utilisateur assume consciemment plus de risque de drawdown pour retirer plus.
+    // Base : le risque plat optimisé (optimizeCp, avec sa propre contrainte de DD ≤ 30 %, desserrée si besoin).
+    // Candidats testés en plus : le réglage compte propre enregistré du backtest, puis les trois profils du
+    // calcul automatique (croissance, meilleur ratio, prudent), chacun balayé sur la grille RISKS ; on garde
+    // la combinaison qui retire le plus en moyenne sur les mêmes fenêtres glissantes que la propfirm.
     const ownOpt = E.optimizeCp(trades, capital0);
     let own = null;
     if (ownOpt) {
-      // Le compte propre est comparé sur les trades tels quels (risque plat optimisé).
-      const rets = starts.map((s) => windowReturn(P, s, ownOpt.risk, horizonDays));
-      const meanRet = mean(rets);
-      own = {
-        risk: ownOpt.risk, relaxedNote: ownOpt.relaxed ? ownOpt.relaxedNote : null,
-        horizonPct: meanRet, horizonUsd: capital0 * meanRet / 100,
-        positivePct: rets.filter((v) => v > 0).length / rets.length * 100,
+      const flatRets = starts.map((s) => windowReturn(P, s, ownOpt.risk, horizonDays));
+      let bestOwn = {
+        mm: null, risk: ownOpt.risk, meanRet: mean(flatRets),
+        positivePct: flatRets.filter((v) => v > 0).length / flatRets.length * 100,
         maxDdPct: ownOpt.report.stats.maxDrawdownPct,
-        annualPct: annualized(meanRet, horizonDays),
+        relaxedNote: ownOpt.relaxed ? ownOpt.relaxedNote : null,
+      };
+      if (!(opts && opts.mm === false)) {
+        buildMmCandidates(opts && opts.userConfigCp, 'cp').forEach((c) => {
+          RISKS.forEach((risk) => {
+            const rets = c.starts.map((s) => windowReturn(c.P, s, risk, horizonDays));
+            const meanRet = mean(rets);
+            if (meanRet <= bestOwn.meanRet) return;
+            const scale = risk / c.ref;
+            const rep = E.computeReport(trades, capital0, scaleRiskConfig(c.config, scale));
+            bestOwn = {
+              mm: { id: c.id, name: c.name, trust: c.trust, refRisk: risk, scale, lines: c.split ? E.describeSplit(c.split, scale) : E.describeConfig(c.config, scale) },
+              risk, meanRet, positivePct: rets.filter((v) => v > 0).length / rets.length * 100,
+              maxDdPct: rep.stats.maxDrawdownPct, relaxedNote: null,
+            };
+          });
+        });
+      }
+      own = {
+        risk: bestOwn.risk, mm: bestOwn.mm, relaxedNote: bestOwn.relaxedNote,
+        horizonPct: bestOwn.meanRet, horizonUsd: capital0 * bestOwn.meanRet / 100,
+        positivePct: bestOwn.positivePct,
+        maxDdPct: bestOwn.maxDdPct,
+        annualPct: annualized(bestOwn.meanRet, horizonDays),
       };
     }
 

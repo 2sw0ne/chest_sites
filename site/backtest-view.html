@@ -840,7 +840,8 @@ CHESTTour.init([
     const H = meta.horizonMonths;
     const riskPhrase = t.mm ? `money management « ${t.mm.name} » : ${escHtml(mmShort(t.mm))}` : `risque ${nFr(b.risk, 2)} %`;
     const money = `${signedPct(b.meanNet)} du compte financé, frais déduits, soit ≈ ${usdFr(res.prop.horizonUsd)} sur un compte de ${nFr(meta.refAccount)} $`;
-    const ownTxt = own ? ` À titre de comparaison, le compte propre à risque optimisé (${nFr(own.risk, 2)} %) ferait ${signedPct(own.horizonPct)} de ton capital, avec un drawdown de ${pctFr(own.maxDdPct, 1)}.` : '';
+    const ownWhat = own && own.mm ? `avec son money management « ${own.mm.name} » (${escHtml(mmShort(own.mm))})` : own ? `à risque optimisé (${nFr(own.risk, 2)} %)` : '';
+    const ownTxt = own ? ` À titre de comparaison, le compte propre ${ownWhat} ferait ${signedPct(own.horizonPct)} de ton capital, avec un drawdown de ${pctFr(own.maxDdPct, 1)}.` : '';
     if (v.kind === 'propfirm') {
       return `Sur ${H} mois, ${name} (option « ${t.option.label} », ${riskPhrase}) aurait permis de retirer en moyenne ${money}. ${nFr(b.fundedPct)} % des départs sont validés (médiane ${b.medianFundedDay} j, moyenne ${b.meanFundedDay != null ? nFr(b.meanFundedDay, 1) + ' j' : '—'}) et le premier retrait tombe après ${b.medianFirstPay != null ? b.medianFirstPay + ' j' : '—'}.${consistencySentence(res)}${swingSentence(res)}${ownTxt}`;
     }
@@ -1063,7 +1064,7 @@ CHESTTour.init([
     document.getElementById('fitBody').innerHTML = '<div class="cal-state">Simulation de la vie des comptes…</div>';
     clearTimeout(fitTimer);
     fitTimer = setTimeout(() => {
-      const res = window.CHESTPropFit.fit(trades, record.capital, { horizonMonths: fitHorizon, userConfig: fitUserCfg });
+      const res = window.CHESTPropFit.fit(trades, record.capital, { horizonMonths: fitHorizon, userConfig: fitUserCfg, userConfigCp: record.cp });
       fitCache.set(key, res);
       paintFit(res, key);
     }, 30);
