@@ -413,7 +413,12 @@
         candidates.push({ id, name, P: Pp, starts: st, ref, wMax: Math.max(...pos) / ref, config, trust, split: split || null });
       };
       if (opts && opts.userConfig) addPolicy('user', 'Ton réglage', { risk: opts.userConfig.risk, tiers: opts.userConfig.tiers || [], rules: opts.userConfig.rules || [] }, null);
-      const auto = E.optimizeProfiles(trades, capital0, 'pf', { minRiskPct: 0.05 });
+      // Les trois profils automatiques doivent être ceux du compte SÉLECTIONNÉ (opts.accountKind, 'cp' ou 'pf' —
+      // « Compte propre » / « Propfirm » en section 01), pas toujours 'pf' en dur. Bug corrigé le 2026-09-22
+      // (retour utilisateur : « que je mette propfirm ou compte propre, aucune différence ») : cette ligne restait
+      // figée sur 'pf' quel que soit le compte choisi, donc dès que le meilleur candidat n'était PAS « Ton
+      // réglage » (le seul qui dépendait vraiment du compte), basculer le bouton ne changeait rien à l'écran.
+      const auto = E.optimizeProfiles(trades, capital0, (opts && opts.accountKind) || 'pf', { minRiskPct: 0.05 });
       if (!auto.error) auto.profiles.forEach((p) => addPolicy(p.id, p.name, p.config, p.trust, p.split));
     }
 
