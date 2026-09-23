@@ -52,6 +52,12 @@ SESSION_LIFETIME_DAYS = 30
 FILES_DIR = os.path.join(DB_DIR, "school_files")
 MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
 
+# Vrai code source Pine des scanners (WolfX/Algomni/SWYPER/Pivot) - JAMAIS dans un fichier livré au
+# frontend ni commité (voir site/js/scanner-store.js, qui ne garde que les métadonnées, et
+# .gitignore). Ce fichier vit sur le Volume Railway comme accounts.db, à restaurer depuis une
+# sauvegarde hors-git après un premier déploiement (voir /scanners plus bas).
+SCANNERS_SECRET_PATH = os.path.join(DB_DIR, "scanners_secret.json")
+
 # Notification email a chaque nouvelle inscription en attente - toutes ces
 # variables sont optionnelles ; s'il en manque une, on logue et on continue
 # sans email plutot que de faire echouer l'inscription pour ca.
@@ -617,6 +623,41 @@ def bento_reset(bento_id):
             db.execute("DELETE FROM bento_entries WHERE id = ?", (bento_id,))
             db.commit()
     return jsonify({"ok": True})
+
+
+@app.route("/scanners")
+def scanners_list():
+    # Reserve aux membres approuves (pas seulement admin) : c'est le contenu de la page
+    # Strategies, deja visible de tout membre connecte cote UI - seule la source Pine elle-meme
+    # ne doit jamais sortir d'une session authentifiee. Fichier absent (pas encore restaure sur ce
+    # serveur) -> objet vide, jamais une erreur qui casserait le rendu de la page.
+    if not approved_user():
+        return jsonify({"error": "Non connecté."}), 401
+    try:
+        with open(SCANNERS_SECRET_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    return jsonify({"scanners": data})
+
+
+@app.route("/scanners/restore", methods=["POST"])
+def scanners_restore():
+    # Seule façon de poser scanners_secret.json sur le Volume Railway : ce fichier n'est JAMAIS
+    # commité (voir SCANNERS_SECRET_PATH plus haut), donc rien ne le déploie automatiquement -
+    # l'admin l'envoie une fois lui-même (depuis sa machine, jamais via git) avec par ex. :
+    # curl -X POST <url>/scanners/restore -H "Authorization: Bearer <token>" \
+    #      -H "Content-Type: application/json" --data-binary @scanners_secret.json
+    admin = approved_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": "JSON invalide."}), 400
+    with db_lock:
+        with open(SCANNERS_SECRET_PATH, "w", encoding="utf-8") as f:
+            json.dump(body, f, ensure_ascii=False)
+    return jsonify({"ok": True, "scanners": list(body.keys())})
 
 
 @app.route("/health")

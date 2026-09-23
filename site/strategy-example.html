@@ -143,7 +143,6 @@
       <div class="media__panel pine" id="panelCode">
         <div class="pine__head">
           <span>📄 Pine Script®</span>
-          <button class="pine__copy" id="copyPine">Copier</button>
         </div>
         <div class="pine-code">
           <div class="pine-lines" id="pineLines"></div>
@@ -247,11 +246,6 @@
   const body = document.getElementById('pineBody');
   const lineCount = body.textContent.split('\n').length;
   document.getElementById('pineLines').innerHTML = Array.from({ length: lineCount }, (_, i) => i + 1).join('<br>');
-
-  // Copy button.
-  document.getElementById('copyPine').addEventListener('click', () => {
-    navigator.clipboard.writeText(body.textContent).then(() => showToast('Script copié ✓'));
-  });
 
   // Tabs.
   const tabs = document.querySelectorAll('#mediaTabs button');

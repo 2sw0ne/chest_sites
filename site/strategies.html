@@ -248,8 +248,8 @@
 <script src="js/lot-calculator.js?v=4"></script>
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
-<script src="js/scanner-store.js?v=6"></script>
-<script src="js/scanner-chart.js?v=5"></script>
+<script src="js/scanner-store.js?v=7"></script>
+<script src="js/scanner-chart.js?v=6"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -417,9 +417,26 @@ CHESTTour.init([
   });
 
   // ================= Démarrage =================
+  // Le vrai Pine Script n'est plus dans scanner-store.js (repo public, voir son commentaire
+  // d'en-tete) : on le recupere aupres du serveur de comptes, authentifie par le jeton de la
+  // session en cours - un visiteur non connecte reste avec des scanners "vides" (menu/hero
+  // affiches, mais graphique sans indicateur, voir CHESTScannerChart.render).
+  function scannersApi() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
+  async function loadPineSources() {
+    const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(scannersApi() + '/scanners', { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) return;
+      const body = await res.json();
+      CHESTScanners.applyPineSource(body.scanners);
+    } catch (e) { /* hors-ligne / serveur injoignable : le graphique restera sans indicateur */ }
+  }
+
   const scanners = CHESTScanners.list();
   renderScannerMenu();
   if (scanners.length) selectScanner(scanners[0].id);
+  loadPineSources().then(() => { if (scanners.length) renderChart(); });
 })();
 </script>
 </body>
