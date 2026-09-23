@@ -607,6 +607,11 @@
     if (!initLight()) return;
     // demi-résolution : de la lumière douce, étirée par le navigateur, coûte 4 fois moins
     const w = Math.max(2, Math.round(lightCv.clientWidth * lightScale)), h = Math.max(2, Math.round(lightCv.clientHeight * lightScale));
+    // Filet de sécurité (2026-09-23) : réaffecter width/height à la MÊME valeur efface quand même tout
+    // le contenu du canvas (comportement HTML standard) — sans ce garde-fou, un appel redondant (même
+    // légitime, ex. un resize qui ne change rien en pratique) provoquerait un flash noir d'une image
+    // avant que tick() ne repeigne. Voir aussi show() plus bas, qui évite carrément l'appel redondant.
+    if (lightCv.width === w && lightCv.height === h) { gl.viewport(0, 0, w, h); return; }
     lightCv.width = w; lightCv.height = h;
     gl.viewport(0, 0, w, h);
   }
@@ -942,6 +947,16 @@
   /* ---------- Ouverture ---------- */
   function show() {
     closed = false;
+    // Micro-coupure trouvée et corrigée (2026-09-23, retour utilisateur : « une microcoupure... sans
+    // que le fond bouge ») : `sizeLight()` REASSIGNE `lightCv.width/height` à chaque appel — même à la
+    // MÊME valeur, ré-affecter width/height sur un <canvas> EFFACE tout son contenu (comportement HTML
+    // standard). Avant ce correctif, show() rappelait sizeCanvas()/sizeLight() sans condition, alors que
+    // le hero tournait déjà en continu depuis l'écran de connexion (voir le boot plus bas) — un aller
+    // simple "efface -> re-remplit 1 image plus tard" à chaque connexion, perçu comme un micro-freeze
+    // pile au moment où Welcome apparaît. Ne redimensionner que si le hero N'était PAS déjà actif (donc
+    // jamais dimensionné) : sinon il est déjà à la bonne taille, tenu à jour en continu par l'écouteur
+    // resize (voir plus bas, gated sur heroActive) pendant tout l'écran de connexion.
+    const alreadyActive = heroActive;
     heroActive = true;
     root.hidden = false;
     html.classList.add('is-welcome');
@@ -959,7 +974,7 @@
     say();
 
     window.scrollTo(0, 0);
-    requestAnimationFrame(() => { sizeCanvas(); startSnow(); });
+    if (!alreadyActive) requestAnimationFrame(() => { sizeCanvas(); startSnow(); });
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
