@@ -198,6 +198,16 @@
     } catch (e) { /* pas grave : les cartes gardent leur contenu par defaut */ }
     renderBentoOverrides();
   }
+  // 'media' = fond photo (background-position réglable en %), 'phone' = image Founder
+  // (décalage px + zoom), null = pas de photo (Menu/School, contenu généré).
+  const BENTO_PREVIEW_KIND = { hero: 'media', scanner: 'media', founder: 'phone', menu: null, school: null };
+  const BENTO_ORIG_IMAGES = { hero: '/assets/wel-chest-here.webp', scanner: '/assets/wel-scanner.webp', founder: '/assets/wel-founder-phone.webp' };
+  function applyMediaPosition(el, pos) { el.style.backgroundPosition = pos.x + '% ' + pos.y + '%'; }
+  function applyPhonePosition(el, pos) {
+    el.style.setProperty('--dx', pos.dx + 'px');
+    el.style.setProperty('--dy', pos.dy + 'px');
+    el.style.setProperty('--zs', pos.s);
+  }
   function renderBentoOverrides() {
     root.querySelectorAll('[data-bento-id]').forEach((card) => {
       const id = card.dataset.bentoId;
@@ -210,6 +220,11 @@
         const url = `${bentoApi()}/school/files/${o.image.key}`;
         if (mediaEl.tagName === 'IMG') mediaEl.src = url;
         else mediaEl.style.setProperty('--img', `url(${url})`);
+      }
+      if (mediaEl && o.position) {
+        const kind = BENTO_PREVIEW_KIND[id];
+        if (kind === 'media') applyMediaPosition(mediaEl, o.position);
+        else if (kind === 'phone') applyPhonePosition(mediaEl, o.position);
       }
       if (id === 'scanner') {
         const badge = card.querySelector('[data-cms-badge]');
@@ -250,6 +265,12 @@
   }
 
   const BENTO_LABELS = { hero: 'Chest Is Here', scanner: 'Scanner', founder: 'Founder', menu: 'Menu', school: 'School' };
+  // Position courante du glisser dans la fenêtre d'édition (pas encore enregistrée) — remise à zéro à
+  // chaque ouverture. Même mécanique que l'ancien bouton "Recadrer" (retiré), mais scopée à UNE carte à
+  // la fois dans la fenêtre plutôt qu'un mode global sur toute la page (demande utilisateur 2026-09-23 :
+  // « ajoute dans les modifications newsletter aussi le recadrage comme option »).
+  let editPos = null;
+  let editPreviewUrl = null; // révoqué à la fermeture si créé via URL.createObjectURL
   function bentoEditModalEl() {
     let modal = document.getElementById('welBentoEdit');
     if (modal) return modal;
@@ -262,6 +283,10 @@
         <h3 id="welBentoEditTitle">Modifier la carte</h3>
         <label class="wel-edit__field">Titre<input type="text" id="welBentoEditTitleInput" maxlength="40"></label>
         <label class="wel-edit__field" id="welBentoEditImageField">Photo<input type="file" id="welBentoEditImageInput" accept="image/*"></label>
+        <div class="wel-edit__field" id="welBentoEditPosField">
+          Position <span class="wel-edit__hint">— glisse pour recadrer${''/* le zoom (molette) n'est proposé que pour Founder, voir renderEditPreview */}</span>
+          <div class="wel-edit__preview" id="welBentoEditPreview"></div>
+        </div>
         <label class="wel-edit__check" id="welBentoEditBadgeField" hidden><input type="checkbox" id="welBentoEditBadgeInput">Badge « +1 » visible</label>
         <p class="wel-edit__err" id="welBentoEditErr" hidden></p>
         <div class="wel-edit__actions">
@@ -274,9 +299,71 @@
     modal.querySelector('[data-wel-edit-close]').addEventListener('click', closeBentoEdit);
     modal.querySelector('#welBentoEditSave').addEventListener('click', saveBentoEdit);
     modal.querySelector('#welBentoEditReset').addEventListener('click', resetBentoEdit);
+    modal.querySelector('#welBentoEditImageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (editPreviewUrl) URL.revokeObjectURL(editPreviewUrl);
+      editPreviewUrl = URL.createObjectURL(file);
+      renderEditPreview(modal.dataset.bentoId, editPreviewUrl);
+    });
     return modal;
   }
-  function closeBentoEdit() { const m = document.getElementById('welBentoEdit'); if (m) m.classList.remove('is-open'); }
+  function defaultPosition(id) {
+    const d = BENTO_MEDIA_DEFAULTS[id];
+    return id === 'founder' ? { dx: d.dx, dy: d.dy, s: d.s } : { x: d.x, y: d.y };
+  }
+  function currentImageUrl(id) {
+    const o = bentoOverrides[id];
+    return (o && o.image && o.image.key) ? `${bentoApi()}/school/files/${o.image.key}` : BENTO_ORIG_IMAGES[id];
+  }
+  // État du glisser tenu au niveau du module (pas dans renderEditPreview, qui tourne à chaque ouverture
+  // ET à chaque nouvelle photo choisie) : les écouteurs mousemove/mouseup sur `window` ne sont posés
+  // qu'UNE fois plus bas, sinon ils s'accumuleraient indéfiniment à chaque rendu de l'aperçu.
+  let editDrag = null; // { kind, box, img, start, sx, sy }
+  window.addEventListener('mousemove', (mv) => {
+    if (!editDrag) return;
+    const { kind, box, img, start, sx, sy } = editDrag;
+    if (kind === 'media') {
+      const rect = box.getBoundingClientRect();
+      const dxPct = ((mv.clientX - sx) / rect.width) * 100;
+      const dyPct = ((mv.clientY - sy) / rect.height) * 100;
+      editPos = { x: Math.max(0, Math.min(100, start.x - dxPct)), y: Math.max(0, Math.min(100, start.y - dyPct)) };
+      applyMediaPosition(box, editPos);
+    } else {
+      editPos = Object.assign({}, editPos, { dx: start.dx + (mv.clientX - sx), dy: start.dy + (mv.clientY - sy) });
+      applyPhonePosition(img, editPos);
+    }
+  });
+  window.addEventListener('mouseup', () => { editDrag = null; });
+  function renderEditPreview(id, imgUrl) {
+    const kind = BENTO_PREVIEW_KIND[id];
+    const box = document.getElementById('welBentoEditPreview');
+    const posField = document.getElementById('welBentoEditPosField');
+    editDrag = null;
+    if (!kind) { posField.hidden = true; box.innerHTML = ''; box.onmousedown = null; box.onwheel = null; return; }
+    posField.hidden = false;
+    box.className = 'wel-edit__preview' + (kind === 'phone' ? ' wel-edit__preview--phone' : '');
+    box.innerHTML = kind === 'phone' ? `<img alt="" draggable="false">` : '';
+    box.style.backgroundImage = kind === 'media' ? `url(${imgUrl})` : '';
+    const img = kind === 'phone' ? box.querySelector('img') : null;
+    if (img) img.src = imgUrl;
+    if (kind === 'media') applyMediaPosition(box, editPos); else applyPhonePosition(img, editPos);
+    box.onmousedown = (ev) => {
+      ev.preventDefault();
+      editDrag = { kind, box, img, start: Object.assign({}, editPos), sx: ev.clientX, sy: ev.clientY };
+    };
+    box.onwheel = kind === 'phone' ? (ev) => {
+      ev.preventDefault();
+      const next = Math.max(0.5, Math.min(2.2, editPos.s - ev.deltaY * 0.0015));
+      editPos = Object.assign({}, editPos, { s: Math.round(next * 1000) / 1000 });
+      applyPhonePosition(img, editPos);
+    } : null;
+  }
+  function closeBentoEdit() {
+    const m = document.getElementById('welBentoEdit');
+    if (m) m.classList.remove('is-open');
+    if (editPreviewUrl) { URL.revokeObjectURL(editPreviewUrl); editPreviewUrl = null; }
+  }
   function openBentoEdit(id) {
     const modal = bentoEditModalEl();
     modal.dataset.bentoId = id;
@@ -288,6 +375,8 @@
     const badgeField = modal.querySelector('#welBentoEditBadgeField');
     badgeField.hidden = id !== 'scanner';
     modal.querySelector('#welBentoEditBadgeInput').checked = o.badgeEnabled !== false;
+    editPos = BENTO_PREVIEW_KIND[id] ? Object.assign({}, defaultPosition(id), o.position) : null;
+    renderEditPreview(id, currentImageUrl(id));
     modal.classList.add('is-open');
   }
   async function saveBentoEdit() {
@@ -300,6 +389,7 @@
     const form = new FormData();
     form.append('title', title);
     if (id === 'scanner') form.append('badgeEnabled', modal.querySelector('#welBentoEditBadgeInput').checked ? '1' : '0');
+    if (BENTO_PREVIEW_KIND[id]) form.append('position', JSON.stringify(editPos));
     if (file) form.append('image', file);
     saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement…';
     try {
@@ -329,8 +419,11 @@
         if (titleEl) titleEl.textContent = BENTO_LABELS[id];
         const mediaEl = card.querySelector('[data-cms-media]');
         if (mediaEl) {
-          const orig = { hero: '/assets/wel-chest-here.webp', scanner: '/assets/wel-scanner.webp', founder: '/assets/wel-founder-phone.webp' }[id];
+          const orig = BENTO_ORIG_IMAGES[id];
           if (orig) { if (mediaEl.tagName === 'IMG') mediaEl.src = orig; else mediaEl.style.setProperty('--img', `url(${orig})`); }
+          const kind = BENTO_PREVIEW_KIND[id];
+          if (kind === 'media') applyMediaPosition(mediaEl, defaultPosition(id));
+          else if (kind === 'phone') applyPhonePosition(mediaEl, defaultPosition(id));
         }
         const badge = card.querySelector('[data-cms-badge]');
         if (badge) badge.hidden = false;

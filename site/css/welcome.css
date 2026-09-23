@@ -448,6 +448,19 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 }
 .wel-edit__field input[type="text"]:focus{ outline:none; border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.15); }
 .wel-edit__field input[type="file"]{ display:block; width:100%; margin-top:8px; font-size:12px; color:rgba(255,255,255,.65); }
+.wel-edit__field[hidden]{ display:none; } /* meme piege [hidden] vs display:block deja documente en CLAUDE.md */
+.wel-edit__hint{ text-transform:none; font-weight:400; letter-spacing:normal; color:rgba(255,255,255,.35); font-size:11px; }
+.wel-edit__preview{
+  position:relative; width:100%; height:110px; margin-top:10px; border-radius:12px; overflow:hidden;
+  background:#050505 center/cover no-repeat; border:1px solid rgba(255,255,255,.12); cursor:grab; touch-action:none;
+}
+.wel-edit__preview:active{ cursor:grabbing; }
+.wel-edit__preview--phone{ height:190px; display:flex; justify-content:center; background:#0a0a0c; }
+.wel-edit__preview--phone img{
+  position:absolute; --dx:0px; --dy:0px; --zs:1; top:6%; left:50%; width:clamp(80px,34%,120px); height:auto;
+  aspect-ratio:1125/2000; object-fit:cover; object-position:top center; pointer-events:none; user-select:none;
+  transform:translate(calc(-50% + var(--dx)), var(--dy)) scale(var(--zs));
+}
 .wel-edit__check[hidden]{ display:none; }
 .wel-edit__check{ display:flex; align-items:center; gap:8px; font-size:13px; color:rgba(255,255,255,.75); margin-bottom:16px; cursor:pointer; }
 .wel-edit__err{ font-size:12px; color:#ff94a0; margin:0 0 12px; }

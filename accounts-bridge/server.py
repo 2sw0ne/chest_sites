@@ -573,6 +573,18 @@ def bento_save(bento_id):
                 new.pop("title", None)
         if "badgeEnabled" in request.form:
             new["badgeEnabled"] = request.form.get("badgeEnabled") == "1"
+        if "position" in request.form:
+            raw_pos = request.form.get("position", "").strip()
+            if raw_pos:
+                try:
+                    pos = json.loads(raw_pos)
+                except ValueError:
+                    return jsonify({"error": "Position invalide."}), 400
+                if not isinstance(pos, dict) or not all(isinstance(v, (int, float)) for v in pos.values()):
+                    return jsonify({"error": "Position invalide."}), 400
+                new["position"] = pos
+            else:
+                new.pop("position", None)
         up = save_upload("image", bento_id)
         if up:
             delete_file(cur.get("image"))
