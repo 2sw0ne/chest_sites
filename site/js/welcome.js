@@ -158,10 +158,12 @@
     const KEY = 'chest_wel_bento_crop';
     // Valeurs enregistrées comme défaut le 2026-09-23 (décision utilisateur : « enregistre comme je l'ai mis ») —
     // réglées à la main via le bouton Recadrer, elles remplacent le centrage neutre d'origine pour tout le monde.
+    // `founder.s` (zoom) mis à jour le même jour, 2e réglage (« enregistre par défaut la taille et le
+    // positionnement que je viens de lui donner »).
     const DEFAULTS = {
       hero: { x: 0, y: 24.39 },
       scanner: { x: 50, y: 62 },
-      founder: { dx: 3, dy: 170, s: 1 },
+      founder: { dx: 2, dy: 45, s: 1.3 },
     };
     function load() {
       try { return Object.assign({ hero: {}, scanner: {}, founder: {} }, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return { hero: {}, scanner: {}, founder: {} }; }

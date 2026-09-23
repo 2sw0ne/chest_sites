@@ -73,10 +73,10 @@ def send_signup_notification(first_name: str, last_name: str, email: str) -> Non
         return
     try:
         msg = MIMEText(
-            f"{first_name} {last_name} ({email}) vient de demander un accès à CHEST.\n\n"
-            "Ouvre admin-members.html pour approuver ou refuser cette inscription."
+            f"{first_name} {last_name} ({email}) vient de créer un compte sur CHEST (approuvé automatiquement).\n\n"
+            "Ouvre admin-members.html si tu veux le consulter ou le bloquer."
         )
-        msg["Subject"] = "CHEST — nouvelle demande d'accès"
+        msg["Subject"] = "CHEST — nouveau compte créé"
         msg["From"] = SMTP_FROM
         msg["To"] = NOTIFY_EMAIL_TO
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
@@ -219,7 +219,12 @@ def signup():
             return jsonify({"error": "Un compte existe déjà avec cet email."}), 409
 
         is_first_user = db.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"] == 0
-        status = "approved" if is_first_user else "pending"
+        # Inscription ouverte à tous (2026-09-23, décision utilisateur : « que n'importe qui puisse créer
+        # son compte ») : approuvé automatiquement pour tout le monde, plus seulement le premier compte.
+        # Seul le statut admin reste réservé au tout premier compte créé (le propriétaire du site) ; un
+        # admin garde la main pour bloquer un compte a posteriori (POST /members/<id>/block), la porte
+        # d'approbation manuelle (status='pending') n'est simplement plus utilisée à l'inscription.
+        status = "approved"
         is_admin = 1 if is_first_user else 0
 
         db.execute(
@@ -239,7 +244,7 @@ def signup():
         "message": (
             "Compte admin créé et approuvé automatiquement (premier compte du site)."
             if is_first_user else
-            "Inscription reçue — en attente d'approbation par un administrateur."
+            "Compte créé et approuvé — tu peux te connecter directement."
         ),
     }), 201
 

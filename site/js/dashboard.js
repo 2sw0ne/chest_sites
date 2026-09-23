@@ -69,12 +69,12 @@
     0, 260, -95, 410, 0, -180, 425.2,
   ];
 
-  const DEFAULT_ACCOUNTS = [
-    { id: 'acc-vantage', name: 'Compte Démo Vantage', number: '10045782', type: 'Démo', broker: 'Vantage · MT5',
-      balance: 12480.30, equity: 12812.90, pnl: 332.60, today: 154.20, example: true },
-    { id: 'acc-ftmo', name: 'Challenge FTMO', number: '88213045', type: '2-Step', broker: 'FTMO · MT5',
-      balance: 22340.50, equity: 22812.90, pnl: 472.40, today: -68.10, example: true }
-  ];
+  // Anciens comptes de demonstration (Compte Demo Vantage / Challenge FTMO) —
+  // retires le 2026-09-23 (retour utilisateur : "retire les faux comptes
+  // qu'on parte de 0"). loadAccounts() retombe desormais sur [] plutot que
+  // sur cette liste ; voir renderAll() pour l'etat vide qui geré l'absence
+  // totale de compte.
+  const DEFAULT_ACCOUNTS = [];
 
   let chart, unit = 'percent'; // % par defaut (retour direct utilisateur du 2026-09-16)
   let lastPfSim = null; // derniere simulation de retrait PF calculee par renderPayouts - lue par renderMiniCalendar pour les marqueurs jaunes
@@ -101,7 +101,7 @@
     // - ils sont reconstruits a chaque chargement depuis leur propre source.
     localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list.filter((a) => a.id !== 'mt5-live' && a.id !== 'live-swann')));
   }
-  function activeId(accounts) { return localStorage.getItem(ACTIVE_KEY) || accounts[0].id; }
+  function activeId(accounts) { return localStorage.getItem(ACTIVE_KEY) || (accounts[0] && accounts[0].id) || null; }
 
   // ---------- Familles de comptes (chaines propfirm : Phase 1 -> Phase 2 ->
   // Finance, ou tout regroupement de comptes lies) — purement une organisation
@@ -1513,14 +1513,18 @@
     });
   }
 
+  // Renvoie null quand il n'y a ni compte ni famille (etat vide, voir
+  // renderAll()) — ne plus supposer accounts[0] toujours present depuis le
+  // retrait des comptes de demonstration (2026-09-23).
   function currentAccount() {
     const accounts = loadAccounts();
     const id = activeId(accounts);
+    if (id === null) return null;
     const fam = loadFamilies().find((f) => f.id === id);
     if (fam) {
       return { id: fam.id, name: fam.name, number: `${fam.accountIds.length} comptes`, type: 'Famille', isFamily: true, example: false, balance: 0, equity: 0, pnl: 0, today: 0 };
     }
-    return accounts.find((a) => a.id === id) || accounts[0];
+    return accounts.find((a) => a.id === id) || accounts[0] || null;
   }
 
   // Vue agregee d'une famille : somme reelle des comptes qui la composent
@@ -2021,6 +2025,12 @@
 
   async function renderAll() {
     const raw = currentAccount();
+    // Etat vide : aucun compte ni famille (2026-09-23, plus de comptes de
+    // demonstration par defaut) — bascule vers la carte "Ajoute ton premier
+    // compte" et saute tout le rendu qui suppose un compte actif valide.
+    document.getElementById('dashMain').classList.toggle('is-empty', !raw);
+    document.getElementById('dashEmptyState').hidden = !!raw;
+    if (!raw) return;
     renderAccountMenu(loadAccounts(), raw);
     if (raw.myfxbook && !activeAccountData) renderAccountHeader({ ...raw, loading: true });
     await refreshActiveAccount();
@@ -2080,6 +2090,7 @@
     });
 
     initAddAccountModal();
+    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => openAddAccountModal());
     initFamilyModal();
     initFamilyBacktestModal();
     initPayoutModal();
