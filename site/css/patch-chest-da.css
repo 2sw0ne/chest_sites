@@ -1007,3 +1007,24 @@ html[data-theme="light"] .brand img{
 html[data-theme="light"] .wel{ filter: invert(1) hue-rotate(180deg); }
 html[data-theme="light"] .wel img,
 html[data-theme="light"] .wel video{ filter: none; }
+
+/* Retouches ciblées (2026-09-24, retour utilisateur : le clair "rendait tout avec un effet négatif")
+   - deux éléments repérés en vérifiant le Dashboard en clair, corrigés sans toucher au mécanisme
+   d'inversion global (portée volontairement limitée, pas une vraie palette claire dédiée) : */
+/* 1) .chest-grad-text (grand nombre en dégradé, ex. "+12.4%") part de BLANC vers l'orange - pensé
+   pour un fond sombre. Inversé tel quel, il devient un dégradé terne (brun/olive) illisible sur
+   fond blanc. Contre-inversée (comme .chest-btn plus haut) puis redéfinie avec un dégradé qui part
+   de --chest-bg (#050505, la même valeur qu'utilise le fond en sombre - donc un encre quasi noir
+   ici) vers le même orange de marque : même intention visuelle, adaptée à un fond clair. */
+html[data-theme="light"] .chest-grad-text{
+  filter: invert(1) hue-rotate(180deg);
+  background: linear-gradient(120deg,var(--chest-bg) 20%,var(--chest-acc-2) 95%);
+  -webkit-background-clip: text; background-clip: text;
+}
+/* 2) .chest-spot__layer (lueur rose qui suit la souris en haut du Dashboard, 17% d'opacité sur
+   fond noir) : la rose reste rose après invert+hue-rotate(180) (les deux se compensent sur la
+   teinte, seule la clarté est inversée) - un lavis rose bien visible sur fond blanc (essayé à 35%
+   d'opacité, encore trop marqué à cette taille), quand il n'était qu'un souffle discret sur fond
+   noir. Masquée en clair plutôt que rééquilibrée : ce détail décoratif n'apporte rien d'essentiel,
+   plus sûr de le retirer que de chercher le bon dosage. */
+html[data-theme="light"] .chest-spot__layer{ display:none; }
