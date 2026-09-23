@@ -5,12 +5,6 @@
 /* Cartes : lien plein-cadre + outils admin */
 .chest-root .sc-ctile{ position:relative; cursor:pointer; }
 .chest-root .sc-ctile__link{ position:absolute; inset:0; z-index:1; border-radius:inherit; }
-.chest-root .sc-ctile__tools{ position:absolute; z-index:3; right:10px; top:10px; display:flex; gap:6px; }
-.chest-root .sc-ctile__tools > span{ width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.2); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); opacity:0; transition:opacity .2s, border-color .2s; }
-.chest-root .sc-ctile:hover .sc-ctile__tools > span, .chest-root .sc-ctile:focus-within .sc-ctile__tools > span{ opacity:1; }
-.chest-root .sc-ctile__tools > span:hover{ border-color:rgba(255,255,255,.5); }
-.chest-root .sc-ctile__tools > span[data-idel]:hover{ color:var(--chest-red); border-color:rgba(255,77,94,.6); }
-.chest-root .sc-ctile__tools .sc-ic{ width:14px; height:14px; }
 .chest-root .sc-ctile.is-pending{ border-style:dashed; border-color:rgba(232,179,57,.4); }
 .chest-root .sc-ctile.is-pending .sc-ctile__cover{ opacity:.55; }
 .chest-root .sc-ctile.is-pending .sc-ctile__m b{ color:var(--chest-amber); }
@@ -31,5 +25,4 @@
 
 @media (max-width:760px){
   .chest-root .sc-notice{ margin:12px 18px 0; }
-  .chest-root .sc-ctile__tools > span{ opacity:1; }
 }

@@ -39,8 +39,11 @@
     up: 'M12 16V5M7 10l5-5 5 5M5 19h14',
     plus: 'M12 5v14M5 12h14',
     clock: 'M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z',
+    dots: 'M12 6a1.2 1.2 0 1 0 0-2.4A1.2 1.2 0 0 0 12 6zM12 13.2a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4zM12 20.4a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4z',
   };
-  const svg = (name, cls) => `<svg class="sc-ic ${cls || ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${IC[name] || IC.link}"/></svg>`;
+  const svg = (name, cls) => (name === 'dots'
+    ? `<svg class="sc-ic ${cls || ''}" viewBox="0 0 24 24" fill="currentColor"><path d="${IC.dots}"/></svg>`
+    : `<svg class="sc-ic ${cls || ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${IC[name] || IC.link}"/></svg>`);
   const KIND = { course: 'Cours', note: 'Fiche', pdf: 'PDF', image: 'Image', link: 'Lien', sheet: 'Tableur', folder: 'Dossier', file: 'Fichier' };
   const KICON = { course: 'course', note: 'note', pdf: 'pdf', image: 'image', link: 'link', sheet: 'sheet', folder: 'folder', file: 'pdf' };
 
@@ -339,8 +342,32 @@
     const sh = shelfOf(it.shelf);
     return `<span class="sc-ctile__cover is-gen tone-${sh.tone}">${svg(it.kind === 'course' ? sh.icon : KICON[it.kind] || 'folder', 'sc-ctile__gen')}</span>`;
   }
-  const itemTools = (it) => (isAdmin() && it.kind !== 'course'
-    ? `<span class="sc-ctile__tools"><span role="button" tabindex="0" data-iedit="${esc(it.id)}" title="Modifier">${svg('edit')}</span><span role="button" tabindex="0" data-idel="${esc(it.id)}" title="Retirer">${svg('trash')}</span></span>` : '');
+  // Menu ⋮ (un seul bouton, pas une rangée d'icônes) : décision utilisateur 2026-09-23, même esprit que les
+  // vitrines de la Newsletter. `toolsMenu` reste générique (libellé + attribut data-* + id) pour servir aux
+  // éléments écrits ET aux vidéos ; le survol de la carte l'affiche (`.sc-ctile:hover .sc-tools` etc.).
+  const toolsMenu = (actions) => `<span class="sc-tools"><button type="button" class="sc-tools__btn" data-tools-toggle aria-haspopup="true" aria-expanded="false" title="Options">${svg('dots')}</button><div class="sc-tools__menu" hidden>${actions.map((a) => `<button type="button" ${a.attr}="${esc(a.id)}">${esc(a.label)}</button>`).join('')}</div></span>`;
+  function closeAllToolsMenus() {
+    $$('.sc-tools__menu:not([hidden])').forEach((m) => { m.hidden = true; if (m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded', 'false'); });
+  }
+  document.addEventListener('click', (e) => {
+    const toggle = e.target.closest('[data-tools-toggle]');
+    if (toggle) {
+      const menu = toggle.nextElementSibling;
+      const willOpen = menu.hidden;
+      closeAllToolsMenus();
+      if (willOpen) { menu.hidden = false; toggle.setAttribute('aria-expanded', 'true'); }
+      return;
+    }
+    if (!e.target.closest('.sc-tools__menu')) closeAllToolsMenus();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllToolsMenus(); });
+  // « Totale liberté sur School » (retour utilisateur 2026-09-23) : les cours statiques (kind:'course', issus
+  // de school-data.js) portent maintenant aussi le menu — `itemForm`/`deleteItem` savent déjà les traiter via
+  // le même mécanisme de retouche serveur (une entrée `school_entries` de même id que surcharge le catalogue
+  // de base, voir `allItems()`), seule l'interface les excluait jusqu'ici.
+  const itemTools = (it) => (isAdmin()
+    ? toolsMenu([{ label: 'Modifier', attr: 'data-iedit', id: it.id }, { label: 'Retirer', attr: 'data-idel', id: it.id }])
+    : '');
   function elTile(it) {
     const href = hrefOf(it);
     const nk = noteKey(it);
@@ -364,7 +391,7 @@
   }
   document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[role=button]')) { e.preventDefault(); e.target.click(); } });
   document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-iedit], [data-idel]') && !e.target.closest('.sc-ctile__tools') && !e.target.matches('.sc-ctile.is-pending, .sc-ctile.is-pending *')) return;
+    if (e.target.closest('[data-iedit], [data-idel]') && !e.target.closest('.sc-tools') && !e.target.matches('.sc-ctile.is-pending, .sc-ctile.is-pending *')) return;
     const t = e.target.closest('[data-st]:not(.sc-crumb)');
     if (t) { try { go(JSON.parse(t.dataset.st)); } catch (err) { /* ignore */ } return; }
     const door = e.target.closest('[data-go]');
@@ -372,9 +399,9 @@
     const sh = e.target.closest('[data-shelf]');
     if (sh) { go({ v: 'written', s: sh.dataset.shelf || '' }); return; }
     const co = e.target.closest('[data-course]');
-    if (co && !e.target.closest('.sc-ctile__tools')) { go({ v: 'course', c: co.dataset.course }); return; }
+    if (co && !e.target.closest('.sc-tools')) { go({ v: 'course', c: co.dataset.course }); return; }
     const nt = e.target.closest('[data-note]');
-    if (nt && !e.target.closest('.sc-ctile__tools')) { go({ v: 'note', n: nt.dataset.note }); }
+    if (nt && !e.target.closest('.sc-tools')) { go({ v: 'note', n: nt.dataset.note }); }
   });
 
   // =====================================================================
@@ -533,7 +560,9 @@
     }
     body.innerHTML = html;
   }
-  const vtools = (v) => (isAdmin() ? `<div class="sc-vcard__tools"><button type="button" data-vthumb="${esc(v.id)}" aria-label="Changer la miniature" title="Changer la miniature">${svg('image')}</button><button type="button" data-vedit="${esc(v.id)}" aria-label="Modifier" title="Modifier">${svg('edit')}</button><button type="button" data-vdel="${esc(v.id)}" aria-label="Retirer" title="Retirer">${svg('trash')}</button></div>` : '');
+  const vtools = (v) => (isAdmin()
+    ? toolsMenu([{ label: 'Modifier', attr: 'data-vedit', id: v.id }, { label: 'Changer la miniature', attr: 'data-vthumb', id: v.id }, { label: 'Retirer', attr: 'data-vdel', id: v.id }])
+    : '');
   function posterCard(v) {
     const th = thumbUrl(v);
     return `<article class="sc-poster" data-id="${esc(v.id)}">
@@ -680,9 +709,47 @@
     $('#vUrl').focus();
   }
 
+  // Un cours (kind:'course') n'a ni fichier, ni lien, ni texte à gérer ici — son contenu (chapitres) reste
+  // codé en dur dans school-data.js/le lecteur ; seuls le titre, la description et la miniature passent par
+  // la retouche serveur (même mécanisme que les autres éléments, voir allItems()). Formulaire volontairement
+  // réduit à ces 3 champs — décision utilisateur 2026-09-23 : « une totale liberté sur School » inclut les
+  // cours, mais réécrire leur contenu de cours (les chapitres eux-mêmes) resterait un chantier séparé, bien
+  // plus lourd (éditeur de texte riche), non fait ici.
+  function courseForm(cur) {
+    if (!guardAdmin()) return;
+    openModal(`<button type="button" class="sc-modal__x" data-mclose aria-label="Fermer">${svg('close')}</button>
+      <form class="sc-form" id="cForm" autocomplete="off" novalidate>
+        <span class="chest-step">Modifier le cours</span>
+        <h3>${esc(cur.title)}</h3>
+        <label>Titre<input id="cTitle" type="text" maxlength="140" value="${esc(cur.title || '')}"></label>
+        <label>Description (facultatif)<textarea id="cDesc" rows="2" maxlength="300">${esc(cur.desc || '')}</textarea></label>
+        ${thumbBlock()}
+        ${progressHtml}
+        <div class="sc-form__err" id="fErr"></div>
+        <div class="sc-form__foot"><button type="button" class="chest-btn-2" data-mclose>Annuler</button><button type="submit" class="chest-btn" id="fSubmit">Enregistrer</button></div>
+      </form>`);
+    const thumb = wireThumb(cur.thumb);
+    $('#cForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = $('#fErr');
+      const title = $('#cTitle').value.trim();
+      if (!title) { err.textContent = 'Donne un titre.'; return; }
+      $('#fSubmit').disabled = true;
+      try {
+        const data = { kind: 'item', id: cur.id, title, desc: $('#cDesc').value.trim() };
+        if (thumb.remove && !thumb.blob) data.removeThumb = true;
+        await saveEntry(data, { thumb: thumb.blob }, setProgress);
+        closeModal();
+        rerender();
+      } catch (ex) { err.textContent = ex.message; $('#fSubmit').disabled = false; const pg = $('#fProg'); if (pg) pg.hidden = true; }
+    });
+    $('#cTitle').focus();
+  }
+
   // ---------- Formulaire élément écrit (admin) ----------
   function itemForm(it, defaults) {
     if (!guardAdmin()) return;
+    if (it && it.kind === 'course') { courseForm(it); return; }
     defaults = defaults || {};
     const cur = it || { shelf: defaults.shelf || 'trading', kind: 'file' };
     const subs = Array.from(new Set(allItems().map((i) => i.sub).filter(Boolean)));
