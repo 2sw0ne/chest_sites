@@ -7,6 +7,14 @@
 <!-- Fond sombre IMMÉDIAT (voir app.html pour l'explication complète) : évite le blanc par défaut du
      navigateur pendant que les polices/CSS externes chargent. -->
 <style>html,body{background:#050505}</style>
+<!-- Redirection immédiate vers app.html (branche experiment/merge-login-welcome, 2026-09-23, retour
+     utilisateur : « le passage entre localhost:8934/login.html et app.html#/dashboard » — il arrivait
+     encore sur CETTE page séparée, par habitude/favori, jamais sur le formulaire intégré à app.html qui
+     remplace pourtant tout ce fichier pour l'usage normal). app.html affiche déjà lui-même l'écran de
+     connexion (voir #authOverlay) quand personne n'est connecté — donc peu importe comment on arrive
+     ici (favori, lien direct, ancien onglet), on doit toujours atterrir sur LUI, jamais sur cette page-ci.
+     Placée tout en haut, avant tout le reste, pour ne jamais laisser transparaître cette ancienne page. -->
+<script>try { window.location.replace('app.html' + location.search); } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
