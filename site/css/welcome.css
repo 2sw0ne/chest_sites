@@ -481,11 +481,23 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 }
 
 .wel__handoff{
-  display:flex; flex-direction:column; align-items:center; gap:10px;
-  margin-top:clamp(40px,7vh,80px); pointer-events:none; text-align:center;
-  font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.38);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:clamp(40px,7vh,80px); pointer-events:none;
 }
-.wel__handoff b{ font-size:15px; letter-spacing:-.01em; text-transform:none; font-weight:700; color:#fff; }
+.wel__handoff-arrows{ animation:welHandoffBounce 1.8s ease-in-out infinite; opacity:.75; }
+.wel__handoff-chev{ animation:welHandoffPulse 1.8s ease-in-out infinite; }
+.wel__handoff-chev--2{ animation-delay:.15s; }
+@keyframes welHandoffBounce{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(5px); }
+}
+@keyframes welHandoffPulse{
+  0%,100%{ opacity:.5; }
+  50%{ opacity:1; }
+}
+@media (prefers-reduced-motion:reduce){
+  .wel__handoff-arrows, .wel__handoff-chev{ animation:none; opacity:.85; }
+}
 
 /* Le dashboard reste inerte (ni cliquable, ni "scrollable" à la molette) tant qu'on ne l'a pas atteint en entier, PLUS un bref
    sursis après (`.wel-lock`, posé/ôté par welcome.js) : sans ça la molette, une fois le curseur au-dessus de sa zone visible,

@@ -947,6 +947,16 @@
   /* ---------- Ouverture ---------- */
   function show() {
     closed = false;
+    // Meme piege que refreshAccount/refreshAdminVisibility de nav.js (voir leurs commentaires) :
+    // loadBentoOverrides()/initBentoTools() (appelees une fois tout en bas de ce fichier, a l'execution
+    // du script) sortaient sans rien faire quand la page se charge PAS ENCORE connectee (guard interne
+    // sur isLoggedIn()/isAdminEffective()) - sans ce rappel ici, une connexion integree a app.html (sans
+    // rechargement de page) affichait les cartes de la Newsletter avec leur contenu par defaut au lieu
+    // des overrides CMS, et sans le menu d'edition ⋮ pour un admin, jusqu'au prochain vrai rechargement.
+    // Les deux fonctions sont sans risque a rappeler (loadBentoOverrides ecrase juste bentoOverrides avec
+    // les memes donnees ; initBentoTools ignore une carte qui a deja son bouton ⋮).
+    loadBentoOverrides();
+    initBentoTools();
     // Micro-coupure trouvée et corrigée (2026-09-23, retour utilisateur : « une microcoupure... sans
     // que le fond bouge ») : `sizeLight()` REASSIGNE `lightCv.width/height` à chaque appel — même à la
     // MÊME valeur, ré-affecter width/height sur un <canvas> EFFACE tout son contenu (comportement HTML

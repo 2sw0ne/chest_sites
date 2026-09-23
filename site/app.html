@@ -54,7 +54,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/welcome.css?v=32">
+<link rel="stylesheet" href="css/welcome.css?v=33">
 <script src="js/theme.js"></script>
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
@@ -209,9 +209,17 @@
 
         </div>
 
-        <div class="wel__handoff">
-          <b>Continue à descendre</b>
-          <span>Ton dashboard arrive</span>
+        <div class="wel__handoff" aria-hidden="true">
+          <svg class="wel__handoff-arrows" viewBox="0 0 24 24" width="24" height="24" fill="none">
+            <defs>
+              <linearGradient id="welHandoffGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fc1283"/>
+                <stop offset="1" stop-color="#f9a45e"/>
+              </linearGradient>
+            </defs>
+            <path class="wel__handoff-chev wel__handoff-chev--1" d="M5 5l7 7 7-7" stroke="url(#welHandoffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="wel__handoff-chev wel__handoff-chev--2" d="M5 12l7 7 7-7" stroke="url(#welHandoffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </div>
       </div>
     </section>
@@ -294,9 +302,9 @@
   </div>
 </div>
 
-<script src="js/nav.js?v=3"></script>
+<script src="js/nav.js?v=5"></script>
 <script src="js/shell.js?v=3"></script>
-<script src="js/welcome.js?v=55"></script>
+<script src="js/welcome.js?v=56"></script>
 <script>
 (() => {
   // Connexion intégrée (expérimentation) : câblage du formulaire de #authOverlay. Repris de
@@ -346,6 +354,7 @@
         document.getElementById('authOverlay').style.display = 'none';
         if (window.CHESTShell) CHESTShell.boot();
         if (window.CHESTWelcome) CHESTWelcome.show();
+        if (window.CHESTNav) { CHESTNav.refreshAccount(); CHESTNav.refreshAdminVisibility(); }
       }, 1250);
     } catch (err) {
       errEl.textContent = err.message;
