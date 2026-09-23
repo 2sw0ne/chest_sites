@@ -2,9 +2,14 @@
 
 Service local qui reçoit les alertes de ton scanner Pine Script (webhook TradingView) et écrit `../site/data/berich-signal.json`, lu automatiquement par la page `berich.html`.
 
+Distinct de BEFREE (`github.com/2sw0ne/BEFREE`, un autre service qui relaie
+les mêmes alertes vers le bot Telegram) : ce dossier-ci ne fait QUE nourrir
+`berich.html`, rien à voir avec Telegram (2026-09-23, clarification
+utilisateur — les deux avaient été confondus dans une passe précédente).
+
 ## État actuel
 
-- **Réception des signaux** : fonctionnelle en local (`server.py`), pas encore déployée (contrairement à `calendar-bridge`, qui tourne sur Railway).
+- **Réception des signaux** : déployé comme service Railway séparé (même logique que `calendar-bridge`/`accounts-bridge` — Dockerfile + requirements.txt à la racine de ce dossier).
 - **Exécution automatique sur MT5** : **pas branchée**. La page BERICH affiche le signal (entrée/SL/TP) et calcule le montant à risquer, mais le bouton « Prendre le trade » ne fait encore que confirmer l'intention côté site — aucun ordre n'est envoyé à un vrai terminal MT5. Deux mécanismes possibles ont été identifiés, à trancher plus tard :
   1. **Expert Advisor (EA) MT5** installé par chaque utilisateur dans son propre terminal — il interroge ce serveur (ou un service central si déployé) via une clé de connexion, et exécute localement quand un signal est confirmé. Les identifiants broker ne quittent jamais la machine de l'utilisateur (comme le fait [PineConnector](https://pineconnector.net)).
   2. **Service cloud MT5 tiers** (ex. MetaApi) — zéro installation côté utilisateur, mais implique d'envoyer les identifiants broker à un service externe payant.
@@ -35,11 +40,11 @@ Le script envoie **deux messages distincts sur le même endpoint**, liés par un
 ## Lancer en local
 
 ```bash
-pip install flask
+pip install -r requirements.txt
 python server.py
 ```
 
-Le serveur écoute sur le port **5600**. TradingView doit pouvoir atteindre cette URL depuis internet — en local ça veut dire un tunnel (ex. [ngrok](https://ngrok.com), `cloudflared`) tant que ce service n'est pas déployé sur Railway comme `calendar-bridge`.
+Le serveur écoute sur le port **5600** en local (`PORT` sinon, lu automatiquement une fois déployé sur Railway — voir plus bas). TradingView doit pouvoir atteindre cette URL depuis internet — en local ça veut dire un tunnel (ex. [ngrok](https://ngrok.com), `cloudflared`) tant que tu testes avant de pointer l'alerte vers l'URL Railway.
 
 ## Format de `berich-signal.json`
 
@@ -61,6 +66,12 @@ Le serveur écoute sur le port **5600**. TradingView doit pouvoir atteindre cett
 
 `example: true` (valeur par défaut du fichier livré avec le site) indique à `berich.html` qu'aucun vrai signal n'est encore arrivé — dès la première requête `POST /webhook` reçue, il repasse à `false`.
 
-## Déploiement (plus tard)
+## Déploiement
 
-Même logique que `calendar-bridge` : une fois prêt, ce dossier peut être déployé comme service Railway séparé, avec son URL renseignée dans `site/js/config.js` (`berichApiUrl`) pour que le site aille lire les signaux là-bas au lieu du fichier local. Pas fait pour l'instant — le reste de CHEST reste 100% local.
+Même logique que `calendar-bridge`/`accounts-bridge` (Railway, Root Directory = `berich-bridge`, Dockerfile détecté automatiquement) :
+
+1. Créer le service Railway (Root Directory `berich-bridge`), déployer.
+2. Copier son URL publique et la coller dans `site/js/config.js` (`berichApiUrl`), en ajoutant `/signals` à la fin (ex. `https://xxx.up.railway.app/signals`) — c'est la route qui sert `berich-signal.json` (`GET /signals`).
+3. Dans TradingView, pointer l'alerte "Any alert() function call" vers `https://xxx.up.railway.app/webhook` (plus besoin de tunnel local).
+
+**Limite connue** : `../site/data/berich-signal.json` vit dans le système de fichiers éphémère du conteneur (pas de Volume Railway ici, contrairement à `accounts-bridge`) — les 50 derniers signaux sont perdus à chaque redéploiement/redémarrage. Acceptable pour l'instant (se repeuple tout seul dès la prochaine alerte TradingView) ; à revoir avec un Volume si ça devient gênant.

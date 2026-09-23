@@ -1,4 +1,4 @@
-"""CHEST · BERICH — récepteur de webhook TradingView (local, pas encore déployé).
+"""CHEST · BERICH — récepteur de webhook TradingView (service Railway).
 
 Reçoit les alertes du script Pine "BE FR€E" (alert() sur "Any alert() function
 call") et les écrit dans ../site/data/berich-signal.json, que berich.html lit
@@ -10,13 +10,18 @@ par la présence ou non de "result" :
   - Ouverture : {"id","pair","signal","entry","sl"}           (pas de tp — RR3 fixe, calculé ici)
   - Clôture   : {"id","result":"TP"|"SL"}                     (même id que l'ouverture)
 
+Distinct de BEFREE (github.com/2sw0ne/BEFREE, service séparé qui relaie les
+mêmes alertes vers le bot Telegram) : ici, seul le webhook -> berich.html,
+rien à voir avec Telegram (2026-09-23, clarification utilisateur).
+
 Utilisation :
-    pip install flask
+    pip install -r requirements.txt
     python server.py
 """
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -36,6 +41,10 @@ def _load() -> dict:
 
 
 def _save(data: dict) -> None:
+    # Le conteneur Railway ne contient QUE ce dossier (Dockerfile ne copie pas
+    # site/) - ../site/data/ n'existe donc pas au premier demarrage, meme
+    # motif deja verifie en production sur calendar-bridge/fetch_calendar.py.
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
@@ -95,10 +104,13 @@ def webhook():
     return jsonify({"ok": True, "id": signal["id"]})
 
 
-@app.get("/signal.json")
-def signal_json():
+@app.get("/signals")
+def signals():
     return jsonify(_load())
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5600, debug=True)
+    # PORT vient de Railway une fois deploye (proxy HTTPS -> ce port interne,
+    # peu importe lequel) ; 5600 reste le defaut en local, deja documente
+    # dans README.md pour l'alerte TradingView pendant le developpement.
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5600)), debug=False)

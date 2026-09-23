@@ -6,15 +6,16 @@ window.CHEST_CONFIG = {
   // Laisser vide '' pour utiliser le fichier local data/calendar.json à la place.
   calendarApiUrl: 'https://calendrier-eco-production.up.railway.app/calendar.json',
 
-  // URL COMPLÈTE de l'endpoint /signals du bot BE FR€E (github.com/2sw0ne/
-  // BEFREE, déployé sur Railway) — le MÊME service qui envoie déjà les
-  // notifs Telegram, pas un service séparé (décision du 2026-09-15 : un
-  // seul webhook TradingView pour les deux usages plutôt que d'en dupliquer
-  // un deuxième). Il expose aussi /signal/current, un format plat lu par
-  // l'EA MT5 BERICH_Receiver.mq5 (voir github.com/2sw0ne/BERICH) — son URL
-  // se configure séparément, dans les réglages de l'EA lui-même, pas ici.
-  // Laisser vide '' pour utiliser le fichier local data/berich-signal.json
-  // à la place.
+  // URL COMPLÈTE de l'endpoint /signals de berich-bridge/server.py (service
+  // Railway séparé, à déployer — voir berich-bridge/README.md). Valeur
+  // actuelle = BEFREE (github.com/2sw0ne/BEFREE), un AUTRE service qui ne
+  // sert en réalité qu'à relayer les mêmes alertes TradingView vers le bot
+  // Telegram — clarification utilisateur du 2026-09-23 : les deux avaient
+  // été confondus par erreur ("le même service" dans une note précédente),
+  // BEFREE n'a rien à voir avec CHEST. A REMPLACER par l'URL du vrai
+  // berich-bridge une fois déployé (garder BEFREE d'ici là pour ne pas
+  // couper l'affichage en attendant). Laisser vide '' pour utiliser le
+  // fichier local data/berich-signal.json à la place.
   berichApiUrl: 'https://web-production-a3415.up.railway.app/signals',
 
   // URL du webhook-bridge Stratégies (scanner-bridge/server.py) qui sert
