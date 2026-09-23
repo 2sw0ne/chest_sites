@@ -362,11 +362,14 @@ pour ce qui a été trouvé/corrigé le jour précédent (même vague de durciss
   même mécanique de survol que `.acc-menu__family-hover`), un seul choix « Supprimer » (rouge),
   confirmation `CHESTConfirm()`. Supprimer une famille NE supprime PAS ses comptes membres (ils
   redeviennent des comptes seuls) — choix délibérément moins destructeur.
-- **Reste à faire, portée à clarifier avec l'utilisateur avant de s'y lancer** : le thème clair
-  hors Welcome utilise toujours le filtre `invert(1) hue-rotate(180deg)` global — l'utilisateur l'a
-  qualifié de « faux white theme » avec un « effet négatif » sur les éléments, à retravailler pour
-  un rendu propre. Ampleur non tranchée (retouche ciblée des pires éléments vs vraie palette claire
-  dédiée page par page) : ne pas s'y lancer à fond sans revalider la direction avec lui.
+- **Thème clair : retouche ciblée choisie (2026-09-24), pas une vraie palette claire dédiée.**
+  L'utilisateur a tranché entre "retouche ciblée (rapide)" et "vraie palette claire (gros chantier)"
+  → retouche ciblée. Voir la section « Retouches ciblées » de `patch-chest-da.css` (juste après les
+  règles Welcome) : `.chest-grad-text` (dégradé blanc→orange invisible en clair, refait en encre→
+  orange) et `.chest-spot__layer` (lueur rose du Dashboard, devenait un lavis voyant en clair,
+  masquée). Backtesting et Calendrier vérifiés en clair au passage, déjà corrects. **Si un autre
+  élément "rend mal" en clair est signalé plus tard** : même traitement ponctuel dans cette même
+  section, pas une refonte — l'utilisateur a explicitement choisi la portée limitée.
 
 ## Autres décisions techniques notables
 
