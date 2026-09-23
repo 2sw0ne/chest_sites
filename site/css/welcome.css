@@ -584,6 +584,16 @@ html.is-loggedout .chest-shell{ visibility:hidden; pointer-events:none; }
 /* Contenu du Welcome (logo/titre/CHEST qui parle/actions) et Newsletter : cachés tant que la connexion
    n'a pas réussi (le fond, lui, tourne déjà) - révélés par show() (welcome.js) une fois connecté. */
 html.is-loggedout .wel__stage, html.is-loggedout .wel__page--news{ visibility:hidden; }
+/* Retour utilisateur (2026-09-23) : « juste un lag » constaté une fois sur deux — trouvé en repensant
+   au fait que .wel__stage n'est plus caché en display:none depuis le début de cette branche (visibility
+   seulement, pour laisser tourner le hero derrière) : `visibility:hidden` ne met PAS en pause les
+   animations CSS, elles continuent à jouer, invisibles, dès le chargement de la page — logo/titre/
+   phrase/boutons (welLogoIn/welRise) ont donc fini leur entrée bien AVANT que l'utilisateur ait fini de
+   se connecter (quelques secondes plus tard), et apparaissaient alors d'un coup sec au lieu de la
+   vraie entrée animée. Suspendues explicitement ici, elles restent figées à leur position de départ
+   (jamais jouées) jusqu'à la connexion réelle, où l'attribut disparaît et l'entrée joue enfin au bon
+   moment (voir show(), qui ne change rien de plus ici — juste le retrait de cette classe suffit). */
+html.is-loggedout .wel__stage *{ animation-play-state:paused !important; }
 .auth-stage{
   position:relative; z-index:2; min-height:100vh; overflow-y:auto;
   display:flex; align-items:center; justify-content:center;
