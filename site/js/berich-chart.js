@@ -478,13 +478,21 @@ if barstate.islast and showJournal
   // les trous temporels qui cassaient le rendu Vela (bougies ecrasees sur une
   // portion du graphique, reste vide). Mieux vaut afficher un artefact rare
   // que corrompre systematiquement les vraies donnees.
+  // Relais authentifié vers Twelve Data (accounts-bridge/server.py, /twelvedata/<endpoint>) : la
+  // vraie clé API ne vit plus dans un fichier livré au frontend - voir scanner-chart.js pour le
+  // detail complet (meme mecanique, dupliquee ici a l'identique, pas de fichier partage entre les
+  // deux - convention deja etablie sur ce projet pour ce genre de petit utilitaire, voir hero-bg.js).
+  function twelveDataApi(endpoint, params) {
+    const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+    const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    const qs = new URLSearchParams(params).toString();
+    return fetch(`${base}/twelvedata/${endpoint}?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+  }
+
   async function fetchXauCandles() {
-    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
-    if (!key) throw new Error('Clé Twelve Data manquante — voir js/config.local.example.js');
-    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(SYMBOL_TWELVEDATA)}&interval=${TWELVEDATA_INTERVAL}&outputsize=1000&apikey=${key}`;
-    const res = await fetch(url);
+    const res = await twelveDataApi('time_series', { symbol: SYMBOL_TWELVEDATA, interval: TWELVEDATA_INTERVAL, outputsize: 1000 });
     const json = await res.json();
-    if (json.status === 'error' || (json.code && json.code >= 400)) throw new Error(json.message || 'Erreur Twelve Data');
+    if (json.status === 'error' || (json.code && json.code >= 400)) throw new Error(json.message || json.error || 'Erreur Twelve Data');
     const candles = json.values
       .map((v) => ({
         time: Math.floor(new Date(v.datetime.replace(' ', 'T') + 'Z').getTime() / 1000) * 1000,
@@ -496,11 +504,6 @@ if barstate.islast and showJournal
 
   async function render(containerId) {
     const container = document.getElementById(containerId);
-    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
-    if (!key) {
-      container.innerHTML = '<div class="scanner-empty">Clé Twelve Data manquante — voir <code>js/config.local.example.js</code>.</div>';
-      return;
-    }
 
     container.innerHTML = '<div class="scanner-empty">Chargement des données XAU/USD et de ton scanner…</div>';
 

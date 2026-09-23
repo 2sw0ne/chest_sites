@@ -210,15 +210,23 @@
     return { fab, overlay };
   }
 
+  // Relais authentifié vers Twelve Data (accounts-bridge/server.py, /twelvedata/<endpoint>) : la
+  // vraie clé API ne vit plus dans un fichier livré au frontend - voir scanner-chart.js pour le
+  // detail complet (meme mecanique, dupliquee ici a l'identique).
+  function twelveDataApi(endpoint, params) {
+    const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+    const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    const qs = new URLSearchParams(params).toString();
+    return fetch(`${base}/twelvedata/${endpoint}?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+  }
+
   async function fetchUsdRate(currency) {
     if (currency === 'USD') return 1;
-    const apiKey = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
-    if (!apiKey) return null;
     try {
-      let r = await fetch(`https://api.twelvedata.com/price?symbol=${currency}/USD&apikey=${apiKey}`);
+      let r = await twelveDataApi('price', { symbol: `${currency}/USD` });
       let d = await r.json();
       if (d.price) return parseFloat(d.price);
-      r = await fetch(`https://api.twelvedata.com/price?symbol=USD/${currency}&apikey=${apiKey}`);
+      r = await twelveDataApi('price', { symbol: `USD/${currency}` });
       d = await r.json();
       if (d.price) return 1 / parseFloat(d.price);
     } catch (e) { /* pas de connexion / quota API - traite comme indisponible */ }

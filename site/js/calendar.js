@@ -716,6 +716,16 @@
   // par BERICH/Strategies) ; crypto -> historique CoinGecko. Retourne null
   // (jamais une fausse valeur) si la source ne repond pas ou manque de clé -
   // le bloc de comparaison reste alors simplement masque.
+  // Relais authentifié vers Twelve Data (accounts-bridge/server.py, /twelvedata/<endpoint>) : la
+  // vraie clé API ne vit plus dans un fichier livré au frontend - voir scanner-chart.js pour le
+  // detail complet (meme mecanique, dupliquee ici a l'identique).
+  function twelveDataApi(endpoint, params) {
+    const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+    const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    const qs = new URLSearchParams(params).toString();
+    return fetch(`${base}/twelvedata/${endpoint}?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+  }
+
   const REALMOVE_FAILURE_TTL_MS = 15 * 60 * 1000; // echec (quota/reseau) : retente apres 15 min, pas a chaque reload
   async function fetchWeeklyRealMovePct(pairKey, monday, sunday) {
     const cacheKey = `${pairKey}|${isoDateLocal(monday)}|${isoDateLocal(sunday)}`;
@@ -742,10 +752,8 @@
           return ((last - first) / first) * 100;
         }
         const config = PAIR_CONFIG[pairKey];
-        const apiKey = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
-        if (!config || !apiKey) return null;
-        const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(config.code)}&interval=1day&start_date=${isoDateLocal(monday)}&end_date=${isoDateLocal(sunday)}&outputsize=10&apikey=${apiKey}`;
-        const res = await fetch(url);
+        if (!config) return null;
+        const res = await twelveDataApi('time_series', { symbol: config.code, interval: '1day', start_date: isoDateLocal(monday), end_date: isoDateLocal(sunday), outputsize: 10 });
         const data = await res.json();
         const values = data && data.values;
         if (!Array.isArray(values) || values.length < 2) return null;

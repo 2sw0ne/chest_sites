@@ -3,9 +3,10 @@
 // Ne jamais mettre une vraie clé API dans config.js directement.
 window.CHEST_CONFIG = window.CHEST_CONFIG || {};
 
-// Clé gratuite sur https://twelvedata.com/pricing (plan Basic, 0€) — sert au
-// calendrier et au calculateur de lot.
-window.CHEST_CONFIG.twelveDataApiKey = 'COLLE_TA_CLE_ICI';
+// La clé Twelve Data (gratuite sur https://twelvedata.com/pricing, plan Basic, 0€) n'est plus un
+// réglage de ce fichier : elle vit côté serveur, en variable d'environnement TWELVE_DATA_API_KEY sur
+// accounts-bridge (voir son server.py, /twelvedata/<endpoint>). Pour tester en local, définir cette
+// variable avant de lancer `python server.py` dans accounts-bridge/, pas ici.
 
 // Token OANDA (compte démo pratique gratuit) — sert aux graphiques
 // Stratégies et BERICH. Pour l'obtenir : créer un compte démo sur

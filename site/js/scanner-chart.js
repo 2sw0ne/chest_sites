@@ -60,9 +60,17 @@
   // des bougies reelles des qu'une periode calme (weekend/heures creuses)
   // etait presente dans les 1000 bougies, creant des trous temporels qui
   // cassaient le rendu Vela (bougies ecrasees sur une portion du graphique).
+  // Relais authentifié vers Twelve Data (accounts-bridge/server.py, /twelvedata/<endpoint>) : la
+  // vraie clé API ne vit plus dans un fichier livré au frontend (voir config.js/config.local.js) -
+  // elle reste côté serveur (variable d'environnement Railway TWELVE_DATA_API_KEY), jamais commitée.
+  function twelveDataApi(endpoint, params) {
+    const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+    const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    const qs = new URLSearchParams(params).toString();
+    return fetch(`${base}/twelvedata/${endpoint}?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+  }
+
   async function fetchCandles(twelveDataSymbol, interval) {
-    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
-    if (!key) throw new Error('Clé Twelve Data manquante — voir js/config.local.example.js');
     // outputsize releve a 5000 (au lieu de 1000) : la MA500 "HTF" approximee de WolfX
     // a besoin d'une EMA de longueur allant jusqu'a 3500 (500 x ratio HTF, voir
     // MA500_HTF_RATIO plus bas) pour se rapprocher de la vraie MA multi-timeframe, et
@@ -70,10 +78,9 @@
     // (verifie le 2026-09-16 : contrairement a TradingView, une EMA(1001) sur 1000
     // bougies ne renvoie JAMAIS de valeur). Meme cout en credits Twelve Data qu'avant
     // (1 credit/appel, verifie en direct - outputsize n'a pas d'impact sur le cout).
-    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(twelveDataSymbol)}&interval=${interval}&outputsize=5000&apikey=${key}`;
-    const res = await fetch(url);
+    const res = await twelveDataApi('time_series', { symbol: twelveDataSymbol, interval, outputsize: 5000 });
     const json = await res.json();
-    if (json.status === 'error' || (json.code && json.code >= 400)) throw new Error(json.message || 'Erreur Twelve Data');
+    if (json.status === 'error' || (json.code && json.code >= 400)) throw new Error(json.message || json.error || 'Erreur Twelve Data');
     return json.values
       .map((v) => ({
         time: Math.floor(new Date(v.datetime.replace(' ', 'T') + 'Z').getTime() / 1000) * 1000,
@@ -93,11 +100,6 @@
     const container = document.getElementById(containerId);
     const interval = INTERVAL_MAP[timeframe] || '15min';
 
-    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
-    if (!key) {
-      container.innerHTML = '<div class="scanner-empty">Clé Twelve Data manquante — voir <code>js/config.local.example.js</code>.</div>';
-      return null;
-    }
     // Le vrai code Pine est chargé à part, authentifié (voir strategies.html / GET /scanners) -
     // tant qu'il n'est pas encore arrivé (page pas encore connectée, ou serveur injoignable) on
     // n'affiche pas de graphique plutôt que de planter sur `pineSource.replace(...)`.

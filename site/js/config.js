@@ -1,6 +1,10 @@
 // Configuration locale de CHEST. Rien de secret ici (l'URL Railway sert du
 // calendrier public en lecture seule) — si une vraie clé API est ajoutée un
 // jour dans ce fichier, l'exclure du dépôt (voir .gitignore) avant de pousser.
+// La clé Twelve Data n'est PLUS ici (2026-09-23, dépôt chest_sites public) :
+// elle vit uniquement côté serveur (accounts-bridge, variable d'environnement
+// Railway TWELVE_DATA_API_KEY), relayée par /twelvedata/<endpoint> — voir
+// scanner-chart.js/berich-chart.js/calendar.js/lot-calculator.js.
 window.CHEST_CONFIG = {
   // URL du service Railway qui sert calendar.json (calendar-bridge/server.py).
   // Laisser vide '' pour utiliser le fichier local data/calendar.json à la place.
@@ -27,11 +31,6 @@ window.CHEST_CONFIG = {
   // pour une reprise future. Laisser vide '' pour utiliser le fichier local
   // data/scanner-signals.json à la place (pas encore déployé non plus).
   scannerSignalsApiUrl: '',
-
-  // Clé API Twelve Data — utilisée par le calendrier (js/calendar.js) et le
-  // calculateur de lot (js/lot-calculator.js). Ne JAMAIS mettre une vraie clé
-  // ici — voir js/config.local.example.js.
-  twelveDataApiKey: '',
 
   // Token d'accès personnel OANDA (compte démo pratique, gratuit) — utilisé
   // par les graphiques Stratégies (js/scanner-chart.js) et BERICH

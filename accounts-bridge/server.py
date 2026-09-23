@@ -35,6 +35,9 @@ import secrets
 import smtplib
 import sqlite3
 import threading
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
 
@@ -57,6 +60,15 @@ MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
 # .gitignore). Ce fichier vit sur le Volume Railway comme accounts.db, à restaurer depuis une
 # sauvegarde hors-git après un premier déploiement (voir /scanners plus bas).
 SCANNERS_SECRET_PATH = os.path.join(DB_DIR, "scanners_secret.json")
+
+# Cle Twelve Data (2026-09-23, meme raison que scanners_secret.json ci-dessus) : jusqu'ici collee en
+# clair dans js/config.local.js, un fichier gitignore donc absent du deploiement Vercel - fonctionnait
+# en local, jamais en production. Plutot que de la commiter quelque part (chest_sites est public,
+# meme probleme que le Pine Script), elle vit UNIQUEMENT dans la variable d'environnement Railway
+# TWELVE_DATA_API_KEY (a definir dans Railway -> service accounts-bridge -> Variables), jamais dans
+# un fichier. /twelvedata/<endpoint> relaie les appels du frontend en l'injectant cote serveur.
+TWELVE_DATA_API_KEY = os.environ.get("TWELVE_DATA_API_KEY", "")
+TWELVE_DATA_ALLOWED_ENDPOINTS = {"time_series", "price"}
 
 # Notification email a chaque nouvelle inscription en attente - toutes ces
 # variables sont optionnelles ; s'il en manque une, on logue et on continue
@@ -658,6 +670,35 @@ def scanners_restore():
         with open(SCANNERS_SECRET_PATH, "w", encoding="utf-8") as f:
             json.dump(body, f, ensure_ascii=False)
     return jsonify({"ok": True, "scanners": list(body.keys())})
+
+
+@app.route("/twelvedata/<endpoint>")
+def twelvedata_proxy(endpoint):
+    # Relais pour api.twelvedata.com : le frontend (scanner-chart.js, berich-chart.js, calendar.js,
+    # lot-calculator.js) appelait cette API directement avec la clé dans l'URL - lisible par
+    # n'importe qui (réseau, code source), et de toute façon absente en production puisqu'elle
+    # vivait dans js/config.local.js (gitignoré, jamais déployé). Réservé aux membres approuvés,
+    # comme /scanners : ce sont des fonctionnalités du site, pas un accès public à l'API.
+    if not approved_user():
+        return jsonify({"error": "Non connecté."}), 401
+    if endpoint not in TWELVE_DATA_ALLOWED_ENDPOINTS:
+        return jsonify({"error": "Point d'accès inconnu."}), 404
+    if not TWELVE_DATA_API_KEY:
+        return jsonify({"error": "Clé Twelve Data non configurée côté serveur (variable TWELVE_DATA_API_KEY)."}), 503
+    params = request.args.to_dict()
+    params.pop("apikey", None)  # jamais une clé fournie par le client - toujours celle du serveur
+    params["apikey"] = TWELVE_DATA_API_KEY
+    url = "https://api.twelvedata.com/" + endpoint + "?" + urllib.parse.urlencode(params)
+    try:
+        with urllib.request.urlopen(url, timeout=15) as resp:
+            body = resp.read()
+            status = resp.status
+    except urllib.error.HTTPError as e:
+        body = e.read()
+        status = e.code
+    except urllib.error.URLError as e:
+        return jsonify({"error": f"Twelve Data injoignable : {e.reason}"}), 502
+    return app.response_class(body, status=status, mimetype="application/json")
 
 
 @app.route("/health")
