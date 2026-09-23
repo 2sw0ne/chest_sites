@@ -492,7 +492,10 @@ if barstate.islast and showJournal
   async function fetchXauCandles() {
     const res = await twelveDataApi('time_series', { symbol: SYMBOL_TWELVEDATA, interval: TWELVEDATA_INTERVAL, outputsize: 1000 });
     const json = await res.json();
-    if (json.status === 'error' || (json.code && json.code >= 400)) throw new Error(json.message || json.error || 'Erreur Twelve Data');
+    // Voir le commentaire de fetchCandles() dans scanner-chart.js pour le detail de chaque cas.
+    if (!res.ok || json.error || json.status === 'error' || (json.code && json.code >= 400) || !Array.isArray(json.values)) {
+      throw new Error(json.error || json.message || 'Erreur Twelve Data');
+    }
     const candles = json.values
       .map((v) => ({
         time: Math.floor(new Date(v.datetime.replace(' ', 'T') + 'Z').getTime() / 1000) * 1000,

@@ -80,7 +80,13 @@
     // (1 credit/appel, verifie en direct - outputsize n'a pas d'impact sur le cout).
     const res = await twelveDataApi('time_series', { symbol: twelveDataSymbol, interval, outputsize: 5000 });
     const json = await res.json();
-    if (json.status === 'error' || (json.code && json.code >= 400)) throw new Error(json.message || json.error || 'Erreur Twelve Data');
+    // `json.error` = notre propre relais (ex. clé absente côté serveur, 401/503) ; `status`/`code` =
+    // Twelve Data lui-même ; `!Array.isArray(values)` = filet de sécurité pour toute autre forme
+    // inattendue - sans lui, `.map()` plantait plus bas avec un message technique illisible
+    // ("Cannot read properties of undefined") au lieu de faire remonter la vraie cause.
+    if (!res.ok || json.error || json.status === 'error' || (json.code && json.code >= 400) || !Array.isArray(json.values)) {
+      throw new Error(json.error || json.message || 'Erreur Twelve Data');
+    }
     return json.values
       .map((v) => ({
         time: Math.floor(new Date(v.datetime.replace(' ', 'T') + 'Z').getTime() / 1000) * 1000,
