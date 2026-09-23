@@ -43,10 +43,14 @@ html.is-welcome.is-sheet{ overflow:hidden; }
     radial-gradient(90% 70% at 0% 0%, rgba(252,18,131,.7), transparent 70%),
     #050505;
 }
-/* Fondu noir sous les rayons */
+/* Fondu noir sous les rayons — étendu à partir de 45 % (2026-09-23, retour utilisateur :
+   nuance de noir visible entre le bas du hero et la Newsletter, capture à l'appui) : le shader
+   converge mathématiquement vers un noir pur (0,0,0), légèrement plus sombre que le #050505 du
+   reste du site — bien plus de recouvrement ici pour qu'aucune des deux teintes ne reste visible
+   isolément à la jonction, quelle que soit la hauteur d'écran. */
 .wel__vignette{
   position:absolute; inset:0; pointer-events:none; z-index:2;
-  background:linear-gradient(180deg, transparent 86%, #050505 100%); /* raccord en noir pur avec la Newsletter */
+  background:linear-gradient(180deg, transparent 45%, #050505 78%, #050505 100%); /* raccord en noir pur avec la Newsletter */
 }
 .wel__stars{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:3; }
 .wel__hero::after{
@@ -393,35 +397,65 @@ html.is-welcome.is-sheet{ overflow:hidden; }
   background:#111 center/cover no-repeat; box-shadow:0 10px 24px rgba(0,0,0,.45);
 }
 
-/* ─── Recadrage manuel des photos/éléments DANS leur fenêtre (provisoire, accessible à tous en attendant le vrai
-   Admin/Client — voir CLAUDE.md). Bouton « Recadrer » : en mode actif, la photo de Chest Is Here/Scanner et le
-   téléphone de Founder deviennent glissables (curseur "grab"/"grabbing"), sans bouger ni redimensionner la carte
-   elle-même — correction utilisateur 2026-09-22 : le 1er jet redimensionnait les CARTES dans la grille, ce n'était
-   pas la demande. `welcome.js` déplace `background-position` (photos) ou `--dx/--dy` (téléphone) et persiste en
-   localStorage. ─── */
-.wel__layout-toggle{
-  position:absolute; right:0; top:2px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-  padding:8px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.72);
-  background:none; font-family:inherit; cursor:pointer; transition:background .18s, border-color .18s, color .18s;
+/* ─── CMS admin de la Newsletter (2026-09-23, demande utilisateur) : menu ⋮ par carte (visible admin
+   uniquement, hors Vue Client), même esprit que .sc-tools de School (school-da.css) mais autonome ici
+   (welcome.css n'est chargé que sur app.html, School sur school.html). ─── */
+.wel-tools{ position:absolute; z-index:5; right:10px; top:10px; }
+.wel-tools__btn{
+  width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); opacity:0; transition:opacity .15s, background .15s, border-color .15s;
 }
-.wel__layout-toggle:hover{ background:rgba(255,255,255,.06); color:#fff; }
-.wel__layout-toggle.is-active{ color:#fc1283; border-color:rgba(252,18,131,.5); background:rgba(252,18,131,.1); }
-#welLayoutReset{ right:auto; left:0; }
+.wel__card:hover .wel-tools__btn, .wel__card:focus-within .wel-tools__btn, .wel-tools__btn[aria-expanded="true"]{ opacity:1; }
+.wel-tools__btn:hover{ border-color:rgba(255,255,255,.5); background:rgba(0,0,0,.75); }
+.wel-tools__menu{
+  position:absolute; z-index:6; right:0; top:calc(100% + 6px); min-width:150px; padding:6px;
+  border-radius:12px; border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(160deg, rgba(20,20,24,.96), rgba(10,10,12,.96));
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); box-shadow:0 18px 44px rgba(0,0,0,.5);
+}
+.wel-tools__menu button{
+  display:block; width:100%; text-align:left; font:inherit; font-size:12.5px; color:rgba(255,255,255,.82);
+  background:none; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; white-space:nowrap;
+}
+.wel-tools__menu button:hover{ background:rgba(255,255,255,.08); color:#fff; }
+@media (max-width:820px){ .wel-tools__btn{ opacity:1; } } /* pas de survol au tactile : toujours visible */
 
-body.wel-is-cropping .wel__card--hero .wel__card-media,
-body.wel-is-cropping .wel__card--scanner .wel__card-media,
-body.wel-is-cropping .wel__founder-phone{
-  cursor:grab; outline:2px dashed rgba(252,18,131,.55); outline-offset:-2px;
+/* Fenêtre d'édition d'une vitrine (titre/photo/badge), même style que .wel__sheet mais un vrai formulaire. */
+.wel-edit{
+  position:fixed; inset:0; z-index:300; display:none; align-items:center; justify-content:center;
+  padding:20px; background:rgba(5,5,5,.72); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
 }
-body.wel-is-cropping .wel__card--hero .wel__card-media:active,
-body.wel-is-cropping .wel__card--scanner .wel__card-media:active,
-body.wel-is-cropping .wel__founder-phone:active{ cursor:grabbing; }
-/* En mode recadrage, plus de survol/clic normal sur les cartes (pas de fenêtre de détail, pas d'effet Founder qui
-   interfère avec le glisser). */
-body.wel-is-cropping .wel__card{ pointer-events:none; }
-body.wel-is-cropping .wel__card--hero .wel__card-media,
-body.wel-is-cropping .wel__card--scanner .wel__card-media,
-body.wel-is-cropping .wel__founder-phone{ pointer-events:auto; }
+.wel-edit.is-open{ display:flex; }
+.wel-edit__win{
+  position:relative; width:100%; max-width:400px; padding:32px 28px 28px;
+  background:linear-gradient(165deg, rgba(20,20,24,.97), rgba(8,8,10,.97));
+  border:1px solid rgba(255,255,255,.12); border-radius:20px;
+  box-shadow:0 40px 100px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.06);
+}
+.wel-edit__close{
+  position:absolute; right:14px; top:14px; width:30px; height:30px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.6);
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); cursor:pointer;
+}
+.wel-edit__close:hover{ color:#fff; background:rgba(255,255,255,.12); }
+.wel-edit__close svg{ width:14px; height:14px; }
+.wel-edit h3{ margin:0 0 18px; font-size:16px; font-weight:700; letter-spacing:-.01em; padding-right:30px; }
+.wel-edit__field{ display:block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:rgba(255,255,255,.5); margin-bottom:14px; }
+.wel-edit__field input[type="text"]{
+  display:block; width:100%; margin-top:8px; padding:11px 14px; font:inherit; font-size:13.5px; color:#fff;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:11px; text-transform:none; letter-spacing:normal; font-weight:400;
+}
+.wel-edit__field input[type="text"]:focus{ outline:none; border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.15); }
+.wel-edit__field input[type="file"]{ display:block; width:100%; margin-top:8px; font-size:12px; color:rgba(255,255,255,.65); }
+.wel-edit__check[hidden]{ display:none; }
+.wel-edit__check{ display:flex; align-items:center; gap:8px; font-size:13px; color:rgba(255,255,255,.75); margin-bottom:16px; cursor:pointer; }
+.wel-edit__err{ font-size:12px; color:#ff94a0; margin:0 0 12px; }
+.wel-edit__actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:6px; }
+.wel-edit__reset{
+  font-size:12px; color:rgba(255,255,255,.55); background:none; border:none; cursor:pointer; padding:8px 0; font-family:inherit;
+}
+.wel-edit__reset:hover{ color:#ff94a0; }
 
 @media (max-width:820px){
   .wel__grid--v2{ grid-template-columns:1fr; grid-template-rows:none; }

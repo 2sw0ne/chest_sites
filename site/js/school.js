@@ -51,7 +51,13 @@
   //  Serveur (comptes) : lecture pour tous, écriture pour l'admin
   // =====================================================================
   const API = () => (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
-  const isAdmin = () => !!(A && A.isAdmin && A.isAdmin());
+  // « Vue Client » (account.html, 2026-09-23, demande utilisateur) : un admin peut choisir de ne voir
+  // AUCUN outil d'édition (ici comme dans la Newsletter du Welcome, voir welcome.js) pour prévisualiser
+  // exactement ce qu'un membre voit — localStorage partagé entre les deux, pas un réglage par page.
+  const isAdmin = () => {
+    if (!(A && A.isAdmin && A.isAdmin())) return false;
+    try { return localStorage.getItem('chest_admin_preview_mode') !== 'client'; } catch (e) { return true; }
+  };
   const authH = () => { const t = A && A.getToken && A.getToken(); return t ? { Authorization: 'Bearer ' + t } : {}; };
   const fileUrl = (info) => (info && info.key ? `${API()}/school/files/${info.key}` : '');
   const R = { entries: [], ok: false };

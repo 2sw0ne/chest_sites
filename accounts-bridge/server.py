@@ -138,6 +138,17 @@ def init_db():
             )
         """)
         db.execute("CREATE TABLE IF NOT EXISTS school_meta (key TEXT PRIMARY KEY, value TEXT)")
+        # Surcharges admin des 5 vitrines fixes de la Newsletter (Welcome) -
+        # meme principe que school_entries (une entree de meme id remplace le
+        # contenu code en dur), id limite aux 5 cartes existantes (voir
+        # BENTO_IDS) plutot que libre comme school_entries.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS bento_entries (
+                id TEXT PRIMARY KEY,
+                data TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
         db.commit()
 
 
@@ -519,6 +530,81 @@ def school_seed():
 def school_file(key):
     # Noms aléatoires impossibles à deviner : la liste des fichiers n'est visible que des membres connectés.
     return send_from_directory(FILES_DIR, os.path.basename(key), conditional=True, max_age=3600)
+
+
+# Les 5 vitrines fixes de la Newsletter (welcome.js/app.html, data-bento-id) -
+# id volontairement limité à cette liste (pas de créer/supprimer une carte
+# depuis ce CMS, contrairement à School).
+BENTO_IDS = {"hero", "scanner", "founder", "menu", "school"}
+
+
+@app.route("/bento")
+def bento_list():
+    if not approved_user():
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    rows = db.execute("SELECT * FROM bento_entries").fetchall()
+    entries = {}
+    for r in rows:
+        d = json.loads(r["data"])
+        d["updatedAt"] = r["updated_at"]
+        entries[r["id"]] = d
+    return jsonify({"entries": entries})
+
+
+@app.route("/bento/<bento_id>", methods=["POST"])
+def bento_save(bento_id):
+    admin = approved_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if bento_id not in BENTO_IDS:
+        return jsonify({"error": "Carte inconnue."}), 404
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db = get_db()
+        row = db.execute("SELECT * FROM bento_entries WHERE id = ?", (bento_id,)).fetchone()
+        cur = json.loads(row["data"]) if row else {}
+        new = dict(cur)
+        if "title" in request.form:
+            title = request.form.get("title", "").strip()
+            if title:
+                new["title"] = title
+            else:
+                new.pop("title", None)
+        if "badgeEnabled" in request.form:
+            new["badgeEnabled"] = request.form.get("badgeEnabled") == "1"
+        up = save_upload("image", bento_id)
+        if up:
+            delete_file(cur.get("image"))
+            new["image"] = up
+        elif request.form.get("removeImage"):
+            delete_file(cur.get("image"))
+            new.pop("image", None)
+        if row:
+            db.execute("UPDATE bento_entries SET data = ?, updated_at = ? WHERE id = ?", (json.dumps(new, ensure_ascii=False), now, bento_id))
+        else:
+            db.execute("INSERT INTO bento_entries (id, data, updated_at) VALUES (?, ?, ?)", (bento_id, json.dumps(new, ensure_ascii=False), now))
+        db.commit()
+        row = db.execute("SELECT * FROM bento_entries WHERE id = ?", (bento_id,)).fetchone()
+    d = json.loads(row["data"])
+    d["id"] = bento_id
+    d["updatedAt"] = row["updated_at"]
+    return jsonify(d)
+
+
+@app.route("/bento/<bento_id>/reset", methods=["POST"])
+def bento_reset(bento_id):
+    admin = approved_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    with db_lock:
+        db = get_db()
+        row = db.execute("SELECT * FROM bento_entries WHERE id = ?", (bento_id,)).fetchone()
+        if row:
+            delete_file(json.loads(row["data"]).get("image"))
+            db.execute("DELETE FROM bento_entries WHERE id = ?", (bento_id,))
+            db.commit()
+    return jsonify({"ok": True})
 
 
 @app.route("/health")

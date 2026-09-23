@@ -143,118 +143,205 @@
   }
   initMenuSlideshow();
 
-  /* ---------- Bento v2 : recadrage des photos/éléments DANS leur fenêtre (2026-09-22, correction utilisateur :
-     « c'est les photos et éléments dans leur fenêtre que je veux recadrer, pas la disposition ») ----------
-     Le 1er jet (redimensionner les cartes dans la grille) répondait à la mauvaise question — la carte elle-même
-     ne bouge pas, c'est la PHOTO (Chest Is Here, Scanner) ou le TÉLÉPHONE (Founder) qu'on doit pouvoir glisser à
-     l'intérieur du cadre fixe pour choisir ce qui se voit. Bouton « Recadrer » → curseur de déplacement sur les
-     3 éléments concernés ; le glisser ajuste `background-position` (photos) ou un décalage `--dx/--dy` en px
-     (téléphone, superposé à son centrage). Persisté en localStorage (par navigateur, pas encore le stockage
-     admin partagé du futur CMS). Provisoire : accessible à tout le monde en attendant la Vue Admin/Client. */
-  function initPhotoReposition() {
-    const toggle = document.getElementById('welLayoutToggle');
-    const resetBtn = document.getElementById('welLayoutReset');
-    if (!toggle) return;
-    const KEY = 'chest_wel_bento_crop';
-    // Valeurs enregistrées comme défaut le 2026-09-23 (décision utilisateur : « enregistre comme je l'ai mis ») —
-    // réglées à la main via le bouton Recadrer, elles remplacent le centrage neutre d'origine pour tout le monde.
-    // `founder.s` (zoom) mis à jour le même jour, 2e réglage (« enregistre par défaut la taille et le
-    // positionnement que je viens de lui donner »).
-    const DEFAULTS = {
-      hero: { x: 0, y: 24.39 },
-      scanner: { x: 50, y: 62 },
-      founder: { dx: 2, dy: 45, s: 1.3 },
-    };
-    function load() {
-      try { return Object.assign({ hero: {}, scanner: {}, founder: {} }, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return { hero: {}, scanner: {}, founder: {} }; }
-    }
-    function save() { try { localStorage.setItem(KEY, JSON.stringify(crop)); } catch (e) { /* stockage indisponible */ } }
-    let crop = load();
-
-    function applyMedia(id, el) {
-      const c = Object.assign({}, DEFAULTS[id], crop[id]);
-      el.style.backgroundPosition = c.x + '% ' + c.y + '%';
-    }
-    function applyPhone(el) {
-      const c = Object.assign({}, DEFAULTS.founder, crop.founder);
-      el.style.setProperty('--dx', c.dx + 'px');
-      el.style.setProperty('--dy', c.dy + 'px');
-      el.style.setProperty('--zs', c.s);
-    }
-
+  /* ---------- Bento v2 : cadrage figé des 3 photos/téléphone ----------
+     Anciennement réglable à la main par tout le monde (bouton « Recadrer », voir historique dans
+     CLAUDE.md) — retiré le 2026-09-23 (demande utilisateur) maintenant que le CMS admin (plus bas)
+     gère le remplacement des photos ; ces valeurs, déjà validées, restent le cadrage fixe de base. */
+  const BENTO_MEDIA_DEFAULTS = {
+    hero: { x: 0, y: 24.39 },
+    scanner: { x: 50, y: 62 },
+    founder: { dx: 2, dy: 45, s: 1.3 },
+  };
+  function applyBentoMediaDefaults() {
     const heroMedia = document.querySelector('.wel__card--hero .wel__card-media');
     const scannerMedia = document.querySelector('.wel__card--scanner .wel__card-media');
     const phone = document.querySelector('.wel__founder-phone');
-    if (heroMedia) applyMedia('hero', heroMedia);
-    if (scannerMedia) applyMedia('scanner', scannerMedia);
-    if (phone) applyPhone(phone);
-
-    let active = false;
-    function bindMediaDrag(id, el) {
-      if (!el) return;
-      el.addEventListener('mousedown', (ev) => {
-        if (!active) return;
-        ev.preventDefault();
-        const rect = el.getBoundingClientRect();
-        const start = Object.assign({}, DEFAULTS[id], crop[id]);
-        const sx = ev.clientX, sy = ev.clientY;
-        function onMove(mv) {
-          const dxPct = ((mv.clientX - sx) / rect.width) * 100;
-          const dyPct = ((mv.clientY - sy) / rect.height) * 100;
-          crop[id] = { x: Math.max(0, Math.min(100, start.x - dxPct)), y: Math.max(0, Math.min(100, start.y - dyPct)) };
-          applyMedia(id, el);
-        }
-        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); save(); }
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
-      });
+    if (heroMedia) heroMedia.style.backgroundPosition = BENTO_MEDIA_DEFAULTS.hero.x + '% ' + BENTO_MEDIA_DEFAULTS.hero.y + '%';
+    if (scannerMedia) scannerMedia.style.backgroundPosition = BENTO_MEDIA_DEFAULTS.scanner.x + '% ' + BENTO_MEDIA_DEFAULTS.scanner.y + '%';
+    if (phone) {
+      phone.style.setProperty('--dx', BENTO_MEDIA_DEFAULTS.founder.dx + 'px');
+      phone.style.setProperty('--dy', BENTO_MEDIA_DEFAULTS.founder.dy + 'px');
+      phone.style.setProperty('--zs', BENTO_MEDIA_DEFAULTS.founder.s);
     }
-    function bindPhoneDrag(el) {
-      if (!el) return;
-      el.addEventListener('mousedown', (ev) => {
-        if (!active) return;
-        ev.preventDefault();
-        const start = Object.assign({}, DEFAULTS.founder, crop.founder);
-        const sx = ev.clientX, sy = ev.clientY;
-        function onMove(mv) {
-          crop.founder = Object.assign({}, crop.founder, { dx: start.dx + (mv.clientX - sx), dy: start.dy + (mv.clientY - sy) });
-          applyPhone(el);
-        }
-        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); save(); }
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
-      });
-      // Molette = agrandir/réduire le téléphone (demande utilisateur 2026-09-23 : « permets-moi de l'agrandir »),
-      // superposé au décalage --dx/--dy sans y toucher. Bornes larges (0,5 à 2,2) mais raisonnables.
-      el.addEventListener('wheel', (ev) => {
-        if (!active) return;
-        ev.preventDefault();
-        const cur = Object.assign({}, DEFAULTS.founder, crop.founder);
-        const next = Math.max(0.5, Math.min(2.2, cur.s - ev.deltaY * 0.0015));
-        crop.founder = Object.assign({}, crop.founder, { s: Math.round(next * 1000) / 1000 });
-        applyPhone(el);
-        save();
-      }, { passive: false });
-    }
-    bindMediaDrag('hero', heroMedia);
-    bindMediaDrag('scanner', scannerMedia);
-    bindPhoneDrag(phone);
+  }
+  applyBentoMediaDefaults();
 
-    toggle.addEventListener('click', () => {
-      active = !active;
-      toggle.classList.toggle('is-active', active);
-      document.body.classList.toggle('wel-is-cropping', active);
-      if (resetBtn) resetBtn.hidden = !active;
-    });
-    if (resetBtn) resetBtn.addEventListener('click', () => {
-      crop = { hero: {}, scanner: {}, founder: {} };
-      save();
-      if (heroMedia) applyMedia('hero', heroMedia);
-      if (scannerMedia) applyMedia('scanner', scannerMedia);
-      if (phone) applyPhone(phone);
+  /* ---------- Bento v2 : CMS admin (2026-09-23, demande utilisateur : « ajoute la derniere demande
+     [...] les parametrages dans newsletter comme dans school et dans mes parametres admin je choisis
+     de mettre ou non le visuel des modifications ») ----------
+     Meme principe que School (school.js/accounts-bridge) : une entree serveur (table bento_entries,
+     endpoints /bento) de meme id que la carte surcharge son titre/photo/badge pour TOUS les membres —
+     un menu ⋮ (meme esprit visuel que School) visible seulement en admin ET hors Vue Client (reglage
+     account.html, localStorage chest_admin_preview_mode) ouvre une petite fenetre d'edition. Les
+     cartes Menu/School gardent leur contenu genere (pages du site / videos School) — seul le titre
+     s'y edite, comme sur Chest Is Here/Scanner/Founder qui editent aussi leur photo. */
+  function bentoApi() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
+  function bentoAuthHeaders() {
+    const t = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    return t ? { Authorization: 'Bearer ' + t } : {};
+  }
+  function isAdminEffective() {
+    // « Vue Client » : l'admin choisit de ne voir AUCUN outil d'edition (School compris, voir school.js)
+    // pour previsualiser exactement ce qu'un membre voit — reglage dans account.html.
+    const admin = !!(window.CHESTAccounts && CHESTAccounts.isAdmin && CHESTAccounts.isAdmin());
+    if (!admin) return false;
+    try { return localStorage.getItem('chest_admin_preview_mode') !== 'client'; } catch (e) { return true; }
+  }
+  let bentoOverrides = {};
+  async function loadBentoOverrides() {
+    if (!(window.CHESTAccounts && CHESTAccounts.isLoggedIn && CHESTAccounts.isLoggedIn())) return;
+    try {
+      const res = await fetch(bentoApi() + '/bento', { headers: bentoAuthHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      bentoOverrides = data.entries || {};
+    } catch (e) { /* pas grave : les cartes gardent leur contenu par defaut */ }
+    renderBentoOverrides();
+  }
+  function renderBentoOverrides() {
+    root.querySelectorAll('[data-bento-id]').forEach((card) => {
+      const id = card.dataset.bentoId;
+      const o = bentoOverrides[id];
+      if (!o) return;
+      const titleEl = card.querySelector('[data-cms-title]');
+      if (titleEl && o.title) titleEl.textContent = o.title;
+      const mediaEl = card.querySelector('[data-cms-media]');
+      if (mediaEl && o.image && o.image.key) {
+        const url = `${bentoApi()}/school/files/${o.image.key}`;
+        if (mediaEl.tagName === 'IMG') mediaEl.src = url;
+        else mediaEl.style.setProperty('--img', `url(${url})`);
+      }
+      if (id === 'scanner') {
+        const badge = card.querySelector('[data-cms-badge]');
+        if (badge) badge.hidden = o.badgeEnabled === false;
+      }
     });
   }
-  initPhotoReposition();
+
+  function closeAllBentoMenus() {
+    root.querySelectorAll('.wel-tools__menu:not([hidden])').forEach((m) => {
+      m.hidden = true;
+      if (m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded', 'false');
+    });
+  }
+  function initBentoTools() {
+    if (!isAdminEffective()) return;
+    root.querySelectorAll('[data-bento-id]').forEach((card) => {
+      if (card.querySelector('.wel-tools')) return;
+      const id = card.dataset.bentoId;
+      const span = document.createElement('span');
+      span.className = 'wel-tools';
+      span.innerHTML = `<button type="button" class="wel-tools__btn" data-tools-toggle aria-haspopup="true" aria-expanded="false" title="Options"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button><div class="wel-tools__menu" hidden><button type="button" data-bento-edit="${id}">Modifier</button></div>`;
+      card.appendChild(span);
+    });
+    root.addEventListener('click', (e) => {
+      const toggle = e.target.closest('[data-tools-toggle]');
+      if (toggle) {
+        const menu = toggle.nextElementSibling;
+        const willOpen = menu.hidden;
+        closeAllBentoMenus();
+        if (willOpen) { menu.hidden = false; toggle.setAttribute('aria-expanded', 'true'); }
+        return;
+      }
+      const editBtn = e.target.closest('[data-bento-edit]');
+      if (editBtn) { closeAllBentoMenus(); openBentoEdit(editBtn.dataset.bentoEdit); return; }
+      if (!e.target.closest('.wel-tools__menu')) closeAllBentoMenus();
+    });
+  }
+
+  const BENTO_LABELS = { hero: 'Chest Is Here', scanner: 'Scanner', founder: 'Founder', menu: 'Menu', school: 'School' };
+  function bentoEditModalEl() {
+    let modal = document.getElementById('welBentoEdit');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'welBentoEdit';
+    modal.className = 'wel-edit';
+    modal.innerHTML = `
+      <div class="wel-edit__win">
+        <button type="button" class="wel-edit__close" data-wel-edit-close aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></button>
+        <h3 id="welBentoEditTitle">Modifier la carte</h3>
+        <label class="wel-edit__field">Titre<input type="text" id="welBentoEditTitleInput" maxlength="40"></label>
+        <label class="wel-edit__field" id="welBentoEditImageField">Photo<input type="file" id="welBentoEditImageInput" accept="image/*"></label>
+        <label class="wel-edit__check" id="welBentoEditBadgeField" hidden><input type="checkbox" id="welBentoEditBadgeInput">Badge « +1 » visible</label>
+        <p class="wel-edit__err" id="welBentoEditErr" hidden></p>
+        <div class="wel-edit__actions">
+          <button type="button" class="wel-edit__reset" id="welBentoEditReset">Réinitialiser</button>
+          <button type="button" class="wel__btn wel__btn--main" id="welBentoEditSave" style="padding:10px 22px">Enregistrer</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeBentoEdit(); });
+    modal.querySelector('[data-wel-edit-close]').addEventListener('click', closeBentoEdit);
+    modal.querySelector('#welBentoEditSave').addEventListener('click', saveBentoEdit);
+    modal.querySelector('#welBentoEditReset').addEventListener('click', resetBentoEdit);
+    return modal;
+  }
+  function closeBentoEdit() { const m = document.getElementById('welBentoEdit'); if (m) m.classList.remove('is-open'); }
+  function openBentoEdit(id) {
+    const modal = bentoEditModalEl();
+    modal.dataset.bentoId = id;
+    modal.querySelector('#welBentoEditTitle').textContent = 'Modifier — ' + (BENTO_LABELS[id] || id);
+    const o = bentoOverrides[id] || {};
+    modal.querySelector('#welBentoEditTitleInput').value = o.title || '';
+    modal.querySelector('#welBentoEditImageInput').value = '';
+    modal.querySelector('#welBentoEditErr').hidden = true;
+    const badgeField = modal.querySelector('#welBentoEditBadgeField');
+    badgeField.hidden = id !== 'scanner';
+    modal.querySelector('#welBentoEditBadgeInput').checked = o.badgeEnabled !== false;
+    modal.classList.add('is-open');
+  }
+  async function saveBentoEdit() {
+    const modal = document.getElementById('welBentoEdit');
+    const id = modal.dataset.bentoId;
+    const title = modal.querySelector('#welBentoEditTitleInput').value.trim();
+    const file = modal.querySelector('#welBentoEditImageInput').files[0];
+    const err = modal.querySelector('#welBentoEditErr');
+    const saveBtn = modal.querySelector('#welBentoEditSave');
+    const form = new FormData();
+    form.append('title', title);
+    if (id === 'scanner') form.append('badgeEnabled', modal.querySelector('#welBentoEditBadgeInput').checked ? '1' : '0');
+    if (file) form.append('image', file);
+    saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement…';
+    try {
+      const res = await fetch(`${bentoApi()}/bento/${id}`, { method: 'POST', headers: bentoAuthHeaders(), body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Erreur (${res.status})`);
+      delete data.id;
+      bentoOverrides[id] = data;
+      renderBentoOverrides();
+      closeBentoEdit();
+    } catch (e) {
+      err.textContent = e.message || 'Impossible d’enregistrer.';
+      err.hidden = false;
+    } finally {
+      saveBtn.disabled = false; saveBtn.textContent = 'Enregistrer';
+    }
+  }
+  async function resetBentoEdit() {
+    const modal = document.getElementById('welBentoEdit');
+    const id = modal.dataset.bentoId;
+    try {
+      await fetch(`${bentoApi()}/bento/${id}/reset`, { method: 'POST', headers: bentoAuthHeaders() });
+      delete bentoOverrides[id];
+      const card = root.querySelector(`[data-bento-id="${id}"]`);
+      if (card) {
+        const titleEl = card.querySelector('[data-cms-title]');
+        if (titleEl) titleEl.textContent = BENTO_LABELS[id];
+        const mediaEl = card.querySelector('[data-cms-media]');
+        if (mediaEl) {
+          const orig = { hero: '/assets/wel-chest-here.webp', scanner: '/assets/wel-scanner.webp', founder: '/assets/wel-founder-phone.webp' }[id];
+          if (orig) { if (mediaEl.tagName === 'IMG') mediaEl.src = orig; else mediaEl.style.setProperty('--img', `url(${orig})`); }
+        }
+        const badge = card.querySelector('[data-cms-badge]');
+        if (badge) badge.hidden = false;
+      }
+      closeBentoEdit();
+    } catch (e) { /* tant pis, l'admin peut reessayer */ }
+  }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeAllBentoMenus(); closeBentoEdit(); } });
+
+  loadBentoOverrides();
+  initBentoTools();
 
   /* ---------- La souris : un effet par-dessus, sans jamais bouger le fond ni le logo ---------- */
   function onMove(e) {

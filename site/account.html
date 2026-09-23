@@ -131,7 +131,7 @@
   .mfx-account-row b{ font-size:13px; font-variant-numeric:tabular-nums; }
 </style>
 <script src="js/theme.js"></script>
-<script src="js/config.js?v=1"></script>
+<script src="js/config.js?v=2"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js"></script>
@@ -240,6 +240,16 @@
         </div>
       </div>
       <button type="button" class="chest-btn-2" data-open-drawer="live" data-drawer-title="Compte Live (Dashboard)">Changer</button>
+    </div>
+
+    <div class="settings-row" id="previewRow" data-admin-only hidden>
+      <div class="settings-row__info">
+        <div class="settings-row__text">
+          <p class="settings-row__title">Vue du site</p>
+          <p class="settings-row__value" id="previewRowValue">Vue Admin — outils d'édition visibles</p>
+        </div>
+      </div>
+      <button type="button" class="chest-btn-2" data-open-drawer="preview" data-drawer-title="Vue du site">Changer</button>
     </div>
 
     <div class="settings-row">
@@ -374,6 +384,14 @@
       </div>
     </div>
 
+    <div class="drawer-panel" data-panel-name="preview" hidden>
+      <p class="hint">En Vue Client, le menu ⋮ d'édition disparaît partout (School, Newsletter du Welcome…) — même pour toi, admin — pour prévisualiser exactement ce qu'un membre voit. Rien n'est perdu : repasse en Vue Admin quand tu veux.</p>
+      <div class="theme-choice" id="previewChoice">
+        <button type="button" data-value="admin">Vue Admin</button>
+        <button type="button" data-value="client">Vue Client</button>
+      </div>
+    </div>
+
     <div class="drawer-panel" data-panel-name="profile" hidden>
       <p class="hint">Champs simples stockés en local sur cet appareil — pas encore de vrai compte serveur ni de vérification d'email.</p>
       <form id="profileForm" class="form-stack" autocomplete="off">
@@ -505,6 +523,30 @@ CHESTTour.init([
     updateThemeRow();
   }));
   document.addEventListener('chest:theme', () => { reflectThemeChoice(); updateThemeRow(); });
+
+  // ---------- Vue du site (Vue Admin / Vue Client) — 2026-09-23, demande utilisateur ----------
+  const PREVIEW_KEY = 'chest_admin_preview_mode';
+  function previewMode() { try { return localStorage.getItem(PREVIEW_KEY) === 'client' ? 'client' : 'admin'; } catch (e) { return 'admin'; } }
+  const previewChoiceWrap = document.getElementById('previewChoice');
+  const previewButtons = previewChoiceWrap ? [...previewChoiceWrap.querySelectorAll('button')] : [];
+  function updatePreviewRow() {
+    const m = previewMode();
+    const el = document.getElementById('previewRowValue');
+    if (el) el.textContent = m === 'client' ? 'Vue Client — outils d’édition masqués partout' : 'Vue Admin — outils d’édition visibles';
+  }
+  function reflectPreviewChoice() {
+    const m = previewMode();
+    previewButtons.forEach((b) => b.classList.toggle('is-active', b.dataset.value === m));
+  }
+  if (previewChoiceWrap) {
+    reflectPreviewChoice();
+    updatePreviewRow();
+    previewButtons.forEach((b) => b.addEventListener('click', () => {
+      try { localStorage.setItem(PREVIEW_KEY, b.dataset.value); } catch (e) { /* stockage indisponible */ }
+      reflectPreviewChoice();
+      updatePreviewRow();
+    }));
+  }
 
   // ---------- Paire suivie : liste unique cherchable (44 paires, source de
   // vérité = js/calendar.js PAIR_CONFIG/CRYPTO_CONFIG — recopié ici pour ne
