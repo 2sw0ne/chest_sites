@@ -54,7 +54,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/welcome.css?v=30">
+<link rel="stylesheet" href="css/welcome.css?v=31">
 <script src="js/theme.js"></script>
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
@@ -65,15 +65,13 @@
 <!-- ══════════════════════════════════════════════════════════════
      Connexion intégrée (expérimentation, branche experiment/merge-login-welcome) — visible uniquement
      quand <html> porte `is-loggedout` (posé par le script en tête du <head>, avant même l'analyse de ce
-     <body>). Repris de login.html (même DA, même shader via js/hero-bg.js, copie volontairement séparée
-     de celui du Welcome — voir welcome.js) : au lieu de rediriger vers une page à part, ce même document
-     bascule directement vers Welcome une fois connecté (CHESTWelcome.show(), voir le script en bas).
+     <body>). 2e passe (demande utilisateur : « que le fond n'arrête jamais de tourner et que les
+     éléments arrivent en fondu par-dessus ») : plus de fond/shader séparé ici — la carte se pose direct
+     PAR-DESSUS le hero du Welcome (#welLight/#welStars, déjà en train de tourner, voir welcome.js), qui
+     ne s'arrête donc jamais entre la connexion et Welcome. Au lieu de rediriger vers une page à part,
+     ce même document bascule vers le VRAI Welcome une fois connecté (CHESTWelcome.show(), script en bas).
      ══════════════════════════════════════════════════════════════ -->
 <div class="auth-overlay" id="authOverlay" aria-hidden="true">
-  <div class="auth-hero" aria-hidden="true">
-    <canvas id="authLight"></canvas>
-    <canvas id="authStars"></canvas>
-  </div>
   <div class="auth-stage" id="authStage">
     <div class="auth-card">
       <img class="auth-card__logo" src="assets/logo-chest-hero.webp" alt="CHEST">
@@ -298,16 +296,14 @@
 
 <script src="js/nav.js?v=3"></script>
 <script src="js/shell.js?v=3"></script>
-<script src="js/welcome.js?v=52"></script>
-<script src="js/hero-bg.js"></script>
+<script src="js/welcome.js?v=54"></script>
 <script>
 (() => {
   // Connexion intégrée (expérimentation) : câblage du formulaire de #authOverlay. Repris de
   // login.html, adapté pour rester DANS app.html au lieu de rediriger — voir le commentaire en
-  // tête du <head> et celui au-dessus de #authOverlay pour le pourquoi.
+  // tête du <head> et celui au-dessus de #authOverlay pour le pourquoi. Plus de fond propre à
+  // câbler ici (voir welcome.js/welcome.css) : le hero du Welcome tourne déjà derrière.
   if (!document.documentElement.classList.contains('is-loggedout')) return; // deja connecte : rien a faire
-  let heroBg = null;
-  try { heroBg = CHESTHeroBg.init(document.getElementById('authLight'), document.getElementById('authStars'), { mouseTarget: document.querySelector('.auth-hero') }); } catch (e) {}
 
   const form = document.getElementById('authForm');
   const errEl = document.getElementById('authFormError');
@@ -341,11 +337,11 @@
     try {
       await CHESTAccounts.login({ email, password, remember });
       try { sessionStorage.setItem('chest_welcome', '1'); } catch (e) { /* tant pis */ }
-      // Fondu de la carte (1,2 s, meme duree que login.html) PUIS bascule vers Welcome — toujours le
-      // MEME document, donc pas de gel de chargement entre les deux (contrairement a une navigation).
+      // Fondu de la carte (1,2 s) PUIS bascule vers Welcome — toujours le MEME document ET le MEME
+      // fond (voir welcome.js/welcome.css, plus de shader separe a arreter ici), donc ni gel de
+      // chargement ni saut visuel entre les deux.
       stage.classList.add('is-leaving');
       setTimeout(() => {
-        if (heroBg && heroBg.stop) heroBg.stop(); // libere ce contexte WebGL avant que celui du Welcome ne demarre
         document.documentElement.classList.remove('is-loggedout');
         document.getElementById('authOverlay').style.display = 'none';
         if (window.CHESTShell) CHESTShell.boot();
