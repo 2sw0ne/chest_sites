@@ -257,6 +257,16 @@ En vérifiant la sécurité avant de verrouiller la fusion ci-dessus (demande ex
   2. Purger `site/js/scanner-store.js` de tout l'historique Git de `chest_sites` (`git filter-repo` dans un clone séparé, jamais dans ce working directory pour ne pas toucher l'historique complet de `STASH`/`origin`, qui doit rester intact) + force-push — n'efface pas une copie déjà prise pendant les ~12 jours d'exposition, mais arrête que le fichier reste consultable dans les vieux commits.
   3. Restaurer `scanners_secret.json` sur le Volume Railway via `POST /scanners/restore` une fois le nouveau `server.py` déployé.
 
+### Clé Twelve Data retirée du frontend (2026-09-23, même jour, découvert au premier déploiement Vercel réel)
+
+Premier déploiement Vercel du site (`chest-nine.vercel.app`, root directory `site/`) fait juste après le verrouillage ci-dessus — a immédiatement révélé un problème de la même famille : la page Stratégies affichait "Clé Twelve Data manquante". Cause : la clé vivait dans `site/js/config.local.js` (gitignoré, donc absent du déploiement) — marchait en local, jamais en production. La solution "rapide" (la coller en dur dans `config.js`) aurait recréé exactement le problème qu'on vient de traiter pour le Pine Script (`chest_sites` est public) ; l'utilisateur a choisi la solution propre plutôt.
+
+- **`accounts-bridge/server.py`** : nouveau `GET /twelvedata/<endpoint>` (allowlist `time_series`/`price`, les deux seuls utilisés), réservé aux membres approuvés (même garde que `/scanners`), qui relaie vers `api.twelvedata.com` en injectant la clé lue depuis la variable d'environnement Railway **`TWELVE_DATA_API_KEY`** (Railway → service `accounts-bridge` → Variables — jamais dans un fichier commité). Implémenté avec `urllib` (stdlib), aucune nouvelle dépendance dans `requirements.txt`.
+- **`scanner-chart.js`, `berich-chart.js`, `calendar.js`, `lot-calculator.js`** : chacun a sa propre petite fonction `twelveDataApi(endpoint, params)` (dupliquée à l'identique dans les 4 fichiers, même convention que `hero-bg.js` — pas de fichier partagé pour un si petit utilitaire, surtout que `backtesting-swyper.html`/`backtesting-allin.html`, qui chargent aussi `lot-calculator.js`, sont des fichiers "jamais toucher" et n'auraient pas pu recevoir un nouveau `<script src>`) qui appelle ce relais avec le jeton de session, au lieu d'appeler Twelve Data directement avec la clé dans l'URL. `config.js`/`config.local.js`/`config.local.example.js` n'ont plus le champ `twelveDataApiKey` — il n'existe plus nulle part côté client.
+- **Pour que ça marche en local** : définir `TWELVE_DATA_API_KEY` comme variable d'environnement avant `python server.py` dans `accounts-bridge/` (plus dans `config.local.js`).
+- Vérifié en direct (clé de test injectée par variable d'environnement, jamais commitée) : 401 sans jeton, 404 sur un point d'accès hors liste, 200 avec de vraies données ; graphique Stratégies (Wolfx, XAUUSD) rendu avec de vraies bougies récupérées via ce relais.
+- **Reste à faire par l'utilisateur** : définir `TWELVE_DATA_API_KEY` dans les variables d'environnement Railway du service `accounts-bridge` (même valeur que l'ancienne `config.local.js`), puis repousser/redéployer.
+
 ## Plan du site (`site/*.html`)
 
 | Page | Rôle |
