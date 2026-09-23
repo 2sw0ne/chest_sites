@@ -843,17 +843,29 @@ def fetch_investing_date_range(start_date, end_date):
 # Source 2 : tradingeconomics.com — jours suivants, apercu
 # ---------------------------------------------------------------
 TE_ROW_RE = re.compile(
-    r'<tr data-url="([^"]*)" data-id="([^"]*)" data-country="([^"]*)" data-category="([^"]*)" data-event="([^"]*)"[^>]*>(.*?)</tr>',
+    # (.*?)</tr> capturait jusqu'au PREMIER </tr> rencontre - or chaque ligne
+    # contient un mini-tableau imbrique pour le drapeau du pays (son propre
+    # <tr>...</tr>), donc la capture s'arretait juste apres le drapeau, bien
+    # avant les champs actual/previous/consensus/forecast (toujours vides en
+    # sortie). Bug trouve et verifie en direct le 2026-09-23 (retour
+    # utilisateur : son calendrier "completement casse" compare a
+    # investing.com) - corrige en capturant jusqu'a la PROCHAINE ligne
+    # d'evenement (ou la fin du document) plutot que jusqu'a un </tr> litteral.
+    r'<tr data-url="([^"]*)" data-id="([^"]*)" data-country="([^"]*)" data-category="([^"]*)" data-event="([^"]*)"[^>]*>(.*?)(?=<tr data-url=|\Z)',
     re.S,
 )
-TE_DATE_RE = re.compile(r"class='\s*(\d{4}-\d{2}-\d{2})'")
+# tradingeconomics.com mélange guillemets simples et doubles selon les
+# attributs (souvent simples pour class="../id=.., toujours doubles pour les
+# data-* de la ligne) - regex tolérantes aux deux pour ne pas re-casser au
+# moindre changement de markup.
+TE_DATE_RE = re.compile(r"class=[\"']\s*(\d{4}-\d{2}-\d{2})[\"']")
 TE_IMPORTANCE_RE = re.compile(r"calendar-date-(\d)")
-TE_TIME_RE = re.compile(r"calendar-date-\d\">\s*([\dAPM: ]+?)\s*</span>")
-TE_EVENT_NAME_RE = re.compile(r"class='calendar-event'>([^<]*)</a>")
+TE_TIME_RE = re.compile(r"calendar-date-\d[\"']>\s*([\dAPM: ]+?)\s*</span>")
+TE_EVENT_NAME_RE = re.compile(r"class=[\"']calendar-event[\"']>([^<]*)</a>")
 
 
 def te_field_re(name):
-    return re.compile(rf"id='{name}'[^>]*>\s*([^<]*)\s*</(?:span|a)>")
+    return re.compile(rf"id=[\"']{name}[\"'][^>]*>\s*([^<]*)\s*</(?:span|a)>")
 
 
 TE_ACTUAL_RE = te_field_re("actual")
