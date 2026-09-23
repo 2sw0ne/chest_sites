@@ -4,19 +4,20 @@
 window.CHEST_CONFIG = {
   // URL du service Railway qui sert calendar.json (calendar-bridge/server.py).
   // Laisser vide '' pour utiliser le fichier local data/calendar.json à la place.
-  calendarApiUrl: 'https://calendrier-eco-production.up.railway.app/calendar.json',
+  // Déployé le 2026-09-23 dans le projet Railway unique "chest_sites" (Root
+  // Directory calendar-bridge), qui a remplacé l'ancien projet séparé.
+  calendarApiUrl: 'https://calendar-bridge-production-1429.up.railway.app/calendar.json',
 
-  // URL COMPLÈTE de l'endpoint /signals de berich-bridge/server.py (service
-  // Railway séparé, à déployer — voir berich-bridge/README.md). Valeur
-  // actuelle = BEFREE (github.com/2sw0ne/BEFREE), un AUTRE service qui ne
-  // sert en réalité qu'à relayer les mêmes alertes TradingView vers le bot
-  // Telegram — clarification utilisateur du 2026-09-23 : les deux avaient
-  // été confondus par erreur ("le même service" dans une note précédente),
-  // BEFREE n'a rien à voir avec CHEST. A REMPLACER par l'URL du vrai
-  // berich-bridge une fois déployé (garder BEFREE d'ici là pour ne pas
-  // couper l'affichage en attendant). Laisser vide '' pour utiliser le
-  // fichier local data/berich-signal.json à la place.
-  berichApiUrl: 'https://web-production-a3415.up.railway.app/signals',
+  // URL COMPLÈTE de l'endpoint /signals de berich-bridge/server.py — déployé
+  // le 2026-09-23 dans le même projet Railway "chest_sites" (Root Directory
+  // berich-bridge). Remplace BEFREE (github.com/2sw0ne/BEFREE), qui ne sert
+  // en réalité qu'à relayer les mêmes alertes TradingView vers le bot
+  // Telegram et n'a rien à voir avec CHEST (clarification utilisateur du
+  // 2026-09-23). Penser à repointer l'alerte TradingView "Any alert()
+  // function call" vers <cette-url-sans-/signals>/webhook (voir
+  // berich-bridge/README.md) — pas encore fait à cette date. Laisser vide ''
+  // pour utiliser le fichier local data/berich-signal.json à la place.
+  berichApiUrl: 'https://berich-bridge-production.up.railway.app/signals',
 
   // URL du webhook-bridge Stratégies (scanner-bridge/server.py) qui sert
   // scanner-signals.json (opportunités détectées par les 4 scanners). Le
@@ -47,5 +48,8 @@ window.CHEST_CONFIG = {
   // URL du service Railway de comptes utilisateurs (accounts-bridge/server.py) :
   // inscription/connexion/approbation admin. Laisser vide '' pour utiliser
   // un backend local (http://localhost:8080) pendant le développement.
-  accountsApiUrl: ''
+  // Déployé le 2026-09-23 dans le projet Railway unique "chest_sites" (Root
+  // Directory accounts-bridge, Volume attaché pour la persistance de
+  // accounts.db).
+  accountsApiUrl: 'https://accounts-bridge-production.up.railway.app'
 };
