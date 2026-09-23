@@ -41,8 +41,10 @@ window.CHESTMyfxbook = (() => {
       // navigateur) en cas de CORS/reseau - meme piege deja corrige sur
       // accounts-auth.js (retour direct utilisateur du 2026-09-16 :
       // "la connexion au compte myfxbook ne marche pas non plus"). Traduit
-      // ici plutot que de laisser ce message technique remonter tel quel.
-      throw new Error("Impossible de contacter Myfxbook (connexion réseau ou blocage temporaire de leur API). Réessaie dans quelques instants.");
+      // ici plutot que de laisser ce message technique remonter tel quel -
+      // et sans jargon technique (2026-09-24, demande utilisateur : jamais
+      // le mot "API" ou un detail d'implementation cote visiteur).
+      throw new Error('Connexion échouée, veuillez réessayer dans un instant.');
     }
     const data = await res.json();
     if (data.error) throw new Error(data.message || 'Erreur Myfxbook.');

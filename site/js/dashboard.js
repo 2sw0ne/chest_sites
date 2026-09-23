@@ -734,11 +734,21 @@
 
   // ---------- Switcher de comptes, avec familles imbriquées ----------
   function accountRowHtml(a, activeId) {
+    // Les comptes "Live" (Myfxbook admin auto-synchronisé, pont MT5 local) ne sont pas des comptes
+    // créés depuis le site : rien à supprimer ici, pas de bouton ⋮ pour eux.
+    const canDelete = !a.isLiveSwann && a.id !== 'mt5-live';
     return `
-      <button class="acc-menu__item ${a.id === activeId ? 'is-active' : ''}" data-id="${a.id}">
-        <span class="avatar ${a.isLiveSwann ? 'is-live' : ''}">${a.isLiveSwann ? '🟢' : a.live ? '🔴' : initials(a.name)}</span>
-        <span><strong>${a.name}</strong><span>#${a.number} · ${a.type}</span></span>
-      </button>`;
+      <div class="acc-row">
+        <button class="acc-menu__item ${a.id === activeId ? 'is-active' : ''}" data-id="${a.id}">
+          <span class="avatar ${a.isLiveSwann ? 'is-live' : ''}">${a.isLiveSwann ? '🟢' : a.live ? '🔴' : initials(a.name)}</span>
+          <span><strong>${a.name}</strong><span>#${a.number} · ${a.type}</span></span>
+        </button>
+        ${canDelete ? `
+        <div class="acc-tools">
+          <button type="button" class="acc-tools__btn" aria-label="Options du compte ${a.name}">⋮</button>
+          <div class="acc-tools__menu"><button type="button" data-delete-account="${a.id}">Supprimer</button></div>
+        </div>` : ''}
+      </div>`;
   }
 
   function renderAccountMenu(accounts, active) {
@@ -763,6 +773,10 @@
                 <button type="button" data-add-to-family="${fam.id}">＋ Ajouter un compte</button>
                 <button type="button" class="is-backtest-btn" data-pick-backtest-family="${fam.id}">📊 ${fam.startBacktestId ? 'Changer le backtesting' : 'Choisir un backtesting'}</button>
               </div>
+            </div>
+            <div class="acc-tools">
+              <button type="button" class="acc-tools__btn" aria-label="Options de la famille ${fam.name}">⋮</button>
+              <div class="acc-tools__menu"><button type="button" data-delete-family="${fam.id}">Supprimer</button></div>
             </div>
           </div>
           <div class="acc-menu__family-accounts" ${isOpen ? '' : 'hidden'}>
@@ -801,6 +815,12 @@
         openAddAccountModal(btn.dataset.addToFamily);
       });
     });
+    list.querySelectorAll('[data-delete-account]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); deleteAccount(btn.dataset.deleteAccount); });
+    });
+    list.querySelectorAll('[data-delete-family]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); deleteFamily(btn.dataset.deleteFamily); });
+    });
     list.querySelectorAll('[data-pick-backtest-family]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -829,9 +849,15 @@
     saveFamilies(families);
     openFamilyIds.add(fam.id);
     closeFamilyModal();
-    document.getElementById('accMenu').classList.add('is-open'); // le menu reste ouvert - on veut voir la famille apparaitre immediatement
-    renderAccountMenu(loadAccounts(), currentAccount());
-    showToast('Famille créée ✓ — survole sa flèche pour lui ajouter un compte.');
+    closeMenu();
+    // Enchaine directement sur "Ajouter un compte" DANS cette famille (2026-09-24, demande
+    // utilisateur : "il est préférable de juste créer une famille d'abord [...] puis une fois créée
+    // là il crée son compte dedans, pas l'inverse") - une famille vide n'a rien à montrer, le geste
+    // naturel qui suit sa création est d'y mettre un premier compte, jamais un second clic à
+    // retrouver soi-même dans un switcher qui, au tout premier lancement, n'est même pas visible
+    // (dashboard encore sur l'état vide "Ajoute ton premier compte").
+    showToast('Famille créée ✓');
+    openAddAccountModal(fam.id);
   }
   function initFamilyModal() {
     document.getElementById('newFamilyClose').addEventListener('click', closeFamilyModal);
@@ -921,11 +947,6 @@
     const todayEl = document.getElementById('resToday');
     todayEl.textContent = (a.today >= 0 ? '+' : '') + money(a.today);
     todayEl.className = a.today >= 0 ? 'pos' : 'neg';
-
-    const badge = document.getElementById('accExampleBadge');
-    if (badge) badge.style.display = a.example ? '' : 'none';
-    const chartBadge = document.getElementById('chartExampleBadge');
-    if (chartBadge) chartBadge.style.display = a.example ? '' : 'none';
   }
 
   function renderObjectives(a) {
@@ -1823,6 +1844,43 @@
     document.getElementById('addAccountModal').classList.remove('is-open');
   }
 
+  // Supprimer un compte ou une famille (2026-09-24, demande utilisateur) - CHESTConfirm() plutôt
+  // qu'un window.confirm() natif, qui ne fonctionne pas dans ce panneau d'aperçu intégré (voir
+  // js/confirm-dialog.js, même piège déjà rencontré sur "Nouvelle famille").
+  async function deleteAccount(id) {
+    const accounts = loadAccounts();
+    const account = accounts.find((a) => a.id === id);
+    if (!account) return;
+    if (!(await CHESTConfirm(`Supprimer définitivement le compte "${account.name}" ? Cette action est irréversible.`))) return;
+    saveAccounts(accounts.filter((a) => a.id !== id));
+    const families = loadFamilies();
+    let touched = false;
+    families.forEach((fam) => {
+      const idx = fam.accountIds.indexOf(id);
+      if (idx !== -1) { fam.accountIds.splice(idx, 1); touched = true; }
+    });
+    if (touched) saveFamilies(families);
+    if (localStorage.getItem(ACTIVE_KEY) === id) localStorage.removeItem(ACTIVE_KEY);
+    closeMenu();
+    renderAll();
+    showToast('Compte supprimé');
+  }
+  // Supprime la famille elle-même, jamais ses comptes membres — ils redeviennent des comptes seuls
+  // (plus destructeur qu'utile de faire disparaître de vraies données de trading en même temps
+  // qu'un simple regroupement ; l'utilisateur peut ensuite les supprimer un par un s'il le veut).
+  async function deleteFamily(id) {
+    const families = loadFamilies();
+    const fam = families.find((f) => f.id === id);
+    if (!fam) return;
+    if (!(await CHESTConfirm(`Supprimer la famille "${fam.name}" ? Ses comptes ne seront pas supprimés — ils redeviendront des comptes seuls.`))) return;
+    saveFamilies(families.filter((f) => f.id !== id));
+    openFamilyIds.delete(id);
+    if (localStorage.getItem(ACTIVE_KEY) === id) localStorage.removeItem(ACTIVE_KEY);
+    closeMenu();
+    renderAll();
+    showToast('Famille supprimée');
+  }
+
   function finalizeNewAccount(fields) {
     const accounts = loadAccounts().filter((a) => a.id !== 'mt5-live' && a.id !== 'live-swann');
     const id = 'acc-' + Date.now();
@@ -2090,7 +2148,9 @@
     });
 
     initAddAccountModal();
-    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => openAddAccountModal());
+    // Ouvre la création de famille, pas directement "Ajouter un compte" (2026-09-24, demande
+    // utilisateur) - voir createFamilyFromModal() pour la suite du parcours.
+    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => openFamilyPrompt());
     initFamilyModal();
     initFamilyBacktestModal();
     initPayoutModal();

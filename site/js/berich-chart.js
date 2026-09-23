@@ -514,7 +514,8 @@ if barstate.islast and showJournal
     try {
       candles = await fetchXauCandles();
     } catch (e) {
-      container.innerHTML = `<div class="scanner-empty">Erreur Twelve Data : ${e.message}</div>`;
+      // Voir scanner-chart.js render() pour le detail : jamais de jargon technique cote visiteur.
+      container.innerHTML = '<div class="scanner-empty">Scanner en attente — réessaie dans un instant.</div>';
       return;
     }
 

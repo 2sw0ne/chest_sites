@@ -1230,8 +1230,9 @@
       allEvents = data.events || [];
       renderAll();
     } catch (e) {
-      showState(document.getElementById('bubbleZone'),
-        `Pas encore de données. Lance <code>calendar-bridge/fetch_calendar.py</code> une première fois, puis recharge cette page.`);
+      // Jamais de nom de script/fichier ici (demande utilisateur 2026-09-24) - un visiteur ne voit
+      // qu'un etat "en attente", jamais un detail d'implementation ou une instruction technique.
+      showState(document.getElementById('bubbleZone'), 'Calendrier en attente — réessaie dans un instant.');
       document.getElementById('tickerTrack').innerHTML = '<div class="ticker-meta">En attente de données…</div>';
       document.getElementById('upcomingZone').innerHTML = '';
     }

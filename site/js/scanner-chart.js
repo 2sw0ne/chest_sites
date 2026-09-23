@@ -120,7 +120,9 @@
     try {
       candleData = await fetchCandles(twelveDataSymbol, interval);
     } catch (e) {
-      container.innerHTML = `<div class="scanner-empty">Erreur Twelve Data : ${e.message}</div>`;
+      // Jamais de detail technique ici (nom d'API, message d'exception brut) - demande utilisateur
+      // 2026-09-24 : un visiteur ne doit voir ni jargon ni etat d'implementation, juste "reessaie".
+      container.innerHTML = '<div class="scanner-empty">Scanner en attente — réessaie dans un instant.</div>';
       return null;
     }
 

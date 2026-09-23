@@ -104,6 +104,30 @@
   .acc-menu__family-flyout button:hover{ background:var(--panel-2); }
   .acc-menu__family-flyout button.is-backtest-btn{ color:var(--blue); }
 
+  /* ---------- Supprimer un compte ou une famille (2026-09-24, demande utilisateur) : un bouton ⋮
+     discret par ligne (compte seul ou famille), menu avec un seul choix "Supprimer" (rouge) - jamais
+     mélangé au flyout "Ajouter un compte"/"Backtesting" des familles (actions trop différentes pour
+     partager un menu). Même mécanique de hover que .acc-menu__family-hover ci-dessus. */
+  .acc-row{ display:flex; align-items:center; gap:4px; }
+  .acc-row > .acc-menu__item{ flex:1; }
+  .acc-tools{ position:relative; flex-shrink:0; }
+  .acc-tools__btn{
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--line2); background:var(--bg);
+    color:var(--muted); cursor:pointer; font:inherit; font-size:13px; display:flex; align-items:center; justify-content:center;
+  }
+  .acc-tools__btn:hover{ color:var(--ink); border-color:var(--muted); }
+  .acc-tools__menu{
+    display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60; width:150px;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
+    box-shadow:0 16px 40px rgba(0,0,0,.35); padding:6px;
+  }
+  .acc-tools:hover .acc-tools__menu, .acc-tools:focus-within .acc-tools__menu{ display:block; }
+  .acc-tools__menu button{
+    display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; cursor:pointer;
+    padding:8px 9px; border-radius:8px; color:var(--red); font:inherit; font-size:12.5px; font-weight:600; text-align:left;
+  }
+  .acc-tools__menu button:hover{ background:rgba(255,77,94,.12); }
+
   /* ---------- Compte "Live" (Myfxbook, admin, toujours synchronise) ---------- */
   .acc-switcher__btn.is-live{ border-color:rgba(51,230,166,.4); }
   .avatar.is-live, .acc-menu__item .avatar.is-live{ background:linear-gradient(135deg,#1fbd88,var(--green)); }
@@ -464,10 +488,10 @@
     <main id="dashMain">
   <div class="chest-section" id="dashEmptyState" hidden>
     <div class="chest-glass">
-      <span class="chest-step">01 — Aucun compte</span>
-      <h2>Ajoute ton premier compte</h2>
-      <p>Connecte un compte Myfxbook, un compte MT5 ou ajoute un compte manuel pour voir ton dashboard prendre vie.</p>
-      <button type="button" class="chest-btn" id="dashEmptyAddBtn">+ Ajouter un compte</button>
+      <span class="chest-step">01 — Aucune famille</span>
+      <h2>Crée ta première famille de comptes</h2>
+      <p>Une famille regroupe tes comptes (Myfxbook, MT5, manuel) pour les suivre ensemble. Donne-lui un nom, puis ajoute ton premier compte dedans.</p>
+      <button type="button" class="chest-btn" id="dashEmptyAddBtn">+ Créer une famille</button>
     </div>
   </div>
   <section class="chest-spot" id="heroSpot">
@@ -477,7 +501,6 @@
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
           <span class="chest-step">01 — Compte actif</span>
           <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--chest-ink-3)"><span id="accKindTitle">Compte propre</span><span class="acc-sync-error" id="accSyncError" hidden>⚠</span></span>
-          <span class="example-badge" id="accExampleBadge">Exemple — données de démonstration</span>
         </div>
         <div class="acc-switcher" id="accSwitcher">
           <button class="acc-switcher__btn" id="accSwitcherBtn">
@@ -550,7 +573,6 @@
           <button data-unit="dollar">$</button>
           <button data-unit="percent" class="is-active">%</button>
         </div>
-        <span class="example-badge" id="chartExampleBadge">Exemple</span>
       </div>
     </div>
     <div class="chest-glass chest-glass--chart" style="padding:22px 24px 16px">
@@ -834,10 +856,10 @@
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
-<script src="js/myfxbook-store.js?v=3"></script>
+<script src="js/myfxbook-store.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js?v=20"></script>
-<script src="js/dashboard.js?v=29"></script>
+<script src="js/dashboard.js?v=30"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>
