@@ -110,5 +110,29 @@ window.CHESTAccounts = (() => {
     }
   }
 
+  // Deconnexion immediate d'un compte bloque (2026-09-24, demande utilisateur : "quand je bloque une
+  // personne... qu'elle soit deconnectee a l'instant T et ne puisse plus se reco"). POST
+  // /members/<id>/block supprime deja la session cote serveur (voir server.py), mais rien cote
+  // client ne le detectait avant : guard() ne verifie que la PRESENCE locale d'un jeton, jamais sa
+  // validite reelle - un membre bloque gardait donc un acces complet a l'app (toutes les pages qui
+  // ne font aucun appel serveur) jusqu'a l'expiration naturelle du jeton (30 jours). /me verifie la
+  // session aupres du serveur au chargement de CHAQUE page qui charge ce fichier (iframe comme
+  // app.html), puis toutes les 2 minutes tant que la page reste ouverte - sur 401 (session absente,
+  // supprimee par un blocage), deconnexion + retour a l'ecran de connexion. Ne rien faire sur une
+  // simple coupure reseau (fetch() qui echoue), jamais deconnecter pour ca.
+  async function verifySessionAlive() {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${apiBase()}/me`, { headers: { Authorization: 'Bearer ' + token } });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        (window.top || window).location.href = 'login.html';
+      }
+    } catch (e) { /* serveur injoignable - pas un motif de deconnexion */ }
+  }
+  verifySessionAlive();
+  setInterval(verifySessionAlive, 120000);
+
   return { getToken, getUser, isLoggedIn, isAdmin, signup, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, guard };
 })();

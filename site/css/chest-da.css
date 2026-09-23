@@ -480,6 +480,10 @@
 }
 .chest-topbar__btn--round{ color:#fff; background:var(--chest-grad); border:none; }
 .chest-topbar__btn.is-active{ box-shadow:0 0 0 2px rgba(252,18,131,.55); }
+/* Meme piege [hidden] vs display:flex deja documente en CLAUDE.md (.wel-edit__check) : sans cette
+   regle, le bouton "Membres (admin)" (data-admin-only hidden) restait visible pour TOUT LE MONDE,
+   admin ou pas - specificite egale (une classe = un attribut), [hidden] perdait a chaque fois. */
+.chest-topbar__btn[hidden]{ display:none; }
 
 /* Sous 640px (vrai mobile - un panneau/fenetre desktop peut legitimement
    faire ~700-750px de large sans etre un telephone, voir retour direct

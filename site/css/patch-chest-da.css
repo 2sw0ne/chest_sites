@@ -687,6 +687,9 @@ p.hint{ color:var(--chest-ink-2) !important; }
   background:transparent !important; border-radius:0 !important;
 }
 .settings-row:last-child, .setting-row:last-child, .account-row:last-child{ border-bottom:none !important; }
+/* Meme piege [hidden] vs display:flex - voir chest-da.css (.chest-topbar__btn[hidden]) : sans ca,
+   les reglages admin (liveAccountRow, previewRow) restaient visibles pour tout membre non-admin. */
+.settings-row[hidden], .setting-row[hidden], .account-row[hidden]{ display:none !important; }
 
 /* Onglets hérités */
 .tabbar, .tabs{
@@ -992,3 +995,15 @@ html[data-theme="light"] .sc-toc a.is-current i,
 html[data-theme="light"] .brand img{
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* Welcome + Newsletter (#chestWelcome/.wel) : toujours sombre, jamais inversé quel que soit le thème
+   (demande utilisateur 2026-09-24) - son fond animé et ses vitrines sont conçus pour un fond noir,
+   contrairement au reste du site qui suit le thème. Contre-inversion du bloc entier (même mécanique
+   que les exclusions ci-dessus), PUIS filter:none sur ses propres <img>/<video> (logo, téléphone
+   Founder, vignettes YouTube de School injectées par welcome.js) : sans ce 2e niveau, ces images
+   auraient hérité de la contre-inversion du bloc ET de la règle générique img{filter:invert(1)}
+   plus haut, ce qui les aurait inversées quand même (les filtres se cumulent à chaque niveau
+   d'ancêtre, ce n'est pas juste une histoire de spécificité/cascade comme une couleur classique). */
+html[data-theme="light"] .wel{ filter: invert(1) hue-rotate(180deg); }
+html[data-theme="light"] .wel img,
+html[data-theme="light"] .wel video{ filter: none; }
