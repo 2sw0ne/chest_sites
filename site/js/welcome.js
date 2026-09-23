@@ -996,6 +996,22 @@
     show();
   } else {
     root.hidden = true;
+    // Prechauffe le shader (2026-09-23, branche experiment/merge-login-welcome, retour utilisateur :
+    // "toujours un flash, en fait c'est le chargement de la page Welcome une fois la connexion faite,
+    // et meme plus long qu'avant") : compiler un fragment shader aussi charge que celui-ci prend un
+    // temps reel (creation du contexte WebGL, compilation, link du programme) - avant, ce cout tombait
+    // PENDANT le chargement de la page app.html elle-meme (masque, percu comme un chargement normal).
+    // Avec la connexion integree au meme document, ce cout tombe maintenant EN PLEINE TRANSITION,
+    // visible en tant que tel puisque plus rien d'autre ne "charge" a ce moment-la. initLight()/
+    // sizeLight() sont idempotents (voir plus haut, `if (lightOK...) return`) et n'ont pas besoin que
+    // .wel soit visible (un canvas dans un sous-arbre display:none compile son shader normalement,
+    // juste avec des dimensions a 0 - resize correct au prochain sizeCanvas() de show()) : on peut donc
+    // les lancer des maintenant, pendant que l'ecran de connexion est affiche, pour que le shader soit
+    // deja pret quand show() en aura vraiment besoin.
+    try { sizeLight(); } catch (e) {}
+    // Meme principe pour le sprite des flocons (dessine une seule fois, voir makeSprite()) - moins couteux
+    // que le shader mais gratuit a prechauffer ici aussi tant qu'on y est.
+    try { if (!sprite) sprite = makeSprite(); } catch (e) {}
   }
 
   window.CHESTWelcome = { show, close: finish };
