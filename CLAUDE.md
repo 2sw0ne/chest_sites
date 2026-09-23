@@ -336,6 +336,38 @@ Passe demandée par l'utilisateur avant un premier déploiement public sur Verce
 - **Flux de déploiement désormais : push sur `chest_sites`, pas `STASH`.** Toute future session doit committer sur `STASH` (`origin`, historique complet) PUIS pousser aussi sur `https://github.com/2sw0ne/chest_sites.git` (remote `chest-sites` si déjà ajouté dans ce checkout, sinon `git push https://github.com/2sw0ne/chest_sites.git main:main`) pour que Railway redéploie — sinon les changements ne partent jamais en prod. Si le push direct est bloqué par le classificateur auto-mode de Claude Code ("Data Exfiltration"), le donner à faire à l'utilisateur (commande prête à copier-coller).
 - **Pas fait, hors scope de cette passe (à signaler si redemandé)** : passe exhaustive de vérification console sur toutes les pages (seul le dashboard, avant/après le retrait des comptes de démo, a été spécifiquement re-testé) ; relecture orthographique du site entier (seules les chaînes touchées par cette passe — signup/admin-members/commentaires — ont été relues).
 
+## Corrections post-premier-déploiement (2026-09-24)
+
+Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
+les sections « Connexion fusionnée dans app.html » et « Sécurisation du vrai code Pine » plus haut
+pour ce qui a été trouvé/corrigé le jour précédent (même vague de durcissement).
+
+- **Bouton admin visible par tout le monde + compte bloqué toujours utilisable + thème clair sur
+  Welcome** : voir le commit dédié — même piège `[hidden]` vs `display:flex` déjà documenté sur
+  `.wel-edit__check`, retrouvé sur `.chest-topbar__btn`/`.settings-row` ; `guard()` ne vérifiait
+  jamais la validité RÉELLE d'un jeton auprès du serveur (seulement sa présence locale), corrigé par
+  une vérification `/me` périodique dans `accounts-auth.js`.
+- **Jargon technique retiré des messages visibles** (demande explicite : jamais le mot "API", jamais
+  un nom de script, jamais un message d'exception brut) : `scanner-chart.js`/`berich-chart.js`
+  (« Scanner en attente — réessaie dans un instant. »), `myfxbook-store.js` (« Connexion échouée,
+  veuillez réessayer dans un instant. »), `calendar.js` (« Calendrier en attente... », finie la
+  mention de `fetch_calendar.py`), badge « Exemple — données de démonstration » du Dashboard retiré
+  (devenu un mort-vivant depuis que `DEFAULT_ACCOUNTS=[]`, voir plus haut).
+- **Dashboard restructuré « famille d'abord »** : `#dashEmptyAddBtn` (premier lancement) ouvre
+  maintenant `openFamilyPrompt()` au lieu de `openAddAccountModal()` directement ;
+  `createFamilyFromModal()` enchaîne aussitôt sur l'ajout d'un compte DANS la famille tout juste
+  créée (`openAddAccountModal(fam.id)`). Le switcher de comptes (une fois au moins une famille/un
+  compte existant) forçait déjà ce chemin — seul le tout premier lancement le contournait.
+- **Suppression d'un compte ou d'une famille** : bouton ⋮ par ligne du switcher (`.acc-tools`,
+  même mécanique de survol que `.acc-menu__family-hover`), un seul choix « Supprimer » (rouge),
+  confirmation `CHESTConfirm()`. Supprimer une famille NE supprime PAS ses comptes membres (ils
+  redeviennent des comptes seuls) — choix délibérément moins destructeur.
+- **Reste à faire, portée à clarifier avec l'utilisateur avant de s'y lancer** : le thème clair
+  hors Welcome utilise toujours le filtre `invert(1) hue-rotate(180deg)` global — l'utilisateur l'a
+  qualifié de « faux white theme » avec un « effet négatif » sur les éléments, à retravailler pour
+  un rendu propre. Ampleur non tranchée (retouche ciblée des pires éléments vs vraie palette claire
+  dédiée page par page) : ne pas s'y lancer à fond sans revalider la direction avec lui.
+
 ## Autres décisions techniques notables
 
 - **Pont MT5** (`mt5-bridge/export_mt5.py`) : script Python local (pip `MetaTrader5`) qui lit le terminal MT5 ouvert et écrit `site/data/data.json` ; `dashboard.js` le consomme s'il existe, sinon retombe silencieusement sur les comptes d'exemple. **Jamais exécuté/vérifié** faute d'accès à un vrai terminal MT5 depuis cette session — à tester par l'utilisateur.
