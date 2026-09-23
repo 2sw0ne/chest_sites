@@ -131,8 +131,16 @@
     if (e.key === 'chest_theme' && window.CHESTTheme) CHESTTheme.apply(CHESTTheme.current());
   });
 
-  // Démarrage : la page demandée par l'adresse, sinon le Dashboard.
-  const first = parseHash();
-  shell.classList.add('is-navigating');
-  frame.src = first.file;
+  // Démarrage : la page demandée par l'adresse, sinon le Dashboard. Différé si pas encore connecté
+  // (expérimentation fusion login/app.html — voir app.html) : charger une page protégée dans l'iframe
+  // avant la connexion ferait sa propre garde rediriger login.html DANS l'iframe, qui en sortirait alors
+  // vers le haut (theme.js, AUTH_PAGES) et écraserait toute la page — exactement ce qu'on veut éviter en
+  // gardant la connexion intégrée à app.html. `window.CHESTShell.boot()` est appelé une fois connecté.
+  function boot() {
+    const first = parseHash();
+    shell.classList.add('is-navigating');
+    frame.src = first.file;
+  }
+  if (!window.CHESTAccounts || CHESTAccounts.isLoggedIn()) boot();
+  window.CHESTShell = { boot };
 })();

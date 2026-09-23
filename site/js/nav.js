@@ -3,6 +3,39 @@
 
   const COLLAPSE_KEY = 'chest_nav_collapsed';
 
+  // Bloc "Compte actif" en pied de sidebar - identite du COMPTE CHEST
+  // connecte (celui qui a servi a se logger), pas le compte de trading
+  // actif sur le Dashboard : cet element vit sur toutes les pages, pas
+  // seulement celle-la, donc il montre ce qui a un sens partout.
+  // Exposee (window.CHESTNav.refreshAccount) car sur app.html la connexion se
+  // fait maintenant SANS rechargement de page (formulaire integre a
+  // #authOverlay) : le DOMContentLoaded ci-dessous tourne AVANT la connexion
+  // reelle (CHESTAccounts.getUser() renvoie encore rien) et ne se redeclenche
+  // jamais tout seul - app.html doit rappeler cette fonction juste apres un
+  // login reussi, sinon le bloc reste vide ("—") malgre une session valide.
+  function refreshAccount() {
+    if (!window.CHESTAccounts) return;
+    const user = CHESTAccounts.getUser();
+    const nameEl = document.getElementById('sidebarUserName');
+    const emailEl = document.getElementById('sidebarUserEmail');
+    const avatarEl = document.getElementById('sidebarUserAvatar');
+    if (user && nameEl) {
+      const first = user.firstName || '', last = user.lastName || '';
+      nameEl.textContent = (first + ' ' + last).trim() || user.email || 'Compte';
+      if (emailEl) emailEl.textContent = user.email || '';
+      if (avatarEl) avatarEl.textContent = ((first[0] || '') + (last[0] || '')).toUpperCase() || '?';
+    }
+  }
+  // Meme raison/meme piege que refreshAccount ci-dessus : sur app.html, verifie une seule fois
+  // au DOMContentLoaded (avant la connexion), donc le bouton "Membres (admin)" de la topbar
+  // restait cache pour toujours apres une connexion admin reussie sans rechargement de page.
+  function refreshAdminVisibility() {
+    if (window.CHESTAccounts && CHESTAccounts.isAdmin()) {
+      document.querySelectorAll('[data-admin-only]').forEach((el) => { el.hidden = false; });
+    }
+  }
+  window.CHESTNav = { refreshAccount, refreshAdminVisibility };
+
   document.addEventListener('DOMContentLoaded', () => {
     const page = document.body.dataset.page;
     if (page) {
@@ -11,26 +44,9 @@
       });
     }
 
-    if (window.CHESTAccounts && CHESTAccounts.isAdmin()) {
-      document.querySelectorAll('[data-admin-only]').forEach((el) => { el.hidden = false; });
-    }
+    refreshAdminVisibility();
 
-    // Bloc "Compte actif" en pied de sidebar - identite du COMPTE CHEST
-    // connecte (celui qui a servi a se logger), pas le compte de trading
-    // actif sur le Dashboard : cet element vit sur toutes les pages, pas
-    // seulement celle-la, donc il montre ce qui a un sens partout.
-    if (window.CHESTAccounts) {
-      const user = CHESTAccounts.getUser();
-      const nameEl = document.getElementById('sidebarUserName');
-      const emailEl = document.getElementById('sidebarUserEmail');
-      const avatarEl = document.getElementById('sidebarUserAvatar');
-      if (user && nameEl) {
-        const first = user.firstName || '', last = user.lastName || '';
-        nameEl.textContent = (first + ' ' + last).trim() || user.email || 'Compte';
-        if (emailEl) emailEl.textContent = user.email || '';
-        if (avatarEl) avatarEl.textContent = ((first[0] || '') + (last[0] || '')).toUpperCase() || '?';
-      }
-    }
+    refreshAccount();
 
     // ---------- Sidebar rétractable (remplace l'ancien tiroir/rail) ----------
     // Repliée/dépliée persistée par appareil (localStorage) - un choix qui

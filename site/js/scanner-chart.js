@@ -98,6 +98,13 @@
       container.innerHTML = '<div class="scanner-empty">Clé Twelve Data manquante — voir <code>js/config.local.example.js</code>.</div>';
       return null;
     }
+    // Le vrai code Pine est chargé à part, authentifié (voir strategies.html / GET /scanners) -
+    // tant qu'il n'est pas encore arrivé (page pas encore connectée, ou serveur injoignable) on
+    // n'affiche pas de graphique plutôt que de planter sur `pineSource.replace(...)`.
+    if (!pineSource) {
+      container.innerHTML = '<div class="scanner-empty">Connecte-toi pour voir l\'indicateur de ce scanner.</div>';
+      return null;
+    }
 
     container.innerHTML = `<div class="scanner-empty">Chargement de ${symbolDisplay} et du scanner…</div>`;
 

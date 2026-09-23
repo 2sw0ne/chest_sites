@@ -29,6 +29,19 @@
       setTimeout(() => document.documentElement.classList.remove('wel-boot-hide'), 4000);
     }
   } catch (e) {}
+  // EXPÉRIMENTATION (branche experiment/merge-login-welcome, 2026-09-23, demande utilisateur : « éviter
+  // ces chargements pour avoir un seul élément compact ») : connexion intégrée à app.html au lieu d'une
+  // vraie page séparée (login.html) — plus de gel visuel entre "se connecter" et "voir Welcome", puisque
+  // c'est le MÊME document du début à la fin. Vérifié directement en localStorage/sessionStorage (même
+  // logique que CHESTAccounts.getToken()) plutôt que d'attendre accounts-auth.js, pour poser la classe
+  // avant même l'analyse du <body> — même intention que `wel-boot-hide` juste au-dessus.
+  // login.html/signup.html restent des fichiers à part, inchangés : ce sont le repli de compatibilité
+  // (session perdue en cours d'usage dans une page de l'iframe, lien direct, favori) — voir shell.js et
+  // theme.js, non modifiés pour ce cas-là.
+  try {
+    const hasToken = !!(localStorage.getItem('chest_account_token') || sessionStorage.getItem('chest_account_token'));
+    if (!hasToken) document.documentElement.classList.add('is-loggedout');
+  } catch (e) {}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,14 +54,61 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=13">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=13">
-<link rel="stylesheet" href="css/welcome.css?v=30">
+<link rel="stylesheet" href="css/welcome.css?v=33">
 <script src="js/theme.js"></script>
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js"></script>
-<script>CHESTAccounts.guard();</script>
 </head>
 <body class="chest-root">
+
+<!-- ══════════════════════════════════════════════════════════════
+     Connexion intégrée (expérimentation, branche experiment/merge-login-welcome) — visible uniquement
+     quand <html> porte `is-loggedout` (posé par le script en tête du <head>, avant même l'analyse de ce
+     <body>). 2e passe (demande utilisateur : « que le fond n'arrête jamais de tourner et que les
+     éléments arrivent en fondu par-dessus ») : plus de fond/shader séparé ici — la carte se pose direct
+     PAR-DESSUS le hero du Welcome (#welLight/#welStars, déjà en train de tourner, voir welcome.js), qui
+     ne s'arrête donc jamais entre la connexion et Welcome. Au lieu de rediriger vers une page à part,
+     ce même document bascule vers le VRAI Welcome une fois connecté (CHESTWelcome.show(), script en bas).
+     ══════════════════════════════════════════════════════════════ -->
+<div class="auth-overlay" id="authOverlay" aria-hidden="true">
+  <div class="auth-stage" id="authStage">
+    <div class="auth-card">
+      <img class="auth-card__logo" src="assets/logo-chest-hero.webp" alt="CHEST">
+      <h1>Bienvenue sur CHEST</h1>
+      <p class="auth-card__lead">Ton prochain niveau t'attend.</p>
+
+      <form id="authForm" autocomplete="off" novalidate>
+        <div class="auth-field">
+          <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M3 6l9 7 9-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input id="authEmail" type="email" placeholder="Adresse e-mail" required autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5" stroke-linecap="round"/></svg>
+          <input id="authPassword" type="password" placeholder="Mot de passe" required autocomplete="current-password" style="padding-right:44px">
+          <button type="button" class="auth-field__toggle" id="authPwToggle" aria-label="Afficher le mot de passe">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <div class="auth-row">
+          <label class="auth-remember"><input type="checkbox" id="authRemember" checked> Se souvenir de moi</label>
+          <button type="button" class="auth-forgot" id="authForgotBtn">Mot de passe oublié ?</button>
+        </div>
+
+        <p class="auth-error" id="authFormError"></p>
+        <p class="auth-note" id="authFormNote"></p>
+
+        <button type="submit" class="auth-submit" id="authSubmitBtn">
+          <span id="authSubmitLabel">Se connecter</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </form>
+
+      <p class="auth-footnote">Pas encore de compte ? <a href="signup.html">Créer un compte</a></p>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════════════
      Page « Welcome » — posée AVANT le shell, dans le même défilement.
@@ -149,9 +209,17 @@
 
         </div>
 
-        <div class="wel__handoff">
-          <b>Continue à descendre</b>
-          <span>Ton dashboard arrive</span>
+        <div class="wel__handoff" aria-hidden="true">
+          <svg class="wel__handoff-arrows" viewBox="0 0 24 24" width="24" height="24" fill="none">
+            <defs>
+              <linearGradient id="welHandoffGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fc1283"/>
+                <stop offset="1" stop-color="#f9a45e"/>
+              </linearGradient>
+            </defs>
+            <path class="wel__handoff-chev wel__handoff-chev--1" d="M5 5l7 7 7-7" stroke="url(#welHandoffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="wel__handoff-chev wel__handoff-chev--2" d="M5 12l7 7 7-7" stroke="url(#welHandoffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </div>
       </div>
     </section>
@@ -234,8 +302,67 @@
   </div>
 </div>
 
-<script src="js/nav.js?v=3"></script>
-<script src="js/shell.js?v=2"></script>
-<script src="js/welcome.js?v=51"></script>
+<script src="js/nav.js?v=5"></script>
+<script src="js/shell.js?v=3"></script>
+<script src="js/welcome.js?v=56"></script>
+<script>
+(() => {
+  // Connexion intégrée (expérimentation) : câblage du formulaire de #authOverlay. Repris de
+  // login.html, adapté pour rester DANS app.html au lieu de rediriger — voir le commentaire en
+  // tête du <head> et celui au-dessus de #authOverlay pour le pourquoi. Plus de fond propre à
+  // câbler ici (voir welcome.js/welcome.css) : le hero du Welcome tourne déjà derrière.
+  if (!document.documentElement.classList.contains('is-loggedout')) return; // deja connecte : rien a faire
+
+  const form = document.getElementById('authForm');
+  const errEl = document.getElementById('authFormError');
+  const noteEl = document.getElementById('authFormNote');
+  const submitBtn = document.getElementById('authSubmitBtn');
+  const submitLabel = document.getElementById('authSubmitLabel');
+  const stage = document.getElementById('authStage');
+
+  document.getElementById('authPwToggle').addEventListener('click', () => {
+    const input = document.getElementById('authPassword');
+    const btn = document.getElementById('authPwToggle');
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.setAttribute('aria-label', showing ? 'Afficher le mot de passe' : 'Masquer le mot de passe');
+  });
+  document.getElementById('authForgotBtn').addEventListener('click', () => {
+    errEl.textContent = '';
+    noteEl.textContent = "La réinitialisation par e-mail n'est pas encore branchée — contacte l'administrateur pour remettre ton mot de passe à zéro.";
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errEl.textContent = '';
+    noteEl.textContent = '';
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const remember = document.getElementById('authRemember').checked;
+
+    submitBtn.disabled = true;
+    submitLabel.textContent = 'Connexion…';
+    try {
+      await CHESTAccounts.login({ email, password, remember });
+      try { sessionStorage.setItem('chest_welcome', '1'); } catch (e) { /* tant pis */ }
+      // Fondu de la carte (1,2 s) PUIS bascule vers Welcome — toujours le MEME document ET le MEME
+      // fond (voir welcome.js/welcome.css, plus de shader separe a arreter ici), donc ni gel de
+      // chargement ni saut visuel entre les deux.
+      stage.classList.add('is-leaving');
+      setTimeout(() => {
+        document.documentElement.classList.remove('is-loggedout');
+        document.getElementById('authOverlay').style.display = 'none';
+        if (window.CHESTShell) CHESTShell.boot();
+        if (window.CHESTWelcome) CHESTWelcome.show();
+        if (window.CHESTNav) { CHESTNav.refreshAccount(); CHESTNav.refreshAdminVisibility(); }
+      }, 1250);
+    } catch (err) {
+      errEl.textContent = err.message;
+      submitBtn.disabled = false;
+      submitLabel.textContent = 'Se connecter';
+    }
+  });
+})();
+</script>
 </body>
 </html>

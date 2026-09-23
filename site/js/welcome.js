@@ -32,6 +32,13 @@
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let closed = true;
+  // Distinct de `closed` (2026-09-23, branche experiment/merge-login-welcome) : `closed` vaut `true`
+  // aussi bien AVANT la connexion (hero legitimement affiche, sous la carte de connexion) qu'APRES
+  // finish() (Welcome vraiment referme, dashboard affiche, hero doit rester eteint). `heroActive`
+  // distingue les deux : vrai des que le hero doit tourner (avant connexion ET pendant Welcome), faux
+  // seulement une fois finish() passe - c'est lui qui doit garder heroVisible()/les relances (resize,
+  // changement d'onglet) actives au bon moment, pas `closed`.
+  let heroActive = false;
   let sraf = null;
   let lastFocus = null;
 
@@ -463,6 +470,7 @@
   function finish() {
     if (closed) return;
     closed = true;
+    heroActive = false;
     cancelAnimationFrame(loop); loop = 0;
     closeSheet(true);
     markNewsSeen();
@@ -599,6 +607,11 @@
     if (!initLight()) return;
     // demi-résolution : de la lumière douce, étirée par le navigateur, coûte 4 fois moins
     const w = Math.max(2, Math.round(lightCv.clientWidth * lightScale)), h = Math.max(2, Math.round(lightCv.clientHeight * lightScale));
+    // Filet de sécurité (2026-09-23) : réaffecter width/height à la MÊME valeur efface quand même tout
+    // le contenu du canvas (comportement HTML standard) — sans ce garde-fou, un appel redondant (même
+    // légitime, ex. un resize qui ne change rien en pratique) provoquerait un flash noir d'une image
+    // avant que tick() ne repeigne. Voir aussi show() plus bas, qui évite carrément l'appel redondant.
+    if (lightCv.width === w && lightCv.height === h) { gl.viewport(0, 0, w, h); return; }
     lightCv.width = w; lightCv.height = h;
     gl.viewport(0, 0, w, h);
   }
@@ -653,7 +666,12 @@
     if (!sprite) sprite = makeSprite();
     sizeLight();
   }
-  function heroVisible() { return !closed && window.scrollY < window.innerHeight * 1.05 && !document.hidden; }
+  // Ne depend plus de `closed` (2026-09-23, branche experiment/merge-login-welcome, demande utilisateur :
+  // « que le fond n'arrete jamais de tourner et que les elements arrivent en fondu par-dessus ») : le hero
+  // doit continuer a s'animer PENDANT l'ecran de connexion (avant que Welcome soit reellement "ouvert",
+  // closed=true a ce moment-la) - seul le contenu du hero (logo/titre/CHEST qui parle) et la suite du
+  // defilement restent verrouilles par ailleurs (html.is-loggedout, voir welcome.css/app.html).
+  function heroVisible() { return heroActive && window.scrollY < window.innerHeight * 1.05 && !document.hidden; }
 
   function tick(ts) {
     loop = 0;
@@ -929,6 +947,27 @@
   /* ---------- Ouverture ---------- */
   function show() {
     closed = false;
+    // Meme piege que refreshAccount/refreshAdminVisibility de nav.js (voir leurs commentaires) :
+    // loadBentoOverrides()/initBentoTools() (appelees une fois tout en bas de ce fichier, a l'execution
+    // du script) sortaient sans rien faire quand la page se charge PAS ENCORE connectee (guard interne
+    // sur isLoggedIn()/isAdminEffective()) - sans ce rappel ici, une connexion integree a app.html (sans
+    // rechargement de page) affichait les cartes de la Newsletter avec leur contenu par defaut au lieu
+    // des overrides CMS, et sans le menu d'edition ⋮ pour un admin, jusqu'au prochain vrai rechargement.
+    // Les deux fonctions sont sans risque a rappeler (loadBentoOverrides ecrase juste bentoOverrides avec
+    // les memes donnees ; initBentoTools ignore une carte qui a deja son bouton ⋮).
+    loadBentoOverrides();
+    initBentoTools();
+    // Micro-coupure trouvée et corrigée (2026-09-23, retour utilisateur : « une microcoupure... sans
+    // que le fond bouge ») : `sizeLight()` REASSIGNE `lightCv.width/height` à chaque appel — même à la
+    // MÊME valeur, ré-affecter width/height sur un <canvas> EFFACE tout son contenu (comportement HTML
+    // standard). Avant ce correctif, show() rappelait sizeCanvas()/sizeLight() sans condition, alors que
+    // le hero tournait déjà en continu depuis l'écran de connexion (voir le boot plus bas) — un aller
+    // simple "efface -> re-remplit 1 image plus tard" à chaque connexion, perçu comme un micro-freeze
+    // pile au moment où Welcome apparaît. Ne redimensionner que si le hero N'était PAS déjà actif (donc
+    // jamais dimensionné) : sinon il est déjà à la bonne taille, tenu à jour en continu par l'écouteur
+    // resize (voir plus bas, gated sur heroActive) pendant tout l'écran de connexion.
+    const alreadyActive = heroActive;
+    heroActive = true;
     root.hidden = false;
     html.classList.add('is-welcome');
     // Cache-flash temporaire posé tout en haut du <head> d'app.html (avant même que le <body> soit analysé) :
@@ -945,15 +984,19 @@
     say();
 
     window.scrollTo(0, 0);
-    requestAnimationFrame(() => { sizeCanvas(); startSnow(); });
+    if (!alreadyActive) requestAnimationFrame(() => { sizeCanvas(); startSnow(); });
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
   /* ---------- Branchements ---------- */
   window.addEventListener('scroll', onScroll, { passive: true });
   if (hero) hero.addEventListener('mousemove', onMove, { passive: true });
-  window.addEventListener('resize', () => { if (!closed) { sizeCanvas(); startSnow(); onScroll(); } });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) startSnow(); });
+  window.addEventListener('resize', () => { if (heroActive) { sizeCanvas(); startSnow(); } if (!closed) onScroll(); });
+  // `heroActive`, pas `closed` (2026-09-23) : un changement d'onglet doit pouvoir relancer le hero
+  // aussi bien avant la connexion (`closed` vaut encore `true` à ce moment-là, voir le boot plus bas)
+  // que pendant Welcome — mais surtout PAS une fois Welcome refermé pour de bon (`finish()`, qui met
+  // `heroActive` à `false` explicitement), sinon la boucle repartirait pour rien derrière le dashboard.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && heroActive) startSnow(); });
   if (hero) hero.addEventListener('mouseleave', () => { cur.on = false; });
 
   if (startBtn) startBtn.addEventListener('click', glide);
@@ -991,11 +1034,28 @@
 
   let wanted = false;
   try { wanted = sessionStorage.getItem(FLAG) === '1'; } catch (e) {}
+  const loggedOutAtBoot = html.classList.contains('is-loggedout');
   if (wanted) {
     if (location.hash && location.hash !== '#/dashboard' && location.hash !== '#/') location.hash = '#/dashboard';
     show();
+  } else if (loggedOutAtBoot) {
+    // Connexion intégrée à app.html (2026-09-23, branche experiment/merge-login-welcome, demande
+    // utilisateur : « que le fond n'arrête jamais de tourner et que les éléments arrivent en fondu
+    // par-dessus ») : le hero (canvas + neige) s'anime dès maintenant, MÊME PAS ENCORE CONNECTÉ — la
+    // carte de connexion (#authOverlay, app.html) est posée par-dessus via CSS. Fini les deux shaders
+    // séparés (page de connexion vs Welcome, voir hero-bg.js) qui créaient un petit saut visuel au
+    // moment de basculer de l'un à l'autre : il n'y a plus qu'UN SEUL fond, jamais interrompu, du
+    // début à la fin. Le reste de Welcome (logo/titre/CHEST qui parle/actions) reste cependant caché
+    // (html.is-loggedout .wel__stage, voir welcome.css) et le défilement verrouillé (html.is-shell
+    // sans is-welcome, voir chest-da.css) tant que la connexion n'a pas vraiment réussi — seul le
+    // rendu VISUEL démarre en avance, pas le reste de la mécanique (`closed` reste `true`, `show()`
+    // pas encore appelé).
+    root.hidden = false;
+    heroActive = true;
+    sizeCanvas();
+    startSnow();
   } else {
-    root.hidden = true;
+    root.hidden = true; // connecté mais ce chargement de page ne doit pas passer par Welcome (lien direct, favori...)
   }
 
   window.CHESTWelcome = { show, close: finish };
