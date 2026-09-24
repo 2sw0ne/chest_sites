@@ -761,7 +761,7 @@
         ${canDelete ? `
         <div class="acc-tools">
           <button type="button" class="acc-tools__btn" aria-label="Options du compte ${a.name}">⋮</button>
-          <div class="acc-tools__menu"><button type="button" data-delete-account="${a.id}">Supprimer</button></div>
+          <div class="acc-tools__menu"><button type="button" class="is-danger" data-delete-account="${a.id}">Supprimer</button></div>
         </div>` : ''}
       </div>`;
   }
@@ -782,20 +782,17 @@
             <button type="button" class="acc-menu__family-head ${isOpen ? 'is-open' : ''} ${isFamilyActive ? 'is-active' : ''}" data-select-family="${fam.id}">
               <span>${fam.name}</span><span class="chev">▾</span>
             </button>
-            <div class="acc-menu__family-hover">
-              <button type="button" class="acc-menu__family-hover-btn" aria-label="Ajouter un compte à ${fam.name}">→</button>
-              <div class="acc-menu__family-flyout">
-                <button type="button" data-add-to-family="${fam.id}">＋ Ajouter un compte</button>
-                <button type="button" class="is-backtest-btn" data-pick-backtest-family="${fam.id}">📊 ${fam.startBacktestId ? 'Changer le backtesting' : 'Choisir un backtesting'}</button>
-              </div>
-            </div>
             <div class="acc-tools">
               <button type="button" class="acc-tools__btn" aria-label="Options de la famille ${fam.name}">⋮</button>
-              <div class="acc-tools__menu"><button type="button" data-delete-family="${fam.id}">Supprimer</button></div>
+              <div class="acc-tools__menu">
+                <button type="button" data-add-to-family="${fam.id}">＋ Ajouter un compte</button>
+                <button type="button" data-pick-backtest-family="${fam.id}">📊 ${fam.startBacktestId ? 'Changer le backtesting' : 'Choisir un backtesting'}</button>
+                <button type="button" class="is-danger" data-delete-family="${fam.id}">Supprimer</button>
+              </div>
             </div>
           </div>
           <div class="acc-menu__family-accounts" ${isOpen ? '' : 'hidden'}>
-            ${famAccounts.length ? famAccounts.map((a) => accountRowHtml(a, active.id)).join('') : '<div class="acc-menu__item" style="cursor:default;color:var(--faint);font-size:12px">Vide — survole la flèche ci-dessus pour ajouter un compte.</div>'}
+            ${famAccounts.length ? famAccounts.map((a) => accountRowHtml(a, active.id)).join('') : '<div class="acc-menu__item" style="cursor:default;color:var(--faint);font-size:12px">Vide — utilise le ⋮ ci-dessus pour ajouter un compte.</div>'}
           </div>
         </div>`;
     }).join('');

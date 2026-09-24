@@ -85,49 +85,34 @@
   .acc-menu__family-add{ color:var(--acc); font-weight:600; }
   .acc-menu__family-row{ display:flex; align-items:center; gap:4px; }
   .acc-menu__family-row .acc-menu__family-head{ flex:1; }
-  .acc-menu__family-hover{ position:relative; flex-shrink:0; }
-  .acc-menu__family-hover-btn{
-    width:26px; height:26px; border-radius:50%; border:1px solid var(--line2); background:var(--bg);
-    color:var(--muted); cursor:pointer; font:inherit; font-size:13px; display:flex; align-items:center; justify-content:center;
-  }
-  .acc-menu__family-hover-btn:hover{ color:var(--acc); border-color:var(--acc); }
-  .acc-menu__family-flyout{
-    display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60; width:180px;
-    border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
-    box-shadow:0 16px 40px rgba(0,0,0,.35); padding:6px;
-  }
-  .acc-menu__family-hover:hover .acc-menu__family-flyout,
-  .acc-menu__family-hover:focus-within .acc-menu__family-flyout{ display:block; }
-  .acc-menu__family-flyout button{
-    display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; cursor:pointer;
-    padding:8px 9px; border-radius:8px; color:var(--acc); font:inherit; font-size:12.5px; font-weight:600; text-align:left;
-  }
-  .acc-menu__family-flyout button:hover{ background:var(--panel-2); }
-  .acc-menu__family-flyout button.is-backtest-btn{ color:var(--blue); }
 
-  /* ---------- Supprimer un compte ou une famille (2026-09-24, demande utilisateur) : un bouton ⋮
-     discret par ligne (compte seul ou famille), menu avec un seul choix "Supprimer" (rouge) - jamais
-     mélangé au flyout "Ajouter un compte"/"Backtesting" des familles (actions trop différentes pour
-     partager un menu). Même mécanique de hover que .acc-menu__family-hover ci-dessus. */
+  /* ---------- Menu ⋮ d'une ligne (compte seul ou famille) (2026-09-24, demande utilisateur : plus
+     de flèche séparée pour "Ajouter un compte"/"Backtesting" - "vulgaire", plus de rond derrière le
+     ⋮, un seul menu qui réunit tout, y compris Supprimer en dernier). Simple icône sans fond/bordure
+     au repos, seul le survol donne un indice visuel - un menu qui liste toutes les actions
+     disponibles pour la ligne (variable selon compte seul ou famille, voir accountRowHtml/
+     renderAccountMenu). */
   .acc-row{ display:flex; align-items:center; gap:4px; }
   .acc-row > .acc-menu__item{ flex:1; }
   .acc-tools{ position:relative; flex-shrink:0; }
   .acc-tools__btn{
-    width:26px; height:26px; border-radius:50%; border:1px solid var(--line2); background:var(--bg);
-    color:var(--muted); cursor:pointer; font:inherit; font-size:13px; display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px; border:none; background:transparent; border-radius:8px;
+    color:var(--muted); cursor:pointer; font:inherit; font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center;
   }
-  .acc-tools__btn:hover{ color:var(--ink); border-color:var(--muted); }
+  .acc-tools__btn:hover{ color:var(--ink); background:var(--panel-2); }
   .acc-tools__menu{
-    display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60; width:150px;
+    display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60; width:200px;
     border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
     box-shadow:0 16px 40px rgba(0,0,0,.35); padding:6px;
   }
   .acc-tools:hover .acc-tools__menu, .acc-tools:focus-within .acc-tools__menu{ display:block; }
   .acc-tools__menu button{
     display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; cursor:pointer;
-    padding:8px 9px; border-radius:8px; color:var(--red); font:inherit; font-size:12.5px; font-weight:600; text-align:left;
+    padding:8px 9px; border-radius:8px; color:var(--acc); font:inherit; font-size:12.5px; font-weight:600; text-align:left;
   }
-  .acc-tools__menu button:hover{ background:rgba(255,77,94,.12); }
+  .acc-tools__menu button:hover{ background:var(--panel-2); }
+  .acc-tools__menu button.is-danger{ color:var(--red); }
+  .acc-tools__menu button.is-danger:hover{ background:rgba(255,77,94,.12); }
 
   /* ---------- Compte "Live" (Myfxbook, admin, toujours synchronise) ---------- */
   .acc-switcher__btn.is-live{ border-color:rgba(51,230,166,.4); }
@@ -860,7 +845,7 @@
 <script src="js/myfxbook-store.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js?v=20"></script>
-<script src="js/dashboard.js?v=31"></script>
+<script src="js/dashboard.js?v=32"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>
