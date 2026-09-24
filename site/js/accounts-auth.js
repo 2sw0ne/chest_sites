@@ -117,19 +117,42 @@ window.CHESTAccounts = (() => {
   // validite reelle - un membre bloque gardait donc un acces complet a l'app (toutes les pages qui
   // ne font aucun appel serveur) jusqu'a l'expiration naturelle du jeton (30 jours). /me verifie la
   // session aupres du serveur au chargement de CHAQUE page qui charge ce fichier (iframe comme
-  // app.html), puis toutes les 2 minutes tant que la page reste ouverte - sur 401 (session absente,
-  // supprimee par un blocage), deconnexion + retour a l'ecran de connexion. Ne rien faire sur une
-  // simple coupure reseau (fetch() qui echoue), jamais deconnecter pour ca.
+  // app.html), puis toutes les 2 minutes tant que la page reste ouverte - sur 401 confirme,
+  // deconnexion + retour a l'ecran de connexion. Ne rien faire sur une simple coupure reseau
+  // (fetch() qui echoue), jamais deconnecter pour ca.
+  //
+  // BUG REEL rencontre le 2026-09-24 (retour utilisateur : "ca revient a la page de connexion,
+  // impossible d'ouvrir") : un premier 401 isole (redemarrage bref du serveur Railway apres l'ajout
+  // d'une variable d'environnement, ou tout autre alea reseau/serveur transitoire) suffisait a
+  // deconnecter une session par ailleurs valide - confirme en direct via l'onglet Reseau du
+  // navigateur de l'utilisateur (une requete GET /me a repondu 401 une seule fois, ce qui a suffi a
+  // declencher logout() + la redirection). Pire : logout() appelle POST /logout, qui SUPPRIME la
+  // session cote serveur - un seul faux positif dans UN onglet invalide donc la session pour de bon,
+  // y compris pour tous les autres onglets deja ouverts sur le meme compte. Corrige en exigeant DEUX
+  // 401 consecutifs, espaces de 3 secondes, avant de conclure a une vraie deconnexion - un simple
+  // alea isole ne suffit plus, seule une session reellement absente cote serveur echoue deux fois.
+  function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
+  async function checkMe(token) {
+    try {
+      const res = await fetch(`${apiBase()}/me`, { headers: { Authorization: 'Bearer ' + token } });
+      return res.status;
+    } catch (e) { return null; } // serveur injoignable - jamais traite comme un 401
+  }
   async function verifySessionAlive() {
     const token = getToken();
     if (!token) return;
-    try {
-      const res = await fetch(`${apiBase()}/me`, { headers: { Authorization: 'Bearer ' + token } });
-      if (res.status === 401 || res.status === 403) {
-        logout();
-        (window.top || window).location.href = 'login.html';
-      }
-    } catch (e) { /* serveur injoignable - pas un motif de deconnexion */ }
+    const first = await checkMe(token);
+    if (first !== 401 && first !== 403) return;
+    await wait(3000);
+    // Le jeton a pu changer entre-temps (reconnexion manuelle pendant les 3s) - on revérifie avec
+    // le jeton ACTUEL, pas celui capturé au premier essai.
+    const tokenNow = getToken();
+    if (!tokenNow) return;
+    const second = await checkMe(tokenNow);
+    if (second === 401 || second === 403) {
+      logout();
+      (window.top || window).location.href = 'login.html';
+    }
   }
   verifySessionAlive();
   setInterval(verifySessionAlive, 120000);
