@@ -761,7 +761,10 @@
         ${canDelete ? `
         <div class="acc-tools">
           <button type="button" class="acc-tools__btn" aria-label="Options du compte ${a.name}">⋮</button>
-          <div class="acc-tools__menu"><button type="button" class="is-danger" data-delete-account="${a.id}">Supprimer</button></div>
+          <div class="acc-tools__menu">
+            <button type="button" data-pick-backtest-account="${a.id}">📊 ${a.startBacktestId ? 'Changer le backtesting' : 'Choisir un backtesting'}</button>
+            <button type="button" class="is-danger" data-delete-account="${a.id}">Supprimer</button>
+          </div>
         </div>` : ''}
       </div>`;
   }
@@ -836,7 +839,13 @@
     list.querySelectorAll('[data-pick-backtest-family]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        openFamilyBacktestModal(btn.dataset.pickBacktestFamily);
+        openBacktestPicker('family', btn.dataset.pickBacktestFamily);
+      });
+    });
+    list.querySelectorAll('[data-pick-backtest-account]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openBacktestPicker('account', btn.dataset.pickBacktestAccount);
       });
     });
   }
@@ -882,15 +891,20 @@
     });
   }
 
-  // ---------- Backtesting de depart d'une FAMILLE (choix accessible depuis
-  // la fleche du switcher, a cote de "+ Ajouter un compte") ----------
-  let pendingBacktestFamilyId = null;
-  function openFamilyBacktestModal(famId) {
-    pendingBacktestFamilyId = famId;
-    const fam = loadFamilies().find((f) => f.id === famId);
+  // ---------- Backtesting de depart d'une FAMILLE OU D'UN COMPTE SEUL (choix accessible depuis le
+  // menu ⋮ du switcher) - generalise (2026-09-25, retour utilisateur : "j'ai un compte connecte a
+  // myfxbook et que j'ajoute un backtesting, il marche pas, y a rien qui s'affiche") : le pipeline de
+  // rendu (refreshActiveAccount(), ligne ~1657) lisait deja startBacktestId sur un compte INDIVIDUEL
+  // aussi bien que sur une famille - seul CE picker et son bouton n'existaient que pour les
+  // familles, un compte seul (myfxbook ou pas) n'avait simplement aucun moyen d'en choisir un apres
+  // sa creation (uniquement a la creation, via #addAccountBacktest dans "Ajouter un compte"). ----------
+  let pendingBacktestTarget = null; // { kind: 'family'|'account', id }
+  function openBacktestPicker(kind, id) {
+    pendingBacktestTarget = { kind, id };
+    const target = kind === 'family' ? loadFamilies().find((f) => f.id === id) : loadAccounts().find((a) => a.id === id);
     const items = (window.CHESTBacktests && window.CHESTBacktests.list()) || [];
     const rows = [];
-    if (fam && fam.startBacktestId) {
+    if (target && target.startBacktestId) {
       rows.push(`<button type="button" class="mfx-account-row" data-backtest-choice="">✕ Retirer le backtesting actuel</button>`);
     }
     if (!items.length) {
@@ -898,7 +912,7 @@
     } else {
       items.forEach((b) => {
         rows.push(`
-          <button type="button" class="mfx-account-row ${fam && fam.startBacktestId === b.id ? 'is-selected' : ''}" data-backtest-choice="${b.id}">
+          <button type="button" class="mfx-account-row ${target && target.startBacktestId === b.id ? 'is-selected' : ''}" data-backtest-choice="${b.id}">
             <span><strong>${b.title}</strong><span>${b.trades.length} trades · ${money(b.capital)} capital</span></span>
           </button>`);
       });
@@ -906,21 +920,31 @@
     const list = document.getElementById('familyBacktestList');
     list.innerHTML = rows.join('');
     list.querySelectorAll('[data-backtest-choice]').forEach((btn) => {
-      btn.addEventListener('click', () => setFamilyBacktest(pendingBacktestFamilyId, btn.dataset.backtestChoice || null));
+      btn.addEventListener('click', () => setBacktestTarget(btn.dataset.backtestChoice || null));
     });
     document.getElementById('familyBacktestModal').classList.add('is-open');
   }
   function closeFamilyBacktestModal() { document.getElementById('familyBacktestModal').classList.remove('is-open'); }
-  function setFamilyBacktest(famId, backtestId) {
-    const families = loadFamilies();
-    const fam = families.find((f) => f.id === famId);
-    if (!fam) return;
-    fam.startBacktestId = backtestId || null;
-    saveFamilies(families);
+  function setBacktestTarget(backtestId) {
+    if (!pendingBacktestTarget) return;
+    const { kind, id } = pendingBacktestTarget;
+    if (kind === 'family') {
+      const families = loadFamilies();
+      const fam = families.find((f) => f.id === id);
+      if (!fam) return;
+      fam.startBacktestId = backtestId || null;
+      saveFamilies(families);
+    } else {
+      const accounts = loadAccounts();
+      const acc = accounts.find((a) => a.id === id);
+      if (!acc) return;
+      acc.startBacktestId = backtestId || null;
+      saveAccounts(accounts);
+    }
     closeFamilyBacktestModal();
     closeMenu();
     renderAll();
-    showToast(backtestId ? 'Backtesting associé à la famille ✓' : 'Backtesting retiré');
+    showToast(backtestId ? 'Backtesting associé ✓' : 'Backtesting retiré');
   }
   function initFamilyBacktestModal() {
     document.getElementById('familyBacktestClose').addEventListener('click', closeFamilyBacktestModal);
@@ -1611,9 +1635,9 @@
     const payouts = members.flatMap((a) => (a.payouts || []).map((p) => ({ ...p, accountName: a.name })));
 
     // Trades unifies : ceux de CHAQUE membre myfxbook reel + le backtest
-    // choisi POUR LA FAMILLE (openFamilyBacktestModal) une seule fois -
-    // jamais le backtest individuel d'un membre, qui ne s'applique qu'a sa
-    // propre vue (intention deja en place avant ce refactor).
+    // choisi POUR LA FAMILLE (openBacktestPicker('family', ...)) une seule
+    // fois - jamais le backtest individuel d'un membre, qui ne s'applique
+    // qu'a sa propre vue (intention deja en place avant ce refactor).
     const riskPct = fixedRiskPercent();
     const trades = members.filter((a) => a.myfxbook).flatMap((a) => realTradesWithRR(a.id, a.history, riskPct, a.balance));
     let backtestLinkedTitle = null;
