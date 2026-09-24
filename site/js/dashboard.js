@@ -6,6 +6,16 @@
   const FAMILIES_KEY = 'chest_account_families';
   const LIVE_SWANN_KEY = 'chest_live_account';
   const SIMPLE_MODE_KEY = 'chest_dashboard_simple_mode';
+  // Dernier identifiant Myfxbook utilisé avec succès dans "Ajouter un compte" (2026-09-24, demande
+  // utilisateur : "pas le mettre à chaque fois") - même principe déjà accepté ailleurs sur ce site
+  // pour Myfxbook (Live Swann, comptes live du Journal : identifiants gardés dans le navigateur).
+  const MFX_LAST_LOGIN_KEY = 'chest_mfx_last_login';
+  function saveLastMfxLogin(email, password) {
+    try { localStorage.setItem(MFX_LAST_LOGIN_KEY, JSON.stringify({ email, password })); } catch (e) { /* tant pis */ }
+  }
+  function loadLastMfxLogin() {
+    try { return JSON.parse(localStorage.getItem(MFX_LAST_LOGIN_KEY) || 'null'); } catch (e) { return null; }
+  }
 
   // "Mode simple" : masque ENTIEREMENT le backtest de depart (equity,
   // calendrier, RR/winrate) du Dashboard - retour direct utilisateur du
@@ -656,6 +666,11 @@
       return {
         balance, equity, pnl: equity - balance, today: 0, // "today" recalcule depuis dailyHistory juste apres (voir refreshActiveAccount)
         syncedAt: new Date().toISOString(),
+        // number/type manquaient ici (2026-09-24, retour utilisateur : "#undefined · undefined" affiché
+        // sous le nom du compte) - seul le repli d'erreur de tryLoadLiveSwann() les renseignait, jamais
+        // une synchro réussie. Mêmes valeurs que ce repli, pour un affichage identique que la synchro
+        // Myfxbook réussisse ou échoue (moins de "clignotement" visuel entre les deux états).
+        number: mfx.accountId, type: mfx.demo ? 'Démo' : 'Réel',
         dailyGainAsc, // garde pour l'historique persiste (mergeMyfxbookHistory/extendWithPersistedHistory)
         history, // garde pour le RR reel et la courbe intra-journee (voir unifiedTradesList/intradayCurveFromTrades)
       };
@@ -1829,8 +1844,11 @@
     document.getElementById('addAccountBacktest').value = '';
     document.getElementById('mfxStepIntro').hidden = false;
     document.getElementById('mfxDetailsStep').hidden = true;
-    document.getElementById('mfxEmail').value = '';
-    document.getElementById('mfxPassword').value = '';
+    // Preremplit avec le dernier identifiant Myfxbook connecte avec succes (voir saveLastMfxLogin) -
+    // toujours modifiable si on ajoute un compte d'un AUTRE profil Myfxbook.
+    const lastMfx = loadLastMfxLogin();
+    document.getElementById('mfxEmail').value = (lastMfx && lastMfx.email) || '';
+    document.getElementById('mfxPassword').value = (lastMfx && lastMfx.password) || '';
     document.getElementById('mfxLoginError').style.display = 'none';
     document.getElementById('mfxLoginForm').hidden = false;
     document.getElementById('mfxAccountsPicker').hidden = true;
@@ -2053,6 +2071,7 @@
         const session = await CHESTMyfxbook.login(email, password);
         mfxAccounts = await CHESTMyfxbook.getMyAccounts(session);
         CHESTMyfxbook.logout(session);
+        saveLastMfxLogin(email, password); // identifiants valides - reutilises au prochain "Ajouter un compte"
         if (!mfxAccounts.length) {
           errEl.textContent = "Aucun compte relié à ce profil Myfxbook — va d'abord sur myfxbook.com > Portfolio > Add Account.";
           errEl.style.display = '';
