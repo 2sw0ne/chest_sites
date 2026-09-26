@@ -46,6 +46,31 @@
     try { return SYNCED_KEYS.some((k) => localStorage.getItem(k) !== null); } catch (e) { return true; }
   }
 
+  // BUG REEL corrige ici (2026-09-26, retour utilisateur : "j'ai pas mes rapports de backtesting"
+  // / "j'ai pas les familles aussi") : la 1re version n'interceptait que les FUTURES écritures
+  // (setItem monkey-patché plus bas) - tout ce qui était déjà dans le navigateur AVANT même
+  // l'existence de cette synchro (backtests, familles créés les jours précédents) n'avait jamais
+  // été poussé vers le serveur, donc n'existait nulle part pour qu'un autre appareil le récupère.
+  // pushExistingLocalData() corrige ça en poussant, à CHAQUE chargement de page, la valeur
+  // actuelle de toute clé suivie déjà présente en local - pas seulement celles qui viennent de
+  // changer. Ça peut sembler redondant (renvoyer une donnée qui n'a pas bougé), mais c'est
+  // largement moins cher qu'un vrai bug de données manquantes, et le volume reste minime.
+  function pushExistingLocalData() {
+    const token = getToken();
+    if (!token) return;
+    const data = {};
+    SYNCED_KEYS.forEach((key) => {
+      const v = localStorage.getItem(key);
+      if (v !== null) data[key] = v;
+    });
+    if (!Object.keys(data).length) return;
+    fetch(apiBase() + '/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ data }),
+    }).catch(() => { /* tant pis, retentera au prochain chargement de page */ });
+  }
+
   async function pullSync() {
     const token = getToken();
     if (!token) return;
@@ -63,8 +88,11 @@
       // Nouvel appareil (rien en local avant) qui vient de recevoir de vraies données : un seul
       // rechargement pour que la page déjà affichée (rendue vide/par défaut) les reflète, sans quoi
       // il faudrait naviguer manuellement pour les voir apparaître.
-      if (wasEmpty && changed) location.reload();
+      if (wasEmpty && changed) { location.reload(); return; }
     } catch (e) { /* hors-ligne / serveur injoignable : on garde ce qu'il y a deja en local */ }
+    // Ce que CET appareil a en local (déjà là avant, ou reçu du serveur juste au-dessus) part
+    // aussi vers le serveur - voir le commentaire de pushExistingLocalData().
+    pushExistingLocalData();
   }
   pullSync();
 
