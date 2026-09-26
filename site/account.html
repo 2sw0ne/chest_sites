@@ -618,7 +618,10 @@ CHESTTour.init([
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({ title: 'CHEST — test', body: 'Si tu vois ceci, les notifications marchent sur cet appareil.' }),
       });
-      const body = await res.json();
+      const raw = await res.text();
+      let body;
+      try { body = JSON.parse(raw); }
+      catch (e) { throw new Error(`Réponse inattendue du serveur (code ${res.status}).`); }
       if (!res.ok || body.error) throw new Error(body.error || 'Échec de l\'envoi.');
       showToast(body.sent ? 'Notification test envoyée ✓' : "Aucun appareil abonné n'a été trouvé.");
     } catch (e) { showToast(e.message || "Impossible d'envoyer le test."); }

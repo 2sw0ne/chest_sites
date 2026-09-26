@@ -833,7 +833,7 @@ def _send_push_to_subscriptions(subs, title, body_text, url=None):
     if not VAPID_PRIVATE_KEY:
         return {"sent": 0, "error": "VAPID_PRIVATE_KEY non configurée côté serveur."}
     payload = json.dumps({"title": title, "body": body_text, "url": url or "app.html"})
-    sent, dead = 0, []
+    sent, dead, last_error = 0, [], None
     for sub in subs:
         try:
             webpush(
@@ -849,11 +849,23 @@ def _send_push_to_subscriptions(subs, title, body_text, url=None):
         except WebPushException as e:
             if e.response is not None and e.response.status_code in (404, 410):
                 dead.append(sub["endpoint"])
+            else:
+                last_error = str(e)
+        except Exception as e:
+            # Ne JAMAIS laisser une exception (ex. cle VAPID_PRIVATE_KEY malformee - piege frequent :
+            # les retours a la ligne du PEM perdus en collant dans le champ Railway) remonter telle
+            # quelle : Flask renverrait alors une page d'erreur HTML au lieu de JSON, et le bouton
+            # "Envoyer un test" d'account.html plante sur "Unexpected token" en essayant de la
+            # parser (retour utilisateur, 2026-09-26). Toujours répondre en JSON, avec le detail.
+            last_error = str(e)
     if dead:
         with db_lock:
             get_db().executemany("DELETE FROM push_subscriptions WHERE endpoint = ?", [(e,) for e in dead])
             get_db().commit()
-    return {"sent": sent, "removed": len(dead)}
+    result = {"sent": sent, "removed": len(dead)}
+    if sent == 0 and last_error:
+        result["error"] = last_error
+    return result
 
 
 def send_push_to_user(user_id, title, body_text, url=None):
