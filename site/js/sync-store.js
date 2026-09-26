@@ -35,7 +35,7 @@
     'chest_journal_active_account', 'chest_journal_ext',
     'chest_berich_connection', 'chest_berich_taken', 'chest_berich_last_risk_choice',
     'chest_sentiment_pair', 'chest_timezone', 'chest_profile',
-    'chest_scanner_drawings', 'chest_theme', 'chest_admin_preview_mode',
+    'chest_scanner_drawings', 'chest_theme', 'chest_admin_preview_mode', 'chest_ui_scale',
   ];
 
   function apiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }

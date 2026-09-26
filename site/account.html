@@ -11,12 +11,13 @@
      experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
      charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
 <style>html,body{background:#050505}</style>
+<script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=17">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=17">
+<link rel="stylesheet" href="css/chest-da.css?v=18">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Vrais drapeaux SVG - les emoji "indicateur regional" s'affichent en
@@ -142,8 +143,8 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=1"></script>
-<script src="js/sync-store.js?v=1"></script>
-<script src="js/pwa.js?v=2"></script>
+<script src="js/sync-store.js?v=2"></script>
+<script src="js/pwa.js?v=3"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="account" class="chest-root">
@@ -209,6 +210,20 @@
         </div>
       </div>
       <button type="button" class="chest-btn-2" data-open-drawer="theme" data-drawer-title="Apparence">Changer</button>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row__info">
+        <div class="settings-row__text">
+          <p class="settings-row__title">Taille de l'affichage</p>
+          <p class="settings-row__value">Agrandit ou réduit tous les éléments de l'app.</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+        <button type="button" class="chest-btn-2" id="uiScaleMinusBtn" aria-label="Réduire">−</button>
+        <span id="uiScaleValue" style="min-width:42px;text-align:center;font-size:13px;font-weight:700">100%</span>
+        <button type="button" class="chest-btn-2" id="uiScalePlusBtn" aria-label="Agrandir">+</button>
+      </div>
     </div>
 
     <div class="settings-row">
@@ -543,18 +558,44 @@ CHESTTour.init([
   }));
   document.addEventListener('chest:theme', () => { reflectThemeChoice(); updateThemeRow(); });
 
+  // ---------- Taille de l'affichage (2026-09-26, demande utilisateur) ----------
+  const UI_SCALE_KEY = 'chest_ui_scale';
+  const UI_SCALE_MIN = 85, UI_SCALE_MAX = 125, UI_SCALE_STEP = 5;
+  const uiScaleValueEl = document.getElementById('uiScaleValue');
+  const uiScaleMinusBtn = document.getElementById('uiScaleMinusBtn');
+  const uiScalePlusBtn = document.getElementById('uiScalePlusBtn');
+  function getUiScale() {
+    const s = parseInt(localStorage.getItem(UI_SCALE_KEY), 10);
+    return (s >= UI_SCALE_MIN && s <= UI_SCALE_MAX) ? s : 100;
+  }
+  function applyUiScale(pct) {
+    document.documentElement.style.setProperty('--chest-ui-scale', pct / 100);
+    uiScaleValueEl.textContent = pct + '%';
+    uiScaleMinusBtn.disabled = pct <= UI_SCALE_MIN;
+    uiScalePlusBtn.disabled = pct >= UI_SCALE_MAX;
+  }
+  function setUiScale(pct) {
+    pct = Math.max(UI_SCALE_MIN, Math.min(UI_SCALE_MAX, pct));
+    localStorage.setItem(UI_SCALE_KEY, String(pct));
+    applyUiScale(pct);
+  }
+  uiScaleMinusBtn.addEventListener('click', () => setUiScale(getUiScale() - UI_SCALE_STEP));
+  uiScalePlusBtn.addEventListener('click', () => setUiScale(getUiScale() + UI_SCALE_STEP));
+  applyUiScale(getUiScale());
+
   // ---------- Notifications push (2026-09-26, demande utilisateur) ----------
   const notifBtn = document.getElementById('notifToggleBtn');
   const notifValueEl = document.getElementById('notifRowValue');
   const NOTIF_LABELS = {
     unsupported: 'Non supportées par ce navigateur', denied: 'Bloquées (autorise-les dans les réglages du navigateur)',
+    'ios-install-required': "Installe d'abord CHEST sur l'écran d'accueil (Safari : Partager → Sur l'écran d'accueil) — iOS l'exige avant d'autoriser les notifications",
     enabled: 'Activées sur cet appareil', disabled: 'Désactivées', loading: '…',
   };
   async function refreshNotifRow() {
     if (!window.CHESTPwa) { notifValueEl.textContent = NOTIF_LABELS.unsupported; notifBtn.hidden = true; return; }
     const status = await CHESTPwa.notificationStatus();
     notifValueEl.textContent = NOTIF_LABELS[status] || NOTIF_LABELS.unsupported;
-    notifBtn.hidden = status === 'unsupported' || status === 'denied';
+    notifBtn.hidden = status === 'unsupported' || status === 'denied' || status === 'ios-install-required';
     notifBtn.textContent = status === 'enabled' ? 'Désactiver' : 'Activer';
   }
   notifBtn.addEventListener('click', async () => {

@@ -49,12 +49,28 @@
 }
 
 /* ---------- Page ---------- */
+/* Empeche toute page de se deplacer horizontalement (retour utilisateur repete
+   sur mobile : "je veux juste pouvoir descendre") - un element ponctuellement
+   trop large ne doit jamais faire glisser tout l'ecran sur le cote, au pire il
+   est simplement rogne. S'applique a TOUTES les pages (chaque page de contenu
+   a son propre html/body, chargee dans l'iframe du shell - voir app.html). */
+html, body{ overflow-x:hidden; max-width:100%; }
+
 .chest-root{
   background: var(--chest-bg);
   color: var(--chest-ink);
   font-family: 'Instrument Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+/* Reglage "Taille de l'affichage" (compte.html) - --chest-ui-scale est pose
+   tres tot par un petit script inline en tete de chaque page (avant le premier
+   rendu, aucun flash) a partir de localStorage("chest_ui_scale"). `zoom` (pas
+   `transform:scale`) car il redimensionne aussi la mise en page elle-meme (les
+   tailles ici sont presque toutes en px, pas en rem) sans decaler le point
+   d'ancrage ni casser position:fixed - supporte par tous les moteurs cibles
+   (Safari/Chrome mobile, Firefox recent). */
+html{ --chest-ui-scale: 1; }
+body.chest-root{ zoom: var(--chest-ui-scale); }
 /* Pas de regle globale ".chest-root a{color:...}" : elle battait par
    specificite les couleurs des composants (nav, boutons-liens...) qui
    n'ont qu'une seule classe - constate en direct, le texte du menu

@@ -11,12 +11,13 @@
      experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
      charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
 <style>html,body{background:#050505}</style>
+<script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=2">
 <link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=17">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=17">
+<link rel="stylesheet" href="css/chest-da.css?v=18">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : une regle de classe qui fixe elle-meme `display`
@@ -423,7 +424,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=1"></script>
-<script src="js/sync-store.js?v=1"></script>
+<script src="js/sync-store.js?v=2"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="dashboard" class="chest-root">

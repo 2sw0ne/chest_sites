@@ -28,8 +28,19 @@
     return output;
   }
 
+  // Safari iOS n'expose PushManager/Notification QUE si le site tourne installé
+  // depuis l'écran d'accueil (standalone) — restriction Apple depuis iOS 16.4,
+  // pas un vrai "navigateur non supporté". Sans cette distinction, un iPhone
+  // dans Safari normal affichait "non supportées par ce navigateur", message
+  // trompeur puisque le vrai problème est "pas encore installé" (2026-09-26,
+  // retour utilisateur).
+  function isIOS() { return /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  function isStandalone() { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+
   async function notificationStatus() {
-    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported';
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return (isIOS() && !isStandalone()) ? 'ios-install-required' : 'unsupported';
+    }
     if (Notification.permission === 'denied') return 'denied';
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
