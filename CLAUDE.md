@@ -381,17 +381,57 @@ décisions sans qu'elle soit redemandée.
   forcé. **`js/pwa.js`** enregistre le service worker et expose
   `CHESTPwa.notificationStatus()`/`enableNotifications()`/`disableNotifications()`, utilisés par
   le nouveau réglage "Notifications" d'`account.html`.
-- **Pas encore fait, à définir avec l'utilisateur avant de s'y lancer** : les vrais déclencheurs
-  d'envoi de notifications (`/push/send` n'est pour l'instant qu'un outil de test admin) — quels
-  évènements doivent réellement pousser une notification ? Candidats évidents vu le reste du site :
-  annonce majeure du calendrier économique qui arrive, signal détecté sur un scanner (Stratégies),
-  backtest terminé. Aucun de ces déclencheurs n'est câblé.
+- **Déclencheurs automatiques** : voir section dédiée « Déclencheurs de notifications push »
+  juste en dessous — câblés le même jour, après cette base.
 - **Vérifié en direct** (session de test locale, jamais contre les vraies données de l'utilisateur) :
   simulation d'un appareil neuf (localStorage vidé) → connexion → données déjà connues du serveur
   récupérées automatiquement → réapparition après un seul rechargement ; écriture locale → confirmée
   arrivée côté serveur (round-trip complet, vérifié aussi en direct via `curl`) ; service worker
   enregistré et actif (`navigator.serviceWorker.getRegistrations()`) ; réglage Notifications
   réagit correctement à l'état de permission du navigateur (masqué si bloquées/non supportées).
+
+## Déclencheurs de notifications push (2026-09-26)
+
+Suite directe de la section précédente : la base (VAPID, `/sync`, abonnements) était posée mais
+aucun évènement réel ne déclenchait encore d'envoi. Demande utilisateur, verbatim : "met 1, 2, 4
+mais plutot toute les infos de modification du propfirm. en mode si on a tp, ou sl, de combien
+ect... 5 pour les nouveau membre oui avec le prenom ect..." — sur une liste proposée de 5
+candidats, l'utilisateur a choisi 1 (signal détecté), 2 (annonce calendrier à venir), une version
+redéfinie de 4 (pas "limite du propfirm approche" mais bien TOUTE clôture TP/SL avec le détail), et
+5 (nouveau membre, avec prénom).
+
+- **Mécanisme partagé** : `INTERNAL_PUSH_SECRET` (variable d'environnement Railway, PARTAGÉE entre
+  `accounts-bridge`, `berich-bridge` et `calendar-bridge` — à définir manuellement, aucune valeur
+  par défaut) protège `accounts-bridge` `POST /push/broadcast` : ce n'est PAS un jeton de session
+  utilisateur (un webhook TradingView ou une boucle de fond n'a pas de session), juste un secret
+  service-à-service. `accounts-bridge/server.py` : `send_push_to_all(...)` (tout le monde — signal
+  scanner et annonce calendrier concernent tout le monde) et `send_push_to_admins(...)` (jointure
+  `push_subscriptions`+`users` filtrée `is_admin=1` — nouveau membre ne concerne que les admins).
+- **1 + « 4 » redéfini — `berich-bridge/server.py`** : `notify()` (POST vers
+  `/push/broadcast`, jamais bloquant — `except (URLError, OSError): pass`) appelé (a) à l'ouverture
+  d'un signal dans `/webhook` (paire, sens, entrée, SL, TP calculé) et (b) à la clôture (TP ou SL
+  touché, avec le prix de sortie exact). **Aucune nouvelle infra de sondage MyFXBook nécessaire** —
+  le webhook du script Pine "BE FR€E" contenait déjà tout ce qu'il fallait ; construire un poll
+  serveur des comptes MyFXBook aurait été un chantier bien plus lourd pour rien.
+  `ACCOUNTS_BRIDGE_URL`/`INTERNAL_PUSH_SECRET` à définir sur ce service Railway.
+- **5 — `accounts-bridge/server.py`, `signup()`** : juste après l'email existant (`send_signup_notification`,
+  jamais remplacé, l'un n'exclut pas l'autre — l'admin peut avoir désactivé les notifications),
+  `send_push_to_admins("Nouveau membre CHEST", f"{first_name} {last_name} vient de créer un compte
+  ({email}).", "admin-members.html")`, dans un `try/except` qui ne bloque jamais l'inscription.
+- **2 — `calendar-bridge/server.py`** : PAS de nouveau scraping (le refresh lent existant,
+  `REFRESH_SECONDS` = 2h, reste inchangé — volontairement lent, voir le commentaire au-dessus de
+  `REFRESH_SECONDS` sur les crashs OOM Railway déjà rencontrés). À la place, une boucle SÉPARÉE et
+  rapide (`notify_loop()`, `NOTIFY_CHECK_SECONDS` = 60s) relit uniquement `state["data"]["events"]`
+  déjà en mémoire, repère les évènements `"importance": "high"` dont l'heure (`date`+`time`, fuseau
+  Paris) tombe dans les `NOTIFY_WINDOW_MINUTES` (20) minutes à venir, et notifie une fois par
+  évènement (`notified_event_ids`, mémoire seulement — se réinitialise à chaque redémarrage du
+  conteneur, jugé sans conséquence : au pire une annonce déjà passée pourrait renotifier juste après
+  un redéploiement, jamais de spam en boucle). `ACCOUNTS_BRIDGE_URL`/`INTERNAL_PUSH_SECRET` à
+  définir aussi sur ce service Railway.
+- **Pas encore testé en conditions réelles** : les trois câblages sont vérifiés syntaxiquement
+  (`ast.parse`) mais aucun appel de test (webhook BERICH, inscription réelle, évènement calendrier
+  imminent) n'a encore été déclenché de bout en bout après déploiement — à surveiller au premier
+  vrai signal/inscription/annonce une fois les variables d'environnement Railway posées.
 
 ## Corrections post-premier-déploiement (2026-09-24)
 
