@@ -84,11 +84,20 @@ def _normalize_vapid_key(raw: str) -> str:
     coller sur Railway, ce qui faisait planter webpush() ("Could not deserialize key data... ASN.1
     parsing error"). Tolérance ajoutée ici pour accepter les deux formats, quel que soit celui
     collé dans la variable d'environnement."""
+    # JAMAIS laisser une clé mal formée planter le démarrage (ce code tourne au chargement du
+    # module, avant même que Flask n'existe) - un incident réel (2026-09-26) a fait crash-looper
+    # TOUT accounts-bridge en boucle sur une PEM invalide collée sur Railway, alors qu'une clé VAPID
+    # cassée ne devrait désactiver QUE les notifications push (voir le "if not VAPID_PRIVATE_KEY"
+    # dans _send_push_to_subscriptions - conçu pour dégrader en douceur, pas pour planter).
     if "BEGIN" in raw:
-        from cryptography.hazmat.primitives import serialization
-        key = serialization.load_pem_private_key(raw.encode(), password=None)
-        value = key.private_numbers().private_value.to_bytes(32, "big")
-        return base64.urlsafe_b64encode(value).rstrip(b"=").decode()
+        try:
+            from cryptography.hazmat.primitives import serialization
+            key = serialization.load_pem_private_key(raw.encode(), password=None)
+            value = key.private_numbers().private_value.to_bytes(32, "big")
+            return base64.urlsafe_b64encode(value).rstrip(b"=").decode()
+        except Exception as exc:
+            print(f"VAPID_PRIVATE_KEY : PEM illisible ({exc}) - notifications push désactivées.")
+            return ""
     return raw
 
 
