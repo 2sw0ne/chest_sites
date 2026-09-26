@@ -51,15 +51,19 @@ self.addEventListener('fetch', (event) => {
 // notification recue et reagir a son clic.
 self.addEventListener('push', (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch (e) { data = { title: 'CHEST', body: event.data ? event.data.text() : '' }; }
-  const title = data.title || 'CHEST';
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data ? event.data.text() : '' }; }
+  // Demande utilisateur (2026-09-27) : pas de titre distinct - iOS affiche dejà automatiquement le
+  // nom de l'app (CHEST) + son icone au-dessus de chaque notif ; un titre en plus faisait doublon
+  // ("CHEST" / "CHEST — test"). Le corps contient maintenant TOUT (l'eventuel titre envoye par le
+  // serveur y est fusionne), et on passe une chaine vide comme titre a showNotification().
+  const body = data.title ? `${data.title} — ${data.body || ''}` : (data.body || '');
   const options = {
-    body: data.body || '',
+    body,
     icon: 'assets/icon-192.png',
     badge: 'assets/icon-192.png',
     data: { url: data.url || 'app.html' },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(self.registration.showNotification('', options));
 });
 
 self.addEventListener('notificationclick', (event) => {

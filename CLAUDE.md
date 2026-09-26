@@ -428,10 +428,34 @@ redéfinie de 4 (pas "limite du propfirm approche" mais bien TOUTE clôture TP/S
   conteneur, jugé sans conséquence : au pire une annonce déjà passée pourrait renotifier juste après
   un redéploiement, jamais de spam en boucle). `ACCOUNTS_BRIDGE_URL`/`INTERNAL_PUSH_SECRET` à
   définir aussi sur ce service Railway.
-- **Pas encore testé en conditions réelles** : les trois câblages sont vérifiés syntaxiquement
-  (`ast.parse`) mais aucun appel de test (webhook BERICH, inscription réelle, évènement calendrier
-  imminent) n'a encore été déclenché de bout en bout après déploiement — à surveiller au premier
-  vrai signal/inscription/annonce une fois les variables d'environnement Railway posées.
+- **Testé en conditions réelles (2026-09-26/27) — deux vrais incidents de déploiement, corrigés :**
+  1. **Format de `VAPID_PRIVATE_KEY`** : `py_vapid` (utilisé par `pywebpush`) attend la clé privée
+     sous forme **brute** (le scalaire encodé en base64 urlsafe SANS padding, ex.
+     `ZC-ODFv9sBMKoUIqdiqOrdegE7koDLJRENm2KL8v3bM`), **pas** le bloc PEM
+     (`-----BEGIN PRIVATE KEY-----...`) donné initialement à coller sur Railway — coller le PEM
+     faisait planter `webpush()` (`ASN.1 parsing error`). `accounts-bridge/server.py` accepte
+     maintenant les deux formats (`_normalize_vapid_key()` détecte "BEGIN" et convertit), mais **le
+     format brut reste préférable** à coller sur Railway (une seule ligne, alphabet
+     base64-urlsafe uniquement — aucun tiret/retour à la ligne à perdre en copiant).
+  2. **Incident critique évité de justesse** : la 1re version de `_normalize_vapid_key()` plantait
+     (exception non rattrapée) si le PEM collé était illisible — comme ce code tourne au
+     chargement du module (avant l'initialisation de Flask), ça faisait **crash-boucler tout
+     `accounts-bridge`** (plus de `/me`, `/login`, rien), pas seulement les notifications. Corrigé :
+     toute erreur de parsing s'y rabat sur `""` (notifications désactivées, dégradation en douceur
+     déjà prévue par le `if not VAPID_PRIVATE_KEY` existant) — **une clé VAPID cassée ne doit
+     jamais pouvoir affecter autre chose que les notifications.**
+  - Signal BERICH (ouverture/clôture) et nouveau membre confirmés fonctionnels sur un vrai iPhone.
+     L'annonce calendrier (item 2) reste à confirmer au prochain évènement à fort impact.
+- **Notifications sans titre séparé (2026-09-27, demande utilisateur)** : iOS affiche déjà
+  automatiquement le nom de l'app (CHEST) + son icône au-dessus de chaque notif — un titre
+  `showNotification()` en plus faisait doublon visuel ("CHEST" / "CHEST — test"). `site/sw.js`
+  fusionne maintenant l'éventuel `title` envoyé par le serveur DANS le `body` (`${title} — ${body}`)
+  et passe une chaîne vide comme titre à `showNotification()` — le corps contient tout, aucun
+  changement nécessaire côté serveur (les trois déclencheurs continuent d'envoyer `title`+`body`
+  séparément, la fusion se fait uniquement côté client).
+- **Bouton "Envoyer un test"** (ajouté temporairement dans `account.html` pour diagnostiquer les
+  deux incidents ci-dessus) retiré une fois la fonctionnalité confirmée — `POST /push/send` reste
+  disponible côté serveur (admin, gated) pour un futur test manuel via `curl` au besoin.
 
 ## Corrections post-premier-déploiement (2026-09-24)
 

@@ -233,10 +233,7 @@
           <p class="settings-row__value" id="notifRowValue">—</p>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-        <button type="button" class="chest-btn-2" id="notifTestBtn" hidden style="opacity:.75">Envoyer un test</button>
-        <button type="button" class="chest-btn-2" id="notifToggleBtn">…</button>
-      </div>
+      <button type="button" class="chest-btn-2" id="notifToggleBtn">…</button>
     </div>
 
     <div class="settings-row">
@@ -594,40 +591,13 @@ CHESTTour.init([
     'ios-install-required': "Installe d'abord CHEST sur l'écran d'accueil (Safari : Partager → Sur l'écran d'accueil) — iOS l'exige avant d'autoriser les notifications",
     enabled: 'Activées sur cet appareil', disabled: 'Désactivées', loading: '…',
   };
-  const notifTestBtn = document.getElementById('notifTestBtn');
   async function refreshNotifRow() {
-    if (!window.CHESTPwa) { notifValueEl.textContent = NOTIF_LABELS.unsupported; notifBtn.hidden = true; notifTestBtn.hidden = true; return; }
+    if (!window.CHESTPwa) { notifValueEl.textContent = NOTIF_LABELS.unsupported; notifBtn.hidden = true; return; }
     const status = await CHESTPwa.notificationStatus();
     notifValueEl.textContent = NOTIF_LABELS[status] || NOTIF_LABELS.unsupported;
     notifBtn.hidden = status === 'unsupported' || status === 'denied' || status === 'ios-install-required';
     notifBtn.textContent = status === 'enabled' ? 'Désactiver' : 'Activer';
-    notifTestBtn.hidden = status !== 'enabled';
   }
-  // Bouton "Envoyer un test" (2026-09-27, demande utilisateur) - tape directement /push/send
-  // (endpoint admin existant, jusque-là accessible seulement via curl) pour vérifier que la
-  // notification arrive vraiment sur CET appareil, avec logo/nom d'app - voir sw.js.
-  notifTestBtn.addEventListener('click', async () => {
-    notifTestBtn.disabled = true;
-    const prevLabel = notifTestBtn.textContent;
-    notifTestBtn.textContent = 'Envoi…';
-    try {
-      const token = CHESTAccounts.getToken();
-      const apiBase = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
-      const res = await fetch(apiBase + '/push/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ title: 'CHEST — test', body: 'Si tu vois ceci, les notifications marchent sur cet appareil.' }),
-      });
-      const raw = await res.text();
-      let body;
-      try { body = JSON.parse(raw); }
-      catch (e) { throw new Error(`Réponse inattendue du serveur (code ${res.status}).`); }
-      if (!res.ok || body.error) throw new Error(body.error || 'Échec de l\'envoi.');
-      showToast(body.sent ? 'Notification test envoyée ✓' : "Aucun appareil abonné n'a été trouvé.");
-    } catch (e) { showToast(e.message || "Impossible d'envoyer le test."); }
-    notifTestBtn.disabled = false;
-    notifTestBtn.textContent = prevLabel;
-  });
   notifBtn.addEventListener('click', async () => {
     notifBtn.disabled = true;
     notifValueEl.textContent = NOTIF_LABELS.loading;
