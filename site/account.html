@@ -142,6 +142,8 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=1"></script>
+<script src="js/sync-store.js?v=1"></script>
+<script src="js/pwa.js?v=2"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="account" class="chest-root">
@@ -207,6 +209,16 @@
         </div>
       </div>
       <button type="button" class="chest-btn-2" data-open-drawer="theme" data-drawer-title="Apparence">Changer</button>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row__info">
+        <div class="settings-row__text">
+          <p class="settings-row__title">Notifications</p>
+          <p class="settings-row__value" id="notifRowValue">—</p>
+        </div>
+      </div>
+      <button type="button" class="chest-btn-2" id="notifToggleBtn">…</button>
     </div>
 
     <div class="settings-row">
@@ -530,6 +542,33 @@ CHESTTour.init([
     updateThemeRow();
   }));
   document.addEventListener('chest:theme', () => { reflectThemeChoice(); updateThemeRow(); });
+
+  // ---------- Notifications push (2026-09-26, demande utilisateur) ----------
+  const notifBtn = document.getElementById('notifToggleBtn');
+  const notifValueEl = document.getElementById('notifRowValue');
+  const NOTIF_LABELS = {
+    unsupported: 'Non supportées par ce navigateur', denied: 'Bloquées (autorise-les dans les réglages du navigateur)',
+    enabled: 'Activées sur cet appareil', disabled: 'Désactivées', loading: '…',
+  };
+  async function refreshNotifRow() {
+    if (!window.CHESTPwa) { notifValueEl.textContent = NOTIF_LABELS.unsupported; notifBtn.hidden = true; return; }
+    const status = await CHESTPwa.notificationStatus();
+    notifValueEl.textContent = NOTIF_LABELS[status] || NOTIF_LABELS.unsupported;
+    notifBtn.hidden = status === 'unsupported' || status === 'denied';
+    notifBtn.textContent = status === 'enabled' ? 'Désactiver' : 'Activer';
+  }
+  notifBtn.addEventListener('click', async () => {
+    notifBtn.disabled = true;
+    notifValueEl.textContent = NOTIF_LABELS.loading;
+    try {
+      const status = await CHESTPwa.notificationStatus();
+      if (status === 'enabled') await CHESTPwa.disableNotifications();
+      else await CHESTPwa.enableNotifications();
+    } catch (e) { showToast(e.message || "Impossible d'activer les notifications."); }
+    notifBtn.disabled = false;
+    refreshNotifRow();
+  });
+  refreshNotifRow();
 
   // ---------- Vue du site (Vue Admin / Vue Client) — 2026-09-23, demande utilisateur ----------
   const PREVIEW_KEY = 'chest_admin_preview_mode';

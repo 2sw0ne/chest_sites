@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CHEST</title>
 <link rel="icon" type="image/png" href="assets/logo-chest.png">
+<!-- PWA (2026-09-26, demande utilisateur : "app installable, logo, notifications") : manifest +
+     icônes + service worker (sw.js) - installe le site sur l'écran d'accueil comme une vraie app
+     (plein écran, sans barre de navigateur), gère les notifications push. Voir js/pwa.js. -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050505">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
 <!-- Fond sombre IMMÉDIAT, avant toute feuille de style externe (retour utilisateur 2026-09-23 : « on a un
      bug au chargement, je veux vraiment garder le visuel fluide sur le fond, pas ce sentiment que ça
      charge ») : sans ça, le navigateur affiche un blanc par défaut tant que les polices Google Fonts (une
@@ -60,6 +66,8 @@
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=1"></script>
+<script src="js/sync-store.js?v=1"></script>
+<script src="js/pwa.js?v=2"></script>
 </head>
 <body class="chest-root">
 

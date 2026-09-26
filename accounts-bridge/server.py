@@ -45,6 +45,7 @@ from flask import Flask, g, jsonify, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.serving import WSGIRequestHandler
+from pywebpush import webpush, WebPushException
 
 DB_DIR = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH") or os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(DB_DIR, "accounts.db")
@@ -69,6 +70,14 @@ SCANNERS_SECRET_PATH = os.path.join(DB_DIR, "scanners_secret.json")
 # un fichier. /twelvedata/<endpoint> relaie les appels du frontend en l'injectant cote serveur.
 TWELVE_DATA_API_KEY = os.environ.get("TWELVE_DATA_API_KEY", "")
 TWELVE_DATA_ALLOWED_ENDPOINTS = {"time_series", "price"}
+
+# Notifications push (Web Push standard, 2026-09-26) - meme principe que scanners_secret.json /
+# TWELVE_DATA_API_KEY : la cle PRIVEE ne vit que dans une variable d'environnement Railway, jamais
+# dans un fichier commite (chest_sites est public). La cle PUBLIQUE, elle, est par nature destinee
+# au client (c'est le principe de VAPID, jamais secrete) et vit directement dans js/config.js -
+# le serveur n'a donc besoin que de la PRIVEE, jamais des deux.
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:swann.lafon@gmail.com")
 
 # Notification email a chaque nouvelle inscription en attente - toutes ces
 # variables sont optionnelles ; s'il en manque une, on logue et on continue
@@ -165,6 +174,33 @@ def init_db():
                 id TEXT PRIMARY KEY,
                 data TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+            )
+        """)
+        # Synchro multi-appareils (2026-09-26, demande utilisateur : "mes données ne sont pas sur
+        # mon téléphone") - miroir générique de tout ce qui vivait UNIQUEMENT dans le localStorage
+        # du navigateur (comptes, familles, backtests, journal...), par utilisateur. Générique par
+        # clé/valeur (jamais de schéma propre à chaque type de donnée) : voir js/sync-store.js pour
+        # la liste exacte des clés synchronisées et pourquoi ce choix - le site n'a plus à changer
+        # de code serveur si une future page ajoute une nouvelle clé localStorage à synchroniser.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_data (
+                user_id INTEGER NOT NULL,
+                key TEXT NOT NULL,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, key)
+            )
+        """)
+        # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
+        # plusieurs appareils abonnés (PC + téléphone), chacun avec son propre "endpoint".
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                endpoint TEXT NOT NULL UNIQUE,
+                p256dh TEXT NOT NULL,
+                auth TEXT NOT NULL,
+                created_at TEXT NOT NULL
             )
         """)
         db.commit()
@@ -699,6 +735,130 @@ def twelvedata_proxy(endpoint):
     except urllib.error.URLError as e:
         return jsonify({"error": f"Twelve Data injoignable : {e.reason}"}), 502
     return app.response_class(body, status=status, mimetype="application/json")
+
+
+# ---------------------------------------------------------------- Synchro multi-appareils
+@app.route("/sync")
+def sync_get():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    rows = db.execute("SELECT key, value FROM user_data WHERE user_id = ?", (user["id"],)).fetchall()
+    return jsonify({"data": {r["key"]: r["value"] for r in rows}})
+
+
+@app.route("/sync", methods=["POST"])
+def sync_post():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    data = body.get("data")
+    if not isinstance(data, dict):
+        return jsonify({"error": "JSON invalide."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db = get_db()
+        for key, value in data.items():
+            if not isinstance(key, str) or not isinstance(value, str) or len(key) > 128:
+                continue
+            db.execute(
+                "INSERT INTO user_data (user_id, key, value, updated_at) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+                (user["id"], key, value, now),
+            )
+        db.commit()
+    return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------- Notifications push
+@app.route("/push/subscribe", methods=["POST"])
+def push_subscribe():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    endpoint = body.get("endpoint")
+    keys = body.get("keys") or {}
+    p256dh, auth = keys.get("p256dh"), keys.get("auth")
+    if not endpoint or not p256dh or not auth:
+        return jsonify({"error": "Abonnement incomplet."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db = get_db()
+        db.execute(
+            "INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, created_at) VALUES (?, ?, ?, ?, ?) "
+            "ON CONFLICT(endpoint) DO UPDATE SET p256dh = excluded.p256dh, auth = excluded.auth",
+            (user["id"], endpoint, p256dh, auth, now),
+        )
+        db.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/push/unsubscribe", methods=["POST"])
+def push_unsubscribe():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    endpoint = body.get("endpoint")
+    if not endpoint:
+        return jsonify({"error": "endpoint manquant."}), 400
+    with db_lock:
+        db = get_db()
+        db.execute("DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?", (endpoint, user["id"]))
+        db.commit()
+    return jsonify({"ok": True})
+
+
+def send_push_to_user(user_id, title, body_text, url=None):
+    """Envoie une notification a TOUS les appareils abonnes de cet utilisateur. Retire tout
+    abonnement expire/invalide (410 Gone, cas normal quand un navigateur se desinscrit sans le
+    dire) au passage plutot que de re-essayer indefiniment dessus."""
+    if not VAPID_PRIVATE_KEY:
+        return {"sent": 0, "error": "VAPID_PRIVATE_KEY non configurée côté serveur."}
+    db = get_db()
+    subs = db.execute("SELECT * FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchall()
+    payload = json.dumps({"title": title, "body": body_text, "url": url or "app.html"})
+    sent, dead = 0, []
+    for sub in subs:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub["endpoint"],
+                    "keys": {"p256dh": sub["p256dh"], "auth": sub["auth"]},
+                },
+                data=payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_CLAIM_EMAIL},
+            )
+            sent += 1
+        except WebPushException as e:
+            if e.response is not None and e.response.status_code in (404, 410):
+                dead.append(sub["endpoint"])
+    if dead:
+        with db_lock:
+            db.executemany("DELETE FROM push_subscriptions WHERE endpoint = ?", [(e,) for e in dead])
+            db.commit()
+    return {"sent": sent, "removed": len(dead)}
+
+
+@app.route("/push/send", methods=["POST"])
+def push_send():
+    # Reserve admin pour l'instant : sert a TESTER l'envoi (voir bouton "Notifications" dans
+    # account.html). Les vrais declencheurs automatiques (annonce du calendrier, signal detecte...)
+    # restent a definir avec l'utilisateur - voir CLAUDE.md, section Notifications push.
+    admin = approved_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    body = request.get_json(silent=True) or {}
+    title = (body.get("title") or "CHEST").strip()
+    text = (body.get("body") or "").strip()
+    url = body.get("url") or "app.html"
+    target_user_id = body.get("userId") or admin["id"]
+    result = send_push_to_user(target_user_id, title, text, url)
+    return jsonify(result)
 
 
 @app.route("/health")

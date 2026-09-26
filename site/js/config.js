@@ -50,5 +50,12 @@ window.CHEST_CONFIG = {
   // Déployé le 2026-09-23 dans le projet Railway unique "chest_sites" (Root
   // Directory accounts-bridge, Volume attaché pour la persistance de
   // accounts.db).
-  accountsApiUrl: 'https://accounts-bridge-production.up.railway.app'
+  accountsApiUrl: 'https://accounts-bridge-production.up.railway.app',
+
+  // Clé PUBLIQUE VAPID (notifications push, 2026-09-26) — par construction non secrète (c'est le
+  // principe de VAPID : la clé publique s'envoie au navigateur, seule la clé privée côté serveur
+  // doit rester secrète, elle vit dans la variable d'environnement Railway VAPID_PRIVATE_KEY).
+  // Générée une fois avec py-vapid ; à régénérer (et remplacer aussi côté serveur) seulement si
+  // elle devait un jour être révoquée.
+  vapidPublicKey: 'BI2lWzimVJKfvk_uQxuWaROIdDniJrYaEkLsBpj8PdDl9sdiTgJEHFnYPD8LaOGAGdRiFP79vPnVY7Osvg-qxdM'
 };
