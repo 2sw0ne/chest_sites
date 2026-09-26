@@ -336,6 +336,63 @@ Passe demandée par l'utilisateur avant un premier déploiement public sur Verce
 - **Flux de déploiement désormais : push sur `chest_sites`, pas `STASH`.** Toute future session doit committer sur `STASH` (`origin`, historique complet) PUIS pousser aussi sur `https://github.com/2sw0ne/chest_sites.git` (remote `chest-sites` si déjà ajouté dans ce checkout, sinon `git push https://github.com/2sw0ne/chest_sites.git main:main`) pour que Railway redéploie — sinon les changements ne partent jamais en prod. Si le push direct est bloqué par le classificateur auto-mode de Claude Code ("Data Exfiltration"), le donner à faire à l'utilisateur (commande prête à copier-coller).
 - **Pas fait, hors scope de cette passe (à signaler si redemandé)** : passe exhaustive de vérification console sur toutes les pages (seul le dashboard, avant/après le retrait des comptes de démo, a été spécifiquement re-testé) ; relecture orthographique du site entier (seules les chaînes touchées par cette passe — signup/admin-members/commentaires — ont été relues).
 
+## Synchro multi-appareils + PWA installable + notifications push (2026-09-26)
+
+Deux demandes utilisateur : "mes données ne sont pas sur mon téléphone quand je me connecte avec
+le même compte" + "on pourrait le mettre en application, avec des notifications ?" (réponse
+donnée : PWA plutôt qu'une vraie app native App Store/Play Store — beaucoup plus rapide à livrer,
+couvre l'essentiel : icône + plein écran + notifications). L'utilisateur a explicitement autorisé
+un risque de perte de données pour aller vite ("les données enregistrées sont pas très
+importantes, si ça se perd c'est pas très grave") — ne pas généraliser cette tolérance à d'autres
+décisions sans qu'elle soit redemandée.
+
+- **`accounts-bridge`** : table `user_data` (miroir générique clé/valeur PAR UTILISATEUR — le
+  serveur ne connaît jamais le schéma de "chest_accounts" vs "chest_journal", juste des paires
+  clé/valeur) + `GET`/`POST /sync`. Table `push_subscriptions` (Web Push standard) +
+  `POST /push/subscribe`/`/push/unsubscribe`/`/push/send` (admin, sert à TESTER l'envoi — les
+  vrais déclencheurs automatiques n'existent pas encore, voir plus bas). Nouvelle dépendance
+  `pywebpush` (`requirements.txt`).
+- **Clé VAPID** : générée une fois avec `py-vapid`. La **publique** n'est par nature pas secrète
+  (c'est le principe de VAPID) et vit directement dans `js/config.js` (`vapidPublicKey`) — le
+  client n'a donc PAS besoin d'un aller-retour serveur pour l'obtenir. La **privée** ne vit que
+  dans la variable d'environnement Railway `VAPID_PRIVATE_KEY` (jamais commitée, même principe que
+  `TWELVE_DATA_API_KEY`/`scanners_secret.json` — `chest_sites` est public). **Si la clé doit être
+  régénérée un jour**, remplacer les DEUX valeurs (publique dans `config.js`, privée sur Railway)
+  en même temps — un dépareillement casse silencieusement tous les abonnements existants.
+- **`site/js/sync-store.js`** : intercepte `localStorage.setItem` sur une liste explicite de clés
+  ("vraies données" — comptes, familles, backtests, journal, réglages... — jamais un jeton de
+  session, une préférence purement locale comme la sidebar repliée, ou un cache re-téléchargeable)
+  et les répercute vers `/sync` en tâche de fond (débit groupé 600 ms). **Aucune réécriture de
+  `dashboard.js`/`journal-store.js`/`backtest-store.js` n'a été nécessaire** — ce fichier se
+  contente d'intercepter les clés qui l'intéressent, les autres fichiers continuent de lire/écrire
+  `localStorage` exactement comme avant. Pull volontairement **asynchrone** au chargement (jamais
+  une requête bloquante en tête de page — ce site a une exigence forte de "jamais de sensation de
+  chargement", déjà travaillée à plusieurs reprises, voir section Welcome plus haut) : un appareil
+  totalement vide qui reçoit des données se recharge UNE fois pour les afficher immédiatement ; un
+  appareil qui a déjà des données ne recharge jamais tout seul. **Pour ajouter une future clé
+  localStorage à synchroniser** : juste l'ajouter à `SYNCED_KEYS` dans ce fichier, rien d'autre à
+  changer côté serveur.
+- **PWA** : `manifest.json` + icônes (`assets/icon-192.png`/`icon-512.png`, versions "maskable"
+  pour Android — générées depuis `assets/logo-chest.png`) + `sw.js` (service worker, à la racine
+  du site pour couvrir toutes les pages). **Cache volontairement minimal** (network-first partout
+  sauf les icônes, qui ne changent jamais) : un service worker cache-first aurait recréé
+  exactement les bugs de cache déjà rencontrés cette session avec la convention `?v=N` du site
+  (voir plusieurs sections plus haut), en pire — un cache qui survivrait même à un rechargement
+  forcé. **`js/pwa.js`** enregistre le service worker et expose
+  `CHESTPwa.notificationStatus()`/`enableNotifications()`/`disableNotifications()`, utilisés par
+  le nouveau réglage "Notifications" d'`account.html`.
+- **Pas encore fait, à définir avec l'utilisateur avant de s'y lancer** : les vrais déclencheurs
+  d'envoi de notifications (`/push/send` n'est pour l'instant qu'un outil de test admin) — quels
+  évènements doivent réellement pousser une notification ? Candidats évidents vu le reste du site :
+  annonce majeure du calendrier économique qui arrive, signal détecté sur un scanner (Stratégies),
+  backtest terminé. Aucun de ces déclencheurs n'est câblé.
+- **Vérifié en direct** (session de test locale, jamais contre les vraies données de l'utilisateur) :
+  simulation d'un appareil neuf (localStorage vidé) → connexion → données déjà connues du serveur
+  récupérées automatiquement → réapparition après un seul rechargement ; écriture locale → confirmée
+  arrivée côté serveur (round-trip complet, vérifié aussi en direct via `curl`) ; service worker
+  enregistré et actif (`navigator.serviceWorker.getRegistrations()`) ; réglage Notifications
+  réagit correctement à l'état de permission du navigateur (masqué si bloquées/non supportées).
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
