@@ -45,10 +45,10 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ---------------- Notifications push ----------------
-// Le SERVEUR (accounts-bridge) declenche l'envoi (voir /push/send, admin) ; ce fichier ne fait
-// qu'afficher la notification recue et reagir a son clic. Ce qui declenche un envoi REEL
-// (annonce du calendrier, signal detecte, etc.) reste a definir avec l'utilisateur - voir
-// CLAUDE.md.
+// Le SERVEUR declenche l'envoi - /push/send (test admin, account.html), /push/broadcast (signal
+// BERICH, annonce calendrier, nouveau membre - voir berich-bridge/calendar-bridge/accounts-bridge,
+// section CLAUDE.md "Declencheurs de notifications push"). Ce fichier ne fait qu'afficher la
+// notification recue et reagir a son clic.
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = { title: 'CHEST', body: event.data ? event.data.text() : '' }; }
