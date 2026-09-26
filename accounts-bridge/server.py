@@ -79,6 +79,13 @@ TWELVE_DATA_ALLOWED_ENDPOINTS = {"time_series", "price"}
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:swann.lafon@gmail.com")
 
+# Secret PARTAGE entre services Railway (2026-09-26) - berich-bridge/calendar-bridge n'ont pas de
+# session utilisateur (ce sont des webhooks/tâches de fond), donc pas de jeton Bearer a presenter a
+# /push/broadcast. Un secret simple, connu des deux cotes (variable d'environnement, jamais
+# commite), suffit pour ce cas d'usage service-a-service - pas un vrai systeme d'auth inter-services,
+# volontairement simple vu l'echelle du projet (3 services Railway, tous a moi).
+INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
+
 # Notification email a chaque nouvelle inscription en attente - toutes ces
 # variables sont optionnelles ; s'il en manque une, on logue et on continue
 # sans email plutot que de faire echouer l'inscription pour ca.
@@ -302,6 +309,13 @@ def signup():
 
     if not is_first_user:
         send_signup_notification(first_name, last_name, email)
+        # Notification push aux admins (2026-09-26, demande utilisateur : "pour les nouveaux
+        # membres oui avec le prénom etc.") - en plus de l'email existant ci-dessus, jamais a la
+        # place : l'un ne remplace pas l'autre, l'admin peut ne pas avoir active les notifications.
+        try:
+            send_push_to_admins("Nouveau membre CHEST", f"{first_name} {last_name} vient de créer un compte ({email}).", "admin-members.html")
+        except Exception:
+            pass  # jamais bloquer l'inscription pour un souci de notification
 
     return jsonify({
         "status": status,
@@ -812,14 +826,12 @@ def push_unsubscribe():
     return jsonify({"ok": True})
 
 
-def send_push_to_user(user_id, title, body_text, url=None):
-    """Envoie une notification a TOUS les appareils abonnes de cet utilisateur. Retire tout
-    abonnement expire/invalide (410 Gone, cas normal quand un navigateur se desinscrit sans le
-    dire) au passage plutot que de re-essayer indefiniment dessus."""
+def _send_push_to_subscriptions(subs, title, body_text, url=None):
+    """Envoie a une liste de lignes push_subscriptions (deja chargees) ; retire tout abonnement
+    expire/invalide (410 Gone, cas normal quand un navigateur se desinscrit sans le dire) plutot
+    que de re-essayer indefiniment dessus."""
     if not VAPID_PRIVATE_KEY:
         return {"sent": 0, "error": "VAPID_PRIVATE_KEY non configurée côté serveur."}
-    db = get_db()
-    subs = db.execute("SELECT * FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchall()
     payload = json.dumps({"title": title, "body": body_text, "url": url or "app.html"})
     sent, dead = 0, []
     for sub in subs:
@@ -839,16 +851,54 @@ def send_push_to_user(user_id, title, body_text, url=None):
                 dead.append(sub["endpoint"])
     if dead:
         with db_lock:
-            db.executemany("DELETE FROM push_subscriptions WHERE endpoint = ?", [(e,) for e in dead])
-            db.commit()
+            get_db().executemany("DELETE FROM push_subscriptions WHERE endpoint = ?", [(e,) for e in dead])
+            get_db().commit()
     return {"sent": sent, "removed": len(dead)}
+
+
+def send_push_to_user(user_id, title, body_text, url=None):
+    db = get_db()
+    subs = db.execute("SELECT * FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchall()
+    return _send_push_to_subscriptions(subs, title, body_text, url)
+
+
+def send_push_to_all(title, body_text, url=None):
+    """A TOUS les membres abonnes (scanners/calendrier concernent tout le monde, pas un compte en
+    particulier - contrairement a une eventuelle alerte propre a UN compte propfirm)."""
+    db = get_db()
+    subs = db.execute("SELECT * FROM push_subscriptions").fetchall()
+    return _send_push_to_subscriptions(subs, title, body_text, url)
+
+
+def send_push_to_admins(title, body_text, url=None):
+    db = get_db()
+    subs = db.execute(
+        "SELECT push_subscriptions.* FROM push_subscriptions "
+        "JOIN users ON users.id = push_subscriptions.user_id WHERE users.is_admin = 1"
+    ).fetchall()
+    return _send_push_to_subscriptions(subs, title, body_text, url)
+
+
+@app.route("/push/broadcast", methods=["POST"])
+def push_broadcast():
+    # Reserve aux AUTRES SERVICES Railway (berich-bridge, calendar-bridge) - pas de session
+    # utilisateur cote webhook/tache de fond, donc un secret partage plutot qu'un jeton Bearer (voir
+    # INTERNAL_PUSH_SECRET). Declencheurs reels : signal BERICH detecte/cloture (TP/SL), grosse
+    # annonce du calendrier qui approche - voir berich-bridge/server.py et
+    # calendar-bridge/fetch_calendar.py pour l'appel.
+    if not INTERNAL_PUSH_SECRET or request.headers.get("X-Internal-Secret") != INTERNAL_PUSH_SECRET:
+        return jsonify({"error": "Non autorisé."}), 401
+    body = request.get_json(silent=True) or {}
+    title = (body.get("title") or "CHEST").strip()
+    text = (body.get("body") or "").strip()
+    url = body.get("url") or "app.html"
+    result = send_push_to_all(title, text, url)
+    return jsonify(result)
 
 
 @app.route("/push/send", methods=["POST"])
 def push_send():
-    # Reserve admin pour l'instant : sert a TESTER l'envoi (voir bouton "Notifications" dans
-    # account.html). Les vrais declencheurs automatiques (annonce du calendrier, signal detecte...)
-    # restent a definir avec l'utilisateur - voir CLAUDE.md, section Notifications push.
+    # Reserve admin : sert a TESTER l'envoi (voir bouton "Notifications" dans account.html).
     admin = approved_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403

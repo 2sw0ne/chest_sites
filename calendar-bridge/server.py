@@ -24,11 +24,36 @@ import os
 import threading
 import time
 import traceback
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta
 
 from flask import Flask, jsonify, send_file
 
 import fetch_calendar
+
+# Notifications push (2026-09-26, demande utilisateur : "toute les infos de modification du
+# propfirm... 2 pour les annonces calendrier") - meme mecanisme que berich-bridge/server.py
+# (notify()) : relayees via accounts-bridge, seul service a avoir les abonnements Web Push et la
+# cle VAPID. Secret partage - voir accounts-bridge/server.py, INTERNAL_PUSH_SECRET/POST
+# /push/broadcast. Best-effort : ne bloque jamais le refresh si l'envoi echoue.
+ACCOUNTS_BRIDGE_URL = os.environ.get("ACCOUNTS_BRIDGE_URL", "")
+INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
+
+
+def notify(title: str, body: str) -> None:
+    if not ACCOUNTS_BRIDGE_URL or not INTERNAL_PUSH_SECRET:
+        return
+    try:
+        req = urllib.request.Request(
+            ACCOUNTS_BRIDGE_URL.rstrip("/") + "/push/broadcast",
+            data=json.dumps({"title": title, "body": body, "url": "calendar.html"}).encode("utf-8"),
+            headers={"Content-Type": "application/json", "X-Internal-Secret": INTERNAL_PUSH_SECRET},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except (urllib.error.URLError, OSError):
+        pass  # jamais bloquant
 
 # Persistance de l'historique glissant (merge_with_history) sur le Volume
 # Railway attache au service - AJOUTE (2026-09-14, retour direct utilisateur) :
@@ -146,6 +171,59 @@ def refresh_loop():
         time.sleep(REFRESH_SECONDS)
 
 
+# Boucle RAPIDE separee de refresh_loop() (2026-09-26) : refresh_loop() re-scrape
+# investing.com/tradingeconomics.com toutes les 2h (voir REFRESH_SECONDS ci-dessus, deliberement
+# lent - risque d'OOM Railway deja rencontre). Detecter "une annonce a fort impact arrive bientot"
+# ne necessite AUCUN nouveau scraping : les evenements et leurs horaires sont deja dans
+# state["data"] depuis le dernier refresh. Cette boucle se contente donc de RELIRE cette memoire
+# toutes les NOTIFY_CHECK_SECONDS et notifie une fois par evenement, dans une fenetre de
+# NOTIFY_WINDOW_MINUTES avant l'heure annoncee.
+NOTIFY_CHECK_SECONDS = 60
+NOTIFY_WINDOW_MINUTES = 20
+
+notified_event_ids = set()
+notified_lock = threading.Lock()
+
+
+def check_upcoming_high_impact_events():
+    with state_lock:
+        events = list((state["data"] or {}).get("events") or [])
+    now = datetime.now(fetch_calendar.PARIS_TZ)
+    for e in events:
+        if e.get("importance") != "high":
+            continue
+        eid = e.get("id")
+        if not eid:
+            continue
+        with notified_lock:
+            already = eid in notified_event_ids
+        if already:
+            continue
+        date_str, time_str = e.get("date"), e.get("time")
+        if not date_str or not time_str:
+            continue
+        try:
+            when = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M").replace(tzinfo=fetch_calendar.PARIS_TZ)
+        except ValueError:
+            continue
+        minutes_until = (when - now).total_seconds() / 60
+        if 0 <= minutes_until <= NOTIFY_WINDOW_MINUTES:
+            country = e.get("country") or ""
+            title = e.get("event") or ""
+            notify(f"Annonce dans {int(minutes_until)} min", f"{country} — {title}".strip(" —"))
+            with notified_lock:
+                notified_event_ids.add(eid)
+
+
+def notify_loop():
+    while True:
+        try:
+            check_upcoming_high_impact_events()
+        except Exception:
+            traceback.print_exc()
+        time.sleep(NOTIFY_CHECK_SECONDS)
+
+
 @app.route("/calendar.json")
 def serve_calendar():
     with state_lock:
@@ -197,6 +275,7 @@ def debug_error():
 
 if __name__ == "__main__":
     threading.Thread(target=refresh_loop, daemon=True).start()
+    threading.Thread(target=notify_loop, daemon=True).start()
     # threaded=False explicite (2026-09-12) : les logs Railway montrent le
     # serveur de dev Werkzeug plantant sur "RuntimeError: can't start new
     # thread" (socketserver.py, ThreadingMixIn.process_request) apres une

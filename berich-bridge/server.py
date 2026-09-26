@@ -23,11 +23,36 @@ from __future__ import annotations
 import json
 import os
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
+
+# Notifications push (2026-09-26, demande utilisateur : signal detecte + cloture TP/SL avec le
+# detail) - relayees via accounts-bridge, seul service a avoir les abonnements Web Push et la cle
+# VAPID. Secret partage (jamais de session utilisateur ici, c'est un webhook) - voir
+# accounts-bridge/server.py, INTERNAL_PUSH_SECRET/POST /push/broadcast. Best-effort : ne bloque
+# jamais l'enregistrement du signal si l'envoi echoue (ex. accounts-bridge injoignable).
+ACCOUNTS_BRIDGE_URL = os.environ.get("ACCOUNTS_BRIDGE_URL", "")
+INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
+
+
+def notify(title: str, body: str) -> None:
+    if not ACCOUNTS_BRIDGE_URL or not INTERNAL_PUSH_SECRET:
+        return
+    try:
+        req = urllib.request.Request(
+            ACCOUNTS_BRIDGE_URL.rstrip("/") + "/push/broadcast",
+            data=json.dumps({"title": title, "body": body, "url": "berich.html"}).encode("utf-8"),
+            headers={"Content-Type": "application/json", "X-Internal-Secret": INTERNAL_PUSH_SECRET},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except (urllib.error.URLError, OSError):
+        pass  # jamais bloquant - le signal est deja enregistre a ce stade
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "site" / "data" / "berich-signal.json"
 MAX_SIGNALS = 50
@@ -76,6 +101,10 @@ def webhook():
         data["example"] = False
         data["updatedAt"] = now
         _save(data)
+        if payload["result"] == "TP":
+            notify("TP touché — BERICH", f"{match['symbol']} ({match['side']}) : sortie à {match['tp']} (+{RR:g}R).")
+        else:
+            notify("SL touché — BERICH", f"{match['symbol']} ({match['side']}) : sortie à {match['sl']} (-1R).")
         return jsonify({"ok": True, "id": payload["id"], "closed": True})
 
     # ---- Message d'ouverture : {"id","pair","signal","entry","sl"} ----
@@ -101,6 +130,7 @@ def webhook():
     data["updatedAt"] = now
     data["signals"] = [signal] + data.get("signals", [])[: MAX_SIGNALS - 1]
     _save(data)
+    notify(f"Signal {signal['side'].upper()} — BERICH", f"{signal['symbol']} : entrée {signal['entry']}, SL {signal['sl']}, TP {signal['tp']}.")
     return jsonify({"ok": True, "id": signal["id"]})
 
 
