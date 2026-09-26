@@ -28,6 +28,7 @@ Usage local :
 Sur Railway, c'est le CMD du Dockerfile qui lance cette commande.
 """
 
+import base64
 import json
 import os
 import re
@@ -76,7 +77,22 @@ TWELVE_DATA_ALLOWED_ENDPOINTS = {"time_series", "price"}
 # dans un fichier commite (chest_sites est public). La cle PUBLIQUE, elle, est par nature destinee
 # au client (c'est le principe de VAPID, jamais secrete) et vit directement dans js/config.js -
 # le serveur n'a donc besoin que de la PRIVEE, jamais des deux.
-VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+def _normalize_vapid_key(raw: str) -> str:
+    """py_vapid (utilisé par pywebpush) attend la clé privée VAPID sous forme BRUTE - le scalaire
+    encodé en base64 urlsafe sans padding, PAS le bloc PEM "-----BEGIN PRIVATE KEY-----...".
+    Erreur commise lors de la 1re mise en place (2026-09-26) : c'est le PEM qui avait été donné à
+    coller sur Railway, ce qui faisait planter webpush() ("Could not deserialize key data... ASN.1
+    parsing error"). Tolérance ajoutée ici pour accepter les deux formats, quel que soit celui
+    collé dans la variable d'environnement."""
+    if "BEGIN" in raw:
+        from cryptography.hazmat.primitives import serialization
+        key = serialization.load_pem_private_key(raw.encode(), password=None)
+        value = key.private_numbers().private_value.to_bytes(32, "big")
+        return base64.urlsafe_b64encode(value).rstrip(b"=").decode()
+    return raw
+
+
+VAPID_PRIVATE_KEY = _normalize_vapid_key(os.environ.get("VAPID_PRIVATE_KEY", ""))
 VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:swann.lafon@gmail.com")
 
 # Secret PARTAGE entre services Railway (2026-09-26) - berich-bridge/calendar-bridge n'ont pas de
