@@ -348,7 +348,7 @@
    galerie de pages empilées). Le grain reste un calque fixe plein écran. ---------- */
 .chest-shell{
   --chest-nav-w: 248px;
-  position: relative; display:grid; min-height: 100vh; background: var(--chest-bg);
+  position: relative; display:grid; min-height: 100vh; min-height: 100dvh; background: var(--chest-bg);
   grid-template-columns: var(--chest-nav-w) minmax(0,1fr);
   transition: grid-template-columns .28s var(--chest-ease);
 }
@@ -372,7 +372,7 @@
    onglet à bulle qui replie/déplie). Un seul marquage HTML, identique sur
    chaque page, piloté par nav.js (classe .is-collapsed + localStorage). ---------- */
 .chest-sidebar{
-  position:sticky; top:0; align-self:start; height:100vh; z-index:30;
+  position:sticky; top:0; align-self:start; height:100vh; height:100dvh; z-index:30;
   display:flex; flex-direction:column; overflow:visible;
   background:rgba(8,8,10,.86); backdrop-filter:blur(30px) saturate(1.2); -webkit-backdrop-filter:blur(30px) saturate(1.2);
 }
@@ -548,15 +548,26 @@ html.is-embedded .chest-sidebar-overlay,
 html.is-embedded .chest-topbar{ display:none !important; }
 html.is-embedded .chest-shell{ display:block; min-height:0; background:transparent; transition:none; }
 html.is-embedded .chest-shell::after{ display:none; }
-html.is-embedded .chest-main{ min-height:100vh; }
+html.is-embedded .chest-main{ min-height:100vh; min-height:100dvh; }
 /* .chest-main est un flex : un <main class="container"> à marges auto s'y
    rétrécit à son contenu et se centre. Il doit prendre toute la largeur. */
 .chest-main > main.container{ width:100%; margin-left:0 !important; margin-right:0 !important; }
 
 /* ---------- Côté shell ---------- */
+/* 100dvh partout ci-dessous (2026-09-26, retour utilisateur : "sur mon téléphone avec Safari je
+   peux pas voir en bas comme la calculatrice de lot") - `100vh` sur mobile Safari se calcule sur la
+   plus grande hauteur possible (barre d'adresse/outils repliées), pas la hauteur RÉELLEMENT visible
+   quand ces barres sont affichées ; d'habitude un simple scroll de la page fait disparaître ces
+   barres et corrige l'affichage tout seul - mais ici .chest-main a son propre overflow:hidden (tout
+   le défilement réel se passe DANS l'iframe), donc la page extérieure ne défile jamais et Safari ne
+   réduit jamais ses barres : le bas du contenu (calculatrice de lot, graphiques) restait caché en
+   permanence derrière elles. `100dvh` (hauteur de viewport DYNAMIQUE, ajustée en direct par le
+   navigateur) remplace `100vh` sur les navigateurs qui le comprennent (règle en double : la 2e
+   valeur écrase la 1re si comprise, sinon le navigateur garde 100vh tel quel - aucun risque de
+   casser un vieux navigateur). */
 html.is-shell, html.is-shell body{ height:100%; overflow:hidden; }
-.chest-shell.is-app{ height:100vh; min-height:0; }
-.chest-shell.is-app > .chest-main{ height:100vh; min-height:0; overflow:hidden; }
+.chest-shell.is-app{ height:100vh; height:100dvh; min-height:0; }
+.chest-shell.is-app > .chest-main{ height:100vh; height:100dvh; min-height:0; overflow:hidden; }
 .chest-shell.is-app .chest-topbar{ flex-shrink:0; }
 .chest-view{ position:relative; flex:1 1 auto; min-height:0; }
 .chest-view iframe{

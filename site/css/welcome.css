@@ -607,7 +607,7 @@ html.is-loggedout .wel__stage, html.is-loggedout .wel__page--news{ visibility:hi
    moment (voir show(), qui ne change rien de plus ici — juste le retrait de cette classe suffit). */
 html.is-loggedout .wel__stage *{ animation-play-state:paused !important; }
 .auth-stage{
-  position:relative; z-index:2; min-height:100vh; overflow-y:auto;
+  position:relative; z-index:2; min-height:100vh; min-height:100dvh; overflow-y:auto;
   display:flex; align-items:center; justify-content:center;
   padding:40px 20px; transition:opacity 1.2s cubic-bezier(.16,1,.3,1);
 }
