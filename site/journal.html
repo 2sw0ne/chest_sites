@@ -1366,6 +1366,17 @@ CHESTTour.init([
       CHESTJournal.list().filter((e) => e.accountId === editingAccountId && e.riskUnit === 'pct' && e.rrActual != null)
         .forEach((e) => CHESTJournal.update(e.id, { pnl: Math.round(e.rrActual * balance * (e.riskValue || 0)) / 100 }));
     } else saved = CHESTJournal.addAccount(Object.assign({ live: [] }, account));
+    // Venu du Dashboard ("+ Nouveau compte du Journal" pendant l'ajout d'un Compte Live, voir
+    // js/dashboard.js) : on ne reste pas ici, on retourne finir la connexion Live avec ce compte
+    // tout juste créé - jamais pour une simple modification (editingAccountId).
+    if (!editingAccountId && new URLSearchParams(window.location.search).get('fromLiveConnect') === '1') {
+      try {
+        localStorage.setItem('chest_live_connect_resume', '1');
+        localStorage.setItem('chest_live_connect_resume_account', saved.id);
+      } catch (e) { /* tant pis */ }
+      window.location.href = 'dashboard.html';
+      return;
+    }
     window.location.href = `journal.html?acc=${encodeURIComponent(saved.id)}${!editingAccountId && account.mode === 'auto' ? '&addlive=1' : ''}`;
   });
 
@@ -1817,6 +1828,9 @@ CHESTTour.init([
     const params = new URLSearchParams(window.location.search);
     const acc = params.get('acc') ? accounts.find((a) => a.id === params.get('acc')) : null;
     if (!acc) {
+      // Venu du Dashboard pour créer un nouveau compte à connecter en Live (voir js/dashboard.js,
+      // "+ Nouveau compte du Journal") - ouvre directement le formulaire de création, pas le hub.
+      if (params.get('fromLiveConnect') === '1') { openAccountForm(null); return; }
       showView('hub');
       await renderHub();
       // Synchro discrète des comptes live (max toutes les 5 min), puis les cartes se remettent à jour.

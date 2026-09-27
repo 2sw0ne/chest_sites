@@ -654,8 +654,30 @@
       <button type="button" data-mode="live">Compte Live</button>
     </div>
 
+    <!-- Compte Live = un JOURNAL (2026-09-27, demande utilisateur : "on va oublier les familles,
+         ca va etre les journaux qui sont directement a connecter") - plus de famille/broker-grid
+         dédoublé ici, on branche la connexion MT5 sur un compte du Journal (qui sait déjà pour
+         quelle propfirm/quelle phase c'est), qu'on choisit ou qu'on crée depuis cet écran. -->
+    <div id="liveJournalStep" hidden>
+      <p class="hint">Une connexion Live se rattache à un compte du <b>Journal</b> — c'est lui qui sait pour quelle propfirm/quelle phase c'est. Choisis un compte existant (pour changer sa connexion, ex. nouvelle phase) ou crée-en un nouveau.</p>
+      <div id="liveJournalList" style="margin-top:16px;display:flex;flex-direction:column;gap:8px"></div>
+      <div class="wizard-actions" style="margin-top:18px">
+        <button type="button" class="btn btn-ghost" id="liveJournalNewBtn">+ Nouveau compte du Journal</button>
+      </div>
+    </div>
+
+    <div id="liveStageStep" hidden>
+      <p class="hint" id="liveStageHint">À quelle phase du challenge es-tu maintenant ?</p>
+      <div class="pill-group" id="liveStageToggle" style="margin-top:12px"></div>
+      <div class="wizard-actions" style="margin-top:18px">
+        <button type="button" class="btn btn-ghost" id="liveStageBack">← Retour</button>
+        <button type="button" class="btn btn-primary" id="liveStageNext">Continuer</button>
+      </div>
+    </div>
+
     <div id="liveStepIntro" hidden>
       <p class="hint">Connexion directe à ton terminal MT5 — le mot de passe <b>investisseur</b> (lecture seule, jamais celui de trading) reste chiffré côté serveur, jamais dans ton navigateur. Une seule connexion active à la fois : la brancher ici remplace automatiquement l'ancienne (ses données restent disponibles, juste plus mises à jour).</p>
+      <p class="hint" id="liveJournalSummary" style="margin-top:4px"></p>
       <div class="form-stack" style="margin-top:18px" id="liveLoginForm">
         <div>
           <label for="liveLogin">Numéro de compte MT5</label>
@@ -672,6 +694,7 @@
         <p class="hint" id="liveConnectError" style="color:var(--red);display:none"></p>
       </div>
       <div class="wizard-actions" style="margin-top:18px">
+        <button type="button" class="btn btn-ghost" id="liveIntroBack">← Retour</button>
         <button type="button" class="btn btn-primary" id="liveConnectBtn">Connecter</button>
       </div>
     </div>
@@ -877,6 +900,11 @@
 <script src="js/myfxbook-store.js?v=4"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js?v=20"></script>
+<!-- Compte Live = un compte du Journal (2026-09-27) - dashboard.js a besoin de window.CHESTJournal
+     (et de propfirm-rules.js, dont CHESTJournal.challengeModels() dépend) pour la liste des
+     comptes/phases, voir js/dashboard.js "renderLiveJournalPicker". Même ordre que journal.html. -->
+<script src="js/propfirm-rules.js?v=5"></script>
+<script src="js/journal-store.js?v=5"></script>
 <script src="js/dashboard.js?v=34"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>

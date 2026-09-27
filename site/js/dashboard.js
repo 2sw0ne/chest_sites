@@ -1860,6 +1860,14 @@
 
   let chosenPhase = null; // 'phase1' | 'phase2' | 'funded' | null - propfirm reconnue uniquement
 
+  // Compte Live = un compte du Journal (2026-09-27, demande utilisateur : plus de famille pour ce
+  // chemin, "ca va etre les journaux qui sont directement a connecter"). pendingLiveJournalId
+  // pointe un id CHESTJournal.listAccounts() (existant OU tout juste créé depuis cet écran).
+  let pendingLiveJournalId = null;
+  let pendingLiveStage = null; // 'p1'|'p2'|'funded'|null (null = compte propre, pas de phase)
+
+  const LIVE_CONNECT_RESUME_KEY = 'chest_live_connect_resume'; // voir liveJournalNewBtn + boot()
+
   function openAddAccountModal(familyId) {
     pendingFamilyId = familyId || null;
     chosenBroker = null;
@@ -1867,6 +1875,8 @@
     chosenPhase = null;
     chosenAddMode = 'myfxbook';
     liveCredentials = null;
+    pendingLiveJournalId = null;
+    pendingLiveStage = null;
     document.querySelectorAll('#accountKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === 'own'));
     document.getElementById('accountKindBlock').hidden = true;
     document.getElementById('objectivesStepBlock').hidden = true;
@@ -1880,6 +1890,8 @@
     const isAdmin = window.CHESTAccounts && CHESTAccounts.isAdmin && CHESTAccounts.isAdmin();
     document.getElementById('addAccountModeToggle').hidden = !isAdmin;
     document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.mode === 'myfxbook'));
+    document.getElementById('liveJournalStep').hidden = true;
+    document.getElementById('liveStageStep').hidden = true;
     document.getElementById('liveStepIntro').hidden = true;
     document.getElementById('liveLogin').value = '';
     document.getElementById('livePassword').value = '';
@@ -2078,54 +2090,16 @@
 
     document.getElementById('mfxDetailsBack').addEventListener('click', () => {
       document.getElementById('mfxDetailsStep').hidden = true;
-      if (chosenAddMode === 'live') document.getElementById('liveStepIntro').hidden = false;
-      else document.getElementById('mfxStepIntro').hidden = false;
+      document.getElementById('mfxStepIntro').hidden = false;
     });
 
-    document.getElementById('addAccountFinish').addEventListener('click', async () => {
+    document.getElementById('addAccountFinish').addEventListener('click', () => {
+      // Le mode Live ne passe plus par cet ecran/bouton (voir liveConnectBtn plus bas) - il se
+      // rattache a un compte du Journal, qui porte deja son propre broker/phase/regles.
+      if (chosenAddMode === 'live') return;
       if (!chosenBroker || !chosenBroker.name) { showToast('Choisis un broker/propfirm'); return; }
-      const startBacktestId = document.getElementById('addAccountBacktest').value || null;
-      const common = {
-        challengeObjectives: readObjectives(), isPropfirm: chosenAccountKind === 'propfirm',
-        startBacktestId, payouts: [], objectivesResetAt: isoDateLocal(new Date()),
-      };
-
-      if (chosenAddMode === 'live') {
-        if (!liveCredentials) return;
-        const finishBtn = document.getElementById('addAccountFinish');
-        finishBtn.disabled = true;
-        const prevLabel = finishBtn.textContent;
-        finishBtn.textContent = 'Connexion au terminal…';
-        const id = 'acc-' + Date.now();
-        try {
-          const res = await fetch(mt5ApiBase() + '/mt5/connect', {
-            method: 'POST',
-            headers: Object.assign({ 'Content-Type': 'application/json' }, mt5AuthHeaders()),
-            body: JSON.stringify({
-              login: liveCredentials.login, investorPassword: liveCredentials.password,
-              server: liveCredentials.server, dashboardAccountId: id,
-            }),
-          });
-          const body = await res.json();
-          if (!res.ok || body.error) throw new Error(body.error || 'Échec de connexion au terminal MT5.');
-          const info = body.accountInfo || {};
-          finalizeNewAccount({
-            name: `${chosenBroker.name} · #${liveCredentials.login}`, number: liveCredentials.login,
-            type: 'Réel', broker: chosenBroker.name, brokerId: chosenBroker.id,
-            balance: info.balance || 0, equity: info.equity || 0, pnl: 0, today: 0,
-            example: false, mt5Live: { login: liveCredentials.login, server: liveCredentials.server },
-            ...common,
-          }, id);
-        } catch (e) {
-          showToast(e.message || 'Échec de connexion au terminal MT5.');
-        } finally {
-          finishBtn.disabled = false;
-          finishBtn.textContent = prevLabel;
-        }
-        return;
-      }
-
       if (!mfxSelected) return;
+      const startBacktestId = document.getElementById('addAccountBacktest').value || null;
       const email = document.getElementById('mfxEmail').value.trim();
       const password = document.getElementById('mfxPassword').value;
       finalizeNewAccount({
@@ -2133,7 +2107,8 @@
         type: mfxSelected.demo ? 'Démo' : 'Réel', broker: chosenBroker.name, brokerId: chosenBroker.id,
         balance: parseFloat(mfxSelected.balance) || 0, equity: parseFloat(mfxSelected.equity) || 0, pnl: 0, today: 0,
         example: false, myfxbook: { email, password, accountId: mfxSelected.id },
-        ...common,
+        challengeObjectives: readObjectives(), isPropfirm: chosenAccountKind === 'propfirm',
+        startBacktestId, payouts: [], objectivesResetAt: isoDateLocal(new Date()),
       });
     });
 
@@ -2144,12 +2119,104 @@
         btn.classList.add('is-active');
         chosenAddMode = btn.dataset.mode;
         document.getElementById('mfxStepIntro').hidden = chosenAddMode !== 'myfxbook';
-        document.getElementById('liveStepIntro').hidden = chosenAddMode !== 'live';
+        document.getElementById('liveJournalStep').hidden = chosenAddMode !== 'live';
+        document.getElementById('liveStageStep').hidden = true;
+        document.getElementById('liveStepIntro').hidden = true;
         document.getElementById('mfxDetailsStep').hidden = true;
+        if (chosenAddMode === 'live') renderLiveJournalPicker();
       });
     });
 
-    document.getElementById('liveConnectBtn').addEventListener('click', () => {
+    // ---- Compte Live : rattachement a un compte du Journal (2026-09-27) ----
+    // "on va oublier les familles, ca va etre les journaux qui sont directement a connecter" -
+    // le Journal (js/journal-store.js, deja riche : propfirm/modele/phase/regles verifiees) devient
+    // la source de verite pour "ce que trade ce compte" ; le Dashboard n'est plus qu'un miroir
+    // (chest_accounts) tagué `journalAccountId` pour continuer a s'afficher normalement.
+    function stageLabelFor(acc) {
+      if (!acc || acc.type !== 'propfirm' || !acc.modelId) return null;
+      const models = window.CHESTJournal.challengeModels(acc.propfirmId);
+      const model = models.find((m) => m.id === acc.modelId);
+      if (!model) return null;
+      const stages = window.CHESTJournal.stageList(model);
+      return (stages.find((s) => s.id === acc.stage) || {}).label || null;
+    }
+    function nextStageAfter(acc) {
+      const models = window.CHESTJournal.challengeModels(acc.propfirmId);
+      const model = models.find((m) => m.id === acc.modelId);
+      if (!model) return acc.stage;
+      const stages = window.CHESTJournal.stageList(model);
+      const i = stages.findIndex((s) => s.id === acc.stage);
+      return i === -1 || i === stages.length - 1 ? acc.stage : stages[i + 1].id;
+    }
+    function renderLiveJournalPicker() {
+      const list = document.getElementById('liveJournalList');
+      const accounts = (window.CHESTJournal && window.CHESTJournal.listAccounts()) || [];
+      if (!accounts.length) {
+        list.innerHTML = '<p class="hint">Aucun compte dans le Journal pour l\'instant.</p>';
+        return;
+      }
+      list.innerHTML = accounts.map((a) => {
+        const stage = stageLabelFor(a);
+        const live = a.mt5Live ? ' · <b style="color:var(--green)">🟢 connecté</b>' : '';
+        return `<button type="button" class="mfx-account-row" data-id="${a.id}">
+          <span><strong>${a.name}</strong><span>${a.type === 'propfirm' ? 'Propfirm' : 'Compte propre'}${stage ? ' · ' + stage : ''}${live}</span></span>
+        </button>`;
+      }).join('');
+      list.querySelectorAll('.mfx-account-row').forEach((row) => {
+        row.addEventListener('click', () => selectJournalForLive(accounts.find((a) => a.id === row.dataset.id)));
+      });
+    }
+    function selectJournalForLive(acc) {
+      pendingLiveJournalId = acc.id;
+      document.getElementById('liveJournalStep').hidden = true;
+      if (acc.type === 'propfirm' && acc.modelId) {
+        const models = window.CHESTJournal.challengeModels(acc.propfirmId);
+        const model = models.find((m) => m.id === acc.modelId);
+        const stages = model ? window.CHESTJournal.stageList(model) : [{ id: 'p1', label: 'Phase 1' }];
+        const suggested = nextStageAfter(acc);
+        pendingLiveStage = suggested;
+        document.getElementById('liveStageHint').textContent = `"${acc.name}" est actuellement en ${stageLabelFor(acc) || 'phase 1'}. À quelle phase te connectes-tu maintenant ? (par défaut : la suivante — change si besoin, même pour revenir sur une phase déjà passée)`;
+        document.getElementById('liveStageToggle').innerHTML = stages.map((s) => `<button type="button" data-stage="${s.id}" class="${s.id === suggested ? 'is-active' : ''}">${s.label}</button>`).join('');
+        document.querySelectorAll('#liveStageToggle button').forEach((b) => b.addEventListener('click', () => {
+          document.querySelectorAll('#liveStageToggle button').forEach((x) => x.classList.remove('is-active'));
+          b.classList.add('is-active');
+          pendingLiveStage = b.dataset.stage;
+        }));
+        document.getElementById('liveStageStep').hidden = false;
+      } else {
+        pendingLiveStage = null;
+        showLiveStepIntro(acc);
+      }
+    }
+    function showLiveStepIntro(acc) {
+      document.getElementById('liveStageStep').hidden = true;
+      document.getElementById('liveJournalSummary').textContent = `Connexion pour : ${acc.name}${pendingLiveStage ? ' · ' + (stageLabelFor(Object.assign({}, acc, { stage: pendingLiveStage })) || pendingLiveStage) : ''}`;
+      document.getElementById('liveStepIntro').hidden = false;
+    }
+    document.getElementById('liveJournalNewBtn').addEventListener('click', () => {
+      // Reutilise l'ecran de creation de compte DEJA riche de journal.html (propfirm, modele,
+      // phase, regles verifiees, tailles de compte...) plutot que de le dupliquer ici - on y va,
+      // et on revient automatiquement finir la connexion Live une fois le compte cree (voir
+      // journal.html, jaSave, et le "resume" plus bas dans ce fichier).
+      try { localStorage.setItem(LIVE_CONNECT_RESUME_KEY, '1'); } catch (e) { /* tant pis */ }
+      window.location.href = 'journal.html?fromLiveConnect=1';
+    });
+    document.getElementById('liveStageBack').addEventListener('click', () => {
+      document.getElementById('liveStageStep').hidden = true;
+      document.getElementById('liveJournalStep').hidden = false;
+    });
+    document.getElementById('liveStageNext').addEventListener('click', () => {
+      const acc = window.CHESTJournal.listAccounts().find((a) => a.id === pendingLiveJournalId);
+      if (acc) showLiveStepIntro(acc);
+    });
+    document.getElementById('liveIntroBack').addEventListener('click', () => {
+      document.getElementById('liveStepIntro').hidden = true;
+      const acc = window.CHESTJournal.listAccounts().find((a) => a.id === pendingLiveJournalId);
+      if (acc && acc.type === 'propfirm' && acc.modelId) document.getElementById('liveStageStep').hidden = false;
+      else document.getElementById('liveJournalStep').hidden = false;
+    });
+
+    document.getElementById('liveConnectBtn').addEventListener('click', async () => {
       const login = document.getElementById('liveLogin').value.trim();
       const password = document.getElementById('livePassword').value;
       const server = document.getElementById('liveServer').value.trim();
@@ -2159,14 +2226,71 @@
         errEl.style.display = '';
         return;
       }
+      const journalAcc = window.CHESTJournal.listAccounts().find((a) => a.id === pendingLiveJournalId);
+      if (!journalAcc) { errEl.textContent = 'Compte du Journal introuvable — recommence.'; errEl.style.display = ''; return; }
       errEl.style.display = 'none';
-      // Pas d'appel reseau ici : la vraie connexion (POST /mt5/connect) n'a lieu qu'a la
-      // validation finale (addAccountFinish), une fois l'id du compte CHEST genere - voir
-      // son commentaire. On garde juste les identifiants le temps du flux.
-      liveCredentials = { login, password, server };
-      document.getElementById('liveStepIntro').hidden = true;
-      document.getElementById('mfxDetailsStep').hidden = false;
+      const btn = document.getElementById('liveConnectBtn');
+      btn.disabled = true;
+      const prevLabel = btn.textContent;
+      btn.textContent = 'Connexion au terminal…';
+      try {
+        const res = await fetch(mt5ApiBase() + '/mt5/connect', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, mt5AuthHeaders()),
+          body: JSON.stringify({ login, investorPassword: password, server, dashboardAccountId: journalAcc.id }),
+        });
+        const body = await res.json();
+        if (!res.ok || body.error) throw new Error(body.error || 'Échec de connexion au terminal MT5.');
+        const info = body.accountInfo || {};
+        // Le Journal est la source de verite (nom, propfirm, phase) - le Dashboard n'est qu'un
+        // miroir affichable, tague `journalAccountId` pour le retrouver au prochain changement.
+        window.CHESTJournal.updateAccount(journalAcc.id, {
+          mt5Live: { login, server },
+          stage: pendingLiveStage != null ? pendingLiveStage : journalAcc.stage,
+        });
+        const accounts = loadAccounts().filter((a) => a.journalAccountId !== journalAcc.id);
+        const id = 'acc-' + Date.now();
+        accounts.push({
+          id, journalAccountId: journalAcc.id,
+          name: journalAcc.name, number: login, type: 'Réel', broker: journalAcc.name,
+          balance: info.balance || 0, equity: info.equity || 0, pnl: 0, today: 0,
+          example: false, mt5Live: { login, server },
+          isPropfirm: journalAcc.type === 'propfirm', payouts: [],
+          objectivesResetAt: isoDateLocal(new Date()),
+        });
+        saveAccounts(accounts);
+        localStorage.setItem(ACTIVE_KEY, id);
+        closeAddAccountModal();
+        closeMenu();
+        renderAll();
+        showToast('Compte Live connecté ✓');
+      } catch (e) {
+        errEl.textContent = e.message || 'Échec de connexion au terminal MT5.';
+        errEl.style.display = '';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = prevLabel;
+      }
     });
+
+    // Retour automatique depuis "+ Nouveau compte du Journal" (journal.html a créé le compte et
+    // renvoyé ici, voir liveJournalNewBtn) - reprend le flux Live exactement là où il s'était arrêté.
+    (function resumeLiveConnectAfterJournalCreate() {
+      let resumeId = null;
+      try {
+        if (localStorage.getItem(LIVE_CONNECT_RESUME_KEY) === '1') resumeId = localStorage.getItem(LIVE_CONNECT_RESUME_KEY + '_account');
+        localStorage.removeItem(LIVE_CONNECT_RESUME_KEY);
+        localStorage.removeItem(LIVE_CONNECT_RESUME_KEY + '_account');
+      } catch (e) { /* tant pis */ }
+      if (!resumeId || !window.CHESTJournal) return;
+      const acc = window.CHESTJournal.listAccounts().find((a) => a.id === resumeId);
+      if (!acc) return;
+      openAddAccountModal(null);
+      chosenAddMode = 'live';
+      document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.mode === 'live'));
+      document.getElementById('mfxStepIntro').hidden = true;
+      selectJournalForLive(acc);
+    })();
 
     // ---- Login Myfxbook -> choix du compte -> broker/propfirm + objectifs ----
     let mfxAccounts = [];

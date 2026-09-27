@@ -563,15 +563,60 @@ mises à jour) - exactement le comportement décrit par l'utilisateur pour les p
   proprement (503, message clair, bouton réactivé, **aucun compte à moitié créé**) au lieu de
   planter - exactement le comportement voulu pour ce cas. **Le vrai test de bout en bout (connexion
   à un compte MT5 réel, bascule entre deux comptes) reste à faire une fois déployé.**
-- **Pas fait dans cette passe (prochaine étape explicitement voulue par l'utilisateur)** :
-  alimenter automatiquement le Journal de trading (`journal-store.js`) à chaque clôture détectée,
-  avec le compte/la phase taguée - reporté volontairement : `chest_journal`/`chest_journal_ext`
-  sont aujourd'hui des blobs JSON synchronisés en "dernier écrit gagne" (voir `/sync`,
-  `accounts-bridge/server.py`) - un serveur qui ferait lecture-modification-écriture dessus en même
-  temps qu'un navigateur ouvert créerait un vrai risque de perte d'écriture concurrente. À traiter
-  séparément, probablement en réutilisant le motif déjà existant des comptes "live" du journal
-  (`liveAccounts`/`extEntries`, tableau APPEND-ONLY par compte live - voir `journal-store.js`), pas
-  en touchant le blob principal.
+- **Pas fait dans cette passe (toujours vrai après la restructuration ci-dessous)** :
+  alimenter automatiquement le Journal de trading (`journal-store.js`) à chaque clôture détectée -
+  reporté volontairement : `chest_journal`/`chest_journal_ext` sont aujourd'hui des blobs JSON
+  synchronisés en "dernier écrit gagne" (voir `/sync`, `accounts-bridge/server.py`) - un serveur qui
+  ferait lecture-modification-écriture dessus en même temps qu'un navigateur ouvert créerait un vrai
+  risque de perte d'écriture concurrente. À traiter séparément, probablement en réutilisant le motif
+  déjà existant des comptes "live" du journal (`liveAccounts`/`extEntries`, tableau APPEND-ONLY par
+  compte live - voir `journal-store.js`), pas en touchant le blob principal.
+
+## Le Journal devient la source de vérité du compte Live, plus de famille pour ce chemin (2026-09-27)
+
+Suite directe : l'utilisateur a demandé de simplifier encore - "on va oublier les familles, ça va
+être les journaux qui sont directement à connecter". Avant : un Compte Live du Dashboard portait
+lui-même son broker/sa phase (écran dupliqué de celui du Journal). Maintenant : une connexion Live
+se rattache à un **compte du Journal** (`js/journal-store.js`, déjà riche - propfirm, modèle, phase,
+règles vérifiées) plutôt qu'à une famille - le Journal sait "ce que ce compte trade", le Dashboard
+n'est plus qu'un miroir qui l'affiche.
+
+- **`site/dashboard.html`/`js/dashboard.js`** : le flux "Compte Live" est maintenant **Quel journal
+  ? → (si propfirm) quelle phase ? → identifiants MT5 → connecter**, sans toucher aux familles/au
+  broker-grid du Dashboard (ceux-ci restent utilisés tels quels par le chemin Myfxbook, inchangé).
+  - `renderLiveJournalPicker()` liste `CHESTJournal.listAccounts()` (badge "🟢 connecté" sur celui
+    qui a déjà un `mt5Live`), + bouton **"+ Nouveau compte du Journal"**.
+  - **Créer un nouveau compte NE duplique PAS l'écran riche de `journal.html`** (propfirm/modèle/
+    phase/règles vérifiées/tailles de compte) - le bouton y redirige (`journal.html?
+    fromLiveConnect=1`, qui ouvre directement le formulaire de création plutôt que le hub), et
+    `jaSave` (dans `journal.html`) détecte ce flag pour revenir sur `dashboard.html` avec le compte
+    tout juste créé au lieu de rester sur le Journal - relai via deux clés localStorage
+    (`chest_live_connect_resume`/`_account`), lues une fois au chargement du Dashboard
+    (`resumeLiveConnectAfterJournalCreate()`) puis effacées immédiatement (consommées une seule
+    fois, y compris en cas d'échec/annulation - jamais de résidu qui rouvrirait le modal au hasard
+    plus tard).
+  - **Suggestion de phase par défaut = la suivante** (`nextStageAfter()`, à partir de
+    `CHESTJournal.stageList()`) mais **librement changeable vers n'importe quelle phase**, y compris
+    une antérieure/potentiellement "cramée" (demande explicite : "va par défaut proposer celui
+    d'après... mais ça le mettra par défaut vu que les infos seront en réel" - jamais de validation
+    qui bloquerait un choix "illogique", l'utilisateur reste seul juge).
+  - À la connexion réussie : `CHESTJournal.updateAccount(id, {mt5Live:{login,server}, stage})` (le
+    Journal retient l'état) + un compte miroir dans `chest_accounts` tagué `journalAccountId` (pour
+    que le Dashboard continue de s'afficher sans réécrire tout son moteur de rendu, qui reste
+    entièrement basé sur `chest_accounts`/familles pour tout le reste).
+  - **Piège de cache local rencontré en testant** : `dashboard.html` ne chargeait ni
+    `js/journal-store.js` ni `js/propfirm-rules.js` (jamais utilisés par le Dashboard avant) -
+    ajoutés juste avant `dashboard.js`, même ordre que `journal.html`. Un premier test après ajout a
+    semblé encore échoué (libellé de phase générique "Phase 1" au lieu de "Challenge") à cause du
+    cache agressif du serveur de dev local déjà documenté plus bas (section "Pièges déjà
+    rencontrés") - un rechargement `?nocache=` de l'iframe a confirmé que le code était correct.
+- **Vérifié en direct** (session de test locale) : création d'un compte Journal "FTMO Challenge"
+  (1 étape) depuis le flux Live, retour automatique sur le Dashboard avec le bon compte préselectionné,
+  suggestion de phase par défaut correcte ("Challenge" → suggère "Compte financé"), et sélection
+  directe depuis la liste (sans passer par la création) - les deux chemins convergent bien vers le
+  même écran d'identifiants. Échec de connexion (sans variables Railway configurées en local) géré
+  proprement : aucun compte à moitié créé, le compte Journal n'est jamais modifié tant que le
+  serveur n'a pas confirmé la connexion.
 
 ## Corrections post-premier-déploiement (2026-09-24)
 
