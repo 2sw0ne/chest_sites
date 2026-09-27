@@ -2260,7 +2260,13 @@
         const newStage = pendingLiveStage != null ? pendingLiveStage : journalAcc.stage;
         // Le Journal est la source de verite (nom, propfirm, phase) - le Dashboard n'est qu'un
         // miroir affichable, tague `journalAccountId` pour le retrouver au prochain changement.
-        window.CHESTJournal.updateAccount(journalAcc.id, { mt5Live: { login, server }, stage: newStage });
+        // connectionMode/mode basculent automatiquement en "auto" ici (2026-09-27, demande
+        // utilisateur : "connecté à dashboard il se remplit automatiquement") - jamais demandé à
+        // la création du compte du Journal (voir journal.html, jaSave), seulement dérivé du fait
+        // qu'une vraie connexion Live vient de réussir.
+        window.CHESTJournal.updateAccount(journalAcc.id, {
+          mt5Live: { login, server }, stage: newStage, connectionMode: 'mt5', mode: 'auto',
+        });
         // Le Journal fait office de "famille" (2026-09-27, demande utilisateur : "c'est le journal
         // qui fait office de famille et qui va enregistrer et superposer les informations des
         // trades de chaque compte") - CHAQUE connexion Live (phase 1, phase 2, financé...) ajoute

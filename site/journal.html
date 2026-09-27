@@ -496,15 +496,14 @@
             </div>
           </div>
         </div>
-        <div class="jr-cell">
-          <label>Connexion</label>
-          <div class="jr-segmented" id="jaConnToggle">
-            <button type="button" data-conn="manual" class="is-active">Manuel</button>
-            <button type="button" data-conn="myfxbook">Automatique</button>
-          </div>
-        </div>
       </div>
-      <p id="jaMt5Note" class="jr-rules-note" hidden><b>Journal automatique.</b> Il est alimenté par tes comptes live Myfxbook : tu les ajoutes juste après avoir créé le journal. À chaque synchronisation CHEST lit les 50 dernières transactions et les ajoute à l'historique déjà importé (doublons ignorés) ; si un lot arrive plein, il te prévient que des trades ont pu être ratés. Avec un journal <b>manuel</b>, tu saisis toi-même le journal principal et tu peux y ajouter des comptes live quand tu veux.</p>
+      <!-- Ancien choix "Manuel/Automatique" retiré de la création (2026-09-27, demande
+           utilisateur : "c'est une création unique de journal à la base. puis par la fonction
+           journal il se remplit manuellement. mais connecté à dashboard il se remplit
+           automatiquement") - un journal démarre toujours "manuel" (jaSave le fixe en dur) ; il
+           reste possible d'y ajouter un compte live Myfxbook n'importe quand (cf. jrAddLiveBtn),
+           et une connexion Live MT5 depuis le Dashboard le fait basculer automatiquement (voir
+           js/dashboard.js, liveConnectBtn). Plus de question posée à la création. -->
 
       <div class="jr-form__actions">
         <button type="button" class="btn btn-secondary" id="jaSave">Enregistrer le compte</button>
@@ -1279,11 +1278,6 @@ CHESTTour.init([
   document.querySelectorAll('#jaRiskUnitToggle button').forEach((btn) => btn.addEventListener('click', () => {
     document.querySelectorAll('#jaRiskUnitToggle button').forEach((b) => b.classList.toggle('is-active', b === btn));
   }));
-  document.querySelectorAll('#jaConnToggle button').forEach((btn) => btn.addEventListener('click', () => {
-    document.querySelectorAll('#jaConnToggle button').forEach((b) => b.classList.toggle('is-active', b === btn));
-    document.getElementById('jaMt5Note').hidden = btn.dataset.conn !== 'myfxbook';
-  }));
-
   function openAccountForm(account) {
     editingAccountId = account ? account.id : null;
     document.getElementById('jrAccFormTitle').textContent = account ? 'Modifier le compte' : 'Nouveau compte';
@@ -1313,9 +1307,6 @@ CHESTTour.init([
     document.getElementById('jaRiskValue').value = account ? account.riskValue : 1;
     const riskUnit = account ? account.riskUnit : 'pct';
     document.querySelectorAll('#jaRiskUnitToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.unit === riskUnit));
-    const conn = account ? (account.connectionMode === 'mt5' ? 'myfxbook' : account.connectionMode) : 'manual';
-    document.querySelectorAll('#jaConnToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.conn === conn));
-    document.getElementById('jaMt5Note').hidden = conn !== 'myfxbook';
     document.getElementById('jaDelete').hidden = !account;
 
     document.getElementById('jrForm').hidden = true;
@@ -1350,8 +1341,10 @@ CHESTTour.init([
       balance,
       riskUnit: document.querySelector('#jaRiskUnitToggle button.is-active').dataset.unit,
       riskValue: parseFloat(document.getElementById('jaRiskValue').value) || 1,
-      connectionMode: document.querySelector('#jaConnToggle button.is-active').dataset.conn,
-      mode: document.querySelector('#jaConnToggle button.is-active').dataset.conn === 'myfxbook' ? 'auto' : 'manual',
+      // Plus de choix Manuel/Automatique à la création (voir plus haut) - un NOUVEAU compte démarre
+      // toujours "manuel" ; en édition, on ne touche pas à connectionMode/mode déjà en place (une
+      // connexion Live MT5 ou un compte live Myfxbook a pu déjà les faire passer en "auto" depuis).
+      ...(editingAccountId ? {} : { connectionMode: 'manual', mode: 'manual' }),
       rules: type === 'propfirm' ? {
         dailyLossPct: parseFloat(document.getElementById('jaDailyLoss').value) || 0,
         maxLossPct: parseFloat(document.getElementById('jaMaxLoss').value) || 0,
