@@ -69,6 +69,7 @@ jamais son ancien historique.
 |---|---|
 | `MT5_TERMINAL_HOST` | Nom interne Railway du service `mt5-terminal` (ex. `mt5-terminal.railway.internal`) |
 | `MT5_TERMINAL_PORT` | `18812` (port RPyC par défaut de `mt5linux`) |
+| `MT5_TERMINAL_PATH` | `C:\MT5\terminal64.exe` par défaut — chemin d'installation du terminal DANS `mt5-terminal` (image `lprett/mt5linux`). Ne changer que si `mt5-terminal` passe un jour à une autre image. Sans ce chemin explicite, `mt5.initialize()` fait une auto-détection qui échoue sous Wine avec `(-10005, 'IPC timeout')` (incident du 2026-09-27, voir CLAUDE.md) |
 | `MT5_POLL_SECONDS` | `15` par défaut — connexion locale au réseau privé Railway, pas un appel facturé, peut rester bas sans souci |
 | `ACCOUNTS_BRIDGE_URL` | URL **publique** déployée d'accounts-bridge (même valeur que sur berich-bridge/calendar-bridge) |
 | `INTERNAL_PUSH_SECRET` | **Même valeur** que sur accounts-bridge/berich-bridge/calendar-bridge |

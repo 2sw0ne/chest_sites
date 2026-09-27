@@ -63,6 +63,11 @@ from flask import Flask, jsonify, request
 MT5_TERMINAL_HOST = os.environ.get("MT5_TERMINAL_HOST", "mt5-terminal.railway.internal")
 MT5_TERMINAL_PORT = int(os.environ.get("MT5_TERMINAL_PORT", 18812))
 POLL_SECONDS = int(os.environ.get("MT5_POLL_SECONDS", 15))
+# Chemin d'installation du terminal DANS le conteneur mt5-terminal (image lprett/mt5linux, wine
+# prefix /opt/wineprefix, MT5 installe via `/path:"C:/MT5"` - voir son Dockerfile en amont). Sans
+# ce chemin explicite, mt5.initialize() fait une auto-detection (registre Windows) qui echoue sous
+# Wine avec (-10005, 'IPC timeout') - constate en production le 2026-09-27 (voir CLAUDE.md).
+MT5_TERMINAL_PATH = os.environ.get("MT5_TERMINAL_PATH", r"C:\MT5\terminal64.exe")
 
 
 class DirectMT5Client:
@@ -86,8 +91,11 @@ class DirectMT5Client:
     def _eval(self, code: str):
         return rpyc.classic.obtain(self._conn.eval(code))
 
-    def initialize(self):
-        return self._eval("mt5.initialize()")
+    def initialize(self, path: str | None = None):
+        # path explicite (repr() = echappement correct des antislashs Windows) plutot que
+        # l'auto-detection par defaut de mt5.initialize() - voir MT5_TERMINAL_PATH plus haut.
+        code = f"mt5.initialize(path={path!r})" if path else "mt5.initialize()"
+        return self._eval(code)
 
     def login(self, login: int, password: str, server: str):
         # repr() (via !r) echappe correctement les guillemets/backslashes du mot de passe/serveur
@@ -245,7 +253,7 @@ def poll_loop() -> None:
         try:
             if not terminal_ready:
                 mt5.connect()  # connexion RPyC vers mt5-terminal - voir DirectMT5Client
-                terminal_ready = bool(mt5.initialize())
+                terminal_ready = bool(mt5.initialize(path=MT5_TERMINAL_PATH))
                 if not terminal_ready:
                     raise RuntimeError(f"mt5.initialize() a échoué : {mt5.last_error()}")
 

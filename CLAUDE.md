@@ -724,6 +724,34 @@ jamais juste "se connecter à cette adresse réseau").
   `!r`. Tout fonctionne. Le vrai test contre le vrai `mt5-terminal` (vrai Wine/MT5) reste à faire
   au prochain déploiement.
 
+## `mt5.initialize()` échoue avec `(-10005, 'IPC timeout')` — chemin explicite requis (2026-09-27)
+
+**Après le fix RPyC ci-dessus, nouveau problème distinct** (confirmé par logs Railway des deux
+services) : la connexion RPyC vers `mt5-terminal` réussit bien à chaque tentative (logs
+`mt5-terminal` : `SLAVE/18812... accepted... welcome` répété toutes les ~15s), mais `mt5.initialize()`
+échoue systématiquement, en boucle pendant plusieurs minutes (pas un simple souci de timing au
+démarrage) : `RuntimeError: mt5.initialize() a échoué : (-10005, 'IPC timeout')`, ce qui fait
+timeout `POST /switch-account` côté site (504 après 25s).
+
+- **Cause** : `mt5.initialize()` appelé SANS argument fait une auto-détection du terminal installé
+  (registre Windows) — ça ne marche pas de façon fiable sous Wine, dont l'émulation de registre pour
+  une installation silencieuse (`/auto`) ne remplit pas forcément les clés que l'auto-détection
+  attend. Confirmé en lisant le vrai Dockerfile amont du paquet `mt5linux`
+  (`lucas-campagna/mt5linux`, `docker/Dockerfile`) : le terminal est installé via
+  `wine64 mt5setup.exe /auto /path:"C:/MT5"`, donc `terminal64.exe` vit à un chemin connu et fixe :
+  `C:\MT5\terminal64.exe`.
+- **Corrigé** : `DirectMT5Client.initialize()` accepte maintenant un `path` optionnel
+  (`mt5.initialize(path=...)`, avec `!r` pour échapper correctement les antislashs Windows du
+  chemin — même principe que l'échappement déjà en place pour `login()`/`history_deals_get()`).
+  `poll_loop()` passe désormais `MT5_TERMINAL_PATH` (nouvelle variable d'env, défaut
+  `C:\MT5\terminal64.exe` — à ne changer QUE si `mt5-terminal` passe un jour à une autre image que
+  `lprett/mt5linux`).
+- **Pas encore vérifié contre le vrai déploiement Railway** (seule la syntaxe a été vérifiée
+  localement) — à confirmer au prochain déploiement : si `(-10005, 'IPC timeout')` persiste malgré
+  le chemin explicite, la piste suivante serait un problème de timing démarrage Wine/Xvfb (le
+  terminal met peut-être plus longtemps à finir de démarrer sous charge Railway que dans les tests
+  de l'auteur du paquet) plutôt qu'un problème de chemin.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
