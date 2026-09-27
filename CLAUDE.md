@@ -483,9 +483,11 @@ auto-hébergée plutôt que via un service payant.
   qu'un abonnement par compte — hypothèse : c'est probablement ainsi que Futurizq tient son propre
   modèle (29€/mois tout compris) malgré le coût des services API tiers équivalents.
 - **Deux services Railway séparés** :
-  - `mt5-terminal/` — juste `FROM lprett/mt5linux:latest` + variables d'environnement
-    (`MT5_LOGIN`/`MT5_PASSWORD`/`MT5_SERVER`/`MT5_HOST=0.0.0.0`). **`MT5_PASSWORD` doit être le mot
-    de passe INVESTISSEUR (lecture seule)**, jamais le mot de passe de trading — double protection
+  - `mt5-terminal/` — juste `FROM lprett/mt5linux:latest` + `MT5_HOST=0.0.0.0`. Le compte connecté
+    se choisit maintenant depuis le site (voir "Changer de compte Live depuis le site" ci-dessous) -
+    `MT5_LOGIN`/`MT5_PASSWORD`/`MT5_SERVER` restent utilisables en secours (autologin au
+    démarrage) mais ne sont plus le chemin normal. **Le mot de passe utilisé doit toujours être
+    celui de l'INVESTISSEUR (lecture seule)**, jamais celui de trading — double protection
     volontaire : même si `mt5-notify-bridge` appelait un jour une fonction de trading par erreur
     (il ne le fait pas), le serveur du broker la refuserait de toute façon.
   - `mt5-notify-bridge/` — sonde `history_deals_get()` toutes les `MT5_POLL_SECONDS` (15s par
@@ -514,6 +516,62 @@ auto-hébergée plutôt que via un service payant.
   Wine/MT5 qui reste connecté en continu a un profil de charge différent (un seul processus stable,
   pas de relances répétées), mais à vérifier en observant la conso mémoire réelle sur Railway avant
   de conclure que c'est stable.
+
+## Changer de compte "Live" depuis le site, sans jamais toucher Railway (2026-09-27)
+
+Suite directe : l'utilisateur a fait remarquer que devoir repasser par les variables Railway à
+chaque changement de compte (phase 1 → phase 2 → financé → payout 1 → payout 2...) serait pénible -
+demande explicite de piloter ça depuis le Dashboard. Contrainte réelle acceptée comme une feature,
+pas une limitation : **un seul terminal MT5 = un seul compte connecté à la fois**, donc brancher un
+nouveau compte Live remplace forcément l'ancien (ses données restent sur CHEST, juste plus
+mises à jour) - exactement le comportement décrit par l'utilisateur pour les phases de challenge.
+
+- **`site/dashboard.html`/`js/dashboard.js`** : le modal "Ajouter un compte" a maintenant un choix
+  **Myfxbook / Compte Live** (`#addAccountModeToggle`, **caché entièrement si non-admin** - un seul
+  terminal partagé, le changer affecte tout le monde). "Compte Live" demande login MT5 + mot de
+  passe investisseur + serveur, puis réutilise l'écran broker/phase déjà existant (aucune
+  duplication de cet écran). À la validation : génère l'id du futur compte AVANT tout appel réseau,
+  appelle `POST /mt5/connect` avec cet id, et ne crée le compte côté Dashboard
+  (`finalizeNewAccount(fields, presetId)`, `presetId` = nouveau 2e paramètre optionnel) **que si la
+  connexion réussit** - jamais de compte "à moitié" créé si le mot de passe/serveur est faux.
+- **`accounts-bridge/server.py`** : nouvelle table `mt5_live_state` (**UNE seule ligne, id=1** - un
+  seul compte actif par nature, pas une table historique). `POST /mt5/connect` (admin) chiffre le
+  mot de passe investisseur (`_encrypt_mt5_secret`/`_decrypt_mt5_secret`, `cryptography.fernet`,
+  clé `MT5_CREDENTIALS_KEY` - même principe que `VAPID_PRIVATE_KEY`, jamais commitée) **après avoir
+  confirmé que `mt5-notify-bridge` a bien basculé** (`MT5_NOTIFY_BRIDGE_URL`, POST
+  `/switch-account`) - si le switch échoue, l'ancien état en base n'est jamais écrasé. `GET
+  /mt5/status` (n'importe quel membre approuvé) renvoie quel compte Dashboard est actuellement
+  connecté, jamais le mot de passe.
+- **`mt5-notify-bridge/server.py`** : nouveau `POST /switch-account` (X-Internal-Secret) qui appelle
+  `mt5.login(...)` **sur la connexion déjà établie** (`mt5.initialize()` ne se refait pas - c'est
+  une reconnexion de COMPTE, pas de terminal). Coordination thread-safe entre la requête HTTP
+  (thread Flask) et `poll_loop()` (thread de fond, seul à toucher l'objet `mt5` - RPyC/mt5linux
+  n'est pas garanti thread-safe) via deux `threading.Event` (`switch_event`/`switch_done`) : la
+  requête HTTP pose la demande et ATTEND (jusqu'à 25s) que `poll_loop()` l'exécute et publie le
+  résultat, `switch_event.wait(timeout=POLL_SECONDS)` remplace le `time.sleep()` simple pour que
+  `poll_loop()` réagisse immédiatement à une demande au lieu d'attendre la fin du cycle de sondage
+  normal. Le suivi du dernier ticket notifié passe de "un seul fichier global" à "un par compte"
+  (clé = login MT5) pour ne jamais renotifier un vieil historique si on revient sur un compte déjà
+  vu.
+- **Vérifié en écrivant un faux client MT5 en Python** (login qui réussit/échoue selon le mot de
+  passe fourni, `account_info()`/`history_deals_get()` bidon) et en testant `/switch-account` par
+  dessus (mauvais mot de passe → 502 propre, bon mot de passe → 200 + `accountInfo`, mauvais secret
+  interne → 401, `/health` reflète le compte connecté) - **et en direct dans le navigateur** (compte
+  admin de test, accounts-bridge local) : le toggle Myfxbook/Compte Live s'affiche bien uniquement
+  admin, le formulaire Live s'enchaîne bien vers l'écran broker/phase, et surtout, sans
+  `MT5_NOTIFY_BRIDGE_URL`/`MT5_CREDENTIALS_KEY` configurés localement, `POST /mt5/connect` échoue
+  proprement (503, message clair, bouton réactivé, **aucun compte à moitié créé**) au lieu de
+  planter - exactement le comportement voulu pour ce cas. **Le vrai test de bout en bout (connexion
+  à un compte MT5 réel, bascule entre deux comptes) reste à faire une fois déployé.**
+- **Pas fait dans cette passe (prochaine étape explicitement voulue par l'utilisateur)** :
+  alimenter automatiquement le Journal de trading (`journal-store.js`) à chaque clôture détectée,
+  avec le compte/la phase taguée - reporté volontairement : `chest_journal`/`chest_journal_ext`
+  sont aujourd'hui des blobs JSON synchronisés en "dernier écrit gagne" (voir `/sync`,
+  `accounts-bridge/server.py`) - un serveur qui ferait lecture-modification-écriture dessus en même
+  temps qu'un navigateur ouvert créerait un vrai risque de perte d'écriture concurrente. À traiter
+  séparément, probablement en réutilisant le motif déjà existant des comptes "live" du journal
+  (`liveAccounts`/`extEntries`, tableau APPEND-ONLY par compte live - voir `journal-store.js`), pas
+  en touchant le blob principal.
 
 ## Corrections post-premier-déploiement (2026-09-24)
 

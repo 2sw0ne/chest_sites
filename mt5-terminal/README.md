@@ -29,7 +29,7 @@ crash intégré qui redémarre le terminal tout seul).
 jamais le mot de passe de trading. C'est un vrai réglage du protocole MT5 lui-même (pas une
 promesse de ce conteneur) : avec un mot de passe investisseur, le serveur du broker refuse
 n'importe quel ordre envoyé depuis cette session, quoi que fasse le logiciel côté client - même si
-`mt5-bridge` ne devait JAMAIS appeler de fonction de trading (et il ne le fait pas, voir son
+`mt5-notify-bridge` ne devait JAMAIS appeler de fonction de trading (et il ne le fait pas, voir son
 README), cette double protection reste la bonne pratique : si ce conteneur était un jour compromis,
 l'attaquant ne pourrait que consulter le compte, jamais trader ni retirer des fonds.
 
@@ -37,21 +37,28 @@ l'attaquant ne pourrait que consulter le compte, jamais trader ni retirer des fo
 
 | Variable | Valeur |
 |---|---|
-| `MT5_LOGIN` | Numéro du compte MT5 (Live Swann) |
-| `MT5_PASSWORD` | **Mot de passe INVESTISSEUR** (lecture seule) du compte |
-| `MT5_SERVER` | Nom du serveur du broker (ex. `Vantage-Live` — visible dans MT5 sous Outils > Options, ou donné par le broker à l'ouverture du compte) |
 | `MT5_HOST` | `0.0.0.0` (pour écouter sur le réseau privé Railway) |
 
-Ne PAS exposer de domaine public sur ce service — `mt5-bridge` s'y connecte uniquement via le
-réseau privé Railway (`mt5-terminal.railway.internal:18812`, nom exact = nom donné au service dans
-Railway). Les ports 8080/5901 (interface noVNC, utile uniquement pour un diagnostic manuel en cas
-de souci de connexion au broker) n'ont pas besoin d'être exposés publiquement non plus — au besoin,
-utiliser le port-forwarding du CLI Railway (`railway service` puis `railway connect` / tunnel)
-plutôt que de les rendre publics.
+**`MT5_LOGIN`/`MT5_PASSWORD`/`MT5_SERVER` ne sont PLUS nécessaires (2026-09-27)** : le choix du
+compte connecté se fait maintenant depuis le site (Dashboard → Ajouter un compte → Compte Live,
+admin uniquement), qui appelle `POST /mt5/connect` sur accounts-bridge, qui appelle à son tour
+`POST /switch-account` sur `mt5-notify-bridge` — celui-ci reconnecte le terminal EN DIRECT
+(`mt5.login()`, sans redémarrer le conteneur) à chaque changement de compte (nouvelle phase de
+challenge, nouveau compte financé...). Voir `../mt5-notify-bridge/README.md` pour le détail complet
+de ce mécanisme. Ces trois variables restent utilisables en secours (autologin au démarrage du
+conteneur, avant toute connexion depuis le site) mais ne sont plus le chemin normal.
+
+Ne PAS exposer de domaine public sur ce service — `mt5-notify-bridge` s'y connecte uniquement via
+le réseau privé Railway (`mt5-terminal.railway.internal:18812`, nom exact = nom donné au service
+dans Railway). Les ports 8080/5901 (interface noVNC, utile uniquement pour un diagnostic manuel en
+cas de souci de connexion au broker) n'ont pas besoin d'être exposés publiquement non plus — au
+besoin, utiliser le port-forwarding du CLI Railway (`railway service` puis `railway connect` /
+tunnel) plutôt que de les rendre publics.
 
 ## Vérifier que ça tourne
 
-Une fois déployé avec les bonnes variables, les logs Railway du service doivent montrer le terminal
-MT5 démarrer et se connecter automatiquement (autologin, voir la doc du projet `mt5linux`). Si la
-connexion échoue, vérifier d'abord `MT5_SERVER` (nom exact, sensible à la casse) et que le mot de
-passe investisseur n'a pas expiré côté broker.
+Une fois déployé, les logs Railway du service doivent montrer le terminal MT5 démarrer (pas
+forcément connecté à un compte tant que personne n'a utilisé "Ajouter un compte → Compte Live" sur
+le site, voir plus haut). Si une connexion échoue, vérifier d'abord `MT5_SERVER` (nom exact,
+sensible à la casse, saisi depuis le site) et que le mot de passe investisseur n'a pas expiré côté
+broker.

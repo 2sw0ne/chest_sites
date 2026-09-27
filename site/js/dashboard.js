@@ -1837,6 +1837,16 @@
 
   let chosenBroker = null; // {id, name} ou {id:'other', name: <saisi>} - meme convention que le wizard BERICH
   let chosenAccountKind = 'own'; // 'own' | 'propfirm' - conditionne l'affichage des payouts et le choix cp/pf du backtest de depart
+  // 'myfxbook' | 'live' (2026-09-27, demande utilisateur : reserve admin - voir addAccountModeToggle) -
+  // conditionne quel bloc s'affiche (mfxStepIntro/liveStepIntro) et ce que fait "Ajouter le compte".
+  let chosenAddMode = 'myfxbook';
+  let liveCredentials = null; // {login, password, server} - jamais persiste, juste le temps du flux d'ajout
+
+  function mt5ApiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
+  function mt5AuthHeaders() {
+    const t = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    return t ? { Authorization: 'Bearer ' + t } : {};
+  }
 
   // Backtest de depart (optionnel) : la liste vient de CHESTBacktests, donc
   // repopulee a chaque ouverture pour refleter les backtests ajoutes/supprimes
@@ -1855,6 +1865,8 @@
     chosenBroker = null;
     chosenAccountKind = 'own';
     chosenPhase = null;
+    chosenAddMode = 'myfxbook';
+    liveCredentials = null;
     document.querySelectorAll('#accountKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === 'own'));
     document.getElementById('accountKindBlock').hidden = true;
     document.getElementById('objectivesStepBlock').hidden = true;
@@ -1863,6 +1875,16 @@
     document.getElementById('addAccountRulesNote').textContent = '';
     populateBacktestSelect();
     document.getElementById('addAccountBacktest').value = '';
+    // "Compte Live" reserve admin (2026-09-27) - un seul terminal MT5 partage, voir README de
+    // mt5-notify-bridge. Invisible pour un membre de la famille, comme s'il n'existait pas.
+    const isAdmin = window.CHESTAccounts && CHESTAccounts.isAdmin && CHESTAccounts.isAdmin();
+    document.getElementById('addAccountModeToggle').hidden = !isAdmin;
+    document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.mode === 'myfxbook'));
+    document.getElementById('liveStepIntro').hidden = true;
+    document.getElementById('liveLogin').value = '';
+    document.getElementById('livePassword').value = '';
+    document.getElementById('liveServer').value = '';
+    document.getElementById('liveConnectError').style.display = 'none';
     document.getElementById('mfxStepIntro').hidden = false;
     document.getElementById('mfxDetailsStep').hidden = true;
     // Preremplit avec le dernier identifiant Myfxbook connecte avec succes (voir saveLastMfxLogin) -
@@ -1920,9 +1942,9 @@
     showToast('Famille supprimée');
   }
 
-  function finalizeNewAccount(fields) {
+  function finalizeNewAccount(fields, presetId) {
     const accounts = loadAccounts().filter((a) => a.id !== 'mt5-live' && a.id !== 'live-swann');
-    const id = 'acc-' + Date.now();
+    const id = presetId || ('acc-' + Date.now());
     accounts.push({ id, ...fields });
     saveAccounts(accounts);
     if (pendingFamilyId) {
@@ -2056,23 +2078,94 @@
 
     document.getElementById('mfxDetailsBack').addEventListener('click', () => {
       document.getElementById('mfxDetailsStep').hidden = true;
-      document.getElementById('mfxStepIntro').hidden = false;
+      if (chosenAddMode === 'live') document.getElementById('liveStepIntro').hidden = false;
+      else document.getElementById('mfxStepIntro').hidden = false;
     });
 
-    document.getElementById('addAccountFinish').addEventListener('click', () => {
-      if (!mfxSelected) return;
+    document.getElementById('addAccountFinish').addEventListener('click', async () => {
       if (!chosenBroker || !chosenBroker.name) { showToast('Choisis un broker/propfirm'); return; }
+      const startBacktestId = document.getElementById('addAccountBacktest').value || null;
+      const common = {
+        challengeObjectives: readObjectives(), isPropfirm: chosenAccountKind === 'propfirm',
+        startBacktestId, payouts: [], objectivesResetAt: isoDateLocal(new Date()),
+      };
+
+      if (chosenAddMode === 'live') {
+        if (!liveCredentials) return;
+        const finishBtn = document.getElementById('addAccountFinish');
+        finishBtn.disabled = true;
+        const prevLabel = finishBtn.textContent;
+        finishBtn.textContent = 'Connexion au terminal…';
+        const id = 'acc-' + Date.now();
+        try {
+          const res = await fetch(mt5ApiBase() + '/mt5/connect', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, mt5AuthHeaders()),
+            body: JSON.stringify({
+              login: liveCredentials.login, investorPassword: liveCredentials.password,
+              server: liveCredentials.server, dashboardAccountId: id,
+            }),
+          });
+          const body = await res.json();
+          if (!res.ok || body.error) throw new Error(body.error || 'Échec de connexion au terminal MT5.');
+          const info = body.accountInfo || {};
+          finalizeNewAccount({
+            name: `${chosenBroker.name} · #${liveCredentials.login}`, number: liveCredentials.login,
+            type: 'Réel', broker: chosenBroker.name, brokerId: chosenBroker.id,
+            balance: info.balance || 0, equity: info.equity || 0, pnl: 0, today: 0,
+            example: false, mt5Live: { login: liveCredentials.login, server: liveCredentials.server },
+            ...common,
+          }, id);
+        } catch (e) {
+          showToast(e.message || 'Échec de connexion au terminal MT5.');
+        } finally {
+          finishBtn.disabled = false;
+          finishBtn.textContent = prevLabel;
+        }
+        return;
+      }
+
+      if (!mfxSelected) return;
       const email = document.getElementById('mfxEmail').value.trim();
       const password = document.getElementById('mfxPassword').value;
-      const startBacktestId = document.getElementById('addAccountBacktest').value || null;
       finalizeNewAccount({
         name: `${chosenBroker.name} · #${mfxSelected.id}`, number: String(mfxSelected.id),
         type: mfxSelected.demo ? 'Démo' : 'Réel', broker: chosenBroker.name, brokerId: chosenBroker.id,
         balance: parseFloat(mfxSelected.balance) || 0, equity: parseFloat(mfxSelected.equity) || 0, pnl: 0, today: 0,
-        example: false, myfxbook: { email, password, accountId: mfxSelected.id }, challengeObjectives: readObjectives(),
-        isPropfirm: chosenAccountKind === 'propfirm', startBacktestId, payouts: [],
-        objectivesResetAt: isoDateLocal(new Date()),
+        example: false, myfxbook: { email, password, accountId: mfxSelected.id },
+        ...common,
       });
+    });
+
+    // ---- Choix Myfxbook / Compte Live (2026-09-27) ----
+    document.querySelectorAll('#addAccountModeToggle button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        chosenAddMode = btn.dataset.mode;
+        document.getElementById('mfxStepIntro').hidden = chosenAddMode !== 'myfxbook';
+        document.getElementById('liveStepIntro').hidden = chosenAddMode !== 'live';
+        document.getElementById('mfxDetailsStep').hidden = true;
+      });
+    });
+
+    document.getElementById('liveConnectBtn').addEventListener('click', () => {
+      const login = document.getElementById('liveLogin').value.trim();
+      const password = document.getElementById('livePassword').value;
+      const server = document.getElementById('liveServer').value.trim();
+      const errEl = document.getElementById('liveConnectError');
+      if (!login || !password || !server) {
+        errEl.textContent = 'Numéro de compte, mot de passe investisseur et serveur sont requis.';
+        errEl.style.display = '';
+        return;
+      }
+      errEl.style.display = 'none';
+      // Pas d'appel reseau ici : la vraie connexion (POST /mt5/connect) n'a lieu qu'a la
+      // validation finale (addAccountFinish), une fois l'id du compte CHEST genere - voir
+      // son commentaire. On garde juste les identifiants le temps du flux.
+      liveCredentials = { login, password, server };
+      document.getElementById('liveStepIntro').hidden = true;
+      document.getElementById('mfxDetailsStep').hidden = false;
     });
 
     // ---- Login Myfxbook -> choix du compte -> broker/propfirm + objectifs ----

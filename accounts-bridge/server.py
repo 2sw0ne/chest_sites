@@ -111,6 +111,26 @@ VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:swann.lafon@gmai
 # volontairement simple vu l'echelle du projet (3 services Railway, tous a moi).
 INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
 
+# Compte MT5 "Live" pilote depuis le site (2026-09-27, demande utilisateur : pouvoir changer de
+# compte connecte - phase 1 -> phase 2 -> finance... - sans jamais retoucher Railway). Le mot de
+# passe INVESTISSEUR transite une fois par ici (jamais stocke en clair, jamais renvoye au client -
+# voir _encrypt_mt5_secret/_decrypt_mt5_secret) puis est transmis a mt5-notify-bridge, qui l'utilise
+# pour se reconnecter au terminal - voir mt5-notify-bridge/README.md pour l'autre bout.
+MT5_NOTIFY_BRIDGE_URL = os.environ.get("MT5_NOTIFY_BRIDGE_URL", "")
+MT5_CREDENTIALS_KEY = os.environ.get("MT5_CREDENTIALS_KEY", "")
+
+
+def _encrypt_mt5_secret(plain: str) -> str:
+    from cryptography.fernet import Fernet
+    if not MT5_CREDENTIALS_KEY:
+        raise RuntimeError("MT5_CREDENTIALS_KEY non configurée côté serveur.")
+    return Fernet(MT5_CREDENTIALS_KEY.encode()).encrypt(plain.encode()).decode()
+
+
+def _decrypt_mt5_secret(token: str) -> str:
+    from cryptography.fernet import Fernet
+    return Fernet(MT5_CREDENTIALS_KEY.encode()).decrypt(token.encode()).decode()
+
 # Notification email a chaque nouvelle inscription en attente - toutes ces
 # variables sont optionnelles ; s'il en manque une, on logue et on continue
 # sans email plutot que de faire echouer l'inscription pour ca.
@@ -221,6 +241,21 @@ def init_db():
                 value TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 PRIMARY KEY (user_id, key)
+            )
+        """)
+        # Compte MT5 "Live" actuellement connecté (2026-09-27) - UNE seule ligne (id=1) : un seul
+        # terminal MT5, donc un seul compte actif à la fois, par nature. Changer de compte
+        # (nouvelle phase de challenge) écrase cette ligne - l'ancien compte n'est pas supprimé
+        # d'ailleurs (voir chest_accounts côté client), juste plus "connecté".
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mt5_live_state (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                user_id INTEGER NOT NULL,
+                dashboard_account_id TEXT NOT NULL,
+                login TEXT NOT NULL,
+                encrypted_password TEXT NOT NULL,
+                server TEXT NOT NULL,
+                updated_at TEXT NOT NULL
             )
         """)
         # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
@@ -946,6 +981,78 @@ def push_send():
     target_user_id = body.get("userId") or admin["id"]
     result = send_push_to_user(target_user_id, title, text, url)
     return jsonify(result)
+
+
+@app.route("/mt5/connect", methods=["POST"])
+def mt5_connect():
+    # Reserve admin (2026-09-27, demande utilisateur) : un seul terminal MT5 partage entre tous -
+    # changer de compte live affecte tout le monde, seul l'admin peut le declencher. Voir
+    # site/dashboard.html "Compte Live" et mt5-notify-bridge/README.md pour l'autre bout.
+    admin = approved_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if not MT5_NOTIFY_BRIDGE_URL or not INTERNAL_PUSH_SECRET or not MT5_CREDENTIALS_KEY:
+        return jsonify({"error": "Compte Live pas encore configuré côté serveur (variables Railway manquantes)."}), 503
+    body = request.get_json(silent=True) or {}
+    login = str(body.get("login") or "").strip()
+    password = str(body.get("investorPassword") or "")
+    server_name = str(body.get("server") or "").strip()
+    dashboard_account_id = str(body.get("dashboardAccountId") or "").strip()
+    if not login or not password or not server_name or not dashboard_account_id:
+        return jsonify({"error": "login, investorPassword, server et dashboardAccountId sont requis."}), 400
+
+    # Le terminal doit confirmer la connexion AVANT qu'on n'écrase l'ancien compte enregistré - si
+    # mt5-notify-bridge échoue (mauvais mot de passe, serveur introuvable...), on garde l'ancien
+    # état plutôt que de perdre la trace du compte qui marchait.
+    try:
+        req = urllib.request.Request(
+            MT5_NOTIFY_BRIDGE_URL.rstrip("/") + "/switch-account",
+            data=json.dumps({
+                "login": login, "password": password, "server": server_name,
+                "dashboardAccountId": dashboard_account_id,
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json", "X-Internal-Secret": INTERNAL_PUSH_SECRET},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            switch_result = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        return jsonify({"error": f"Connexion au terminal MT5 refusée : {detail}"}), 502
+    except (urllib.error.URLError, OSError, TimeoutError) as e:
+        return jsonify({"error": f"Terminal MT5 injoignable : {e}"}), 502
+
+    encrypted = _encrypt_mt5_secret(password)
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    with db_lock:
+        db = get_db()
+        db.execute(
+            "INSERT INTO mt5_live_state (id, user_id, dashboard_account_id, login, encrypted_password, server, updated_at) "
+            "VALUES (1, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id, dashboard_account_id=excluded.dashboard_account_id, "
+            "login=excluded.login, encrypted_password=excluded.encrypted_password, server=excluded.server, updated_at=excluded.updated_at",
+            (admin["id"], dashboard_account_id, login, encrypted, server_name, now),
+        )
+        db.commit()
+    return jsonify({"ok": True, "accountInfo": switch_result.get("accountInfo")})
+
+
+@app.route("/mt5/status")
+def mt5_status():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non autorisé."}), 401
+    with db_lock:
+        row = get_db().execute("SELECT dashboard_account_id, login, server, updated_at FROM mt5_live_state WHERE id = 1").fetchone()
+    if not row:
+        return jsonify({"connected": False})
+    return jsonify({
+        "connected": True,
+        "dashboardAccountId": row["dashboard_account_id"],
+        "login": row["login"],
+        "server": row["server"],
+        "updatedAt": row["updated_at"],
+    })
 
 
 @app.route("/health")

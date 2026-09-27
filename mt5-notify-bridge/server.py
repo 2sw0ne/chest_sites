@@ -1,6 +1,6 @@
-"""CHEST · mt5-notify-bridge — notifications de clôture quasi temps réel pour le compte MT5 Live
-Swann. Sans rapport avec le script local ../mt5-bridge/ (export MT5 -> Dashboard) - noms
-volontairement différents pour ne jamais les confondre.
+"""CHEST · mt5-notify-bridge — notifications de clôture quasi temps réel pour le compte MT5 "Live"
+actuellement connecté. Sans rapport avec le script local ../mt5-bridge/ (export MT5 -> Dashboard) -
+noms volontairement différents pour ne jamais les confondre.
 
 Se connecte au terminal MT5 (service Railway séparé "mt5-terminal", voir son README.md) via
 mt5linux (proxy RPyC vers l'API Python officielle MetaTrader5 - github.com/lucas-campagna/mt5linux)
@@ -10,15 +10,24 @@ intervalle court sans que ca coute quoi que ce soit - "quasi temps reel" en prat
 a Myfxbook qui ne se resynchronise que tres lentement cote serveur (voir CLAUDE.md).
 
 IMPORTANT (2026-09-27) : ce service ne doit JAMAIS appeler de fonction de trading de l'API MT5
-(order_send, order_check...) - lecture seule uniquement (history_deals_get, account_info). Le
-terminal lui-meme est connecte avec le mot de passe INVESTISSEUR (voir mt5-terminal/README.md),
-qui refuse deja tout ordre cote serveur du broker - mais ce script ne doit meme pas essayer, par
-principe (defense en profondeur).
+(order_send, order_check...) - lecture seule uniquement (history_deals_get, account_info, login).
+Le compte est connecte avec le mot de passe INVESTISSEUR (voir accounts-bridge/server.py, POST
+/mt5/connect), qui refuse deja tout ordre cote serveur du broker - mais ce script ne doit meme pas
+essayer, par principe (defense en profondeur).
 
-A chaque nouvelle position fermee (deal "OUT"/"OUT_BY" jamais vu), notifie via accounts-bridge
-(meme mecanisme que berich-bridge/calendar-bridge : POST /push/broadcast, secret partage
-INTERNAL_PUSH_SECRET) avec le vrai P&L en dollars et la cause reelle de cloture (TP/SL/Stop Out/
-manuelle), lue directement dans le champ `reason` du deal MT5 - jamais devinee.
+Changement de compte "live" (2026-09-27, demande utilisateur : piloter ça depuis le site plutôt que
+Railway - phase 1 -> phase 2 -> financé... sans jamais retoucher une variable d'environnement) :
+POST /switch-account (interne, X-Internal-Secret) appelle mt5.login() SUR LA CONNEXION DÉJÀ
+ÉTABLIE (mt5.initialize() ne se refait pas - c'est une reconnexion de compte, pas de terminal), et
+la boucle de sondage bascule sur le nouveau compte. Le suivi du dernier ticket vu est gardé PAR
+compte (login) sur le volume Railway, pour ne jamais renotifier un vieil historique si on revient
+un jour sur un compte déjà vu.
+
+A chaque nouvelle position fermee (deal "OUT"/"OUT_BY" jamais vu) sur le compte ACTUELLEMENT
+connecté, notifie via accounts-bridge (meme mecanisme que berich-bridge/calendar-bridge : POST
+/push/broadcast, secret partage INTERNAL_PUSH_SECRET) avec le vrai P&L en dollars et la cause
+reelle de cloture (TP/SL/Stop Out/manuelle), lue directement dans le champ `reason` du deal MT5 -
+jamais devinee.
 
 Utilisation locale (necessite mt5-terminal demarre et accessible) :
     pip install -r requirements.txt
@@ -35,21 +44,22 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from mt5linux import MetaTrader5
 
 MT5_TERMINAL_HOST = os.environ.get("MT5_TERMINAL_HOST", "mt5-terminal.railway.internal")
 MT5_TERMINAL_PORT = int(os.environ.get("MT5_TERMINAL_PORT", 18812))
 POLL_SECONDS = int(os.environ.get("MT5_POLL_SECONDS", 15))
 
-# Meme secret que berich-bridge/calendar-bridge - voir accounts-bridge/server.py, POST
-# /push/broadcast. ACCOUNTS_BRIDGE_URL = URL PUBLIQUE deployee (pas .railway.internal ici, ce
-# n'est pas le meme service).
+# Meme secret que berich-bridge/calendar-bridge ET que POST /mt5/connect côté accounts-bridge - un
+# seul secret partagé pour toute communication service-à-service sur ce projet (voir
+# accounts-bridge/server.py pour le détail du choix).
 ACCOUNTS_BRIDGE_URL = os.environ.get("ACCOUNTS_BRIDGE_URL", "")
 INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
 
-# Persiste le dernier ticket de deal deja notifie sur le volume Railway (survit aux redemarrages) -
-# meme motif que calendar_history.json dans calendar-bridge.
+# Persiste le dernier ticket vu PAR COMPTE (clé = login MT5) sur le volume Railway (survit aux
+# redémarrages ET aux changements de compte) - meme motif que calendar_history.json dans
+# calendar-bridge.
 STATE_DIR = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH") or os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(STATE_DIR, "mt5_last_deal.json")
 
@@ -62,8 +72,22 @@ DEAL_REASON_TP = 5
 DEAL_REASON_SO = 6
 
 app = Flask(__name__)
-state = {"last_ticket": 0, "last_poll_ok": None, "last_error": None}
 state_lock = threading.Lock()
+state = {
+    "connected_login": None,        # compte MT5 actuellement connecté (None = aucun)
+    "dashboard_account_id": None,   # id du compte CHEST correspondant (voir accounts-bridge)
+    "last_poll_ok": None,
+    "last_error": None,
+}
+
+# Coordination avec l'endpoint HTTP /switch-account (appelé depuis un thread Flask, alors que la
+# connexion MT5 elle-même n'est utilisée QUE depuis poll_loop() - mt5linux/RPyC n'est pas garanti
+# thread-safe, donc un seul thread y touche jamais directement).
+switch_lock = threading.Lock()
+switch_pending: dict | None = None
+switch_event = threading.Event()   # signale "une demande de switch attend" - réveille poll_loop immédiatement
+switch_done = threading.Event()    # signale "poll_loop a traité la demande, le résultat est prêt"
+switch_result: dict = {}
 
 
 def notify(title: str, body: str) -> None:
@@ -81,19 +105,25 @@ def notify(title: str, body: str) -> None:
         pass  # jamais bloquant
 
 
-def load_last_ticket() -> int:
+def load_all_last_tickets() -> dict:
     try:
         with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return int(json.load(f).get("last_ticket", 0))
-    except (FileNotFoundError, json.JSONDecodeError, OSError, ValueError):
-        return 0
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
 
 
-def save_last_ticket(ticket: int) -> None:
+def load_last_ticket(login: str) -> int:
+    return int(load_all_last_tickets().get(login, 0))
+
+
+def save_last_ticket(login: str, ticket: int) -> None:
     try:
+        all_tickets = load_all_last_tickets()
+        all_tickets[login] = ticket
         os.makedirs(STATE_DIR, exist_ok=True)
         with open(STATE_FILE, "w", encoding="utf-8") as f:
-            json.dump({"last_ticket": ticket}, f)
+            json.dump(all_tickets, f)
     except OSError:
         pass
 
@@ -119,7 +149,7 @@ def format_close_message(deal) -> tuple[str, str]:
     return title, body
 
 
-def check_new_deals(mt5: MetaTrader5, last_ticket: int) -> int:
+def check_new_deals(mt5: MetaTrader5, login: str, last_ticket: int) -> int:
     now = datetime.now(timezone.utc)
     # Fenetre large (2 jours) par securite (redemarrage, latence...) - la dedup reelle se fait sur
     # le numero de ticket (croissant, jamais reattribue par MT5), jamais sur la date seule.
@@ -131,37 +161,98 @@ def check_new_deals(mt5: MetaTrader5, last_ticket: int) -> int:
         title, body = format_close_message(deal)
         notify(title, body)
         last_ticket = deal.ticket
+    if closing:
+        save_last_ticket(login, last_ticket)
     return last_ticket
 
 
+def handle_switch(mt5: MetaTrader5, req: dict) -> tuple[bool, dict]:
+    """Bascule la connexion MT5 déjà établie sur un autre compte (mt5.login(), pas
+    mt5.initialize() - le terminal reste le même, seul le compte connecté change)."""
+    login = str(req["login"])
+    try:
+        ok = mt5.login(int(login), password=req["password"], server=req["server"])
+    except Exception as exc:
+        return False, {"error": f"Échec de connexion au compte MT5 : {exc}"}
+    if not ok:
+        return False, {"error": f"mt5.login() refusé : {mt5.last_error()}"}
+    info = mt5.account_info()
+    account_info = {"login": login, "balance": info.balance, "equity": info.equity, "currency": info.currency} if info else None
+    return True, {"accountInfo": account_info}
+
+
 def poll_loop() -> None:
-    last_ticket = load_last_ticket()
     mt5 = MetaTrader5(host=MT5_TERMINAL_HOST, port=MT5_TERMINAL_PORT)
-    connected = False
+    terminal_ready = False
+    current_login: str | None = None
+    last_ticket = 0
     while True:
         try:
-            if not connected:
-                connected = bool(mt5.initialize())
-                if not connected:
+            if not terminal_ready:
+                terminal_ready = bool(mt5.initialize())
+                if not terminal_ready:
                     raise RuntimeError(f"mt5.initialize() a échoué : {mt5.last_error()}")
-            last_ticket = check_new_deals(mt5, last_ticket)
-            save_last_ticket(last_ticket)
-            with state_lock:
-                state["last_ticket"] = last_ticket
-                state["last_poll_ok"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                state["last_error"] = None
+
+            if switch_event.is_set():
+                with switch_lock:
+                    req = switch_pending
+                ok, result = handle_switch(mt5, req) if req else (False, {"error": "requête de switch vide"})
+                global switch_result
+                switch_result = {"ok": ok, **result}
+                if ok:
+                    current_login = str(req["login"])
+                    last_ticket = load_last_ticket(current_login)
+                    with state_lock:
+                        state["connected_login"] = current_login
+                        state["dashboard_account_id"] = req.get("dashboardAccountId")
+                        state["last_error"] = None
+                else:
+                    with state_lock:
+                        state["last_error"] = result.get("error")
+                switch_event.clear()
+                switch_done.set()
+
+            if current_login:
+                last_ticket = check_new_deals(mt5, current_login, last_ticket)
+                with state_lock:
+                    state["last_poll_ok"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                    state["last_error"] = None
         except Exception as exc:
-            connected = False  # on retentera une vraie reconnexion au prochain tour
+            terminal_ready = False  # on retentera une vraie reconnexion au prochain tour
             with state_lock:
                 state["last_error"] = str(exc)
             traceback.print_exc()
-        time.sleep(POLL_SECONDS)
+        # wait() se reveille immediatement si un switch est demande entre-temps, au lieu
+        # d'attendre la fin du POLL_SECONDS complet.
+        switch_event.wait(timeout=POLL_SECONDS)
 
 
 @app.get("/health")
 def health():
     with state_lock:
         return jsonify(dict(state))
+
+
+@app.post("/switch-account")
+def switch_account():
+    if not INTERNAL_PUSH_SECRET or request.headers.get("X-Internal-Secret") != INTERNAL_PUSH_SECRET:
+        return jsonify({"error": "Non autorisé."}), 401
+    body = request.get_json(silent=True) or {}
+    for field in ("login", "password", "server"):
+        if not body.get(field):
+            return jsonify({"error": f"Champ manquant : {field}"}), 400
+
+    global switch_pending
+    with switch_lock:
+        switch_pending = body
+    switch_done.clear()
+    switch_event.set()
+    got_it = switch_done.wait(timeout=25)
+    if not got_it:
+        return jsonify({"error": "Le terminal MT5 n'a pas répondu à temps (25s)."}), 504
+    result = dict(switch_result)
+    status = 200 if result.get("ok") else 502
+    return jsonify(result), status
 
 
 if __name__ == "__main__":

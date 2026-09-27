@@ -18,11 +18,26 @@ qu'on ne peut pas contourner en interrogeant plus souvent. En se connectant dire
 MT5 (via `mt5-terminal`, notre propre conteneur — pas Myfxbook), il n'y a plus d'intermédiaire lent
 : la fraîcheur ne dépend que de `MT5_POLL_SECONDS`.
 
-## Dépendance : `mt5-terminal` doit tourner et être connecté AVANT ce service
+## Dépendance : `mt5-terminal` doit tourner AVANT ce service
 
-Ce service ne contient AUCUN mot de passe MT5 — il se contente d'interroger un terminal déjà
-connecté (autologin, voir `../mt5-terminal/README.md`). Déployer et vérifier `mt5-terminal` en
-premier.
+Ce service se connecte au terminal (`mt5.initialize()`) au démarrage, mais aucun compte n'est
+forcément connecté avant qu'un premier changement de compte n'arrive (voir plus bas) — c'est
+normal, `GET /health` renverra `connected_login: null` jusque-là.
+
+## Changer de compte "Live" depuis le site (2026-09-27)
+
+`POST /switch-account` (protégé par `X-Internal-Secret`, appelé par accounts-bridge — voir
+`POST /mt5/connect` dans `accounts-bridge/server.py`) reçoit `{login, password, server,
+dashboardAccountId}` et appelle `mt5.login(...)` **sur la connexion déjà établie** — pas
+`mt5.initialize()` à nouveau, c'est une reconnexion de COMPTE, pas de terminal. Ça permet de
+changer de compte (nouvelle phase de challenge, nouveau compte financé...) sans jamais redémarrer
+le conteneur ni toucher une variable d'environnement Railway. Un seul compte connecté à la fois
+(contrainte réelle du terminal MT5) — brancher un nouveau compte remplace l'ancien, qui n'est pas
+supprimé côté CHEST, juste plus mis à jour.
+
+Le suivi du dernier ticket de deal notifié est gardé **par compte** (clé = login MT5, fichier
+`mt5_last_deal.json` sur le volume Railway) : revenir un jour sur un compte déjà vu ne renotifie
+jamais son ancien historique.
 
 ## Sécurité — lecture seule, par principe ET par protocole
 
@@ -44,5 +59,16 @@ premier.
 
 ## Vérifier que ça tourne
 
-`GET /health` renvoie `{"last_ticket": ..., "last_poll_ok": "...", "last_error": null}` — un
-`last_error` non nul indique un souci de connexion à `mt5-terminal` (voir ses logs).
+`GET /health` renvoie `{"connected_login": "...", "dashboard_account_id": "...", "last_poll_ok":
+"...", "last_error": null}` — un `last_error` non nul indique un souci de connexion à
+`mt5-terminal` (voir ses logs), et `connected_login: null` veut juste dire qu'aucun compte n'a
+encore été connecté depuis le site.
+
+## Configurer aussi le côté accounts-bridge
+
+Ce service ne suffit pas seul : `accounts-bridge` a besoin de `MT5_NOTIFY_BRIDGE_URL` (URL
+**publique** de CE service, ou son adresse réseau privé si accounts-bridge et lui tournent tous les
+deux sur Railway) et `MT5_CREDENTIALS_KEY` (une clé Fernet — `python3 -c "from cryptography.fernet
+import Fernet; print(Fernet.generate_key().decode())"` pour en générer une) pour que
+"Ajouter un compte → Compte Live" fonctionne sur le site. Voir `POST /mt5/connect` dans
+`accounts-bridge/server.py`.
