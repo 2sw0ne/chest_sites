@@ -50,7 +50,7 @@ dashBullCol = input.color(color.white, "", group=grVIS, inline="dh")
 dashBearCol = input.color(color.new(#00ffa9, 0), "", group=grVIS, inline="dh")
 
 showLastTrade = input.bool(true, "Affichage des positions", group=grVIS)
-tradeMode     = input.string("Derniere position", "Trades affiches", options=["Derniere position", "Positions en cours", "Toutes les positions"], group=grVIS)
+tradeMode     = input.string("Toutes les positions", "Trades affiches", options=["Derniere position", "Positions en cours", "Toutes les positions"], group=grVIS)
 
 showJournal = input.bool(false, "Journal de backtesting", group=grBT)
 statDays    = input.int(90, "Periode du tableau (jours)", minval=1, maxval=365, group=grBT)
@@ -84,6 +84,15 @@ int JR_BUF_TICKS  = 200
 int JR_HALF_TICKS = 4000
 
 float RR = 3.0
+
+// Visuel de position (2026-09-27, demande utilisateur) : la boite TP/SL s'etend par defaut sur
+// BOX_DEFAULT_BARS bougies des l'ouverture (projetee dans le "futur" du graphique - Pine autorise
+// une box dont x2 depasse bar_index), puis se retrecit a la bougie de cloture reelle si elle
+// cloture avant, ou continue de s'etendre bougie par bougie si elle cloture apres.
+int BOX_DEFAULT_BARS = 80
+// Zone d'entree doree (~100 ticks autour du prix d'entree) : marque "c'est ici que tu prends la
+// position" - disparait des que le prix en sort (ou a la cloture, au plus tard).
+float ENTRY_ZONE_TICKS = 100.0
 
 f_sigLabel(_isBuy, _txt, _col) =>
     if useArrows
@@ -297,6 +306,7 @@ var array<float>  tTPv   = array.new_float()
 var array<float>  tAnch  = array.new_float()
 var array<box>    tBSL   = array.new_box()
 var array<box>    tBTP   = array.new_box()
+var array<box>    tEZ    = array.new_box()
 var array<label>  tLPE   = array.new_label()
 var array<label>  tLSL   = array.new_label()
 var array<label>  tLTP   = array.new_label()
@@ -313,11 +323,13 @@ var label fzLTP = na
 f_delVisuals(_i) =>
     box.delete(tBSL.get(_i))
     box.delete(tBTP.get(_i))
+    box.delete(tEZ.get(_i))
     label.delete(tLPE.get(_i))
     label.delete(tLSL.get(_i))
     label.delete(tLTP.get(_i))
     tBSL.set(_i, box(na))
     tBTP.set(_i, box(na))
+    tEZ.set(_i, box(na))
     tLPE.set(_i, label(na))
     tLSL.set(_i, label(na))
     tLTP.set(_i, label(na))
@@ -332,6 +344,7 @@ f_removeEntry(_i) =>
     tAnch.remove(_i)
     tBSL.remove(_i)
     tBTP.remove(_i)
+    tEZ.remove(_i)
     tLPE.remove(_i)
     tLSL.remove(_i)
     tLTP.remove(_i)
@@ -368,22 +381,44 @@ if wolfBuy or wolfSell
     bool drawB = showLastTrade
     tBSL.push(drawB ? box.new(bar_index, math.max(e, s), bar_index, math.min(e, s), border_color=color.new(#f23645, 50), bgcolor=slBandCol) : box(na))
     tBTP.push(drawB ? box.new(bar_index, math.max(e, t), bar_index, math.min(e, t), border_color=color.new(#0daf4b, 60), bgcolor=tpBandCol) : box(na))
+    float ezHalf = ENTRY_ZONE_TICKS * syminfo.mintick
+    tEZ.push(drawB ? box.new(bar_index, e + ezHalf, bar_index, e - ezHalf, border_color=color.new(#ffd700, 20), bgcolor=color.new(#ffd700, 85)) : box(na))
     tLPE.push(drawB ? label.new(bar_index + 1, e, "PE " + str.tostring(e, format.mintick), style=label.style_label_left, textcolor=color.white,           color=color.new(color.black, 80), size=size.small) : label(na))
     tLSL.push(drawB ? label.new(bar_index + 1, s, "SL " + str.tostring(s, format.mintick), style=label.style_label_left, textcolor=color.new(#f23645, 0), color=color.new(color.black, 80), size=size.small) : label(na))
     tLTP.push(drawB ? label.new(bar_index + 1, t, "TP " + str.tostring(t, format.mintick), style=label.style_label_left, textcolor=color.new(#0daf4b, 0), color=color.new(color.black, 80), size=size.small) : label(na))
 
 if tDir.size() > 0
     for i = tDir.size() - 1 to 0
+        // La boite (et les etiquettes PE/SL/TP qui la suivent) est projetee sur
+        // BOX_DEFAULT_BARS des l'ouverture - Pine autorise x2 > bar_index, donc elle apparait
+        // deja "pre-dessinee" sur sa largeur par defaut. Une fois cette echeance depassee sans
+        // cloture, elle continue de s'etendre bougie par bougie (math.max la garde a jour). Si
+        // la position cloture avant/apres, le bloc "closed" plus bas la retrecit/fixe a la
+        // bougie REELLE de cloture.
+        int boxRight = math.max(bar_index, tStart.get(i) + BOX_DEFAULT_BARS)
         if not na(tBSL.get(i))
-            box.set_right(tBSL.get(i), bar_index)
+            box.set_right(tBSL.get(i), boxRight)
         if not na(tBTP.get(i))
-            box.set_right(tBTP.get(i), bar_index)
+            box.set_right(tBTP.get(i), boxRight)
         if not na(tLPE.get(i))
-            label.set_x(tLPE.get(i), bar_index + 1)
+            label.set_x(tLPE.get(i), boxRight + 1)
         if not na(tLSL.get(i))
-            label.set_x(tLSL.get(i), bar_index + 1)
+            label.set_x(tLSL.get(i), boxRight + 1)
         if not na(tLTP.get(i))
-            label.set_x(tLTP.get(i), bar_index + 1)
+            label.set_x(tLTP.get(i), boxRight + 1)
+
+        // Zone d'entree doree : grandit bougie par bougie (pas de projection a 80 barres, elle
+        // ne concerne que l'instant de la prise de position) tant que le prix reste dedans -
+        // disparait pour de bon des qu'il en sort.
+        if not na(tEZ.get(i))
+            float ezHalf = ENTRY_ZONE_TICKS * syminfo.mintick
+            float ezHi   = tPEv.get(i) + ezHalf
+            float ezLo   = tPEv.get(i) - ezHalf
+            if high > ezHi or low < ezLo
+                box.delete(tEZ.get(i))
+                tEZ.set(i, box(na))
+            else
+                box.set_right(tEZ.get(i), bar_index)
 
         bool   closed = false
         string result = ""
@@ -409,6 +444,23 @@ if tDir.size() > 0
                     result := "TP"
 
         if closed
+            // Cloture reelle : fixe (retrecit ou, si elle avait deja depasse BOX_DEFAULT_BARS,
+            // laisse telle quelle) la boite/etiquettes a CETTE bougie precise, plus la
+            // projection par defaut - et efface la zone d'entree si elle etait encore visible.
+            if not na(tBSL.get(i))
+                box.set_right(tBSL.get(i), bar_index)
+            if not na(tBTP.get(i))
+                box.set_right(tBTP.get(i), bar_index)
+            if not na(tLPE.get(i))
+                label.set_x(tLPE.get(i), bar_index + 1)
+            if not na(tLSL.get(i))
+                label.set_x(tLSL.get(i), bar_index + 1)
+            if not na(tLTP.get(i))
+                label.set_x(tLTP.get(i), bar_index + 1)
+            if not na(tEZ.get(i))
+                box.delete(tEZ.get(i))
+                tEZ.set(i, box(na))
+
             alert(f_json_close(tId.get(i), result), alert.freq_once_per_bar_close)
 
             if showJournal
