@@ -5,9 +5,11 @@ Linux (image [`lprett/mt5linux`](https://github.com/lucas-campagna/mt5linux), pu
 projet open-source `mt5linux` — pas un service géré/tiers payant comme MetaApi.cloud, juste notre
 propre conteneur sur l'infra Railway déjà utilisée par les autres services de ce monorepo).
 
-Ce service ne fait rien tout seul : il expose l'API du terminal (RPyC, port `18812`) au service
-`mt5-notify-bridge` via le réseau privé Railway, qui lui fait le vrai travail (sonder l'historique
-des deals et notifier les clôtures). Voir `../mt5-notify-bridge/README.md`.
+Ce service expose l'API du terminal (RPyC, port `18812`) au service `mt5-notify-bridge` via le
+réseau privé Railway, qui l'utilise pour **changer de compte connecté** depuis le site (voir
+`../mt5-notify-bridge/README.md`). **Les notifications de clôture, elles, sont envoyées directement
+par un Expert Advisor qui tourne DANS ce terminal** (`CHESTNotifier.mq5`, voir plus bas) - pas par un
+sondage externe (changement d'architecture 2026-09-28, voir CLAUDE.md "Plan EA").
 
 **Ne pas confondre avec `mt5-bridge/` (racine du dépôt)** : script LOCAL préexistant, sans rapport,
 que l'utilisateur lance sur sa propre machine pour exporter son compte MT5 vers le Dashboard — voir
@@ -94,3 +96,70 @@ forcément connecté à un compte tant que personne n'a utilisé "Ajouter un com
 le site, voir plus haut). Si une connexion échoue, vérifier d'abord `MT5_SERVER` (nom exact,
 sensible à la casse, saisi depuis le site) et que le mot de passe investisseur n'a pas expiré côté
 broker.
+
+## `CHESTNotifier.mq5` — l'Expert Advisor qui notifie les clôtures (2026-09-28)
+
+**Pourquoi ce changement** : l'ancien mécanisme (`mt5-notify-bridge` qui sondait l'historique des
+deals toutes les 15s via RPyC depuis l'extérieur) reposait sur `mt5.initialize()`, qui a échoué de
+façon persistante en production (voir CLAUDE.md, section "IPC timeout") - un problème de démarrage
+du terminal Wine qui reste **non résolu à ce jour**. Un Expert Advisor tourne DANS le terminal une
+fois qu'un compte y est connecté (peu importe comment) et utilise l'API MQL5 native
+(`OnTradeTransaction`, événement natif, pas de sondage) pour notifier `accounts-bridge`
+**directement en HTTP** (`WebRequest()`) - aucune dépendance à `mt5-notify-bridge`/RPyC pour cette
+partie. `mt5-notify-bridge` garde uniquement son rôle de changement de compte (`/switch-account`).
+
+**Ça ne résout PAS le blocage du login au démarrage** (voir CLAUDE.md) - ça change juste comment on
+détecte/notifie les clôtures UNE FOIS qu'un compte est connecté. Il faut donc toujours, au moins une
+fois, obtenir un terminal réellement connecté à un compte (via l'autologin `MT5_LOGIN`/etc.
+ci-dessus si ça finit par fonctionner, ou manuellement via noVNC en dernier recours).
+
+### Installation (tout se fait via la Console Railway du service, pas besoin de noVNC pour ces étapes)
+
+1. **Copier le fichier source** dans le conteneur - depuis la Console Railway de `mt5-terminal` :
+   ```bash
+   mkdir -p /opt/wineprefix/drive_c/MT5/MQL5/Experts
+   cat > /opt/wineprefix/drive_c/MT5/MQL5/Experts/CHESTNotifier.mq5 << 'CHESTEOF'
+   <coller ici le contenu exact de mt5-terminal/CHESTNotifier.mq5>
+   CHESTEOF
+   ```
+   (Le terminal est lancé avec `/portable` - voir `mt5.sh` du paquet `mt5linux` - donc tout son
+   dossier `MQL5/` vit à cet endroit prévisible, pas dans un profil Windows caché.)
+
+2. **Compiler en ligne de commande** (MetaEditor supporte un mode headless officiel, pas besoin
+   d'ouvrir une fenêtre) :
+   ```bash
+   export DISPLAY=:0
+   wine64 "C:/MT5/metaeditor64.exe" /compile:"C:\MT5\MQL5\Experts\CHESTNotifier.mq5" /portable /log
+   cat /opt/wineprefix/drive_c/MT5/MQL5/Experts/CHESTNotifier.log
+   ```
+   Le fichier `.log` dit si la compilation a réussi (doit produire `CHESTNotifier.ex5` à côté du
+   `.mq5`). **Pas encore testé en conditions réelles** (bloqué par le login du terminal au moment
+   d'écrire ceci) - si `/compile` ne fonctionne pas tel quel, la compilation reste possible via
+   noVNC (MetaEditor s'ouvre avec F4 depuis le terminal, puis F7 pour compiler).
+
+3. **Autoriser l'URL de notification** (obligatoire, sinon `WebRequest()` échoue systématiquement
+   avec l'erreur 4060) - éditer `common.ini` pour ajouter l'URL à la liste blanche, OU le faire une
+   fois via noVNC (Outils → Options → Expert Advisors → cocher "Autoriser WebRequest pour les URL
+   listées" → ajouter l'URL exacte de `accounts-bridge`, ex.
+   `https://accounts-bridge-production-xxxx.up.railway.app`). **Pas encore vérifié si une clé INI
+   équivalente existe pour éviter le passage par noVNC** - à tester.
+
+4. **Attacher l'EA à un graphique** - normalement une action GUI (glisser-déposer depuis le
+   Navigateur), donc via noVNC la première fois. Une piste à vérifier pour l'automatiser au
+   démarrage sans GUI : la section `[StartUp]` du fichier de config MT5 (`Expert=`, `Symbol=`,
+   `Period=`) est un mécanisme documenté par MetaQuotes pour lancer un EA automatiquement au
+   démarrage du terminal - **non testé sur ce projet**, à essayer en ajoutant cette section à
+   `common.ini` (ou un fichier de profil séparé) avant de conclure qu'il faut repasser par noVNC à
+   chaque redémarrage du conteneur.
+
+5. **Renseigner les paramètres de l'EA** (`NotifyUrl`, `EaSecret`) - dans les propriétés de l'EA
+   (clic droit sur le graphique → Expert Advisors → Entrées), avec l'URL publique
+   d'`accounts-bridge` et la valeur de `MT5_EA_SECRET` (voir `accounts-bridge/server.py`, variable à
+   définir aussi côté Railway sur ce service).
+
+### Vérifier que l'EA fonctionne
+
+Les `Print()` de l'EA vont dans les logs "Experts" du terminal, sur disque à
+`/opt/wineprefix/drive_c/MT5/MQL5/Logs/*.log` (ou `Logs/` selon la version) et `Experts/*.log` -
+consultables directement via la Console Railway (`cat`/`tail`), sans avoir besoin de noVNC pour
+vérifier que les notifications partent bien.

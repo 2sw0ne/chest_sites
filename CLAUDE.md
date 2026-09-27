@@ -852,6 +852,99 @@ fichier) pour comprendre :
   noVNC du conteneur (port 8080, actuellement non exposé publiquement par choix de sécurité - voir
   `mt5-terminal/README.md`) pour voir ce qui bloque réellement à l'écran.
 
+## `mt5.initialize()` toujours bloqué même avec `SERVER` + login manuel via Console (2026-09-27/28)
+
+Après avoir ajouté `SERVER`, `mt5.initialize()` échouait encore. Diagnostic poussé via la Console
+Railway (pas de noVNC nécessaire, tout en ligne de commande - `ps aux`, `xdotool` avec `DISPLAY=:0`
+exporté manuellement, `iconv` pour lire `common.ini` en UTF-16LE) :
+- Le fichier `common.ini` contenait bien les vrais identifiants (`Login=26174924`,
+  `Server=VantageMarkets-Demo`, `Password=...`) - donc les variables d'env Railway arrivent
+  correctement au conteneur, ce n'était pas le problème.
+- Une seule fenêtre `terminal64.exe` visible, titre générique "MetaTrader 5 - Netting - EURUSD,H1"
+  (pas de compte/broker affiché) - le login auto n'aboutit pas.
+- Tentative de lancer `wine64 C:/MT5/terminal64.exe ...` À LA MAIN depuis la Console (au premier
+  plan, pas en arrière-plan comme le script) : **aucune réponse, et `ps aux` ne montre ensuite AUCUN
+  process wine/terminal64 nulle part** - signal fort que Wine lui-même est bloqué/cassé dans ce
+  conteneur d'une façon qu'on ne peut plus diagnostiquer sans regarder l'écran (noVNC).
+- **Décision utilisateur (2026-09-28)** : plutôt que d'exposer noVNC ou de repartir de zéro sur le
+  service, on met ce diagnostic en pause et on explore une architecture différente (voir section
+  suivante) après une piste suggérée par un contact externe (créateur de Futurizq).
+
+## Piste explorée puis écartée : reproduire le protocole MT5 nous-mêmes (2026-09-28)
+
+Le créateur de Futurizq affirme avoir contourné les services payants (type MetaApi.cloud) en codant
+lui-même, en Python, un client qui parle DIRECTEMENT au serveur du broker - sans jamais lancer de
+vrai terminal MT5 - et confirme avoir fait du **reverse engineering** du protocole. Il ne partage
+pas son code.
+
+Recherche effectuée avant de décider (voir historique de conversation pour le détail complet) :
+- MetaQuotes documente eux-mêmes que la connexion terminal↔serveur utilise RSA (échange de clé) +
+  AES-256 (session) - un vrai protocole chiffré propriétaire, pas quelque chose qu'on peut décoder
+  en analysant du trafic réseau : il faudrait décompiler le binaire Windows du terminal pour en
+  extraire la logique de chiffrement. Travail de reverse engineer chevronné sur plusieurs
+  semaines/mois, pas quelques sessions de travail.
+- FIX API (alternative "officielle" standard) : écarté, les brokers qui l'ouvrent demandent
+  généralement 50 000-100 000$ de dépôt minimum.
+- Réduire à UN SEUL compte (au lieu de gérer une flotte comme Futurizq) ne réduit PAS la difficulté
+  du cœur du problème (décoder le handshake RSA/AES) - cette difficulté est constante quel que soit
+  le nombre de comptes visés. Seule la complexité d'échelle (pooling, multi-tenant) disparaît, une
+  fraction mineure du travail total.
+- **Décision : ne pas poursuivre cette piste.** Trop de travail/risque pour un gain incertain, alors
+  qu'une alternative plus simple existe (section suivante).
+
+## Piste retenue : Expert Advisor MQL5 natif au lieu du sondage RPyC externe (2026-09-28, "Plan EA")
+
+En creusant les alternatives légitimes (pas de reverse engineering), trouvé : les **Expert Advisors
+(EA)** MQL5 sont une fonctionnalité 100% officielle et documentée - un script qui tourne DANS le
+vrai terminal MT5, avec accès natif à l'historique des trades (`HistoryDealGet*`) et capable de
+faire des appels HTTP sortants (`WebRequest()`) vers un serveur externe. Zéro reverse engineering.
+
+**Ce que ça change concrètement** :
+- `mt5-notify-bridge` ne sonde PLUS l'historique des deals via RPyC toutes les 15s - toute cette
+  logique (`check_new_deals`, `format_close_message`, `mt5_last_deal.json`) a été RETIRÉE de
+  `server.py` (2026-09-28). Il ne garde que son rôle de changement de compte (`/switch-account`,
+  `mt5.login()` sur la connexion RPyC déjà établie).
+- Nouveau fichier `mt5-terminal/CHESTNotifier.mq5` : sur `OnTradeTransaction()` (événement natif,
+  pas un sondage), détecte une clôture (`DEAL_ENTRY_OUT`/`DEAL_ENTRY_OUT_BY`) et POST en JSON vers
+  `accounts-bridge` (`POST /mt5/ea-notify`, nouveau, secret dédié `MT5_EA_SECRET` - PAS
+  `INTERNAL_PUSH_SECRET`, frontière de confiance plus faible puisque ce secret vit en clair dans un
+  fichier à l'intérieur du terminal Wine). Formatage du message (TP/SL/Stop Out/manuelle, P&L =
+  profit+commission+swap) porté côté Python dans `accounts-bridge/server.py`
+  (`_format_mt5_close_message`), dédup par ticket dans une nouvelle table SQLite
+  `mt5_ea_last_ticket` (login → dernier ticket notifié).
+- **Ça ne résout PAS le blocage `mt5.initialize()`/Wine ci-dessus** - ça change seulement comment on
+  détecte/notifie les clôtures UNE FOIS qu'un compte est réellement connecté. Le login au démarrage
+  reste un prérequis non résolu.
+- Installation de l'EA documentée dans `mt5-terminal/README.md` : copie du fichier + compilation
+  headless via la Console Railway (`wine64 metaeditor64.exe /compile:...`, fonctionnalité officielle
+  MetaEditor) - **pas encore testé en conditions réelles** (bloqué par le login). Attacher l'EA à un
+  graphique et autoriser son URL dans les options WebRequest restent potentiellement des étapes GUI
+  (noVNC) à défaut de trouver l'équivalent en fichier de config (`[StartUp]` dans l'ini - piste à
+  vérifier, non confirmée).
+
+## Plan B — mis de côté par l'utilisateur, à ressortir si le Plan EA échoue ou ne convient pas (2026-09-28)
+
+Idée de repli donnée explicitement par l'utilisateur, à conserver textuellement pour ne pas la
+perdre : si le Plan EA ne couvre pas suffisamment le temps réel, a trop de décalage, ou a des
+contraintes de connexion trop lourdes, construire un système **synthétique** à la place :
+- Un script enregistre les points clés d'une position à son ouverture (TP, SL, BE - breakeven, PE -
+  prix d'entrée, etc.).
+- Il associe ces points au prix en direct via l'API déjà utilisée pour les scanners (celle qui
+  fournit déjà les prix de graphique ailleurs sur le site).
+- Calcul naturel du P&L flottant approximatif en cours de route : lot × écart entre prix d'entrée et
+  prix actuel (issu de cette API), mis à jour en continu - une approximation du solde flottant sans
+  jamais interroger MT5 directement.
+- À la clôture réelle de la position, ce prix "en cours" est remplacé par le VRAI gain réalisé,
+  récupéré via une connexion Myfxbook (déjà utilisée ailleurs dans le projet, voir
+  `js/myfxbook-store.js`) - donc jamais de données fictives présentées comme définitives, seulement
+  en approximation temporaire tant que la position est ouverte.
+- Avantage : combine un système "temps réel" (approximatif, basé sur les prix qu'on a déjà) avec un
+  système de données déjà fiable et existant (Myfxbook) - présente une expérience fluide sans
+  dépendre de la fragilité du terminal MT5/Wine pour le suivi en direct.
+
+**Rappeler cette section à l'utilisateur si le Plan EA échoue ou ne le satisfait pas** - c'est
+explicitement la consigne donnée.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi

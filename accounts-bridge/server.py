@@ -119,6 +119,14 @@ INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
 MT5_NOTIFY_BRIDGE_URL = os.environ.get("MT5_NOTIFY_BRIDGE_URL", "")
 MT5_CREDENTIALS_KEY = os.environ.get("MT5_CREDENTIALS_KEY", "")
 
+# Secret DEDIE pour l'Expert Advisor MT5 (2026-09-28, voir mt5-terminal/CHESTNotifier.mq5) -
+# volontairement PAS le meme que INTERNAL_PUSH_SECRET : ce secret vit en clair dans un fichier .mq5
+# a l'interieur du terminal Wine (mt5-terminal), une frontiere de confiance plus faible que les
+# autres services Railway (tous notre propre code) - un secret dedie limite le degat si jamais ce
+# terminal etait compromis un jour (l'attaquant ne recupererait que ce secret, pas celui utilise par
+# tous les autres services).
+MT5_EA_SECRET = os.environ.get("MT5_EA_SECRET", "")
+
 
 def _encrypt_mt5_secret(plain: str) -> str:
     from cryptography.fernet import Fernet
@@ -256,6 +264,17 @@ def init_db():
                 encrypted_password TEXT NOT NULL,
                 server TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+            )
+        """)
+        # Dernier ticket de deal deja notifie PAR COMPTE (2026-09-28, voir POST /mt5/ea-notify) -
+        # dedup cote serveur : l'Expert Advisor peut re-signaler le meme deal (redemarrage du
+        # terminal, EA rattache a un chart...), on ne renvoie jamais deux fois la meme notif push.
+        # Login en clé plutot qu'un id incremental : un seul compte connecte a la fois de toute
+        # facon (voir mt5_live_state), mais garde l'historique si on revient sur un vieux compte.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mt5_ea_last_ticket (
+                login TEXT PRIMARY KEY,
+                ticket INTEGER NOT NULL
             )
         """)
         # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
@@ -1053,6 +1072,75 @@ def mt5_status():
         "server": row["server"],
         "updatedAt": row["updated_at"],
     })
+
+
+# ENUM_DEAL_REASON (doc officielle MQL5, jamais devine) :
+# https://www.mql5.com/en/docs/constants/tradingconstants/dealproperties
+_DEAL_REASON_SL = 4
+_DEAL_REASON_TP = 5
+_DEAL_REASON_SO = 6
+
+
+def _format_mt5_close_message(deal_type, symbol, pnl, reason):
+    side = "achat" if deal_type == 0 else "vente"
+    win = pnl > 0
+    if reason == _DEAL_REASON_TP:
+        cause = "TP"
+    elif reason == _DEAL_REASON_SL:
+        cause = "SL"
+    elif reason == _DEAL_REASON_SO:
+        cause = "Stop Out"
+    else:
+        cause = "clôture manuelle"
+    emoji = "🎉" if win else "❌"
+    sign = "+" if pnl >= 0 else ""
+    title = f"{symbol} — {cause}"
+    body = f"Ton {side} sur {symbol} a {cause} de {sign}{pnl:.2f}$ {emoji}"
+    return title, body
+
+
+@app.route("/mt5/ea-notify", methods=["POST"])
+def mt5_ea_notify():
+    # Appele DIRECTEMENT par l'Expert Advisor MQL5 (WebRequest()) qui tourne DANS le terminal MT5
+    # (mt5-terminal), a chaque cloture de position detectee (OnTradeTransaction, evenement natif -
+    # voir mt5-terminal/CHESTNotifier.mq5) - remplace l'ancien sondage externe de
+    # mt5-notify-bridge (2026-09-28, voir CLAUDE.md "Plan EA"). Secret DEDIE (MT5_EA_SECRET, pas
+    # INTERNAL_PUSH_SECRET) car ce code vit dans un fichier a l'interieur du terminal Wine, une
+    # frontiere de confiance plus faible que les autres services Railway.
+    if not MT5_EA_SECRET or request.headers.get("X-EA-Secret") != MT5_EA_SECRET:
+        return jsonify({"error": "Non autorisé."}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        login = str(body["login"])
+        ticket = int(body["ticket"])
+        symbol = str(body["symbol"])
+        deal_type = int(body["type"])
+        profit = float(body["profit"])
+        commission = float(body.get("commission", 0))
+        swap = float(body.get("swap", 0))
+        reason = int(body.get("reason", -1))
+    except (KeyError, ValueError, TypeError):
+        return jsonify({"error": "Payload invalide (login, ticket, symbol, type, profit requis)."}), 400
+
+    with db_lock:
+        db = get_db()
+        row = db.execute("SELECT ticket FROM mt5_ea_last_ticket WHERE login = ?", (login,)).fetchone()
+        last_ticket = row["ticket"] if row else 0
+        if ticket <= last_ticket:
+            return jsonify({"ok": True, "skipped": True})  # deja notifie - dedup
+        db.execute(
+            "INSERT INTO mt5_ea_last_ticket (login, ticket) VALUES (?, ?) "
+            "ON CONFLICT(login) DO UPDATE SET ticket = excluded.ticket",
+            (login, ticket),
+        )
+        db.commit()
+
+    # P&L reel = profit + commission + swap (ce qui a vraiment bouge sur le solde), pas juste le
+    # "profit" brut - coherent avec ce que l'utilisateur voit sur son releve MT5.
+    pnl = profit + commission + swap
+    title, body_text = _format_mt5_close_message(deal_type, symbol, pnl, reason)
+    result = send_push_to_all(title, body_text, "dashboard.html")
+    return jsonify({"ok": True, **result})
 
 
 @app.route("/health")
