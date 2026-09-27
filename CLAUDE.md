@@ -820,6 +820,38 @@ que par le compilateur (`compile()`/`py_compile`), une passe plus tardive que le
   pousser - seule cette dernière méthode exécute réellement la passe de résolution de portée qui
   attrape ce genre d'erreur.
 
+## Deux conventions de noms de variables différentes dans le script upstream `mt5linux` (2026-09-27)
+
+**L'utilisateur a bien réglé `MT5_LOGIN`/`MT5_PASSWORD`/`MT5_SERVER` sur Railway (confirmé par
+capture d'écran), pourtant les logs continuent d'afficher `LOGIN: not set` / `SERVER: not set`.**
+Lu directement le vrai code source de `lucas-campagna/mt5linux` (`docker/src/*.sh`, récupéré via
+`curl` - PAS via un résumé WebFetch, qui avait donné des réponses imprécises/tronquées sur ce
+fichier) pour comprendre :
+
+- Ce message de log est un **faux problème, bug d'affichage du script upstream lui-même** :
+  `main.sh` imprime ce diagnostic avec `${LOGIN:-not set}`/`${SERVER:-not set}` - des noms de
+  variables SANS le préfixe `MT5_`, jamais ceux qu'on définit. Il affiche "not set" même quand tout
+  fonctionne correctement. Ne pas s'y fier.
+- Le VRAI mécanisme d'autologin (`config.sh`, `apply_mt5_config()`) lit bien `MT5_LOGIN`/
+  `MT5_SERVER`/`MT5_PASSWORD` (avec préfixe, exactement ce que l'utilisateur a réglé) et écrit ça
+  dans `common.ini` - gated par `FIRST_RUN` (vrai sur ce projet : pas de volume Railway attaché à
+  `mt5-terminal`, donc `/opt/websockify` n'existe jamais au boot, `FIRST_RUN=1` à chaque démarrage).
+  Le log `MT5 config applied` (déjà vu dans les logs Railway) confirme que cette fonction s'exécute
+  bien jusqu'au bout.
+- **Mais il existe un SECOND mécanisme, séparé, avec une TROISIÈME variable** : `mt5.sh`
+  (`wait_for_mt5_and_type_server()`) et `automation.sh` lisent une variable `SERVER` (SANS préfixe,
+  différente de `MT5_SERVER`) pour déclencher une automation `xdotool` qui tape le nom du serveur
+  dans la fenêtre "rechercher un serveur" du terminal MT5 - nécessaire uniquement si ce serveur
+  n'est pas déjà dans la liste intégrée de MT5 (un `MetaQuotes-Demo` n'en a pas besoin, un serveur
+  démo d'un vrai broker si, potentiellement).
+- **Action demandée à l'utilisateur** : ajouter une variable `SERVER` (sans préfixe) sur
+  `mt5-terminal`, même valeur que `MT5_SERVER`, en plus des 3 déjà réglées. Pas encore confirmé si
+  ça résout l'IPC timeout - hypothèse la plus concrète à ce stade, mais l'automation `xdotool`
+  elle-même est fragile (coordonnées d'écran fixes, dépend du timing/focus des fenêtres) et pourrait
+  ne pas suffire. Si ça ne suffit pas, la suite logique serait d'inspecter visuellement la console
+  noVNC du conteneur (port 8080, actuellement non exposé publiquement par choix de sécurité - voir
+  `mt5-terminal/README.md`) pour voir ce qui bloque réellement à l'écran.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi

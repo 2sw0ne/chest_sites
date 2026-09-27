@@ -37,10 +37,27 @@ l'attaquant ne pourrait que consulter le compte, jamais trader ni retirer des fo
 
 | Variable | Valeur |
 |---|---|
-| `MT5_HOST` | `0.0.0.0` (pour écouter sur le réseau privé Railway) |
+| `MT5_HOST` | `0.0.0.0` (pour écouter sur le réseau privé Railway) - en réalité écrasé de toute façon par `env.sh` du conteneur qui l'exporte en dur, donc cette variable Railway est sans effet réel mais inoffensive |
 | `MT5_LOGIN` | Identifiant d'un compte MT5 **"bootstrap"** — voir explication ci-dessous |
 | `MT5_PASSWORD` | Mot de passe (investisseur suffit) de ce compte bootstrap |
 | `MT5_SERVER` | Nom exact du serveur broker de ce compte bootstrap |
+| `SERVER` | **Sans le préfixe `MT5_`** - même valeur que `MT5_SERVER` ci-dessus. Variable DIFFÉRENTE utilisée par une automation GUI distincte (voir ci-dessous) - nécessaire si le serveur n'est pas déjà dans la liste intégrée de MT5 (ex. `MetaQuotes-Demo` n'en a pas besoin, un serveur démo d'un vrai broker si) |
+
+**Bizarrerie du script upstream (2026-09-27, lu directement dans le code source de
+`lucas-campagna/mt5linux`, `docker/src/`)** : ce projet utilise DEUX conventions de noms de
+variables différentes pour deux mécanismes différents, ce qui prête à confusion :
+- `config.sh` (`apply_mt5_config()`) lit `MT5_LOGIN`/`MT5_SERVER`/`MT5_PASSWORD` (AVEC préfixe) pour
+  écrire l'autologin dans `common.ini` - le mécanisme "silencieux", suffisant si le serveur est déjà
+  connu de MT5.
+- `mt5.sh` (`wait_for_mt5_and_type_server()`) et `automation.sh` lisent une variable `SERVER` (SANS
+  préfixe, différente de `MT5_SERVER`) pour déclencher une automation `xdotool` qui tape le nom du
+  serveur dans la fenêtre "rechercher un serveur" du terminal - nécessaire seulement si ce serveur
+  n'est pas déjà dans la liste intégrée.
+- **Le message des logs `MT5 Configuration: LOGIN: not set / SERVER: not set` est un faux
+  problème/bug d'affichage du script upstream** : `main.sh` imprime ce diagnostic en lisant lui
+  aussi les noms SANS préfixe (`LOGIN`/`SERVER`/`PASSWORD`), qui ne sont jamais ceux qu'on définit
+  (`MT5_LOGIN` etc.) - il affichera "not set" même quand l'autologin est correctement configuré et
+  fonctionne. Ne pas se fier à cette ligne pour diagnostiquer un problème.
 
 **Correction importante (2026-09-27) : ces trois variables sont en réalité REQUISES**, contrairement
 à ce que ce README affirmait juste avant — pas seulement un "secours optionnel". Incident réel en
