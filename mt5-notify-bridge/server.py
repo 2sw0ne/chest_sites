@@ -286,6 +286,19 @@ def poll_loop() -> None:
             with state_lock:
                 state["last_error"] = str(exc)
             traceback.print_exc()
+            # Bug reel constate en production (2026-09-27) : si mt5.connect()/initialize() echoue
+            # AVANT le bloc switch_event.clear() plus haut, un switch deja demande (switch_event
+            # mis a True par /switch-account) restait "set" indefiniment - le wait() juste en
+            # dessous se reveille alors IMMEDIATEMENT a chaque tour au lieu d'attendre POLL_SECONDS,
+            # ce qui transforme la boucle en busy-loop (des centaines de mt5.connect()/seconde,
+            # log flood + rate-limit Railway) ET laisse /switch-account bloque 25s pour rien
+            # (switch_done jamais mis). Il faut toujours debloquer l'appelant ici si un switch est
+            # en attente, meme quand on ne peut pas le traiter.
+            if switch_event.is_set():
+                global switch_result
+                switch_result = {"ok": False, "error": f"Terminal MT5 indisponible : {exc}"}
+                switch_event.clear()
+                switch_done.set()
         # wait() se reveille immediatement si un switch est demande entre-temps, au lieu
         # d'attendre la fin du POLL_SECONDS complet.
         switch_event.wait(timeout=POLL_SECONDS)

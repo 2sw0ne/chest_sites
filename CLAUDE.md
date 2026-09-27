@@ -776,6 +776,31 @@ compte démo gratuit (MetaQuotes-Demo), juste pour que le terminal sorte de son 
   d'expérience externe, pas encore reproduite dans CE projet précis) — à confirmer une fois ces
   variables définies et le service redéployé.
 
+## Vrai bug trouvé : busy-loop dans `poll_loop()` si un switch arrive pendant que le terminal n'est pas prêt (2026-09-27)
+
+**Logs Railway fournis par l'utilisateur juste après avoir défini les 3 variables ci-dessus** :
+`mt5-notify-bridge` spam des centaines de `mt5.connect()`/`ConnectionRefusedError` en ~1 seconde,
+Railway coupe avec `rate limit reached... Messages dropped: 301`. Pas un souci d'IPC cette fois :
+un vrai bug de boucle.
+
+- **Cause** : dans `poll_loop()`, si `mt5.connect()`/`mt5.initialize()` échoue, le code fait
+  `raise RuntimeError(...)` **avant** d'atteindre le bloc `if switch_event.is_set(): ...
+  switch_event.clear()`. Si `/switch-account` a déjà appelé `switch_event.set()` pendant que le
+  terminal n'est pas prêt (exactement le cas ici), cet event reste "set" pour toujours -
+  `switch_event.wait(timeout=POLL_SECONDS)` en fin de boucle se réveille alors INSTANTANÉMENT à
+  chaque tour au lieu d'attendre 15s, transformant la boucle en busy-loop. Effet double : (1) le
+  flood de logs/rate-limit observé, (2) `/switch-account` reste bloqué les 25s complètes pour rien
+  (`switch_done` jamais mis), d'où le message "n'a pas répondu à temps" côté site alors que le vrai
+  problème est ailleurs.
+- **Corrigé** : dans le bloc `except`, si un switch est en attente (`switch_event.is_set()`), on le
+  résout immédiatement en échec (`switch_result = {"ok": False, "error": ...}`,
+  `switch_event.clear()`, `switch_done.set()`) au lieu de le laisser bloqué - l'appelant récupère
+  une vraie erreur immédiatement plutôt qu'un timeout générique de 25s, et le busy-loop disparaît.
+- **Indépendant du fix bootstrap-account ci-dessus** : ce bug de boucle aurait recréé le même flood
+  à chaque fois qu'un switch arrive alors que le terminal n'est pas prêt, même après avoir réglé la
+  cause IPC - les deux corrections sont nécessaires. Pas encore reconfirmé avec des logs propres
+  après ce fix (à faire au prochain redéploiement).
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
