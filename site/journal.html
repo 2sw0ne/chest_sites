@@ -371,7 +371,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=1"></script>
-<script src="js/sync-store.js?v=2"></script>
+<script src="js/sync-store.js?v=3"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="journal" class="chest-root">
@@ -1326,7 +1326,7 @@ CHESTTour.init([
     window.location.href = 'journal.html';
   });
 
-  document.getElementById('jaSave').addEventListener('click', () => {
+  document.getElementById('jaSave').addEventListener('click', async () => {
     const name = document.getElementById('jaName').value.trim();
     if (!name) { showToast('Donne un nom à ce compte.'); return; }
     const type = document.querySelector('#jaTypeToggle button.is-active').dataset.type;
@@ -1367,9 +1367,18 @@ CHESTTour.init([
         localStorage.setItem('chest_live_connect_resume', '1');
         localStorage.setItem('chest_live_connect_resume_account', saved.id);
       } catch (e) { /* tant pis */ }
+      // ATTEND que le compte tout juste créé soit bien arrivé sur le serveur avant de changer de
+      // page (2026-09-27, vrai bug retour utilisateur : "Compte du Journal introuvable" - le pull
+      // de dashboard.html arrivait parfois AVANT que ce push n'ait eu le temps de partir, et
+      // écrasait localement le compte flambant neuf avec l'ancienne version serveur qui ne le
+      // connaît pas encore). Voir js/sync-store.js, window.CHESTSync.flushNow().
+      try { if (window.CHESTSync) await window.CHESTSync.flushNow(); } catch (e) { /* tant pis, on part quand meme */ }
       window.location.href = 'dashboard.html';
       return;
     }
+    // Meme precaution que ci-dessus (voir son commentaire) - cette page va se recharger juste
+    // apres et refaire un pull, meme risque de course.
+    try { if (window.CHESTSync) await window.CHESTSync.flushNow(); } catch (e) { /* tant pis */ }
     window.location.href = `journal.html?acc=${encodeURIComponent(saved.id)}${!editingAccountId && account.mode === 'auto' ? '&addlive=1' : ''}`;
   });
 

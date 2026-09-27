@@ -653,6 +653,42 @@ pour ce chemin.
   150 000$ affichés) - confirme que "superposer les informations de chaque compte" fonctionne
   exactement comme voulu, sans aucun code d'agrégation nouveau à écrire.
 
+## Vraie course entre créer un compte du Journal et changer de page (2026-09-27)
+
+**Bug réel en production, signalé par l'utilisateur avec capture d'écran** ("Compte du Journal
+introuvable — recommence.") : créer un compte via "+ Nouveau compte du Journal" depuis le Dashboard
+fonctionnait, la reprise automatique retrouvait bien le compte (l'écran affichait "Connexion pour :
+Test", identifiants remplis) - mais cliquer "Connecter" quelques secondes plus tard échouait, le
+compte ayant disparu entre-temps.
+
+- **Cause racine** : `js/sync-store.js` pousse chaque écriture vers le serveur avec un debounce de
+  600ms (`setTimeout(flush, 600)`), en "fire and forget" (jamais attendu). `journal.html` (jaSave)
+  crée le compte puis change IMMÉDIATEMENT de page (`window.location.href = 'dashboard.html'`) pour
+  revenir finir la connexion Live - largement avant que les 600ms ne s'écoulent. Le `pagehide` prévu
+  pour ce cas déclenche bien un `flush()` à la fermeture, mais un `fetch()` lancé au moment où la
+  page se décharge n'est **pas garanti d'aboutir** (le navigateur peut l'annuler en cours de
+  navigation - c'est précisément le problème que `navigator.sendBeacon` existe pour résoudre,
+  jamais utilisé ici). Le compte du Journal restait donc SEULEMENT local, jamais poussé. Quand
+  `dashboard.html` se charge derrière, son propre `pullSync()` récupère la version du serveur
+  (encore ancienne, sans le nouveau compte) et - comme `/sync` fonctionne en "dernier pull gagne"
+  sans aucune fusion ni horodatage - **écrase la copie locale flambant neuve avec l'ancienne**. Le
+  compte tout juste créé disparaît purement et simplement avant que l'utilisateur n'ait fini de
+  remplir les identifiants MT5.
+- **Corrigé** : `flush()` retourne maintenant sa promesse, et une nouvelle API minimale
+  `window.CHESTSync.flushNow()` (attend l'envoi immédiat, sans le debounce) est exposée. `jaSave`
+  (`journal.html`) fait `await window.CHESTSync.flushNow()` **avant** tout changement de page après
+  une création - sur les DEUX chemins de redirection (retour au Dashboard, et le rechargement normal
+  de `journal.html?acc=...`), le second ayant le même risque de course avec son propre `pullSync()`.
+- **Limite connue, acceptée** : ceci ferme la fenêtre de course pour CE cas précis (créer puis
+  changer de page tout de suite après) ; le mécanisme `/sync` reste globalement "dernier pull gagne"
+  sans fusion - un vrai correctif général demanderait un horodatage par clé comparé des deux côtés,
+  hors scope de ce correctif ciblé.
+- **Vérifié en direct** : `window.CHESTSync.flushNow` bien exposé et de type `function` ; séquence
+  réseau confirmée (`POST /sync` du compte créé complété AVANT le `GET /sync` de la page suivante) -
+  impossible de reproduire la vraie condition de course en local (serveur de dev quasi instantané,
+  contrairement à Railway en production, ce qui explique pourquoi ça ne s'est jamais vu en test
+  local alors que ça arrivait de façon fiable en production).
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi

@@ -103,8 +103,17 @@
     const token = getToken();
     const batch = pending;
     pending = {};
-    if (!token || !Object.keys(batch).length) return;
-    fetch(apiBase() + '/sync', {
+    if (!token || !Object.keys(batch).length) return Promise.resolve();
+    // Retourne la promesse (2026-09-27, corrige un vrai bug retour utilisateur : "compte du
+    // journal introuvable" apres avoir cree un compte puis change de page presque aussitot) -
+    // avant, cet appel etait "fire and forget" : creer un compte du Journal puis naviguer vers une
+    // AUTRE page (dashboard.html) quasi instantanement ne laissait pas le temps aux 600ms de debounce
+    // de s'ecouler ni a ce fetch de finir - le PULL de la page suivante arrivait alors AVANT que le
+    // serveur n'ait ce nouveau compte, et l'ECRASAIT localement avec l'ancienne version (toujours
+    // "dernier pull gagne", jamais de fusion) - le compte tout juste cree disparaissait purement et
+    // simplement. Voir window.CHESTSync.flushNow(), attendu explicitement par journal.html avant de
+    // changer de page apres une creation.
+    return fetch(apiBase() + '/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ data: batch }),
@@ -122,4 +131,16 @@
   // Vide immediatement ce qui reste en attente si l'onglet se ferme/change de page - sinon la
   // derniere modification juste avant un changement de page pouvait ne jamais partir.
   window.addEventListener('pagehide', () => { if (flushTimer) { clearTimeout(flushTimer); flush(); } });
+
+  // API publique minimale (2026-09-27) : force l'envoi immediat de ce qui est en attente, et
+  // ATTEND que ce soit fait - a utiliser juste avant une navigation volontaire vers une autre page
+  // qui va elle-meme re-synchroniser (voir journal.html, jaSave). pagehide seul ne suffit pas ici :
+  // un changement de page DECLENCHE par notre propre code (window.location.href = ...) doit
+  // pouvoir attendre la fin du fetch avant de partir, ce que pagehide ne garantit pas.
+  window.CHESTSync = {
+    flushNow: async () => {
+      if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+      await flush();
+    },
+  };
 })();
