@@ -1,2 +1,2 @@
 flask
-mt5linux
+rpyc>=6.0.0,<7

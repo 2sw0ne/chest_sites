@@ -689,6 +689,41 @@ compte ayant disparu entre-temps.
   contrairement à Railway en production, ce qui explique pourquoi ça ne s'est jamais vu en test
   local alors que ça arrivait de façon fiable en production).
 
+## `mt5-notify-bridge` : RPyC direct, jamais `mt5linux.MetaTrader5` (2026-09-27)
+
+**Incident critique en production, logs Railway fournis par l'utilisateur** : `mt5-notify-bridge`
+crash-bouclait dès le démarrage - `RuntimeError: No container runtime available. engine='auto' but
+neither docker nor udocker is installed.` En lisant le code source réel du paquet `mt5linux`
+(`ContainerManager.__init__` → `create_runtime(engine)` → lève systématiquement si ni Docker ni
+udocker n'est installé LOCALEMENT) : la classe `mt5linux.MetaTrader5` n'est PAS conçue pour une
+architecture à deux services séparés comme celle-ci - même en "mode connexion manuelle" documenté
+dans son propre README (`MetaTrader5(host="localhost", port=18812)`), son constructeur exige
+INCONDITIONNELLEMENT un runtime de conteneur local, y compris pour simplement se connecter à un
+serveur RPyC déjà lancé ailleurs (`start_container()` cherche un conteneur Docker LOCAL par port -
+jamais juste "se connecter à cette adresse réseau").
+
+- **Corrigé** : `mt5-notify-bridge/server.py` n'importe plus `mt5linux` du tout - `DirectMT5Client`
+  (classe définie dans `server.py`) se connecte en RPyC brut (`import rpyc`,
+  `rpyc.classic.connect(host, port)`) directement au serveur RPyC "classic" que `mt5-terminal` fait
+  déjà tourner (confirmé dans ses propres logs : `SLAVE/18812[MainThread]: server started`) -
+  exactement le même mécanisme que `mt5linux` utilise en interne UNE FOIS connecté
+  (`conn.execute()`/`conn.eval()` sur du code Python construit en chaîne), simplement sans la
+  couche de gestion de conteneur, superflue ici. `requirements.txt` : `mt5linux` remplacé par
+  `rpyc>=6.0.0,<7` (la dépendance réellement utilisée, `mt5linux` la tirait déjà en transitif).
+- **Échappement des valeurs interpolées** : chaque appel construit son code à distance avec `!r`
+  (repr) sur les chaînes (`f"mt5.login({int(login)}, password={password!r}, server={server!r})"`)
+  plutôt qu'un f-string qui concaténerait la valeur brute - sans ça, un mot de passe contenant un
+  guillemet casserait la chaîne littérale et injecterait du code arbitraire dans le processus Wine
+  distant. Jamais un souci en pratique tant que seul l'admin fournit ces valeurs, mais correct par
+  construction plutôt que par confiance.
+- **Vérifié contre un VRAI serveur RPyC classic local** (pas un mock - `rpyc.utils.server.
+  ThreadedServer(rpyc.SlaveService)`, avec un faux module MetaTrader5 important comme un vrai
+  fichier Python pour que le pickling des namedtuples fonctionne correctement) : connexion, login
+  qui échoue/réussit, `last_error()`, `account_info()`, `history_deals_get()` - et spécifiquement un
+  mot de passe contenant guillemets ET antislash (`go"od'pa\ss`) pour confirmer l'échappement
+  `!r`. Tout fonctionne. Le vrai test contre le vrai `mt5-terminal` (vrai Wine/MT5) reste à faire
+  au prochain déploiement.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi

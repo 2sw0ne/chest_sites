@@ -18,6 +18,22 @@ qu'on ne peut pas contourner en interrogeant plus souvent. En se connectant dire
 MT5 (via `mt5-terminal`, notre propre conteneur — pas Myfxbook), il n'y a plus d'intermédiaire lent
 : la fraîcheur ne dépend que de `MT5_POLL_SECONDS`.
 
+## Connexion : RPyC brut, PAS `mt5linux.MetaTrader5` (2026-09-27)
+
+Ce service se connecte à `mt5-terminal` avec `import rpyc` directement (`DirectMT5Client` dans
+`server.py`), pas la classe `mt5linux.MetaTrader5`. Incident réel en production (logs Railway) :
+son constructeur exige INCONDITIONNELLEMENT un runtime Docker ou udocker **local** rien que pour se
+connecter à un serveur déjà lancé ailleurs (`ContainerManager.__init__` appelle toujours
+`create_runtime()`, lu directement dans le code source du paquet) — sur une architecture à deux
+services séparés comme celle-ci, ça plantait systématiquement au démarrage avec `RuntimeError: No
+container runtime available`. `DirectMT5Client` reprend le même mécanisme interne que `mt5linux`
+utilise une fois connecté (`rpyc.classic.connect()` puis `conn.execute()`/`conn.eval()` sur du code
+Python construit en chaîne, avec `repr()` pour échapper correctement les valeurs interpolées -
+jamais un f-string qui concaténerait une valeur brute, injection de code sinon), simplement sans la
+couche de gestion de conteneur. Vérifié en direct contre un vrai serveur RPyC classic local (pas un
+mock) : connexion, login (échec et succès, y compris avec un mot de passe contenant guillemets et
+antislash), `account_info()`, `history_deals_get()` — tout fonctionne correctement.
+
 ## Dépendance : `mt5-terminal` doit tourner AVANT ce service
 
 Ce service se connecte au terminal (`mt5.initialize()`) au démarrage, mais aucun compte n'est
