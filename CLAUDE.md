@@ -746,11 +746,35 @@ timeout `POST /switch-account` côté site (504 après 25s).
   `poll_loop()` passe désormais `MT5_TERMINAL_PATH` (nouvelle variable d'env, défaut
   `C:\MT5\terminal64.exe` — à ne changer QUE si `mt5-terminal` passe un jour à une autre image que
   `lprett/mt5linux`).
-- **Pas encore vérifié contre le vrai déploiement Railway** (seule la syntaxe a été vérifiée
-  localement) — à confirmer au prochain déploiement : si `(-10005, 'IPC timeout')` persiste malgré
-  le chemin explicite, la piste suivante serait un problème de timing démarrage Wine/Xvfb (le
-  terminal met peut-être plus longtemps à finir de démarrer sous charge Railway que dans les tests
-  de l'auteur du paquet) plutôt qu'un problème de chemin.
+- **Confirmé faux au déploiement suivant** : le chemin explicite n'a rien changé, même erreur en
+  boucle. Cause réelle trouvée (recherche web, forum MQL5 + retours d'autres utilisateurs de
+  `mt5linux`) : **un terminal MT5 sans aucun compte configuré reste bloqué sur SA PROPRE fenêtre
+  modale** (connexion / création de compte démo), et une fenêtre modale ouverte empêche
+  `mt5.initialize()` de répondre, quel que soit le délai ou le chemin passé — ce n'est pas un
+  problème de chemin ni de timing Wine, c'est le terminal qui n'est simplement jamais dans un état
+  "prêt". Voir la section suivante pour le vrai fix.
+
+## `MT5_LOGIN`/`MT5_PASSWORD`/`MT5_SERVER` sur `mt5-terminal` sont en fait REQUIS (2026-09-27)
+
+**Correction d'une affirmation antérieure de ce fichier** : la section "Le Journal devient la source
+de vérité du compte Live" (et le README de `mt5-terminal`) affirmaient que ces trois variables
+"ne sont PLUS nécessaires" puisque le choix du compte se fait maintenant dynamiquement depuis le
+site. C'est faux pour la toute première connexion du terminal : `mt5.initialize()` ne peut PAS
+réussir sur un terminal totalement vierge (voir ci-dessus, fenêtre modale bloquante) — il faut un
+compte **"bootstrap"** déjà configuré au démarrage du conteneur, n'importe lequel, y compris un
+compte démo gratuit (MetaQuotes-Demo), juste pour que le terminal sorte de son état bloqué.
+
+- Une fois `initialize()` réussi avec ce compte bootstrap, le reste du mécanisme (`mt5.login()` sur
+  la connexion déjà établie, piloté par `POST /switch-account` depuis le site) reste inchangé et
+  correct — seule la toute première étape (sortir le terminal de son état vierge) nécessitait ce
+  correctif.
+- **Action utilisateur requise** : fournir un login/mot de passe (investisseur suffit)/serveur d'un
+  compte MT5 quelconque (démo ou réel, peu importe lequel) à définir comme `MT5_LOGIN`/
+  `MT5_PASSWORD`/`MT5_SERVER` sur le service Railway `mt5-terminal`. Voir
+  `mt5-terminal/README.md` pour le détail.
+- **Pas encore vérifié contre le vrai déploiement Railway** (l'hypothèse s'appuie sur un retour
+  d'expérience externe, pas encore reproduite dans CE projet précis) — à confirmer une fois ces
+  variables définies et le service redéployé.
 
 ## Corrections post-premier-déploiement (2026-09-24)
 

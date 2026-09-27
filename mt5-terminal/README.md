@@ -38,15 +38,30 @@ l'attaquant ne pourrait que consulter le compte, jamais trader ni retirer des fo
 | Variable | Valeur |
 |---|---|
 | `MT5_HOST` | `0.0.0.0` (pour écouter sur le réseau privé Railway) |
+| `MT5_LOGIN` | Identifiant d'un compte MT5 **"bootstrap"** — voir explication ci-dessous |
+| `MT5_PASSWORD` | Mot de passe (investisseur suffit) de ce compte bootstrap |
+| `MT5_SERVER` | Nom exact du serveur broker de ce compte bootstrap |
 
-**`MT5_LOGIN`/`MT5_PASSWORD`/`MT5_SERVER` ne sont PLUS nécessaires (2026-09-27)** : le choix du
-compte connecté se fait maintenant depuis le site (Dashboard → Ajouter un compte → Compte Live,
-admin uniquement), qui appelle `POST /mt5/connect` sur accounts-bridge, qui appelle à son tour
-`POST /switch-account` sur `mt5-notify-bridge` — celui-ci reconnecte le terminal EN DIRECT
-(`mt5.login()`, sans redémarrer le conteneur) à chaque changement de compte (nouvelle phase de
-challenge, nouveau compte financé...). Voir `../mt5-notify-bridge/README.md` pour le détail complet
-de ce mécanisme. Ces trois variables restent utilisables en secours (autologin au démarrage du
-conteneur, avant toute connexion depuis le site) mais ne sont plus le chemin normal.
+**Correction importante (2026-09-27) : ces trois variables sont en réalité REQUISES**, contrairement
+à ce que ce README affirmait juste avant — pas seulement un "secours optionnel". Incident réel en
+production (logs Railway, voir CLAUDE.md) : `mt5.initialize()` échouait en boucle avec
+`(-10005, 'IPC timeout')` tant qu'aucun compte n'était configuré. Cause confirmée (forum MQL5,
+retour d'expérience d'autres utilisateurs de ce même projet `mt5linux`) : un terminal MT5 fraîchement
+installé, sans autologin, reste bloqué sur SA PROPRE fenêtre modale de connexion/création de compte
+démo — et une fenêtre modale ouverte empêche l'API `initialize()` de répondre, quel que soit le délai
+d'attente ou le chemin passé en argument. Il faut donc qu'**un compte quelconque soit déjà connecté**
+au démarrage du conteneur pour que le terminal sorte de cet état bloqué.
+
+- Le compte bootstrap peut être **n'importe quel compte MT5, y compris un compte démo gratuit**
+  (MetaQuotes-Demo ou un démo d'un vrai broker) — il ne sert qu'à débloquer `initialize()`, jamais
+  utilisé pour de vraies notifications tant que le site n'a pas fait son propre `POST
+  /switch-account`.
+- Une fois le terminal initialisé avec ce compte bootstrap, le mécanisme normal reste inchangé : le
+  site (Dashboard → Ajouter un compte → Compte Live, admin uniquement) appelle `POST /mt5/connect`
+  sur accounts-bridge, qui appelle `POST /switch-account` sur `mt5-notify-bridge` — celui-ci
+  reconnecte le terminal EN DIRECT (`mt5.login()`, sans redémarrer le conteneur ni retoucher ces
+  variables) vers le VRAI compte voulu (nouvelle phase de challenge, nouveau compte financé...). Voir
+  `../mt5-notify-bridge/README.md` pour le détail complet de ce mécanisme.
 
 Ne PAS exposer de domaine public sur ce service — `mt5-notify-bridge` s'y connecte uniquement via
 le réseau privé Railway (`mt5-terminal.railway.internal:18812`, nom exact = nom donné au service
