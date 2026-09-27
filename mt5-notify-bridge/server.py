@@ -245,6 +245,9 @@ def handle_switch(mt5: DirectMT5Client, req: dict) -> tuple[bool, dict]:
 
 
 def poll_loop() -> None:
+    global switch_result  # declare une seule fois ici - une 2e "global" plus bas dans la fonction
+    # (apres un premier usage) est une SyntaxError ("assigned to before global declaration"), pas
+    # juste un doublon inoffensif - incident reel en production, voir CLAUDE.md (2026-09-27).
     mt5 = DirectMT5Client(MT5_TERMINAL_HOST, MT5_TERMINAL_PORT)
     terminal_ready = False
     current_login: str | None = None
@@ -261,7 +264,6 @@ def poll_loop() -> None:
                 with switch_lock:
                     req = switch_pending
                 ok, result = handle_switch(mt5, req) if req else (False, {"error": "requête de switch vide"})
-                global switch_result
                 switch_result = {"ok": ok, **result}
                 if ok:
                     current_login = str(req["login"])
@@ -295,7 +297,6 @@ def poll_loop() -> None:
             # (switch_done jamais mis). Il faut toujours debloquer l'appelant ici si un switch est
             # en attente, meme quand on ne peut pas le traiter.
             if switch_event.is_set():
-                global switch_result
                 switch_result = {"ok": False, "error": f"Terminal MT5 indisponible : {exc}"}
                 switch_event.clear()
                 switch_done.set()

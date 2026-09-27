@@ -801,6 +801,25 @@ un vrai bug de boucle.
   cause IPC - les deux corrections sont nécessaires. Pas encore reconfirmé avec des logs propres
   après ce fix (à faire au prochain redéploiement).
 
+## Leçon d'outillage : `ast.parse()` NE détecte PAS toutes les `SyntaxError` (2026-09-27)
+
+**Incident** : le fix du busy-loop ci-dessus a été poussé avec une vraie erreur - une 2e ligne
+`global switch_result` plus bas dans `poll_loop()`, après un premier usage de cette variable sans
+`global` déjà en vigueur plus haut dans la fonction, ce qui est en réalité une `SyntaxError: name
+'switch_result' is assigned to before global declaration`. `mt5-notify-bridge` crash-bouclait dès
+le démarrage (confirmé par les logs Railway). **Mais `python3 -c "import ast;
+ast.parse(open(...).read())"` - la méthode de vérification utilisée systématiquement tout au long
+de cette session - ne l'a PAS détectée** : reproduit en local, `ast.parse()` construit l'arbre
+syntaxique sans erreur, alors que cette classe d'erreur (ordre `global`/assignation) n'est vérifiée
+que par le compilateur (`compile()`/`py_compile`), une passe plus tardive que le simple parsing.
+
+- **Corrigé dans le code** : un seul `global switch_result` en tête de `poll_loop()` (couvre toute
+  la fonction, pas besoin de le redéclarer dans chaque bloc interne).
+- **Corrigé dans la méthode** : remplacer désormais `ast.parse()` par `python3 -m py_compile
+  fichier.py` (ou `compile(source, filename, 'exec')`) pour vérifier un fichier Python avant de le
+  pousser - seule cette dernière méthode exécute réellement la passe de résolution de portée qui
+  attrape ce genre d'erreur.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
