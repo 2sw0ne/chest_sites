@@ -786,7 +786,7 @@
               <span>${fam.name}</span><span class="chev">▾</span>
             </button>
             <div class="acc-tools">
-              <button type="button" class="acc-tools__btn" aria-label="Options de la famille ${fam.name}">⋮</button>
+              <button type="button" class="acc-tools__btn" aria-label="Options pour ${fam.name}">⋮</button>
               <div class="acc-tools__menu">
                 <button type="button" data-add-to-family="${fam.id}">＋ Ajouter un compte</button>
                 <button type="button" data-pick-backtest-family="${fam.id}">📊 ${fam.startBacktestId ? 'Changer le backtesting' : 'Choisir un backtesting'}</button>
@@ -2132,6 +2132,21 @@
     // le Journal (js/journal-store.js, deja riche : propfirm/modele/phase/regles verifiees) devient
     // la source de verite pour "ce que trade ce compte" ; le Dashboard n'est plus qu'un miroir
     // (chest_accounts) tagué `journalAccountId` pour continuer a s'afficher normalement.
+    // Le Journal fait office de famille (2026-09-27) : une "famille" (mécanisme déjà existant,
+    // vue "Tout" = somme réelle des comptes membres) est auto-créée/retrouvée par compte du
+    // Journal, jamais nommée/gérée à la main pour ce chemin - chaque nouvelle connexion Live sur
+    // ce même compte du Journal (nouvelle phase) y ajoute un membre de plus, jamais un remplacement.
+    function findOrCreateJournalFamily(journalAcc) {
+      const families = loadFamilies();
+      let fam = families.find((f) => f.journalAccountId === journalAcc.id);
+      if (!fam) {
+        fam = { id: 'fam-' + Date.now(), name: journalAcc.name, accountIds: [], journalAccountId: journalAcc.id };
+        families.push(fam);
+      } else {
+        fam.name = journalAcc.name; // le nom du compte du Journal a pu changer depuis (journal.html)
+      }
+      return { fam, families };
+    }
     function stageLabelFor(acc) {
       if (!acc || acc.type !== 'propfirm' || !acc.modelId) return null;
       const models = window.CHESTJournal.challengeModels(acc.propfirmId);
@@ -2242,24 +2257,33 @@
         const body = await res.json();
         if (!res.ok || body.error) throw new Error(body.error || 'Échec de connexion au terminal MT5.');
         const info = body.accountInfo || {};
+        const newStage = pendingLiveStage != null ? pendingLiveStage : journalAcc.stage;
         // Le Journal est la source de verite (nom, propfirm, phase) - le Dashboard n'est qu'un
         // miroir affichable, tague `journalAccountId` pour le retrouver au prochain changement.
-        window.CHESTJournal.updateAccount(journalAcc.id, {
-          mt5Live: { login, server },
-          stage: pendingLiveStage != null ? pendingLiveStage : journalAcc.stage,
-        });
-        const accounts = loadAccounts().filter((a) => a.journalAccountId !== journalAcc.id);
+        window.CHESTJournal.updateAccount(journalAcc.id, { mt5Live: { login, server }, stage: newStage });
+        // Le Journal fait office de "famille" (2026-09-27, demande utilisateur : "c'est le journal
+        // qui fait office de famille et qui va enregistrer et superposer les informations des
+        // trades de chaque compte") - CHAQUE connexion Live (phase 1, phase 2, financé...) ajoute
+        // un NOUVEAU compte miroir dans la MEME famille (jamais remplacé/supprimé, l'historique de
+        // chaque phase reste visible individuellement) ; la famille agrège déjà tout ça (vue "Tout"
+        // = somme réelle des membres, mécanisme existant, réutilisé tel quel).
+        const { fam, families } = findOrCreateJournalFamily(journalAcc);
+        const stageLbl = stageLabelFor(Object.assign({}, journalAcc, { stage: newStage }));
+        const accounts = loadAccounts();
         const id = 'acc-' + Date.now();
         accounts.push({
           id, journalAccountId: journalAcc.id,
-          name: journalAcc.name, number: login, type: 'Réel', broker: journalAcc.name,
+          name: stageLbl ? `${journalAcc.name} · ${stageLbl}` : journalAcc.name,
+          number: login, type: 'Réel', broker: journalAcc.name,
           balance: info.balance || 0, equity: info.equity || 0, pnl: 0, today: 0,
           example: false, mt5Live: { login, server },
           isPropfirm: journalAcc.type === 'propfirm', payouts: [],
           objectivesResetAt: isoDateLocal(new Date()),
         });
         saveAccounts(accounts);
-        localStorage.setItem(ACTIVE_KEY, id);
+        fam.accountIds.push(id);
+        saveFamilies(families);
+        localStorage.setItem(ACTIVE_KEY, fam.id);
         closeAddAccountModal();
         closeMenu();
         renderAll();
@@ -2407,7 +2431,11 @@
     initAddAccountModal();
     // Ouvre la création de famille, pas directement "Ajouter un compte" (2026-09-24, demande
     // utilisateur) - voir createFamilyFromModal() pour la suite du parcours.
-    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => openFamilyPrompt());
+    // Ouvre directement "Ajouter un compte" (2026-09-27, demande utilisateur : "on va oublier les
+    // familles") - plus de détour par "Créer une famille" d'abord : le mode Live gère sa propre
+    // "famille" tout seul (voir findOrCreateJournalFamily), et le mode Myfxbook reste un compte
+    // seul par défaut (regroupable plus tard via le switcher si besoin).
+    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => openAddAccountModal(null));
     initFamilyModal();
     initFamilyBacktestModal();
     initPayoutModal();

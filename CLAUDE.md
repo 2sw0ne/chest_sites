@@ -618,6 +618,41 @@ n'est plus qu'un miroir qui l'affiche.
   proprement : aucun compte à moitié créé, le compte Journal n'est jamais modifié tant que le
   serveur n'a pas confirmé la connexion.
 
+## Le Journal fait maintenant office de famille (superpose les phases automatiquement) (2026-09-27)
+
+Suite directe, le jour même : "on peut enlever les familles [du Dashboard] et remplacer par
+justement un journal. C'est le journal qui fait office de famille et qui va enregistrer et
+superposer les informations des trades de chaque compte." Le mécanisme de "famille" existant
+(`chest_account_families` - vue "Tout" = somme réelle des comptes membres, code déjà là et déjà
+fiable, `buildFamilyAggregate`/`buildFamilyDailyHistory`) n'a **pas été réécrit** - il est
+maintenant **piloté automatiquement par le compte du Journal**, plus jamais créé/nommé à la main
+pour ce chemin.
+
+- **`findOrCreateJournalFamily(journalAcc)`** (`js/dashboard.js`) : retrouve (par
+  `family.journalAccountId`) ou crée une famille nommée d'après le compte du Journal. **Chaque
+  connexion Live sur ce même compte du Journal (nouvelle phase) AJOUTE un nouveau compte miroir
+  dans la MEME famille** - jamais de remplacement, l'historique de chaque phase reste individuellement
+  consultable ET sommé dans la vue "Tout" de la famille. Le nom du compte miroir reprend le nom du
+  Journal + le libellé de la phase (ex. "FTMO Test · Compte financé") pour les distinguer dans la
+  liste des membres.
+- **`ACTIVE_KEY` pointe sur l'id de la FAMILLE**, pas du compte miroir individuel, dès la toute
+  première connexion (même avec un seul membre) - évite une transition brutale d'affichage
+  "compte seul" → "famille" quand une 2e phase s'ajoute plus tard ; le rendu est identique dès le
+  départ.
+- **Entrée du Dashboard simplifiée** : le bouton de l'état vide n'ouvre plus "Créer une famille"
+  d'abord (`openFamilyPrompt()`) mais directement "Ajouter un compte" (`openAddAccountModal(null)`)
+  - texte de la carte mis à jour en conséquence ("Ajoute ton premier compte" / "Myfxbook, ou Compte
+  Live rattaché à un compte du Journal..."). Le chemin Myfxbook reste inchangé par ailleurs (compte
+  seul par défaut, regroupable à la main via le switcher comme avant si l'utilisateur le souhaite) -
+  seul le chemin Live/Journal gère sa "famille" tout seul.
+- **Vérifié en direct** (fetch mocké pour simuler une vraie connexion réussie, accounts-bridge/
+  mt5-notify-bridge non déployés localement) : 1ère connexion Live → famille créée avec 1 membre,
+  balance/equity affichées correctement (vue famille dès le départ, "#1 compte"). 2e connexion Live
+  sur le MEME compte du Journal (nouveau login MT5, simulant une phase 2) → **même famille**, 2e
+  membre ajouté ("#2 comptes"), balance/equity **sommées automatiquement** (50 000$+100 000$ =
+  150 000$ affichés) - confirme que "superposer les informations de chaque compte" fonctionne
+  exactement comme voulu, sans aucun code d'agrégation nouveau à écrire.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
