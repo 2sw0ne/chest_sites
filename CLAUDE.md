@@ -457,6 +457,64 @@ redéfinie de 4 (pas "limite du propfirm approche" mais bien TOUTE clôture TP/S
   deux incidents ci-dessus) retiré une fois la fonctionnalité confirmée — `POST /push/send` reste
   disponible côté serveur (admin, gated) pour un futur test manuel via `curl` au besoin.
 
+## Notification de clôture MT5 en temps quasi réel — `mt5-terminal` + `mt5-notify-bridge` (2026-09-27)
+
+Suite directe de la section précédente : le déclencheur "4" (TP/SL touché) ne couvrait que les
+signaux du scanner BERICH, pas les VRAIES positions personnelles de l'utilisateur sur son compte
+MT5 (Live Swann). Question posée : Myfxbook est-il assez rapide pour ça ? Réponse trouvée en
+relisant `js/myfxbook-store.js`/`js/dashboard.js` : **non** — Myfxbook lui-même ne se resynchronise
+que très lentement côté serveur, et CHEST ne l'interroge de toute façon qu'à la demande (cache 5
+min, ou 3 min pour Live Swann UNIQUEMENT pendant que l'onglet reste ouvert) — rien ne tourne jamais
+en fond. Alternative validée avec l'utilisateur après étude comparative (voir ci-dessous) :
+connexion DIRECTE au terminal MT5 (même principe que Futurizq, étudié plus tôt pour la
+recommandation propfirm — voir "Recommandation propfirm avec money management" plus haut : lien
+MT5 = numéro de compte + serveur + mot de passe investisseur, chiffré, traité côté serveur),
+auto-hébergée plutôt que via un service payant.
+
+- **Options étudiées et écartées** : MetaApi.cloud (service géré, ~10-12 $/mois PAR COMPTE connecté
+  — tarifs officiels vérifiés sur `metaapi.cloud/#pricing`, latence <1ms mais coût récurrent réel
+  pour un seul compte) ; `metatraderapi.net` (concurrent, encore plus cher au compte unique,
+  14 $/mois) ; auto-hébergement Windows/multi-terminaux (limité à ~24-28 terminaux MT5 par machine,
+  RAM lourde, pertinent seulement à l'échelle de nombreux comptes — pas le cas ici).
+- **Solution retenue : `mt5linux`** (github.com/lucas-campagna/mt5linux, 222⭐, actif) — fait
+  tourner un VRAI terminal MT5 sous Wine dans un conteneur Alpine (image publiée
+  `lprett/mt5linux`), exposant l'API Python officielle MetaTrader5 via un pont RPyC. Coût marginal
+  quasi nul (juste un peu de compute Railway en plus, déjà payé pour les autres services) plutôt
+  qu'un abonnement par compte — hypothèse : c'est probablement ainsi que Futurizq tient son propre
+  modèle (29€/mois tout compris) malgré le coût des services API tiers équivalents.
+- **Deux services Railway séparés** :
+  - `mt5-terminal/` — juste `FROM lprett/mt5linux:latest` + variables d'environnement
+    (`MT5_LOGIN`/`MT5_PASSWORD`/`MT5_SERVER`/`MT5_HOST=0.0.0.0`). **`MT5_PASSWORD` doit être le mot
+    de passe INVESTISSEUR (lecture seule)**, jamais le mot de passe de trading — double protection
+    volontaire : même si `mt5-notify-bridge` appelait un jour une fonction de trading par erreur
+    (il ne le fait pas), le serveur du broker la refuserait de toute façon.
+  - `mt5-notify-bridge/` — sonde `history_deals_get()` toutes les `MT5_POLL_SECONDS` (15s par
+    défaut - connexion locale au réseau privé Railway, pas un appel facturé, peut rester bas) via
+    le réseau privé Railway (`mt5-terminal.railway.internal:18812`), détecte les deals de type
+    `DEAL_ENTRY_OUT`/`DEAL_ENTRY_OUT_BY` jamais vus (dédupliqués par `ticket`, jamais réattribué),
+    et notifie via le `POST /push/broadcast` déjà existant (même `INTERNAL_PUSH_SECRET` que
+    berich-bridge/calendar-bridge) avec le P&L réel (`profit+commission+swap`) et la vraie cause
+    de clôture lue dans le champ `reason` du deal (`DEAL_REASON_TP`=5/`SL`=4/`SO`=6, jamais devinée
+    — constantes vérifiées sur la doc officielle MQL5, `mql5.com/en/docs/constants/tradingconstants/dealproperties`).
+- **⚠️ Piège évité de justesse pendant la mise en place** : un dossier `mt5-bridge/` existait déjà
+  à la racine du dépôt depuis le tout premier commit — un script LOCAL, sans rapport, que
+  l'utilisateur lance sur sa PROPRE machine Windows pour exporter son compte MT5 vers
+  `site/data/data.json` (lu par le Dashboard, voir la section "Autres décisions techniques
+  notables" plus bas). Le nouveau service a failli être créé dans ce même dossier (écrasant
+  `README.md` avant d'être repéré via `git status` affichant "M" au lieu de "??") — renommé
+  `mt5-notify-bridge/` pour ne plus jamais confondre les deux. **Toujours vérifier `git status`
+  avant d'écrire dans un dossier dont le nom semble libre.**
+- **Pas encore testé en conditions réelles** : aucun accès à un vrai compte MT5/mot de passe
+  investisseur ni à Railway depuis cette session — le code est correct au meilleur de ce qui est
+  vérifiable sans ça (signatures de `mt5linux` inspectées en installant le paquet localement,
+  champs de deal vérifiés sur la doc MQL5 officielle), mais le déploiement réel (création des deux
+  services Railway, variables d'environnement, premher signal réel) reste à faire et à valider par
+  l'utilisateur. Risque connu à surveiller : Railway a déjà fait planter un service par manque de
+  mémoire une fois (`calendar-bridge`, Playwright/Chrome relancé à froid 48x/jour) — un terminal
+  Wine/MT5 qui reste connecté en continu a un profil de charge différent (un seul processus stable,
+  pas de relances répétées), mais à vérifier en observant la conso mémoire réelle sur Railway avant
+  de conclure que c'est stable.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
