@@ -73,10 +73,23 @@ class DirectMT5Client:
         self._conn = None
 
     def connect(self) -> None:
+        # Ferme l'ancienne connexion avant d'en ouvrir une nouvelle (2026-09-29, voir CLAUDE.md
+        # "IPC timeout intermittent") - sans ca, une session RPyC classic jamais fermee restait
+        # ouverte cote serveur (mt5server.exe) a chaque nouvelle tentative apres un echec, laissant
+        # potentiellement un handle IPC MetaTrader5 fantome tenir la ressource.
+        self.close()
         self._conn = rpyc.classic.connect(self.host, self.port)
         self._conn._config["sync_request_timeout"] = 300
         self._conn.execute("import sys; sys.path.append('C:\\\\mt5libs')")
         self._conn.execute("import MetaTrader5 as mt5")
+
+    def close(self) -> None:
+        if self._conn is not None:
+            try:
+                self._conn.close()
+            except Exception:
+                pass
+            self._conn = None
 
     def _eval(self, code: str):
         return rpyc.classic.obtain(self._conn.eval(code))
@@ -191,6 +204,11 @@ def poll_loop() -> None:
                 mt5.shutdown()
             except Exception:
                 pass
+            # Ferme la connexion RPyC immediatement (2026-09-29) plutot que d'attendre le prochain
+            # `connect()` - logs Railway montrant des "welcome" sans "goodbye" correspondant a
+            # chaque cycle d'echec, preuve que les sessions RPyC precedentes restaient ouvertes
+            # cote serveur bien apres que ce client les ait abandonnees.
+            mt5.close()
             terminal_ready = False  # on retentera une vraie reconnexion au prochain tour
             with state_lock:
                 state["last_error"] = str(exc)
