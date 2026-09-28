@@ -172,15 +172,17 @@ def poll_loop() -> None:
     while True:
         try:
             if not terminal_ready:
-                mt5.connect()  # connexion RPyC vers mt5-terminal - voir DirectMT5Client
+                # connect() + initialize() vivent DANS le meme bloc protege, a CHAQUE tentative
+                # (2026-09-29) - un connect() initial separe, hors de la boucle de retry, pouvait
+                # lui-meme echouer ("Connection reset by peer") et faire planter tout le cycle
+                # avant meme d'atteindre la boucle. Voir CLAUDE.md "IPC timeout erratique, bug
+                # connu MT5" pour l'historique complet des erreurs RPyC transitoires rencontrees
+                # (result expired, connection closed by peer, stream has been closed, connection
+                # reset by peer) qui ont chacune motive un ajustement de cette boucle.
                 last_init_error = None
                 for attempt in range(INIT_ATTEMPTS):
-                    # Chaque tentative est isolee dans son propre try/except (2026-09-29) - un
-                    # test a montre que des erreurs RPyC transitoires ("result expired",
-                    # "connection closed by peer") peuvent surgir sur initialize() ou last_error()
-                    # eux-memes, pas seulement un simple retour False - sans cet isolement, UNE
-                    # seule exception interrompait toute la boucle de retry au 1er essai.
                     try:
+                        mt5.connect()  # connexion RPyC vers mt5-terminal - voir DirectMT5Client
                         if bool(mt5.initialize(path=MT5_TERMINAL_PATH)):
                             terminal_ready = True
                             break
@@ -188,19 +190,7 @@ def poll_loop() -> None:
                     except Exception as init_exc:
                         last_init_error = str(init_exc)
                     if attempt < INIT_ATTEMPTS - 1:
-                        # Reconnexion COMPLETE avant chaque nouvel essai (2026-09-29) - un simple
-                        # mt5.shutdown() sur la connexion existante n'a pas suffi : la connexion
-                        # RPyC elle-meme finissait par mourir en cours de route ("stream has been
-                        # closed"), rendant toutes les tentatives suivantes vaines puisqu'elles
-                        # retentaient sur cette meme connexion cassee. mt5.connect() ferme
-                        # l'ancienne connexion et en ouvre une toute nouvelle (voir
-                        # DirectMT5Client.connect()), garantissant un etat propre a chaque essai
-                        # quelle que soit la cause de l'echec precedent.
                         time.sleep(INIT_ATTEMPT_DELAY)
-                        try:
-                            mt5.connect()
-                        except Exception as reconnect_exc:
-                            last_init_error = str(reconnect_exc)
                 if not terminal_ready:
                     raise RuntimeError(
                         f"mt5.initialize() a échoué après {INIT_ATTEMPTS} tentatives : {last_init_error}"
