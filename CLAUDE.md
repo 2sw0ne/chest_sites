@@ -945,6 +945,56 @@ contraintes de connexion trop lourdes, construire un système **synthétique** �
 **Rappeler cette section à l'utilisateur si le Plan EA échoue ou ne le satisfait pas** - c'est
 explicitement la consigne donnée.
 
+## Vraie cause trouvée : `login_automation()` clique en aveugle sur notre propre fenêtre (2026-09-28)
+
+Après avoir accédé à l'écran noVNC pour de vrai (2 domaines publics temporaires générés sur Railway
+- port 8080 pour la page noVNC, port 5901 pour le proxy WebSocket, connectés via
+`vnc.html?host=...&port=443&path=websockify&encrypt=true` - l'URL de base seule échouait avec
+`wss://localhost:5901/websockify` codé en dur côté client), diagnostic complet en plusieurs étapes :
+
+- **`MT5_SERVER` avait disparu des variables Railway** (remplacée par erreur par `SERVER` seule au
+  lieu d'être complétée) - remis via l'accès MCP Railway (voir section suivante), confirmé par les
+  logs (`SERVER: VantageMarkets-Demo` apparaît enfin dans `MT5 Configuration:`).
+- Le formulaire `File → Login to Trade Account` reste néanmoins désespérément vide/par défaut, et
+  se ferme quasi instantanément dès qu'on tape dedans (`'2': authorization on MetaQuotes-Demo
+  failed` répété inlassablement dans le Journal, quel que soit qui tape - moi ou l'utilisateur -, et
+  même en ne touchant à RIEN après ouverture).
+- **Cause réelle, trouvée en relisant le code source exact** (`docker/src/automation.sh` du paquet
+  `mt5linux`) : `login_automation()` est une boucle de fond INFINIE, démarrée sans condition par
+  `main.sh` dès le démarrage du conteneur, qui fait `xdotool search --name "Login"` en continu et
+  clique EN AVEUGLE sur les coordonnées fixes `(488, 449)` dès qu'une fenêtre de `terminal64.exe`
+  dont le nom contient "Login" existe - **sans aucun délai après un clic réussi** (busy-loop tant
+  que la fenêtre reste ouverte). Conçue à l'origine pour fermer une petite popup de confirmation
+  fugace au tout premier démarrage du terminal, elle intercepte AUSSI notre propre fenêtre "Login to
+  Trade Account" ouverte manuellement (même sous-chaîne "Login" dans son titre) - la fermant/
+  soumettant en quelques centaines de ms avant qu'on ait pu la remplir. Ça explique tout : pourquoi
+  ça se ferme même sans rien taper, pourquoi c'est toujours le même caractère partiel qui atterrit
+  (`'2'`, premier chiffre tapé avant l'interruption), pourquoi supprimer le compte fantôme dans le
+  Navigator ne changeait rien (la boucle recrée les conditions du problème à chaque nouvelle
+  ouverture, indépendamment de l'état du compte).
+- **Corrigé par le code, pas en luttant sur l'écran** : `mt5-terminal/Dockerfile` ajoute maintenant
+  un `RUN sed -i '/^login_automation &$/d; /^LOGIN_PID=\$!$/d' /app/src/main.sh` après le `FROM` -
+  supprime uniquement les 2 lignes qui démarrent ce job de fond (la fonction reste définie mais
+  n'est jamais appelée). Testé en local avant de commit (`sh -n` sur le fichier patché - syntaxe
+  valide, diff confirmé ne touchant que ces 2 lignes). `server_search_automation`/
+  `update_manager_automation` laissées intactes (mécanismes différents, sans ce problème précis).
+- **Pas encore reconfirmé en conditions réelles après ce fix** (déploiement à faire) - mais c'est la
+  première fois qu'on a une explication complète et cohérente avec TOUTES les observations
+  précédentes, plutôt qu'une hypothèse partielle.
+
+## Accès MCP Railway (2026-09-28) - gestion directe des variables/logs/déploiements sans passer par la Console
+
+L'utilisateur a connecté un connecteur MCP Railway à cette session (`just-beauty` = nom du projet
+Railway pour ce monorepo). Permet de lister/modifier les variables d'environnement, lire les logs,
+redéployer/redémarrer les services, sans que l'utilisateur ait besoin de copier-coller depuis
+l'interface Railway. **Piège réel rencontré** : `restart-service` (redémarrage EN PLACE, même
+système de fichiers) a fait planter `mt5-terminal` avec `mkfifo: /opt/wineprefix/drive_c/server:
+File exists` - un vrai bug du script upstream (`automation.sh` : `[-e $WIN_ROOT/server ] || mkfifo
+...`, espace manquant après `[` donc le test `[-e` est interprété comme une commande inexistante,
+donc `mkfifo` s'exécute TOUJOURS, y compris quand le fifo existe déjà d'un boot précédent sur le
+même filesystem) - **utiliser `redeploy` (nouveau conteneur, filesystem vierge) et jamais
+`restart-service` sur `mt5-terminal`** tant que ce bug upstream n'est pas contourné autrement.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
