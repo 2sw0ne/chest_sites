@@ -17,3 +17,12 @@ FROM lprett/mt5linux:latest
 # (sourcee depuis automation.sh) mais n'est jamais appelee. server_search_automation et
 # update_manager_automation restent inchanges (mecanismes differents, sans ce probleme).
 RUN sed -i '/^login_automation &$/d; /^LOGIN_PID=\$!$/d' /app/src/main.sh
+
+# Corrige le bug d'espace manquant dans automation.sh:init_wine() (2026-09-28, voir CLAUDE.md
+# "EA installé et branché de bout en bout, volume persistant ajouté") - `[-e $WIN_ROOT/server ] ||
+# mkfifo ...` est interprete comme une commande `[-e` inexistante (pas un test), donc l'expression
+# echoue TOUJOURS et `mkfifo` s'execute meme quand le fifo existe deja - inoffensif tant que le
+# filesystem est ephemere (le fifo n'existe jamais au redemarrage), mais devient un crash-loop
+# permanent des qu'un volume persistant est monte sur /opt (le fifo survit alors entre redemarrages).
+# Verifie via la vraie source amont (docker/src/automation.sh, ligne 104), pas devine.
+RUN sed -i 's/\[-e \$WIN_ROOT\/server \]/[ -e $WIN_ROOT\/server ]/' /app/src/automation.sh
