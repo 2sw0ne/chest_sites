@@ -28,3 +28,21 @@ RUN sed -i '/^login_automation &$/d; /^LOGIN_PID=\$!$/d' /app/src/main.sh
 # persistant est monte sur /opt (le fifo survit alors entre redemarrages, `mkfifo` echoue a chaque
 # boot avec "File exists"). Fix : supprimer le fifo juste avant de le recreer, inconditionnellement.
 RUN sed -i 's/^  mkfifo -m 666 \$WIN_ROOT\/server$/  rm -f $WIN_ROOT\/server; mkfifo -m 666 $WIN_ROOT\/server/' /app/src/automation.sh
+
+# Persistance CIBLEE de la config MT5 (2026-09-28, voir CLAUDE.md "Persistance ciblee") - remplace
+# la tentative precedente de monter tout /opt sur un volume Railway, qui bloquait `wineboot -init`
+# des le 2e demarrage du conteneur pour une cause jamais isolee (cause probable : quelque chose
+# dans l'etat interne persiste du profil Wine lui-meme, pas les sockets wineserver qui vivent sous
+# /tmp donc ephemeres - verifie en Console). Au lieu de ca, seuls les fichiers de config MT5 utiles
+# (ini de compte/permissions, EA compile, preset - voir persist.sh) sont sauvegardes/restaures
+# depuis un volume monte sur /data (jamais sous /opt, hors du perimetre du profil Wine et du
+# FIRST_RUN check de setup.sh). Points d'ancrage dans main.sh, verifies contre le vrai contenu de
+# l'image (meme commit 480396e que les patches precedents) : `restore_persisted_config` juste apres
+# `apply_mt5_config` (MT5 vient d'etre extrait, avant que terminal64.exe ne demarre) et
+# `persist_config_loop &` juste apres `start_mt5` (sauvegarde par sondage toutes les 30s, pas de
+# hook d'arret propre fiable puisque le conteneur peut etre tue brutalement a tout moment).
+COPY persist.sh /app/src/persist.sh
+RUN chmod +x /app/src/persist.sh \
+    && sed -i '/^\. \/app\/src\/mt5\.sh$/a . /app/src/persist.sh' /app/src/main.sh \
+    && sed -i '/^apply_mt5_config$/a restore_persisted_config' /app/src/main.sh \
+    && sed -i '/^start_mt5$/a persist_config_loop \&' /app/src/main.sh
