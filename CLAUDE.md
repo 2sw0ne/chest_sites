@@ -982,6 +982,43 @@ Après avoir accédé à l'écran noVNC pour de vrai (2 domaines publics tempora
   première fois qu'on a une explication complète et cohérente avec TOUTES les observations
   précédentes, plutôt qu'une hypothèse partielle.
 
+## RÉSOLU : `mt5.initialize()` fonctionne enfin - chaîne complète de blocages, du premier au dernier (2026-09-28)
+
+Après le fix `login_automation` (section précédente), plusieurs blocages restants ont été résolus
+en cascade, chacun révélant le suivant :
+
+1. **`vantagemarkets-demo` (compte utilisateur réel) → "Invalid account" persistant**, alors que les
+   mêmes identifiants fonctionnaient sur l'appli mobile MT5 officielle. Diagnostic : création d'un
+   compte démo **natif MetaQuotes-Demo** directement depuis ce terminal (via l'assistant "Open an
+   Account", données de test factices avec accord explicite de l'utilisateur) - **a réussi
+   immédiatement**, avec de vrais prix live dans Market Watch. Ça a isolé le problème : le terminal
+   et l'IP Railway fonctionnent parfaitement, le souci était spécifique au compte VantageMarkets
+   précis (raison exacte non élucidée - possiblement une restriction du broker, non liée à CHEST).
+2. **Même avec un compte réellement connecté, `mt5-notify-bridge` échouait encore**, mais avec une
+   **erreur différente** : `(-6, 'Terminal: Authorization failed')` au lieu de l'ancien
+   `(-10005, 'IPC timeout')` - signe que le canal IPC lui-même fonctionne désormais, seule
+   l'autorisation bloque. Recherche (forum MQL5) : ce message correspond à un réglage de sécurité
+   MT5 précis, désactivé par défaut - **Tools → Options → Experts → "Allow algorithmic trading"**
+   (décoché par défaut ; une fois coché, la sous-option "Disable algorithmic trading via external
+   Python API" devient modifiable et doit rester DÉCOCHÉE). Une fois activé : `mt5-notify-bridge`
+   confirmé fonctionnel via son `/health` (domaine public temporaire généré via MCP Railway, testé,
+   puis retiré) - `last_error: null`, `last_poll_ok` à jour, plus aucune exception dans les logs.
+3. **Bonus repéré au passage** : la même page d'options a aussi "Allow WebRequest for listed URL" -
+   nécessaire pour que `CHESTNotifier.mq5` (l'EA) puisse un jour appeler `accounts-bridge` - pas
+   encore ajouté (l'interface de saisie de cette liste n'a pas répondu aux clics lors de cette
+   session, non bloquant pour l'instant), **à faire avant d'attacher l'EA à un graphique**.
+
+**Diagnostic additionnel qui a servi en cours de route** (utile si un souci similaire revient) :
+`cat /proc/net/tcp` via la Console pour lister les connexions actives du conteneur (adresses en hex
+little-endian) - a permis de confirmer qu'aucune connexion sortante vers un vrai broker n'existait
+tant que l'étape 1 n'était pas résolue (seulement des connexions RPyC internes Railway entre
+`mt5-notify-bridge` et `mt5-terminal`, deux adresses `10.x.x.x`).
+
+**État actuel** : le compte de test natif `5056632530` (MetaQuotes-Demo, créé avec des données
+factices "Test User" à des fins de diagnostic) reste connecté sur `mt5-terminal`. Pas encore fait de
+`/switch-account` vers un vrai compte (VantageMarkets ou autre) depuis le site - à faire pour la
+prochaine étape (installer l'EA, puis basculer vers un vrai compte via le Dashboard).
+
 ## Accès MCP Railway (2026-09-28) - gestion directe des variables/logs/déploiements sans passer par la Console
 
 L'utilisateur a connecté un connecteur MCP Railway à cette session (`just-beauty` = nom du projet
