@@ -188,15 +188,19 @@ def poll_loop() -> None:
                     except Exception as init_exc:
                         last_init_error = str(init_exc)
                     if attempt < INIT_ATTEMPTS - 1:
-                        # Nettoyage best-effort AVANT chaque nouvel essai (2026-09-29) - un test
-                        # sans ce shutdown() a fini par faire fermer la connexion RPyC par le
-                        # serveur ("connection closed by peer") apres plusieurs initialize()
-                        # repetes sans jamais liberer l'etat precedent du module distant.
-                        try:
-                            mt5.shutdown()
-                        except Exception:
-                            pass
+                        # Reconnexion COMPLETE avant chaque nouvel essai (2026-09-29) - un simple
+                        # mt5.shutdown() sur la connexion existante n'a pas suffi : la connexion
+                        # RPyC elle-meme finissait par mourir en cours de route ("stream has been
+                        # closed"), rendant toutes les tentatives suivantes vaines puisqu'elles
+                        # retentaient sur cette meme connexion cassee. mt5.connect() ferme
+                        # l'ancienne connexion et en ouvre une toute nouvelle (voir
+                        # DirectMT5Client.connect()), garantissant un etat propre a chaque essai
+                        # quelle que soit la cause de l'echec precedent.
                         time.sleep(INIT_ATTEMPT_DELAY)
+                        try:
+                            mt5.connect()
+                        except Exception as reconnect_exc:
+                            last_init_error = str(reconnect_exc)
                 if not terminal_ready:
                     raise RuntimeError(
                         f"mt5.initialize() a échoué après {INIT_ATTEMPTS} tentatives : {last_init_error}"
