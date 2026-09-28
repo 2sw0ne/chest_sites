@@ -18,11 +18,13 @@ FROM lprett/mt5linux:latest
 # update_manager_automation restent inchanges (mecanismes differents, sans ce probleme).
 RUN sed -i '/^login_automation &$/d; /^LOGIN_PID=\$!$/d' /app/src/main.sh
 
-# Corrige le bug d'espace manquant dans automation.sh:init_wine() (2026-09-28, voir CLAUDE.md
-# "EA installé et branché de bout en bout, volume persistant ajouté") - `[-e $WIN_ROOT/server ] ||
-# mkfifo ...` est interprete comme une commande `[-e` inexistante (pas un test), donc l'expression
-# echoue TOUJOURS et `mkfifo` s'execute meme quand le fifo existe deja - inoffensif tant que le
-# filesystem est ephemere (le fifo n'existe jamais au redemarrage), mais devient un crash-loop
-# permanent des qu'un volume persistant est monte sur /opt (le fifo survit alors entre redemarrages).
-# Verifie via la vraie source amont (docker/src/automation.sh, ligne 104), pas devine.
-RUN sed -i 's/\[-e \$WIN_ROOT\/server \]/[ -e $WIN_ROOT\/server ]/' /app/src/automation.sh
+# Corrige automation.sh:init_wine() (2026-09-28, voir CLAUDE.md "EA installé et branché de bout en
+# bout, volume persistant ajouté") - `mkfifo -m 666 $WIN_ROOT/server` n'a AUCUNE protection contre
+# un fifo deja existant (verifie ligne par ligne contre le vrai contenu de l'image via son label
+# OCI `org.opencontainers.image.revision` = commit 480396e, pas la branche master qui a un tout
+# autre code a cet endroit - un premier essai de patch base sur master n'a rien change car le texte
+# recherche n'existait pas dans l'image reelle). Inoffensif tant que le filesystem est ephemere (le
+# fifo n'existe jamais au redemarrage), mais devient un crash-loop permanent des qu'un volume
+# persistant est monte sur /opt (le fifo survit alors entre redemarrages, `mkfifo` echoue a chaque
+# boot avec "File exists"). Fix : supprimer le fifo juste avant de le recreer, inconditionnellement.
+RUN sed -i 's/^  mkfifo -m 666 \$WIN_ROOT\/server$/  rm -f $WIN_ROOT\/server; mkfifo -m 666 $WIN_ROOT\/server/' /app/src/automation.sh
