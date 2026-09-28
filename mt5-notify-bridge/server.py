@@ -59,6 +59,13 @@ RETRY_SECONDS = int(os.environ.get("MT5_POLL_SECONDS", 15))
 # ce chemin explicite, mt5.initialize() fait une auto-detection (registre Windows) qui echoue sous
 # Wine avec (-10005, 'IPC timeout') - constate en production le 2026-09-27 (voir CLAUDE.md).
 MT5_TERMINAL_PATH = os.environ.get("MT5_TERMINAL_PATH", r"C:\MT5\terminal64.exe")
+# mt5.initialize() echoue de facon erratique et bien documentee dans la communaute MT5 (~50% de
+# reussite par tentative, meme sur Windows natif sans Wine - voir CLAUDE.md "IPC timeout erratique,
+# bug connu MT5", forums MQL5 428075/447937 : aucune cause ni fix fiable identifie par la
+# communaute, ce n'est pas un bug de CE projet). Une seule tentative par cycle de poll (toutes les
+# RETRY_SECONDS, 15-70s) etait insuffisant - on retente plusieurs fois rapprochees avant d'abandonner.
+INIT_ATTEMPTS = int(os.environ.get("MT5_INIT_ATTEMPTS", 6))
+INIT_ATTEMPT_DELAY = float(os.environ.get("MT5_INIT_ATTEMPT_DELAY", 3))
 
 
 class DirectMT5Client:
@@ -166,9 +173,18 @@ def poll_loop() -> None:
         try:
             if not terminal_ready:
                 mt5.connect()  # connexion RPyC vers mt5-terminal - voir DirectMT5Client
-                terminal_ready = bool(mt5.initialize(path=MT5_TERMINAL_PATH))
+                last_init_error = None
+                for attempt in range(INIT_ATTEMPTS):
+                    if bool(mt5.initialize(path=MT5_TERMINAL_PATH)):
+                        terminal_ready = True
+                        break
+                    last_init_error = mt5.last_error()
+                    if attempt < INIT_ATTEMPTS - 1:
+                        time.sleep(INIT_ATTEMPT_DELAY)
                 if not terminal_ready:
-                    raise RuntimeError(f"mt5.initialize() a échoué : {mt5.last_error()}")
+                    raise RuntimeError(
+                        f"mt5.initialize() a échoué après {INIT_ATTEMPTS} tentatives : {last_init_error}"
+                    )
 
             if switch_event.is_set():
                 with switch_lock:
