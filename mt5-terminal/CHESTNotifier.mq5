@@ -16,7 +16,7 @@
 // A regler dans les parametres de l'EA (clic droit sur le graphique > Expert Advisors > proprietes,
 // ou dans le fichier .set) - PAS en dur ici, pour ne jamais committer de secret ni recompiler pour
 // changer d'URL. Voir mt5-terminal/README.md pour la valeur exacte a mettre.
-input string NotifyUrl = "https://REMPLACER-PAR-URL-ACCOUNTS-BRIDGE.up.railway.app/mt5/ea-notify";
+input string NotifyUrl = "https://accounts-bridge-production.up.railway.app/mt5/ea-notify";
 input string EaSecret  = "";
 
 // ENUM_DEAL_ENTRY / ENUM_DEAL_REASON (doc officielle MQL5, jamais devine) :
