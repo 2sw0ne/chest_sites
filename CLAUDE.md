@@ -1080,12 +1080,44 @@ Après l'ajout du volume (premier boot forcément à nouveau vierge, dernière f
   `(-10005, 'IPC timeout')` (l'erreur ORIGINALE d'avant tout ce chantier). Restaurées
   (`C:\MT5\terminal64.exe` / `18812`) → `/health` confirme `last_error: null` après redéploiement.
 
-**État à la fin de cette session** : volume persistant en place, terminal configuré, EA attaché et
-configuré, `mt5-notify-bridge` connecté au terminal (`mt5.initialize()` OK, aucun compte connecté
-pour l'instant — normal, `mt5.login()` se fait dynamiquement via `/switch-account` au moment où
-l'utilisateur ajoute un compte Live depuis CHEST). **Reste à faire par l'utilisateur** : ajouter un
-vrai compte depuis le Dashboard CHEST et vérifier qu'une clôture de position déclenche bien une
-notification push de bout en bout.
+**Suite immédiate — le premier patch mkfifo ne visait pas le vrai bug (2026-09-28)** : après avoir
+livré ce qui précède, `mt5-terminal` s'est mis à crash-looper en boucle rapide (`mkfifo:
+/opt/wineprefix/drive_c/server: File exists` toutes les ~6s, Console inutilisable). Le patch
+Dockerfile initial ciblait `[-e $WIN_ROOT/server ] || mkfifo ...` (bug trouvé sur la branche
+`master` du dépôt amont) mais **l'image réellement utilisée par Railway est buildée depuis un commit
+différent** (`org.opencontainers.image.revision` dans le label OCI de l'image = `480396e`, vérifié
+via l'API registry Docker Hub, pas deviné) dont `init_wine()` n'a **aucune protection du tout** :
+juste `mkfifo -m 666 $WIN_ROOT/server` en dur. Le sed cherchait un texte absent du fichier réel → 0
+substitution silencieuse → le bug intact → crash-loop qui persistait après le "fix". **Leçon** :
+quand on patche le comportement d'une image tierce via `sed` dans un `Dockerfile`, toujours
+vérifier le texte exact contre l'image RÉELLEMENT utilisée (son label
+`org.opencontainers.image.revision`, récupérable via l'API manifest/config du registry), jamais
+contre la branche par défaut du dépôt GitHub qui a pu diverger depuis le build de l'image :
+```
+TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository/<img>:pull" | ...)
+curl -s -L -H "Authorization: Bearer $TOKEN" ".../v2/<img>/blobs/<config-digest>" | python3 -c "...json..."
+# → lit Labels["org.opencontainers.image.revision"], puis fetch le fichier depuis CE commit exact
+```
+Vrai fix (deuxième patch, celui qui est resté) :
+`sed -i 's/^  mkfifo -m 666 \$WIN_ROOT\/server$/  rm -f $WIN_ROOT\/server; mkfifo -m 666 $WIN_ROOT\/server/'` — supprime le fifo avant de le recréer, inconditionnellement, sans dépendre d'aucune
+syntaxe de test.
+
+**Volume corrompu par la boucle de crash → recréé** : même après ce deuxième patch, le tout premier
+redéploiement a re-crashé (boucle rapide, mais SANS le message mkfifo cette fois) — hypothèse
+retenue : les ~15 redémarrages violents précédents (conteneur tué en plein milieu d'un
+`wineboot -init`, plusieurs fois de suite) ont corrompu l'état Wine (registre `.reg`) déjà écrit
+dans le volume. Reconstruit proprement : `delete-volume` puis `create-volume` (même mount path
+`/opt`, confirmation demandée à l'utilisateur avant l'action car destructive) — stable après ce
+reset (`SUCCESS` durable, plus de crash, `mkfifo` absent des logs, noVNC accessible). **Cette
+reconstruction efface à nouveau toute la config GUI** (compte, algo trading, EA) — à refaire une
+dernière fois, cette fois sur une base saine qui doit tenir.
+
+**État à la fin de cette session** : volume persistant en place (reconstruit, sain), les deux bugs
+Dockerfile réellement corrigés et vérifiés contre le vrai contenu de l'image, `mt5-notify-bridge`
+avait été connecté au terminal avant le crash (à reconfirmer après ce reset). **Reste à faire** :
+refaire la config GUI une dernière fois (algo trading, WebRequest URL, EA + `.set`), reconfirmer
+`mt5-notify-bridge` `/health`, puis ajouter un vrai compte depuis le Dashboard CHEST et vérifier
+qu'une clôture de position déclenche bien une notification push de bout en bout.
 
 ## Corrections post-premier-déploiement (2026-09-24)
 
