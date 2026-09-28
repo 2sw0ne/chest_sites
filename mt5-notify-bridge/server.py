@@ -97,6 +97,9 @@ class DirectMT5Client:
     def last_error(self):
         return self._eval("mt5.last_error()")
 
+    def shutdown(self):
+        self._eval("mt5.shutdown()")
+
     def account_info(self):
         return self._eval("mt5.account_info()")
 
@@ -174,6 +177,20 @@ def poll_loop() -> None:
                 state["last_poll_ok"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
                 state["last_error"] = None
         except Exception as exc:
+            # Nettoyage best-effort (2026-09-29, voir CLAUDE.md "IPC timeout intermittent apres le
+            # premier succes") : le module MetaTrader5 importe cote mt5server.exe (Wine) PERSISTE
+            # d'une connexion RPyC classic a l'autre - c'est le MEME processus Windows/Python tout
+            # au long de la vie du conteneur mt5-terminal, `import MetaTrader5 as mt5` dans une
+            # nouvelle connexion recupere le module DEJA importe, pas une instance fraiche. Sans
+            # mt5.shutdown() avant de retenter mt5.initialize() sur une connexion suivante, le
+            # handle IPC cote module reste dans un etat incoherent - cause plausible du pattern
+            # observe (marche juste apres un redeploiement de mt5-terminal, se degrade ensuite de
+            # facon intermittente). Best-effort : si la connexion actuelle est deja cassee, shutdown
+            # echouera aussi - on l'ignore, ce n'est qu'un nettoyage, pas la logique principale.
+            try:
+                mt5.shutdown()
+            except Exception:
+                pass
             terminal_ready = False  # on retentera une vraie reconnexion au prochain tour
             with state_lock:
                 state["last_error"] = str(exc)
