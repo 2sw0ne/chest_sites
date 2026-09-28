@@ -1032,6 +1032,61 @@ donc `mkfifo` s'exécute TOUJOURS, y compris quand le fifo existe déjà d'un bo
 même filesystem) - **utiliser `redeploy` (nouveau conteneur, filesystem vierge) et jamais
 `restart-service` sur `mt5-terminal`** tant que ce bug upstream n'est pas contourné autrement.
 
+## EA installé et branché de bout en bout, volume persistant ajouté (2026-09-28)
+
+Suite directe de la section précédente. `mt5-terminal` n'avait **aucun volume Railway** — chaque
+redémarrage/redéploiement repartait d'un `/opt` vierge, effaçant tout ce qui avait été configuré à la
+main dans l'interface (case "Allow algorithmic trading", compte connecté, URL WebRequest whitelistée,
+EA attaché) : constaté en direct quand le conteneur a redémarré spontanément (popup jamais vu
+"wine-mono" manquant) et a tout perdu. **Fix définitif** : volume Railway monté sur **`/opt` en
+entier** (pas seulement `/opt/wineprefix`) — `docker/src/main.sh` du paquet `mt5linux` décide s'il
+doit ré-extraire l'installation MT5 de zéro en testant l'existence de `/opt/websockify` (le marqueur
+`FIRST_RUN`) ; si le volume n'avait couvert que `/opt/wineprefix`, ce marqueur serait resté hors du
+volume et se recréerait à chaque boot, donc le script réextrairait `mt5.tar.gz` par-dessus la config
+à chaque démarrage — annulant la persistance qu'on cherche à obtenir. Monter tout `/opt` fait
+persister le marqueur ET l'installation.
+
+Après l'ajout du volume (premier boot forcément à nouveau vierge, dernière fois) :
+- Ré-enregistrement des serveurs VantageMarkets via le flow "Select a company to open an account
+  with" → "Find your company" → "vantage" (redonne accès à `VantageMarkets-Demo`/`-Live2/3/4/6/...`
+  dans la liste déroulante Server).
+- "Allow algorithmic trading" + "Allow WebRequest for listed URL" recochés (Tools > Options >
+  Experts), URL `https://accounts-bridge-production.up.railway.app/mt5/ea-notify` ajoutée.
+- **Champ "add new URL" de cette fenêtre : bug d'entrée clavier distant sévère**, distinct du
+  problème `shift`/`minus` déjà documenté ailleurs — les noms de touches X11 symboliques (`slash`,
+  `period`, `colon`, `minus`) sont TOUS silencieusement ignorés par ce contrôle précis, y compris pris
+  un par un. Le presse-papier noVNC (`#noVNC_clipboard_text` + `ctrl+v`) ne fonctionne pas non plus
+  (pas de synchronisation presse-papier réelle avec le bureau distant). **Solution qui marche** :
+  passer les caractères de ponctuation **littéraux** (`/`, `.`, `:`, `-` directement comme texte, pas
+  comme nom de touche) à l'action `key`, mélangés aux lettres dans une seule séquence
+  espace-séparée (`h t t p s : / / a c c o u n t s - b r i d g e ...`) — fonctionne à 100% une fois
+  qu'on évite les noms symboliques.
+- EA `CHESTNotifier.mq5` réécrit et recompilé via Console (le fichier compilé la fois précédente avait
+  été perdu avec l'ancien conteneur éphémère, avant l'ajout du volume) : `wine64
+  metaeditor64.exe /compile:... /portable /log` **retourne un exit code non-nul** à cause d'un warning
+  Wine inoffensif (`winediag:gnutls_process_attach failed to load libgnutls, no support for
+  encryption`) même quand la compilation MQL5 elle-même réussit (`0 errors, 0 warnings` dans le
+  `.log`) — **ne jamais chaîner la suite avec `&&` juste après cette commande wine64**, envoyer la
+  commande suivante séparément.
+- Nouveau `MT5_EA_SECRET` généré (l'ancien n'était plus fiable à reconstituer depuis la mémoire de
+  session) et pushé à la fois dans `accounts-bridge` (variable Railway) et dans le fichier `.set`
+  (`/opt/wineprefix/drive_c/MT5/MQL5/Presets/CHESTNotifier.set`) chargé via le bouton "Load" de
+  l'onglet Inputs des propriétés de l'EA (le glisser-déposer depuis le Navigator ne fonctionne pas
+  via cet outil distant ; double-clic sur l'EA dans le Navigator l'attache directement au graphique
+  actif à la place).
+- **`mt5-notify-bridge` avait perdu `MT5_TERMINAL_PATH`/`MT5_TERMINAL_PORT`** (variables Railway
+  disparues, cause non identifiée, même symptôme que `MT5_SERVER` plus tôt) — sans `MT5_TERMINAL_PATH`
+  explicite, `mt5.initialize()` retombe dans l'auto-détection qui échoue sous Wine avec
+  `(-10005, 'IPC timeout')` (l'erreur ORIGINALE d'avant tout ce chantier). Restaurées
+  (`C:\MT5\terminal64.exe` / `18812`) → `/health` confirme `last_error: null` après redéploiement.
+
+**État à la fin de cette session** : volume persistant en place, terminal configuré, EA attaché et
+configuré, `mt5-notify-bridge` connecté au terminal (`mt5.initialize()` OK, aucun compte connecté
+pour l'instant — normal, `mt5.login()` se fait dynamiquement via `/switch-account` au moment où
+l'utilisateur ajoute un compte Live depuis CHEST). **Reste à faire par l'utilisateur** : ajouter un
+vrai compte depuis le Dashboard CHEST et vérifier qu'une clôture de position déclenche bien une
+notification push de bout en bout.
+
 ## Corrections post-premier-déploiement (2026-09-24)
 
 Retours utilisateur groupés après le tout premier déploiement réel (Vercel + Railway) — voir aussi
