@@ -175,10 +175,18 @@ def poll_loop() -> None:
                 mt5.connect()  # connexion RPyC vers mt5-terminal - voir DirectMT5Client
                 last_init_error = None
                 for attempt in range(INIT_ATTEMPTS):
-                    if bool(mt5.initialize(path=MT5_TERMINAL_PATH)):
-                        terminal_ready = True
-                        break
-                    last_init_error = mt5.last_error()
+                    # Chaque tentative est isolee dans son propre try/except (2026-09-29) - un
+                    # test a montre que des erreurs RPyC transitoires ("result expired",
+                    # "connection closed by peer") peuvent surgir sur initialize() ou last_error()
+                    # eux-memes, pas seulement un simple retour False - sans cet isolement, UNE
+                    # seule exception interrompait toute la boucle de retry au 1er essai.
+                    try:
+                        if bool(mt5.initialize(path=MT5_TERMINAL_PATH)):
+                            terminal_ready = True
+                            break
+                        last_init_error = mt5.last_error()
+                    except Exception as init_exc:
+                        last_init_error = str(init_exc)
                     if attempt < INIT_ATTEMPTS - 1:
                         # Nettoyage best-effort AVANT chaque nouvel essai (2026-09-29) - un test
                         # sans ce shutdown() a fini par faire fermer la connexion RPyC par le
