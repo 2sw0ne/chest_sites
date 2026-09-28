@@ -180,6 +180,14 @@ def poll_loop() -> None:
                         break
                     last_init_error = mt5.last_error()
                     if attempt < INIT_ATTEMPTS - 1:
+                        # Nettoyage best-effort AVANT chaque nouvel essai (2026-09-29) - un test
+                        # sans ce shutdown() a fini par faire fermer la connexion RPyC par le
+                        # serveur ("connection closed by peer") apres plusieurs initialize()
+                        # repetes sans jamais liberer l'etat precedent du module distant.
+                        try:
+                            mt5.shutdown()
+                        except Exception:
+                            pass
                         time.sleep(INIT_ATTEMPT_DELAY)
                 if not terminal_ready:
                     raise RuntimeError(
