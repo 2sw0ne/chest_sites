@@ -181,29 +181,37 @@ def handle_switch(mt5: DirectMT5Client, req: dict) -> tuple[bool, dict]:
     insuffisant, alors même que le login MT5 en lui-même n'a rien d'anormal. mt5.connect() rouvre
     juste le CANAL RPyC (rpyc.classic.connect()).
 
-    Refait aussi mt5.initialize() à chaque tentative (2026-09-29, 2e incident le même jour) - la
-    première version de cette fonction ne rappelait QUE mt5.login() en supposant que le module
-    MetaTrader5 distant restait pret puisque poll_loop() l'a deja initialize() avec succes. Marche
-    pour rebasculer entre deux comptes du MEME courtier/serveur (le cas prevu a l'origine : phase 1
-    -> phase 2 d'un meme challenge), mais un switch vers un courtier ENTIEREMENT DIFFERENT
-    (MetaQuotes-Demo -> VantageMarkets-Live 14, constate en conditions reelles) echouait a chaque
-    tentative avec (-10004, 'No IPC connection') - de facon repetee, pas erratique comme les autres
-    erreurs IPC deja documentees - signe que le canal IPC existant restait lie au contexte du
-    serveur precedent. Un mt5.initialize() complet avant login() repart sur une base saine a chaque
-    tentative, au prix d'un peu plus de temps par tentative."""
+    Essaie d'abord un simple login() (rapide, cas normal), et ne refait mt5.initialize() que si
+    CET essai echoue avec un message evoquant un probleme IPC (2026-09-29, 3e iteration le meme
+    jour) - la version precedente refaisait initialize() a CHAQUE tentative inconditionnellement,
+    ce qui resolvait bien le cas "switch vers un courtier jamais initialise" (MetaQuotes-Demo ->
+    VantageMarkets-Live 14, echouait avec (-10004, 'No IPC connection')) mais cassait le cas normal
+    tout aussi reel (re-basculer vers un serveur DEJA bien connu comme FTMO-Demo, avec un compte
+    deja activement connecte) : reinitialiser un terminal deja connecte declenche une resynchro de
+    tous les symboles qui peut elle-meme timeout ("symbol synchronization timeout" observe dans le
+    Journal MT5), et cet echec-la ne se rattrape jamais par un simple retry puisque CHAQUE tentative
+    relance la meme resynchro couteuse. Le compromis : login() seul reste le chemin rapide par
+    defaut (comme le cas prevu a l'origine, phase 1 -> phase 2 d'un meme challenge) ; seulement
+    quand son echec ressemble a un probleme IPC (pas un mauvais mot de passe/login) on retente un
+    initialize() complet PUIS un 2e login() DANS LA MEME tentative, sans consommer un tour de retry
+    supplementaire pour rien."""
     login = str(req["login"])
     last_error = None
     ok = False
     for attempt in range(INIT_ATTEMPTS):
         try:
             mt5.connect()
-            if not mt5.initialize(path=MT5_TERMINAL_PATH):
+            ok = mt5.login(int(login), password=req["password"], server=req["server"])
+            if not ok:
                 last_error = mt5.last_error()
-            else:
-                ok = mt5.login(int(login), password=req["password"], server=req["server"])
-                if ok:
-                    break
-                last_error = mt5.last_error()
+                if last_error and "IPC" in str(last_error):
+                    if mt5.initialize(path=MT5_TERMINAL_PATH):
+                        ok = mt5.login(int(login), password=req["password"], server=req["server"])
+                        last_error = None if ok else mt5.last_error()
+                    else:
+                        last_error = mt5.last_error()
+            if ok:
+                break
         except Exception as exc:
             last_error = str(exc)
         if attempt < INIT_ATTEMPTS - 1:
