@@ -163,14 +163,33 @@ switch_result: dict = {}
 
 def handle_switch(mt5: DirectMT5Client, req: dict) -> tuple[bool, dict]:
     """Bascule la connexion MT5 déjà établie sur un autre compte (mt5.login(), pas
-    mt5.initialize() - le terminal reste le même, seul le compte connecté change)."""
+    mt5.initialize() - le terminal reste le même, seul le compte connecté change).
+
+    Retente plusieurs fois avec reconnexion RPyC (2026-09-29, constaté en production : premier
+    switch réel depuis CHEST échoué sur "connection closed by peer") - même classe d'erreurs
+    transitoires que celles qui ont motivé la boucle de retry de mt5.initialize() dans poll_loop()
+    (voir CLAUDE.md "IPC timeout erratique, bug connu MT5") : un seul essai sans filet était
+    insuffisant, alors même que le login MT5 en lui-même n'a rien d'anormal. mt5.connect() rouvre
+    juste le CANAL RPyC (rpyc.classic.connect()) - le module MetaTrader5 distant, lui, reste le
+    même processus Wine déjà initialize() avec succès (persistant tant que mt5-terminal tourne),
+    donc mt5.login() fonctionne sur ce nouveau canal sans avoir besoin de refaire
+    mt5.initialize()."""
     login = str(req["login"])
-    try:
-        ok = mt5.login(int(login), password=req["password"], server=req["server"])
-    except Exception as exc:
-        return False, {"error": f"Échec de connexion au compte MT5 : {exc}"}
+    last_error = None
+    ok = False
+    for attempt in range(INIT_ATTEMPTS):
+        try:
+            mt5.connect()
+            ok = mt5.login(int(login), password=req["password"], server=req["server"])
+            if ok:
+                break
+            last_error = mt5.last_error()
+        except Exception as exc:
+            last_error = str(exc)
+        if attempt < INIT_ATTEMPTS - 1:
+            time.sleep(INIT_ATTEMPT_DELAY)
     if not ok:
-        return False, {"error": f"mt5.login() refusé : {mt5.last_error()}"}
+        return False, {"error": f"Échec de connexion au compte MT5 après {INIT_ATTEMPTS} tentatives : {last_error}"}
     info = mt5.account_info()  # dict {login,balance,equity,currency} ou None - voir account_info()
     account_info = {"login": login, "balance": info["balance"], "equity": info["equity"], "currency": info["currency"]} if info else None
     return True, {"accountInfo": account_info}
