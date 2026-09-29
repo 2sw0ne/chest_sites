@@ -189,6 +189,22 @@
   .jr-live-dot.err{ background:var(--red); box-shadow:0 0 10px rgba(255,77,94,.6); }
   .jr-live-warn{ color:var(--amber); flex-basis:100%; line-height:1.5; }
   .jr-live-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+
+  /* ---------- Historique du challenge : transitions de phase / comptes cramés / retraits
+     détectés automatiquement (2026-09-29) - voir CHESTJournal.attachStageAccount ---------- */
+  .jr-stage-row{ padding:14px 16px; border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel); }
+  .jr-stage-row__head{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13.5px; }
+  .jr-stage-badge{ font-size:10.5px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+  .jr-stage-badge.is-ok{ background:rgba(51,230,166,.14); color:var(--green); }
+  .jr-stage-badge.is-blown{ background:rgba(255,77,94,.14); color:var(--red); }
+  .jr-stage-badge.is-active{ background:rgba(245,166,35,.14); color:var(--amber); }
+  .jr-stage-row__meta{ margin-top:4px; font-size:11.5px; color:var(--muted); }
+  .jr-stage-payout{ margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .jr-stage-payout span{ color:var(--muted); font-size:11px; }
+  .jr-stage-payout button{ border:none; background:transparent; color:var(--muted); cursor:pointer; font-size:12px; padding:2px 4px; }
+  .jr-stage-payout button:hover{ color:var(--ink); }
+  .jr-stage-split{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-bottom:14px; }
+  .jr-stage-split button{ border:none; background:transparent; color:var(--acc); cursor:pointer; font-size:12px; font-weight:600; }
   .jr-modal{ position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.62); display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(6px); }
   .jr-modal[hidden]{ display:none; }
   .jr-modal__box{ position:relative; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; padding:26px; border-radius:20px; border:1px solid rgba(255,255,255,.14); background:linear-gradient(180deg,rgba(24,24,28,.97),rgba(12,12,15,.98)); box-shadow:0 30px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12); }
@@ -543,6 +559,19 @@
       <div id="jrConditionsList" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:44px"></div>
     </section>
 
+    <!-- Historique du challenge (2026-09-29, demande utilisateur : "il faut que le journal
+         comprenne les transitions de compte") - un volet par compte rattaché (live Myfxbook ou
+         connexion Live MT5), phase validée/cramée détectée automatiquement, retrait calculé tout
+         seul entre deux comptes "financé" successifs (éditable). -->
+    <section class="chest-section" id="jrStageHistoryCard" hidden style="border-top:1px solid var(--chest-rule)">
+      <div class="chest-step" style="margin-bottom:6px">03 — Historique du challenge</div>
+      <div class="jr-stage-split" id="jrStageSplitRow" hidden>
+        <span>Partage retenu : <b id="jrStageSplitVal">—</b> pour toi</span>
+        <button type="button" id="jrStageSplitEdit">Modifier</button>
+      </div>
+      <div id="jrStageHistoryList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </section>
+
     <!-- ============ Formulaire : nouveau trade ============ -->
     <div class="card jr-form" id="jrForm" hidden>
       <div class="eyebrow" style="margin-bottom:14px">Nouveau trade</div>
@@ -750,6 +779,16 @@
       <label>Quel compte relié à ton profil Myfxbook ?</label>
       <div id="jrLiveList"></div>
     </div>
+    <!-- Étape de phase (2026-09-29, demande utilisateur : "si j'ajoute un compte et je dis que
+         c'est ma phase 2 et qu'avant c'était ma phase 1, chest comprend que j'ai validé ma phase
+         1") - uniquement pour un journal propfirm avec un challenge choisi ; sert à
+         CHESTJournal.attachStageAccount pour détecter transitions/retraits/comptes cramés. -->
+    <div id="jrLiveStep3" hidden>
+      <label>À quelle étape correspond ce compte ?</label>
+      <p class="jr-modal__hint" id="jrLiveStageHint" style="margin:0 0 10px;font-size:12px;color:var(--muted)"></p>
+      <div class="jr-segmented" id="jrLiveStageToggle" style="margin-bottom:16px"></div>
+      <div class="jr-modal__foot"><button type="button" class="chest-btn" id="jrLiveStageConfirm">Rattacher ce compte</button></div>
+    </div>
   </div>
 </div>
 
@@ -763,7 +802,8 @@
 <script src="js/berich-brokers.js"></script>
 <script src="js/myfxbook-store.js"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
-<script src="js/journal-store.js?v=5"></script>
+<script src="js/notifications-store.js?v=1"></script>
+<script src="js/journal-store.js?v=6"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -1070,6 +1110,7 @@ CHESTTour.init([
     document.getElementById('jrLiveFor').textContent = `Dans le journal « ${acc.name} »`;
     document.getElementById('jrLiveStep1').hidden = false;
     document.getElementById('jrLiveStep2').hidden = true;
+    document.getElementById('jrLiveStep3').hidden = true;
     document.getElementById('jrLiveErr').hidden = true;
     document.getElementById('jrLivePass').value = '';
     document.getElementById('jrLiveModal').hidden = false;
@@ -1104,9 +1145,14 @@ CHESTTour.init([
         const a = accounts[Number(row.dataset.i)];
         const rec = CHESTJournal.addLiveAccount(liveTarget, { name: a.name, email, password, accountId: a.id, demo: a.demo === true || a.demo === 'true', currency: a.currency || null });
         row.disabled = true;
-        try { await CHESTJournal.syncLiveAccount(liveTarget, rec.id); }
-        catch (e2) { CHESTJournal.updateLiveAccount(liveTarget, rec.id, { lastError: e2.message }); }
-        window.location.href = `journal.html?acc=${encodeURIComponent(liveTarget)}&m=${encodeURIComponent(rec.id)}`;
+        let startBalance = parseFloat(a.balance) || 0;
+        try {
+          await CHESTJournal.syncLiveAccount(liveTarget, rec.id);
+          const fresh = CHESTJournal.liveAccounts(CHESTJournal.listAccounts().find((x) => x.id === liveTarget)).find((l) => l.id === rec.id);
+          if (fresh && fresh.info && fresh.info.balance != null) startBalance = fresh.info.balance;
+        } catch (e2) { CHESTJournal.updateLiveAccount(liveTarget, rec.id, { lastError: e2.message }); }
+        pendingLiveAttach = { connType: 'myfxbook', connRef: rec.id, startBalance };
+        finishLiveAttachOrAskStage();
       }));
     } catch (e) {
       err.textContent = e.message;
@@ -1115,6 +1161,51 @@ CHESTTour.init([
       btn.disabled = false; btn.textContent = 'Se connecter';
     }
   });
+
+  // ---- Rattachement à une étape du challenge (2026-09-29) : demande la phase quand le journal
+  // est un propfirm avec un challenge choisi (sinon rattache directement, sans étape) - voir
+  // CHESTJournal.attachStageAccount. Partagé par le flux Myfxbook (ci-dessus) et complète le flux
+  // Compte Live du Dashboard (js/dashboard.js), qui appelle directement attachStageAccount.
+  let pendingLiveAttach = null; // { connType, connRef, startBalance }
+  function finishLiveAttachOrAskStage() {
+    const acc = CHESTJournal.listAccounts().find((a) => a.id === liveTarget);
+    const model = CHESTJournal.stageModelFor(acc);
+    if (!model) { finalizeStageAttach(acc.stage || 'p1'); return; }
+    const stages = CHESTJournal.stageList(model);
+    const current = CHESTJournal.activeStageSegment(acc);
+    document.getElementById('jrLiveStageHint').textContent = current
+      ? `"${acc.name}" est actuellement en ${(stages.find((s) => s.id === current.stage) || {}).label || current.stage}. Sélectionne l'étape de CE nouveau compte.`
+      : `Sélectionne l'étape de ce compte pour "${acc.name}".`;
+    const suggested = current ? (stages[Math.min(stages.findIndex((s) => s.id === current.stage) + 1, stages.length - 1)] || stages[0]).id : stages[0].id;
+    document.getElementById('jrLiveStageToggle').innerHTML = stages.map((s) => `<button type="button" data-stage="${s.id}" class="${s.id === suggested ? 'is-active' : ''}">${s.label}</button>`).join('');
+    document.querySelectorAll('#jrLiveStageToggle button').forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll('#jrLiveStageToggle button').forEach((x) => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+    }));
+    document.getElementById('jrLiveStep2').hidden = true;
+    document.getElementById('jrLiveStep3').hidden = false;
+  }
+  document.getElementById('jrLiveStageConfirm').addEventListener('click', () => {
+    const btn = document.querySelector('#jrLiveStageToggle button.is-active');
+    finalizeStageAttach(btn ? btn.dataset.stage : 'p1');
+  });
+  async function finalizeStageAttach(stage) {
+    const { connType, connRef, startBalance } = pendingLiveAttach;
+    const res = CHESTJournal.attachStageAccount(liveTarget, { connType, connRef, stage, startBalance });
+    if (res && res.needsSplitPct) await askPayoutSplit(liveTarget);
+    closeLiveModal();
+    window.location.href = `journal.html?acc=${encodeURIComponent(liveTarget)}&m=${encodeURIComponent(connRef)}`;
+  }
+  // "quand je valide mon propfirm avant de le commencer il me demande sur le journal le % de
+  // split entre moi et le propfirm" - demandé une seule fois (première transition vers "financé"),
+  // réutilisé pour tous les retraits suivants de ce journal (modifiable ensuite dans le volet
+  // Historique du challenge).
+  async function askPayoutSplit(accountId) {
+    const val = await CHESTPrompt('Quel pourcentage du profit gardes-tu (le reste va au propfirm) ? Sert à calculer automatiquement tes retraits sur ce journal.', { value: '80', confirmLabel: 'Valider' });
+    if (val === null) return;
+    const pct = Math.min(100, Math.max(1, parseFloat(val) || 80));
+    CHESTJournal.setPayoutSplitPct(accountId, pct);
+  }
 
   function renderConditions() {
     const active = CHESTJournal.getActiveAccount();
@@ -1132,9 +1223,66 @@ CHESTTour.init([
       </div>`).join('');
   }
 
+  function renderStageHistory() {
+    const acc = CHESTJournal.getActiveAccount();
+    const card = document.getElementById('jrStageHistoryCard');
+    const chain = (acc && acc.stageChain) || [];
+    if (!acc || !chain.length) { card.hidden = true; return; }
+    card.hidden = false;
+    const splitRow = document.getElementById('jrStageSplitRow');
+    splitRow.hidden = acc.payoutSplitPct == null;
+    document.getElementById('jrStageSplitVal').textContent = acc.payoutSplitPct != null ? `${acc.payoutSplitPct}%` : '—';
+    document.getElementById('jrStageHistoryList').innerHTML = chain.slice().reverse().map((s) => {
+      const badge = s.status === 'active' ? '<span class="jr-stage-badge is-active">● en cours</span>'
+        : s.status === 'blown' ? '<span class="jr-stage-badge is-blown">✕ cramé</span>'
+        : '<span class="jr-stage-badge is-ok">✓ validée</span>';
+      const pnlPct = (s.lastBalance != null && s.startBalance) ? Math.round((s.lastBalance - s.startBalance) / s.startBalance * 10000) / 100 : null;
+      const period = `${new Date(s.startedAt).toLocaleDateString('fr-FR')}${s.endedAt ? ' → ' + new Date(s.endedAt).toLocaleDateString('fr-FR') : ''}`;
+      const payoutHtml = s.payout
+        ? `<div class="jr-stage-payout">💸 Retrait : <b>${money(s.payout.net)}</b>${s.payout.gross != null ? ` <span>(brut ${money(s.payout.gross)}${s.payout.splitPct != null ? ' · ' + s.payout.splitPct + '% gardés' : ''})</span>` : ''} <span>${new Date(s.payout.date).toLocaleDateString('fr-FR')}</span><button type="button" data-edit-payout="${s.id}">✎</button><button type="button" data-clear-payout="${s.id}">✕</button></div>`
+        : (s.status !== 'active' && s.stage === 'funded' ? `<button type="button" class="chest-btn-2" data-add-payout="${s.id}" style="margin-top:8px;padding:6px 12px;font-size:11.5px">+ Ajouter un retrait</button>` : '');
+      return `<div class="jr-stage-row">
+        <div class="jr-stage-row__head"><b>${s.label}</b>${badge}</div>
+        <div class="jr-stage-row__meta">${money(s.startBalance)} → ${s.lastBalance != null ? money(s.lastBalance) : '—'}${pnlPct != null ? ` (${pnlPct >= 0 ? '+' : ''}${pnlPct}%)` : ''} · ${period}</div>
+        ${payoutHtml}
+      </div>`;
+    }).join('');
+    document.querySelectorAll('#jrStageHistoryList [data-edit-payout], #jrStageHistoryList [data-add-payout]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const segId = btn.dataset.editPayout || btn.dataset.addPayout;
+        const seg = chain.find((s) => s.id === segId);
+        const val = await CHESTPrompt('Montant net retiré ($) :', { value: seg.payout ? String(seg.payout.net) : '', confirmLabel: 'Enregistrer' });
+        if (val === null) return;
+        const net = parseFloat(val);
+        if (!net || net <= 0) { showToast('Indique un montant valide'); return; }
+        const today = new Date();
+        const isoToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        CHESTJournal.updateStagePayout(acc.id, segId, { gross: seg.payout ? seg.payout.gross : null, splitPct: seg.payout ? seg.payout.splitPct : null, net, date: seg.payout ? seg.payout.date : isoToday });
+        renderStageHistory();
+        showToast('Retrait enregistré ✓');
+      });
+    });
+    document.querySelectorAll('#jrStageHistoryList [data-clear-payout]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!(await CHESTConfirm('Effacer ce retrait ?'))) return;
+        CHESTJournal.updateStagePayout(acc.id, btn.dataset.clearPayout, null);
+        renderStageHistory();
+      });
+    });
+  }
+  document.getElementById('jrStageSplitEdit').addEventListener('click', async () => {
+    const acc = CHESTJournal.getActiveAccount();
+    if (!acc) return;
+    const val = await CHESTPrompt('Quel pourcentage du profit gardes-tu (le reste va au propfirm) ?', { value: String(acc.payoutSplitPct || 80), confirmLabel: 'Valider' });
+    if (val === null) return;
+    CHESTJournal.setPayoutSplitPct(acc.id, Math.min(100, Math.max(1, parseFloat(val) || 80)));
+    renderStageHistory();
+  });
+
   function onAccountChanged() {
     renderAccSwitcher();
     renderConditions();
+    renderStageHistory();
     const active = CHESTJournal.getActiveAccount();
     if (active) {
       document.getElementById('jrRisk').value = active.riskValue;

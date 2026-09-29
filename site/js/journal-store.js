@@ -106,6 +106,156 @@
       setActiveAccountId(remaining.length ? remaining[0].id : null);
     }
   }
+
+  // ---------- Historique de comptes / transitions de phase (2026-09-29, demande utilisateur : "je
+  // veux qu'il comprenne le trader" — le journal doit reconnaître automatiquement qu'un nouveau
+  // compte rattaché représente une phase validée, un compte cramé, ou un nouveau compte après
+  // payout). `stageChain` = liste ordonnée de segments, un par compte réellement connecté (live
+  // Myfxbook ou Live MT5) : { id, connType:'myfxbook'|'mt5', connRef, stage, label, startBalance,
+  // lastBalance, status:'active'|'validated'|'blown', payout:null|{gross,splitPct,net,date},
+  // startedAt, endedAt }. `payoutSplitPct` (part gardée par le trader, ex. 80) est demandé une seule
+  // fois, à la première transition vers "funded", puis réutilisé pour tout calcul de retrait.
+  const moneyFmt = (n) => (n < 0 ? '-' : '') + '$' + Math.abs(Math.round(n * 100) / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Date locale AAAA-MM-JJ (jamais toISOString(), qui repasse en UTC et peut décaler le jour -
+  // piège déjà documenté sur ce projet, voir CLAUDE.md).
+  const isoDateLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  function stageModelFor(acc) {
+    if (!acc || acc.type !== 'propfirm' || !acc.modelId) return null;
+    return challengeModels(acc.propfirmId).find((m) => m.id === acc.modelId) || null;
+  }
+  function stageLabelText(stages, stageId) {
+    return (stages && stages.find((s) => s.id === stageId) || {}).label || stageId;
+  }
+  function activeStageSegment(acc) {
+    return (acc.stageChain || []).find((s) => s.status === 'active') || null;
+  }
+  // Met à jour le solde connu du segment ACTIF (appelé à chaque synchro Myfxbook / connexion MT5)
+  // pour que la détection de compte cramé / le calcul du retrait s'appuient sur une donnée fraîche.
+  function updateActiveStageBalance(accountId, balance, connRef) {
+    if (balance == null) return;
+    const accounts = listAccounts();
+    const acc = accounts.find((a) => a.id === accountId);
+    if (!acc) return;
+    const seg = activeStageSegment(acc);
+    if (!seg) return;
+    if (connRef != null && seg.connRef !== connRef) return; // pas le compte live qui vient de synchroniser
+    seg.lastBalance = balance;
+    persistAccounts(accounts);
+  }
+  // Rattache un nouveau compte (live Myfxbook ou connexion Live MT5) à une étape du challenge,
+  // ferme le segment précédent en déduisant ce qui s'est passé (validé / cramé / payout probable),
+  // et notifie l'utilisateur (voir js/notifications-store.js). Renvoie { segment, needsSplitPct } —
+  // needsSplitPct=true signifie qu'un retrait a été détecté mais qu'aucun % de partage n'est encore
+  // connu : l'appelant doit demander le % puis rappeler setPayoutSplitPct().
+  function attachStageAccount(accountId, opts) {
+    const accounts = listAccounts();
+    const acc = accounts.find((a) => a.id === accountId);
+    if (!acc) return null;
+    if (!acc.stageChain) acc.stageChain = [];
+    const chain = acc.stageChain;
+    const prev = activeStageSegment(acc);
+    const model = stageModelFor(acc);
+    const stages = model ? stageList(model) : null;
+    let needsSplitPct = false;
+    let notif = null;
+
+    if (prev) {
+      prev.endedAt = new Date().toISOString();
+      const prevIdx = stages ? stages.findIndex((s) => s.id === prev.stage) : -1;
+      const newIdx = stages ? stages.findIndex((s) => s.id === opts.stage) : -1;
+      const prevRules = model ? stageRules(model, prev.stage) : null;
+      const blown = prevRules && prevRules.maxLossPct != null && prev.lastBalance != null
+        && prev.lastBalance <= prev.startBalance * (1 - prevRules.maxLossPct / 100);
+
+      if (blown) {
+        prev.status = 'blown';
+        notif = {
+          type: 'account_blown', title: 'Compte cramé détecté',
+          body: `"${acc.name}" — le solde suggère que le compte a dépassé la perte max autorisée en ${stageLabelText(stages, prev.stage)}.`,
+        };
+      } else if (newIdx > prevIdx && prevIdx !== -1) {
+        // Progression logique (p1 -> p2, ou -> funded) : l'étape précédente est considérée validée.
+        prev.status = 'validated';
+        notif = {
+          type: 'phase_validated', title: 'Étape validée 🎉',
+          body: `"${acc.name}" — ${stageLabelText(stages, prev.stage)} validée, direction ${stageLabelText(stages, opts.stage)}.`,
+        };
+        if (opts.stage === 'funded' && acc.payoutSplitPct == null) needsSplitPct = true;
+      } else if (opts.stage === prev.stage && prev.stage === 'funded') {
+        // Même étape "financé" répétée : probablement un nouveau compte donné après un retrait.
+        prev.status = 'validated';
+        const gross = (prev.lastBalance != null && prev.lastBalance > prev.startBalance && opts.startBalance < prev.lastBalance)
+          ? Math.round((prev.lastBalance - opts.startBalance) * 100) / 100 : null;
+        if (gross && gross > 0) {
+          if (acc.payoutSplitPct == null) {
+            needsSplitPct = true;
+            prev._pendingPayoutGross = gross;
+          } else {
+            prev.payout = { gross, splitPct: acc.payoutSplitPct, net: Math.round(gross * acc.payoutSplitPct) / 100, date: isoDateLocal(new Date()) };
+            notif = {
+              type: 'payout_detected', title: 'Retrait détecté 💸',
+              body: `"${acc.name}" — retrait estimé de ${moneyFmt(prev.payout.net)} (net, ${acc.payoutSplitPct}% gardés) sur un brut de ${moneyFmt(gross)}.`,
+            };
+          }
+        }
+      } else {
+        prev.status = 'validated';
+      }
+    }
+
+    const seg = {
+      id: 'stg_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      connType: opts.connType, connRef: opts.connRef || null,
+      stage: opts.stage, label: stages ? stageLabelText(stages, opts.stage) : opts.stage,
+      startBalance: opts.startBalance != null ? opts.startBalance : 0,
+      lastBalance: opts.startBalance != null ? opts.startBalance : 0,
+      status: 'active', payout: null, startedAt: new Date().toISOString(), endedAt: null,
+    };
+    chain.push(seg);
+    acc.stage = opts.stage; // garde le champ existant à jour (lu ailleurs pour le libellé/les règles courantes)
+    persistAccounts(accounts);
+
+    if (notif && window.CHESTNotifications) window.CHESTNotifications.add(notif.type, notif.title, notif.body, { journalAccountId: accountId });
+    return { segment: seg, needsSplitPct };
+  }
+  // Fixe le % de partage (part gardée par le trader) et résout un éventuel retrait resté en
+  // attente (voir needsSplitPct ci-dessus) sur le dernier segment qui l'a détecté.
+  function setPayoutSplitPct(accountId, pct) {
+    const accounts = listAccounts();
+    const acc = accounts.find((a) => a.id === accountId);
+    if (!acc) return;
+    acc.payoutSplitPct = pct;
+    const pending = (acc.stageChain || []).slice().reverse().find((s) => s._pendingPayoutGross != null);
+    if (pending) {
+      const gross = pending._pendingPayoutGross;
+      pending.payout = { gross, splitPct: pct, net: Math.round(gross * pct) / 100, date: isoDateLocal(new Date()) };
+      delete pending._pendingPayoutGross;
+      if (window.CHESTNotifications) {
+        window.CHESTNotifications.add('payout_detected', 'Retrait détecté 💸',
+          `"${acc.name}" — retrait estimé de ${moneyFmt(pending.payout.net)} (net, ${pct}% gardés) sur un brut de ${moneyFmt(gross)}.`,
+          { journalAccountId: accountId });
+      }
+    }
+    persistAccounts(accounts);
+  }
+  // Corrige/efface à la main un retrait détecté automatiquement (transgression, montant réel
+  // différent…) — payout = {gross,splitPct,net,date} ou null pour l'effacer.
+  function updateStagePayout(accountId, stageSegId, payout) {
+    const accounts = listAccounts();
+    const acc = accounts.find((a) => a.id === accountId);
+    if (!acc) return;
+    const seg = (acc.stageChain || []).find((s) => s.id === stageSegId);
+    if (!seg) return;
+    seg.payout = payout;
+    persistAccounts(accounts);
+  }
+  // Tous les retraits confirmés d'un journal (pour l'affichage agrégé côté Dashboard).
+  function stagePayouts(accountId) {
+    const acc = listAccounts().find((a) => a.id === accountId);
+    if (!acc) return [];
+    return (acc.stageChain || []).filter((s) => s.payout).map((s) => Object.assign({ stageId: s.id, stage: s.stage, label: s.label }, s.payout));
+  }
+
   function activeAccountId() {
     try { return localStorage.getItem(ACTIVE_ACCOUNT_KEY); } catch (e) { return null; }
   }
@@ -364,6 +514,7 @@
         lastSync: new Date().toISOString(), lastError: null, lastLimitReached: res.limitReached, possibleGap: res.possibleGap, firstBatch: res.firstBatch,
         info: { balance: numOf(info.balance), equity: numOf(info.equity), profit: numOf(info.profit), gain: numOf(info.gain), drawdown: numOf(info.drawdown), deposits: numOf(info.deposits), currency: info.currency || null, demo: info.demo === true || info.demo === 'true' },
       });
+      updateActiveStageBalance(accountId, numOf(info.balance), liveId);
       return res;
     } finally {
       window.CHESTMyfxbook.logout(session);
@@ -465,5 +616,6 @@
     propfirms, challengeModels, stageList, stageRules, propfirmLogo,
     listAccounts, addAccount, updateAccount, removeAccount,
     activeAccountId, setActiveAccountId, getActiveAccount, riskAmountFor, accountConditions,
+    attachStageAccount, setPayoutSplitPct, updateStagePayout, updateActiveStageBalance, stagePayouts, activeStageSegment, stageModelFor,
   };
 })();

@@ -1028,3 +1028,31 @@ html[data-theme="light"] .chest-grad-text{
    noir. Masquée en clair plutôt que rééquilibrée : ce détail décoratif n'apporte rien d'essentiel,
    plus sûr de le retirer que de chercher le bon dosage. */
 html[data-theme="light"] .chest-spot__layer{ display:none; }
+
+/* ---------- Cloche de notifications + badge sidebar (2026-09-29) - voir app.html/notifications-ui.js ---------- */
+.chest-nav__badge{
+  display:inline-flex; align-items:center; justify-content:center; margin-left:auto; min-width:16px; height:16px;
+  padding:0 5px; border-radius:999px; background:var(--chest-red,#ff4d5e);
+  color:#fff; font-size:9.5px; font-weight:800; flex-shrink:0;
+}
+.chest-shell.is-collapsed .chest-nav__badge{ display:none; }
+.chest-notif{ position:relative; }
+.chest-notif__badge{
+  position:absolute; top:2px; right:2px; min-width:15px; height:15px; padding:0 4px; border-radius:999px;
+  background:var(--chest-red,#ff4d5e); color:#fff; font-size:9px; font-weight:800; line-height:15px; text-align:center;
+  box-shadow:0 0 0 2px var(--chest-bg,#050505);
+}
+.chest-notif__panel{
+  position:absolute; top:calc(100% + 10px); right:0; z-index:80; width:320px; max-height:420px; overflow-y:auto;
+  border:1px solid rgba(255,255,255,.14); border-radius:16px; background:linear-gradient(180deg,rgba(24,24,28,.98),rgba(12,12,15,.99));
+  box-shadow:0 24px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.1); padding:10px;
+}
+.chest-notif__head{ display:flex; align-items:center; justify-content:space-between; padding:6px 8px 10px; font-size:13px; }
+.chest-notif__head button{ border:none; background:transparent; color:var(--chest-acc); font-size:11.5px; font-weight:600; cursor:pointer; }
+.chest-notif__row{ display:block; width:100%; text-align:left; border:none; background:transparent; cursor:pointer; padding:10px 8px; border-radius:10px; }
+.chest-notif__row:hover{ background:rgba(255,255,255,.05); }
+.chest-notif__row.is-unread{ background:rgba(252,18,131,.06); }
+.chest-notif__row b{ display:block; font-size:12.5px; color:var(--chest-ink,#f6f6f7); margin-bottom:2px; }
+.chest-notif__row span{ display:block; font-size:11.5px; color:var(--chest-ink-3,#9b9ba1); line-height:1.5; }
+.chest-notif__row time{ display:block; font-size:10px; color:var(--chest-ink-3,#9b9ba1); margin-top:4px; }
+.chest-notif__empty{ padding:20px 10px; text-align:center; font-size:12px; color:var(--chest-ink-3,#9b9ba1); }

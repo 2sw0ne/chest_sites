@@ -980,15 +980,23 @@
     const range = periodRange(period);
     setPayoutListOpen(payoutListOpen);
 
-    const entries = (a.payouts || []).filter((p) => inPeriodRange(p.date, range)).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+    // Retraits détectés automatiquement par le Journal (2026-09-29, demande utilisateur : "les
+    // payouts devraient être ajustables dans le journal et visible uniquement sur le dashboard") -
+    // ajustables uniquement depuis journal.html (volet "Historique du challenge"), juste affichés
+    // ici en lecture seule, en plus des payouts saisis à la main sur ce compte.
+    const journalEntries = (a.journalAccountId && window.CHESTJournal)
+      ? window.CHESTJournal.stagePayouts(a.journalAccountId).map((p) => ({ date: p.date, amount: p.net, fromJournal: true, label: p.label }))
+      : [];
+    const manualEntries = (a.payouts || []).map((p) => Object.assign({ fromJournal: false }, p));
+    const entries = manualEntries.concat(journalEntries).filter((p) => inPeriodRange(p.date, range)).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
     const total = entries.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
     document.getElementById('payoutTotal').textContent = money(total);
     document.getElementById('payoutList').innerHTML = entries.length
       ? entries.map((p) => `
         <div class="payout-row">
-          <span>${p.date ? new Date(p.date).toLocaleDateString('fr-FR') : '—'}</span>
+          <span>${p.date ? new Date(p.date).toLocaleDateString('fr-FR') : '—'}${p.fromJournal ? ` · <i title="Détecté par le Journal — modifiable depuis le Journal">📒 ${p.label}</i>` : ''}</span>
           <b>${money(parseFloat(p.amount) || 0)}</b>
-          <button type="button" class="payout-row__del" data-del-payout="${p.id}" aria-label="Supprimer ce payout">✕</button>
+          ${p.fromJournal ? '' : `<button type="button" class="payout-row__del" data-del-payout="${p.id}" aria-label="Supprimer ce payout">✕</button>`}
         </div>`).join('')
       : '<p class="hint" style="margin:0">Aucun payout enregistré sur cette période.</p>';
     document.getElementById('payoutAddBtn').style.display = '';
@@ -1867,6 +1875,16 @@
         window.CHESTJournal.updateAccount(journalAcc.id, {
           mt5Live: { login, server }, stage: newStage, connectionMode: 'mt5', mode: 'auto',
         });
+        // Historique du challenge (2026-09-29, demande utilisateur : "il faut que le journal
+        // comprenne les transitions de compte") - detecte etape validee / compte crame / retrait
+        // probable en comparant ce nouveau compte au precedent, voir CHESTJournal.attachStageAccount.
+        const stageRes = window.CHESTJournal.attachStageAccount(journalAcc.id, {
+          connType: 'mt5', connRef: 'mt5', stage: newStage, startBalance: info.balance || 0,
+        });
+        if (stageRes && stageRes.needsSplitPct) {
+          const val = await CHESTPrompt('Quel pourcentage du profit gardes-tu (le reste va au propfirm) ? Sert à calculer automatiquement tes retraits sur ce journal.', { value: '80', confirmLabel: 'Valider' });
+          if (val !== null) window.CHESTJournal.setPayoutSplitPct(journalAcc.id, Math.min(100, Math.max(1, parseFloat(val) || 80)));
+        }
         // CHAQUE connexion Live (phase 1, phase 2, financé...) ajoute un NOUVEAU compte miroir
         // individuel, rattaché au même compte du Journal via `journalAccountId` (jamais
         // remplacé/supprimé, l'historique de chaque phase reste visible individuellement - "les
