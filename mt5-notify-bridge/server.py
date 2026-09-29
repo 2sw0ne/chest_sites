@@ -66,6 +66,16 @@ MT5_TERMINAL_PATH = os.environ.get("MT5_TERMINAL_PATH", r"C:\MT5\terminal64.exe"
 # RETRY_SECONDS, 15-70s) etait insuffisant - on retente plusieurs fois rapprochees avant d'abandonner.
 INIT_ATTEMPTS = int(os.environ.get("MT5_INIT_ATTEMPTS", 6))
 INIT_ATTEMPT_DELAY = float(os.environ.get("MT5_INIT_ATTEMPT_DELAY", 3))
+# Timeout par appel RPyC (connect/initialize/login/account_info...) - etait fixe a 300s (2026-09-29,
+# incident reel en production) : un mt5.login() vers un VRAI broker (VantageMarkets) qui ne repond
+# jamais (silencieusement, ni succes ni erreur) bloquait tout ce timeout AVANT de lever la moindre
+# exception - pendant ce temps poll_loop() entier restait fige (plus de last_poll_ok, plus aucun
+# /switch-account traitable pour QUI QUE CE SOIT, meme un nouvel appel), un simple retry() ou try/
+# except ne pouvait rien y faire puisque l'appel bloquant lui-meme ne rendait jamais la main. Borne a
+# une valeur qui laisse largement le temps a un login legitime (quelques secondes en pratique, meme
+# contre un broker reel) tout en garantissant qu'AUCUN appel ne peut plus jamais figer le service
+# au-dela de cette duree.
+MT5_RPYC_TIMEOUT = float(os.environ.get("MT5_RPYC_TIMEOUT", 20))
 
 
 class DirectMT5Client:
@@ -86,7 +96,7 @@ class DirectMT5Client:
         # potentiellement un handle IPC MetaTrader5 fantome tenir la ressource.
         self.close()
         self._conn = rpyc.classic.connect(self.host, self.port)
-        self._conn._config["sync_request_timeout"] = 300
+        self._conn._config["sync_request_timeout"] = MT5_RPYC_TIMEOUT
         self._conn.execute("import sys; sys.path.append('C:\\\\mt5libs')")
         self._conn.execute("import MetaTrader5 as mt5")
 
