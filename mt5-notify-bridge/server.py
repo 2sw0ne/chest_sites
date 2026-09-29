@@ -121,7 +121,20 @@ class DirectMT5Client:
         self._eval("mt5.shutdown()")
 
     def account_info(self):
-        return self._eval("mt5.account_info()")
+        # N'obtient JAMAIS l'objet AccountInfo tel quel : c'est un type nomme dynamiquement par le
+        # module MetaTrader5 cote distant, absent localement (ce service n'importe jamais
+        # MetaTrader5) - rpyc.classic.obtain() tente de le "pickler" pour le rapatrier et echoue
+        # avec "Can't pickle <class 'AccountInfo'>: attribute lookup AccountInfo on builtins
+        # failed" (constate en production le 2026-09-29, lors du tout premier appel a
+        # /switch-account depuis CHEST - le login reussissait deja, seule cette ligne plantait).
+        # On extrait donc les champs utiles COTE DISTANT, dans le code eval() lui-meme, pour ne
+        # faire transiter que des types Python natifs (dict/float/int/str/None), qui picklent
+        # sans probleme.
+        code = (
+            "(lambda i: {'login': i.login, 'balance': i.balance, 'equity': i.equity, "
+            "'currency': i.currency} if i else None)(mt5.account_info())"
+        )
+        return self._eval(code)
 
 
 # Meme secret que berich-bridge/calendar-bridge ET que POST /mt5/connect côté accounts-bridge - un
@@ -158,8 +171,8 @@ def handle_switch(mt5: DirectMT5Client, req: dict) -> tuple[bool, dict]:
         return False, {"error": f"Échec de connexion au compte MT5 : {exc}"}
     if not ok:
         return False, {"error": f"mt5.login() refusé : {mt5.last_error()}"}
-    info = mt5.account_info()
-    account_info = {"login": login, "balance": info.balance, "equity": info.equity, "currency": info.currency} if info else None
+    info = mt5.account_info()  # dict {login,balance,equity,currency} ou None - voir account_info()
+    account_info = {"login": login, "balance": info["balance"], "equity": info["equity"], "currency": info["currency"]} if info else None
     return True, {"accountInfo": account_info}
 
 
