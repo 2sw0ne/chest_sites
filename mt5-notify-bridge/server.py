@@ -172,28 +172,38 @@ switch_result: dict = {}
 
 
 def handle_switch(mt5: DirectMT5Client, req: dict) -> tuple[bool, dict]:
-    """Bascule la connexion MT5 déjà établie sur un autre compte (mt5.login(), pas
-    mt5.initialize() - le terminal reste le même, seul le compte connecté change).
+    """Bascule la connexion MT5 déjà établie sur un autre compte.
 
     Retente plusieurs fois avec reconnexion RPyC (2026-09-29, constaté en production : premier
     switch réel depuis CHEST échoué sur "connection closed by peer") - même classe d'erreurs
     transitoires que celles qui ont motivé la boucle de retry de mt5.initialize() dans poll_loop()
     (voir CLAUDE.md "IPC timeout erratique, bug connu MT5") : un seul essai sans filet était
     insuffisant, alors même que le login MT5 en lui-même n'a rien d'anormal. mt5.connect() rouvre
-    juste le CANAL RPyC (rpyc.classic.connect()) - le module MetaTrader5 distant, lui, reste le
-    même processus Wine déjà initialize() avec succès (persistant tant que mt5-terminal tourne),
-    donc mt5.login() fonctionne sur ce nouveau canal sans avoir besoin de refaire
-    mt5.initialize()."""
+    juste le CANAL RPyC (rpyc.classic.connect()).
+
+    Refait aussi mt5.initialize() à chaque tentative (2026-09-29, 2e incident le même jour) - la
+    première version de cette fonction ne rappelait QUE mt5.login() en supposant que le module
+    MetaTrader5 distant restait pret puisque poll_loop() l'a deja initialize() avec succes. Marche
+    pour rebasculer entre deux comptes du MEME courtier/serveur (le cas prevu a l'origine : phase 1
+    -> phase 2 d'un meme challenge), mais un switch vers un courtier ENTIEREMENT DIFFERENT
+    (MetaQuotes-Demo -> VantageMarkets-Live 14, constate en conditions reelles) echouait a chaque
+    tentative avec (-10004, 'No IPC connection') - de facon repetee, pas erratique comme les autres
+    erreurs IPC deja documentees - signe que le canal IPC existant restait lie au contexte du
+    serveur precedent. Un mt5.initialize() complet avant login() repart sur une base saine a chaque
+    tentative, au prix d'un peu plus de temps par tentative."""
     login = str(req["login"])
     last_error = None
     ok = False
     for attempt in range(INIT_ATTEMPTS):
         try:
             mt5.connect()
-            ok = mt5.login(int(login), password=req["password"], server=req["server"])
-            if ok:
-                break
-            last_error = mt5.last_error()
+            if not mt5.initialize(path=MT5_TERMINAL_PATH):
+                last_error = mt5.last_error()
+            else:
+                ok = mt5.login(int(login), password=req["password"], server=req["server"])
+                if ok:
+                    break
+                last_error = mt5.last_error()
         except Exception as exc:
             last_error = str(exc)
         if attempt < INIT_ATTEMPTS - 1:
