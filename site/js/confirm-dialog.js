@@ -21,6 +21,10 @@
     .chestconfirm-overlay.is-open .chestconfirm-modal{ transform:translateY(0); }
     .chestconfirm-modal p{ font-size:13.5px; color:var(--ink); line-height:1.55; margin:0 0 20px; white-space:pre-line; }
     .chestconfirm-actions{ display:flex; gap:10px; justify-content:flex-end; }
+    .chestconfirm-modal input{
+      width:100%; box-sizing:border-box; background:var(--bg); border:1px solid var(--line2); border-radius:var(--radius-sm);
+      color:var(--ink); font:inherit; font-size:13.5px; padding:10px 12px; margin:-8px 0 20px;
+    }
   `;
 
   function injectStyles() {
@@ -67,6 +71,33 @@
     });
   }
 
+  // Remplace window.prompt(message) - resout la valeur tapee, ou null si annule. opts.value
+  // prereplit le champ (ex. renommer un compte).
+  function chestPrompt(message, opts) {
+    ensure();
+    opts = opts || {};
+    msgEl.textContent = message;
+    return new Promise((resolve) => {
+      actionsEl.innerHTML = '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = opts.value || '';
+      msgEl.insertAdjacentElement('afterend', input);
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button'; cancelBtn.className = 'btn btn-ghost'; cancelBtn.textContent = opts.cancelLabel || 'Annuler';
+      const okBtn = document.createElement('button');
+      okBtn.type = 'button'; okBtn.className = 'btn btn-primary'; okBtn.textContent = opts.confirmLabel || 'Valider';
+      const close = (val) => { overlay.classList.remove('is-open'); input.remove(); resolve(val); };
+      cancelBtn.addEventListener('click', () => close(null));
+      okBtn.addEventListener('click', () => close(input.value));
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') close(input.value); });
+      actionsEl.append(cancelBtn, okBtn);
+      overlay.classList.add('is-open');
+      input.focus();
+      input.select();
+    });
+  }
+
   // Remplace window.alert(message) - resout une fois "OK" clique.
   function chestAlert(message) {
     ensure();
@@ -83,5 +114,6 @@
   }
 
   window.CHESTConfirm = chestConfirm;
+  window.CHESTPrompt = chestPrompt;
   window.CHESTAlert = chestAlert;
 })();

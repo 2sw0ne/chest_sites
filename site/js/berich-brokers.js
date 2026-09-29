@@ -27,7 +27,10 @@ window.CHEST_BROKERS = [
   { id: 'avatrade', name: 'AvaTrade', domain: 'avatrade.com', kind: 'broker', servers: ['AvaTrade-Real', 'AvaTrade-Demo'] },
   { id: 'tickmill', name: 'Tickmill', domain: 'tickmill.com', kind: 'broker', servers: ['Tickmill-Live', 'Tickmill-Demo'] },
   { id: 'xm', name: 'XM', domain: 'xm.com', kind: 'broker', servers: ['XMGlobal-Real 1', 'XMGlobal-Real 2', 'XMGlobal-Demo'] },
-  { id: 'vantage', name: 'Vantage', domain: 'vantagemarkets.com', kind: 'broker', servers: ['VantageInternational-Live 1', 'VantageInternational-Live 2', 'VantageInternational-Demo'] },
+  // Servers relus en direct dans le catalogue MT5 (entite "Vantage Markets (Pty) Ltd", 2026-09-29) -
+  // contrairement au reste du fichier, ceux-ci sont VERIFIES, pas indicatifs (l'ancien nom
+  // "VantageInternational-*" n'existe pas dans le catalogue MT5 et a cause une connexion ratee).
+  { id: 'vantage', name: 'Vantage', domain: 'vantagemarkets.com', kind: 'broker', servers: ['VantageMarkets-Demo', 'VantageMarkets-Live 3', 'VantageMarkets-Live 4', 'VantageMarkets-Live 5', 'VantageMarkets-Live 7', 'VantageMarkets-Live 8', 'VantageMarkets-Live 9', 'VantageMarkets-Live 10', 'VantageMarkets-Live 11', 'VantageMarkets-Live 12', 'VantageMarkets-Live 13', 'VantageMarkets-Live 14', 'VantageMarkets-Live 15', 'VantageMarkets-Live 17', 'VantageMarkets-Live 19', 'VantageMarkets-Live 21'] },
   { id: 'blueberry', name: 'Blueberry', domain: 'blueberrymarkets.com', kind: 'broker', servers: ['BlueberryMarkets-Live', 'BlueberryMarkets-Demo'] },
   { id: 'oanda', name: 'OANDA', domain: 'oanda.com', kind: 'broker', servers: ['OANDA-Live', 'OANDA-Demo'] },
 

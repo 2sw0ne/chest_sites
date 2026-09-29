@@ -285,6 +285,37 @@
     clearExt(liveId);
   }
 
+  // ---------- Backtest -> entrées de journal, en RAW (2026-09-29, demande utilisateur : "rattacher
+  // un journal, vierge ou non, à un backtesting, il mettra toute les position du backtesting dans
+  // le journal en format brut") ----------
+  // Le Backtesting simule un capital (voir backtest-engine.js) : ses trades n'ont ni vraie paire, ni
+  // niveaux d'entrée/stop/take, ni P&L en $ réel — seulement date/résultat/RR. On les importe donc
+  // tels quels (pas de valeur inventée pour remplir les colonnes du journal), taggés "backtest" et
+  // notés avec le nom du backtest d'origine pour qu'on sache toujours d'où ils viennent.
+  function importBacktestTrades(accountId, backtest) {
+    const trades = (backtest && backtest.trades) || [];
+    let added = 0;
+    trades.forEach((t) => {
+      add({
+        date: t.date,
+        pair: (t.source && String(t.source)) || backtest.title || 'Backtest',
+        side: null,
+        entry: t.open != null ? t.open : null,
+        sl: null, tp: null,
+        rrTarget: null,
+        rrActual: typeof t.rr === 'number' ? t.rr : null,
+        result: t.result || null,
+        pnl: null,
+        tags: ['backtest'],
+        chartLink: null,
+        notes: `Importé (brut) depuis le backtest "${backtest.title}"${t.confirmation ? ' · ' + t.confirmation : ''}`,
+        accountId,
+      });
+      added++;
+    });
+    return added;
+  }
+
   // ---------- Myfxbook -> entrées de journal ----------
   const numOf = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(n) ? null : n; };
   const pickOf = (o, ...keys) => { for (const k of keys) if (o[k] != null && o[k] !== '') return o[k]; return null; };
@@ -429,7 +460,7 @@
   }
 
   window.CHESTJournal = {
-    list, add, update, remove, berichEntries, allEntries, entriesFor, liveAccounts, addLiveAccount, updateLiveAccount, removeLiveAccount, syncLiveAccount, extEntries, mergeExternal, mfxToEntry, computeStats,
+    list, add, update, remove, berichEntries, allEntries, entriesFor, liveAccounts, addLiveAccount, updateLiveAccount, removeLiveAccount, syncLiveAccount, extEntries, mergeExternal, mfxToEntry, computeStats, importBacktestTrades,
     knownTags, rememberTag, favoritePairs, toggleFavoritePair,
     propfirms, challengeModels, stageList, stageRules, propfirmLogo,
     listAccounts, addAccount, updateAccount, removeAccount,

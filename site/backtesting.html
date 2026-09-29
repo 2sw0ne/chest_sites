@@ -62,6 +62,33 @@
   .bt-card__add-icon{ width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:17px; color:var(--chest-ink-2); }
   .bt-card__add-title{ font-size:15px; font-weight:700; color:var(--chest-ink); }
   .bt-card__add-desc{ font-size:12px; color:var(--chest-ink-3); line-height:1.5; max-width:210px; }
+
+  /* ---------- Modale "Rattacher à un journal" (2026-09-29, demande utilisateur - meme
+     composant que le "Connecter un compte" du Dashboard, voir dashboard.html) ---------- */
+  .connmodal-overlay{
+    position:fixed; inset:0; z-index:280; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .connmodal-overlay.is-open{ opacity:1; pointer-events:auto; }
+  .connmodal-modal{
+    width:100%; max-width:560px; max-height:88vh; overflow-y:auto; background:var(--panel,#100f12); border:1px solid var(--line2,rgba(255,255,255,.12));
+    border-radius:var(--radius,20px); padding:32px 32px 28px; transform:translateY(12px); transition:transform .2s;
+  }
+  .connmodal-overlay.is-open .connmodal-modal{ transform:translateY(0); }
+  .connmodal-close{ float:right; border:none; background:var(--bg,#050505); color:var(--muted,#8a8a92); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:15px; }
+  .connmodal-modal h2{ font-size:18px; font-weight:700; margin:0 0 6px; }
+  .connmodal-modal .hint{ font-size:12.5px; color:var(--muted,#8a8a92); line-height:1.55; margin:0 0 22px; }
+  .form-stack{ display:flex; flex-direction:column; gap:14px; }
+  .wizard-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .mfx-account-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px;
+    border:1px solid var(--line2,rgba(255,255,255,.12)); border-radius:var(--radius-sm,12px); background:var(--bg,#050505);
+    cursor:pointer; font:inherit; color:var(--ink,#fff); text-align:left; width:100%; transition:.15s;
+  }
+  .mfx-account-row:hover{ border-color:var(--acc,#fc1283); }
+  .mfx-account-row.is-selected{ border-color:var(--acc,#fc1283); background:rgba(252,18,131,.06); }
+  .mfx-account-row strong{ display:block; font-size:13px; }
+  .mfx-account-row span{ display:block; font-size:11px; color:var(--muted,#8a8a92); }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/config.js?v=3"></script>
@@ -149,6 +176,30 @@
 </div>
 </div>
 
+<!-- Rattacher un backtest à un journal (2026-09-29, demande utilisateur : "permet de rattacher un
+     journal, vierge ou non a un backtesting, il mettra toute les position du backtesting dans le
+     journal en format brut") - importe les trades du backtest choisi dans le compte du Journal
+     choisi (existant ou tout juste créé vierge), via CHESTJournal.importBacktestTrades. -->
+<div class="connmodal-overlay" id="attachJournalModal">
+  <div class="connmodal-modal">
+    <button type="button" class="connmodal-close" id="attachJournalClose" aria-label="Fermer">✕</button>
+    <h2>📒 Rattacher à un journal</h2>
+    <p class="hint">Choisis un compte du Journal (vierge ou déjà rempli) : toutes les positions de <b id="attachJournalBtTitle"></b> y seront importées telles quelles (date, résultat, RR — pas de fausse paire ni de faux niveaux inventés).</p>
+    <div id="attachJournalList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="form-stack" style="margin-top:16px">
+      <div>
+        <label for="attachJournalNewName">Ou crée un nouveau journal vierge</label>
+        <input id="attachJournalNewName" class="field" type="text" placeholder="ex. Journal SWYPER">
+      </div>
+    </div>
+    <div class="wizard-actions" style="margin-top:18px">
+      <button type="button" class="btn btn-ghost" id="attachJournalCancel">Annuler</button>
+      <button type="button" class="btn btn-primary" id="attachJournalCreateBtn">Créer ce journal et importer</button>
+    </div>
+    <p class="hint" id="attachJournalError" style="color:var(--red);display:none;margin-top:10px"></p>
+  </div>
+</div>
+
 <footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
 
 <script src="js/nav.js?v=2"></script>
@@ -156,6 +207,9 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/backtest-store.js"></script>
 <script src="js/backtest-engine.js?v=20"></script>
+<script src="js/berich-brokers.js"></script>
+<script src="js/propfirm-rules.js?v=5"></script>
+<script src="js/journal-store.js?v=5"></script>
 <script>
 (() => {
   'use strict';
@@ -257,6 +311,7 @@
             <div class="bt-card__menu-list" data-menu-list hidden>
               <a href="backtest-view.html?id=${encodeURIComponent(b.id)}">Voir le rapport</a>
               <a href="backtest-add.html?edit=${encodeURIComponent(b.id)}">Modifier</a>
+              <button type="button" data-attach-journal-id="${b.id}">Rattacher à un journal</button>
               <button type="button" class="danger" data-delete-id="${b.id}">Supprimer</button>
             </div>
           </div>
@@ -307,7 +362,63 @@
     grid.querySelectorAll('.bt-card--custom .bt-card__menu-list a').forEach((a) => {
       a.addEventListener('click', (e) => e.stopPropagation());
     });
+    grid.querySelectorAll('.bt-card--custom [data-attach-journal-id]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAllMenus();
+        openAttachJournalModal(btn.dataset.attachJournalId);
+      });
+    });
   }
+
+  // ---------- Rattacher un backtest à un journal (2026-09-29) ----------
+  let attachBacktestId = null;
+  function closeAttachJournalModal() {
+    document.getElementById('attachJournalModal').classList.remove('is-open');
+  }
+  function openAttachJournalModal(backtestId) {
+    attachBacktestId = backtestId;
+    const bt = window.CHESTBacktests.get(backtestId);
+    if (!bt) return;
+    document.getElementById('attachJournalBtTitle').textContent = bt.title;
+    document.getElementById('attachJournalNewName').value = `Journal ${bt.title}`;
+    document.getElementById('attachJournalError').style.display = 'none';
+    const list = document.getElementById('attachJournalList');
+    const accounts = (window.CHESTJournal && window.CHESTJournal.listAccounts()) || [];
+    list.innerHTML = accounts.length
+      ? accounts.map((a) => `<button type="button" class="mfx-account-row" data-account-id="${a.id}">
+          <span><strong>${a.name}</strong><span>${a.type === 'propfirm' ? 'Propfirm' : 'Compte propre'} · ${(a.live && a.live.length ? 'journal actif' : 'vierge')}</span></span>
+        </button>`).join('')
+      : '<p class="hint">Aucun compte dans le Journal pour l\'instant — crée-en un vierge ci-dessous.</p>';
+    list.querySelectorAll('[data-account-id]').forEach((row) => {
+      row.addEventListener('click', () => runAttachJournalImport(row.dataset.accountId, bt));
+    });
+    document.getElementById('attachJournalModal').classList.add('is-open');
+  }
+  function runAttachJournalImport(accountId, bt) {
+    const added = window.CHESTJournal.importBacktestTrades(accountId, bt);
+    closeAttachJournalModal();
+    showToast(`${added} position${added > 1 ? 's' : ''} importée${added > 1 ? 's' : ''} dans le journal ✓`);
+  }
+  document.getElementById('attachJournalClose').addEventListener('click', closeAttachJournalModal);
+  document.getElementById('attachJournalCancel').addEventListener('click', closeAttachJournalModal);
+  document.getElementById('attachJournalModal').addEventListener('click', (e) => {
+    if (e.target.id === 'attachJournalModal') closeAttachJournalModal();
+  });
+  document.getElementById('attachJournalCreateBtn').addEventListener('click', () => {
+    const bt = window.CHESTBacktests.get(attachBacktestId);
+    if (!bt) return;
+    const name = document.getElementById('attachJournalNewName').value.trim();
+    const errEl = document.getElementById('attachJournalError');
+    if (!name) { errEl.textContent = 'Donne un nom à ce nouveau journal.'; errEl.style.display = ''; return; }
+    const acc = window.CHESTJournal.addAccount({
+      name, type: 'own', propfirmId: null, modelId: null, stage: null,
+      balance: bt.capital || 0, riskUnit: 'pct', riskValue: 1,
+      connectionMode: 'manual', mode: 'manual', rules: null, live: [],
+    });
+    runAttachJournalImport(acc.id, bt);
+  });
 
   renderCards();
 })();

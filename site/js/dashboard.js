@@ -3,9 +3,7 @@
 
   const ACCOUNTS_KEY = 'chest_accounts';
   const ACTIVE_KEY = 'chest_active_account';
-  const FAMILIES_KEY = 'chest_account_families';
   const LIVE_SWANN_KEY = 'chest_live_account';
-  const SIMPLE_MODE_KEY = 'chest_dashboard_simple_mode';
   // Dernier identifiant Myfxbook utilisé avec succès dans "Ajouter un compte" (2026-09-24, demande
   // utilisateur : "pas le mettre à chaque fois") - même principe déjà accepté ailleurs sur ce site
   // pour Myfxbook (Live Swann, comptes live du Journal : identifiants gardés dans le navigateur).
@@ -15,19 +13,6 @@
   }
   function loadLastMfxLogin() {
     try { return JSON.parse(localStorage.getItem(MFX_LAST_LOGIN_KEY) || 'null'); } catch (e) { return null; }
-  }
-
-  // "Mode simple" : masque ENTIEREMENT le backtest de depart (equity,
-  // calendrier, RR/winrate) du Dashboard - retour direct utilisateur du
-  // 2026-09-17 ("ajoute un bouton pour que toutes les positions du
-  // backtesting journalier ne soient pas visibles ni appliquees au
-  // dashboard"). Reglage GLOBAL (pas par compte) : un seul bouton, visible
-  // sur n'importe quel compte/famille.
-  function loadSimpleMode() {
-    try { return localStorage.getItem(SIMPLE_MODE_KEY) === '1'; } catch (e) { return false; }
-  }
-  function saveSimpleMode(v) {
-    try { localStorage.setItem(SIMPLE_MODE_KEY, v ? '1' : '0'); } catch (e) { /* tant pis */ }
   }
 
   // Exemple de données — partagées par les comptes de démonstration.
@@ -87,11 +72,9 @@
   const DEFAULT_ACCOUNTS = [];
 
   let chart, unit = 'percent'; // % par defaut (retour direct utilisateur du 2026-09-16)
-  let lastPfSim = null; // derniere simulation de retrait PF calculee par renderPayouts - lue par renderMiniCalendar pour les marqueurs jaunes
   let liveAccount = null; // rempli si data/data.json existe (pont export_mt5.py)
   let liveSwannAccount = null; // "Live Swann" (Myfxbook, admin uniquement, voir account.html) - toujours resynchronise, jamais depuis le cache 5min
   let activeAccountData = null; // compte actif, enrichi des vraies donnees Myfxbook si besoin (voir refreshActiveAccount)
-  const openFamilyIds = new Set(); // etat d'ouverture des familles dans le switcher, le temps de la session
 
   function loadAccounts() {
     let list;
@@ -113,15 +96,16 @@
   }
   function activeId(accounts) { return localStorage.getItem(ACTIVE_KEY) || (accounts[0] && accounts[0].id) || null; }
 
-  // ---------- Familles de comptes (chaines propfirm : Phase 1 -> Phase 2 ->
-  // Finance, ou tout regroupement de comptes lies) — purement une organisation
-  // visuelle sur les comptes existants (chest_accounts), aucune donnee dupliquee.
-  // Vit directement dans le switcher de comptes (retour direct utilisateur du
-  // 2026-09-15 : pas une carte separee). ----------
-  function loadFamilies() {
-    try { return JSON.parse(localStorage.getItem(FAMILIES_KEY) || '[]'); } catch (e) { return []; }
+  // Chaque compte se rattache a un compte du JOURNAL (2026-09-29, demande utilisateur : "les
+  // famille ce sont les journal, et tout les compte doivent etre connecter a un journal") - le
+  // Journal (js/journal-store.js) remplace entierement l'ancien systeme de "familles" de comptes :
+  // plus de regroupement/agregation cote Dashboard, chaque compte reste individuel et affiche
+  // simplement le nom du journal auquel il est rattache (voir journalNameFor/accountRowHtml).
+  function journalNameFor(account) {
+    if (!account || !account.journalAccountId || !window.CHESTJournal) return null;
+    const j = window.CHESTJournal.listAccounts().find((x) => x.id === account.journalAccountId);
+    return j ? j.name : null;
   }
-  function saveFamilies(list) { localStorage.setItem(FAMILIES_KEY, JSON.stringify(list)); }
   function initials(name) { return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(); }
   function money(n) { return (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -258,38 +242,14 @@
     return asc;
   }
 
-  // Courbe datée du backtest (garde `pt.trade` pour calculer un vrai
-  // winrate/RR par période plus bas, contrairement à
-  // buildBacktestAugmentedAll qui ne gardait que les capitaux).
-  function buildBacktestDatedCurve(bt, riskConfig) {
-    if (!bt || !window.CHESTBacktestEngine || !riskConfig || !bt.trades || !bt.trades.length) return [];
-    const report = window.CHESTBacktestEngine.computeReport(bt.trades, bt.capital, riskConfig);
-    return report.curve.filter((pt) => pt.date).map((pt) => ({ date: pt.date, capital: pt.capital, trade: pt.trade }));
-  }
-  // Liste plate {date, result, rr}[] des trades SIMULES du backtest - meme
-  // "monnaie" (RR = multiple du risque pris) que realTradesWithRR, donc les
-  // deux s'additionnent naturellement dans une seule fenetre de periode.
-  function backtestTradesList(bt, riskConfig) {
-    return buildBacktestDatedCurve(bt, riskConfig).filter((pt) => pt.trade)
-      .map((pt) => ({ date: pt.date, result: pt.trade.result, rr: pt.trade.rr }));
-  }
-  // Liste UNIFIEE des trades d'un compte (backtest simule + vrais trades
-  // Myfxbook, RR calcule sur la meme base pour les deux - voir
-  // backtestTradesList/realTradesWithRR) - source unique pour le RR/winrate
-  // de TOUTE periode, individuelle ou familiale.
-  function unifiedTradesList(account, riskPct, includeBacktest) {
-    const trades = [];
-    if (includeBacktest !== false && account.startBacktestId) {
-      const bt = window.CHESTBacktests && window.CHESTBacktests.get(account.startBacktestId);
-      if (bt && window.CHESTBacktestEngine) {
-        const riskConfig = (account.isPropfirm && bt.pf) ? bt.pf : bt.cp;
-        trades.push(...backtestTradesList(bt, riskConfig));
-      }
-    }
+  // Liste des trades reels (Myfxbook) d'un compte - source unique pour le RR/winrate de toute
+  // periode (2026-09-29, demande utilisateur : le Backtesting ne s'attache plus a un compte du
+  // Dashboard, seulement a un Journal - voir backtesting.html "Rattacher à un journal").
+  function unifiedTradesList(account, riskPct) {
     if (account.myfxbook && account.history) {
-      trades.push(...realTradesWithRR(account.id, account.history, riskPct, account.balance));
+      return realTradesWithRR(account.id, account.history, riskPct, account.balance);
     }
-    return trades;
+    return [];
   }
 
   // Formatte le label d'un point de la courbe SELON la periode active - c'est
@@ -366,7 +326,7 @@
   // ingredients bruts deja disponibles pour tout compte reel (myfxbook et/ou
   // backtest) - dailyHistory (Semaine/Mois/Annee), history brut (Jour, voir
   // intradayCurveFromTrades) et la liste de trades unifiee (RR/winrate).
-  function computeAllPeriods(dailyHistory, currentBalance, trades, history, backtestLinkedTitle) {
+  function computeAllPeriods(dailyHistory, currentBalance, trades, history) {
     const dayCurve = intradayCurveFromTrades(history, currentBalance);
     const restCurve = capitalCurveFromDailyHistory(dailyHistory, currentBalance);
     const subLabels = { day: "aujourd'hui", week: 'cette semaine', month: 'ce mois', all: 'cette année', full: 'sur tout l\'historique' };
@@ -374,7 +334,6 @@
     ['day', 'week', 'month', 'all', 'full'].forEach((key) => {
       const curve = key === 'day' ? dayCurve : restCurve;
       out[key] = periodStatsFromCurve(key, curve, trades, subLabels[key]);
-      if (backtestLinkedTitle) out[key].backtestLinked = backtestLinkedTitle;
     });
     return out;
   }
@@ -423,47 +382,7 @@
     return [...older, ...dailyGainAsc].sort((a, b) => new Date(a.date) - new Date(b.date));
   }
 
-  // ---------- Historique jour par jour complet (remplace l'ancien "14
-  // derniers jours" fixe par un navigateur qui parcourt TOUT ce qui est
-  // enregistré - backtest + réel persisté, retour direct utilisateur du
-  // 2026-09-16) ----------
-  // IMPORTANT : produit UNE entree PAR JOUR CALENDAIRE, sans trou, meme les
-  // jours sans trade (pnl=0 ce jour-la, capital reporte tel quel) - sinon un
-  // jour sans trade est simplement absent de `series`, et le delta entre
-  // deux jours AVEC trade se retrouve entierement attribue au jour le plus
-  // recent des deux (ex. rien entre le 23/7 et le 26/7 -> tout le mouvement
-  // de ces 3 jours s'affichait comme le pnl du 26/7 seul, un montant
-  // absurdement gros). Corrige suite au retour direct utilisateur du
-  // 2026-09-16 ("je vois des journees rouges a 84357$... ce n'est pas le
-  // profit/perte du jour").
-  // `pct` calcule ici a partir du VRAI capital de la veille (`carry`, issu
-  // directement de la courbe du backtest, qui compose correctement risque%
-  // x RR trade par trade) - PAS reconstruit a rebours depuis un solde de
-  // compte sans rapport (bug corrige suite au retour direct utilisateur du
-  // 2026-09-16 : "-1199.9% en une journée c'est impossible avec 1% de
-  // risque" - l'ancienne version anchrait le calcul sur `account.balance`,
-  // qui pour une famille sans compte myfxbook reel vaut $0, sans aucun
-  // rapport avec l'echelle reelle du capital du backtest).
-  function datedSeriesToDailyPnl(series) {
-    const byDay = new Map();
-    series.forEach((p) => { if (p.date) byDay.set(isoDateLocal(p.date), p.capital); });
-    const knownDays = [...byDay.keys()].sort();
-    if (knownDays.length < 2) return [];
-    const out = [];
-    let carry = byDay.get(knownDays[0]);
-    const cursor = new Date(knownDays[0]);
-    const end = new Date(knownDays[knownDays.length - 1]);
-    cursor.setDate(cursor.getDate() + 1);
-    while (cursor <= end) {
-      const key = isoDateLocal(cursor);
-      const capitalToday = byDay.has(key) ? byDay.get(key) : carry;
-      const pnl = capitalToday - carry;
-      out.push({ date: key, pnl, pct: carry ? (pnl / carry * 100) : 0, capitalBefore: carry });
-      carry = capitalToday;
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    return out;
-  }
+  // ---------- Historique jour par jour complet (parcourt TOUT ce qui est enregistré côté réel) ----------
   // Myfxbook renvoie deja un gain (%) et un profit ($) par jour calendaire
   // (pas de trou a combler ici, contrairement au backtest ci-dessus).
   // `capitalBefore` est retro-derive de value/profit (le seul moyen de le
@@ -492,53 +411,18 @@
     }));
     return byDate;
   }
-  // Combine des sources REELLES (myfxbook, plusieurs comptes membres
-  // s'additionnent legitimement s'ils tradent en parallele) avec une source
-  // de BACKTEST (le "passe simule" d'un compte/famille). En cas de
-  // chevauchement de date entre les deux (le backtest continue au-dela du
-  // vrai debut du compte relie), le reel prend TOUJOURS le dessus plutot que
-  // de s'additionner au backtest sur ce jour-la - retour direct utilisateur
-  // du 2026-09-16 ("quand deux positions se chevauchent, priorite a la
-  // position myfxbook"). Avant ce correctif, sumDailyPnl additionnait
-  // aveuglement toutes les sources jour par jour, gonflant le pnl des jours
-  // ou les deux coexistaient.
-  // `source` ('real'|'backtest') tague chaque jour selon sa provenance
-  // reelle - sert a colorer differemment le calendrier (jaune/orange pour
-  // un jour de backtest sur un compte propre, voir renderMiniCalendar) et
-  // au mode "Backtest masqué" (voir dashboardSimpleMode).
-  function sumDailyPnl(realParts, backtestParts) {
+  // Combine les sources REELLES myfxbook d'un compte (2026-09-29 : plus de backtest mélangé ici -
+  // le Backtesting ne s'attache plus qu'à un Journal, jamais à un compte du Dashboard, voir
+  // backtesting.html "Rattacher à un journal"). `source` reste 'real' sur chaque jour.
+  function sumDailyPnl(realParts) {
     const realByDate = sumSeriesByDate(realParts || []);
-    const btByDate = sumSeriesByDate(backtestParts || []);
-    const byDate = new Map();
-    realByDate.forEach((v, date) => byDate.set(date, { ...v, source: 'real' }));
-    btByDate.forEach((v, date) => { if (!byDate.has(date)) byDate.set(date, { ...v, source: 'backtest' }); });
-    return [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, v]) => ({ date, pnl: v.pnl, pct: v.capitalBefore ? (v.pnl / v.capitalBefore * 100) : 0, source: v.source }));
+    return [...realByDate.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, v]) => ({ date, pnl: v.pnl, pct: v.capitalBefore ? (v.pnl / v.capitalBefore * 100) : 0, source: 'real' }));
   }
-  function backtestDailyPnl(backtestId, isPropfirm) {
-    const bt = window.CHESTBacktests && window.CHESTBacktests.get(backtestId);
-    if (!bt || !window.CHESTBacktestEngine) return [];
-    const riskConfig = (isPropfirm && bt.pf) ? bt.pf : bt.cp;
-    return datedSeriesToDailyPnl(buildBacktestDatedCurve(bt, riskConfig));
-  }
-  // Historique jour par jour d'un compte INDIVIDUEL (myfxbook persisté + son
-  // propre backtest de départ, s'il y en a un — le reel prend le dessus sur
-  // les dates ou les deux se chevauchent, voir sumDailyPnl). `includeBacktest`
-  // (par defaut true) permet de l'exclure entierement - "mode simple" (voir
-  // dashboardSimpleMode), retour direct utilisateur du 2026-09-17.
-  function buildDailyHistory(account, includeBacktest) {
+  // Historique jour par jour d'un compte INDIVIDUEL (myfxbook persisté).
+  function buildDailyHistory(account) {
     const realParts = account.myfxbook ? [realDailyPnlFromHistory(account.id)] : [];
-    const btParts = (includeBacktest !== false && account.startBacktestId) ? [backtestDailyPnl(account.startBacktestId, account.isPropfirm)] : [];
-    return sumDailyPnl(realParts, btParts);
-  }
-  // Historique jour par jour d'une FAMILLE : somme de l'historique reel
-  // persiste de chaque membre (jamais leur backtest individuel - meme regle
-  // que buildFamilyAggregate, skipBacktest) + le backtest choisi POUR LA
-  // FAMILLE, une seule fois - le reel prend le dessus en cas de chevauchement.
-  function buildFamilyDailyHistory(fam, members, isPropfirm, includeBacktest) {
-    const realParts = members.filter((a) => a.myfxbook).map((a) => realDailyPnlFromHistory(a.id));
-    const btParts = (includeBacktest !== false && fam.startBacktestId) ? [backtestDailyPnl(fam.startBacktestId, isPropfirm)] : [];
-    return sumDailyPnl(realParts, btParts);
+    return sumDailyPnl(realParts);
   }
 
   // Risque fixe reellement utilise par l'utilisateur - source unique pour
@@ -747,22 +631,29 @@
     }
   }
 
-  // ---------- Switcher de comptes, avec familles imbriquées ----------
+  // ---------- Switcher de comptes : liste PLATE, plus de familles imbriquées (2026-09-29, demande
+  // utilisateur : "les famille ce sont les journal... on vois tout les compte avec notifier le
+  // journal rattaché (pas de famille)") - chaque compte affiche simplement le journal auquel il
+  // est rattaché (voir journalNameFor), et son ⋮ permet de le rattacher à un autre journal, le
+  // renommer, ou le supprimer (le journal et son historique de trades survivent toujours à la
+  // suppression du compte miroir — "si ils sont supprimer les infos reste dans leur journal"). ----------
   function accountRowHtml(a, activeId) {
     // Les comptes "Live" (Myfxbook admin auto-synchronisé, pont MT5 local) ne sont pas des comptes
     // créés depuis le site : rien à supprimer ici, pas de bouton ⋮ pour eux.
     const canDelete = !a.isLiveSwann && a.id !== 'mt5-live';
+    const journalName = journalNameFor(a);
     return `
       <div class="acc-row">
         <button class="acc-menu__item ${a.id === activeId ? 'is-active' : ''}" data-id="${a.id}">
           <span class="avatar ${a.isLiveSwann ? 'is-live' : ''}">${a.isLiveSwann ? '🟢' : a.live ? '🔴' : initials(a.name)}</span>
-          <span><strong>${a.name}</strong><span>#${a.number} · ${a.type}</span></span>
+          <span><strong>${a.name}</strong><span>${journalName ? '📒 ' + journalName : `#${a.number} · ${a.type}`}</span></span>
         </button>
         ${canDelete ? `
         <div class="acc-tools">
           <button type="button" class="acc-tools__btn" aria-label="Options du compte ${a.name}">⋮</button>
           <div class="acc-tools__menu">
-            <button type="button" data-pick-backtest-account="${a.id}">📊 ${a.startBacktestId ? 'Changer le backtesting' : 'Choisir un backtesting'}</button>
+            <button type="button" data-reattach-account="${a.id}">📒 Rattacher à un autre journal</button>
+            <button type="button" data-rename-account="${a.id}">✎ Renommer le compte</button>
             <button type="button" class="is-danger" data-delete-account="${a.id}">Supprimer</button>
           </div>
         </div>` : ''}
@@ -771,36 +662,7 @@
 
   function renderAccountMenu(accounts, active) {
     const list = document.getElementById('accMenuList');
-    const families = loadFamilies();
-    const groupedIds = new Set(families.flatMap((f) => f.accountIds));
-    const ungrouped = accounts.filter((a) => !groupedIds.has(a.id));
-
-    const familyHtml = families.map((fam) => {
-      const famAccounts = fam.accountIds.map((id) => accounts.find((a) => a.id === id)).filter(Boolean);
-      const isFamilyActive = active.id === fam.id;
-      const isOpen = openFamilyIds.has(fam.id) || isFamilyActive || famAccounts.some((a) => a.id === active.id);
-      return `
-        <div class="acc-menu__family" data-family-id="${fam.id}">
-          <div class="acc-menu__family-row">
-            <button type="button" class="acc-menu__family-head ${isOpen ? 'is-open' : ''} ${isFamilyActive ? 'is-active' : ''}" data-select-family="${fam.id}">
-              <span>${fam.name}</span><span class="chev">▾</span>
-            </button>
-            <div class="acc-tools">
-              <button type="button" class="acc-tools__btn" aria-label="Options pour ${fam.name}">⋮</button>
-              <div class="acc-tools__menu">
-                <button type="button" data-add-to-family="${fam.id}">＋ Ajouter un compte</button>
-                <button type="button" data-pick-backtest-family="${fam.id}">📊 ${fam.startBacktestId ? 'Changer le backtesting' : 'Choisir un backtesting'}</button>
-                <button type="button" class="is-danger" data-delete-family="${fam.id}">Supprimer</button>
-              </div>
-            </div>
-          </div>
-          <div class="acc-menu__family-accounts" ${isOpen ? '' : 'hidden'}>
-            ${famAccounts.length ? famAccounts.map((a) => accountRowHtml(a, active.id)).join('') : '<div class="acc-menu__item" style="cursor:default;color:var(--faint);font-size:12px">Vide — utilise le ⋮ ci-dessus pour ajouter un compte.</div>'}
-          </div>
-        </div>`;
-    }).join('');
-
-    list.innerHTML = familyHtml + ungrouped.map((a) => accountRowHtml(a, active.id)).join('');
+    list.innerHTML = accounts.map((a) => accountRowHtml(a, active.id)).join('');
 
     list.querySelectorAll('[data-id]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -809,147 +671,79 @@
         renderAll();
       });
     });
-    // Cliquer le nom d'une famille = choisir sa vue agrégée (somme de tous
-    // ses comptes) ET la deplier - contrairement a un simple switcher, une
-    // famille EST un compte a part entiere (retour direct utilisateur du
-    // 2026-09-15 : "toutes les comptes qui s'additionnent pour former le
-    // dashboard complet").
-    list.querySelectorAll('[data-select-family]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = btn.dataset.selectFamily;
-        openFamilyIds.add(id);
-        localStorage.setItem(ACTIVE_KEY, id);
-        closeMenu();
-        renderAll();
-      });
-    });
-    list.querySelectorAll('[data-add-to-family]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openAddAccountModal(btn.dataset.addToFamily);
-      });
-    });
     list.querySelectorAll('[data-delete-account]').forEach((btn) => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); deleteAccount(btn.dataset.deleteAccount); });
     });
-    list.querySelectorAll('[data-delete-family]').forEach((btn) => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); deleteFamily(btn.dataset.deleteFamily); });
+    list.querySelectorAll('[data-rename-account]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); renameAccount(btn.dataset.renameAccount); });
     });
-    list.querySelectorAll('[data-pick-backtest-family]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openBacktestPicker('family', btn.dataset.pickBacktestFamily);
-      });
-    });
-    list.querySelectorAll('[data-pick-backtest-account]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openBacktestPicker('account', btn.dataset.pickBacktestAccount);
-      });
+    list.querySelectorAll('[data-reattach-account]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openReattachJournalModal(btn.dataset.reattachAccount); });
     });
   }
 
-  // Remplace un window.prompt() natif - ne fonctionne pas dans ce panneau
-  // d'apercu integre (bouton sans aucun effet visible pour l'utilisateur,
-  // constate en direct le 2026-09-15). Vraie fenetre du site a la place.
-  function openFamilyPrompt() {
-    document.getElementById('newFamilyName').value = '';
-    document.getElementById('newFamilyModal').classList.add('is-open');
-    requestAnimationFrame(() => document.getElementById('newFamilyName').focus());
-  }
-  function closeFamilyModal() {
-    document.getElementById('newFamilyModal').classList.remove('is-open');
-  }
-  function createFamilyFromModal() {
-    const name = document.getElementById('newFamilyName').value.trim();
-    if (!name) { showToast('Donne un nom à la famille'); return; }
-    const families = loadFamilies();
-    const fam = { id: 'fam-' + Date.now(), name, accountIds: [] };
-    families.push(fam);
-    saveFamilies(families);
-    openFamilyIds.add(fam.id);
-    closeFamilyModal();
-    closeMenu();
-    // Enchaine directement sur "Ajouter un compte" DANS cette famille (2026-09-24, demande
-    // utilisateur : "il est préférable de juste créer une famille d'abord [...] puis une fois créée
-    // là il crée son compte dedans, pas l'inverse") - une famille vide n'a rien à montrer, le geste
-    // naturel qui suit sa création est d'y mettre un premier compte, jamais un second clic à
-    // retrouver soi-même dans un switcher qui, au tout premier lancement, n'est même pas visible
-    // (dashboard encore sur l'état vide "Ajoute ton premier compte").
-    showToast('Famille créée ✓');
-    openAddAccountModal(fam.id);
-  }
-  function initFamilyModal() {
-    document.getElementById('newFamilyClose').addEventListener('click', closeFamilyModal);
-    document.getElementById('newFamilyModal').addEventListener('click', (e) => {
-      if (e.target.id === 'newFamilyModal') closeFamilyModal();
-    });
-    document.getElementById('newFamilyCreateBtn').addEventListener('click', createFamilyFromModal);
-    document.getElementById('newFamilyName').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') createFamilyFromModal();
-    });
-  }
-
-  // ---------- Backtesting de depart d'une FAMILLE OU D'UN COMPTE SEUL (choix accessible depuis le
-  // menu ⋮ du switcher) - generalise (2026-09-25, retour utilisateur : "j'ai un compte connecte a
-  // myfxbook et que j'ajoute un backtesting, il marche pas, y a rien qui s'affiche") : le pipeline de
-  // rendu (refreshActiveAccount(), ligne ~1657) lisait deja startBacktestId sur un compte INDIVIDUEL
-  // aussi bien que sur une famille - seul CE picker et son bouton n'existaient que pour les
-  // familles, un compte seul (myfxbook ou pas) n'avait simplement aucun moyen d'en choisir un apres
-  // sa creation (uniquement a la creation, via #addAccountBacktest dans "Ajouter un compte"). ----------
-  let pendingBacktestTarget = null; // { kind: 'family'|'account', id }
-  function openBacktestPicker(kind, id) {
-    pendingBacktestTarget = { kind, id };
-    const target = kind === 'family' ? loadFamilies().find((f) => f.id === id) : loadAccounts().find((a) => a.id === id);
-    const items = (window.CHESTBacktests && window.CHESTBacktests.list()) || [];
-    const rows = [];
-    if (target && target.startBacktestId) {
-      rows.push(`<button type="button" class="mfx-account-row" data-backtest-choice="">✕ Retirer le backtesting actuel</button>`);
-    }
-    if (!items.length) {
-      rows.push(`<p class="hint" style="margin:0">Aucun backtest disponible — ajoutes-en un depuis <a href="backtesting.html">Backtesting</a>.</p>`);
-    } else {
-      items.forEach((b) => {
-        rows.push(`
-          <button type="button" class="mfx-account-row ${target && target.startBacktestId === b.id ? 'is-selected' : ''}" data-backtest-choice="${b.id}">
-            <span><strong>${b.title}</strong><span>${b.trades.length} trades · ${money(b.capital)} capital</span></span>
-          </button>`);
-      });
-    }
-    const list = document.getElementById('familyBacktestList');
-    list.innerHTML = rows.join('');
-    list.querySelectorAll('[data-backtest-choice]').forEach((btn) => {
-      btn.addEventListener('click', () => setBacktestTarget(btn.dataset.backtestChoice || null));
-    });
-    document.getElementById('familyBacktestModal').classList.add('is-open');
-  }
-  function closeFamilyBacktestModal() { document.getElementById('familyBacktestModal').classList.remove('is-open'); }
-  function setBacktestTarget(backtestId) {
-    if (!pendingBacktestTarget) return;
-    const { kind, id } = pendingBacktestTarget;
-    if (kind === 'family') {
-      const families = loadFamilies();
-      const fam = families.find((f) => f.id === id);
-      if (!fam) return;
-      fam.startBacktestId = backtestId || null;
-      saveFamilies(families);
-    } else {
-      const accounts = loadAccounts();
-      const acc = accounts.find((a) => a.id === id);
-      if (!acc) return;
-      acc.startBacktestId = backtestId || null;
-      saveAccounts(accounts);
-    }
-    closeFamilyBacktestModal();
+  async function renameAccount(id) {
+    const accounts = loadAccounts();
+    const acc = accounts.find((a) => a.id === id);
+    if (!acc) return;
+    const name = await CHESTPrompt('Nouveau nom du compte :', { value: acc.name, confirmLabel: 'Renommer' });
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) { showToast('Le nom ne peut pas être vide'); return; }
+    acc.name = trimmed;
+    saveAccounts(accounts);
     closeMenu();
     renderAll();
-    showToast(backtestId ? 'Backtesting associé ✓' : 'Backtesting retiré');
+    showToast('Compte renommé ✓');
   }
-  function initFamilyBacktestModal() {
-    document.getElementById('familyBacktestClose').addEventListener('click', closeFamilyBacktestModal);
-    document.getElementById('familyBacktestModal').addEventListener('click', (e) => {
-      if (e.target.id === 'familyBacktestModal') closeFamilyBacktestModal();
+
+  // ---------- Rattacher un compte à un autre compte du Journal (menu ⋮, 2026-09-29) ----------
+  let pendingReattachAccountId = null;
+  function openReattachJournalModal(accountId) {
+    pendingReattachAccountId = accountId;
+    const list = document.getElementById('reattachJournalList');
+    const items = (window.CHESTJournal && window.CHESTJournal.listAccounts()) || [];
+    list.innerHTML = items.length
+      ? items.map((j) => `
+        <button type="button" class="mfx-account-row" data-journal-id="${j.id}">
+          <span><strong>${j.name}</strong><span>${j.type === 'propfirm' ? 'Propfirm' : 'Compte propre'}</span></span>
+        </button>`).join('')
+      : '<p class="hint">Aucun compte dans le Journal — crée-en un depuis <a href="journal.html">Journal</a>.</p>';
+    list.querySelectorAll('[data-journal-id]').forEach((btn) => {
+      btn.addEventListener('click', () => reattachAccountToJournal(btn.dataset.journalId));
+    });
+    document.getElementById('reattachJournalModal').classList.add('is-open');
+  }
+  function closeReattachJournalModal() { document.getElementById('reattachJournalModal').classList.remove('is-open'); }
+  function reattachAccountToJournal(journalId) {
+    const accounts = loadAccounts();
+    const acc = accounts.find((a) => a.id === pendingReattachAccountId);
+    if (!acc) return;
+    // Compte Myfxbook : deplace son enregistrement "live" du journal precedent (si connu) vers le
+    // nouveau - les positions deja importees restent dans l'ancien journal (l'utilisateur peut les
+    // y retrouver), seule la synchronisation future change de destination.
+    if (acc.myfxbook && window.CHESTJournal) {
+      if (acc.journalAccountId && acc.journalLiveId) {
+        window.CHESTJournal.removeLiveAccount(acc.journalAccountId, acc.journalLiveId);
+      }
+      const live = window.CHESTJournal.addLiveAccount(journalId, {
+        name: acc.name, email: acc.myfxbook.email, password: acc.myfxbook.password, accountId: acc.myfxbook.accountId,
+        demo: acc.type === 'Démo', currency: null,
+      });
+      acc.journalLiveId = live ? live.id : null;
+      if (live) window.CHESTJournal.syncLiveAccount(journalId, live.id).catch(() => { /* resynchronisable depuis journal.html */ });
+    }
+    acc.journalAccountId = journalId;
+    saveAccounts(accounts);
+    closeReattachJournalModal();
+    closeMenu();
+    renderAll();
+    showToast('Compte rattaché au journal ✓');
+  }
+  function initReattachJournalModal() {
+    document.getElementById('reattachJournalClose').addEventListener('click', closeReattachJournalModal);
+    document.getElementById('reattachJournalModal').addEventListener('click', (e) => {
+      if (e.target.id === 'reattachJournalModal') closeReattachJournalModal();
     });
   }
 
@@ -965,7 +759,13 @@
     document.getElementById('accName').textContent = a.name;
     document.getElementById('accSub').textContent = `#${a.number} · ${a.type}`;
     const titleEl = document.getElementById('accKindTitle');
-    titleEl.textContent = a.isPropfirm ? 'Propfirm' : (a.myfxbook || a.live || a.isFamily ? 'Compte propre' : 'Démo');
+    titleEl.textContent = a.isPropfirm ? 'Propfirm' : (a.myfxbook || a.live ? 'Compte propre' : 'Démo');
+    // Journal rattaché (2026-09-29, demande utilisateur : "on vois tout les compte avec notifier
+    // le journal rattaché").
+    const journalTag = document.getElementById('accJournalTag');
+    const jName = journalNameFor(a);
+    if (jName) { journalTag.textContent = '📒 ' + jName; journalTag.hidden = false; }
+    else { journalTag.hidden = true; }
     const errEl = document.getElementById('accSyncError');
     if (a.myfxbookError) {
       errEl.hidden = false;
@@ -1096,31 +896,15 @@
       const rec = byDate.get(key);
       days.push({ date: d, key, pnl: rec ? rec.pnl : null, pct: rec ? rec.pct : null, source: rec ? rec.source : null });
     }
-    // %/$ - meme bascule que le graphique juste au-dessus (retour direct
-    // utilisateur du 2026-09-16). Un jour de BACKTEST sur un compte PROPRE
-    // (pas propfirm) se colore en jaune/orange plutot que vert/rouge - permet
-    // de distinguer d'un coup d'oeil une position simulee d'une vraie
-    // position (retour direct utilisateur du 2026-09-17 : "position gagnante
-    // du backtesting en jaune, perdante en orange, vraies positions en vert
-    // et rouge"). Un retrait simule (mode PF simule, voir renderPayouts) est
-    // note en jaune sous la case du jour concerne.
-    const isBacktestDay = (d) => d.source === 'backtest' && !isPropfirmAccount;
-    const simEventsByDate = (isPropfirmAccount && lastPfSim) ? new Map(lastPfSim.events.map((e) => [e.date, e])) : null;
-    const cells = days.map(({ date, key, pnl, pct, source }) => {
+    // %/$ - meme bascule que le graphique juste au-dessus (retour direct utilisateur du 2026-09-16).
+    const cells = days.map(({ date, key, pnl, pct }) => {
       const v = unit === 'percent' ? pct : pnl;
-      const backtest = isBacktestDay({ source });
-      const toneClass = v === null ? '' : (backtest ? (v > 0 ? 'bt-pos' : v < 0 ? 'bt-neg' : '') : (v > 0 ? 'pos' : v < 0 ? 'neg' : ''));
+      const toneClass = v === null ? '' : (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
       const cls = toneClass + (key === todayIso ? ' is-today' : '');
       const label = v === null ? '·' : v === 0 ? '—'
         : unit === 'percent' ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
           : `${v >= 0 ? '+' : '-'}$${Math.abs(v).toFixed(0)}`;
-      const simEvent = simEventsByDate ? simEventsByDate.get(key) : null;
-      const note = simEvent
-        ? (simEvent.type === 'withdrawal' ? `<span class="n">💰 ${money(simEvent.amount)}</span>`
-          : simEvent.type === 'blown' ? `<span class="n">✕ cramé</span>`
-            : `<span class="n">✓ revalidé</span>`)
-        : '';
-      return `<div class="mini-cal__cell ${cls}"><span class="d">${date.getDate()}/${date.getMonth() + 1}</span><span class="p">${label}</span>${note}</div>`;
+      return `<div class="mini-cal__cell ${cls}"><span class="d">${date.getDate()}/${date.getMonth() + 1}</span><span class="p">${label}</span></div>`;
     }).join('');
     document.getElementById('miniCalGrid').innerHTML = cells;
     const isPercent = unit === 'percent';
@@ -1162,109 +946,6 @@
     });
   }
 
-  // ---------- Simulation de cycle de retrait PF (retour direct utilisateur
-  // du 2026-09-17) ----------
-  // Simule des conditions de retrait REALISTES appliquees a l'historique
-  // jour par jour (backtest + reel, dailyHistory) d'un compte propfirm :
-  // capital fixe a 100 000$ au depart de chaque cycle, 14 jours minimum
-  // avant d'etre eligible, +1% de profit minimum, retrait le dimanche (fin
-  // de semaine) du % configure (80% par defaut) du profit SI le montant
-  // depasse le palier minimum configure (1000$ par defaut) - sinon on
-  // continue d'accumuler. Si le compte "crame" (perte >= regle max du
-  // challenge), on simule un redemarrage Phase 1 -> Phase 2 -> Financé sur
-  // la suite de la MEME sequence de rendements quotidiens, et on rapporte le
-  // temps mis a revalider (ou "en cours" si les donnees s'arretent avant).
-  // Une simulation, jamais un vrai retrait ni une promesse de resultat -
-  // meme honnetete que le reste de CHEST sur ses heuristiques.
-  const PAYOUT_SIM_KEY = 'chest_payout_sim_settings';
-  const PAYOUT_VIEW_KEY = 'chest_payout_view_mode';
-  function loadPayoutSimSettings(accountId) {
-    let all = {};
-    try { all = JSON.parse(localStorage.getItem(PAYOUT_SIM_KEY) || '{}'); } catch (e) { /* tant pis */ }
-    return all[accountId] || { payoutPct: 80, minPayout: 1000 };
-  }
-  function savePayoutSimSettings(accountId, settings) {
-    let all = {};
-    try { all = JSON.parse(localStorage.getItem(PAYOUT_SIM_KEY) || '{}'); } catch (e) { /* tant pis */ }
-    all[accountId] = settings;
-    try { localStorage.setItem(PAYOUT_SIM_KEY, JSON.stringify(all)); } catch (e) { /* tant pis */ }
-  }
-  function loadPayoutViewMode(accountId) {
-    let all = {};
-    try { all = JSON.parse(localStorage.getItem(PAYOUT_VIEW_KEY) || '{}'); } catch (e) { /* tant pis */ }
-    return all[accountId] || 'real';
-  }
-  function savePayoutViewMode(accountId, mode) {
-    let all = {};
-    try { all = JSON.parse(localStorage.getItem(PAYOUT_VIEW_KEY) || '{}'); } catch (e) { /* tant pis */ }
-    all[accountId] = mode;
-    try { localStorage.setItem(PAYOUT_VIEW_KEY, JSON.stringify(all)); } catch (e) { /* tant pis */ }
-  }
-
-  // Regles de phase (profit cible + perte max) - reprend celles du
-  // propfirm reconnu (CHEST_BROKERS, voir findBrokerMeta) si connu, sinon
-  // des valeurs standard de l'industrie par defaut, jamais inventees comme
-  // "exactes" (voir rulesNote sur chaque propfirm connu).
-  function pfChallengeRules(account) {
-    const meta = findBrokerMeta(account);
-    if (meta && meta.rules) return meta.rules;
-    return {
-      phase1: { profitTargetPct: 10, maxLossPct: 10 },
-      phase2: { profitTargetPct: 5, maxLossPct: 10 },
-      funded: { maxLossPct: 10 },
-    };
-  }
-
-  function simulatePfLifecycle(dailyHistory, account, settings) {
-    const START = 100000;
-    const rules = pfChallengeRules(account);
-    const events = [];
-    const byDate = new Map(); // date -> {capital, state}
-    let state = 'funded';
-    let capital = START;
-    let cycleStart = null;
-    let phaseStart = null;
-    let blownDate = null;
-
-    (dailyHistory || []).forEach((d) => {
-      const date = new Date(d.date + 'T12:00:00');
-      if (cycleStart === null) cycleStart = date;
-      if (phaseStart === null) phaseStart = date;
-      capital *= 1 + (d.pct || 0) / 100;
-
-      if (state === 'funded') {
-        const maxLossPct = (rules.funded && rules.funded.maxLossPct) || 10;
-        if (capital <= START * (1 - maxLossPct / 100)) {
-          events.push({ date: d.date, type: 'blown', capital });
-          state = 'phase1'; capital = START; phaseStart = date; blownDate = date; cycleStart = null;
-        } else if (date.getDay() === 0 && Math.round((date - cycleStart) / 86400000) >= 14) {
-          const profit = capital - START, profitPct = profit / START * 100;
-          if (profitPct >= 1) {
-            const payout = profit * (settings.payoutPct / 100);
-            if (payout >= settings.minPayout) {
-              events.push({ date: d.date, type: 'withdrawal', amount: payout, profitPct });
-              capital = START; cycleStart = null;
-            }
-          }
-        }
-      } else if (state === 'phase1') {
-        const target = (rules.phase1 && rules.phase1.profitTargetPct) || 10;
-        if ((capital - START) / START * 100 >= target) {
-          state = 'phase2'; capital = START; phaseStart = date;
-        }
-      } else if (state === 'phase2') {
-        const target = (rules.phase2 && rules.phase2.profitTargetPct) || 5;
-        if ((capital - START) / START * 100 >= target) {
-          events.push({ date: d.date, type: 'refunded', days: Math.round((date - blownDate) / 86400000) });
-          state = 'funded'; capital = START; cycleStart = date;
-        }
-      }
-      byDate.set(d.date, { capital, state });
-    });
-
-    return { events, byDate, finalState: state, inProgress: state !== 'funded' };
-  }
-
   // Volet repliable de la liste des payouts individuels - ferme par defaut,
   // retour direct utilisateur du 2026-09-17 ("le volet des payout
   // individuelle j'aimerais qu'il soit par defaut ferme et que je puisse
@@ -1287,67 +968,30 @@
     return d >= range[0] && d <= range[1];
   }
 
-  // ---------- Payouts propfirm : reel (saisi a la main) OU simule (cycle de
-  // retrait applique au backtest+reel, voir simulatePfLifecycle) - bascule
-  // par l'oeil, retour direct utilisateur du 2026-09-17. Filtres sur la MEME
-  // periode que les KPI au-dessus (#periodPills), jamais sur une famille les
-  // regles individuelles de chaque compte (payouts reels) mais la simulation
-  // marche partout.
+  // ---------- Payouts propfirm : reel, saisi a la main. Filtres sur la MEME periode que les KPI
+  // au-dessus (#periodPills). Plus de mode "Simulé" (2026-09-29, demande utilisateur : "tu peux
+  // enlever la partie simuler du dashboard").
   function renderPayouts(a) {
     const bar = document.getElementById('payoutBar');
-    if (!a || !a.isPropfirm) { bar.hidden = true; lastPfSim = null; return; }
+    if (!a || !a.isPropfirm) { bar.hidden = true; return; }
     bar.hidden = false;
     if (a.id !== lastPayoutAccountId) { payoutListOpen = false; lastPayoutAccountId = a.id; }
-    const viewToggle = document.getElementById('payoutViewToggle');
-    const settingsBtn = document.getElementById('payoutSettingsBtn');
     const period = document.querySelector('#periodPills .is-active')?.dataset.period || 'month';
     const range = periodRange(period);
-    // Le mode simule marche aussi pour une famille (retour direct
-    // utilisateur du 2026-09-17 : "je sais pas ou tu l'as mis mais il doit
-    // etre applique au dashboard") - la simulation tourne alors sur
-    // l'historique jour par jour DEJA agrege de la famille (dailyHistory),
-    // avec des regles de phase generiques (pas de propfirm precis au niveau
-    // d'une famille). Seule la SAISIE manuelle de payout reste par compte
-    // individuel (voir plus bas, payoutAddBtn).
-    const mode = loadPayoutViewMode(a.id);
-    viewToggle.hidden = false;
-    viewToggle.querySelectorAll('button').forEach((b) => b.classList.toggle('is-active', b.dataset.view === mode));
-    settingsBtn.hidden = mode !== 'sim';
     setPayoutListOpen(payoutListOpen);
 
-    if (mode === 'sim') {
-      const settings = loadPayoutSimSettings(a.id);
-      const sim = simulatePfLifecycle(a.dailyHistory, a, settings);
-      lastPfSim = sim;
-      const withdrawals = sim.events.filter((e) => e.type === 'withdrawal');
-      const withdrawalsInPeriod = withdrawals.filter((e) => inPeriodRange(e.date, range));
-      const total = withdrawalsInPeriod.reduce((s, e) => s + e.amount, 0);
-      document.getElementById('payoutTotal').textContent = money(total);
-      const rows = sim.events.filter((e) => inPeriodRange(e.date, range)).slice().reverse();
-      document.getElementById('payoutList').innerHTML = rows.length
-        ? rows.map((e) => {
-            if (e.type === 'withdrawal') return `<div class="payout-row"><span>${new Date(e.date).toLocaleDateString('fr-FR')} · +${e.profitPct.toFixed(1)}%</span><b class="val pos">${money(e.amount)}</b></div>`;
-            if (e.type === 'blown') return `<div class="payout-row"><span>${new Date(e.date).toLocaleDateString('fr-FR')}</span><b class="val neg">Compte cramé (simulation)</b></div>`;
-            return `<div class="payout-row"><span>${new Date(e.date).toLocaleDateString('fr-FR')} · ${e.days} jour${e.days > 1 ? 's' : ''}</span><b class="val pos">Revalidé ✓</b></div>`;
-          }).join('')
-        : '<p class="hint" style="margin:0">Aucun évènement simulé sur cette période.</p>';
-      document.getElementById('payoutAddBtn').style.display = 'none';
-      return;
-    }
-
-    lastPfSim = null;
     const entries = (a.payouts || []).filter((p) => inPeriodRange(p.date, range)).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
     const total = entries.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
     document.getElementById('payoutTotal').textContent = money(total);
     document.getElementById('payoutList').innerHTML = entries.length
       ? entries.map((p) => `
         <div class="payout-row">
-          <span>${p.date ? new Date(p.date).toLocaleDateString('fr-FR') : '—'}${a.isFamily ? ' · ' + p.accountName : ''}</span>
+          <span>${p.date ? new Date(p.date).toLocaleDateString('fr-FR') : '—'}</span>
           <b>${money(parseFloat(p.amount) || 0)}</b>
-          ${a.isFamily ? '' : `<button type="button" class="payout-row__del" data-del-payout="${p.id}" aria-label="Supprimer ce payout">✕</button>`}
+          <button type="button" class="payout-row__del" data-del-payout="${p.id}" aria-label="Supprimer ce payout">✕</button>
         </div>`).join('')
       : '<p class="hint" style="margin:0">Aucun payout enregistré sur cette période.</p>';
-    document.getElementById('payoutAddBtn').style.display = a.isFamily ? 'none' : '';
+    document.getElementById('payoutAddBtn').style.display = '';
     document.getElementById('payoutList').querySelectorAll('[data-del-payout]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!(await CHESTConfirm('Supprimer ce payout ?'))) return;
@@ -1390,8 +1034,6 @@
       if (e.target.id === 'payoutModal') closePayoutModal();
     });
     document.getElementById('payoutAddBtn').addEventListener('click', () => {
-      const raw = currentAccount();
-      if (raw.isFamily) { showToast('Ajoute le payout depuis le compte propfirm concerné, pas depuis la famille.'); return; }
       openPayoutModal();
     });
     document.getElementById('payoutSaveBtn').addEventListener('click', () => {
@@ -1409,40 +1051,6 @@
     document.getElementById('payoutListToggle').addEventListener('click', () => {
       setPayoutListOpen(!payoutListOpen);
     });
-
-    // ---- Oeil Réel/Simulé + réglages du cycle de retrait simulé (marche
-    // aussi pour une famille, voir renderPayouts) ----
-    document.querySelectorAll('#payoutViewToggle button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const raw = currentAccount();
-        savePayoutViewMode(raw.id, btn.dataset.view);
-        renderPayouts(activeAccountData);
-        renderMiniCalendar(activeAccountData);
-      });
-    });
-    document.getElementById('payoutSettingsBtn').addEventListener('click', () => {
-      const raw = currentAccount();
-      const s = loadPayoutSimSettings(raw.id);
-      document.getElementById('payoutSimPct').value = s.payoutPct;
-      document.getElementById('payoutSimMin').value = s.minPayout;
-      document.getElementById('payoutSettingsModal').classList.add('is-open');
-    });
-    document.getElementById('payoutSettingsClose').addEventListener('click', () => {
-      document.getElementById('payoutSettingsModal').classList.remove('is-open');
-    });
-    document.getElementById('payoutSettingsModal').addEventListener('click', (e) => {
-      if (e.target.id === 'payoutSettingsModal') document.getElementById('payoutSettingsModal').classList.remove('is-open');
-    });
-    document.getElementById('payoutSimSave').addEventListener('click', () => {
-      const raw = currentAccount();
-      const payoutPct = Math.min(100, Math.max(1, parseFloat(document.getElementById('payoutSimPct').value) || 80));
-      const minPayout = Math.max(0, parseFloat(document.getElementById('payoutSimMin').value) || 0);
-      savePayoutSimSettings(raw.id, { payoutPct, minPayout });
-      document.getElementById('payoutSettingsModal').classList.remove('is-open');
-      renderPayouts(activeAccountData);
-      renderMiniCalendar(activeAccountData);
-      showToast('Conditions de retrait mises à jour ✓');
-    });
   }
 
   // ---------- Modifier les objectifs d'un compte existant - accessible a
@@ -1458,33 +1066,14 @@
     return window.CHEST_BROKERS.find((b) => b.id === account.brokerId) || null;
   }
 
-  // Resout QUEL compte editer : le compte lui-meme, ou pour une famille, le
-  // membre dont les objectifs sont deja affiches (meme regle que
-  // buildFamilyAggregate/"withObjectives" - le dernier membre de la chaine
-  // qui a des regles renseignees), sinon le dernier membre de la famille par
-  // defaut - retour direct utilisateur du 2026-09-17 ("il manque l'onglet
-  // parametre du propfirm pour mettre les conditions du pf" [depuis la vue
-  // famille]).
-  function resolveObjectivesAccount(raw) {
-    if (!raw.isFamily) return raw;
-    const fam = loadFamilies().find((f) => f.id === raw.id);
-    if (!fam) return null;
-    const accounts = loadAccounts();
-    const members = fam.accountIds.map((id) => accounts.find((a) => a.id === id)).filter(Boolean);
-    if (!members.length) return null;
-    return [...members].reverse().find((a) => a.challengeObjectives) || members[members.length - 1];
-  }
-
   function openEditObjectivesModal() {
     const raw = currentAccount();
-    const target = resolveObjectivesAccount(raw);
-    if (!target) { showToast("Ajoute d'abord un compte à cette famille."); return; }
+    if (!raw) return;
     const accounts = loadAccounts();
-    const acc = accounts.find((a) => a.id === target.id);
+    const acc = accounts.find((a) => a.id === raw.id);
     if (!acc) return;
     editObjectivesAccountId = acc.id;
-    document.getElementById('editObjectivesTitle').textContent = raw.isFamily
-      ? `Objectifs du challenge — ${acc.name}` : 'Objectifs du challenge';
+    document.getElementById('editObjectivesTitle').textContent = 'Objectifs du challenge';
 
     const meta = findBrokerMeta(acc);
     const phaseBlock = document.getElementById('editObjectivesPhaseBlock');
@@ -1570,128 +1159,39 @@
     });
   }
 
-  // Renvoie null quand il n'y a ni compte ni famille (etat vide, voir
-  // renderAll()) — ne plus supposer accounts[0] toujours present depuis le
-  // retrait des comptes de demonstration (2026-09-23).
+  // Renvoie null quand il n'y a aucun compte (etat vide, voir renderAll()) —
+  // ne plus supposer accounts[0] toujours present depuis le retrait des
+  // comptes de demonstration (2026-09-23). Plus de famille (2026-09-29) :
+  // chaque compte reste individuel, rattache a un compte du Journal (voir
+  // journalNameFor).
   function currentAccount() {
     const accounts = loadAccounts();
     const id = activeId(accounts);
     if (id === null) return null;
-    const fam = loadFamilies().find((f) => f.id === id);
-    if (fam) {
-      return { id: fam.id, name: fam.name, number: `${fam.accountIds.length} comptes`, type: 'Famille', isFamily: true, example: false, balance: 0, equity: 0, pnl: 0, today: 0 };
-    }
     return accounts.find((a) => a.id === id) || accounts[0] || null;
   }
 
-  // Vue agregee d'une famille : somme reelle des comptes qui la composent
-  // (Phase 1 + Phase 2 + Finance, ou tout regroupement) - jamais de donnee
-  // inventee : rr/winrate ne sont pas calculables proprement au niveau
-  // agrege (comptes heterogenes), affiches honnetement en "—" plutot que
-  // moyennes trompeuses. Les comptes Myfxbook membres sont resynchronises
-  // avant d'etre sommes.
-  // "today" recompose depuis dailyHistory (deja fusionne reel+backtest avec
-  // priorite au reel) plutot que sommee/lue separement - meme convention
-  // partout (individuel ET famille), c'est exactement le sens de "les infos
-  // doivent cohordonner".
   function todayPnlFromHistory(dailyHistory) {
     const todayIso = isoDateLocal(new Date());
     const entry = (dailyHistory || []).find((d) => d.date === todayIso);
     return entry ? entry.pnl : 0;
   }
 
-  async function buildFamilyAggregate(fam, accounts) {
-    const rawMembers = fam.accountIds.map((id) => accounts.find((a) => a.id === id)).filter(Boolean);
-    const members = await Promise.all(rawMembers.map((a) => (a.myfxbook ? enrichWithMyfxbook(a) : a)));
-
-    const sum = (key) => members.reduce((s, a) => s + (a[key] || 0), 0);
-    const balance = sum('balance'), equity = sum('equity'), pnl = sum('pnl');
-
-    const isPropfirm = members.some((a) => a.isPropfirm);
-    const includeBacktest = !loadSimpleMode();
-    // Historique jour par jour DE LA FAMILLE (reel de chaque membre + le
-    // backtest choisi POUR LA FAMILLE, jamais celui d'un membre individuel -
-    // voir buildFamilyDailyHistory) : source unique pour Semaine/Mois/Annee
-    // ET pour les Objectifs, exactement comme un compte individuel. Recale
-    // sur le solde reel actuel (voir rescaleDailyHistoryPnl) - meme correctif
-    // que le compte individuel.
-    const dailyHistory = rescaleDailyHistoryPnl(buildFamilyDailyHistory(fam, members, isPropfirm, includeBacktest), balance);
-    const today = todayPnlFromHistory(dailyHistory);
-
-    // Objectifs : reprend la config du DERNIER compte de la chaine qui en a
-    // une renseignee (represente en general la phase actuelle du challenge),
-    // evalues sur l'historique jour par jour de la FAMILLE depuis son propre
-    // point de reset (payout/changement de phase le plus recent parmi les
-    // membres).
-    const withObjectives = [...members].reverse().find((a) => a.challengeObjectives);
-    const resetAt = withObjectives ? withObjectives.objectivesResetAt : null;
-    const objectives = withObjectives
-      ? evaluateChallengeObjectivesFromHistory(withObjectives.challengeObjectives, dailyHistory, resetAt)
-      : null;
-
-    // Payouts : simple reunion des payouts de chaque compte propfirm membre
-    // (chacun garde son historique propre, on ne fait qu'additionner pour la
-    // vue famille) - purement informatif, voir renderPayouts().
-    const payouts = members.flatMap((a) => (a.payouts || []).map((p) => ({ ...p, accountName: a.name })));
-
-    // Trades unifies : ceux de CHAQUE membre myfxbook reel + le backtest
-    // choisi POUR LA FAMILLE (openBacktestPicker('family', ...)) une seule
-    // fois - jamais le backtest individuel d'un membre, qui ne s'applique
-    // qu'a sa propre vue (intention deja en place avant ce refactor).
-    const riskPct = fixedRiskPercent();
-    const trades = members.filter((a) => a.myfxbook).flatMap((a) => realTradesWithRR(a.id, a.history, riskPct, a.balance));
-    let backtestLinkedTitle = null;
-    if (includeBacktest && fam.startBacktestId) {
-      const bt = window.CHESTBacktests && CHESTBacktests.get(fam.startBacktestId);
-      if (bt && window.CHESTBacktestEngine) {
-        const riskConfig = (isPropfirm && bt.pf) ? bt.pf : bt.cp;
-        trades.push(...backtestTradesList(bt, riskConfig));
-        backtestLinkedTitle = bt.title;
-      }
-    }
-    // Courbe intra-journee "Jour" : combine les vrais trades de TOUS les
-    // membres myfxbook, retries chronologiquement par leur horodatage reel
-    // de cloture (voir intradayCurveFromTrades).
-    const combinedHistory = members.filter((a) => a.myfxbook && a.history).flatMap((a) => a.history);
-    const periods = computeAllPeriods(dailyHistory, balance, trades, combinedHistory, backtestLinkedTitle);
-
-    return {
-      id: fam.id, name: fam.name, number: `${members.length} compte${members.length > 1 ? 's' : ''}`, type: 'Famille',
-      isFamily: true, example: members.length ? members.every((a) => a.example) : true,
-      balance, equity, pnl, today, periods, objectives, payouts, isPropfirm,
-      dailyHistory,
-    };
-  }
-
   async function refreshActiveAccount() {
     const raw = currentAccount();
-    if (raw.isFamily) {
-      const fam = loadFamilies().find((f) => f.id === raw.id);
-      activeAccountData = fam ? await buildFamilyAggregate(fam, loadAccounts()) : raw;
-      return;
-    }
     activeAccountData = raw.myfxbook ? await enrichWithMyfxbook(raw) : raw;
 
-    // Compte reel (myfxbook) et/ou lie a un backtest de depart : UN seul
-    // pipeline pour construire dailyHistory + les 4 periodes + les objectifs
-    // (retour direct utilisateur du 2026-09-16/17 : "les infos doivent
-    // cohordonner, utilise le backtesting + le reel et affiche un resultat
-    // logique"). Sans myfxbook ni backtest, `activeAccountData.periods` reste
-    // absent et `render()` retombe sur SAMPLE_PERIODS (compte de demo).
-    if (activeAccountData.myfxbook || activeAccountData.startBacktestId) {
-      const includeBacktest = !loadSimpleMode();
+    // Compte reel (myfxbook) : pipeline pour construire dailyHistory + les 4 periodes + les
+    // objectifs. Sans myfxbook, `activeAccountData.periods` reste absent et `render()` retombe
+    // sur SAMPLE_PERIODS (compte de demo).
+    if (activeAccountData.myfxbook) {
       activeAccountData.dailyHistory = rescaleDailyHistoryPnl(
-        buildDailyHistory(activeAccountData, includeBacktest), activeAccountData.balance);
+        buildDailyHistory(activeAccountData), activeAccountData.balance);
       activeAccountData.today = todayPnlFromHistory(activeAccountData.dailyHistory);
       const riskPct = fixedRiskPercent();
-      const trades = unifiedTradesList(activeAccountData, riskPct, includeBacktest);
-      let backtestLinkedTitle = null;
-      if (includeBacktest && activeAccountData.startBacktestId) {
-        const bt = window.CHESTBacktests && CHESTBacktests.get(activeAccountData.startBacktestId);
-        if (bt) backtestLinkedTitle = bt.title;
-      }
+      const trades = unifiedTradesList(activeAccountData, riskPct);
       activeAccountData.periods = computeAllPeriods(
-        activeAccountData.dailyHistory, activeAccountData.balance, trades, activeAccountData.history, backtestLinkedTitle);
+        activeAccountData.dailyHistory, activeAccountData.balance, trades, activeAccountData.history);
       if (activeAccountData.challengeObjectives) {
         activeAccountData.objectives = evaluateChallengeObjectivesFromHistory(
           activeAccountData.challengeObjectives, activeAccountData.dailyHistory, activeAccountData.objectivesResetAt);
@@ -1833,8 +1333,6 @@
   // CHAQUE compte du Dashboard, contrairement a CHESTBerich (une seule
   // connexion partagee pour Stratégies/BERICH). ----------
 
-  let pendingFamilyId = null;
-
   let chosenBroker = null; // {id, name} ou {id:'other', name: <saisi>} - meme convention que le wizard BERICH
   let chosenAccountKind = 'own'; // 'own' | 'propfirm' - conditionne l'affichage des payouts et le choix cp/pf du backtest de depart
   // 'myfxbook' | 'live' (2026-09-27, demande utilisateur : reserve admin - voir addAccountModeToggle) -
@@ -1848,14 +1346,17 @@
     return t ? { Authorization: 'Bearer ' + t } : {};
   }
 
-  // Backtest de depart (optionnel) : la liste vient de CHESTBacktests, donc
-  // repopulee a chaque ouverture pour refleter les backtests ajoutes/supprimes
-  // depuis backtesting.html entre-temps.
-  function populateBacktestSelect() {
-    const select = document.getElementById('addAccountBacktest');
-    const items = (window.CHESTBacktests && window.CHESTBacktests.list()) || [];
-    select.innerHTML = '<option value="">Aucun — nouveau compte, pas d\'historique</option>'
-      + items.map((b) => `<option value="${b.id}">${b.title}</option>`).join('');
+  // Journal (obligatoire, remplace l'ancien "Backtesting de depart" - 2026-09-29, demande
+  // utilisateur : "myfxbooks remplace juste le choix d'un backetsting par le choix d'un journal...
+  // tout les position noté dans myfxbooks doivent etre enregistrer indépendament et
+  // automatiquement dans un journal soit deja crée soit qu'on doit crée") : la liste vient de
+  // CHESTJournal.listAccounts(), donc repopulee a chaque ouverture pour refleter les comptes du
+  // Journal ajoutes/supprimes depuis journal.html entre-temps.
+  function populateJournalSelect() {
+    const select = document.getElementById('addAccountJournal');
+    const items = (window.CHESTJournal && window.CHESTJournal.listAccounts()) || [];
+    select.innerHTML = '<option value="">— Choisir un journal existant —</option>'
+      + items.map((a) => `<option value="${a.id}">${a.name}</option>`).join('');
   }
 
   let chosenPhase = null; // 'phase1' | 'phase2' | 'funded' | null - propfirm reconnue uniquement
@@ -1865,11 +1366,12 @@
   // pointe un id CHESTJournal.listAccounts() (existant OU tout juste créé depuis cet écran).
   let pendingLiveJournalId = null;
   let pendingLiveStage = null; // 'p1'|'p2'|'funded'|null (null = compte propre, pas de phase)
+  let pendingLiveKind = 'propfirm'; // 'propfirm'|'own' - filtre #liveJournalList (toggle du haut, 2026-09-29)
+  let pendingLiveBroker = null; // {id, name, servers} resolu pour le compte du Journal choisi, ou choisi a la main
 
   const LIVE_CONNECT_RESUME_KEY = 'chest_live_connect_resume'; // voir liveJournalNewBtn + boot()
 
-  function openAddAccountModal(familyId) {
-    pendingFamilyId = familyId || null;
+  function openAddAccountModal() {
     chosenBroker = null;
     chosenAccountKind = 'own';
     chosenPhase = null;
@@ -1877,25 +1379,33 @@
     liveCredentials = null;
     pendingLiveJournalId = null;
     pendingLiveStage = null;
+    pendingLiveKind = 'propfirm';
+    pendingLiveBroker = null;
     document.querySelectorAll('#accountKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === 'own'));
     document.getElementById('accountKindBlock').hidden = true;
     document.getElementById('objectivesStepBlock').hidden = true;
     document.getElementById('addAccountPhaseBlock').hidden = true;
     document.querySelectorAll('#addAccountPhaseToggle button').forEach((b) => b.classList.remove('is-active'));
     document.getElementById('addAccountRulesNote').textContent = '';
-    populateBacktestSelect();
-    document.getElementById('addAccountBacktest').value = '';
+    populateJournalSelect();
+    document.getElementById('addAccountJournal').value = '';
+    document.getElementById('addAccountJournalNewName').value = '';
     // "Compte Live" reserve admin (2026-09-27) - un seul terminal MT5 partage, voir README de
     // mt5-notify-bridge. Invisible pour un membre de la famille, comme s'il n'existait pas.
     const isAdmin = window.CHESTAccounts && CHESTAccounts.isAdmin && CHESTAccounts.isAdmin();
     document.getElementById('addAccountModeToggle').hidden = !isAdmin;
     document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.mode === 'myfxbook'));
     document.getElementById('liveJournalStep').hidden = true;
+    document.querySelectorAll('#liveKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === 'propfirm'));
     document.getElementById('liveStageStep').hidden = true;
     document.getElementById('liveStepIntro').hidden = true;
     document.getElementById('liveLogin').value = '';
     document.getElementById('livePassword').value = '';
-    document.getElementById('liveServer').value = '';
+    document.getElementById('liveBrokerPickBlock').hidden = true;
+    document.querySelectorAll('#liveBrokerGrid .broker-card-sm').forEach((c) => c.classList.remove('is-selected'));
+    document.getElementById('liveServer').innerHTML = '<option value="">Choisis d\'abord le broker ci-dessus…</option>';
+    document.getElementById('liveServerOther').value = '';
+    document.getElementById('liveServerOther').style.display = 'none';
     document.getElementById('liveConnectError').style.display = 'none';
     document.getElementById('mfxStepIntro').hidden = false;
     document.getElementById('mfxDetailsStep').hidden = true;
@@ -1917,41 +1427,21 @@
     document.getElementById('addAccountModal').classList.remove('is-open');
   }
 
-  // Supprimer un compte ou une famille (2026-09-24, demande utilisateur) - CHESTConfirm() plutôt
-  // qu'un window.confirm() natif, qui ne fonctionne pas dans ce panneau d'aperçu intégré (voir
-  // js/confirm-dialog.js, même piège déjà rencontré sur "Nouvelle famille").
+  // Supprimer un compte (2026-09-24, demande utilisateur) - CHESTConfirm() plutôt qu'un
+  // window.confirm() natif, qui ne fonctionne pas dans ce panneau d'aperçu intégré (voir
+  // js/confirm-dialog.js). Ne supprime QUE le miroir du Dashboard (chest_accounts) - le compte du
+  // Journal et tout son historique de trades restent intacts (2026-09-29, demande utilisateur :
+  // "si ils sont supprimer les infos reste dans leur journal").
   async function deleteAccount(id) {
     const accounts = loadAccounts();
     const account = accounts.find((a) => a.id === id);
     if (!account) return;
-    if (!(await CHESTConfirm(`Supprimer définitivement le compte "${account.name}" ? Cette action est irréversible.`))) return;
+    if (!(await CHESTConfirm(`Supprimer définitivement le compte "${account.name}" ? Cette action est irréversible (l'historique reste disponible dans son journal).`))) return;
     saveAccounts(accounts.filter((a) => a.id !== id));
-    const families = loadFamilies();
-    let touched = false;
-    families.forEach((fam) => {
-      const idx = fam.accountIds.indexOf(id);
-      if (idx !== -1) { fam.accountIds.splice(idx, 1); touched = true; }
-    });
-    if (touched) saveFamilies(families);
     if (localStorage.getItem(ACTIVE_KEY) === id) localStorage.removeItem(ACTIVE_KEY);
     closeMenu();
     renderAll();
     showToast('Compte supprimé');
-  }
-  // Supprime la famille elle-même, jamais ses comptes membres — ils redeviennent des comptes seuls
-  // (plus destructeur qu'utile de faire disparaître de vraies données de trading en même temps
-  // qu'un simple regroupement ; l'utilisateur peut ensuite les supprimer un par un s'il le veut).
-  async function deleteFamily(id) {
-    const families = loadFamilies();
-    const fam = families.find((f) => f.id === id);
-    if (!fam) return;
-    if (!(await CHESTConfirm(`Supprimer la famille "${fam.name}" ? Ses comptes ne seront pas supprimés — ils redeviendront des comptes seuls.`))) return;
-    saveFamilies(families.filter((f) => f.id !== id));
-    openFamilyIds.delete(id);
-    if (localStorage.getItem(ACTIVE_KEY) === id) localStorage.removeItem(ACTIVE_KEY);
-    closeMenu();
-    renderAll();
-    showToast('Famille supprimée');
   }
 
   function finalizeNewAccount(fields, presetId) {
@@ -1959,11 +1449,6 @@
     const id = presetId || ('acc-' + Date.now());
     accounts.push({ id, ...fields });
     saveAccounts(accounts);
-    if (pendingFamilyId) {
-      const families = loadFamilies();
-      const fam = families.find((f) => f.id === pendingFamilyId);
-      if (fam) { fam.accountIds.push(id); saveFamilies(families); }
-    }
     localStorage.setItem(ACTIVE_KEY, id);
     closeAddAccountModal();
     closeMenu();
@@ -2005,6 +1490,53 @@
         <span class="broker-card-sm__icon">✎</span>
         <span>Autre</span>
       </button>`;
+
+    // Grille identique pour le broker/plateforme de la connexion Live (2026-09-29, demande
+    // utilisateur : le serveur MT5 est un menu deroulant qui depend du broker choisi ici -
+    // c'est l'origine directe du bug "je me suis trompe de nom de serveur" du 2026-09-29).
+    const liveBrokerGrid = document.getElementById('liveBrokerGrid');
+    liveBrokerGrid.innerHTML = window.CHEST_BROKERS.map((b) => `
+      <button type="button" class="broker-card-sm" data-broker-id="${b.id}">
+        <img src="${chestBrokerLogo(b.domain)}" alt="" onerror="this.remove()">
+        <span>${b.name}</span>
+      </button>`).join('') + `
+      <button type="button" class="broker-card-sm" data-broker-id="other">
+        <span class="broker-card-sm__icon">✎</span>
+        <span>Autre</span>
+      </button>`;
+    function populateLiveServerSelect(broker) {
+      const select = document.getElementById('liveServer');
+      const otherInput = document.getElementById('liveServerOther');
+      if (broker && Array.isArray(broker.servers) && broker.servers.length) {
+        select.innerHTML = broker.servers.map((s) => `<option value="${s}">${s}</option>`).join('')
+          + '<option value="__other__">Autre (nom exact non listé)…</option>';
+        select.value = broker.servers[0];
+        otherInput.style.display = 'none';
+        otherInput.value = '';
+      } else {
+        // Broker choisi mais sans liste de serveurs connue (ex. "Autre", ou une propfirm sans
+        // catalogue verifie) - jamais de liste inventee, saisie directe du nom affiche dans MT5.
+        select.innerHTML = '<option value="__other__">Nom exact du serveur (aucune liste connue pour ce broker)</option>';
+        select.value = '__other__';
+        otherInput.style.display = '';
+      }
+    }
+    function selectLiveBroker(broker) {
+      pendingLiveBroker = broker;
+      liveBrokerGrid.querySelectorAll('.broker-card-sm').forEach((c) => c.classList.toggle('is-selected', c.dataset.brokerId === (broker ? broker.id : null)));
+      populateLiveServerSelect(broker);
+    }
+    liveBrokerGrid.querySelectorAll('.broker-card-sm').forEach((card) => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.brokerId;
+        const b = id === 'other' ? { id: 'other', name: '', servers: null } : window.CHEST_BROKERS.find((x) => x.id === id);
+        selectLiveBroker(b);
+      });
+    });
+    document.getElementById('liveServer').addEventListener('change', (e) => {
+      document.getElementById('liveServerOther').style.display = e.target.value === '__other__' ? '' : 'none';
+    });
+
     // Reinitialise le bloc "Objectifs" pour refleter le broker choisi -
     // un broker classique (kind:'broker') n'ouvre JAMAIS les parametres de
     // propfirm, un propfirm reconnu (kind:'propfirm') affiche direct les
@@ -2099,16 +1631,46 @@
       if (chosenAddMode === 'live') return;
       if (!chosenBroker || !chosenBroker.name) { showToast('Choisis un broker/propfirm'); return; }
       if (!mfxSelected) return;
-      const startBacktestId = document.getElementById('addAccountBacktest').value || null;
       const email = document.getElementById('mfxEmail').value.trim();
       const password = document.getElementById('mfxPassword').value;
+      // Journal OBLIGATOIRE (2026-09-29, demande utilisateur : "tout les position noté dans
+      // myfxbooks doivent etre enregistrer indépendament et automatiquement dans un journal soit
+      // deja crée soit qu'on doit crée") - un journal existant est choisi, ou un nouveau nom tape
+      // cree un journal vierge a la volee.
+      let journalAccountId = document.getElementById('addAccountJournal').value || null;
+      const newJournalName = document.getElementById('addAccountJournalNewName').value.trim();
+      if (!journalAccountId && newJournalName && window.CHESTJournal) {
+        const created = window.CHESTJournal.addAccount({
+          name: newJournalName, type: 'own', propfirmId: null, modelId: null, stage: null,
+          balance: parseFloat(mfxSelected.balance) || 0, riskUnit: 'pct', riskValue: 1,
+          connectionMode: 'manual', mode: 'manual', rules: null, live: [],
+        });
+        journalAccountId = created.id;
+      }
+      if (!journalAccountId) { showToast('Un journal est obligatoire — choisis-en un existant, ou tape un nom pour en créer un nouveau.'); return; }
+      // Le compte Myfxbook devient AUSSI un "compte live" du Journal choisi (meme mecanisme que
+      // journal.html - voir CHESTJournal.addLiveAccount/syncLiveAccount) - ses positions Myfxbook
+      // rejoignent le journal, vierge ou deja rempli, en plus de leur affichage normal sur ce
+      // compte du Dashboard. `journalLiveId` permet de deplacer cet enregistrement plus tard (voir
+      // reattachAccountToJournal) si le compte est rattache a un AUTRE journal.
+      let journalLiveId = null;
+      if (window.CHESTJournal) {
+        const live = window.CHESTJournal.addLiveAccount(journalAccountId, {
+          name: `${chosenBroker.name} · #${mfxSelected.id}`, email, password, accountId: mfxSelected.id,
+          demo: !!mfxSelected.demo, currency: mfxSelected.currency || null,
+        });
+        if (live) {
+          journalLiveId = live.id;
+          window.CHESTJournal.syncLiveAccount(journalAccountId, live.id).catch(() => { /* resynchronisable depuis journal.html */ });
+        }
+      }
       finalizeNewAccount({
         name: `${chosenBroker.name} · #${mfxSelected.id}`, number: String(mfxSelected.id),
         type: mfxSelected.demo ? 'Démo' : 'Réel', broker: chosenBroker.name, brokerId: chosenBroker.id,
         balance: parseFloat(mfxSelected.balance) || 0, equity: parseFloat(mfxSelected.equity) || 0, pnl: 0, today: 0,
-        example: false, myfxbook: { email, password, accountId: mfxSelected.id },
+        example: false, myfxbook: { email, password, accountId: mfxSelected.id }, journalAccountId, journalLiveId,
         challengeObjectives: readObjectives(), isPropfirm: chosenAccountKind === 'propfirm',
-        startBacktestId, payouts: [], objectivesResetAt: isoDateLocal(new Date()),
+        payouts: [], objectivesResetAt: isoDateLocal(new Date()),
       });
     });
 
@@ -2131,22 +1693,10 @@
     // "on va oublier les familles, ca va etre les journaux qui sont directement a connecter" -
     // le Journal (js/journal-store.js, deja riche : propfirm/modele/phase/regles verifiees) devient
     // la source de verite pour "ce que trade ce compte" ; le Dashboard n'est plus qu'un miroir
-    // (chest_accounts) tagué `journalAccountId` pour continuer a s'afficher normalement.
-    // Le Journal fait office de famille (2026-09-27) : une "famille" (mécanisme déjà existant,
-    // vue "Tout" = somme réelle des comptes membres) est auto-créée/retrouvée par compte du
-    // Journal, jamais nommée/gérée à la main pour ce chemin - chaque nouvelle connexion Live sur
-    // ce même compte du Journal (nouvelle phase) y ajoute un membre de plus, jamais un remplacement.
-    function findOrCreateJournalFamily(journalAcc) {
-      const families = loadFamilies();
-      let fam = families.find((f) => f.journalAccountId === journalAcc.id);
-      if (!fam) {
-        fam = { id: 'fam-' + Date.now(), name: journalAcc.name, accountIds: [], journalAccountId: journalAcc.id };
-        families.push(fam);
-      } else {
-        fam.name = journalAcc.name; // le nom du compte du Journal a pu changer depuis (journal.html)
-      }
-      return { fam, families };
-    }
+    // (chest_accounts) tagué `journalAccountId` pour continuer a s'afficher normalement. Plus de
+    // famille (2026-09-29) : chaque nouvelle connexion Live (phase 1, phase 2, financé...) ajoute
+    // simplement un NOUVEAU compte miroir individuel, rattaché au même compte du Journal (jamais
+    // remplacé/supprimé, l'historique de chaque phase reste visible individuellement).
     function stageLabelFor(acc) {
       if (!acc || acc.type !== 'propfirm' || !acc.modelId) return null;
       const models = window.CHESTJournal.challengeModels(acc.propfirmId);
@@ -2163,11 +1713,19 @@
       const i = stages.findIndex((s) => s.id === acc.stage);
       return i === -1 || i === stages.length - 1 ? acc.stage : stages[i + 1].id;
     }
+    // Filtre par le toggle "Propfirm"/"Compte propre" du haut (2026-09-29, demande utilisateur -
+    // voir #liveKindToggle) : un seul type affiche a la fois, plus facile a parcourir des qu'il y a
+    // plusieurs comptes du Journal.
     function renderLiveJournalPicker() {
       const list = document.getElementById('liveJournalList');
-      const accounts = (window.CHESTJournal && window.CHESTJournal.listAccounts()) || [];
-      if (!accounts.length) {
+      const all = (window.CHESTJournal && window.CHESTJournal.listAccounts()) || [];
+      const accounts = all.filter((a) => (pendingLiveKind === 'propfirm' ? a.type === 'propfirm' : a.type !== 'propfirm'));
+      if (!all.length) {
         list.innerHTML = '<p class="hint">Aucun compte dans le Journal pour l\'instant.</p>';
+        return;
+      }
+      if (!accounts.length) {
+        list.innerHTML = `<p class="hint">Aucun compte "${pendingLiveKind === 'propfirm' ? 'propfirm' : 'propre'}" dans le Journal — crée-en un nouveau, ou change le type ci-dessus.</p>`;
         return;
       }
       list.innerHTML = accounts.map((a) => {
@@ -2178,9 +1736,17 @@
         </button>`;
       }).join('');
       list.querySelectorAll('.mfx-account-row').forEach((row) => {
-        row.addEventListener('click', () => selectJournalForLive(accounts.find((a) => a.id === row.dataset.id)));
+        row.addEventListener('click', () => selectJournalForLive(all.find((a) => a.id === row.dataset.id)));
       });
     }
+    document.querySelectorAll('#liveKindToggle button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#liveKindToggle button').forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        pendingLiveKind = btn.dataset.kind;
+        renderLiveJournalPicker();
+      });
+    });
     function selectJournalForLive(acc) {
       pendingLiveJournalId = acc.id;
       document.getElementById('liveJournalStep').hidden = true;
@@ -2203,9 +1769,42 @@
         showLiveStepIntro(acc);
       }
     }
+    // Regles preconnues (2026-09-29, demande utilisateur : "les regle preecrite car tu va les
+    // apprendre sur internet") - vient de CHESTPropRules (js/propfirm-rules.js, verifie sur les
+    // pages officielles), la meme base que le compte du Journal utilise deja pour ses conditions.
+    function liveRulesFactsFor(acc) {
+      if (!acc || acc.type !== 'propfirm' || !acc.modelId) return null;
+      const models = window.CHESTJournal.challengeModels(acc.propfirmId);
+      const model = models.find((m) => m.id === acc.modelId);
+      return model && model.facts ? model.facts : null;
+    }
+    // Resout le broker MT5 du compte du Journal choisi, pour prereplir le menu deroulant des
+    // serveurs (2026-09-29) - un compte "propfirm" reconnu dans CHEST_BROKERS (ex. FTMO, Alpha
+    // Capital) se resout tout seul ; un compte "propre" ou une propfirm sans catalogue de serveurs
+    // connu (FundedNext, The5ers, Funding Pips, Blueberry Funded...) repasse la main a la grille.
+    function resolveLiveBroker(acc) {
+      if (acc && acc.type === 'propfirm' && acc.propfirmId) {
+        const b = window.CHEST_BROKERS.find((x) => x.id === acc.propfirmId && Array.isArray(x.servers) && x.servers.length);
+        if (b) return b;
+      }
+      return null;
+    }
     function showLiveStepIntro(acc) {
       document.getElementById('liveStageStep').hidden = true;
-      document.getElementById('liveJournalSummary').textContent = `Connexion pour : ${acc.name}${pendingLiveStage ? ' · ' + (stageLabelFor(Object.assign({}, acc, { stage: pendingLiveStage })) || pendingLiveStage) : ''}`;
+      const stageTxt = pendingLiveStage ? ' · ' + (stageLabelFor(Object.assign({}, acc, { stage: pendingLiveStage })) || pendingLiveStage) : '';
+      document.getElementById('liveJournalSummary').innerHTML = `Connexion pour : <b>${acc.name}</b>${stageTxt}`;
+      const facts = liveRulesFactsFor(acc);
+      const factsEl = document.getElementById('liveRulesFacts');
+      if (factsEl) factsEl.innerHTML = facts ? facts.map((f) => `• ${f}`).join('<br>') : '';
+      const resolved = resolveLiveBroker(acc);
+      const pickBlock = document.getElementById('liveBrokerPickBlock');
+      if (resolved) {
+        pickBlock.hidden = true;
+        selectLiveBroker(resolved);
+      } else {
+        pickBlock.hidden = false;
+        selectLiveBroker(pendingLiveBroker);
+      }
       document.getElementById('liveStepIntro').hidden = false;
     }
     document.getElementById('liveJournalNewBtn').addEventListener('click', () => {
@@ -2234,7 +1833,8 @@
     document.getElementById('liveConnectBtn').addEventListener('click', async () => {
       const login = document.getElementById('liveLogin').value.trim();
       const password = document.getElementById('livePassword').value;
-      const server = document.getElementById('liveServer').value.trim();
+      const serverSel = document.getElementById('liveServer').value;
+      const server = (serverSel === '__other__' ? document.getElementById('liveServerOther').value : serverSel).trim();
       const errEl = document.getElementById('liveConnectError');
       if (!login || !password || !server) {
         errEl.textContent = 'Numéro de compte, mot de passe investisseur et serveur sont requis.';
@@ -2267,13 +1867,10 @@
         window.CHESTJournal.updateAccount(journalAcc.id, {
           mt5Live: { login, server }, stage: newStage, connectionMode: 'mt5', mode: 'auto',
         });
-        // Le Journal fait office de "famille" (2026-09-27, demande utilisateur : "c'est le journal
-        // qui fait office de famille et qui va enregistrer et superposer les informations des
-        // trades de chaque compte") - CHAQUE connexion Live (phase 1, phase 2, financé...) ajoute
-        // un NOUVEAU compte miroir dans la MEME famille (jamais remplacé/supprimé, l'historique de
-        // chaque phase reste visible individuellement) ; la famille agrège déjà tout ça (vue "Tout"
-        // = somme réelle des membres, mécanisme existant, réutilisé tel quel).
-        const { fam, families } = findOrCreateJournalFamily(journalAcc);
+        // CHAQUE connexion Live (phase 1, phase 2, financé...) ajoute un NOUVEAU compte miroir
+        // individuel, rattaché au même compte du Journal via `journalAccountId` (jamais
+        // remplacé/supprimé, l'historique de chaque phase reste visible individuellement - "les
+        // famille ce sont les journal" 2026-09-29).
         const stageLbl = stageLabelFor(Object.assign({}, journalAcc, { stage: newStage }));
         const accounts = loadAccounts();
         const id = 'acc-' + Date.now();
@@ -2287,9 +1884,7 @@
           objectivesResetAt: isoDateLocal(new Date()),
         });
         saveAccounts(accounts);
-        fam.accountIds.push(id);
-        saveFamilies(families);
-        localStorage.setItem(ACTIVE_KEY, fam.id);
+        localStorage.setItem(ACTIVE_KEY, id);
         closeAddAccountModal();
         closeMenu();
         renderAll();
@@ -2315,10 +1910,12 @@
       if (!resumeId || !window.CHESTJournal) return;
       const acc = window.CHESTJournal.listAccounts().find((a) => a.id === resumeId);
       if (!acc) return;
-      openAddAccountModal(null);
+      openAddAccountModal();
       chosenAddMode = 'live';
       document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.mode === 'live'));
       document.getElementById('mfxStepIntro').hidden = true;
+      pendingLiveKind = acc.type === 'propfirm' ? 'propfirm' : 'own';
+      document.querySelectorAll('#liveKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === pendingLiveKind));
       selectJournalForLive(acc);
     })();
 
@@ -2382,8 +1979,6 @@
     renderAccountHeader(activeAccountData);
     renderObjectives(activeAccountData);
     if (activeAccountData.id !== lastCalAccountId) { calOffsetDays = 0; lastCalAccountId = activeAccountData.id; }
-    // renderPayouts AVANT renderMiniCalendar : peuple lastPfSim (simulation
-    // de retrait PF) que le calendrier lit pour ses marqueurs jaunes.
     renderPayouts(activeAccountData);
     renderMiniCalendar(activeAccountData);
     const activePeriod = document.querySelector('#periodPills .is-active')?.dataset.period || 'month';
@@ -2435,33 +2030,15 @@
     });
 
     initAddAccountModal();
-    // Ouvre la création de famille, pas directement "Ajouter un compte" (2026-09-24, demande
-    // utilisateur) - voir createFamilyFromModal() pour la suite du parcours.
-    // Ouvre directement "Ajouter un compte" (2026-09-27, demande utilisateur : "on va oublier les
-    // familles") - plus de détour par "Créer une famille" d'abord : le mode Live gère sa propre
-    // "famille" tout seul (voir findOrCreateJournalFamily), et le mode Myfxbook reste un compte
-    // seul par défaut (regroupable plus tard via le switcher si besoin).
-    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => openAddAccountModal(null));
-    initFamilyModal();
-    initFamilyBacktestModal();
+    // Ouvre directement "Ajouter un compte" (2026-09-27/29, demande utilisateur : "on va oublier les
+    // familles" / "à côté une fonction d'ajouter un compte un petit +") - chaque compte se rattache
+    // a un compte du Journal (voir addAccountFinish/liveConnectBtn), plus de famille a creer.
+    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => openAddAccountModal());
+    initReattachJournalModal();
     initPayoutModal();
     initEditObjectivesModal();
     initMiniCalSettings();
-    document.getElementById('familyAddBtn').addEventListener('click', () => openFamilyPrompt());
-
-    const btButtons = document.querySelectorAll('#btVisibilityToggle button');
-    (function initBtToggle() {
-      btButtons.forEach((b) => b.classList.toggle('is-active', (b.dataset.bt === 'on') === !loadSimpleMode()));
-    })();
-    btButtons.forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        btButtons.forEach((b) => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        saveSimpleMode(btn.dataset.bt === 'off');
-        await renderAll();
-        showToast(btn.dataset.bt === 'off' ? 'Backtest masqué — données réelles uniquement ✓' : 'Backtest réaffiché ✓');
-      });
-    });
+    document.getElementById('familyAddBtn').addEventListener('click', () => openAddAccountModal());
 
     const unitButtons = document.querySelectorAll('#unitToggle button');
     unitButtons.forEach((btn) => {

@@ -197,11 +197,10 @@
   .mfx-account-row span{ display:block; font-size:11px; color:var(--muted); }
   .mfx-account-row b{ font-size:13px; font-variant-numeric:tabular-nums; }
 
-  /* ---------- Payouts propfirm (montants recus, purement informatif -
-     n'affecte jamais le solde/equity synchronises via Myfxbook) - carte
-     compacte (retour direct utilisateur du 2026-09-17) : reglages et volet
-     detail EN LIGNE a cote du toggle reel/simule, plus d'espace mort reserve
-     par un positionnement absolu. ---------- */
+  /* ---------- Payouts propfirm (montants recus, saisis a la main, purement informatif -
+     n'affecte jamais le solde/equity synchronises via Myfxbook) - carte compacte (retour direct
+     utilisateur du 2026-09-17) : volet detail EN LIGNE, plus d'espace mort reserve par un
+     positionnement absolu. ---------- */
   .payout-bar{ margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
   .payout-bar__head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
   .payout-bar__info{ display:flex; align-items:center; gap:8px; }
@@ -273,19 +272,11 @@
   .day-nav__today.is-active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
   .mini-cal__grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
   .mini-cal__cell{ aspect-ratio:1; min-height:0; border-radius:8px; background:var(--bg); border:1px solid var(--line); padding:5px; display:flex; flex-direction:column; justify-content:space-between; gap:2px; overflow:hidden; }
-  .mini-cal__cell:has(.n){ aspect-ratio:auto; }
   .mini-cal__cell.pos{ background:rgba(51,230,166,.1); border-color:rgba(51,230,166,.3); }
   .mini-cal__cell.neg{ background:rgba(255,77,94,.1); border-color:rgba(255,77,94,.3); }
-  /* Jour de BACKTEST sur un compte propre (pas propfirm) : jaune/orange au
-     lieu de vert/rouge - distingue d'un coup d'oeil une position simulee
-     d'une vraie position (retour direct utilisateur du 2026-09-17). */
-  .mini-cal__cell.bt-pos{ background:rgba(232,179,57,.12); border-color:rgba(232,179,57,.35); }
-  .mini-cal__cell.bt-neg{ background:rgba(232,140,57,.12); border-color:rgba(232,140,57,.35); }
   .mini-cal__cell .d{ font-size:10px; color:var(--faint); }
   .mini-cal__cell .p{ font-size:9.5px; font-weight:700; }
-  .mini-cal__cell .n{ font-size:8px; font-weight:700; color:var(--yellow, #e8b339); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .mini-cal__cell.pos .p{ color:var(--green); } .mini-cal__cell.neg .p{ color:var(--red); }
-  .mini-cal__cell.bt-pos .p{ color:#e8b339; } .mini-cal__cell.bt-neg .p{ color:#e88c39; }
   .mini-cal__cell.is-today{ border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
 
   /* ---------- Outils : timeline des sessions + force des devises ---------- */
@@ -489,6 +480,7 @@
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
           <span class="chest-step">01 — Compte actif</span>
           <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--chest-ink-3)"><span id="accKindTitle">Compte propre</span><span class="acc-sync-error" id="accSyncError" hidden>⚠</span></span>
+          <span style="font-size:11px;color:var(--chest-ink-3)" id="accJournalTag" hidden></span>
         </div>
         <div class="acc-switcher" id="accSwitcher">
           <button class="acc-switcher__btn" id="accSwitcherBtn">
@@ -499,7 +491,7 @@
           <div class="acc-menu" id="accMenu">
             <div id="accMenuList"></div>
             <div class="acc-menu__divider"></div>
-            <button class="acc-menu__item acc-menu__add" id="familyAddBtn"><span>＋</span> Nouvelle famille de comptes</button>
+            <button class="acc-menu__item acc-menu__add" id="familyAddBtn"><span>＋</span> Ajouter un compte</button>
           </div>
         </div>
         <div style="margin-top:22px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
@@ -528,11 +520,6 @@
     <div class="payout-bar__head">
       <div class="payout-bar__info"><span class="chest-label">Payouts reçus</span><strong id="payoutTotal" style="font-size:17px">$0</strong></div>
       <div class="payout-bar__actions">
-        <div class="chest-seg" id="payoutViewToggle">
-          <button type="button" data-view="real" class="is-active">👁 Réel</button>
-          <button type="button" data-view="sim">🧮 Simulé</button>
-        </div>
-        <button type="button" class="icon-btn" id="payoutSettingsBtn" title="Paramètres de simulation des retraits" hidden>⚙️</button>
         <button type="button" class="icon-btn payout-bar__collapse" id="payoutListToggle" title="Afficher/masquer le détail" aria-label="Afficher/masquer le détail des payouts"><span class="chev">▾</span></button>
       </div>
     </div>
@@ -552,10 +539,6 @@
           <button data-period="month" class="is-active">Mois</button>
           <button data-period="all">Année</button>
           <button data-period="full">Tout</button>
-        </div>
-        <div class="chest-seg" id="btVisibilityToggle" title="Masque entièrement le backtest de départ (courbe, calendrier, RR/winrate) — ne garde que tes vraies positions.">
-          <button type="button" data-bt="on" class="is-active">+ Backtest</button>
-          <button type="button" data-bt="off">Réel seul</button>
         </div>
         <div class="chest-seg" id="unitToggle">
           <button data-unit="dollar">$</button>
@@ -660,6 +643,10 @@
          quelle propfirm/quelle phase c'est), qu'on choisit ou qu'on crée depuis cet écran. -->
     <div id="liveJournalStep" hidden>
       <p class="hint">Une connexion Live se rattache à un compte du <b>Journal</b> — c'est lui qui sait pour quelle propfirm/quelle phase c'est. Choisis un compte existant (pour changer sa connexion, ex. nouvelle phase) ou crée-en un nouveau.</p>
+      <div class="pill-group" id="liveKindToggle" style="margin-top:14px">
+        <button type="button" data-kind="propfirm" class="is-active">Propfirm</button>
+        <button type="button" data-kind="own">Compte propre</button>
+      </div>
       <div id="liveJournalList" style="margin-top:16px;display:flex;flex-direction:column;gap:8px"></div>
       <div class="wizard-actions" style="margin-top:18px">
         <button type="button" class="btn btn-ghost" id="liveJournalNewBtn">+ Nouveau compte du Journal</button>
@@ -678,6 +665,7 @@
     <div id="liveStepIntro" hidden>
       <p class="hint">Connexion directe à ton terminal MT5 — le mot de passe <b>investisseur</b> (lecture seule, jamais celui de trading) reste chiffré côté serveur, jamais dans ton navigateur. Une seule connexion active à la fois : la brancher ici remplace automatiquement l'ancienne (ses données restent disponibles, juste plus mises à jour).</p>
       <p class="hint" id="liveJournalSummary" style="margin-top:4px"></p>
+      <p class="hint" id="liveRulesFacts" style="margin-top:6px;font-size:12px;line-height:1.7"></p>
       <div class="form-stack" style="margin-top:18px" id="liveLoginForm">
         <div>
           <label for="liveLogin">Numéro de compte MT5</label>
@@ -687,9 +675,14 @@
           <label for="livePassword">Mot de passe investisseur</label>
           <input id="livePassword" class="field" type="password" autocomplete="off">
         </div>
+        <div id="liveBrokerPickBlock" hidden>
+          <label>Broker / plateforme</label>
+          <div class="broker-grid-sm" id="liveBrokerGrid" style="margin-top:8px"></div>
+        </div>
         <div>
           <label for="liveServer">Serveur du broker</label>
-          <input id="liveServer" class="field" type="text" placeholder="ex. Vantage-Live" autocomplete="off">
+          <select id="liveServer" class="field"><option value="">Choisis d'abord le broker ci-dessus…</option></select>
+          <input id="liveServerOther" class="field" type="text" placeholder="Nom exact du serveur (affiché dans MT5)" autocomplete="off" style="margin-top:8px;display:none">
         </div>
         <p class="hint" id="liveConnectError" style="color:var(--red);display:none"></p>
       </div>
@@ -765,11 +758,12 @@
         </div>
       </div>
       <div class="form-stack" style="margin-top:16px">
-        <label for="addAccountBacktest">Backtesting de départ (optionnel)</label>
-        <select id="addAccountBacktest" class="field">
-          <option value="">Aucun — nouveau compte, pas d'historique</option>
+        <label for="addAccountJournal">Journal</label>
+        <select id="addAccountJournal" class="field">
+          <option value="">— Choisir un journal existant —</option>
         </select>
-        <p class="hint" style="margin:6px 0 0">Le backtest choisi représente le passé de la stratégie sur ce compte — son historique simulé s'affiche avant tes vraies positions dans l'onglet "Tout" du Dashboard, qui continuent directement à la suite.</p>
+        <input id="addAccountJournalNewName" class="field" type="text" placeholder="Ou tape le nom d'un nouveau journal vierge à créer" style="margin-top:8px">
+        <p class="hint" style="margin:6px 0 0">Obligatoire — chaque compte se rattache à un journal, qui enregistre automatiquement et indépendamment toutes ses positions Myfxbook (vierge ou déjà rempli).</p>
       </div>
       <div class="wizard-actions" style="margin-top:18px">
         <button type="button" class="btn btn-ghost" id="mfxDetailsBack">← Retour</button>
@@ -833,58 +827,18 @@
   </div>
 </div>
 
-<!-- Simulation de retrait PF - conditions realistes de retrait appliquees
-     au backtest (14j minimum, +1% de profit minimum, retrait complet puis
-     reset a 100 000$ le lundi suivant) - retour direct utilisateur du
-     2026-09-17. Uniquement pertinent pour un compte propfirm. -->
-<div class="connmodal-overlay" id="payoutSettingsModal">
-  <div class="connmodal-modal" style="max-width:420px">
-    <button type="button" class="connmodal-close" id="payoutSettingsClose" aria-label="Fermer">✕</button>
-    <h2>Conditions de retrait simulées</h2>
-    <p class="hint">Simule un cycle de retrait propfirm réaliste sur l'historique (backtest + réel) : 14 jours minimum depuis le dernier retrait, +1% de profit minimum, retrait complet en fin de semaine puis reset à 100 000$ le lundi suivant.</p>
-    <div class="form-stack">
-      <div><label for="payoutSimPct">% du profit reversé au retrait</label><input id="payoutSimPct" class="field" type="number" min="1" max="100" step="1" value="80"></div>
-      <div><label for="payoutSimMin">Palier minimum de retrait ($, 0 = aucun)</label><input id="payoutSimMin" class="field" type="number" min="0" step="50" value="1000"></div>
-    </div>
-    <div class="wizard-actions" style="margin-top:18px">
-      <button type="button" class="btn btn-primary" id="payoutSimSave">Enregistrer</button>
-    </div>
-  </div>
-</div>
-
-<!-- Backtesting de depart d'une FAMILLE (accessible depuis la fleche du
-     switcher, a cote de "+ Ajouter un compte") - represente le passe de la
-     strategie pour toute la famille : son historique simule s'affiche avant
-     la somme reelle des comptes membres dans l'onglet "Tout", qui continue
-     directement a la suite. Demande explicite du 2026-09-15. -->
-<div class="connmodal-overlay" id="familyBacktestModal">
+<!-- Rattacher un compte du Dashboard a un AUTRE compte du Journal (2026-09-29, demande
+     utilisateur : "tout les compte doivent etre connecter a un journal... 3 petit point pour
+     si on veux le rattacher a un autre journal") - accessible depuis le ⋮ de chaque compte du
+     switcher. Pour un compte Myfxbook, deplace aussi son enregistrement "live" (voir
+     reattachAccountToJournal dans dashboard.js) - les positions deja importees restent dans
+     l'ancien journal, seule la synchro future change de destination. -->
+<div class="connmodal-overlay" id="reattachJournalModal">
   <div class="connmodal-modal" style="max-width:440px">
-    <button type="button" class="connmodal-close" id="familyBacktestClose" aria-label="Fermer">✕</button>
-    <h2>Backtesting de départ</h2>
-    <p class="hint">Représente le passé de la stratégie — son historique simulé s'affiche avant les vraies données (compte seul, ou somme des comptes membres pour une famille) dans l'onglet "Tout" du Dashboard, qui continue directement à la suite.</p>
-    <div id="familyBacktestList" style="display:flex;flex-direction:column;gap:8px"></div>
-  </div>
-</div>
-
-<!-- Nouvelle famille de comptes — remplace un window.prompt() natif, qui ne
-     fonctionne pas dans ce panneau d'apercu integre (constate en direct le
-     2026-09-15 : le bouton "Nouvelle famille" ne faisait rigoureusement rien
-     pour l'utilisateur, la boite de dialogue native etant bloquee/absente
-     silencieusement dans cet environnement). -->
-<div class="connmodal-overlay" id="newFamilyModal">
-  <div class="connmodal-modal" style="max-width:420px">
-    <button type="button" class="connmodal-close" id="newFamilyClose" aria-label="Fermer">✕</button>
-    <h2>Nouvelle famille de comptes</h2>
-    <p class="hint">Regroupe des comptes liés (ex. Phase 1 → Phase 2 → Financé d'un même challenge) pour voir leur progression additionnée sur le Dashboard.</p>
-    <div class="form-stack">
-      <div>
-        <label for="newFamilyName">Nom de la famille</label>
-        <input id="newFamilyName" class="field" type="text" placeholder="ex. Challenge FTMO 100k">
-      </div>
-    </div>
-    <div class="wizard-actions" style="margin-top:18px">
-      <button type="button" class="btn btn-primary" id="newFamilyCreateBtn">Créer la famille</button>
-    </div>
+    <button type="button" class="connmodal-close" id="reattachJournalClose" aria-label="Fermer">✕</button>
+    <h2>📒 Rattacher à un journal</h2>
+    <p class="hint">Choisis le compte du Journal auquel ce compte doit désormais être rattaché.</p>
+    <div id="reattachJournalList" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
 </div>
 
@@ -898,24 +852,25 @@
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/myfxbook-store.js?v=4"></script>
-<script src="js/backtest-store.js"></script>
-<script src="js/backtest-engine.js?v=20"></script>
-<!-- Compte Live = un compte du Journal (2026-09-27) - dashboard.js a besoin de window.CHESTJournal
-     (et de propfirm-rules.js, dont CHESTJournal.challengeModels() dépend) pour la liste des
-     comptes/phases, voir js/dashboard.js "renderLiveJournalPicker". Même ordre que journal.html. -->
+<!-- Chaque compte du Dashboard se rattache a un compte du Journal (2026-09-29) - dashboard.js a
+     besoin de window.CHESTJournal (et de propfirm-rules.js, dont CHESTJournal.challengeModels()
+     dépend) pour la liste des comptes/phases, voir js/dashboard.js "renderLiveJournalPicker".
+     Même ordre que journal.html. Plus de backtest-store/backtest-engine ici (2026-09-29, demande
+     utilisateur : "enleve la [fonction backtesting] on en a plus dutout besoin" - le Backtesting
+     ne s'attache plus a un compte du Dashboard, seulement a un Journal, voir backtesting.html). -->
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/journal-store.js?v=5"></script>
-<script src="js/dashboard.js?v=34"></script>
+<script src="js/dashboard.js?v=35"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '#accSwitcher', title: 'Choisis ton compte', text: 'Ici tu changes de compte. Un compte peut vivre seul ou dans une famille (ex. Phase 1, Phase 2, Compte financé) : les résultats d\'une famille s\'additionnent. Survole la flèche d\'une famille pour lui ajouter un compte ou un backtesting de départ.' },
+  { selector: '#accSwitcher', title: 'Choisis ton compte', text: 'Ici tu changes de compte. Chaque compte est rattaché à un compte du Journal (📒 affiché sous son nom), qui garde son historique même si le compte est supprimé ou rattaché ailleurs. Le ⋮ de chaque compte permet de le renommer, le rattacher à un autre journal, ou le supprimer.' },
   { selector: '#kpiProfit', title: 'Ton résultat', text: 'Le profit du compte actif sur la période choisie, avec l\'equity juste dessous. À droite : balance, PnL non réalisé et profit du jour, synchronisés via Myfxbook (ou le pont MT5 local).' },
   { selector: '#heroSpot .chest-kpis', title: 'Indicateurs clés', text: 'Profit en dollars, R:R moyen, winrate, drawdown max et jours tradés sur la période choisie.' },
-  { selector: '#periodPills', title: 'Choisis la période', text: 'Jour, semaine, mois, année ou tout : la fenêtre s\'applique à la courbe et aux indicateurs. À côté, « + Backtest / Réel seul » masque le backtest de départ, et $ / % change l\'unité.' },
-  { selector: '.chest-glass--chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde. Si un backtesting de départ est associé au compte ou à sa famille, son historique simulé apparaît avant tes vraies positions, qui continuent à la suite.' },
+  { selector: '#periodPills', title: 'Choisis la période', text: 'Jour, semaine, mois, année ou tout : la fenêtre s\'applique à la courbe et aux indicateurs. À côté, $ / % change l\'unité.' },
+  { selector: '.chest-glass--chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde, construite à partir de tes vraies positions synchronisées (Myfxbook ou pont MT5).' },
   { selector: '#objectivesList', title: 'Objectifs du challenge', text: 'Les règles de ton challenge propfirm (objectif de profit, perte du jour, perte max, jours minimum) et où tu en es. La roue dentée à côté du titre les règle.' },
   { selector: '#miniCalGrid', title: 'Performance par jour', text: 'Le résultat de chaque jour de trading, avec les totaux par semaine. Les flèches font défiler la fenêtre affichée.' },
   { selector: '#toolsToggle', title: 'Outils', text: 'Un clic déplie la timeline des sessions (Sydney, Tokyo, Londres, New York) et la force des devises en direct.' },
