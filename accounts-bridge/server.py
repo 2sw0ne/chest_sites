@@ -1033,7 +1033,10 @@ def mt5_connect():
             headers={"Content-Type": "application/json", "X-Internal-Secret": INTERNAL_PUSH_SECRET},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        # 30s -> 60s (2026-09-30) : mt5-notify-bridge/switch-account attend desormais jusqu'a 45s
+        # (resynchronisation de symboles lors d'un switch vers un broker/serveur jamais connecte
+        # sur ce terminal) - garder une marge ici pour ne jamais couper la reponse avant elle.
+        with urllib.request.urlopen(req, timeout=60) as resp:
             switch_result = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")

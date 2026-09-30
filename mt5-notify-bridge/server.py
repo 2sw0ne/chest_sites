@@ -256,7 +256,13 @@ def poll_loop() -> None:
                         f"mt5.initialize() a échoué après {INIT_ATTEMPTS} tentatives : {last_init_error}"
                     )
 
-            if switch_event.is_set():
+            # (2026-09-30, bug reel constate en production) : ce drapeau evite qu'une erreur de
+            # switch tout juste ecrite dans state["last_error"] (bloc ci-dessous) soit ECRASEE par
+            # None quelques lignes plus bas, dans la MEME iteration - /health n'affichait donc
+            # jamais la vraie raison d'un switch rate (toujours "last_error": null), meme juste
+            # apres l'echec. Seul un poll qui ne traite PAS de switch remet last_error a None.
+            switch_processed_this_tick = switch_event.is_set()
+            if switch_processed_this_tick:
                 with switch_lock:
                     req = switch_pending
                 ok, result = handle_switch(mt5, req) if req else (False, {"error": "requête de switch vide"})
@@ -274,7 +280,8 @@ def poll_loop() -> None:
 
             with state_lock:
                 state["last_poll_ok"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                state["last_error"] = None
+                if not switch_processed_this_tick:
+                    state["last_error"] = None
         except Exception as exc:
             # Nettoyage best-effort (2026-09-29, voir CLAUDE.md "IPC timeout intermittent apres le
             # premier succes") : le module MetaTrader5 importe cote mt5server.exe (Wine) PERSISTE
@@ -336,9 +343,15 @@ def switch_account():
         switch_pending = body
     switch_done.clear()
     switch_event.set()
-    got_it = switch_done.wait(timeout=25)
+    # 25s -> 45s (2026-09-30, incident reel en production) : basculer vers un broker/serveur que
+    # ce terminal n'avait jamais utilise (nouveau FTMO-Demo apres MetaQuotes-Demo/VantageMarkets)
+    # declenche une resynchronisation complete des symboles cote MT5 ("symbol synchronization
+    # timeout" vu dans le Journal MT5) qui peut a elle seule depasser 25s - accounts-bridge, qui
+    # appelle cet endpoint, attend deja jusqu'a 60s (voir POST /mt5/connect, timeout=60) donc cette
+    # marge ne risque pas de rester bloquee sans jamais obtenir de reponse.
+    got_it = switch_done.wait(timeout=45)
     if not got_it:
-        return jsonify({"error": "Le terminal MT5 n'a pas répondu à temps (25s)."}), 504
+        return jsonify({"error": "Le terminal MT5 n'a pas répondu à temps (45s)."}), 504
     result = dict(switch_result)
     status = 200 if result.get("ok") else 502
     return jsonify(result), status
