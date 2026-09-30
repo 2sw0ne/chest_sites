@@ -97,6 +97,20 @@ class DirectMT5Client:
         self.close()
         self._conn = rpyc.classic.connect(self.host, self.port)
         self._conn._config["sync_request_timeout"] = MT5_RPYC_TIMEOUT
+        # Filet de securite reel (2026-09-30, incident production : un switch est reste bloque
+        # PLUSIEURS MINUTES, bien au-dela de MT5_RPYC_TIMEOUT/INIT_ATTEMPTS, sans jamais lever
+        # d'exception ni avancer poll_loop) - sync_request_timeout ne borne que l'ATTENTE d'un
+        # resultat deja envoye ; si le socket TCP lui-meme reste "grey" (connexion Railway interne
+        # etablie mais qui ne transporte plus jamais rien, ex. juste apres un redeploiement d'un
+        # des deux services), un recv() bas niveau peut bloquer indefiniment SANS jamais
+        # revenir a rpyc pour que sync_request_timeout s'applique. Fixer directement le timeout du
+        # socket sous-jacent force toute lecture/ecriture bloquee a lever socket.timeout au bout de
+        # MT5_RPYC_TIMEOUT, quoi qu'il arrive - deja verifie manuellement (conn._channel.stream.sock
+        # existe et accepte settimeout() sur une vraie connexion rpyc classic).
+        try:
+            self._conn._channel.stream.sock.settimeout(MT5_RPYC_TIMEOUT)
+        except Exception:
+            pass
         self._conn.execute("import sys; sys.path.append('C:\\\\mt5libs')")
         self._conn.execute("import MetaTrader5 as mt5")
 
