@@ -36,7 +36,31 @@
     'chest_berich_connection', 'chest_berich_taken', 'chest_berich_last_risk_choice',
     'chest_sentiment_pair', 'chest_timezone', 'chest_profile',
     'chest_scanner_drawings', 'chest_theme', 'chest_admin_preview_mode', 'chest_ui_scale',
+    'chest_notif_prefs',
   ];
+
+  // BUG REEL (2026-10-01, retour utilisateur : "les backtests que j'ajoute ne s'enregistrent pas") :
+  // ajouter un backtest puis ouvrir aussitot son rapport laissait la page suivante tirer la version
+  // SERVEUR (pas encore a jour) et ECRASER la copie locale toute neuve - puis la renvoyer telle
+  // quelle au serveur. Meme course que le compte du Journal (voir flushNow plus bas), mais pour
+  // TOUTES les cles. Correctif general : chaque cle modifiee ici est marquee "pas encore envoyee"
+  // (chest_sync_dirty, hors synchro) jusqu'a ce que le serveur confirme l'avoir recue ; tant qu'elle
+  // l'est, un pull ne l'ecrase jamais - c'est la copie locale qui repart vers le serveur.
+  const DIRTY_KEY = 'chest_sync_dirty';
+  function loadDirty() {
+    try { return JSON.parse(localStorage.getItem(DIRTY_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function saveDirty(d) {
+    try { realSetItemEarly(DIRTY_KEY, JSON.stringify(d)); } catch (e) { /* tant pis */ }
+  }
+  const realSetItemEarly = localStorage.setItem.bind(localStorage);
+  function markDirty(key) { const d = loadDirty(); d[key] = Date.now(); saveDirty(d); }
+  // Retire le marquage des cles envoyees, sauf si elles ont encore change depuis l'envoi.
+  function clearDirty(sent) {
+    const d = loadDirty();
+    Object.keys(sent).forEach((key) => { if (localStorage.getItem(key) === sent[key]) delete d[key]; });
+    saveDirty(d);
+  }
 
   function apiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
   function getToken() {
@@ -68,7 +92,8 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ data }),
-    }).catch(() => { /* tant pis, retentera au prochain chargement de page */ });
+    }).then((res) => { if (res.ok) clearDirty(data); })
+      .catch(() => { /* tant pis, retentera au prochain chargement de page */ });
   }
 
   async function pullSync() {
@@ -81,8 +106,10 @@
       const body = await res.json();
       const data = (body && body.data) || {};
       let changed = false;
+      const dirty = loadDirty();
       Object.keys(data).forEach((key) => {
         if (SYNCED_KEYS.indexOf(key) === -1) return;
+        if (dirty[key]) return; // modifiee ici et pas encore confirmee par le serveur : la locale gagne
         if (localStorage.getItem(key) !== data[key]) { localStorage.setItem(key, data[key]); changed = true; }
       });
       // Nouvel appareil (rien en local avant) qui vient de recevoir de vraies données : un seul
@@ -117,13 +144,15 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ data: batch }),
-    }).catch(() => { /* prochaine ecriture reessaiera - pas grave si celle-ci se perd */ });
+    }).then((res) => { if (res.ok) clearDirty(batch); })
+      .catch(() => { /* reste marquee : repartira au prochain chargement de page */ });
   }
 
   const realSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function (key, value) {
     realSetItem(key, value);
     if (SYNCED_KEYS.indexOf(key) !== -1) {
+      markDirty(key);
       pending[key] = value;
       if (!flushTimer) flushTimer = setTimeout(flush, 600);
     }

@@ -40,13 +40,18 @@ ACCOUNTS_BRIDGE_URL = os.environ.get("ACCOUNTS_BRIDGE_URL", "")
 INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
 
 
-def notify(title: str, body: str) -> None:
+def notify(ntype: str, signal: dict, fallback: str) -> None:
+    """ntype = "position_open" | "position_close". accounts-bridge redige le texte membre par membre
+    (nom de son journal, $ ou % selon son reglage, rien s'il a decoche ce type) a partir de
+    `event` ; `fallback` ne sert que si accounts-bridge n'est pas encore a jour."""
     if not ACCOUNTS_BRIDGE_URL or not INTERNAL_PUSH_SECRET:
         return
+    event = {k: signal.get(k) for k in ("id", "symbol", "side", "entry", "sl", "tp", "result")}
+    event["side"] = str(event.get("side") or "").upper()
     try:
         req = urllib.request.Request(
             ACCOUNTS_BRIDGE_URL.rstrip("/") + "/push/broadcast",
-            data=json.dumps({"title": title, "body": body, "url": "berich.html"}).encode("utf-8"),
+            data=json.dumps({"type": ntype, "event": event, "title": fallback, "body": "", "url": "berich.html"}).encode("utf-8"),
             headers={"Content-Type": "application/json", "X-Internal-Secret": INTERNAL_PUSH_SECRET},
             method="POST",
         )
@@ -101,10 +106,8 @@ def webhook():
         data["example"] = False
         data["updatedAt"] = now
         _save(data)
-        if payload["result"] == "TP":
-            notify("TP touché — BERICH", f"{match['symbol']} ({match['side']}) : sortie à {match['tp']} (+{RR:g}R).")
-        else:
-            notify("SL touché — BERICH", f"{match['symbol']} ({match['side']}) : sortie à {match['sl']} (-1R).")
+        mark = "TP✔️" if payload["result"] == "TP" else "SL❌"
+        notify("position_close", match, f"BERICH - {mark} {match['symbol']}")
         return jsonify({"ok": True, "id": payload["id"], "closed": True})
 
     # ---- Message d'ouverture : {"id","pair","signal","entry","sl"} ----
@@ -130,7 +133,8 @@ def webhook():
     data["updatedAt"] = now
     data["signals"] = [signal] + data.get("signals", [])[: MAX_SIGNALS - 1]
     _save(data)
-    notify(f"Signal {signal['side'].upper()} — BERICH", f"{signal['symbol']} : entrée {signal['entry']}, SL {signal['sl']}, TP {signal['tp']}.")
+    arrow = "📈" if signal["side"] == "buy" else "📉"
+    notify("position_open", signal, f"BERICH - Vous avez pris un {signal['side'].upper()} {arrow}")
     return jsonify({"ok": True, "id": signal["id"]})
 
 

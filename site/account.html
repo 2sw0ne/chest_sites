@@ -127,6 +127,32 @@
   .preset-card__actions{ display:flex; gap:10px; }
   .preset-card__actions .btn{ padding:8px 14px; font-size:12px; }
 
+  /* ---------- Choix des notifications (2026-10-01) ---------- */
+  .notif-group__label{ font-size:10px; font-weight:700; letter-spacing:.24em; text-transform:uppercase; color:var(--chest-ink-3); margin:22px 0 8px; }
+  .notif-group__label:first-child{ margin-top:0; }
+  .notif-opt{
+    display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%;
+    padding:12px 0; border-bottom:1px solid var(--chest-rule); cursor:pointer;
+  }
+  .notif-opt__text{ min-width:0; }
+  .notif-opt__title{ display:block; font-size:13.5px; font-weight:600; color:var(--chest-ink); }
+  .notif-opt__ex{ display:block; font-size:12px; color:var(--chest-ink-3); margin-top:3px; font-variant-numeric:tabular-nums; }
+  .notif-switch{ position:relative; flex-shrink:0; width:40px; height:24px; }
+  .notif-switch input{ position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; }
+  .notif-switch span{
+    position:absolute; inset:0; border-radius:999px; background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.14); transition:background .2s cubic-bezier(.16,1,.3,1);
+  }
+  .notif-switch span::after{
+    content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
+    background:var(--chest-ink-2); transition:transform .2s cubic-bezier(.16,1,.3,1), background .2s;
+  }
+  .notif-switch input:checked + span{ background:linear-gradient(90deg,#fc1283,#f9a45e); border-color:transparent; }
+  .notif-switch input:checked + span::after{ transform:translateX(16px); background:#fff; }
+  .notif-switch input:focus-visible + span{ box-shadow:0 0 0 3px rgba(252,18,131,.15); }
+  .notif-opt[hidden]{ display:none; }
+  @media (prefers-reduced-motion: reduce){ .notif-switch span, .notif-switch span::after{ transition:none; } }
+
   /* ---------- Compte Live (Myfxbook, admin, Dashboard uniquement) ---------- */
   .mfx-account-row{
     display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px;
@@ -143,7 +169,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=1"></script>
-<script src="js/sync-store.js?v=3"></script>
+<script src="js/sync-store.js?v=4"></script>
 <script src="js/pwa.js?v=3"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
@@ -233,7 +259,10 @@
           <p class="settings-row__value" id="notifRowValue">—</p>
         </div>
       </div>
-      <button type="button" class="chest-btn-2" id="notifToggleBtn">…</button>
+      <div style="display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap">
+        <button type="button" class="chest-btn-2" data-open-drawer="notifs" data-drawer-title="Notifications">Choisir</button>
+        <button type="button" class="chest-btn-2" id="notifToggleBtn">…</button>
+      </div>
     </div>
 
     <div class="settings-row">
@@ -416,6 +445,11 @@
         <label>Quel compte relié à ton profil Myfxbook ?</label>
         <div id="liveAccountsList" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
+    </div>
+
+    <div class="drawer-panel" data-panel-name="notifs" hidden>
+      <p class="hint">Coche ce que tu veux recevoir sur ton téléphone. Enregistré sur ton compte : le choix suit tous tes appareils.</p>
+      <div id="notifPrefsList"></div>
     </div>
 
     <div class="drawer-panel" data-panel-name="preview" hidden>
@@ -610,6 +644,75 @@ CHESTTour.init([
     refreshNotifRow();
   });
   refreshNotifRow();
+
+  // ---------- Choix des notifications (2026-10-01, demande utilisateur : "une partie ou on choisit
+  // quelle notif on veut recevoir", tout cochable, $ ou % pour ce qui touche au compte). Stocké dans
+  // chest_notif_prefs (synchronisé, voir js/sync-store.js) : accounts-bridge le lit pour filtrer et
+  // rédiger chaque notification. Absent = tout coché.
+  const NOTIF_PREFS_KEY = 'chest_notif_prefs';
+  const NOTIF_GROUPS = [
+    { label: 'Calendrier', items: [
+      { key: 'calendar_pre', title: '30 min avant une annonce', ex: '🇺🇸 - M-30 PMI manufacturier (sept)' },
+      { key: 'calendar_result', title: "Résultat de l'annonce", ex: '🇺🇸 - PMI manufacturier (sept) : 49,2 (prévu 49,5)' },
+    ] },
+    { label: 'Positions', items: [
+      { key: 'position_open', title: 'Position prise', ex: 'ALLIN - Vous avez pris un SELL 📉' },
+      { key: 'position_close', title: "Clôture d'une position", ex: 'ALLIN - TP✔️ +1964,57$' },
+    ] },
+    { label: 'Comptes rendus', items: [
+      { key: 'report_weekly', title: 'Chaque semaine (samedi matin)', ex: 'ALLIN - Semaine du 22/09 : +1964,57$ · 5 TP✔️ 2 SL❌' },
+      { key: 'report_monthly', title: 'Chaque mois (le 1er)', ex: 'ALLIN - Septembre : +4210,30$ · 18 TP✔️ 9 SL❌' },
+    ] },
+    { label: 'Admin', admin: true, items: [
+      { key: 'new_member', title: 'Nouveau membre', ex: 'Nouveau membre : Prénom Nom' },
+    ] },
+  ];
+  function notifIsAdmin() { return !!(window.CHESTAccounts && CHESTAccounts.isAdmin && CHESTAccounts.isAdmin()); }
+  function loadNotifPrefs() {
+    let p = {};
+    try { p = JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY) || '{}') || {}; } catch (e) { p = {}; }
+    NOTIF_GROUPS.forEach((g) => g.items.forEach((it) => { if (typeof p[it.key] !== 'boolean') p[it.key] = true; }));
+    if (p.unit !== 'pct') p.unit = 'usd';
+    return p;
+  }
+  function saveNotifPrefs(p) { localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(p)); }
+  function exampleIn(unit, ex) {
+    if (unit !== 'pct') return ex;
+    return ex.replace('+1964,57$', '+1,96%').replace('+4210,30$', '+4,21%');
+  }
+  function renderNotifPrefs() {
+    const wrap = document.getElementById('notifPrefsList');
+    if (!wrap) return;
+    const p = loadNotifPrefs();
+    let html = `<p class="notif-group__label">Montants</p>
+      <div class="theme-choice" id="notifUnitChoice" style="margin-bottom:6px">
+        <button type="button" data-value="usd" class="${p.unit === 'usd' ? 'is-active' : ''}">En $</button>
+        <button type="button" data-value="pct" class="${p.unit === 'pct' ? 'is-active' : ''}">En %</button>
+      </div>`;
+    NOTIF_GROUPS.forEach((g) => {
+      if (g.admin && !notifIsAdmin()) return;
+      html += `<p class="notif-group__label">${escapeHtml(g.label)}</p>`;
+      g.items.forEach((it) => {
+        html += `<label class="notif-opt">
+          <span class="notif-opt__text"><span class="notif-opt__title">${escapeHtml(it.title)}</span><span class="notif-opt__ex">${escapeHtml(exampleIn(p.unit, it.ex))}</span></span>
+          <span class="notif-switch"><input type="checkbox" data-notif-key="${it.key}" ${p[it.key] ? 'checked' : ''} aria-label="${escapeHtml(it.title)}"><span></span></span>
+        </label>`;
+      });
+    });
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('[data-notif-key]').forEach((input) => input.addEventListener('change', () => {
+      const prefs = loadNotifPrefs();
+      prefs[input.dataset.notifKey] = input.checked;
+      saveNotifPrefs(prefs);
+    }));
+    wrap.querySelectorAll('#notifUnitChoice button').forEach((b) => b.addEventListener('click', () => {
+      const prefs = loadNotifPrefs();
+      prefs.unit = b.dataset.value;
+      saveNotifPrefs(prefs);
+      renderNotifPrefs();
+    }));
+  }
+  document.querySelector('[data-open-drawer="notifs"]').addEventListener('click', renderNotifPrefs);
 
   // ---------- Vue du site (Vue Admin / Vue Client) — 2026-09-23, demande utilisateur ----------
   const PREVIEW_KEY = 'chest_admin_preview_mode';

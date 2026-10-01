@@ -457,6 +457,37 @@ redéfinie de 4 (pas "limite du propfirm approche" mais bien TOUTE clôture TP/S
   deux incidents ci-dessus) retiré une fois la fonctionnalité confirmée — `POST /push/send` reste
   disponible côté serveur (admin, gated) pour un futur test manuel via `curl` au besoin.
 
+## Notifications au choix + nouveaux formats + synchro qui n'écrase plus (2026-10-01)
+
+Demande utilisateur : choisir ses notifications dans Compte, format court, $ ou %, comptes rendus.
+- **Réglages** : `account.html`, bouton « Choisir » de la ligne Notifications → interrupteurs (30 min avant
+  annonce, résultat d'annonce, position prise, clôture, compte rendu semaine/mois, nouveau membre pour
+  l'admin) + « En $ / En % ». Stocké dans `chest_notif_prefs` (clé synchronisée) ; absent = tout coché.
+- **`accounts-bridge`** lit ces réglages dans `user_data` : `POST /push/broadcast` accepte `type`
+  (`calendar_pre|calendar_result|position_open|position_close|report_weekly|report_monthly|new_member`)
+  et, pour les positions, un `event` : le texte est rédigé PAR MEMBRE (`send_typed_push`) — nom de son
+  journal principal (premier journal manuel, sinon compte actif du Dashboard), montant tiré du risque
+  mémorisé au clic BERICH (`chest_berich_taken`), sinon risque de sa connexion BERICH × solde. Sans `type` :
+  ancien comportement (à tous). Comptes rendus : `digest_loop` (samedi 9 h Paris = semaine lun→ven ;
+  1er du mois 9 h = mois précédent), dédupliqués par `push_digest_log`, calculés sur les mêmes données que
+  le Journal (manuel + Myfxbook + positions BERICH prises).
+- **Formats** : `🇺🇸 - M-30 PMI manufacturier (sept)`, `🇺🇸 - PMI … : 49,2 (prévu 49,5)`,
+  `ALLIN - Vous avez pris un SELL 📉`, `ALLIN - TP✔️ +1964,57$` / `SL❌ -526,47$` (ou %),
+  `ALLIN - Semaine du 22/09 : +X$ · 5 TP✔️ 2 SL❌`. Le message part en TITRE, corps vide (`sw.js`).
+- **« from CHEST » sous chaque notification iPhone : imposé par iOS** pour une app installée depuis Safari,
+  impossible à retirer côté site (vérifié, sources Progressier/Apple). Seul le nom affiché est réglable.
+- **`calendar-bridge`** : fenêtre 30 min ; résultat notifié quand `actual` apparaît. Comme le scraping n'a
+  lieu que toutes les 2 h, un rafraîchissement ciblé est lancé 6 puis 25 min après chaque créneau
+  d'annonces fortes (un seul Chrome à la fois : `refresh_lock`) ; désactivable par
+  `CHEST_CALENDAR_RESULT_REFRESH=0` si la mémoire Railway souffre. Au démarrage, les résultats déjà connus
+  ne sont pas renvoyés.
+- **Bug « les backtests ajoutés ne s'enregistrent pas » (reproduit puis corrigé)** : ajouter un backtest
+  puis ouvrir son rapport laissait la page suivante tirer la version serveur (pas encore à jour) et
+  écraser la copie locale — même course que le compte du Journal, mais générale. `sync-store.js` marque
+  désormais chaque clé modifiée (`chest_sync_dirty`, non synchronisée) jusqu'à confirmation du serveur ; un
+  pull ne l'écrase jamais tant qu'elle est marquée. `backtest-store.js` signale aussi un stockage plein au
+  lieu d'échouer en silence.
+
 ## Notification de clôture MT5 en temps quasi réel — `mt5-terminal` + `mt5-notify-bridge` (2026-09-27)
 
 Suite directe de la section précédente : le déclencheur "4" (TP/SL touché) ne couvrait que les

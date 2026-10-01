@@ -21,8 +21,15 @@
     }
   }
 
+  // Ne plus avaler l'erreur en silence (2026-10-01, retour utilisateur : "les backtests que j'ajoute
+  // ne s'enregistrent pas") : un navigateur plein (quota localStorage ~5 Mo, vite atteint avec
+  // plusieurs fichiers de milliers de trades) faisait echouer l'enregistrement sans aucun message.
   function persist(items) {
-    try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) { /* tant pis, stockage indisponible */ }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(items));
+    } catch (e) {
+      throw new Error("Stockage du navigateur plein : le backtest n'a pas pu être enregistré. Supprime un ancien backtest puis réessaie.");
+    }
   }
 
   function get(id) {

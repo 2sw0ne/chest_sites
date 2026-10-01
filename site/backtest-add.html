@@ -184,7 +184,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=1"></script>
-<script src="js/sync-store.js?v=3"></script>
+<script src="js/sync-store.js?v=4"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="backtesting" class="chest-root">
@@ -377,7 +377,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/nav.js?v=2"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=5"></script>
-<script src="js/backtest-store.js"></script>
+<script src="js/backtest-store.js?v=2"></script>
 <script src="js/backtest-engine.js?v=20"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js?v=2"></script>
@@ -909,7 +909,7 @@ CHESTTour.init([
     return { mode: 'manual', risk, tiers, rules };
   }
 
-  document.getElementById('generateBtn').addEventListener('click', () => {
+  document.getElementById('generateBtn').addEventListener('click', async () => {
     const errEl = document.getElementById('genError');
     errEl.textContent = '';
 
@@ -930,13 +930,22 @@ CHESTTour.init([
       if (!pf) { errEl.textContent = "Le réglage automatique propfirm n'a pas de résultat : importe ton fichier (étape 3) ou passe en mode manuel."; return; }
     }
 
-    if (editingRecord) {
-      window.CHESTBacktests.update(editingRecord.id, { title, description, capital, cp, pf, trades: parsedTrades });
-      window.location.href = `backtest-view.html?id=${encodeURIComponent(editingRecord.id)}`;
-    } else {
-      const record = window.CHESTBacktests.add({ title, description, capital, cp, pf, trades: parsedTrades });
-      window.location.href = `backtest-view.html?id=${encodeURIComponent(record.id)}`;
+    let targetId;
+    try {
+      if (editingRecord) {
+        window.CHESTBacktests.update(editingRecord.id, { title, description, capital, cp, pf, trades: parsedTrades });
+        targetId = editingRecord.id;
+      } else {
+        targetId = window.CHESTBacktests.add({ title, description, capital, cp, pf, trades: parsedTrades }).id;
+      }
+    } catch (e) {
+      errEl.textContent = e.message || "Le backtest n'a pas pu être enregistré.";
+      return;
     }
+    // Attendre que le serveur ait reçu le backtest avant de changer de page (même course que
+    // journal.html, voir CHESTSync.flushNow dans js/sync-store.js).
+    try { if (window.CHESTSync) await window.CHESTSync.flushNow(); } catch (e) { /* tant pis, on part quand meme */ }
+    window.location.href = `backtest-view.html?id=${encodeURIComponent(targetId)}`;
   });
 })();
 </script>

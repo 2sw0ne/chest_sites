@@ -36,6 +36,7 @@ import secrets
 import smtplib
 import sqlite3
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -277,6 +278,9 @@ def init_db():
                 ticket INTEGER NOT NULL
             )
         """)
+        # Comptes rendus semaine/mois deja envoyes (2026-10-01, voir check_digests) - une ligne par
+        # periode, pour ne jamais renvoyer le meme compte rendu apres un redemarrage.
+        db.execute("CREATE TABLE IF NOT EXISTS push_digest_log (period_key TEXT PRIMARY KEY, sent_at TEXT)")
         # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
         # plusieurs appareils abonnés (PC + téléphone), chacun avec son propre "endpoint".
         db.execute("""
@@ -392,7 +396,8 @@ def signup():
         # membres oui avec le prénom etc.") - en plus de l'email existant ci-dessus, jamais a la
         # place : l'un ne remplace pas l'autre, l'admin peut ne pas avoir active les notifications.
         try:
-            send_push_to_admins("Nouveau membre CHEST", f"{first_name} {last_name} vient de créer un compte ({email}).", "admin-members.html")
+            new_member_text = f"Nouveau membre : {first_name} {last_name} ({email})"
+            send_typed_push("new_member", "admin-members.html", lambda db, uid, p: new_member_text, admins_only=True)
         except Exception:
             pass  # jamais bloquer l'inscription pour un souci de notification
 
@@ -970,21 +975,334 @@ def send_push_to_admins(title, body_text, url=None):
     return _send_push_to_subscriptions(subs, title, body_text, url)
 
 
+# ---------------------------------------------------------------- Notifications au choix (2026-10-01)
+# Demande utilisateur : "une partie dans les parametres ou on choisit quelle notif on veut recevoir",
+# chaque notification cochable, et un format court par compte ("ALLIN - TP✔️ +1964,57$") avec le
+# choix $ ou % pour tout ce qui touche au compte. Les reglages vivent dans le navigateur
+# (localStorage "chest_notif_prefs", voir site/account.html) et arrivent ici par la synchro
+# existante (table user_data, voir /sync) - aucune nouvelle route a appeler cote client.
+# Un reglage absent = tout coche (comportement d'avant : tout le monde recevait tout).
+NOTIF_TYPES = (
+    "calendar_pre", "calendar_result", "position_open", "position_close",
+    "report_weekly", "report_monthly", "new_member",
+)
+NOTIF_PREFS_KEY = "chest_notif_prefs"
+BERICH_SIGNALS_URL = os.environ.get("BERICH_SIGNALS_URL", "https://berich-bridge-production.up.railway.app/signals")
+
+
+def _user_json(db, user_id, key, default):
+    row = db.execute("SELECT value FROM user_data WHERE user_id = ? AND key = ?", (user_id, key)).fetchone()
+    if not row:
+        return default
+    try:
+        val = json.loads(row["value"])
+    except (ValueError, TypeError):
+        return default
+    return val if val is not None else default
+
+
+def _user_prefs(db, user_id):
+    prefs = {t: True for t in NOTIF_TYPES}
+    prefs["unit"] = "usd"
+    stored = _user_json(db, user_id, NOTIF_PREFS_KEY, {})
+    if isinstance(stored, dict):
+        for t in NOTIF_TYPES:
+            if isinstance(stored.get(t), bool):
+                prefs[t] = stored[t]
+        if stored.get("unit") in ("usd", "pct"):
+            prefs["unit"] = stored["unit"]
+    return prefs
+
+
+def _owner_journal(db, user_id):
+    """Journal qui recoit les positions BERICH : le premier journal saisi a la main (meme regle que
+    site/js/journal-store.js, entriesFor)."""
+    accounts = _user_json(db, user_id, "chest_journal_accounts", [])
+    if not isinstance(accounts, list):
+        return None
+    accounts = [a for a in accounts if isinstance(a, dict)]
+    return next((a for a in accounts if a.get("mode") != "auto"), None)
+
+
+def _active_dashboard_account(db, user_id):
+    accounts = _user_json(db, user_id, "chest_accounts", [])
+    if not isinstance(accounts, list) or not accounts:
+        return None
+    row = db.execute("SELECT value FROM user_data WHERE user_id = ? AND key = 'chest_active_account'", (user_id,)).fetchone()
+    active_id = row["value"] if row else None
+    return next((a for a in accounts if isinstance(a, dict) and a.get("id") == active_id), accounts[0] if isinstance(accounts[0], dict) else None)
+
+
+def _family_name(db, user_id):
+    owner = _owner_journal(db, user_id)
+    if owner and str(owner.get("name") or "").strip():
+        return str(owner["name"]).strip()
+    acc = _active_dashboard_account(db, user_id)
+    if acc and str(acc.get("name") or "").strip():
+        return str(acc["name"]).strip()
+    return "BERICH"
+
+
+def _num(v):
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if f == f else None  # NaN -> None
+
+
+def _fmt_money(v):
+    sign = "+" if v >= 0 else "-"
+    return f"{sign}{abs(v):.2f}".replace(".", ",") + "$"
+
+
+def _fmt_pct(v):
+    txt = f"{abs(v):.2f}".rstrip("0").rstrip(".").replace(".", ",")
+    return ("+" if v >= 0 else "-") + txt + "%"
+
+
+def _fmt_value(prefs, amount, pct, r=None):
+    """$ ou % selon le reglage ; l'autre unite en secours si la premiere est inconnue."""
+    order = (("pct", pct), ("usd", amount)) if prefs["unit"] == "pct" else (("usd", amount), ("pct", pct))
+    for unit, v in order:
+        if v is not None:
+            return _fmt_pct(v) if unit == "pct" else _fmt_money(v)
+    if r is not None:
+        return f"{r:+g}R".replace(".", ",")
+    return ""
+
+
+def _berich_risk(db, user_id, signal_id):
+    """Risque d'une position BERICH pour CE membre : celui memorise au clic "prendre la position"
+    (chest_berich_taken, voir site/js/berich-store.js), sinon le reglage de sa connexion BERICH
+    applique au solde de son journal principal."""
+    taken = _user_json(db, user_id, "chest_berich_taken", [])
+    meta = next((t for t in taken if isinstance(t, dict) and t.get("id") == signal_id), None) if isinstance(taken, list) else None
+    if meta:
+        return _num(meta.get("riskAmount")), _num(meta.get("riskPercent")), True
+    conn = _user_json(db, user_id, "chest_berich_connection", {})
+    pct = _num(conn.get("riskPercent")) if isinstance(conn, dict) else None
+    owner = _owner_journal(db, user_id) or _active_dashboard_account(db, user_id) or {}
+    balance = _num(owner.get("balance"))
+    amount = balance * pct / 100 if balance is not None and pct is not None else None
+    return amount, pct, False
+
+
+def _signal_rr(event):
+    entry, sl, tp = _num(event.get("entry")), _num(event.get("sl")), _num(event.get("tp"))
+    if entry is None or sl is None or tp is None or entry == sl:
+        return 3.0
+    return round(abs(tp - entry) / abs(entry - sl), 2)
+
+
+def _render_position_open(db, user_id, prefs, event):
+    side = str(event.get("side") or "").upper()
+    if side not in ("BUY", "SELL"):
+        return None
+    arrow = "📈" if side == "BUY" else "📉"
+    return f"{_family_name(db, user_id)} - Vous avez pris un {side} {arrow}"
+
+
+def _render_position_close(db, user_id, prefs, event):
+    result = event.get("result")
+    if result not in ("TP", "SL"):
+        return None
+    r = _signal_rr(event) if result == "TP" else -1.0
+    amount, pct, _ = _berich_risk(db, user_id, event.get("id"))
+    val = _fmt_value(prefs, amount * r if amount is not None else None, pct * r if pct is not None else None, r)
+    mark = "TP✔️" if result == "TP" else "SL❌"
+    return f"{_family_name(db, user_id)} - {mark} {val}".strip()
+
+
+def send_typed_push(ntype, url, render, admins_only=False):
+    """Envoie a chaque membre abonne qui a coche `ntype`, avec un texte propre a ce membre
+    (render(db, user_id, prefs) -> str | None). Le texte part en TITRE, corps vide : sur iPhone,
+    la ligne "from CHEST" est ajoutee par iOS et ne peut pas etre retiree (voir site/sw.js)."""
+    db = get_db()
+    q = "SELECT push_subscriptions.* FROM push_subscriptions"
+    if admins_only:
+        q += " JOIN users ON users.id = push_subscriptions.user_id WHERE users.is_admin = 1"
+    by_user = {}
+    for sub in db.execute(q).fetchall():
+        by_user.setdefault(sub["user_id"], []).append(sub)
+    total = {"sent": 0, "removed": 0, "skipped": 0}
+    for user_id, subs in by_user.items():
+        prefs = _user_prefs(db, user_id)
+        if not prefs.get(ntype, True):
+            total["skipped"] += 1
+            continue
+        try:
+            text = render(db, user_id, prefs)
+        except Exception as exc:  # un membre aux donnees bizarres ne doit pas bloquer les autres
+            print(f"Notification {ntype} : rendu impossible pour l'utilisateur {user_id} ({exc})")
+            text = None
+        if not text:
+            total["skipped"] += 1
+            continue
+        res = _send_push_to_subscriptions(subs, text, "", url)
+        total["sent"] += res.get("sent", 0)
+        total["removed"] += res.get("removed", 0)
+        if res.get("error"):
+            total["error"] = res["error"]
+    return total
+
+
 @app.route("/push/broadcast", methods=["POST"])
 def push_broadcast():
     # Reserve aux AUTRES SERVICES Railway (berich-bridge, calendar-bridge) - pas de session
     # utilisateur cote webhook/tache de fond, donc un secret partage plutot qu'un jeton Bearer (voir
-    # INTERNAL_PUSH_SECRET). Declencheurs reels : signal BERICH detecte/cloture (TP/SL), grosse
-    # annonce du calendrier qui approche - voir berich-bridge/server.py et
-    # calendar-bridge/fetch_calendar.py pour l'appel.
+    # INTERNAL_PUSH_SECRET). Avec "type" (2026-10-01), chaque membre ne recoit que ce qu'il a coche ;
+    # "event" (positions BERICH) fait rediger le texte par membre (nom du journal, $ ou %). Sans
+    # "type" : ancien comportement, a tout le monde.
     if not INTERNAL_PUSH_SECRET or request.headers.get("X-Internal-Secret") != INTERNAL_PUSH_SECRET:
         return jsonify({"error": "Non autorisé."}), 401
     body = request.get_json(silent=True) or {}
-    title = (body.get("title") or "CHEST").strip()
-    text = (body.get("body") or "").strip()
+    ntype = body.get("type")
     url = body.get("url") or "app.html"
-    result = send_push_to_all(title, text, url)
+    event = body.get("event") if isinstance(body.get("event"), dict) else None
+    if ntype == "position_open" and event:
+        return jsonify(send_typed_push(ntype, url, lambda db, uid, p: _render_position_open(db, uid, p, event)))
+    if ntype == "position_close" and event:
+        return jsonify(send_typed_push(ntype, url, lambda db, uid, p: _render_position_close(db, uid, p, event)))
+    title = (body.get("title") or "").strip()
+    text = (body.get("body") or "").strip()
+    if ntype in NOTIF_TYPES:
+        message = " — ".join(x for x in (title, text) if x)
+        return jsonify(send_typed_push(ntype, url, lambda db, uid, p: message))
+    result = send_push_to_all(title or "CHEST", text, url)
     return jsonify(result)
+
+
+# ---------------------------------------------------------------- Comptes rendus semaine / mois
+# Demande utilisateur (2026-10-01) : "des comptes rendus dans la meme structure par semaine et par
+# mois". Un message par journal qui a des trades clotures sur la periode : "ALLIN - Semaine du 22/09 :
+# +1964,57$ · 5 TP✔️ 2 SL❌". Source = les memes donnees que la page Journal (saisies manuelles,
+# comptes Myfxbook importes, positions BERICH prises), lues dans user_data. Le samedi matin pour la
+# semaine (lundi -> vendredi), le 1er du mois pour le mois precedent ; jamais deux fois la meme
+# periode (table push_digest_log, survit aux redemarrages).
+DIGEST_HOUR_PARIS = 9
+MONTHS_FR = ("Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août",
+             "Septembre", "Octobre", "Novembre", "Décembre")
+
+
+def _paris_now():
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo("Europe/Paris"))
+
+
+def _fetch_berich_signals():
+    try:
+        with urllib.request.urlopen(BERICH_SIGNALS_URL, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return [s for s in data.get("signals", []) if isinstance(s, dict)]
+    except (urllib.error.URLError, OSError, ValueError):
+        return []
+
+
+def _journal_trades(db, user_id, start_iso, end_iso, signals):
+    """[(compte du journal, [(resultat, montant|None, pct|None)])] pour la periode [start, end)."""
+    accounts = _user_json(db, user_id, "chest_journal_accounts", [])
+    accounts = [a for a in accounts if isinstance(a, dict)] if isinstance(accounts, list) else []
+    entries = _user_json(db, user_id, "chest_journal", [])
+    entries = [e for e in entries if isinstance(e, dict)] if isinstance(entries, list) else []
+    ext = _user_json(db, user_id, "chest_journal_ext", {})
+    ext = ext if isinstance(ext, dict) else {}
+    owner = next((a for a in accounts if a.get("mode") != "auto"), None)
+
+    def in_period(d):
+        d = str(d or "")[:10]
+        return start_iso <= d < end_iso
+
+    out = []
+    for i, acc in enumerate(accounts):
+        balance = _num(acc.get("balance"))
+        rows = []
+        manual = [e for e in entries if e.get("accountId") == acc.get("id") or (not e.get("accountId") and i == 0)]
+        for live in acc.get("live") or []:
+            if isinstance(live, dict):
+                manual += [e for e in ext.get(live.get("id"), []) if isinstance(e, dict)]
+        for e in manual:
+            if e.get("result") not in ("TP", "SL", "BE") or not in_period(e.get("date")):
+                continue
+            pnl = _num(e.get("pnl"))
+            rows.append((e["result"], pnl, pnl / balance * 100 if pnl is not None and balance else None))
+        if owner is not None and acc.get("id") == owner.get("id"):
+            for s in signals:
+                if s.get("status") != "closed" or s.get("result") not in ("TP", "SL"):
+                    continue
+                if not in_period(s.get("closedAt") or s.get("time")):
+                    continue
+                amount, pct, taken = _berich_risk(db, user_id, s.get("id"))
+                if not taken:
+                    continue  # seules les positions prises comptent (meme regle que le Journal)
+                r = _signal_rr(s) if s["result"] == "TP" else -1.0
+                rows.append((s["result"], amount * r if amount is not None else None, pct * r if pct is not None else None))
+        if rows:
+            out.append((acc, rows))
+    return out
+
+
+def _render_digest(db, user_id, prefs, label, start_iso, end_iso, signals):
+    lines = []
+    for acc, rows in _journal_trades(db, user_id, start_iso, end_iso, signals):
+        amounts = [a for _, a, _ in rows if a is not None]
+        pcts = [p for _, _, p in rows if p is not None]
+        val = _fmt_value(prefs, sum(amounts) if amounts else None, sum(pcts) if pcts else None)
+        tp = sum(1 for r, _, _ in rows if r == "TP")
+        sl = sum(1 for r, _, _ in rows if r == "SL")
+        be = sum(1 for r, _, _ in rows if r == "BE")
+        counts = f"{tp} TP✔️ {sl} SL❌" + (f" {be} BE" if be else "")
+        name = str(acc.get("name") or "Journal").strip()
+        lines.append(f"{name} - {label} : {val} · {counts}" if val else f"{name} - {label} : {counts}")
+    return lines
+
+
+def _send_digest(ntype, period_key, label, start_iso, end_iso):
+    with db_lock:
+        db = get_db()
+        cur = db.execute("INSERT OR IGNORE INTO push_digest_log (period_key, sent_at) VALUES (?, ?)",
+                         (period_key, datetime.now(timezone.utc).isoformat()))
+        db.commit()
+        if cur.rowcount == 0:
+            return  # deja envoye pour cette periode
+    signals = _fetch_berich_signals()
+    db = get_db()
+    users = {r["user_id"] for r in db.execute("SELECT DISTINCT user_id FROM push_subscriptions").fetchall()}
+    for user_id in users:
+        prefs = _user_prefs(db, user_id)
+        if not prefs.get(ntype, True):
+            continue
+        for line in _render_digest(db, user_id, prefs, label, start_iso, end_iso, signals):
+            subs = db.execute("SELECT * FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchall()
+            _send_push_to_subscriptions(subs, line, "", "journal.html")
+    print(f"Compte rendu {period_key} envoyé.")
+
+
+def check_digests():
+    now = _paris_now()
+    if now.hour < DIGEST_HOUR_PARIS:
+        return
+    today = now.date()
+    if today.weekday() in (5, 6):  # samedi (ou dimanche si le service etait arrete le samedi)
+        monday = today - timedelta(days=today.weekday())
+        _send_digest("report_weekly", f"week:{monday.isoformat()}", f"Semaine du {monday.strftime('%d/%m')}",
+                     monday.isoformat(), (monday + timedelta(days=7)).isoformat())
+    if today.day in (1, 2):
+        first_this = today.replace(day=1)
+        first_prev = (first_this - timedelta(days=1)).replace(day=1)
+        _send_digest("report_monthly", f"month:{first_prev.strftime('%Y-%m')}", MONTHS_FR[first_prev.month - 1],
+                     first_prev.isoformat(), first_this.isoformat())
+
+
+def digest_loop():
+    while True:
+        try:
+            with app.app_context():
+                check_digests()
+        except Exception:
+            import traceback
+            traceback.print_exc()
+        time.sleep(300)
 
 
 @app.route("/push/send", methods=["POST"])
@@ -1166,6 +1484,7 @@ class NoKeepAliveHandler(WSGIRequestHandler):
 
 if __name__ == "__main__":
     init_db()
+    threading.Thread(target=digest_loop, daemon=True).start()
     # threaded=True : threaded=False bloquait TOUTES les requetes suivantes
     # des qu'un client (navigateur avec keep-alive) laissait une connexion
     # ouverte - constate en direct le 2026-09-15, meme avec NoKeepAliveHandler
