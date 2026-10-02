@@ -238,9 +238,10 @@
   // le 2026-09-17), en remontant depuis le solde actuel. Honnete : sans
   // trade cloture aujourd'hui, retombe sur une ligne plate (minuit -> solde
   // actuel), jamais d'heures inventees.
-  // Resultat NET d'un trade Myfxbook (profit + commission + swap), comme le Journal (mfxToEntry).
+  // Resultat NET d'un trade Myfxbook = son `profit`, deja net de commission et swap (colonne « Net
+  // Profit » de Myfxbook, verifie le 2026-10-02 sur capture : les y re-ajouter les comptait deux fois).
   function tradeNet(t) {
-    return (parseFloat(t.profit) || 0) + (parseFloat(t.commission) || 0) + (parseFloat(t.interest) || 0);
+    return parseFloat(t.profit) || 0;
   }
   function tradesClosedOn(history, iso) {
     return (history || []).filter((t) => t.closeTime && !isNaN(new Date(t.closeTime)) && isoDateLocal(new Date(t.closeTime)) === iso)
@@ -457,7 +458,7 @@
     return [...realByDate.entries()].sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, v]) => ({ date, pnl: v.pnl, pct: v.capitalBefore ? (v.pnl / v.capitalBefore * 100) : 0, source: 'real' }));
   }
-  // Resultat de chaque jour = somme des trades CLOTURES ce jour-la (profit + commission + swap),
+  // Resultat de chaque jour = somme des trades CLOTURES ce jour-la (profit net Myfxbook),
   // exactement comme le Calendar de Myfxbook (2026-10-02, retour utilisateur avec capture : 1er oct.
   // -992,72 $, 2 oct. -4 692,51 $). get-daily-gain.json, lui, ne colle pas au Calendar (-5 679,69 $
   // cumules au lieu de -5 685,23 $) : il ne sert plus qu'aux jours plus anciens que les 50 dernieres
@@ -1261,7 +1262,7 @@
   }
 
   // Resultat du jour : celui de Myfxbook (trades classes par jour de cloture) ; si Myfxbook n'a pas
-  // encore publie la journee, somme des trades CLOTURES aujourd'hui (profit + commission + swap).
+  // encore publie la journee, somme des trades CLOTURES aujourd'hui (profit net).
   function todayPnlFromHistory(dailyHistory, history) {
     const todayIso = isoDateLocal(new Date());
     const entry = (dailyHistory || []).find((d) => d.date === todayIso);

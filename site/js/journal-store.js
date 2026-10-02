@@ -409,7 +409,21 @@
     const before = cur.length;
     const ids = new Set(cur.map((e) => e.id));
     let added = 0;
-    incoming.forEach((e) => { if (!ids.has(e.id)) { cur.push(e); ids.add(e.id); added++; } });
+    // `refresh` : une position deja connue est remise a jour (montant net, notes) - corrige les anciennes
+    // entrees Myfxbook calculees avec la commission comptee deux fois. Des notes modifiees a la main
+    // (differentes des notes automatiques precedentes) sont gardees.
+    const idx = new Map(cur.map((e, i) => [e.id, i]));
+    incoming.forEach((e) => {
+      if (!ids.has(e.id)) { cur.push(e); ids.add(e.id); added++; return; }
+      if (!(opts && opts.refresh)) return;
+      const i = idx.get(e.id), old = cur[i];
+      // Anciennes entrees (sans `mfx`) : leurs notes automatiques etaient le commentaire Myfxbook brut.
+      const keepNotes = old.mfx ? old.notes !== old.mfx.autoNotes : !!old.notes && old.notes !== e.mfx.comment;
+      cur[i] = Object.assign({}, old, {
+        pnl: e.pnl, result: e.result, rrActual: e.rrActual, rrTarget: e.rrTarget, sl: e.sl, tp: e.tp,
+        mfx: e.mfx, notes: keepNotes ? old.notes : e.notes,
+      });
+    });
     all[key] = cur;
     try { localStorage.setItem(EXT_KEY, JSON.stringify(all)); } catch (e) { /* tant pis */ }
     const limitReached = incoming.length >= limit;
@@ -474,7 +488,31 @@
     const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(String(str || ''));
     return m ? new Date(+m[3], +m[1] - 1, +m[2], +(m[4] || 0), +(m[5] || 0)) : null;
   }
-  function mfxToEntry(tx, live) {
+  // `profit` de get-history.json est DEJA le resultat net (commission et swap deduits) : c'est la colonne
+  // « Net Profit » de l'historique Myfxbook (2026-10-02, retour utilisateur avec capture : -509,54 $ sur
+  // Myfxbook, -513,19 $ ici quand on y re-soustrayait la commission de 3,65 $). Les notes reprennent la
+  // ligne du tableau Myfxbook (pips, lots, prix, SL/TP, duree, gain).
+  function fmtNum(n, d) { return n == null ? '—' : Number(n).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  function fmtDuration(ms) {
+    if (!(ms >= 0)) return null;
+    const m = Math.round(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+    return d ? `${d}j ${h}h` : h ? `${h}h ${mm}m` : `${mm}m`;
+  }
+  function mfxNotes(tx, x) {
+    const sign = (n) => (n > 0 ? '+' : '');
+    const parts = [
+      x.pips != null ? `Pips ${sign(x.pips)}${fmtNum(x.pips, 1)}` : null,
+      x.lots != null ? `Lots ${fmtNum(x.lots, 2)}` : null,
+      `Ouverture ${fmtNum(x.open, 2)} → Clôture ${fmtNum(x.close, 2)}`,
+      `SL ${fmtNum(x.sl, 2)} · TP ${fmtNum(x.tp, 2)}`,
+      `Net ${sign(x.pnl)}${fmtNum(x.pnl, 2)} $`,
+      x.gain != null ? `Gain ${sign(x.gain)}${fmtNum(x.gain, 2)} %` : null,
+      x.duration ? `Durée ${x.duration}` : null,
+      tx.comment ? String(tx.comment) : null,
+    ];
+    return parts.filter(Boolean).join(' · ');
+  }
+  function mfxToEntry(tx, live, balanceBefore) {
     const openS = pickOf(tx, 'openTime', 'openDate'), closeS = pickOf(tx, 'closeTime', 'closeDate');
     const openAt = parseMfxDate(openS), closeAt = parseMfxDate(closeS);
     const symbol = String(tx.symbol || '').toUpperCase();
@@ -482,19 +520,37 @@
     const side = String(tx.action || '').toLowerCase().indexOf('sell') === 0 ? 'sell' : 'buy';
     const open = numOf(tx.openPrice), close = numOf(tx.closePrice);
     const sl = numOf(tx.sl) || null, tp = numOf(tx.tp) || null;
-    const pnl = Math.round(((numOf(tx.profit) || 0) + (numOf(tx.interest) || 0) + (numOf(tx.commission) || 0)) * 100) / 100;
+    const pnl = Math.round((numOf(tx.profit) || 0) * 100) / 100;
     const risk = open != null && sl != null ? Math.abs(open - sl) : 0;
     const rrActual = risk > 0 && close != null ? Math.round((pnl >= 0 ? 1 : -1) * Math.abs(close - open) / risk * 100) / 100 : null;
     const rrTarget = risk > 0 && tp != null ? Math.round(Math.abs(tp - open) / risk * 100) / 100 : null;
+    const lots = numOf(tx.sizing && typeof tx.sizing === 'object' ? tx.sizing.value : null) ?? numOf(tx.lots);
+    const pips = numOf(tx.pips);
+    const gain = balanceBefore ? Math.round(pnl / balanceBefore * 10000) / 100 : null;
+    const duration = openAt && closeAt ? fmtDuration(closeAt - openAt) : null;
+    const mfx = { pips, lots, open, close, sl, tp, pnl, gain, duration,
+      commission: numOf(tx.commission), swap: numOf(tx.interest), comment: tx.comment || '' };
+    mfx.autoNotes = mfxNotes(tx, mfx);
     return {
       id: `mfx-${live.id}-${openS}-${symbol}-${open}`,
       date: (closeAt || openAt || new Date()).toISOString(),
       openAt: openAt ? openAt.toISOString() : null, closeAt: closeAt ? closeAt.toISOString() : null,
       pair, side, entry: open, sl, tp, rrTarget, rrActual,
       result: pnl > 0 ? 'TP' : pnl < 0 ? 'SL' : 'BE', pnl,
-      tags: [], chartLink: null, notes: tx.comment || '',
+      tags: [], chartLink: null, notes: mfx.autoNotes, mfx,
       source: 'myfxbook', sourceLabel: live.name,
     };
+  }
+  // Solde juste avant chaque cloture, en remontant depuis le solde actuel (depots/retraits compris),
+  // pour le « Gain » % de chaque position comme Myfxbook.
+  function balancesBefore(history, balance) {
+    const out = new Map();
+    if (balance == null) return out;
+    let bal = balance;
+    history.map((tx, i) => ({ tx, i, at: parseMfxDate(pickOf(tx, 'closeTime', 'closeDate')) || parseMfxDate(pickOf(tx, 'openTime', 'openDate')) }))
+      .sort((a, b) => (b.at || 0) - (a.at || 0))
+      .forEach(({ tx, i }) => { bal -= numOf(tx.profit) || 0; out.set(i, bal); });
+    return out;
   }
 
   // Lit Myfxbook (e-mail + mot de passe Myfxbook) : infos du compte + 50 dernières transactions, ajoutées à l'existant.
@@ -509,7 +565,9 @@
       const info = accounts.find((a) => String(a.id) === String(live.accountId));
       if (!info) throw new Error("Ce compte n'existe plus sur ton profil Myfxbook.");
       const history = (await window.CHESTMyfxbook.getHistory(session, live.accountId)).map((h) => (Array.isArray(h) ? h[0] : h)).filter(Boolean);
-      const res = mergeExternal(live.id, history.map((tx) => mfxToEntry(tx, live)).filter((e) => e.pair), { limit: 50 });
+      const before = balancesBefore(history, numOf(info.balance));
+      const isTrade = (tx) => /^(buy|sell)/i.test(String(tx.action || '')); // jamais un depot/retrait
+      const res = mergeExternal(live.id, history.map((tx, i) => (isTrade(tx) ? mfxToEntry(tx, live, before.get(i)) : null)).filter((e) => e && e.pair), { limit: 50, refresh: true });
       updateLiveAccount(accountId, liveId, {
         lastSync: new Date().toISOString(), lastError: null, lastLimitReached: res.limitReached, possibleGap: res.possibleGap, firstBatch: res.firstBatch,
         info: { balance: numOf(info.balance), equity: numOf(info.equity), profit: numOf(info.profit), gain: numOf(info.gain), drawdown: numOf(info.drawdown), deposits: numOf(info.deposits), currency: info.currency || null, demo: info.demo === true || info.demo === 'true' },
