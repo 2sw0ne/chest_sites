@@ -178,6 +178,24 @@
 
   .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; margin-bottom:16px; }
   .back-link:hover{ color:var(--ink); }
+  /* Capital propfirm séparé (2026-10-02) : flèche dans le champ capital, qui ouvre un 2e capital pour la propfirm. */
+  .cap-wrap{ position:relative; }
+  .cap-wrap .field{ padding-right:56px; }
+  .cap-toggle{
+    position:absolute; top:50%; right:8px; transform:translateY(-50%);
+    width:36px; height:36px; display:grid; place-items:center; border-radius:10px;
+    border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--chest-ink-2);
+    cursor:pointer; transition:border-color .2s cubic-bezier(.16,1,.3,1), color .2s, background .2s;
+  }
+  .cap-toggle:hover{ border-color:rgba(249,164,94,.5); color:var(--chest-ink); }
+  .cap-toggle:focus-visible{ outline:none; border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.15); }
+  .cap-toggle svg{ width:16px; height:16px; transition:transform .2s cubic-bezier(.16,1,.3,1); }
+  .cap-toggle[aria-expanded="true"]{ color:#fc1283; border-color:rgba(252,18,131,.45); }
+  .cap-toggle[aria-expanded="true"] svg{ transform:rotate(180deg); }
+  .cap-pf[hidden]{ display:none; }
+  .cap-pf{ margin-top:12px; }
+  .cap-pf__hint{ font-size:12px; color:var(--muted); margin:6px 0 0; }
+  @media (prefers-reduced-motion: reduce){ .cap-toggle, .cap-toggle svg{ transition:none; } }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/config.js?v=3"></script>
@@ -281,8 +299,18 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
           <input id="btDesc" class="field" type="text" placeholder="Une phrase pour résumer la logique de la stratégie">
         </div>
         <div>
-          <label for="btCapital">Capital de départ</label>
-          <input id="btCapital" class="field" type="number" inputmode="numeric" min="1" step="1" value="10000" required>
+          <label for="btCapital" id="btCapitalLabel">Capital de départ</label>
+          <div class="cap-wrap">
+            <input id="btCapital" class="field" type="number" inputmode="numeric" min="1" step="1" value="10000" required>
+            <button type="button" class="cap-toggle" id="btCapitalToggle" aria-expanded="false" aria-controls="btPfCapitalWrap" title="Un capital différent pour la propfirm" aria-label="Un capital différent pour la propfirm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </div>
+          <div class="cap-pf" id="btPfCapitalWrap" hidden>
+            <label for="btPfCapital">Capital propfirm</label>
+            <input id="btPfCapital" class="field" type="number" inputmode="numeric" min="1" step="1" value="100000">
+            <p class="cap-pf__hint">Utilisé pour la colonne propfirm du rapport et son réglage automatique. Le compte propre garde le capital du dessus.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -604,10 +632,18 @@ CHESTTour.init([
   // est irréalisable). Aucun risque, palier ou règle n'ira en dessous ; la pause (0 %) reste possible.
   const minUsd = () => Math.max(0.5, Number(document.querySelector('.auto-min-usd').value) || 5);
   const capitalNow = () => Number(document.getElementById('btCapital').value) || 10000;
-  const minRiskPct = () => minUsd() / capitalNow() * 100;
+  // Capital propre à la propfirm (2026-10-02) : seulement si la flèche du champ capital l'a ouvert.
+  const pfCapitalOpen = () => document.getElementById('btCapitalToggle').getAttribute('aria-expanded') === 'true';
+  const pfCapitalNow = () => (pfCapitalOpen() && Number(document.getElementById('btPfCapital').value) > 0)
+    ? Number(document.getElementById('btPfCapital').value) : capitalNow();
+  const capitalFor = (account) => (account === 'pf' ? pfCapitalNow() : capitalNow());
+  const minRiskPct = (account) => minUsd() / capitalFor(account || 'cp') * 100;
   function paintMin() {
-    const txt = `= ${fr(minRiskPct(), 3).replace(/,?0+$/, '')} % de ${Math.round(capitalNow()).toLocaleString('fr-FR')} $`;
-    document.querySelectorAll('.auto-min__pct').forEach((el) => { el.textContent = txt; });
+    document.querySelectorAll('.auto-min').forEach((box) => {
+      const acc = box.dataset.account || 'cp';
+      const el = box.querySelector('.auto-min__pct');
+      if (el) el.textContent = `= ${fr(minRiskPct(acc), 3).replace(/,?0+$/, '')} % de ${Math.round(capitalFor(acc)).toLocaleString('fr-FR')} $`;
+    });
   }
   function setMinUsd(v) { document.querySelectorAll('.auto-min-usd').forEach((el) => { el.value = v; }); paintMin(); }
   // « + Si » du mode Automatique : bonus imposé, chaque valeur reçoit son propre money management.
@@ -685,10 +721,10 @@ CHESTTour.init([
     resultEl.innerHTML = `<span class="prem-note">Calcul des trois réglages…</span>`;
     setTimeout(() => {
       if (token !== autoToken[account]) return;
-      const capital = Number(document.getElementById('btCapital').value) || 10000;
+      const capital = capitalFor(account);
       let split = autoSplit[account];
       if (split && !bonusFields.some((f) => f.key === split)) { split = autoSplit[account] = null; paintSplit(account); }
-      const res = ENG.optimizeProfiles(parsedTrades, capital, account, { split, minRiskPct: minRiskPct() });
+      const res = ENG.optimizeProfiles(parsedTrades, capital, account, { split, minRiskPct: minRiskPct(account) });
       if (res.error) { clearAuto(resultEl); resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
       renderPremium(resultEl, res, account);
     }, 30);
@@ -696,6 +732,18 @@ CHESTTour.init([
   const runAutoAll = () => ['cp', 'pf'].forEach((a) => { if (isAutoActive(a)) runAuto(a); });
   let capTimer = null;
   document.getElementById('btCapital').addEventListener('input', () => { paintMin(); clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); });
+  function setPfCapitalOpen(open) {
+    document.getElementById('btCapitalToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.getElementById('btPfCapitalWrap').hidden = !open;
+    document.getElementById('btCapitalLabel').textContent = open ? 'Capital compte propre' : 'Capital de départ';
+    paintMin();
+  }
+  document.getElementById('btCapitalToggle').addEventListener('click', () => {
+    setPfCapitalOpen(!pfCapitalOpen());
+    if (pfCapitalOpen()) document.getElementById('btPfCapital').focus();
+    clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 300);
+  });
+  document.getElementById('btPfCapital').addEventListener('input', () => { paintMin(); clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); });
   document.querySelectorAll('.auto-min-usd').forEach((el) => el.addEventListener('input', () => { setMinUsd(el.value); clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); }));
   paintMin();
 
@@ -867,6 +915,10 @@ CHESTTour.init([
       document.getElementById('btTitle').value = editingRecord.title || '';
       document.getElementById('btDesc').value = editingRecord.description || '';
       document.getElementById('btCapital').value = editingRecord.capital;
+      if (editingRecord.pfCapital && editingRecord.pfCapital !== editingRecord.capital) {
+        document.getElementById('btPfCapital').value = editingRecord.pfCapital;
+        setPfCapitalOpen(true);
+      }
       parsedTrades = editingRecord.trades;
       refreshBonus();
       dropzoneFilename.textContent = `Fichier déjà importé (${editingRecord.trades.length} position${editingRecord.trades.length > 1 ? 's' : ''})`;
@@ -919,6 +971,10 @@ CHESTTour.init([
 
     if (!title) { errEl.textContent = 'Le titre est obligatoire.'; return; }
     if (!capital || capital <= 0) { errEl.textContent = 'Capital invalide.'; return; }
+    const pfCapitalRaw = Number(document.getElementById('btPfCapital').value);
+    if (pfCapitalOpen() && !(pfCapitalRaw > 0)) { errEl.textContent = 'Capital propfirm invalide.'; return; }
+    // null = même capital que le compte propre (anciens backtests inchangés).
+    const pfCapital = pfCapitalOpen() && pfCapitalRaw !== capital ? pfCapitalRaw : null;
     if (!parsedTrades || !parsedTrades.length) { errEl.textContent = "Importe d'abord un fichier Excel valide (étape 3)."; return; }
 
     const cp = readRiskConfig('cp');
@@ -933,10 +989,10 @@ CHESTTour.init([
     let targetId;
     try {
       if (editingRecord) {
-        window.CHESTBacktests.update(editingRecord.id, { title, description, capital, cp, pf, trades: parsedTrades });
+        window.CHESTBacktests.update(editingRecord.id, { title, description, capital, pfCapital, cp, pf, trades: parsedTrades });
         targetId = editingRecord.id;
       } else {
-        targetId = window.CHESTBacktests.add({ title, description, capital, cp, pf, trades: parsedTrades }).id;
+        targetId = window.CHESTBacktests.add({ title, description, capital, pfCapital, cp, pf, trades: parsedTrades }).id;
       }
     } catch (e) {
       errEl.textContent = e.message || "Le backtest n'a pas pu être enregistré.";

@@ -466,7 +466,10 @@ CHESTTour.init([
 
   document.getElementById('heroTitle').textContent = record.title;
   document.getElementById('heroDesc').textContent = record.description || 'Backtest ajouté depuis un fichier Excel personnel.';
-  document.getElementById('heroCapital').textContent = fmtMoney(record.capital);
+  // Capital propfirm séparé (2026-10-02, backtest-add.html) : null = même capital que le compte propre.
+  const pfCapital = record.pfCapital || record.capital;
+  document.getElementById('heroCapital').textContent = pfCapital !== record.capital
+    ? `${fmtMoney(record.capital)} · PF ${fmtMoney(pfCapital)}` : fmtMoney(record.capital);
   document.getElementById('heroTrades').textContent = record.trades.length;
 
   const sortedAll = window.CHESTBacktestEngine.sortedTrades(record.trades);
@@ -1107,7 +1110,7 @@ CHESTTour.init([
     document.getElementById('fitBody').innerHTML = '<div class="cal-state">Simulation de la vie des comptes…</div>';
     clearTimeout(fitTimer);
     fitTimer = setTimeout(() => {
-      const res = window.CHESTPropFit.fit(trades, record.capital, { userConfig: fitUserCfgFor(mmDetailAccount), accountKind: mmDetailAccount, rawMM });
+      const res = window.CHESTPropFit.fit(trades, mmDetailAccount === 'pf' ? pfCapital : record.capital, { userConfig: fitUserCfgFor(mmDetailAccount), accountKind: mmDetailAccount, rawMM });
       fitCache.set(key, res);
       paintFit(res, key);
     }, 30);
@@ -1116,7 +1119,7 @@ CHESTTour.init([
   function renderAll() {
     const trades = filteredTrades();
     const cpReport = window.CHESTBacktestEngine.computeReport(trades, record.capital, riskCfg(record.cp));
-    const pfReport = hasPf ? window.CHESTBacktestEngine.computeReport(trades, record.capital, riskCfg(record.pf)) : null;
+    const pfReport = hasPf ? window.CHESTBacktestEngine.computeReport(trades, pfCapital, riskCfg(record.pf)) : null;
     const slStreak = maxConsecutiveSl(trades);
     const counts = { TP: 0, SL: 0, BE: 0 };
     trades.forEach((t) => { const r = String(t.result).toUpperCase(); if (counts[r] != null) counts[r] += 1; });

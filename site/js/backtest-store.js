@@ -1,6 +1,6 @@
 // Stockage local des backtests ajoutés par l'utilisateur (le site reste
 // local pour le moment — voir memoire projet). Un backtest :
-// { id, title, description, capital,
+// { id, title, description, capital, pfCapital (capital propfirm s'il diffère, sinon null),
 //   cp: { mode:'manual'|'auto', risk, tiers:[{afterSl,newRisk}],
 //         rules?:[{conds:[{field,value}], afterSl:number|null, risk}]  // règles « Si » sur les bonus du fichier (risk 0 = trade ignoré)
 //         premium?:{label,perf,basePerf,dd,baseDd,oos} },              // réglage premium retenu (mode auto)

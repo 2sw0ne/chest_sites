@@ -507,6 +507,16 @@ Retour utilisateur avec capture : profit du jour -5 679,69 $ au lieu de -4 658,5
 - Limite : si un compte est plus ancien que l'historique Myfxbook connu, le 1er jour connu porte tout
   le passé (les totaux restent justes).
 
+## Backtest : capital propfirm séparé (2026-10-02)
+
+Demande utilisateur : « un capital différent pour les deux comptes ». `backtest-add.html` : flèche dans le
+champ « Capital de départ » (`#btCapitalToggle`) qui ouvre « Capital propfirm » (`#btPfCapital`, 100 000 par
+défaut) et renomme le premier en « Capital compte propre ». Stocké en `record.pfCapital` (null = même capital,
+anciens backtests inchangés) ; le réglage automatique propfirm et son « plus petit risque réalisable » utilisent
+ce capital (`capitalFor(account)`). `backtest-view.html` : rapport propfirm, recommandation section 03 (quand
+« Propfirm » est choisi) et page de garde (« $10 000 · PF $100 000 ») utilisent `pfCapital`. Vérifié : édition
+préremplie, 390 px sans débordement.
+
 ## Notification de clôture MT5 en temps quasi réel — `mt5-terminal` + `mt5-notify-bridge` (2026-09-27)
 
 Suite directe de la section précédente : le déclencheur "4" (TP/SL touché) ne couvrait que les
