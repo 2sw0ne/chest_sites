@@ -129,6 +129,7 @@
   // CHEST lit ensuite ses vraies données directement via leur API (CORS
   // ouvert, verifie en direct - aucun backend necessaire). ----------
   const myfxbookCache = {}; // { [accountLocalId]: { at: timestamp, data / error } }
+  const startCapitalById = {}; // capital de depart connu par compte (voir fetchMyfxbookAccount)
   const MYFXBOOK_CACHE_MS = 5 * 60 * 1000; // eviter de re-appeler l'API a chaque clic de pilule periode
 
   function maxDrawdownPct(equity) {
@@ -186,10 +187,23 @@
   // utilise par objectivesStatsFromHistory) : on compose une courbe
   // RELATIVE (base 1) du premier au dernier jour, puis on la recale d'un
   // seul coup sur le vrai solde ACTUEL connu (currentBalance).
-  function capitalCurveFromDailyHistory(dailyHistory, currentBalance) {
+  // 2026-10-02 (retour utilisateur : "mes profits affichent -6 679,53 $ alors qu'ils devraient
+  // afficher -5 641,64 $") : avec un capital de depart connu (`startCapital`, depots Myfxbook), la
+  // courbe est simplement capital de depart + profit cumule jour par jour - plus aucune
+  // capitalisation de % ni recalage sur le solde actuel, qui deformaient les montants.
+  function capitalCurveFromDailyHistory(dailyHistory, currentBalance, startCapital) {
     if (!dailyHistory || !dailyHistory.length) return [];
     const firstDate = new Date(dailyHistory[0].date + 'T12:00:00');
     const anchor = new Date(firstDate); anchor.setDate(anchor.getDate() - 1);
+    if (startCapital) {
+      let cap = startCapital;
+      const pts = [{ date: anchor, capital: Math.round(cap * 100) / 100 }];
+      dailyHistory.forEach((d) => {
+        cap += d.pnl || 0;
+        pts.push({ date: new Date(d.date + 'T12:00:00'), capital: Math.round(cap * 100) / 100 });
+      });
+      return pts;
+    }
     let rel = 1;
     const relPoints = [{ date: anchor, rel }];
     dailyHistory.forEach((d) => {
@@ -210,8 +224,9 @@
   // ce que j'ai actuellement"). Le %, deja correct, n'est jamais modifie -
   // seul le $ affiche change ; la source ('real'/'backtest') est conservee
   // pour la coloration jaune/orange (voir renderMiniCalendar).
-  function rescaleDailyHistoryPnl(dailyHistory, currentBalance) {
+  function rescaleDailyHistoryPnl(dailyHistory, currentBalance, startCapital) {
     if (!dailyHistory || !dailyHistory.length) return dailyHistory;
+    if (startCapital) return dailyHistory; // $ deja reels (difference de profit cumule), rien a recaler
     const curve = capitalCurveFromDailyHistory(dailyHistory, currentBalance);
     return dailyHistory.map((d, i) => ({ ...d, pnl: Math.round((curve[i + 1].capital - curve[i].capital) * 100) / 100 }));
   }
@@ -223,23 +238,28 @@
   // le 2026-09-17), en remontant depuis le solde actuel. Honnete : sans
   // trade cloture aujourd'hui, retombe sur une ligne plate (minuit -> solde
   // actuel), jamais d'heures inventees.
-  function intradayCurveFromTrades(history, currentBalance) {
-    const todayIso = isoDateLocal(new Date());
-    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
-    const todayTrades = (history || [])
-      .filter((t) => t.closeTime && isoDateLocal(new Date(t.closeTime)) === todayIso)
+  // Resultat NET d'un trade Myfxbook (profit + commission + swap), comme le Journal (mfxToEntry).
+  function tradeNet(t) {
+    return (parseFloat(t.profit) || 0) + (parseFloat(t.commission) || 0) + (parseFloat(t.interest) || 0);
+  }
+  function tradesClosedOn(history, iso) {
+    return (history || []).filter((t) => t.closeTime && !isNaN(new Date(t.closeTime)) && isoDateLocal(new Date(t.closeTime)) === iso)
       .sort((a, b) => new Date(a.closeTime) - new Date(b.closeTime));
-    if (!todayTrades.length) return [{ date: startOfDay, capital: currentBalance }, { date: new Date(), capital: currentBalance }];
-    let bal = currentBalance;
-    const desc = todayTrades.slice().reverse().map((t) => {
-      const point = { date: new Date(t.closeTime), capital: Math.round(bal * 100) / 100 };
-      bal -= parseFloat(t.profit) || 0;
-      return point;
+  }
+  // `startOfDayCapital` = capital a minuit (capital de depart + profit cumule jusqu'a hier) ;
+  // chaque trade compte a son heure de CLOTURE (une position ouverte hier et fermee aujourd'hui
+  // compte aujourd'hui). `todayPnl` ferme la courbe sur le vrai resultat du jour.
+  function intradayCurveFromTrades(history, startOfDayCapital, todayPnl) {
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+    const endCap = Math.round((startOfDayCapital + (todayPnl || 0)) * 100) / 100;
+    const pts = [{ date: startOfDay, capital: Math.round(startOfDayCapital * 100) / 100 }];
+    let cap = startOfDayCapital;
+    tradesClosedOn(history, isoDateLocal(new Date())).forEach((t) => {
+      cap += tradeNet(t);
+      pts.push({ date: new Date(t.closeTime), capital: Math.round(cap * 100) / 100 });
     });
-    desc.push({ date: startOfDay, capital: Math.round(bal * 100) / 100 });
-    const asc = desc.reverse();
-    asc.push({ date: new Date(), capital: currentBalance }); // point "maintenant", ferme la courbe a l'heure actuelle
-    return asc;
+    pts.push({ date: new Date(), capital: endCap });
+    return pts;
   }
 
   // Liste des trades reels (Myfxbook) d'un compte - source unique pour le RR/winrate de toute
@@ -273,7 +293,7 @@
   // `trades`) tombant dans la fenetre - les deux s'additionnent naturellement
   // puisque `rr` est dans les deux cas un multiple du risque pris (jamais un
   // simple ratio $).
-  function periodStatsFromCurve(period, curve, trades, subLabel) {
+  function periodStatsFromCurve(period, curve, trades, subLabel, refCapital) {
     const [start, end] = periodRange(period);
     const before = curve.filter((p) => p.date && p.date < start);
     const within = curve.filter((p) => p.date && p.date >= start && p.date <= end);
@@ -305,11 +325,13 @@
       // equity et labels doivent TOUJOURS garder la meme longueur (le
       // graphique les zippe point a point) - le repli 2 points ci-dessous
       // doit donc aussi dupliquer le label, jamais juste l'equity.
-      return { profit: '+0.0%', profitSub: `$0 ${subLabel}`, profitDollar: '+$0', profitDollarSub: `+0.0% · ${tradedDays} jour${tradedDays === 1 ? '' : 's'} tradés`, rr, winrate, winrateSub, dd: '0.0%', ddSub: 'pic → creux sur la période', tradedDays, tradedDaysSub, equity: [bal, bal], labels: [lbl, lbl] };
+      return { profit: '+0.0%', profitSub: `$0 ${subLabel}`, profitDollar: '+$0', profitDollarSub: `+0.0% · ${tradedDays} jour${tradedDays === 1 ? '' : 's'} tradés`, rr, winrate, winrateSub, dd: '0.0%', ddSub: 'pic → creux sur la période', tradedDays, tradedDaysSub, equity: [bal, bal], labels: [lbl, lbl], refCapital };
     }
     const startBal = equity[0], endBal = equity[equity.length - 1];
     const diff = endBal - startBal;
-    const profitPct = startBal ? (diff / startBal * 100) : 0;
+    // % du capital de DEPART du compte (comme une propfirm), plus du solde de debut de periode.
+    const pctBase = refCapital || startBal;
+    const profitPct = pctBase ? (diff / pctBase * 100) : 0;
     return {
       profit: `${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(1)}%`,
       profitSub: `${diff >= 0 ? '+' : ''}${money(diff)} ${subLabel}`,
@@ -318,7 +340,7 @@
       rr, winrate, winrateSub,
       dd: maxDrawdownPct(equity).toFixed(1) + '%', ddSub: 'pic → creux sur la période',
       tradedDays, tradedDaysSub,
-      equity, labels,
+      equity, labels, refCapital,
     };
   }
 
@@ -326,14 +348,17 @@
   // ingredients bruts deja disponibles pour tout compte reel (myfxbook et/ou
   // backtest) - dailyHistory (Semaine/Mois/Annee), history brut (Jour, voir
   // intradayCurveFromTrades) et la liste de trades unifiee (RR/winrate).
-  function computeAllPeriods(dailyHistory, currentBalance, trades, history) {
-    const dayCurve = intradayCurveFromTrades(history, currentBalance);
-    const restCurve = capitalCurveFromDailyHistory(dailyHistory, currentBalance);
+  function computeAllPeriods(dailyHistory, currentBalance, trades, history, startCapital, todayPnl) {
+    const restCurve = capitalCurveFromDailyHistory(dailyHistory, currentBalance, startCapital);
+    const todayIso = isoDateLocal(new Date());
+    const beforeToday = restCurve.filter((p) => isoDateLocal(p.date) < todayIso);
+    const startOfDayCapital = beforeToday.length ? beforeToday[beforeToday.length - 1].capital : (startCapital || currentBalance - (todayPnl || 0));
+    const dayCurve = intradayCurveFromTrades(history, startOfDayCapital, todayPnl);
     const subLabels = { day: "aujourd'hui", week: 'cette semaine', month: 'ce mois', all: 'cette année', full: 'sur tout l\'historique' };
     const out = {};
     ['day', 'week', 'month', 'all', 'full'].forEach((key) => {
       const curve = key === 'day' ? dayCurve : restCurve;
-      out[key] = periodStatsFromCurve(key, curve, trades, subLabels[key]);
+      out[key] = periodStatsFromCurve(key, curve, trades, subLabels[key], startCapital || null);
     });
     return out;
   }
@@ -388,12 +413,25 @@
   // `capitalBefore` est retro-derive de value/profit (le seul moyen de le
   // connaitre sans un historique de solde jour par jour) - sert uniquement a
   // sommer plusieurs comptes proprement plus bas, jamais affiche tel quel.
-  function realDailyPnlFromHistory(accountLocalId) {
+  // BUG REEL corrige le 2026-10-02 (retour utilisateur : profit du jour -5 679,69 $ au lieu de
+  // -4 658,54 $, profit total -6 679,53 $ au lieu de -5 641,64 $) : get-daily-gain.json renvoie
+  // pour chaque date le gain (%) et le profit ($) CUMULES depuis l'ouverture du compte, pas ceux du
+  // jour. Les traiter comme des valeurs du jour additionnait les cumuls (la perte d'hier comptee a
+  // nouveau dans celle d'aujourd'hui). Le resultat d'un jour = cumul du jour - cumul de la veille.
+  // Limite : si le compte est plus ancien que l'historique connu, le 1er jour connu porte tout le
+  // passe (les totaux restent justes).
+  function realDailyPnlFromHistory(accountLocalId, startCapital) {
     const forAcc = loadMyfxbookHistory()[accountLocalId];
     if (!forAcc) return [];
+    let prevProfit = 0, prevValue = 0;
     return Object.keys(forAcc).sort().map((date) => {
       const { profit, value } = forAcc[date];
-      return { date, pnl: profit, pct: value, capitalBefore: value ? (profit / value * 100) : null };
+      const pnl = Math.round((profit - prevProfit) * 100) / 100;
+      const capitalBefore = startCapital ? startCapital + prevProfit : null;
+      const pct = capitalBefore ? (pnl / capitalBefore * 100)
+        : ((1 + value / 100) / (1 + prevValue / 100) - 1) * 100;
+      prevProfit = profit; prevValue = value;
+      return { date, pnl, pct, capitalBefore: capitalBefore || (pct ? pnl / pct * 100 : null) };
     });
   }
   // Additionne plusieurs series par date : les $ s'additionnent directement,
@@ -421,7 +459,7 @@
   }
   // Historique jour par jour d'un compte INDIVIDUEL (myfxbook persisté).
   function buildDailyHistory(account) {
-    const realParts = account.myfxbook ? [realDailyPnlFromHistory(account.id)] : [];
+    const realParts = account.myfxbook ? [realDailyPnlFromHistory(account.id, account.startCapital)] : [];
     return sumDailyPnl(realParts);
   }
 
@@ -456,12 +494,12 @@
   // avec les elements de myfxbook").
   function realTradesWithRR(accountId, history, riskPct, fallbackBalance) {
     if (!history || !history.length) return [];
-    const capitalByDay = new Map(realDailyPnlFromHistory(accountId).map((d) => [d.date, d.capitalBefore]));
+    const capitalByDay = new Map(realDailyPnlFromHistory(accountId, startCapitalById[accountId]).map((d) => [d.date, d.capitalBefore]));
     const withPct = history.map((t) => {
       if (!t.closeTime) return null;
       const capitalBefore = capitalByDay.get(isoDateLocal(new Date(t.closeTime))) || fallbackBalance;
       if (!capitalBefore) return null;
-      const profit = parseFloat(t.profit) || 0;
+      const profit = tradeNet(t);
       return { date: new Date(t.closeTime), profit, resultPct: profit / capitalBefore * 100 };
     }).filter(Boolean);
     if (!withPct.length) return [];
@@ -547,8 +585,13 @@
       dailyGainAsc = extendWithPersistedHistory(localAccountId, dailyGainAsc);
       const balance = parseFloat(acc.balance) || 0;
       const equity = parseFloat(acc.equity) || balance;
+      // Capital de depart du compte = depots - retraits (2026-10-02 : reference neutre de la courbe
+      // et base de tous les % et $ du Dashboard). Absent -> null, l'ancien calcul s'applique.
+      const deposits = parseFloat(acc.deposits) || 0;
+      const withdrawals = parseFloat(acc.withdrawals) || 0;
+      const startCapital = deposits > 0 ? deposits - withdrawals : null;
       return {
-        balance, equity, pnl: equity - balance, today: 0, // "today" recalcule depuis dailyHistory juste apres (voir refreshActiveAccount)
+        balance, equity, pnl: equity - balance, today: 0, startCapital, // "today" recalcule depuis dailyHistory juste apres (voir refreshActiveAccount)
         syncedAt: new Date().toISOString(),
         // number/type manquaient ici (2026-09-24, retour utilisateur : "#undefined · undefined" affiché
         // sous le nom du compte) - seul le repli d'erreur de tryLoadLiveSwann() les renseignait, jamais
@@ -597,7 +640,7 @@
     const accounts = loadAccounts();
     const acc = accounts.find((a) => a.id === accountId);
     if (!acc) return;
-    acc.lastKnownGood = { balance: data.balance, equity: data.equity, pnl: data.pnl, syncedAt: data.syncedAt };
+    acc.lastKnownGood = { balance: data.balance, equity: data.equity, pnl: data.pnl, startCapital: data.startCapital, syncedAt: data.syncedAt };
     saveAccounts(accounts);
   }
 
@@ -1179,10 +1222,14 @@
     return accounts.find((a) => a.id === id) || accounts[0] || null;
   }
 
-  function todayPnlFromHistory(dailyHistory) {
+  // Resultat du jour : celui de Myfxbook (trades classes par jour de cloture) ; si Myfxbook n'a pas
+  // encore publie la journee, somme des trades CLOTURES aujourd'hui (profit + commission + swap).
+  function todayPnlFromHistory(dailyHistory, history) {
     const todayIso = isoDateLocal(new Date());
     const entry = (dailyHistory || []).find((d) => d.date === todayIso);
-    return entry ? entry.pnl : 0;
+    if (entry) return entry.pnl;
+    const closed = tradesClosedOn(history, todayIso);
+    return closed.length ? Math.round(closed.reduce((s, t) => s + tradeNet(t), 0) * 100) / 100 : 0;
   }
 
   async function refreshActiveAccount() {
@@ -1193,13 +1240,15 @@
     // objectifs. Sans myfxbook, `activeAccountData.periods` reste absent et `render()` retombe
     // sur SAMPLE_PERIODS (compte de demo).
     if (activeAccountData.myfxbook) {
+      if (activeAccountData.startCapital) startCapitalById[activeAccountData.id] = activeAccountData.startCapital;
       activeAccountData.dailyHistory = rescaleDailyHistoryPnl(
-        buildDailyHistory(activeAccountData), activeAccountData.balance);
-      activeAccountData.today = todayPnlFromHistory(activeAccountData.dailyHistory);
+        buildDailyHistory(activeAccountData), activeAccountData.balance, activeAccountData.startCapital);
+      activeAccountData.today = todayPnlFromHistory(activeAccountData.dailyHistory, activeAccountData.history);
       const riskPct = fixedRiskPercent();
       const trades = unifiedTradesList(activeAccountData, riskPct);
       activeAccountData.periods = computeAllPeriods(
-        activeAccountData.dailyHistory, activeAccountData.balance, trades, activeAccountData.history);
+        activeAccountData.dailyHistory, activeAccountData.balance, trades, activeAccountData.history,
+        activeAccountData.startCapital, activeAccountData.today);
       if (activeAccountData.challengeObjectives) {
         activeAccountData.objectives = evaluateChallengeObjectivesFromHistory(
           activeAccountData.challengeObjectives, activeAccountData.dailyHistory, activeAccountData.objectivesResetAt);
@@ -1252,15 +1301,18 @@
       grad.addColorStop(Math.max(0, Math.min(1, offset)), rgbaColor(color, plateauOpacity(t, peak)));
     }
   }
-  function buildHeatGradient(chartInstance, series, forLine) {
+  // `ref` = valeur neutre (2026-10-02 : le capital de depart en $, 0 en %) - vert au-dessus,
+  // rouge en dessous.
+  function buildHeatGradient(chartInstance, series, forLine, ref) {
+    const r = ref || 0;
     const { ctx: c2d, chartArea, scales } = chartInstance;
     if (!chartArea) return forLine ? '#33e6a6' : 'rgba(51,230,166,.1)';
     const grad = c2d.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
     const peak = forLine ? 1 : 0.85;
-    const maxV = Math.max(...series, 0), minV = Math.min(...series, 0);
-    if (maxV <= 0) { addPlateauStops(grad, 1, 0, peak, NEON_RED); return grad; }
-    if (minV >= 0) { addPlateauStops(grad, 0, 1, peak, NEON_GREEN); return grad; }
-    const zeroY = scales.y.getPixelForValue(0);
+    const maxV = Math.max(...series, r), minV = Math.min(...series, r);
+    if (maxV <= r) { addPlateauStops(grad, 1, 0, peak, NEON_RED); return grad; }
+    if (minV >= r) { addPlateauStops(grad, 0, 1, peak, NEON_GREEN); return grad; }
+    const zeroY = scales.y.getPixelForValue(r);
     const span = chartArea.bottom - chartArea.top;
     let zeroT = span ? (zeroY - chartArea.top) / span : 0.5;
     zeroT = Math.max(0.04, Math.min(0.96, zeroT));
@@ -1291,8 +1343,16 @@
     const grid = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
     const tick = isDark ? '#9b9ba1' : '#65656b';
 
-    const base = d.equity[0] || 1;
+    // Reference neutre = capital de depart du compte (2026-10-02) : en $, la courbe s'organise
+    // autour de ce montant (au milieu de l'axe), en %, autour de 0 % de ce capital.
+    const base = d.refCapital || d.equity[0] || 1;
     const series = unit === 'percent' ? d.equity.map((v) => ((v - base) / base * 100)) : d.equity;
+    const ref = unit === 'percent' ? 0 : (d.refCapital || 0);
+    let yMin, yMax;
+    if (d.refCapital) {
+      const dev = Math.max(...series.map((v) => Math.abs(v - ref)), unit === 'percent' ? 0.5 : base * 0.005);
+      yMin = ref - dev * 1.15; yMax = ref + dev * 1.15;
+    }
     // Echelle de temps coherente par periode (retour direct utilisateur du
     // 2026-09-17 : "le graphique doit afficher une echelle de temps
     // coherente, en jour par rapport a l'heure, semaine/mois/annee par
@@ -1312,12 +1372,13 @@
         datasets: [
           { // passe de lueur (large, floue, sans remplissage) - dessinee en dessous
             data: series, borderWidth: 5, pointRadius: 0, tension: .3, fill: false,
-            borderColor: (c) => buildHeatGradient(c.chart, series, true),
+            borderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
           },
           { // trait net + remplissage, par-dessus
-            data: series, borderWidth: 2.5, pointRadius: 0, tension: .3, fill: true,
-            borderColor: (c) => buildHeatGradient(c.chart, series, true),
-            backgroundColor: (c) => buildHeatGradient(c.chart, series, false),
+            data: series, borderWidth: 2.5, pointRadius: 0, tension: .3,
+            borderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
+            backgroundColor: (c) => buildHeatGradient(c.chart, series, false, ref),
+            fill: d.refCapital ? { value: ref } : true,
           },
         ]
       },
@@ -1325,7 +1386,7 @@
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { grid: { color: grid }, ticks: { color: tick, callback: (v) => unit === 'percent' ? v.toFixed(1) + '%' : '$' + v } },
+          y: { min: yMin, max: yMax, grid: { color: grid }, ticks: { color: tick, callback: (v) => unit === 'percent' ? v.toFixed(1) + '%' : '$' + Math.round(v) } },
           x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8 } }
         }
       },

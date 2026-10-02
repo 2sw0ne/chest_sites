@@ -488,6 +488,25 @@ Demande utilisateur : choisir ses notifications dans Compte, format court, $ ou 
   pull ne l'écrase jamais tant qu'elle est marquée. `backtest-store.js` signale aussi un stockage plein au
   lieu d'échouer en silence.
 
+## Dashboard : profits faux corrigés, courbe centrée sur le capital de départ (2026-10-02)
+
+Retour utilisateur avec capture : profit du jour -5 679,69 $ au lieu de -4 658,54 $, profit total
+-6 679,53 $ au lieu de -5 641,64 $, courbe en $ partant d'une référence 0.
+- **Cause (`js/dashboard.js`, `realDailyPnlFromHistory`)** : `get-daily-gain.json` de Myfxbook renvoie
+  pour chaque date le gain % et le profit $ **cumulés depuis l'ouverture du compte**, pas ceux du jour.
+  Ils étaient traités comme des valeurs du jour puis capitalisés : la perte d'hier était recomptée
+  dans celle d'aujourd'hui. Désormais résultat du jour = cumul du jour − cumul de la veille.
+- **Capital de départ** = `deposits − withdrawals` de `get-my-accounts` (`startCapital`) : courbe =
+  capital de départ + profit cumulé (plus de recalage sur le solde actuel), % rapportés à ce capital,
+  référence neutre du graphique (au milieu de l'axe, vert au-dessus, rouge en dessous, en $ comme en %).
+  Sans dépôts connus, l'ancien calcul s'applique.
+- **Jour** : courbe intra-journée par heure de CLÔTURE, résultat net (profit + commission + swap) ;
+  si Myfxbook n'a pas encore publié la journée, somme des trades clôturés aujourd'hui.
+- Vérifié avec Myfxbook simulé (dépôt 100 000 $, -983,10 $ la veille, -4 658,54 $ le jour) : profit
+  du jour -4 658,54 $, profit du mois -5 641,64 $ (-5,6 %), courbe centrée sur 100 000 $.
+- Limite : si un compte est plus ancien que l'historique Myfxbook connu, le 1er jour connu porte tout
+  le passé (les totaux restent justes).
+
 ## Notification de clôture MT5 en temps quasi réel — `mt5-terminal` + `mt5-notify-bridge` (2026-09-27)
 
 Suite directe de la section précédente : le déclencheur "4" (TP/SL touché) ne couvrait que les
