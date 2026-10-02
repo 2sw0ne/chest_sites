@@ -457,10 +457,48 @@
     return [...realByDate.entries()].sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, v]) => ({ date, pnl: v.pnl, pct: v.capitalBefore ? (v.pnl / v.capitalBefore * 100) : 0, source: 'real' }));
   }
-  // Historique jour par jour d'un compte INDIVIDUEL (myfxbook persisté).
+  // Resultat de chaque jour = somme des trades CLOTURES ce jour-la (profit + commission + swap),
+  // exactement comme le Calendar de Myfxbook (2026-10-02, retour utilisateur avec capture : 1er oct.
+  // -992,72 $, 2 oct. -4 692,51 $). get-daily-gain.json, lui, ne colle pas au Calendar (-5 679,69 $
+  // cumules au lieu de -5 685,23 $) : il ne sert plus qu'aux jours plus anciens que les 50 dernieres
+  // transactions renvoyees par get-history.json. Les depots/retraits ne sont jamais des trades.
+  function isTradeRow(t) {
+    const a = String(t.action || '');
+    return !a || /^(buy|sell)/i.test(a);
+  }
+  function dailyPnlFromTrades(history) {
+    const byDate = new Map();
+    (history || []).filter(isTradeRow).forEach((t) => {
+      if (!t.closeTime || isNaN(new Date(t.closeTime))) return;
+      const iso = isoDateLocal(new Date(t.closeTime));
+      byDate.set(iso, (byDate.get(iso) || 0) + tradeNet(t));
+    });
+    return [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, pnl]) => ({ date, pnl: Math.round(pnl * 100) / 100 }));
+  }
+  // Historique jour par jour d'un compte INDIVIDUEL. Avec un capital de depart connu (depots) :
+  // jours des trades + jours plus anciens de get-daily-gain si l'historique de trades ne couvre pas
+  // tout le compte, puis l'ecart restant avec le solde reel (profit total = solde - capital de
+  // depart, comme le "Profit" de Myfxbook) est porte par le plus ancien jour connu.
   function buildDailyHistory(account) {
-    const realParts = account.myfxbook ? [realDailyPnlFromHistory(account.id, account.startCapital)] : [];
-    return sumDailyPnl(realParts);
+    if (!account.myfxbook) return [];
+    const gainDays = realDailyPnlFromHistory(account.id, account.startCapital);
+    const start = account.startCapital;
+    const tradeDays = start ? dailyPnlFromTrades(account.history) : [];
+    if (!tradeDays.length) return sumDailyPnl([gainDays]);
+    const total = Math.round(((account.balance || 0) - start) * 100) / 100;
+    const tradeSum = tradeDays.reduce((s, d) => s + d.pnl, 0);
+    const rows = (account.history || []).filter(isTradeRow).length;
+    // Moins de 50 transactions (limite de l'API) ou somme egale au profit du compte : l'historique de
+    // trades couvre tout le compte, les jours de get-daily-gain (flottant compris) sont ignores.
+    const complete = (account.history || []).length < 50 || Math.abs(tradeSum - total) < 1;
+    const older = complete ? [] : gainDays.filter((d) => d.date < tradeDays[0].date).map((d) => ({ date: d.date, pnl: d.pnl }));
+    const days = [...older, ...tradeDays];
+    const residual = Math.round((total - days.reduce((s, d) => s + d.pnl, 0)) * 100) / 100;
+    if (Math.abs(residual) >= 0.01 && rows) days[0] = { ...days[0], pnl: Math.round((days[0].pnl + residual) * 100) / 100 };
+    let cap = start;
+    const series = days.map((d) => { const capitalBefore = cap; cap += d.pnl; return { ...d, capitalBefore }; });
+    return sumDailyPnl([series]);
   }
 
   // Risque fixe reellement utilise par l'utilisateur - source unique pour
@@ -495,7 +533,7 @@
   function realTradesWithRR(accountId, history, riskPct, fallbackBalance) {
     if (!history || !history.length) return [];
     const capitalByDay = new Map(realDailyPnlFromHistory(accountId, startCapitalById[accountId]).map((d) => [d.date, d.capitalBefore]));
-    const withPct = history.map((t) => {
+    const withPct = history.filter(isTradeRow).map((t) => { // jamais un depot/retrait
       if (!t.closeTime) return null;
       const capitalBefore = capitalByDay.get(isoDateLocal(new Date(t.closeTime))) || fallbackBalance;
       if (!capitalBefore) return null;
@@ -557,7 +595,7 @@
     return [
       { label: 'Minimum Trading Days', target: `${cfg.minTradingDays} jours`, current: `${tradingDays} jours`, ok: tradingDays >= cfg.minTradingDays },
       { label: 'Max Daily Loss', target: `-${cfg.maxDailyLossPct}%`, current: `${todayPct >= 0 ? '+' : ''}${todayPct.toFixed(2)}%`, ok: todayPct >= -cfg.maxDailyLossPct },
-      { label: 'Max Loss', target: `-${cfg.maxLossPct}%`, current: `-${maxDD.toFixed(2)}%`, ok: maxDD <= cfg.maxLossPct },
+      { label: 'Max Loss', target: `-${cfg.maxLossPct}%`, current: `-${Math.abs(maxDD).toFixed(2)}%`, ok: Math.abs(maxDD) <= cfg.maxLossPct },
       { label: 'Profit Target', target: `+${cfg.profitTargetPct}%`, current: `${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(1)}%`, ok: profitPct >= cfg.profitTargetPct },
     ];
   }
@@ -1352,6 +1390,19 @@
     if (d.refCapital) {
       const dev = Math.max(...series.map((v) => Math.abs(v - ref)), unit === 'percent' ? 0.5 : base * 0.005);
       yMin = ref - dev * 1.15; yMax = ref + dev * 1.15;
+      // Propfirm (2026-10-02, demande utilisateur) : axe fixe aux limites du challenge, +objectif de
+      // profit en haut et -perte max en bas (10 % / -10 % par defaut), elargi seulement si la courbe
+      // les depasse.
+      const acc = activeAccountData;
+      if (acc && acc.isPropfirm) {
+        const obj = acc.challengeObjectives || {};
+        const upPct = Number(obj.profitTargetPct) > 0 ? Number(obj.profitTargetPct) : 10;
+        const downPct = Number(obj.maxLossPct) > 0 ? Number(obj.maxLossPct) : 10;
+        const k = unit === 'percent' ? 1 : base / 100;
+        const hi = Math.max(...series), lo = Math.min(...series);
+        yMax = Math.max(ref + upPct * k, hi + (hi - ref) * 0.08);
+        yMin = Math.min(ref - downPct * k, lo - (ref - lo) * 0.08);
+      }
     }
     // Echelle de temps coherente par periode (retour direct utilisateur du
     // 2026-09-17 : "le graphique doit afficher une echelle de temps

@@ -507,6 +507,17 @@ Retour utilisateur avec capture : profit du jour -5 679,69 $ au lieu de -4 658,5
 - Limite : si un compte est plus ancien que l'historique Myfxbook connu, le 1er jour connu porte tout
   le passé (les totaux restent justes).
 
+- **2e correction le même jour (retour utilisateur avec capture du Calendar Myfxbook : 1er oct. -992,72 $, 2 oct.
+  -4 692,51 $, profit -5 685,23 $)** : le cumul de `get-daily-gain.json` ne colle pas au Calendar (-5 679,69 $ au
+  lieu de -5 685,23 $). Les jours viennent maintenant des **trades clôturés** de `get-history.json`
+  (`dailyPnlFromTrades`, net = profit + commission + swap, par jour de clôture), comme le Calendar ; les dépôts et
+  retraits (`action` autre que Buy/Sell) sont exclus (ils faussaient aussi le winrate et le R:R). `get-daily-gain`
+  ne sert plus qu'aux jours plus anciens que les 50 dernières transactions ; l'écart restant avec
+  `solde − capital de départ` est porté par le plus ancien jour connu, donc profit total = « Profit » Myfxbook.
+- **Axe propfirm** : pour un compte `isPropfirm`, l'axe va de −perte max à +objectif de profit
+  (`challengeObjectives`, 10 % par défaut), élargi seulement si la courbe dépasse. Corrigé au passage : l'objectif
+  « Max Loss » comparait un drawdown négatif (toujours validé, affiché « --5.69 % »).
+
 ## Backtest : capital propfirm séparé (2026-10-02)
 
 Demande utilisateur : « un capital différent pour les deux comptes ». `backtest-add.html` : flèche dans le
