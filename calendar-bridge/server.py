@@ -201,7 +201,9 @@ NOTIFY_CHECK_SECONDS = 60
 # Demande utilisateur (2026-10-01) : "30 min avant annonce" au format "🇺🇸 - M-30 PMI manufacturier
 # (sept)", puis la "finalite de l'annonce" quand le resultat tombe.
 NOTIFY_WINDOW_MINUTES = 30
-FLAGS = {"US": "🇺🇸", "EU": "🇪🇺", "UK": "🇬🇧", "JP": "🇯🇵"}
+# Emoji du pays d'origine de chaque annonce (codes produits par fetch_calendar.py : US/EU/UK/JP ;
+# GB/EA/EZ par securite si une source changeait de convention).
+FLAGS = {"US": "🇺🇸", "EU": "🇪🇺", "EA": "🇪🇺", "EZ": "🇪🇺", "UK": "🇬🇧", "GB": "🇬🇧", "JP": "🇯🇵"}
 
 # Le resultat n'arrive qu'avec un nouveau scraping, qui n'a lieu que toutes les REFRESH_SECONDS
 # (2h). Pour que la notification "resultat" arrive a temps, un rafraichissement cible est lance
@@ -233,8 +235,16 @@ def _event_when(e):
 
 
 def _event_label(e):
-    flag = FLAGS.get(e.get("country") or "", e.get("country") or "")
+    code = str(e.get("country") or "").upper()
+    flag = FLAGS.get(code, code)
     return flag, (e.get("event") or "").strip()
+
+
+def _expected_detail(e):
+    """" (prévu X)" (consensus), sinon " (préc. Y)" (valeur précédente), sinon rien."""
+    expected = str(e.get("consensus") or "").strip()
+    previous = str(e.get("previous") or "").strip()
+    return f" (prévu {expected})" if expected else (f" (préc. {previous})" if previous else "")
 
 
 def check_upcoming_high_impact_events():
@@ -257,7 +267,7 @@ def check_upcoming_high_impact_events():
         minutes_until = (when - now).total_seconds() / 60
         if 0 <= minutes_until <= NOTIFY_WINDOW_MINUTES:
             flag, title = _event_label(e)
-            notify("calendar_pre", f"{flag} - M-{max(1, math.ceil(minutes_until))} {title}".strip())
+            notify("calendar_pre", f"{flag} - M-{max(1, math.ceil(minutes_until))} {title}{_expected_detail(e)}".strip())
             with notified_lock:
                 notified_event_ids.add(eid)
 
@@ -295,10 +305,7 @@ def check_released_events():
                 continue
             notified_result_ids.add(e["id"])
         flag, title = _event_label(e)
-        expected = str(e.get("consensus") or "").strip()
-        previous = str(e.get("previous") or "").strip()
-        detail = f" (prévu {expected})" if expected else (f" (préc. {previous})" if previous else "")
-        notify("calendar_result", f"{flag} - {title} : {actual}{detail}".strip())
+        notify("calendar_result", f"{flag} - {title} : {actual}{_expected_detail(e)}".strip())
     if not RESULT_REFRESH:
         return
     for slot, age in slots_waiting:

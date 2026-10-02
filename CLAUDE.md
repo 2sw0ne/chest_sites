@@ -474,6 +474,11 @@ Demande utilisateur : choisir ses notifications dans Compte, format court, $ ou 
 - **Formats** : `🇺🇸 - M-30 PMI manufacturier (sept)`, `🇺🇸 - PMI … : 49,2 (prévu 49,5)`,
   `ALLIN - Vous avez pris un SELL 📉`, `ALLIN - TP✔️ +1964,57$` / `SL❌ -526,47$` (ou %),
   `ALLIN - Semaine du 22/09 : +X$ · 5 TP✔️ 2 SL❌`. Le message part en TITRE, corps vide (`sw.js`).
+- **Drapeau et prévision (2026-10-02)** : chaque annonce porte l'emoji du pays d'origine (`FLAGS` dans
+  `calendar-bridge/server.py`, codes US/EU/UK/JP + GB/EA/EZ par sécurité). Le « M-30 » finit aussi par la
+  prévision : ` (prévu X)` (consensus), sinon ` (préc. Y)` — même règle que le résultat (`_expected_detail`).
+  Les exemples de la page Compte utilisent le nom fictif « TonCompte » et des chiffres inventés ; leur drapeau
+  est un drapeau SVG (`{eu}` → flag-icons), car un emoji drapeau s'affiche en lettres sur Windows.
 - **« from CHEST » sous chaque notification iPhone : imposé par iOS** pour une app installée depuis Safari,
   impossible à retirer côté site (vérifié, sources Progressier/Apple). Seul le nom affiché est réglable.
 - **`calendar-bridge`** : fenêtre 30 min ; résultat notifié quand `actual` apparaît. Comme le scraping n'a

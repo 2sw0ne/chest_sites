@@ -652,16 +652,16 @@ CHESTTour.init([
   const NOTIF_PREFS_KEY = 'chest_notif_prefs';
   const NOTIF_GROUPS = [
     { label: 'Calendrier', items: [
-      { key: 'calendar_pre', title: '30 min avant une annonce', ex: '🇺🇸 - M-30 PMI manufacturier (sept)' },
-      { key: 'calendar_result', title: "Résultat de l'annonce", ex: '🇺🇸 - PMI manufacturier (sept) : 49,2 (prévu 49,5)' },
+      { key: 'calendar_pre', title: '30 min avant une annonce', ex: '{eu} - M-30 IPC (a/a) (prévu 2,2 %)' },
+      { key: 'calendar_result', title: "Résultat de l'annonce", ex: '{gb} - PIB (t/t) : 0,1 % (prévu 0,3 %)' },
     ] },
     { label: 'Positions', items: [
-      { key: 'position_open', title: 'Position prise', ex: 'ALLIN - Vous avez pris un SELL 📉' },
-      { key: 'position_close', title: "Clôture d'une position", ex: 'ALLIN - TP✔️ +1964,57$' },
+      { key: 'position_open', title: 'Position prise', ex: 'TonCompte - Vous avez pris un BUY 📈' },
+      { key: 'position_close', title: "Clôture d'une position", ex: 'TonCompte - TP✔️ +842,30$' },
     ] },
     { label: 'Comptes rendus', items: [
-      { key: 'report_weekly', title: 'Chaque semaine (samedi matin)', ex: 'ALLIN - Semaine du 22/09 : +1964,57$ · 5 TP✔️ 2 SL❌' },
-      { key: 'report_monthly', title: 'Chaque mois (le 1er)', ex: 'ALLIN - Septembre : +4210,30$ · 18 TP✔️ 9 SL❌' },
+      { key: 'report_weekly', title: 'Chaque semaine (samedi matin)', ex: 'TonCompte - Semaine du 29/09 : +1236,80$ · 4 TP✔️ 1 SL❌' },
+      { key: 'report_monthly', title: 'Chaque mois (le 1er)', ex: 'TonCompte - Octobre : +3518,40$ · 15 TP✔️ 6 SL❌' },
     ] },
     { label: 'Admin', admin: true, items: [
       { key: 'new_member', title: 'Nouveau membre', ex: 'Nouveau membre : Prénom Nom' },
@@ -678,7 +678,12 @@ CHESTTour.init([
   function saveNotifPrefs(p) { localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(p)); }
   function exampleIn(unit, ex) {
     if (unit !== 'pct') return ex;
-    return ex.replace('+1964,57$', '+1,96%').replace('+4210,30$', '+4,21%');
+    return ex.replace('+842,30$', '+0,84%').replace('+1236,80$', '+1,24%').replace('+3518,40$', '+3,52%');
+  }
+  // Le drapeau de l'exemple en vrai drapeau SVG (flag-icons) : un emoji drapeau s'affiche en lettres
+  // sur Windows. La notification elle-même garde l'emoji, que les téléphones affichent bien.
+  function notifExampleHtml(ex) {
+    return escapeHtml(ex).replace(/^\{([a-z]{2})\}/, '<span class="fi fi-$1 flag-ic" style="width:18px;height:13px;border-radius:2px;vertical-align:-1px"></span>');
   }
   function renderNotifPrefs() {
     const wrap = document.getElementById('notifPrefsList');
@@ -694,7 +699,7 @@ CHESTTour.init([
       html += `<p class="notif-group__label">${escapeHtml(g.label)}</p>`;
       g.items.forEach((it) => {
         html += `<label class="notif-opt">
-          <span class="notif-opt__text"><span class="notif-opt__title">${escapeHtml(it.title)}</span><span class="notif-opt__ex">${escapeHtml(exampleIn(p.unit, it.ex))}</span></span>
+          <span class="notif-opt__text"><span class="notif-opt__title">${escapeHtml(it.title)}</span><span class="notif-opt__ex">${notifExampleHtml(exampleIn(p.unit, it.ex))}</span></span>
           <span class="notif-switch"><input type="checkbox" data-notif-key="${it.key}" ${p[it.key] ? 'checked' : ''} aria-label="${escapeHtml(it.title)}"><span></span></span>
         </label>`;
       });
