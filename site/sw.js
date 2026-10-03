@@ -52,13 +52,14 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data ? event.data.text() : '' }; }
-  // 2026-10-01 : le message tient sur UNE ligne ("🇺🇸 - M-30 PMI manufacturier (sept)", "ALLIN - TP✔️
-  // +1964,57$") envoyée en TITRE, corps vide. La ligne "from CHEST" qu'iOS ajoute sous le titre d'une
-  // app installée depuis Safari est imposée par Apple et ne peut pas être retirée par le site.
-  // Ancien format (titre + corps séparés, ex. notifications MT5) : affiché tel quel.
-  const title = data.title || data.body || '';
+  // 2026-10-03 (demande utilisateur) : titre = "CHEST", l'information va dans le MESSAGE.
+  // Le serveur envoie la ligne ("🇺🇸 - M-30 PMI manufacturier (prévu 49,5)", "ALLIN - TP✔️
+  // +1964,57$") en `title` ; titre et corps éventuels sont réunis dans le corps. La ligne
+  // "from CHEST" qu'iOS ajoute sous une app installée depuis Safari est imposée par Apple.
+  const info = [data.title, data.body].filter(Boolean).join(' — ');
+  const title = 'CHEST';
   const options = {
-    body: data.title ? (data.body || '') : '',
+    body: info,
     icon: 'assets/icon-192.png',
     badge: 'assets/icon-192.png',
     data: { url: data.url || 'app.html' },

@@ -473,7 +473,7 @@ Demande utilisateur : choisir ses notifications dans Compte, format court, $ ou 
   le Journal (manuel + Myfxbook + positions BERICH prises).
 - **Formats** : `🇺🇸 - M-30 PMI manufacturier (sept)`, `🇺🇸 - PMI … : 49,2 (prévu 49,5)`,
   `ALLIN - Vous avez pris un SELL 📉`, `ALLIN - TP✔️ +1964,57$` / `SL❌ -526,47$` (ou %),
-  `ALLIN - Semaine du 22/09 : +X$ · 5 TP✔️ 2 SL❌`. Le message part en TITRE, corps vide (`sw.js`).
+  `ALLIN - Semaine du 22/09 : +X$ · 5 TP✔️ 2 SL❌`. Affichage (`sw.js`, 2026-10-03) : titre fixe « CHEST », l'information dans le corps de la notification.
 - **Drapeau et prévision (2026-10-02)** : chaque annonce porte l'emoji du pays d'origine (`FLAGS` dans
   `calendar-bridge/server.py`, codes US/EU/UK/JP + GB/EA/EZ par sécurité). Le « M-30 » finit aussi par la
   prévision : ` (prévu X)` (consensus), sinon ` (préc. Y)` — même règle que le résultat (`_expected_detail`).
