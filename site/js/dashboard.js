@@ -74,6 +74,8 @@
   let chart, unit = 'percent'; // % par defaut (retour direct utilisateur du 2026-09-16)
   let liveSwannAccount = null; // "Live Swann" (Myfxbook, admin uniquement, voir account.html) - toujours resynchronise, jamais depuis le cache 5min
   let activeAccountData = null; // compte actif, enrichi des vraies donnees Myfxbook si besoin (voir refreshActiveAccount)
+  let liveFloating = null; // P&L flottant estimé des positions ouvertes (js/live-sim.js), null = pas de suivi live
+  let liveSimAccountId = null;
 
   function loadAccounts() {
     let list;
@@ -211,6 +213,28 @@
     if (startCapital) return dailyHistory; // $ deja reels (difference de profit cumule), rien a recaler
     const curve = capitalCurveFromDailyHistory(dailyHistory, currentBalance);
     return dailyHistory.map((d, i) => ({ ...d, pnl: Math.round((curve[i + 1].capital - curve[i].capital) * 100) / 100 }));
+  }
+
+  // Suivi live : le P&L flottant estimé des positions ouvertes s'ajoute au jour courant et au solde.
+  // Sans flottant (null), tout reste identique aux données Myfxbook. Ce n'est jamais enregistré.
+  function withLiveFloating(dailyHistory, balance, floating) {
+    if (floating == null) return { dailyHistory, balance };
+    const today = isoDateLocal(new Date());
+    const hist = dailyHistory.slice();
+    const i = hist.findIndex((d) => d.date === today);
+    const base = balance || 1;
+    if (i >= 0) {
+      const d = hist[i];
+      hist[i] = { ...d, pnl: (d.pnl || 0) + floating, pct: (d.pct || 0) + (floating / base) * 100 };
+    } else {
+      hist.push({ date: today, pnl: floating, pct: (floating / base) * 100, source: 'real' });
+    }
+    return { dailyHistory: hist, balance: balance + floating };
+  }
+
+  function onLiveSimUpdate(state) {
+    liveFloating = state.error ? null : state.floating;
+    if (activeAccountData && activeAccountData.myfxbook) renderAll();
   }
 
   // Courbe INTRA-JOURNEE pour l'onglet "Jour" : dailyHistory n'a qu'UN point
@@ -1255,20 +1279,24 @@
 
   async function refreshActiveAccount() {
     const raw = currentAccount();
-    activeAccountData = raw.myfxbook ? await enrichWithMyfxbook(raw) : raw;
+    activeAccountData = raw.myfxbook ? { ...(await enrichWithMyfxbook(raw)) } : raw;
 
     // Compte reel (myfxbook) : pipeline pour construire dailyHistory + les 4 periodes + les
     // objectifs. Sans myfxbook, `activeAccountData.periods` reste absent et `render()` retombe
     // sur SAMPLE_PERIODS (compte de demo).
     if (activeAccountData.myfxbook) {
       if (activeAccountData.startCapital) startCapitalById[activeAccountData.id] = activeAccountData.startCapital;
-      activeAccountData.dailyHistory = rescaleDailyHistoryPnl(
-        buildDailyHistory(activeAccountData), activeAccountData.balance, activeAccountData.startCapital);
+      const live = withLiveFloating(buildDailyHistory(activeAccountData), activeAccountData.balance, liveFloating);
+      if (liveFloating != null) {
+        activeAccountData.equity = live.balance;
+        activeAccountData.pnl = liveFloating;
+      }
+      activeAccountData.dailyHistory = rescaleDailyHistoryPnl(live.dailyHistory, live.balance, activeAccountData.startCapital);
       activeAccountData.today = todayPnlFromHistory(activeAccountData.dailyHistory, activeAccountData.history);
       const riskPct = fixedRiskPercent();
       const trades = unifiedTradesList(activeAccountData, riskPct);
       activeAccountData.periods = computeAllPeriods(
-        activeAccountData.dailyHistory, activeAccountData.balance, trades, activeAccountData.history,
+        activeAccountData.dailyHistory, live.balance, trades, activeAccountData.history,
         activeAccountData.startCapital, activeAccountData.today);
       if (activeAccountData.challengeObjectives) {
         activeAccountData.objectives = evaluateChallengeObjectivesFromHistory(
@@ -1747,8 +1775,14 @@
     if (activeAccountData.id !== lastCalAccountId) { calOffsetDays = 0; lastCalAccountId = activeAccountData.id; }
     renderPayouts(activeAccountData);
     renderMiniCalendar(activeAccountData);
-    if (activeAccountData.myfxbook && window.CHESTLiveSim) window.CHESTLiveSim.start(activeAccountData.myfxbook, document.getElementById('liveSimCard'));
-    else if (window.CHESTLiveSim) window.CHESTLiveSim.stop();
+    if (activeAccountData.myfxbook && window.CHESTLiveSim) {
+      if (liveSimAccountId !== activeAccountData.id) { liveFloating = null; liveSimAccountId = activeAccountData.id; }
+      window.CHESTLiveSim.start(activeAccountData.myfxbook, onLiveSimUpdate);
+    } else if (window.CHESTLiveSim) {
+      window.CHESTLiveSim.stop();
+      liveFloating = null;
+      liveSimAccountId = null;
+    }
     const activePeriod = document.querySelector('#periodPills .is-active')?.dataset.period || 'month';
     render(activePeriod);
   }

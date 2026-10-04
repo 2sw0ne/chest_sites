@@ -28,9 +28,6 @@
     const m = String(sym || '').toUpperCase().match(/^([A-Z]{3})([A-Z]{3})/);
     return m ? `${m[1]}/${m[2]}` : null;
   };
-  const money = (n) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const price = (n, sym) => (n == null ? '—' : n.toLocaleString('fr-FR', { minimumFractionDigits: sym && sym.includes('JPY') ? 3 : 2, maximumFractionDigits: 5 }));
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function twelveDataApi(endpoint, params) {
     const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
@@ -153,43 +150,26 @@
     return { rows, at: new Date() };
   }
 
-  function render(container, state) {
-    if (!container) return;
-    if (state.error) {
-      container.innerHTML = `<div class="chest-glass--mini" style="padding:18px 20px"><div class="chest-step">03 — Suivi live (estimé)</div><p class="hint" style="margin:10px 0 0">${esc(state.error)}</p></div>`;
-      container.hidden = false;
-      return;
-    }
-    const rows = state.rows || [];
-    const body = rows.length ? rows.map(({ t, sym, est }) => `
-      <div class="livesim__row">
-        <div><b>${esc(sym)}</b> <span class="hint">${est.side} · ${est.lots} lot${est.lots > 1 ? 's' : ''}</span></div>
-        <div class="hint">Entrée ${price(est.entry, sym)}${est.sl != null ? ' · SL ' + price(est.sl, sym) : ''}${est.tp != null ? ' · TP ' + price(est.tp, sym) : ''}</div>
-        <div class="livesim__pnl ${est.pnl == null ? '' : est.pnl >= 0 ? 'is-pos' : 'is-neg'}">${est.pnl == null ? 'estimation indisponible' : money(est.pnl)}</div>
-      </div>`).join('') : '<p class="hint" style="margin:0">Aucune position ouverte pour le moment.</p>';
-    container.innerHTML = `
-      <div class="chest-glass--mini" style="padding:18px 20px">
-        <div class="chest-step">03 — Suivi live (estimé)</div>
-        <div class="livesim__list" style="margin-top:12px">${body}</div>
-        <p class="hint" style="margin:14px 0 0;font-size:12px">Estimation indicative, mise à jour ${state.at.toLocaleTimeString('fr-FR')}. Le résultat réel est celui de Myfxbook à la clôture.</p>
-      </div>`;
-    container.hidden = false;
-  }
-
   async function tick() {
     if (!current) return;
-    const { mfx, container } = current;
+    const { mfx, onUpdate } = current;
+    let state;
     try {
-      render(container, await compute(mfx));
+      const { rows, at } = await compute(mfx);
+      const pnls = rows.map((r) => r.est.pnl).filter((p) => p != null);
+      state = { floating: pnls.length ? pnls.reduce((a, b) => a + b, 0) : 0, count: rows.length, at };
     } catch (e) {
-      render(container, { error: 'Suivi live indisponible pour le moment.' });
+      state = { floating: null, count: 0, at: new Date(), error: true };
     }
+    if (current && current.mfx === mfx) onUpdate(state);
   }
 
-  function start(mfx, container) {
+  // onUpdate reçoit { floating, count, at } : P&L flottant estimé de toutes les positions ouvertes
+  // (null si la mise à jour a échoué). Le Dashboard l'intègre à ses chiffres, pas dans une carte à part.
+  function start(mfx, onUpdate) {
     if (current && current.mfx.accountId === mfx.accountId) return;
     stop();
-    current = { mfx, container };
+    current = { mfx, onUpdate };
     tick();
     timer = setInterval(() => { if (!document.hidden) tick(); }, POLL_MS);
   }
@@ -197,7 +177,6 @@
   function stop() {
     if (timer) clearInterval(timer);
     timer = null;
-    if (current && current.container) { current.container.innerHTML = ''; current.container.hidden = true; }
     current = null;
   }
 
