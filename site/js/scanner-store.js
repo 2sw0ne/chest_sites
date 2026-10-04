@@ -57,7 +57,7 @@
     {
       id: "nexus",
       name: "NEXUS",
-      description: "Scanner NEXUS.",
+      description: "Cash love fast",
       tags: [],
       market: "commodities",
       defaultSymbol: "XAUUSD",
