@@ -541,8 +541,48 @@ if barstate.islast and showJournal
     return fetch(`${base}/twelvedata/${endpoint}?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
   }
 
+  // Marché fermé : on retire les bougies de week-end, la pause quotidienne 21h-22h UTC et les
+  // bougies plates O=H=L=C (remplissage sans transaction). Même règle que scanner-chart.js.
+  function isTradableBar(c) {
+    if (c.open === c.high && c.high === c.low && c.low === c.close) return false;
+    const d = new Date(c.time);
+    const day = d.getUTCDay();
+    const h = d.getUTCHours();
+    if (day === 6) return false;
+    if (day === 0 && h < 22) return false;
+    if (day === 5 && h >= 22) return false;
+    if (h === 21) return false;
+    return true;
+  }
+
+  // Vela cale l'échelle sur TOUT ce qui est dessiné (boîtes, lignes, labels) : on fige l'échelle
+  // sur les bougies visibles pour que les dessins ne modifient plus le cadrage à l'ouverture.
+  function freezeScaleToCandles(chart, bars) {
+    try {
+      const core = chart.renderer && chart.renderer.renderer;
+      const pane = core && core.scene && core.scene.orderedPanes().find((p) => p.kind === 'price');
+      if (!pane) return;
+      const r = core.getVisibleRange ? core.getVisibleRange() : null;
+      const from = r ? r.from : -Infinity;
+      const to = r ? r.to : Infinity;
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const c of bars) {
+        if (c.time < from || c.time > to) continue;
+        if (c.low < lo) lo = c.low;
+        if (c.high > hi) hi = c.high;
+      }
+      if (!isFinite(lo) || !isFinite(hi)) return;
+      const m = (hi - lo) * 0.1 || 1;
+      core.setManualScale(pane, { min: lo - m, max: hi + m, invert: false });
+    } catch (e) {
+      console.warn('BERICH: échelle non figée', e);
+    }
+  }
+
   async function fetchXauCandles() {
-    const res = await twelveDataApi('time_series', { symbol: SYMBOL_TWELVEDATA, interval: TWELVEDATA_INTERVAL, outputsize: 1000 });
+    // timezone=UTC : sinon l'heure du marché fausse le filtre de fermeture.
+    const res = await twelveDataApi('time_series', { symbol: SYMBOL_TWELVEDATA, interval: TWELVEDATA_INTERVAL, outputsize: 1000, timezone: 'UTC' });
     const json = await res.json();
     // Voir le commentaire de fetchCandles() dans scanner-chart.js pour le detail de chaque cas.
     if (!res.ok || json.error || json.status === 'error' || (json.code && json.code >= 400) || !Array.isArray(json.values)) {
@@ -553,7 +593,8 @@ if barstate.islast and showJournal
         time: Math.floor(new Date(v.datetime.replace(' ', 'T') + 'Z').getTime() / 1000) * 1000,
         open: parseFloat(v.open), high: parseFloat(v.high), low: parseFloat(v.low), close: parseFloat(v.close), volume: 0,
       }))
-      .sort((a, b) => a.time - b.time);
+      .sort((a, b) => a.time - b.time)
+      .filter(isTradableBar);
     return candles;
   }
 
@@ -605,6 +646,10 @@ hline(${n(levels.tp)}, "TP", color=color.green, linestyle=hline.style_dashed)`;
         console.warn('BERICH: niveaux du signal non tracés', e);
       }
     }
+
+    // Laisse Vela finir son premier cadrage, puis fige l'échelle sur les bougies.
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    freezeScaleToCandles(chart, candles);
 
     // Couleurs de bougies personnalisables. Appliqué en dernier et sans
     // bloquer le reste : un souci ici ne doit pas empêcher le scanner de s'afficher.
