@@ -78,7 +78,9 @@
     // (verifie le 2026-09-16 : contrairement a TradingView, une EMA(1001) sur 1000
     // bougies ne renvoie JAMAIS de valeur). Meme cout en credits Twelve Data qu'avant
     // (1 credit/appel, verifie en direct - outputsize n'a pas d'impact sur le cout).
-    const res = await twelveDataApi('time_series', { symbol: twelveDataSymbol, interval, outputsize: 5000 });
+    // timezone=UTC : sans ce paramètre Twelve Data renvoie l'heure du marché (pas UTC), et
+    // le filtre de fermeture ci-dessous serait décalé de plusieurs heures.
+    const res = await twelveDataApi('time_series', { symbol: twelveDataSymbol, interval, outputsize: 5000, timezone: 'UTC' });
     const json = await res.json();
     // `json.error` = notre propre relais (ex. clé absente côté serveur, 401/503) ; `status`/`code` =
     // Twelve Data lui-même ; `!Array.isArray(values)` = filet de sécurité pour toute autre forme
@@ -92,7 +94,26 @@
         time: Math.floor(new Date(v.datetime.replace(' ', 'T') + 'Z').getTime() / 1000) * 1000,
         open: parseFloat(v.open), high: parseFloat(v.high), low: parseFloat(v.low), close: parseFloat(v.close), volume: 0,
       }))
-      .sort((a, b) => a.time - b.time);
+      .sort((a, b) => a.time - b.time)
+      .filter(isTradableBar);
+  }
+
+  // Les algos ne doivent voir QUE les moments où le marché trade. On retire donc, avant
+  // le calcul, (1) les plages fermées (week-end, pause quotidienne 21h-22h UTC) et (2) les
+  // bougies "plates" O=H=L=C, qui sont des remplissages de données sans transaction réelle
+  // (constaté le 2026-10-05 : palier plat pendant lequel SWYPER prenait des trades).
+  // Le graphique n'a pas de trou visible : Vela place les bougies par index (testé avec un
+  // trou de 48 h, rendu correct).
+  function isTradableBar(c) {
+    if (c.open === c.high && c.high === c.low && c.low === c.close) return false;
+    const d = new Date(c.time);
+    const day = d.getUTCDay();   // 0 = dimanche, 6 = samedi
+    const h = d.getUTCHours();
+    if (day === 6) return false;                       // samedi
+    if (day === 0 && h < 22) return false;             // dimanche avant l'ouverture
+    if (day === 5 && h >= 22) return false;            // vendredi après la fermeture
+    if (h === 21) return false;                        // pause quotidienne
+    return true;
   }
 
   // { containerId, pineSource, secondaryPineSource?, symbolDisplay, twelveDataSymbol, timeframe,

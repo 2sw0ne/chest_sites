@@ -46,7 +46,7 @@
     width:22px; height:22px; border-radius:7px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
     font-size:9.5px; font-weight:800; color:#fff; letter-spacing:-.02em; vertical-align:middle;
   }
-  .scnr-logo-img{ flex-shrink:0; display:inline-block; object-fit:contain; border-radius:22%; vertical-align:middle; }
+  .scnr-logo-img{ flex-shrink:0; display:inline-block; object-fit:contain; vertical-align:middle; }
   .scnr-trigger-inner{ display:inline-flex; align-items:center; gap:8px; }
   .scnr-menu{
     position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:260px; background:var(--panel);
@@ -112,14 +112,18 @@
   }
   .scnr-hero[data-scanner="wolfx"]{ --glow: rgba(84,112,194,.5); }
   .scnr-hero[data-scanner="algomni"]{ --glow: rgba(249,164,94,.5); }
-  .scnr-hero[data-scanner="swyper-v6"]{ --glow: rgba(227,87,40,.5); }
+  .scnr-hero[data-scanner="swyper-v6"]{ --glow: rgba(132,45,255,.5); }
+  .scnr-hero[data-scanner="nexus"]{ --glow: rgba(255,122,26,.5); }
   .scnr-hero[data-scanner="pivot"]{ --glow: rgba(51,230,166,.5); }
   .scnr-hero__inner{ position:relative; max-width:520px; margin:0 auto; }
   .scnr-hero__logo-wrap{ display:inline-flex; margin-bottom:22px; }
+  /* Pas de cadre ni de rayon : le logo occupe toute la case, son propre contour
+     (détouré) fait office de bord. drop-shadow suit l'alpha du PNG, donc la lueur
+     épouse la forme réelle du logo et non une boîte carrée. */
   .scnr-hero__logo{
-    width:92px; height:92px; border-radius:26px; object-fit:contain; display:block;
-    box-shadow:0 0 0 1px rgba(255,255,255,.1), 0 24px 56px -8px var(--glow, rgba(0,0,0,.5));
-    transition:box-shadow .5s ease;
+    width:120px; height:120px; object-fit:contain; display:block;
+    filter:drop-shadow(0 18px 34px var(--glow, rgba(0,0,0,.5)));
+    transition:filter .5s ease;
   }
   .scnr-hero__logo-fallback{
     width:92px; height:92px; border-radius:26px; display:flex; align-items:center; justify-content:center;
@@ -252,7 +256,7 @@
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/scanner-store.js?v=7"></script>
-<script src="js/scanner-chart.js?v=9"></script>
+<script src="js/scanner-chart.js?v=10"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -325,7 +329,7 @@ CHESTTour.init([
     const scanners = CHESTScanners.list();
     document.getElementById('scnrMenuList').innerHTML = scanners.map((s) => `
       <button type="button" class="scnr-menu__item ${s.id === currentScannerId ? 'is-active' : ''}" data-pick-scanner="${s.id}">
-        ${scannerLogoHtml(s, 40)}
+        ${scannerLogoHtml(s, 46)}
         <span><strong>${s.name}</strong><span>${(s.tags || []).join(' · ')}</span></span>
       </button>`).join('');
     document.querySelectorAll('[data-pick-scanner]').forEach((btn) => btn.addEventListener('click', () => {
@@ -342,7 +346,7 @@ CHESTTour.init([
     currentSymbol = (opts && opts.symbol) || scanner.defaultSymbol || (MARKETS[currentMarket].pairs[0] || [])[0];
     currentTimeframe = (opts && opts.timeframe) || scanner.defaultTimeframe || '15';
 
-    document.getElementById('scnrTriggerLabel').innerHTML = `<span class="scnr-trigger-inner">${scannerLogoHtml(scanner, 26)}<span>${scanner.name}</span></span>`;
+    document.getElementById('scnrTriggerLabel').innerHTML = `<span class="scnr-trigger-inner">${scannerLogoHtml(scanner, 30)}<span>${scanner.name}</span></span>`;
     document.getElementById('scnrMarket').value = currentMarket;
     populateSymbolSelect(document.getElementById('scnrSymbol'), currentMarket, currentSymbol);
     document.querySelectorAll('#scnrTimeframe button').forEach((b) => b.classList.toggle('is-active', b.dataset.tf === currentTimeframe));
