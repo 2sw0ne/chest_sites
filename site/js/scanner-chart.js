@@ -94,8 +94,42 @@
         time: Math.floor(new Date(v.datetime.replace(' ', 'T') + 'Z').getTime() / 1000) * 1000,
         open: parseFloat(v.open), high: parseFloat(v.high), low: parseFloat(v.low), close: parseFloat(v.close), volume: 0,
       }))
-      .sort((a, b) => a.time - b.time)
-      .filter(isTradableBar);
+      .sort((a, b) => a.time - b.time);
+  }
+
+  // Etat HTF par bougie, comme TradingView avec request.security(..., lookahead_on) :
+  // pour une bougie 5M donnee, la valeur HTF est celle de la bougie HTF qui la contient,
+  // avec la CLOTURE FINALE de cette bougie HTF (sur l'historique). EMA 4 et SMA 10 sont
+  // calculees sur les clotures HTF. Retour : Map(bucketHTF -> -1 | 0 | 1), 1 = EMA au-dessus
+  // de la SMA, -1 = en dessous, 0 = indetermine (pas assez de bougies HTF).
+  // Calcule sur TOUTES les bougies (avant filtre week-end/plates) : les clotures HTF sont
+  // ainsi les vraies clotures du marche.
+  function htfStates(allBars, minutes) {
+    const close = new Map();
+    const order = [];
+    for (const c of allBars) {
+      const b = Math.floor(c.time / (minutes * 60000));
+      if (!close.has(b)) order.push(b);
+      close.set(b, c.close);
+    }
+    const a = 2 / (4 + 1);
+    const out = new Map();
+    let e = null;
+    const last = [];
+    for (const b of order) {
+      const cl = close.get(b);
+      e = e === null ? cl : a * cl + (1 - a) * e;
+      last.push(cl);
+      if (last.length > 10) last.shift();
+      const sma = last.length >= 10 ? last.reduce((s, x) => s + x, 0) / 10 : null;
+      out.set(b, sma === null ? 0 : (e > sma ? 1 : e < sma ? -1 : 0));
+    }
+    return out;
+  }
+  // Pour chaque bougie retenue : [4H, 1H, 30M, 15M] (-1/0/1)
+  function htfForBars(allBars, bars) {
+    const maps = [240, 60, 30, 15].map((m) => htfStates(allBars, m));
+    return bars.map((c) => maps.map((mp, i) => mp.get(Math.floor(c.time / ([240, 60, 30, 15][i] * 60000))) ?? 0));
   }
 
   // Les algos ne doivent voir QUE les moments où le marché trade. On retire donc, avant
@@ -122,6 +156,16 @@
   // secondaryPineSource : un 2e indicateur (overlay=false) empile sous le
   // graphique principal, ex. le QQE de WolfX ou le RSI de Pivot (retour
   // direct utilisateur du 2026-09-15) - optionnel, ignore si absent.
+  // Remplace le marqueur __HTF_STATES__ du script Pine par les etats 4H/1H/30M/15M calcules
+  // ci-dessus, un tableau par timeframe, indexe comme les bougies affichees (bar_index).
+  function injectHtfStates(source, allBars, bars) {
+    if (!source.includes('__HTF_STATES__') || !allBars) return source;
+    const st = htfForBars(allBars, bars);
+    const names = ['hs4', 'hs1', 'hs30', 'hs15'];
+    const lines = names.map((n, i) => `var float[] ${n} = array.from(${st.map((r) => r[i]).join(', ')})`);
+    return source.replace('__HTF_STATES__', lines.join('\n'));
+  }
+
   async function render(opts) {
     const { containerId, pineSource, secondaryPineSource, symbolDisplay, twelveDataSymbol, timeframe, candles, scannerId } = opts;
     const container = document.getElementById(containerId);
@@ -138,8 +182,10 @@
     container.innerHTML = `<div class="scanner-empty">Chargement de ${symbolDisplay} et du scanner…</div>`;
 
     let candleData;
+    let allBars;
     try {
-      candleData = await fetchCandles(twelveDataSymbol, interval);
+      allBars = await fetchCandles(twelveDataSymbol, interval);
+      candleData = allBars.filter(isTradableBar);
     } catch (e) {
       // Jamais de detail technique ici (nom d'API, message d'exception brut) - demande utilisateur
       // 2026-09-24 : un visiteur ne doit voir ni jargon ni etat d'implementation, juste "reessaie".
@@ -163,7 +209,7 @@
     });
 
     chart.registerEngine('pine', new PineEngine());
-    await chart.addIndicator(injectMa500Len(pineSource, timeframe));
+    await chart.addIndicator(injectHtfStates(injectMa500Len(pineSource, timeframe), allBars, candleData));
     if (secondaryPineSource) {
       try {
         await chart.addIndicator(secondaryPineSource);
