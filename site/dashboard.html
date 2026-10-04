@@ -147,7 +147,7 @@
   .conn-bar__status span{ color:var(--muted); }
   .conn-bar__status code{ background:var(--bg); padding:1px 6px; border-radius:5px; }
 
-  /* ---------- Assistant "Ajouter un compte" (choix MT5 local / Myfxbook) ---------- */
+  /* ---------- Assistant "Ajouter un compte" (Myfxbook) ---------- */
   .connmodal-overlay{
     position:fixed; inset:0; z-index:280; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s;
@@ -469,7 +469,7 @@
     <div class="chest-glass">
       <span class="chest-step">01 — Aucun compte</span>
       <h2>Ajoute ton premier compte</h2>
-      <p>Myfxbook, ou Compte Live rattaché à un compte du Journal (qui suit tes phases de challenge et superpose l'historique de chaque compte automatiquement).</p>
+      <p>Relie ton compte via Myfxbook — rattaché à un compte du Journal qui suit tes phases de challenge et superpose l'historique automatiquement.</p>
       <button type="button" class="chest-btn" id="dashEmptyAddBtn">+ Ajouter un compte</button>
     </div>
   </div>
@@ -628,69 +628,6 @@
   <div class="connmodal-modal">
     <button type="button" class="connmodal-close" id="addAccountClose" aria-label="Fermer">✕</button>
     <h2>🔗 Connecter un compte</h2>
-
-    <!-- Choix Myfxbook / Compte Live (2026-09-27, demande utilisateur) - "Compte Live" reserve a
-         l'admin : un seul terminal MT5 partage, le changer affecte tout le monde (voir
-         mt5-notify-bridge/README.md). Cache entierement si non-admin, comme s'il n'existait pas. -->
-    <div class="pill-group" id="addAccountModeToggle" hidden style="margin-bottom:18px">
-      <button type="button" data-mode="myfxbook" class="is-active">Myfxbook</button>
-      <button type="button" data-mode="live">Compte Live</button>
-    </div>
-
-    <!-- Compte Live = un JOURNAL (2026-09-27, demande utilisateur : "on va oublier les familles,
-         ca va etre les journaux qui sont directement a connecter") - plus de famille/broker-grid
-         dédoublé ici, on branche la connexion MT5 sur un compte du Journal (qui sait déjà pour
-         quelle propfirm/quelle phase c'est), qu'on choisit ou qu'on crée depuis cet écran. -->
-    <div id="liveJournalStep" hidden>
-      <p class="hint">Une connexion Live se rattache à un compte du <b>Journal</b> — c'est lui qui sait pour quelle propfirm/quelle phase c'est. Choisis un compte existant (pour changer sa connexion, ex. nouvelle phase) ou crée-en un nouveau.</p>
-      <div class="pill-group" id="liveKindToggle" style="margin-top:14px">
-        <button type="button" data-kind="propfirm" class="is-active">Propfirm</button>
-        <button type="button" data-kind="own">Compte propre</button>
-      </div>
-      <div id="liveJournalList" style="margin-top:16px;display:flex;flex-direction:column;gap:8px"></div>
-      <div class="wizard-actions" style="margin-top:18px">
-        <button type="button" class="btn btn-ghost" id="liveJournalNewBtn">+ Nouveau compte du Journal</button>
-      </div>
-    </div>
-
-    <div id="liveStageStep" hidden>
-      <p class="hint" id="liveStageHint">À quelle phase du challenge es-tu maintenant ?</p>
-      <div class="pill-group" id="liveStageToggle" style="margin-top:12px"></div>
-      <div class="wizard-actions" style="margin-top:18px">
-        <button type="button" class="btn btn-ghost" id="liveStageBack">← Retour</button>
-        <button type="button" class="btn btn-primary" id="liveStageNext">Continuer</button>
-      </div>
-    </div>
-
-    <div id="liveStepIntro" hidden>
-      <p class="hint">Connexion directe à ton terminal MT5 — le mot de passe <b>investisseur</b> (lecture seule, jamais celui de trading) reste chiffré côté serveur, jamais dans ton navigateur. Une seule connexion active à la fois : la brancher ici remplace automatiquement l'ancienne (ses données restent disponibles, juste plus mises à jour).</p>
-      <p class="hint" id="liveJournalSummary" style="margin-top:4px"></p>
-      <p class="hint" id="liveRulesFacts" style="margin-top:6px;font-size:12px;line-height:1.7"></p>
-      <div class="form-stack" style="margin-top:18px" id="liveLoginForm">
-        <div>
-          <label for="liveLogin">Numéro de compte MT5</label>
-          <input id="liveLogin" class="field" type="text" inputmode="numeric" autocomplete="off">
-        </div>
-        <div>
-          <label for="livePassword">Mot de passe investisseur</label>
-          <input id="livePassword" class="field" type="password" autocomplete="off">
-        </div>
-        <div id="liveBrokerPickBlock" hidden>
-          <label>Broker / plateforme</label>
-          <div class="broker-grid-sm" id="liveBrokerGrid" style="margin-top:8px"></div>
-        </div>
-        <div>
-          <label for="liveServer">Serveur du broker</label>
-          <select id="liveServer" class="field"><option value="">Choisis d'abord le broker ci-dessus…</option></select>
-          <input id="liveServerOther" class="field" type="text" placeholder="Nom exact du serveur (affiché dans MT5)" autocomplete="off" style="margin-top:8px;display:none">
-        </div>
-        <p class="hint" id="liveConnectError" style="color:var(--red);display:none"></p>
-      </div>
-      <div class="wizard-actions" style="margin-top:18px">
-        <button type="button" class="btn btn-ghost" id="liveIntroBack">← Retour</button>
-        <button type="button" class="btn btn-primary" id="liveConnectBtn">Connecter</button>
-      </div>
-    </div>
 
     <div id="mfxStepIntro">
       <div class="method-steps">
@@ -868,10 +805,10 @@
 <script>
 CHESTTour.init([
   { selector: '#accSwitcher', title: 'Choisis ton compte', text: 'Ici tu changes de compte. Chaque compte est rattaché à un compte du Journal (📒 affiché sous son nom), qui garde son historique même si le compte est supprimé ou rattaché ailleurs. Le ⋮ de chaque compte permet de le renommer, le rattacher à un autre journal, ou le supprimer.' },
-  { selector: '#kpiProfit', title: 'Ton résultat', text: 'Le profit du compte actif sur la période choisie, avec l\'equity juste dessous. À droite : balance, PnL non réalisé et profit du jour, synchronisés via Myfxbook (ou le pont MT5 local).' },
+  { selector: '#kpiProfit', title: 'Ton résultat', text: 'Le profit du compte actif sur la période choisie, avec l\'equity juste dessous. À droite : balance, PnL non réalisé et profit du jour, synchronisés via Myfxbook.' },
   { selector: '#heroSpot .chest-kpis', title: 'Indicateurs clés', text: 'Profit en dollars, R:R moyen, winrate, drawdown max et jours tradés sur la période choisie.' },
   { selector: '#periodPills', title: 'Choisis la période', text: 'Jour, semaine, mois, année ou tout : la fenêtre s\'applique à la courbe et aux indicateurs. À côté, $ / % change l\'unité.' },
-  { selector: '.chest-glass--chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde, construite à partir de tes vraies positions synchronisées (Myfxbook ou pont MT5).' },
+  { selector: '.chest-glass--chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde, construite à partir de tes vraies positions synchronisées via Myfxbook.' },
   { selector: '#objectivesList', title: 'Objectifs du challenge', text: 'Les règles de ton challenge propfirm (objectif de profit, perte du jour, perte max, jours minimum) et où tu en es. La roue dentée à côté du titre les règle.' },
   { selector: '#miniCalGrid', title: 'Performance par jour', text: 'Le résultat de chaque jour de trading, avec les totaux par semaine. Les flèches font défiler la fenêtre affichée.' },
   { selector: '#toolsToggle', title: 'Outils', text: 'Un clic déplie la timeline des sessions (Sydney, Tokyo, Londres, New York) et la force des devises en direct.' },

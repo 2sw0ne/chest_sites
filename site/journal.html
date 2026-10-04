@@ -518,8 +518,7 @@
            journal il se remplit manuellement. mais connecté à dashboard il se remplit
            automatiquement") - un journal démarre toujours "manuel" (jaSave le fixe en dur) ; il
            reste possible d'y ajouter un compte live Myfxbook n'importe quand (cf. jrAddLiveBtn),
-           et une connexion Live MT5 depuis le Dashboard le fait basculer automatiquement (voir
-           js/dashboard.js, liveConnectBtn). Plus de question posée à la création. -->
+           ce qui le fait basculer automatiquement en "auto". Plus de question posée à la création. -->
 
       <div class="jr-form__actions">
         <button type="button" class="btn btn-secondary" id="jaSave">Enregistrer le compte</button>
@@ -1507,24 +1506,9 @@ CHESTTour.init([
       CHESTJournal.list().filter((e) => e.accountId === editingAccountId && e.riskUnit === 'pct' && e.rrActual != null)
         .forEach((e) => CHESTJournal.update(e.id, { pnl: Math.round(e.rrActual * balance * (e.riskValue || 0)) / 100 }));
     } else saved = CHESTJournal.addAccount(Object.assign({ live: [] }, account));
-    // Venu du Dashboard ("+ Nouveau compte du Journal" pendant l'ajout d'un Compte Live, voir
-    // js/dashboard.js) : on ne reste pas ici, on retourne finir la connexion Live avec ce compte
-    // tout juste créé - jamais pour une simple modification (editingAccountId).
-    if (!editingAccountId && new URLSearchParams(window.location.search).get('fromLiveConnect') === '1') {
-      try {
-        localStorage.setItem('chest_live_connect_resume', '1');
-        localStorage.setItem('chest_live_connect_resume_account', saved.id);
-      } catch (e) { /* tant pis */ }
-      // ATTEND que le compte tout juste créé soit bien arrivé sur le serveur avant de changer de
-      // page (2026-09-27, vrai bug retour utilisateur : "Compte du Journal introuvable" - le pull
-      // de dashboard.html arrivait parfois AVANT que ce push n'ait eu le temps de partir, et
-      // écrasait localement le compte flambant neuf avec l'ancienne version serveur qui ne le
-      // connaît pas encore). Voir js/sync-store.js, window.CHESTSync.flushNow().
-      try { if (window.CHESTSync) await window.CHESTSync.flushNow(); } catch (e) { /* tant pis, on part quand meme */ }
-      window.location.href = 'dashboard.html';
-      return;
-    }
-    // Meme precaution que ci-dessus (voir son commentaire) - cette page va se recharger juste
+    // Precaution anti-course (2026-09-27, vrai bug retour utilisateur : un compte tout juste créé
+    // disparaissait si la page changeait avant que l'écriture serveur n'ait eu le temps de partir -
+    // voir js/sync-store.js, window.CHESTSync.flushNow()) - cette page va se recharger juste
     // apres et refaire un pull, meme risque de course.
     try { if (window.CHESTSync) await window.CHESTSync.flushNow(); } catch (e) { /* tant pis */ }
     window.location.href = `journal.html?acc=${encodeURIComponent(saved.id)}${!editingAccountId && account.mode === 'auto' ? '&addlive=1' : ''}`;
@@ -1978,9 +1962,6 @@ CHESTTour.init([
     const params = new URLSearchParams(window.location.search);
     const acc = params.get('acc') ? accounts.find((a) => a.id === params.get('acc')) : null;
     if (!acc) {
-      // Venu du Dashboard pour créer un nouveau compte à connecter en Live (voir js/dashboard.js,
-      // "+ Nouveau compte du Journal") - ouvre directement le formulaire de création, pas le hub.
-      if (params.get('fromLiveConnect') === '1') { openAccountForm(null); return; }
       showView('hub');
       await renderHub();
       // Synchro discrète des comptes live (max toutes les 5 min), puis les cartes se remettent à jour.
