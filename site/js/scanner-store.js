@@ -58,7 +58,7 @@
       id: "nexus",
       name: "NEXUS",
       description: "Cash love fast",
-      tags: [],
+      tags: ["Cash love fast"],
       market: "commodities",
       defaultSymbol: "XAUUSD",
       defaultTimeframe: "5",
