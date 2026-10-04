@@ -807,7 +807,7 @@
 <script>
 CHESTTour.init([
   { selector: '#jrHubNewBtn', title: 'Crée un journal', text: 'Un journal suit un compte (propre ou propfirm). Pour une propfirm, choisis la firme, le challenge et l\'étape : les règles se remplissent toutes seules.' },
-  { selector: '#jrHubKpis', title: 'Vue d\'ensemble', text: 'Le résumé de tous tes journaux : nombre de journaux, taux de réussite, P&L total et le % du dernier trade.' },
+  { selector: '#jrHubKpis', title: 'Vue d\'ensemble', text: 'Le résumé de tous tes journaux, en R (comparable d\'un compte à l\'autre) : taux de réussite, espérance par trade et résultat du dernier trade.' },
   { selector: '#jrGrid', title: 'Un journal = une carte', text: 'Clique une carte pour ouvrir son suivi. Le menu ⋮ permet d\'ouvrir, modifier ou supprimer le journal.' },
   { selector: '#jrAccSwitcher', title: 'Ta famille de comptes', text: 'Un journal est une famille : le journal principal (saisi à la main) et ses comptes live Myfxbook. Survole la flèche → pour ajouter un compte live.' },
   { selector: '#jrConditionsCard', title: 'Règles du challenge', text: 'Pour un compte propfirm : suivi en direct de la perte max, de l\'objectif de profit et des jours minimum.' },
@@ -907,21 +907,22 @@ CHESTTour.init([
     for (const a of accounts) items.push({ a, rows: await CHESTJournal.entriesFor(a) });
     const stats = items.map((it) => ({ it, s: CHESTJournal.computeStats(it.rows) }));
     const totalTrades = stats.reduce((n, x) => n + x.s.total, 0);
-    const totalPnl = stats.reduce((n, x) => n + (x.s.totalPnl || 0), 0);
     const propCount = accounts.filter((a) => a.type === 'propfirm').length;
     const allRowsFlat = items.flatMap((it) => it.rows).filter((r) => r.date).sort((x, y) => new Date(y.date) - new Date(x.date));
     const last = allRowsFlat[0];
-    const pnlCls = totalPnl > 0 ? 'is-pos' : totalPnl < 0 ? 'is-neg' : '';
     const tpAll = stats.reduce((n, x) => n + x.s.tp, 0), slAll = stats.reduce((n, x) => n + x.s.sl, 0);
     const winRate = tpAll + slAll ? Math.round((tpAll / (tpAll + slAll)) * 1000) / 10 : null;
     const lastItem = last ? items.find((it) => it.rows.includes(last)) : null;
-    const lastPct = lastItem && last.pnl != null && lastItem.a.balance ? (last.pnl / lastItem.a.balance) * 100 : null;
-    const lastCls = lastPct == null ? '' : lastPct >= 0 ? 'is-pos' : 'is-neg';
+    const rs = allRowsFlat.map((r) => r.rrActual).filter((v) => typeof v === 'number' && Number.isFinite(v));
+    const avgR = rs.length ? rs.reduce((s, v) => s + v, 0) / rs.length : null;
+    const lastR = last && typeof last.rrActual === 'number' ? last.rrActual : null;
+    const fmtR = (v) => (v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2).replace('.', ',') + ' R');
+    const lastCls = lastR == null ? '' : lastR >= 0 ? 'is-pos' : 'is-neg';
     document.getElementById('jrHubKpis').innerHTML = `
       <div><div class="chest-label" style="margin-bottom:8px">Journaux</div><div class="chest-kpi__val">${accounts.length}</div><div class="chest-kpi__note">${propCount} propfirm · ${accounts.length - propCount} compte${accounts.length - propCount > 1 ? 's' : ''} propre${accounts.length - propCount > 1 ? 's' : ''}</div></div>
       <div><div class="chest-label" style="margin-bottom:8px">Taux de réussite</div><div class="chest-kpi__val">${winRate == null ? '—' : winRate.toLocaleString('fr-FR') + ' %'}</div><div class="chest-kpi__note">TP sur TP + SL, ${totalTrades.toLocaleString('fr-FR')} trades</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">P&amp;L total</div><div class="chest-kpi__val ${pnlCls}">${accounts.length ? money(totalPnl) : '—'}</div><div class="chest-kpi__note">${accounts.length ? 'sur tous les journaux' : 'crée un journal'}</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">Dernier trade</div><div class="chest-kpi__val ${lastCls}">${lastPct == null ? '—' : (lastPct >= 0 ? '+' : '') + lastPct.toFixed(2).replace('.', ',') + ' %'}</div><div class="chest-kpi__note">${last ? `${last.pair || ''} · ${lastItem ? lastItem.a.name : ''}` : 'aucun trade pour l\'instant'}</div></div>`;
+      <div><div class="chest-label" style="margin-bottom:8px">Espérance par trade</div><div class="chest-kpi__val ${avgR == null ? '' : avgR >= 0 ? 'is-pos' : 'is-neg'}">${fmtR(avgR)}</div><div class="chest-kpi__note">R moyen, tous journaux</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Dernier trade</div><div class="chest-kpi__val ${lastCls}">${fmtR(lastR)}</div><div class="chest-kpi__note">${last ? `${last.pair || ''} · ${lastItem ? lastItem.a.name : ''}` : 'aucun trade pour l\'instant'}</div></div>`;
 
     const cards = stats.map(({ it, s }) => {
       const a = it.a;
