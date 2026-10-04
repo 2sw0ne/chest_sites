@@ -582,7 +582,7 @@ if barstate.islast and showJournal
 
   async function fetchXauCandles() {
     // timezone=UTC : sinon l'heure du marché fausse le filtre de fermeture.
-    const res = await twelveDataApi('time_series', { symbol: SYMBOL_TWELVEDATA, interval: TWELVEDATA_INTERVAL, outputsize: 1000, timezone: 'UTC' });
+    const res = await twelveDataApi('time_series', { symbol: SYMBOL_TWELVEDATA, interval: TWELVEDATA_INTERVAL, outputsize: 5000, timezone: 'UTC' });
     const json = await res.json();
     // Voir le commentaire de fetchCandles() dans scanner-chart.js pour le detail de chaque cas.
     if (!res.ok || json.error || json.status === 'error' || (json.code && json.code >= 400) || !Array.isArray(json.values)) {
