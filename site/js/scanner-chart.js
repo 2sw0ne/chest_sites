@@ -104,7 +104,7 @@
   // de la SMA, -1 = en dessous, 0 = indetermine (pas assez de bougies HTF).
   // Calcule sur TOUTES les bougies (avant filtre week-end/plates) : les clotures HTF sont
   // ainsi les vraies clotures du marche.
-  function htfStates(allBars, minutes) {
+  function htfStates(allBars, minutes, emaLen, smaLen) {
     const close = new Map();
     const order = [];
     for (const c of allBars) {
@@ -112,7 +112,7 @@
       if (!close.has(b)) order.push(b);
       close.set(b, c.close);
     }
-    const a = 2 / (4 + 1);
+    const a = 2 / (emaLen + 1);
     const out = new Map();
     let e = null;
     const last = [];
@@ -120,15 +120,15 @@
       const cl = close.get(b);
       e = e === null ? cl : a * cl + (1 - a) * e;
       last.push(cl);
-      if (last.length > 10) last.shift();
-      const sma = last.length >= 10 ? last.reduce((s, x) => s + x, 0) / 10 : null;
+      if (last.length > smaLen) last.shift();
+      const sma = last.length >= smaLen ? last.reduce((s, x) => s + x, 0) / smaLen : null;
       out.set(b, sma === null ? 0 : (e > sma ? 1 : e < sma ? -1 : 0));
     }
     return out;
   }
   // Pour chaque bougie retenue : [4H, 1H, 30M, 15M] (-1/0/1)
-  function htfForBars(allBars, bars) {
-    const maps = [240, 60, 30, 15].map((m) => htfStates(allBars, m));
+  function htfForBars(allBars, bars, emaLen, smaLen) {
+    const maps = [240, 60, 30, 15].map((m) => htfStates(allBars, m, emaLen, smaLen));
     return bars.map((c) => maps.map((mp, i) => mp.get(Math.floor(c.time / ([240, 60, 30, 15][i] * 60000))) ?? 0));
   }
 
@@ -160,7 +160,11 @@
   // ci-dessus, un tableau par timeframe, indexe comme les bougies affichees (bar_index).
   function injectHtfStates(source, allBars, bars) {
     if (!source.includes('__HTF_STATES__') || !allBars) return source;
-    const st = htfForBars(allBars, bars);
+    // Longueurs EMA / SMA lues dans le script (input.int), comme TradingView : 4 et 10 par defaut.
+    const lenOf = (name, def) => { const m = source.match(new RegExp(name + '[ ]*=[ ]*input[.]int[(][ ]*([0-9]+)')); return m ? parseInt(m[1], 10) : def; };
+    const emaLen = lenOf('lenEma', 4);
+    const smaLen = lenOf('lenSma', 10);
+    const st = htfForBars(allBars, bars, emaLen, smaLen);
     const names = ['hs4', 'hs1', 'hs30', 'hs15'];
     const lines = names.map((n, i) => `var float[] ${n} = array.from(${st.map((r) => r[i]).join(', ')})`);
     return source.replace('__HTF_STATES__', lines.join('\n'));
