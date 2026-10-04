@@ -258,7 +258,11 @@
       areaStops: `<stop offset="0" stop-color="#33e6a6" stop-opacity=".45"/><stop offset="${t}" stop-color="#33e6a6" stop-opacity="0"/><stop offset="${t}" stop-color="#ff4d5e" stop-opacity="0"/><stop offset="1" stop-color="#ff4d5e" stop-opacity=".4"/>`,
     };
   }
+  // Affichage par défaut : la propfirm quand elle existe (2026-10-04, demande utilisateur), sinon le compte propre.
+  function hasPfConfig(b) { return !!(b.pf && b.pf.mode); }
+  function capitalFor(b) { return hasPfConfig(b) ? (b.pfCapital || b.capital) : b.capital; }
   function reportFor(b) {
+    if (hasPfConfig(b)) return CHESTBacktestEngine.computeReport(b.trades || [], capitalFor(b), b.pf);
     const cfg = (b.cp && b.cp.mode) ? b.cp : { risk: 1, tiers: [] };
     return CHESTBacktestEngine.computeReport(b.trades || [], b.capital, cfg);
   }
@@ -279,14 +283,20 @@
     }
     const reports = items.map((b) => ({ b, report: reportFor(b) }));
     const totalTrades = items.reduce((s, b) => s + (b.trades || []).length, 0);
-    const best = reports.reduce((a, x) => (x.report.stats.performancePct > a.report.stats.performancePct ? x : a), reports[0]);
+    const pctOf = (x) => x.report.stats.performancePct;
+    const sign = (v) => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+    const cls = (v) => (v >= 0 ? 'is-pos' : 'is-neg');
+    const best = reports.reduce((a, x) => (pctOf(x) > pctOf(a) ? x : a), reports[0]);
     const latest = [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const latestReport = latest ? reports.find((x) => x.b.id === latest.id).report : null;
     const latestDate = latest && latest.createdAt ? new Date(latest.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—';
+    const avg = reports.length ? reports.reduce((s, x) => s + pctOf(x), 0) / reports.length : null;
+    const pfCount = items.filter(hasPfConfig).length;
     zone.innerHTML = `
-      <div><div class="chest-label" style="margin-bottom:8px">Backtests</div><div class="chest-kpi__val">${items.length}</div><div class="chest-kpi__note">${totalTrades} positions au total</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">Positions simulées</div><div class="chest-kpi__val">${totalTrades.toLocaleString('fr-FR')}</div><div class="chest-kpi__note">tous algorithmes</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">Meilleur profit</div><div class="chest-kpi__val ${best.report.stats.performancePct >= 0 ? 'is-pos' : 'is-neg'}">${best.report.stats.performancePct >= 0 ? '+' : ''}${best.report.stats.performancePct.toFixed(1)}%</div><div class="chest-kpi__note">${best.b.title}</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">Dernier import</div><div class="chest-kpi__val">${latestDate}</div><div class="chest-kpi__note">${latest ? (latest.trades || []).length : 0} lignes</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Backtests</div><div class="chest-kpi__val">${items.length}</div><div class="chest-kpi__note">${pfCount} avec une propfirm · ${totalTrades.toLocaleString('fr-FR')} positions</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Dernier ajout</div><div class="chest-kpi__val ${latestReport ? cls(pctOf({ report: latestReport })) : ''}">${latestReport ? sign(pctOf({ report: latestReport })) : '—'}</div><div class="chest-kpi__note">${latest ? `${latest.title} · ${latestDate}` : 'aucun backtest'}</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Meilleur profit</div><div class="chest-kpi__val ${cls(pctOf(best))}">${sign(pctOf(best))}</div><div class="chest-kpi__note">${best.b.title}</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Profit moyen</div><div class="chest-kpi__val ${avg == null ? '' : cls(avg)}">${avg == null ? '—' : sign(avg)}</div><div class="chest-kpi__note">moyenne sur ${reports.length} backtest${reports.length > 1 ? 's' : ''}</div></div>
     `;
   }
 
@@ -331,7 +341,7 @@
         <div class="bt-card__meta">
           <span><b style="color:${pct >= 0 ? '#33e6a6' : '#ff4d5e'}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</b> profit</span>
           <span><b>${(b.trades || []).length}</b> positions</span>
-          <span><b>$${Math.round(b.capital).toLocaleString('fr-FR')}</b> capital</span>
+          <span><b>$${Math.round(capitalFor(b)).toLocaleString('fr-FR')}</b> capital${hasPfConfig(b) ? ' propfirm' : ''}</span>
         </div>
       </div>`;
     }).join('');
@@ -427,7 +437,7 @@
 <script>
 CHESTTour.init([
   { selector: '.chest-titleglow', title: 'Bibliothèque de backtests', text: 'Tous tes algorithmes testés au même endroit. Le bouton « + Nouveau backtesting » lance l\'assistant d\'import : un fichier Excel de positions suffit, CHEST calcule le reste.' },
-  { selector: '#btKpis', title: 'Vue d\'ensemble', text: 'Le résumé de ta bibliothèque : nombre de backtests, positions simulées, meilleur profit et date du dernier import.' },
+  { selector: '#btKpis', title: 'Vue d\'ensemble', text: 'Le résumé de ta bibliothèque : nombre de backtests, profit du dernier ajout, meilleur profit et profit moyen (propfirm quand elle existe).' },
   { selector: '.bt-grid', title: 'Un backtest = une carte', text: 'La mini-courbe montre l\'évolution du capital simulé. Clique la carte pour ouvrir son rapport complet ; le menu ⋮ permet de modifier ou supprimer un backtest.' },
   { selector: '.bt-card__add', title: 'Ajouter un backtest', text: 'Importe un nouveau fichier : l\'assistant te guide en 4 étapes (fichier, infos, import, gestion du risque).' },
 ]);
