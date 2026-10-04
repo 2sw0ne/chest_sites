@@ -284,17 +284,13 @@
     const reports = items.map((b) => ({ b, report: reportFor(b) }));
     const totalTrades = items.reduce((s, b) => s + (b.trades || []).length, 0);
     // Indicateurs indépendants de la durée de chaque backtest (le % de profit, lui, ne se compare pas).
-    const avgR = (b) => {
-      const rs = (b.trades || []).map((t) => t.rr).filter((v) => typeof v === 'number' && Number.isFinite(v));
-      return rs.length ? rs.reduce((s, v) => s + v, 0) / rs.length : null;
-    };
     const pick = (fn, better) => reports.reduce((a, x) => {
       const v = fn(x), av = fn(a);
       if (v == null) return a;
       if (av == null) return x;
       return better(v, av) ? x : a;
     }, reports[0]);
-    const bestR = pick((x) => avgR(x.b), (v, av) => v > av);
+    const bestPf = pick((x) => x.report.stats.profitFactor, (v, av) => v > av);
     const bestWin = pick((x) => x.report.stats.winRatePct, (v, av) => v > av);
     const safest = pick((x) => x.report.stats.maxDrawdownPct, (v, av) => v < av); // drawdown en valeur positive : le plus petit est le plus sûr
     const pfCount = items.filter(hasPfConfig).length;
@@ -302,7 +298,7 @@
     const fmtPct = (v) => (v == null ? '—' : v.toFixed(1).replace('.', ',') + ' %');
     zone.innerHTML = `
       <div><div class="chest-label" style="margin-bottom:8px">Backtests</div><div class="chest-kpi__val">${items.length}</div><div class="chest-kpi__note">${pfCount} avec une propfirm · ${totalTrades.toLocaleString('fr-FR')} positions</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">Meilleure espérance</div><div class="chest-kpi__val ${bestR && avgR(bestR.b) >= 0 ? 'is-pos' : ''}">${bestR ? fmtR(avgR(bestR.b)) : '—'}</div><div class="chest-kpi__note">R moyen par trade · ${bestR ? bestR.b.title : ''}</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Meilleur profit factor</div><div class="chest-kpi__val ${bestPf && bestPf.report.stats.profitFactor >= 1 ? 'is-pos' : ''}">${bestPf && bestPf.report.stats.profitFactor != null ? bestPf.report.stats.profitFactor.toFixed(2).replace('.', ',') : '—'}</div><div class="chest-kpi__note">gains bruts ÷ pertes brutes · ${bestPf ? bestPf.b.title : ''}</div></div>
       <div><div class="chest-label" style="margin-bottom:8px">Meilleur taux de réussite</div><div class="chest-kpi__val">${bestWin ? fmtPct(bestWin.report.stats.winRatePct) : '—'}</div><div class="chest-kpi__note">${bestWin ? bestWin.b.title : ''}</div></div>
       <div><div class="chest-label" style="margin-bottom:8px">Drawdown le plus faible</div><div class="chest-kpi__val">${safest ? fmtPct(safest.report.stats.maxDrawdownPct) : '—'}</div><div class="chest-kpi__note">${safest ? safest.b.title : ''}</div></div>
     `;
@@ -445,7 +441,7 @@
 <script>
 CHESTTour.init([
   { selector: '.chest-titleglow', title: 'Bibliothèque de backtests', text: 'Tous tes algorithmes testés au même endroit. Le bouton « + Nouveau backtesting » lance l\'assistant d\'import : un fichier Excel de positions suffit, CHEST calcule le reste.' },
-  { selector: '#btKpis', title: 'Vue d\'ensemble', text: 'Le résumé de ta bibliothèque, en indicateurs comparables d\'un backtest à l\'autre : espérance par trade (en R), taux de réussite et drawdown le plus faible.' },
+  { selector: '#btKpis', title: 'Vue d\'ensemble', text: 'Le résumé de ta bibliothèque, en indicateurs comparables d\'un backtest à l\'autre : profit factor, taux de réussite et drawdown le plus faible.' },
   { selector: '.bt-grid', title: 'Un backtest = une carte', text: 'La mini-courbe montre l\'évolution du capital simulé. Clique la carte pour ouvrir son rapport complet ; le menu ⋮ permet de modifier ou supprimer un backtest.' },
   { selector: '.bt-card__add', title: 'Ajouter un backtest', text: 'Importe un nouveau fichier : l\'assistant te guide en 4 étapes (fichier, infos, import, gestion du risque).' },
 ]);
