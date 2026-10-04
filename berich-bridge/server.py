@@ -59,7 +59,10 @@ def notify(ntype: str, signal: dict, fallback: str) -> None:
     except (urllib.error.URLError, OSError):
         pass  # jamais bloquant - le signal est deja enregistre a ce stade
 
-DATA_FILE = Path(__file__).resolve().parent.parent / "site" / "data" / "berich-signal.json"
+# Sur Railway, le volume persistant est monté sur /data : sans lui, les signaux étaient effacés à chaque
+# déploiement (cause de « aucune position affichée », 2026-10-04). En local, on garde le dossier du site.
+DATA_DIR = Path("/data") if Path("/data").is_dir() else Path(__file__).resolve().parent.parent / "site" / "data"
+DATA_FILE = DATA_DIR / "berich-signal.json"
 MAX_SIGNALS = 50
 RR = 3.0  # verrouillé dans le script Pine — voir "Money management verrouillé"
 

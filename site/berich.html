@@ -440,10 +440,19 @@
   ]);
 
   // ---------- Graphique — ton vrai script BE FR€E, exécuté en direct (XAU/USD uniquement) ----------
-  CHESTBerichChart.render('tvChart').catch((e) => {
-    console.error('BERICH chart', e);
-    document.getElementById('tvChart').innerHTML = `<div class="scanner-empty">Erreur graphique : ${e.message}</div>`;
-  });
+  // Le graphique est redessiné seulement quand le signal actif change (voir loadAndRender).
+  let chartKey = null;
+  function renderChartFor(active) {
+    const key = active ? active.id : 'none';
+    if (key === chartKey) return;
+    chartKey = key;
+    const levels = active ? { entry: active.entry, sl: active.sl, tp: active.tp } : null;
+    CHESTBerichChart.render('tvChart', levels).catch((e) => {
+      console.error('BERICH chart', e);
+      chartKey = null;
+      document.getElementById('tvChart').innerHTML = `<div class="scanner-empty">Erreur graphique : ${e.message}</div>`;
+    });
+  }
 
   // ---------- Position : attente / active / historique ----------
   function levelBlock(cls, label, value) {
@@ -593,6 +602,7 @@
     try {
       data = await CHESTBerich.fetchSignals();
     } catch (e) {
+      renderChartFor(null);
       renderWaiting('Impossible de charger les signaux.');
       return;
     }
@@ -617,6 +627,7 @@
       }
     }
 
+    renderChartFor(active);
     if (active) renderActive(active, taken);
     else renderWaiting(waitingMeta);
 

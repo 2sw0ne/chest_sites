@@ -557,7 +557,18 @@ if barstate.islast and showJournal
     return candles;
   }
 
-  async function render(containerId) {
+  // Niveaux du signal actif (entrée, SL, TP) tracés comme lignes horizontales par le même moteur Pine.
+  // Le graphique est redessiné quand le signal change : on n'empile jamais deux jeux de lignes.
+  function levelsSource(levels) {
+    const n = (v) => Number(v).toFixed(2);
+    return `//@version=5
+indicator("BERICH niveaux", overlay=true)
+hline(${n(levels.entry)}, "Entrée", color=color.white, linestyle=hline.style_solid, linewidth=2)
+hline(${n(levels.sl)}, "SL", color=color.red, linestyle=hline.style_dashed)
+hline(${n(levels.tp)}, "TP", color=color.green, linestyle=hline.style_dashed)`;
+  }
+
+  async function render(containerId, levels) {
     const container = document.getElementById(containerId);
 
     container.innerHTML = '<div class="scanner-empty">Chargement des données XAU/USD et de ton scanner…</div>';
@@ -587,6 +598,13 @@ if barstate.islast and showJournal
 
     chart.registerEngine('pine', new PineEngine());
     await chart.addIndicator(PINE_SOURCE);
+    if (levels && [levels.entry, levels.sl, levels.tp].every((v) => Number.isFinite(Number(v)))) {
+      try {
+        await chart.addIndicator(levelsSource(levels));
+      } catch (e) {
+        console.warn('BERICH: niveaux du signal non tracés', e);
+      }
+    }
 
     // Couleurs de bougies personnalisables. Appliqué en dernier et sans
     // bloquer le reste : un souci ici ne doit pas empêcher le scanner de s'afficher.
