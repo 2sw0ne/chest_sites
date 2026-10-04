@@ -323,7 +323,9 @@
         <div class="pill-group" id="journalResultGroup"></div>
         <div class="pill-group pill-group--wrap" id="journalMonthGroup"></div>
       </div>
+      <div id="journalPicker" class="chest-glass--mini" hidden style="padding:16px 18px;margin:0 0 14px"></div>
       <div class="journal-wrap"><table class="journal-table" id="journalTable"></table></div>
+      <div id="journalMore" style="margin-top:14px;text-align:center"></div>
     </section>
 
     <aside class="bt-insights" id="insights" hidden></aside>
@@ -489,7 +491,15 @@ CHESTTour.init([
   let rawMM = false;
   let journalAccount = 'cp';
   let journalResultFilter = 'ALL';
-  let journalMonth = 'ALL';
+  // Journal : indépendant du filtre d'années du haut, il repart toujours de tout l'historique.
+  // La période ne change qu'au clic (défaut : dernier mois présent), et les lignes sont paginées.
+  let journalFullReports = null;
+  let journalRange = null; // { mode:'month', key:'YYYY-MM' } | { mode:'custom', from, to } (dates locales ISO)
+  let journalPage = 1;
+  let journalPickerOpen = false;
+  let journalPickTab = 'month';
+  let journalPickYear = null;
+  const JOURNAL_PAGE = 60;
   let journalOrder = 'close'; // 'close' (défaut) | 'open' : visible seulement si les heures d'ouverture ET de clôture sont dans le fichier
   let chart = null;
 
@@ -663,8 +673,95 @@ CHESTTour.init([
       }).join('');
   }
 
-  function renderJournal(trades, cpReport, pfReport) {
-    const report = (journalAccount === 'pf' && pfReport) ? pfReport : cpReport;
+  function isoLocal(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function journalReports() {
+    if (!journalFullReports) {
+      journalFullReports = {
+        cp: window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp)),
+        pf: hasPf ? window.CHESTBacktestEngine.computeReport(record.trades, pfCapital, riskCfg(record.pf)) : null,
+      };
+      const dates = journalFullReports.cp.curve.slice(1).map((pt) => pt.date).filter(Boolean);
+      const last = dates.length ? dates.reduce((a, b) => (b > a ? b : a)) : new Date();
+      journalRange = { mode: 'month', key: isoLocal(last).slice(0, 7) };
+    }
+    return journalFullReports;
+  }
+
+  function inJournalRange(r) {
+    if (!journalRange) return true;
+    if (journalRange.mode === 'month') return r.monthKey === journalRange.key;
+    if (!r.day) return false;
+    return (!journalRange.from || r.day >= journalRange.from) && (!journalRange.to || r.day <= journalRange.to);
+  }
+
+  function rangeLabel() {
+    if (!journalRange) return '';
+    if (journalRange.mode === 'month') return monthLabel(journalRange.key);
+    const f = (iso) => iso ? iso.split('-').reverse().join('/') : '…';
+    return `du ${f(journalRange.from)} au ${f(journalRange.to)}`;
+  }
+
+  function renderJournalPicker(days) {
+    const btnWrap = document.getElementById('journalMonthGroup');
+    btnWrap.innerHTML = `<button type="button" id="journalPickBtn" class="${journalPickerOpen ? 'is-active' : ''}">Période : ${rangeLabel()} ▾</button>`;
+    document.getElementById('journalPickBtn').addEventListener('click', () => {
+      journalPickerOpen = !journalPickerOpen;
+      renderJournal();
+    });
+    const pk = document.getElementById('journalPicker');
+    pk.hidden = !journalPickerOpen;
+    if (!journalPickerOpen) return;
+
+    const sorted = days.slice().sort();
+    const minDay = sorted[0] || '', maxDay = sorted[sorted.length - 1] || '';
+    const minY = minDay ? Number(minDay.slice(0, 4)) : new Date().getFullYear();
+    const maxY = maxDay ? Number(maxDay.slice(0, 4)) : minY;
+    if (journalPickYear == null) journalPickYear = journalRange && journalRange.mode === 'month' ? Number(journalRange.key.slice(0, 4)) : maxY;
+    const years = [];
+    for (let y = minY; y <= maxY; y += 1) years.push(y);
+
+    pk.innerHTML = `
+      <div class="pill-group" style="margin-bottom:12px">
+        <button type="button" data-ptab="month" class="${journalPickTab === 'month' ? 'is-active' : ''}">Par mois</button>
+        <button type="button" data-ptab="custom" class="${journalPickTab === 'custom' ? 'is-active' : ''}">Personnalisée</button>
+      </div>
+      ${journalPickTab === 'month' ? `
+        <div class="pill-group pill-group--wrap" style="margin-bottom:10px">${years.map((y) => `<button type="button" data-py="${y}" class="${journalPickYear === y ? 'is-active' : ''}">${y}</button>`).join('')}</div>
+        <div class="pill-group pill-group--wrap">${MONTHS_FR_SHORT.map((m, i) => {
+          const key = `${journalPickYear}-${String(i + 1).padStart(2, '0')}`;
+          return `<button type="button" data-pm="${key}" class="${journalRange && journalRange.mode === 'month' && journalRange.key === key ? 'is-active' : ''}">${m}</button>`;
+        }).join('')}</div>` : `
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)">Du<input type="date" class="field" id="jpFrom" min="${minDay}" max="${maxDay}" value="${journalRange && journalRange.from || minDay}"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)">Au<input type="date" class="field" id="jpTo" min="${minDay}" max="${maxDay}" value="${journalRange && journalRange.to || maxDay}"></label>
+          <button type="button" class="chest-btn" id="jpApply">Appliquer</button>
+        </div>`}`;
+
+    pk.querySelectorAll('[data-ptab]').forEach((b) => b.addEventListener('click', () => { journalPickTab = b.dataset.ptab; renderJournal(); }));
+    pk.querySelectorAll('[data-py]').forEach((b) => b.addEventListener('click', () => { journalPickYear = Number(b.dataset.py); renderJournal(); }));
+    pk.querySelectorAll('[data-pm]').forEach((b) => b.addEventListener('click', () => {
+      journalRange = { mode: 'month', key: b.dataset.pm };
+      journalPickerOpen = false;
+      journalPage = 1;
+      renderJournal();
+    }));
+    const apply = document.getElementById('jpApply');
+    if (apply) apply.addEventListener('click', () => {
+      const from = document.getElementById('jpFrom').value, to = document.getElementById('jpTo').value;
+      if (!from || !to || from > to) return;
+      journalRange = { mode: 'custom', from, to };
+      journalPickerOpen = false;
+      journalPage = 1;
+      renderJournal();
+    });
+  }
+
+  function renderJournal() {
+    const reports = journalReports();
+    const report = (journalAccount === 'pf' && reports.pf) ? reports.pf : reports.cp;
 
     const accountGroup = document.getElementById('journalAccountGroup');
     if (hasPf) {
@@ -672,22 +769,23 @@ CHESTTour.init([
       accountGroup.innerHTML = `
         <button type="button" data-jaccount="cp" class="${journalAccount === 'cp' ? 'is-active' : ''}">Compte propre</button>
         <button type="button" data-jaccount="pf" class="${journalAccount === 'pf' ? 'is-active' : ''}">Propfirm</button>`;
-      accountGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalAccount = b.dataset.jaccount; renderAll(); }));
+      accountGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalAccount = b.dataset.jaccount; journalPage = 1; renderJournal(); }));
     } else {
       accountGroup.style.display = 'none';
     }
 
     const resultGroup = document.getElementById('journalResultGroup');
     resultGroup.innerHTML = ['ALL', 'TP', 'SL', 'BE'].map((r) => `<button type="button" data-jresult="${r}" class="${journalResultFilter === r ? 'is-active' : ''}">${r === 'ALL' ? 'Tous' : r}</button>`).join('');
-    resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; renderAll(); }));
+    resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; journalPage = 1; renderJournal(); }));
 
-    const optionalCols = collectOptionalColumns(trades);
+    const optionalCols = collectOptionalColumns(record.trades);
     let rowsAll = report.curve.slice(1).map((pt, i) => {
       const prevCapital = report.curve[i].capital;
       const t = pt.trade;
       const pctChange = prevCapital > 0 ? (pt.capital / prevCapital - 1) * 100 : 0;
       const variation = pt.capital - prevCapital;
-      return { idx: i + 1, trade: t, capital: pt.capital, pctChange, variation, monthKey: pt.date ? pt.date.toISOString().slice(0, 7) : 'inconnu' };
+      const day = pt.date ? isoLocal(pt.date) : null;
+      return { idx: i + 1, trade: t, capital: pt.capital, pctChange, variation, day, monthKey: day ? day.slice(0, 7) : 'inconnu' };
     });
 
     // Ordre d'affichage : par défaut l'ordre de clôture (celui de la courbe). Si le fichier donne l'ouverture ET la clôture,
@@ -698,24 +796,28 @@ CHESTTour.init([
     if (canOrder) {
       orderGroup.style.display = '';
       orderGroup.innerHTML = `<button type="button" data-jorder="close" class="${journalOrder === 'close' ? 'is-active' : ''}">Par clôture</button><button type="button" data-jorder="open" class="${journalOrder === 'open' ? 'is-active' : ''}">Par ouverture</button>`;
-      orderGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalOrder = b.dataset.jorder; journalMonth = 'ALL'; renderAll(); }));
+      orderGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalOrder = b.dataset.jorder; journalPage = 1; renderJournal(); }));
     } else {
       orderGroup.style.display = 'none';
     }
     if (canOrder && journalOrder === 'open') {
       const openMs = (r) => { const d = new Date(r.trade.open || r.trade.close || r.trade.date); return Number.isNaN(d.getTime()) ? Infinity : d.getTime(); };
       rowsAll = rowsAll.map((r) => Object.assign({}, r, { openMs: openMs(r) })).sort((a, b) => a.openMs - b.openMs || a.idx - b.idx)
-        .map((r, i) => Object.assign(r, { idx: i + 1, monthKey: Number.isFinite(r.openMs) ? new Date(r.openMs).toISOString().slice(0, 7) : 'inconnu' }));
+        .map((r, i) => {
+          const day = Number.isFinite(r.openMs) ? isoLocal(new Date(r.openMs)) : null;
+          return Object.assign(r, { idx: i + 1, day, monthKey: day ? day.slice(0, 7) : 'inconnu' });
+        });
     }
 
-    document.getElementById('journalCount').textContent = rowsAll.length;
-    document.getElementById('journalSub').textContent = journalOrder === 'open' ? 'Positions rangées par heure d\'ouverture, regroupées par mois d\'ouverture. Le capital et la variation sont ceux de la clôture.' : 'Historique complet des positions, regroupé par mois.';
+    const days = journalFullReports.cp.curve.slice(1).map((pt) => (pt.date ? isoLocal(pt.date) : null)).filter(Boolean);
+    renderJournalPicker(days);
+    rowsAll = rowsAll.filter(inJournalRange).filter((r) => journalResultFilter === 'ALL' || String(r.trade.result).toUpperCase() === journalResultFilter);
+    const total = rowsAll.length;
+    const shownCount = Math.min(total, journalPage * JOURNAL_PAGE);
+    rowsAll = rowsAll.slice(0, shownCount);
 
-    const monthsPresent = [...new Set(rowsAll.map((r) => r.monthKey))].sort();
-    const monthGroup = document.getElementById('journalMonthGroup');
-    monthGroup.innerHTML = `<button type="button" data-jmonth="ALL" class="${journalMonth === 'ALL' ? 'is-active' : ''}">Tous les mois</button>` +
-      monthsPresent.map((k) => `<button type="button" data-jmonth="${k}" class="${journalMonth === k ? 'is-active' : ''}">${monthLabelShort(k)}</button>`).join('');
-    monthGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalMonth = b.dataset.jmonth; renderAll(); }));
+    document.getElementById('journalCount').textContent = total;
+    document.getElementById('journalSub').textContent = journalOrder === 'open' ? 'Positions rangées par heure d\'ouverture, regroupées par mois d\'ouverture. Le capital et la variation sont ceux de la clôture.' : 'Historique complet des positions, regroupé par mois.';
 
     const byMonth = new Map();
     rowsAll.forEach((r) => {
@@ -726,7 +828,7 @@ CHESTTour.init([
     const headCells = ['#', 'Date', ...optionalCols.map((c) => c.label), 'Résultat', '%', 'Capital après', 'Variation $'];
     const colCount = headCells.length;
 
-    const groupKeys = [...byMonth.keys()].filter((k) => journalMonth === 'ALL' || k === journalMonth);
+    const groupKeys = [...byMonth.keys()];
     let bodyHtml = '';
     groupKeys.forEach((key) => {
       const rows = byMonth.get(key);
@@ -752,6 +854,12 @@ CHESTTour.init([
     });
 
     document.getElementById('journalTable').innerHTML = `<thead><tr>${headCells.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${bodyHtml || `<tr><td colspan="${colCount}" style="text-align:center;color:var(--muted);padding:24px">Aucune position pour ce filtre.</td></tr>`}</tbody>`;
+
+    const more = document.getElementById('journalMore');
+    const remaining = total - shownCount;
+    more.innerHTML = remaining > 0 ? `<button type="button" class="chest-btn-2" id="journalMoreBtn">Afficher ${Math.min(remaining, JOURNAL_PAGE)} positions de plus (${remaining} restantes)</button>` : '';
+    const moreBtn = document.getElementById('journalMoreBtn');
+    if (moreBtn) moreBtn.addEventListener('click', () => { journalPage += 1; renderJournal(); });
   }
 
   // ---- 03 · Recommandation : prop firm ou compte propre ----
@@ -1128,7 +1236,6 @@ CHESTTour.init([
     renderDetail(mmDetailAccount === 'pf' && pfReport ? pfReport : cpReport);
     renderFit(trades);
     renderMonthly(cpReport, pfReport);
-    renderJournal(trades, cpReport, pfReport);
   }
 
   document.getElementById('editLink').addEventListener('click', () => {
@@ -1166,6 +1273,7 @@ CHESTTour.init([
 
   renderYearFilter();
   renderAll();
+  renderJournal();
 })();
 </script>
 </body>
