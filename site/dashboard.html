@@ -465,6 +465,15 @@
     </header>
 
     <main id="dashMain">
+  <style>
+    .livesim__row{ display:grid; grid-template-columns:1fr 1.4fr auto; gap:12px; align-items:center; padding:10px 0; border-top:1px solid var(--line2); }
+    .livesim__row:first-child{ border-top:0; }
+    .livesim__pnl{ font-weight:700; font-variant-numeric:tabular-nums; text-align:right; }
+    .livesim__pnl.is-pos{ color:var(--green); }
+    .livesim__pnl.is-neg{ color:var(--red); }
+    @media (max-width:640px){ .livesim__row{ grid-template-columns:1fr auto; } .livesim__row > div:nth-child(2){ grid-column:1 / -1; order:3; } }
+  </style>
+  <div class="chest-section" id="liveSimCard" hidden style="margin-bottom:16px"></div>
   <div class="chest-section" id="dashEmptyState" hidden>
     <div class="chest-glass">
       <span class="chest-step">01 — Aucun compte</span>
@@ -788,7 +797,7 @@
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
-<script src="js/myfxbook-store.js?v=4"></script>
+<script src="js/myfxbook-store.js?v=5"></script>
 <!-- Chaque compte du Dashboard se rattache a un compte du Journal (2026-09-29) - dashboard.js a
      besoin de window.CHESTJournal (et de propfirm-rules.js, dont CHESTJournal.challengeModels()
      dépend) pour la liste des comptes/phases, voir js/dashboard.js "renderLiveJournalPicker".
@@ -798,7 +807,8 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=7"></script>
-<script src="js/dashboard.js?v=39"></script>
+<script src="js/live-sim.js?v=1"></script>
+<script src="js/dashboard.js?v=40"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>

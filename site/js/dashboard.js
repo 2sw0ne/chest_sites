@@ -1747,6 +1747,8 @@
     if (activeAccountData.id !== lastCalAccountId) { calOffsetDays = 0; lastCalAccountId = activeAccountData.id; }
     renderPayouts(activeAccountData);
     renderMiniCalendar(activeAccountData);
+    if (activeAccountData.myfxbook && window.CHESTLiveSim) window.CHESTLiveSim.start(activeAccountData.myfxbook, document.getElementById('liveSimCard'));
+    else if (window.CHESTLiveSim) window.CHESTLiveSim.stop();
     const activePeriod = document.querySelector('#periodPills .is-active')?.dataset.period || 'month';
     render(activePeriod);
   }

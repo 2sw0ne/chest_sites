@@ -94,5 +94,10 @@ window.CHESTMyfxbook = (() => {
     return data.history || [];
   }
 
-  return { login, logout, getMyAccounts, getDailyGain, getHistory };
+  async function getOpenTrades(session, accountId) {
+    const data = await call('get-open-trades.json', { session, id: accountId });
+    return (data.openTrades || []).map((t) => (Array.isArray(t) ? t[0] : t)).filter(Boolean);
+  }
+
+  return { login, logout, getMyAccounts, getDailyGain, getHistory, getOpenTrades };
 })();
