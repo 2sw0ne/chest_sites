@@ -170,20 +170,41 @@
     return source.replace('__HTF_STATES__', lines.join('\n'));
   }
 
+  // Verrouille l'indicateur : pas de clic sur la légende ni de réglages ouverts depuis le graphique.
+  function lockIndicators(chart) {
+    try {
+      chart.renderer.setLegendActions([]);
+      chart.renderer.setSettingsVisibility(false);
+    } catch (e) {
+      console.warn('Scanner: verrouillage des réglages non appliqué', e);
+    }
+  }
+
+  // Vue par défaut : les dernières bougies (et non une plage de temps fixe). Sinon le week-end,
+  // sans bougies, occupe une bonne partie de la fenêtre et le graphique paraît vide.
+  function showLastBars(chart, bars, count) {
+    try {
+      const core = chart.renderer && chart.renderer.renderer;
+      if (!core || !core.setVisibleRange || bars.length === 0) return;
+      const first = bars[Math.max(0, bars.length - count)];
+      const last = bars[bars.length - 1];
+      const pad = 5 * 60 * 1000;
+      core.setVisibleRange({ from: first.time, to: last.time + pad });
+    } catch (e) {
+      console.warn('Scanner: vue par défaut non appliquée', e);
+    }
+  }
+
   // Échelle figée sur les bougies visibles (scanners marqués fixedScale : Algomni, Wave).
   // Les dessins hors cadre n'étirent alors plus le graphique.
   function freezeScaleToCandles(chart, bars) {
     try {
       const core = chart.renderer && chart.renderer.renderer;
       const pane = core && core.scene && core.scene.orderedPanes().find((p) => p.kind === 'price');
-      if (!pane) return;
-      const r = core.getVisibleRange ? core.getVisibleRange() : null;
-      const from = r ? r.from : -Infinity;
-      const to = r ? r.to : Infinity;
+      if (!pane || !bars.length) return;
       let lo = Infinity;
       let hi = -Infinity;
       for (const c of bars) {
-        if (c.time < from || c.time > to) continue;
         if (c.low < lo) lo = c.low;
         if (c.high > hi) hi = c.high;
       }
@@ -264,7 +285,7 @@
     // Laisse Vela finir son premier cadrage, puis cale la vue sur les dernières bougies.
     await new Promise((resolve) => setTimeout(resolve, 1000));
     showLastBars(chart, candleData, 150);
-    if (fixedScale) freezeScaleToCandles(chart, candleData);
+    if (fixedScale) freezeScaleToCandles(chart, candleData.slice(-150));
 
     // ---- Restauration + sauvegarde automatique des dessins ----
     if (scannerId) {

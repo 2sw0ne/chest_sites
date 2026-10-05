@@ -19,7 +19,7 @@
       market: "commodities",
       defaultSymbol: "XAUUSD",
       defaultTimeframe: "5",
-      candles: {"upColor": "rgba(0,0,0,0)", "downColor": "rgba(0,0,0,0)", "wickUpColor": "rgba(0,0,0,0)", "wickDownColor": "rgba(0,0,0,0)"},
+      candles: { upColor: "#ffffff", downColor: "#ffffff", wickUpColor: "#ffffff", wickDownColor: "#ffffff", borderUpColor: "#ffffff", borderDownColor: "#ffffff" },
       logoInitials: "AO",
       logoColor: "#f9a45e",
       logo: "assets/logo-algomni.png",
