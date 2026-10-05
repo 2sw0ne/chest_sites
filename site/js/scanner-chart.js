@@ -184,6 +184,21 @@
     }
   }
 
+  // Vue par défaut : les dernières bougies (et non une plage de temps fixe). Sinon le week-end,
+  // sans bougies, occupe une bonne partie de la fenêtre et le graphique paraît vide.
+  function showLastBars(chart, bars, count) {
+    try {
+      const core = chart.renderer && chart.renderer.renderer;
+      if (!core || !core.setVisibleRange || bars.length === 0) return;
+      const first = bars[Math.max(0, bars.length - count)];
+      const last = bars[bars.length - 1];
+      const pad = 5 * 60 * 1000;
+      core.setVisibleRange({ from: first.time, to: last.time + pad });
+    } catch (e) {
+      console.warn('Scanner: vue par défaut non appliquée', e);
+    }
+  }
+
   function freezeScaleToCandles(chart, bars) {
     try {
       const core = chart.renderer && chart.renderer.renderer;
@@ -275,6 +290,7 @@
     lockIndicators(chart);
     // Laisse Vela finir son premier cadrage, puis fige l'echelle sur les bougies.
     await new Promise((resolve) => setTimeout(resolve, 1000));
+    showLastBars(chart, candleData, 150);
     freezeScaleToCandles(chart, candleData);
 
     // ---- Restauration + sauvegarde automatique des dessins ----

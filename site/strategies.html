@@ -51,6 +51,9 @@
   .scnr-menu{
     position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:260px; background:var(--panel);
     border:1px solid var(--line2); border-radius:var(--radius-sm); box-shadow:0 20px 48px rgba(0,0,0,.3); padding:6px; display:none;
+    /* Liste défilante : hauteur max sur l'écran, barre de défilement discrète */
+    max-height:min(420px, 62vh); overflow-y:auto; overscroll-behavior:contain;
+    scrollbar-width:thin; scrollbar-color:var(--line2) transparent;
   }
   .scnr-menu.is-open{ display:block; }
   .scnr-menu__item{ display:flex; align-items:center; gap:10px; width:100%; border:none; background:transparent; cursor:pointer; padding:8px 10px; border-radius:8px; text-align:left; font:inherit; color:var(--ink); }
@@ -261,7 +264,7 @@
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/scanner-store.js?v=20"></script>
-<script src="js/scanner-chart.js?v=15"></script>
+<script src="js/scanner-chart.js?v=16"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
