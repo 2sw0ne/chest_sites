@@ -260,8 +260,8 @@
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
-<script src="js/scanner-store.js?v=7"></script>
-<script src="js/scanner-chart.js?v=14"></script>
+<script src="js/scanner-store.js?v=20"></script>
+<script src="js/scanner-chart.js?v=15"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -385,6 +385,7 @@ CHESTTour.init([
       containerId: 'scnrChart',
       pineSource: scanner.pineSource,
       secondaryPineSource: scanner.secondaryPineSource,
+      extraPineSources: scanner.extraPineSources,
       symbolDisplay: currentSymbol,
       twelveDataSymbol: symbolPair, // Twelve Data attend aussi un symbole "BASE/QUOTE" (ex. "XAU/USD") - retour a Twelve Data (2026-09-14, OANDA abandonne : restriction EU)
       timeframe: currentTimeframe,

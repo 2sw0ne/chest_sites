@@ -83,6 +83,76 @@
       pineSource: null,
       secondaryPineSource: null,
     },
+    {
+      id: "harmonics",
+      name: "Harmonics",
+      description: "Repère les figures harmoniques à partir de pivots ZigZag multi-profondeurs.",
+      tags: ["Figures harmoniques"],
+      market: "commodities",
+      defaultSymbol: "XAUUSD",
+      defaultTimeframe: "5",
+      candles: null,
+      logoInitials: "HA",
+      logoColor: "#00e68a",
+      logo: "assets/logo-harmonics.webp",
+      pineSource: null,
+    },
+    {
+      id: "blood",
+      name: "Blood",
+      description: "SuperTrend filtré, entrées et sorties sur bandes de Bollinger, avec oscillateur MACD.",
+      tags: ["Tendance SuperTrend"],
+      market: "commodities",
+      defaultSymbol: "XAUUSD",
+      defaultTimeframe: "5",
+      candles: null,
+      logoInitials: "BL",
+      logoColor: "#ff2d2d",
+      logo: "assets/logo-blood.webp",
+      pineSource: null,
+    },
+    {
+      id: "pulse",
+      name: "Pulse",
+      description: "EMA 269, bandes de Bollinger et ruban EMA, avec RSI et micro-momentum.",
+      tags: ["Momentum et moyenne longue"],
+      market: "commodities",
+      defaultSymbol: "XAUUSD",
+      defaultTimeframe: "5",
+      candles: null,
+      logoInitials: "PU",
+      logoColor: "#2d7bff",
+      logo: "assets/logo-pulse.webp",
+      pineSource: null,
+    },
+    {
+      id: "wave",
+      name: "Wave",
+      description: "Bandes VIDYA, cloud Kalman et supertrend, avec score des signaux et assistant RSI.",
+      tags: ["Vidya et cloud Kalman"],
+      market: "commodities",
+      defaultSymbol: "XAUUSD",
+      defaultTimeframe: "5",
+      candles: null,
+      logoInitials: "WV",
+      logoColor: "#ff2d2d",
+      logo: "assets/logo-wave.webp",
+      pineSource: null,
+    },
+    {
+      id: "stars",
+      name: "Stars",
+      description: "Grille de niveaux ronds autour du prix, avec les niveaux d'intérêt les plus proches.",
+      tags: ["Niveaux ronds"],
+      market: "commodities",
+      defaultSymbol: "XAUUSD",
+      defaultTimeframe: "5",
+      candles: null,
+      logoInitials: "ST",
+      logoColor: "#ffc21a",
+      logo: "assets/logo-stars.webp",
+      pineSource: null,
+    },
   ];
 
   function list() { return SCANNERS.slice(); }
@@ -99,6 +169,7 @@
       if (!e) return;
       if ('pineSource' in e) s.pineSource = e.pineSource;
       if ('secondaryPineSource' in e) s.secondaryPineSource = e.secondaryPineSource;
+      if ('extraPineSources' in e) s.extraPineSources = e.extraPineSources;
     });
   }
 

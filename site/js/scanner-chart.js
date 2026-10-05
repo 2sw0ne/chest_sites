@@ -208,7 +208,7 @@
   }
 
   async function render(opts) {
-    const { containerId, pineSource, secondaryPineSource, symbolDisplay, twelveDataSymbol, timeframe, candles, scannerId } = opts;
+    const { containerId, pineSource, secondaryPineSource, extraPineSources, symbolDisplay, twelveDataSymbol, timeframe, candles, scannerId } = opts;
     const container = document.getElementById(containerId);
     const interval = INTERVAL_MAP[timeframe] || '15min';
 
@@ -256,6 +256,14 @@
         await chart.addIndicator(secondaryPineSource);
       } catch (e) {
         console.error('Scanner: indicateur secondaire non charge', e);
+      }
+    }
+    // Scripts supplementaires du meme scanner (ex. Assistant, MACD) : empiles sur le meme graphique.
+    for (const extra of extraPineSources || []) {
+      try {
+        await chart.addIndicator(extra);
+      } catch (e) {
+        console.error('Scanner: indicateur supplementaire non charge', e);
       }
     }
 
