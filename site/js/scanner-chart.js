@@ -170,8 +170,33 @@
     return source.replace('__HTF_STATES__', lines.join('\n'));
   }
 
+  // Échelle figée sur les bougies visibles (scanners marqués fixedScale : Algomni, Wave).
+  // Les dessins hors cadre n'étirent alors plus le graphique.
+  function freezeScaleToCandles(chart, bars) {
+    try {
+      const core = chart.renderer && chart.renderer.renderer;
+      const pane = core && core.scene && core.scene.orderedPanes().find((p) => p.kind === 'price');
+      if (!pane) return;
+      const r = core.getVisibleRange ? core.getVisibleRange() : null;
+      const from = r ? r.from : -Infinity;
+      const to = r ? r.to : Infinity;
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const c of bars) {
+        if (c.time < from || c.time > to) continue;
+        if (c.low < lo) lo = c.low;
+        if (c.high > hi) hi = c.high;
+      }
+      if (!isFinite(lo) || !isFinite(hi)) return;
+      const m = (hi - lo) * 0.1 || 1;
+      core.setManualScale(pane, { min: lo - m, max: hi + m, invert: false });
+    } catch (e) {
+      console.warn('Scanner: échelle non figée', e);
+    }
+  }
+
   async function render(opts) {
-    const { containerId, pineSource, secondaryPineSource, extraPineSources, symbolDisplay, twelveDataSymbol, timeframe, candles, scannerId } = opts;
+    const { containerId, pineSource, secondaryPineSource, extraPineSources, fixedScale, symbolDisplay, twelveDataSymbol, timeframe, candles, scannerId } = opts;
     const container = document.getElementById(containerId);
     const interval = INTERVAL_MAP[timeframe] || '15min';
 
@@ -239,6 +264,7 @@
     // Laisse Vela finir son premier cadrage, puis cale la vue sur les dernières bougies.
     await new Promise((resolve) => setTimeout(resolve, 1000));
     showLastBars(chart, candleData, 150);
+    if (fixedScale) freezeScaleToCandles(chart, candleData);
 
     // ---- Restauration + sauvegarde automatique des dessins ----
     if (scannerId) {
