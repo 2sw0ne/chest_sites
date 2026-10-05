@@ -281,7 +281,7 @@
     } catch (e) {
       console.warn('Scanner: couleurs de bougies non appliquees', e);
     }
-    lockIndicators(chart);
+    // lockIndicators(chart) retiré : masquait les tracés des indicateurs en production.
     // Laisse Vela finir son premier cadrage, puis cale la vue sur les dernières bougies.
     await new Promise((resolve) => setTimeout(resolve, 1000));
     showLastBars(chart, candleData, 150);
