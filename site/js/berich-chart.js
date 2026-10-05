@@ -557,6 +557,17 @@ if barstate.islast and showJournal
 
   // Vela cale l'échelle sur TOUT ce qui est dessiné (boîtes, lignes, labels) : on fige l'échelle
   // sur les bougies visibles pour que les dessins ne modifient plus le cadrage à l'ouverture.
+  // Verrouille l'indicateur : pas de clic sur la légende ni de réglages ouverts depuis le graphique.
+  // Les réglages sont figés (code des scanners non consultable depuis l'interface).
+  function lockIndicators(chart) {
+    try {
+      chart.renderer.setLegendActions([]);
+      chart.renderer.setSettingsVisibility(false);
+    } catch (e) {
+      console.warn('Scanner: verrouillage des réglages non appliqué', e);
+    }
+  }
+
   function freezeScaleToCandles(chart, bars) {
     try {
       const core = chart.renderer && chart.renderer.renderer;
@@ -647,6 +658,7 @@ hline(${n(levels.tp)}, "TP", color=color.green, linestyle=hline.style_dashed)`;
       }
     }
 
+    lockIndicators(chart);
     // Laisse Vela finir son premier cadrage, puis fige l'échelle sur les bougies.
     await new Promise((resolve) => setTimeout(resolve, 1000));
     freezeScaleToCandles(chart, candles);

@@ -173,6 +173,17 @@
   // Vela cale l'echelle verticale sur TOUT ce qui est dessine (zones, labels, lignes), y compris
   // ceux loin des bougies : Algomni etire alors le graphique a l'ouverture. On fige l'echelle sur
   // les bougies visibles : les dessins restent sur le graphique mais ne modifient plus le cadrage.
+  // Verrouille l'indicateur : pas de clic sur la légende ni de réglages ouverts depuis le graphique.
+  // Les réglages sont figés (code des scanners non consultable depuis l'interface).
+  function lockIndicators(chart) {
+    try {
+      chart.renderer.setLegendActions([]);
+      chart.renderer.setSettingsVisibility(false);
+    } catch (e) {
+      console.warn('Scanner: verrouillage des réglages non appliqué', e);
+    }
+  }
+
   function freezeScaleToCandles(chart, bars) {
     try {
       const core = chart.renderer && chart.renderer.renderer;
@@ -253,6 +264,7 @@
     } catch (e) {
       console.warn('Scanner: couleurs de bougies non appliquees', e);
     }
+    lockIndicators(chart);
     // Laisse Vela finir son premier cadrage, puis fige l'echelle sur les bougies.
     await new Promise((resolve) => setTimeout(resolve, 1000));
     freezeScaleToCandles(chart, candleData);
