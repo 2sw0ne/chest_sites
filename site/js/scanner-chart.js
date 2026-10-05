@@ -170,58 +170,6 @@
     return source.replace('__HTF_STATES__', lines.join('\n'));
   }
 
-  // Vela cale l'echelle verticale sur TOUT ce qui est dessine (zones, labels, lignes), y compris
-  // ceux loin des bougies : Algomni etire alors le graphique a l'ouverture. On fige l'echelle sur
-  // les bougies visibles : les dessins restent sur le graphique mais ne modifient plus le cadrage.
-  // Verrouille l'indicateur : pas de clic sur la légende ni de réglages ouverts depuis le graphique.
-  // Les réglages sont figés (code des scanners non consultable depuis l'interface).
-  function lockIndicators(chart) {
-    try {
-      chart.renderer.setLegendActions([]);
-      chart.renderer.setSettingsVisibility(false);
-    } catch (e) {
-      console.warn('Scanner: verrouillage des réglages non appliqué', e);
-    }
-  }
-
-  // Vue par défaut : les dernières bougies (et non une plage de temps fixe). Sinon le week-end,
-  // sans bougies, occupe une bonne partie de la fenêtre et le graphique paraît vide.
-  function showLastBars(chart, bars, count) {
-    try {
-      const core = chart.renderer && chart.renderer.renderer;
-      if (!core || !core.setVisibleRange || bars.length === 0) return;
-      const first = bars[Math.max(0, bars.length - count)];
-      const last = bars[bars.length - 1];
-      const pad = 5 * 60 * 1000;
-      core.setVisibleRange({ from: first.time, to: last.time + pad });
-    } catch (e) {
-      console.warn('Scanner: vue par défaut non appliquée', e);
-    }
-  }
-
-  function freezeScaleToCandles(chart, bars) {
-    try {
-      const core = chart.renderer && chart.renderer.renderer;
-      const pane = core && core.scene && core.scene.orderedPanes().find((p) => p.kind === 'price');
-      if (!pane) return;
-      const r = core.getVisibleRange ? core.getVisibleRange() : null;
-      const from = r ? r.from : -Infinity;
-      const to = r ? r.to : Infinity;
-      let lo = Infinity;
-      let hi = -Infinity;
-      for (const c of bars) {
-        if (c.time < from || c.time > to) continue;
-        if (c.low < lo) lo = c.low;
-        if (c.high > hi) hi = c.high;
-      }
-      if (!isFinite(lo) || !isFinite(hi)) return;
-      const m = (hi - lo) * 0.1 || 1;
-      core.setManualScale(pane, { min: lo - m, max: hi + m, invert: false });
-    } catch (e) {
-      console.warn('Scanner: echelle non figee', e);
-    }
-  }
-
   async function render(opts) {
     const { containerId, pineSource, secondaryPineSource, extraPineSources, symbolDisplay, twelveDataSymbol, timeframe, candles, scannerId } = opts;
     const container = document.getElementById(containerId);
@@ -288,10 +236,9 @@
       console.warn('Scanner: couleurs de bougies non appliquees', e);
     }
     lockIndicators(chart);
-    // Laisse Vela finir son premier cadrage, puis fige l'echelle sur les bougies.
+    // Laisse Vela finir son premier cadrage, puis cale la vue sur les dernières bougies.
     await new Promise((resolve) => setTimeout(resolve, 1000));
     showLastBars(chart, candleData, 150);
-    freezeScaleToCandles(chart, candleData);
 
     // ---- Restauration + sauvegarde automatique des dessins ----
     if (scannerId) {

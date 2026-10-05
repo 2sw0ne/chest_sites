@@ -568,29 +568,6 @@ if barstate.islast and showJournal
     }
   }
 
-  function freezeScaleToCandles(chart, bars) {
-    try {
-      const core = chart.renderer && chart.renderer.renderer;
-      const pane = core && core.scene && core.scene.orderedPanes().find((p) => p.kind === 'price');
-      if (!pane) return;
-      const r = core.getVisibleRange ? core.getVisibleRange() : null;
-      const from = r ? r.from : -Infinity;
-      const to = r ? r.to : Infinity;
-      let lo = Infinity;
-      let hi = -Infinity;
-      for (const c of bars) {
-        if (c.time < from || c.time > to) continue;
-        if (c.low < lo) lo = c.low;
-        if (c.high > hi) hi = c.high;
-      }
-      if (!isFinite(lo) || !isFinite(hi)) return;
-      const m = (hi - lo) * 0.1 || 1;
-      core.setManualScale(pane, { min: lo - m, max: hi + m, invert: false });
-    } catch (e) {
-      console.warn('BERICH: échelle non figée', e);
-    }
-  }
-
   async function fetchXauCandles() {
     // timezone=UTC : sinon l'heure du marché fausse le filtre de fermeture.
     const res = await twelveDataApi('time_series', { symbol: SYMBOL_TWELVEDATA, interval: TWELVEDATA_INTERVAL, outputsize: 5000, timezone: 'UTC' });
@@ -659,9 +636,6 @@ hline(${n(levels.tp)}, "TP", color=color.green, linestyle=hline.style_dashed)`;
     }
 
     lockIndicators(chart);
-    // Laisse Vela finir son premier cadrage, puis fige l'échelle sur les bougies.
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    freezeScaleToCandles(chart, candles);
 
     // Couleurs de bougies personnalisables. Appliqué en dernier et sans
     // bloquer le reste : un souci ici ne doit pas empêcher le scanner de s'afficher.
