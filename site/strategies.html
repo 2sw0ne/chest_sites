@@ -234,6 +234,20 @@
   .alr-card__levels{ font-size:9px; }
   .alr__empty{ font-size:11px; }
 </style>
+<style>
+  /* Opportunités v3 (2026-10-06) : compartiments de la hauteur des champs, séparateurs gris, seule la lueur colorée */
+  .alr{ flex:1 1 420px; }
+  .alr__cards{ gap:0; min-height:72px; align-items:stretch; }
+  .alr-card{ min-width:120px; height:72px; padding:6px 12px; border:0; border-left:1px solid var(--line2); border-radius:0; background:transparent; box-shadow:none; flex-direction:column; justify-content:center; gap:4px; }
+  .alr-card.is-buy, .alr-card.is-sell{ border-color:var(--line2); box-shadow:none; }
+  .alr-card::before{ width:96px; height:96px; opacity:.5; }
+  .alr-card.is-sell::before{ background:radial-gradient(circle, rgba(255,40,60,.7), rgba(255,40,60,0) 70%); }
+  .alr-card.is-buy::before{ background:radial-gradient(circle, rgba(51,230,166,.55), rgba(51,230,166,0) 70%); }
+  .alr-card__logo{ width:24px; height:24px; }
+  .alr-card__side{ font-size:14px; }
+  .alr-card__levels{ font-size:10px; }
+  .alr__head{ margin-bottom:4px; }
+</style>
 </head>
 <body data-page="strategies" class="chest-root">
 
