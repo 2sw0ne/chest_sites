@@ -76,19 +76,21 @@ async function runOne(engine, path, isMain, all, bars, code, tf) {
   });
 }
 
-// Niveaux du dernier trade (SL, PE, TP final) lus dans les étiquettes du script, ex. "SL (4114.45)".
-// Le TP final = TP3, sinon TP2, sinon TP1. Rien n'est renvoyé si le script n'affiche pas de trade.
+// Niveaux du dernier trade lus dans les étiquettes du script : PE (prix d'entrée), SL, et TP1..TPn
+// (ex. "SL (4114.45)", "TP1 (4145.89)"). Un script peut n'afficher que l'entrée, un TP ou trois TP.
+// Renvoie { sl, pe, tps: [valeurs dans l'ordre], tp: dernier TP } ou null si aucun trade affiché.
 function extractLevels(models) {
   const found = {};
   for (const m of models) {
     for (const l of m.labels || []) {
-      const mm = String(l.text || "").match(/^(SL|PE|TP[123])\s*\((-?[0-9.]+)\)$/);
+      const mm = String(l.text || "").match(/^(SL|PE|TP[0-9]*)\s*\((-?[0-9.]+)\)$/);
       if (mm) found[mm[1]] = Number(mm[2]);
     }
   }
-  if (found.SL === undefined) return null;
-  const tp = found.TP3 ?? found.TP2 ?? found.TP1 ?? null;
-  return { sl: found.SL, pe: found.PE ?? null, tp };
+  if (found.SL === undefined && found.PE === undefined && !Object.keys(found).some((k) => k.startsWith("TP"))) return null;
+  const tpKeys = Object.keys(found).filter((k) => k.startsWith("TP")).sort((x, y) => (Number(x.slice(2)) || 0) - (Number(y.slice(2)) || 0));
+  const tps = tpKeys.map((k) => found[k]);
+  return { sl: found.SL ?? null, pe: found.PE ?? null, tps, tp: tps.length ? tps[tps.length - 1] : null };
 }
 
 let raw = "";

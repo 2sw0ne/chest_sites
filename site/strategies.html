@@ -267,6 +267,43 @@
   .alr > .alr__btn{ margin-left:auto; flex-shrink:0; }
   .alr__chips--scroll{ max-height:120px; overflow-y:auto; }
 </style>
+<style>
+  /* Carte de la dernière opportunité + cloche + menus (maquette "Un/Trois take profit", 2026-10-06) */
+  .alr{ flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:12px; border-left:1px solid var(--line2); padding-left:16px; }
+  .alr-last{ flex:1 1 auto; min-width:0; display:flex; align-items:center; min-height:62px; padding:10px 16px; border-radius:14px; border:1px solid var(--line2); background:#0a0a0b; }
+  .alr-last.is-buy{ border-color:rgba(51,230,166,.3); background:linear-gradient(90deg,rgba(51,230,166,.10),rgba(51,230,166,0) 60%),#0a0a0b; box-shadow:0 0 28px rgba(51,230,166,.10); }
+  .alr-last.is-sell{ border-color:rgba(255,77,94,.32); background:linear-gradient(90deg,rgba(255,77,94,.12),rgba(255,77,94,0) 60%),#0a0a0b; box-shadow:0 0 28px rgba(255,77,94,.12); }
+  .alr-last__head{ display:flex; flex-direction:column; gap:6px; padding-right:16px; margin-right:4px; border-right:1px solid var(--line2); min-width:112px; }
+  .alr-last__badge{ display:inline-flex; align-items:center; gap:7px; align-self:flex-start; height:24px; padding:0 10px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.06em; }
+  .alr-last__badge i{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; }
+  .is-buy .alr-last__badge{ color:#33e6a6; background:rgba(51,230,166,.12); border:1px solid rgba(51,230,166,.35); }
+  .is-sell .alr-last__badge{ color:#ff4d5e; background:rgba(255,77,94,.12); border:1px solid rgba(255,77,94,.35); }
+  .alr-last__time{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .alr-last__fields{ display:flex; align-items:stretch; flex-wrap:wrap; }
+  .alr-last__field{ display:flex; flex-direction:column; justify-content:center; gap:4px; padding:0 16px; border-left:1px solid var(--line2); min-width:84px; }
+  .alr-last__field span{ font-size:9.5px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); font-weight:600; white-space:nowrap; }
+  .alr-last__field b{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .alr-last__field b.pe{ color:var(--ink); }
+  .alr-last__field b.sl{ color:#ff4d5e; }
+  .alr-last__field b.tp{ color:#33e6a6; }
+  .alr-last__empty{ font-size:12px; color:var(--muted); }
+  .alr-bell{ position:relative; width:40px; height:40px; flex-shrink:0; border-radius:50%; border:1px solid var(--line2); background:var(--bg); color:var(--ink); display:grid; place-items:center; cursor:pointer; }
+  .alr-bell svg{ width:18px; height:18px; }
+  .alr-bell:hover{ border-color:rgba(249,164,94,.5); }
+  .alr-bell__count{ position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#fc1283; color:#fff; font-size:10px; font-weight:800; display:grid; place-items:center; box-shadow:0 0 12px rgba(252,18,131,.6); }
+  .alr-bell__count:empty{ display:none; }
+  .alr-dd{ position:relative; }
+  .alr-dd__trigger{ width:100%; height:42px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 14px; border-radius:12px; border:1px solid var(--line2); background:rgba(255,255,255,.03); color:var(--ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; text-align:left; }
+  .alr-dd__trigger:hover{ border-color:rgba(249,164,94,.5); }
+  .alr-dd__chev{ color:var(--muted); font-size:12px; transition:transform .2s; }
+  .alr-dd.is-open .alr-dd__chev{ transform:rotate(180deg); }
+  .alr-dd__menu{ display:none; position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:5; max-height:240px; overflow-y:auto; padding:6px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:#0c0c0e; box-shadow:0 20px 50px rgba(0,0,0,.6); }
+  .alr-dd.is-open .alr-dd__menu{ display:block; }
+  .alr-dd__menu .alr__chip{ display:flex; align-items:center; justify-content:space-between; width:100%; height:36px; padding:0 12px; border:0; border-radius:9px; background:transparent; color:var(--muted); font:inherit; font-size:13px; font-weight:600; cursor:pointer; text-align:left; }
+  .alr-dd__menu .alr__chip:hover{ background:rgba(255,255,255,.05); color:var(--ink); }
+  .alr-dd__menu .alr__chip.is-on{ color:var(--ink); background:rgba(249,164,94,.08); }
+  .alr-dd__menu .alr__chip.is-on::after{ content:'✓'; color:#f9a45e; font-weight:800; }
+</style>
 </head>
 <body data-page="strategies" class="chest-root">
 
@@ -331,16 +368,28 @@
   <div class="lotcalc-overlay" id="alrOverlay" role="dialog" aria-modal="true" aria-labelledby="alrModalTitle">
   <div class="lotcalc-modal">
     <div class="lotcalc-head">
-      <div><span class="lotcalc-step">Alertes — Notifications</span><h3 id="alrModalTitle">Mes notifications</h3></div>
+      <div><span class="lotcalc-step">Alertes</span><h3 id="alrModalTitle">Notifications</h3></div>
       <button type="button" class="lotcalc-close" id="alrClose" aria-label="Fermer">✕</button>
     </div>
     <div class="lotcalc-row">
       <label>Cet appareil</label>
       <div class="alr__status" id="alrStatus"></div>
     </div>
-    <div class="lotcalc-row"><label>Scanners</label><div class="alr__chips" id="alrScanners"></div></div>
-    <div class="lotcalc-row"><label>Paires</label><div class="alr__chips alr__chips--scroll" id="alrPairs"></div></div>
-    <div class="lotcalc-row"><label>Unités de temps</label><div class="alr__chips" id="alrTfs"></div></div>
+    <div class="lotcalc-row">
+      <label>Scanner</label>
+      <div class="alr-dd"><button type="button" class="alr-dd__trigger"><span class="alr-dd__value">Choisir</span><span class="alr-dd__chev">▾</span></button>
+        <div class="alr-dd__menu" id="alrScanners"></div></div>
+    </div>
+    <div class="lotcalc-row">
+      <label>Paires</label>
+      <div class="alr-dd"><button type="button" class="alr-dd__trigger"><span class="alr-dd__value">Choisir</span><span class="alr-dd__chev">▾</span></button>
+        <div class="alr-dd__menu" id="alrPairs"></div></div>
+    </div>
+    <div class="lotcalc-row">
+      <label>Unité de temps</label>
+      <div class="alr-dd"><button type="button" class="alr-dd__trigger"><span class="alr-dd__value">Choisir</span><span class="alr-dd__chev">▾</span></button>
+        <div class="alr-dd__menu" id="alrTfs"></div></div>
+    </div>
     <div class="lotcalc-actions">
       <button type="button" class="chest-btn-2" id="alrReset">Réinitialiser</button>
       <button type="button" class="chest-btn" id="alrSave">Enregistrer</button>
@@ -383,10 +432,12 @@
         <button type="button" data-tf="D">1D</button>
       </div>
     </div>
-      <section class="alr" id="alrPanel">
-      <div class="alr__eyebrow">Dernière opportunité</div>
+        <section class="alr" id="alrPanel">
       <div class="alr-last" id="alrLast"></div>
-      <button type="button" class="alr__btn" id="alrToggle" aria-haspopup="dialog">Notifications</button>
+      <button type="button" class="alr-bell" id="alrToggle" aria-label="Notifications" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="alr-bell__count" id="alrCount"></span>
+      </button>
     </section>
   </div>
 
@@ -597,6 +648,12 @@ CHESTTour.init([
   }
   function setChips(el, attr, values) {
     el.querySelectorAll('.alr__chip').forEach((b) => b.classList.toggle('is-on', values.includes(b.dataset[attr])));
+    updateDd(el.closest('.alr-dd'));
+  }
+  function updateDd(dd) {
+    if (!dd) return;
+    const on = [...dd.querySelectorAll('.alr__chip.is-on')].map((b) => b.textContent.trim());
+    dd.querySelector('.alr-dd__value').textContent = !on.length ? 'Choisir' : on.length <= 2 ? on.join(', ') : on.length + ' sélectionnés';
   }
   function chosen(el, attr) {
     return [...el.querySelectorAll('.alr__chip.is-on')].map((b) => b.dataset[attr]);
@@ -606,20 +663,28 @@ CHESTTour.init([
     const box = document.getElementById('alrLast');
     const mine = list.filter((o) => o.scanner === currentScannerId).sort((x, y) => y.time - x.time)[0];
     if (!mine) {
-      box.innerHTML = '<div class="alr-last__empty">Aucune opportunité récente pour ce scanner sur cette paire.</div>';
+      box.className = 'alr-last alr-last--empty';
+      box.innerHTML = '<span class="alr-last__empty">Aucune opportunité récente sur ce scanner.</span>';
       return;
     }
     const buy = mine.side === 'buy';
     const lv = mine.levels || {};
-    const fmt = (v) => (v == null ? '—' : (Math.abs(v) >= 100 ? v.toFixed(2) : v.toFixed(5)));
+    const fmt = (v) => (Math.abs(v) >= 100 ? v.toFixed(2) : v.toFixed(5));
     const t = new Date(mine.time);
     const hh = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+    const tps = lv.tps || (lv.tp != null ? [lv.tp] : []);
+    const field = (label, value, cls) => `<div class="alr-last__field"><span>${label}</span><b class="${cls}">${value}</b></div>`;
+    let fields = '';
+    if (lv.pe != null) fields += field('Entrée', fmt(lv.pe), 'pe');
+    if (lv.sl != null) fields += field('Stop loss', fmt(lv.sl), 'sl');
+    tps.forEach((v, i) => { fields += field(tps.length > 1 ? 'Take profit ' + (i + 1) : 'Take profit', fmt(v), 'tp'); });
+    box.className = 'alr-last ' + (buy ? 'is-buy' : 'is-sell');
     box.innerHTML = `
-      <div class="alr-last__field"><span>Heure</span><b>${hh}</b><small>${timeAgo(mine.time)}</small></div>
-      <div class="alr-last__field"><span>Sens</span><b class="${buy ? 'is-buy' : 'is-sell'}">${buy ? 'BUY' : 'SELL'}</b></div>
-      <div class="alr-last__field"><span>PE</span><b class="pe">${fmt(lv.pe)}</b></div>
-      <div class="alr-last__field"><span>SL</span><b class="sl">${fmt(lv.sl)}</b></div>
-      <div class="alr-last__field"><span>TP</span><b class="tp">${fmt(lv.tp)}</b></div>`;
+      <div class="alr-last__head">
+        <span class="alr-last__badge"><i></i>${buy ? 'ACHAT' : 'VENTE'}</span>
+        <span class="alr-last__time">${hh} · ${timeAgo(mine.time)}</span>
+      </div>
+      <div class="alr-last__fields">${fields}</div>`;
   }
   async function loadOpportunities() {
     try {
@@ -657,6 +722,7 @@ CHESTTour.init([
       const res = await fetch(`${scannersApi()}/alerts/rules`, { headers: authHeaders() });
       alrRules = res.ok ? ((await res.json()).rules || []) : [];
     } catch (e) { alrRules = []; }
+    document.getElementById('alrCount').textContent = alrRules.length || '';
     if (!alrRules.length) { box.innerHTML = '<div class="alr__empty">Aucune notification configurée.</div>'; return; }
     box.innerHTML = alrRules.map((r) => {
       const names = r.scanners.map((id) => (CHESTScanners.get(id) || { name: id }).name).join(', ');
@@ -686,10 +752,23 @@ CHESTTour.init([
       .map((code) => `<button type="button" class="alr__chip" data-pair="${code}">${code}</button>`).join('');
     tfsEl.innerHTML = ALERT_TFS.map((tf) => `<button type="button" class="alr__chip" data-tf="${tf}">${TF_LABELS[tf]}</button>`).join('');
     scEl.innerHTML = CHESTScanners.list().map((s) => `<button type="button" class="alr__chip" data-scanner="${s.id}">${s.name}</button>`).join('');
-    [pairsEl, tfsEl, scEl].forEach((el) => el.addEventListener('click', (e) => {
-      const b = e.target.closest('.alr__chip');
-      if (b) b.classList.toggle('is-on');
-    }));
+    document.querySelectorAll('.alr-dd').forEach((dd) => {
+      dd.querySelector('.alr-dd__trigger').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasOpen = dd.classList.contains('is-open');
+        document.querySelectorAll('.alr-dd.is-open').forEach((x) => x.classList.remove('is-open'));
+        if (!wasOpen) dd.classList.add('is-open');
+      });
+      dd.querySelector('.alr-dd__menu').addEventListener('click', (e) => {
+        const b = e.target.closest('.alr__chip');
+        if (!b) return;
+        b.classList.toggle('is-on');
+        updateDd(dd);
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.alr-dd')) document.querySelectorAll('.alr-dd.is-open').forEach((x) => x.classList.remove('is-open'));
+    });
   }
 
   const alrOverlay = document.getElementById('alrOverlay');
@@ -734,6 +813,7 @@ CHESTTour.init([
   });
 
   setInterval(loadOpportunities, 60 * 1000);
+  loadRules();
 
   // Ouverture depuis une notification : fenêtre floutée (?alert=1&side=buy|sell)
   function showAlertModal(deep) {
