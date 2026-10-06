@@ -723,14 +723,11 @@ def scanners_list():
     # Strategies, deja visible de tout membre connecte cote UI - seule la source Pine elle-meme
     # ne doit jamais sortir d'une session authentifiee. Fichier absent (pas encore restaure sur ce
     # serveur) -> objet vide, jamais une erreur qui casserait le rendu de la page.
+    # 2026-10-06 : plus jamais de texte Pine ici. Les scanners sont calculés côté serveur
+    # (/scanners/model) ; cette route ne renvoie plus rien de sensible.
     if not approved_user():
         return jsonify({"error": "Non connecté."}), 401
-    try:
-        with open(SCANNERS_SECRET_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (OSError, ValueError):
-        data = {}
-    return jsonify({"scanners": data})
+    return jsonify({"scanners": {}})
 
 
 @app.route("/scanners/restore", methods=["POST"])
@@ -750,6 +747,29 @@ def scanners_restore():
         with open(SCANNERS_SECRET_PATH, "w", encoding="utf-8") as f:
             json.dump(body, f, ensure_ascii=False)
     return jsonify({"ok": True, "scanners": list(body.keys())})
+
+
+# Scanners calcules cote serveur (2026-10-06) : le texte Pine ne sort jamais de scanner-node.
+# Le navigateur n'obtient que le modele calcule (bougies + courbes/zones/etiquettes), uniquement
+# pour un membre approuve. SCANNER_SERVER_URL = adresse interne du service de calcul.
+SCANNER_SERVER_URL = os.environ.get("SCANNER_SERVER_URL", "")
+
+
+@app.route("/scanners/model")
+def scanners_model():
+    if not approved_user():
+        return jsonify({"error": "Non connecté."}), 401
+    script = request.args.get("script", "")
+    if not re.fullmatch(r"[a-z0-9-]{1,40}", script):
+        return jsonify({"error": "Scanner inconnu."}), 404
+    if not SCANNER_SERVER_URL:
+        return jsonify({"error": "Service de calcul non configuré."}), 503
+    url = SCANNER_SERVER_URL.rstrip("/") + "/data?" + urllib.parse.urlencode({"script": script})
+    try:
+        with urllib.request.urlopen(url, timeout=120) as resp:
+            return app.response_class(resp.read(), mimetype="application/json")
+    except Exception:
+        return jsonify({"error": "Scanner en attente."}), 503
 
 
 @app.route("/twelvedata/<endpoint>")

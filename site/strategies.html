@@ -264,7 +264,7 @@
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/scanner-store.js?v=25"></script>
-<script src="js/scanner-chart.js?v=20"></script>
+<script src="js/scanner-chart.js?v=21"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -386,6 +386,7 @@ CHESTTour.init([
     const symbolPair = slashSymbolFor(currentMarket, currentSymbol);
     CHESTScannerChart.render({
       containerId: 'scnrChart',
+      remote: true, // le script Pine tourne sur le serveur de calcul, jamais dans le navigateur
       pineSource: scanner.pineSource,
       secondaryPineSource: scanner.secondaryPineSource,
       extraPineSources: scanner.extraPineSources,

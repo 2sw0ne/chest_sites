@@ -216,7 +216,69 @@
     }
   }
 
+  // ---- Mode distant (2026-10-06) : le script Pine ne vit pas dans le navigateur. Le serveur de
+  // comptes relaie le modèle calculé par le service de calcul (bougies + sorties de chaque script).
+  // Vela affiche ces sorties à l'identique via un moteur qui lit le modèle au lieu d'exécuter le code.
+  function remoteEngine(models) {
+    return class {
+      language = 'pine';
+      capabilities = { streaming: false, visibleRange: false, inputs: false, props: false };
+      async prepare(source, instanceId) {
+        const idx = Number((source.match(/\/\/idx:(\d+)/) || [])[1] || 0);
+        const model = models[idx];
+        return { language: 'pine', inputs: [], props: undefined, meta: { title: model.title, overlay: model.overlay }, reactsToViewport: false, token: { instanceId, idx } };
+      }
+      execute(req, handlers) {
+        const model = models[req.prepared.token.idx];
+        setTimeout(() => { handlers.onModel(model); handlers.onDone && handlers.onDone(); }, 0);
+        return { stop() {}, update() {}, setVisibleRange() {}, notifyBars() {} };
+      }
+    };
+  }
+
+  async function renderRemote(opts) {
+    const { containerId, fixedScale, symbolDisplay, candles, scannerId } = opts;
+    const container = document.getElementById(containerId);
+    container.innerHTML = `<div class="scanner-empty">Chargement de ${symbolDisplay} et du scanner…</div>`;
+    const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+    const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    let body;
+    try {
+      const res = await fetch(`${base}/scanners/model?script=${encodeURIComponent(scannerId)}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+      body = await res.json();
+      if (!res.ok || !Array.isArray(body.models)) {
+        container.innerHTML = res.status === 401
+          ? '<div class="scanner-empty">Connecte-toi pour voir l\'indicateur de ce scanner.</div>'
+          : '<div class="scanner-empty">Scanner en attente — réessaie dans un instant.</div>';
+        return null;
+      }
+    } catch (e) {
+      container.innerHTML = '<div class="scanner-empty">Scanner en attente — réessaie dans un instant.</div>';
+      return null;
+    }
+    const bars = body.bars;
+    container.innerHTML = '';
+    const { Vela } = await import('https://esm.sh/@luxalgo/vela@0.6.21');
+    const chart = new Vela(container, {
+      symbol: symbolDisplay,
+      timeframe: VELA_TIMEFRAME_MAP[opts.timeframe] || '5m',
+      data: bars,
+      theme: 'dark',
+      drawings: true,
+    });
+    chart.registerEngine('pine', new (remoteEngine(body.models))());
+    for (let i = 0; i < body.models.length; i++) {
+      await chart.addIndicator(`//@version=5\n//idx:${i}\nindicator("remote-${i}")`);
+    }
+    try { chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES }); } catch (e) { console.warn('Scanner: couleurs de bougies non appliquees', e); }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    showLastBars(chart, bars, 150);
+    if (fixedScale) freezeScaleToCandles(chart, bars.slice(-150));
+    return chart;
+  }
+
   async function render(opts) {
+    if (opts.remote) return renderRemote(opts);
     const { containerId, pineSource, secondaryPineSource, extraPineSources, fixedScale, symbolDisplay, twelveDataSymbol, timeframe, candles, scannerId } = opts;
     const container = document.getElementById(containerId);
     const interval = INTERVAL_MAP[timeframe] || '15min';
