@@ -919,7 +919,7 @@ def alerts_dispatch():
         if not subs:
             continue
         res = _send_push_to_subscriptions(subs, name, body_text,
-                                          url=f"app.html#/strategies?scanner={scanner}&symbol={symbol}&tf={tf}",
+                                          url=f"app.html#/strategies?scanner={scanner}&symbol={symbol}&tf={tf}&alert=1&side={side}",
                                           icon=f"{SITE_URL}/{logo}")
         sent += res.get("sent", 0)
     return jsonify({"sent": sent})

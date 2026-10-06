@@ -10,7 +10,20 @@
      polices/CSS externes chargent, surtout juste apres la connexion (branche
      experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
      charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
-<style>html,body{background:#050505}</style>
+<style>html,body{background:#050505}  /* Fenêtre d'opportunité ouverte depuis une notification (2026-10-06) */
+  .alr-modal{ position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center; padding:16px;
+    background:rgba(5,5,5,.42); backdrop-filter:blur(16px) brightness(.7); -webkit-backdrop-filter:blur(16px) brightness(.7); }
+  .alr-modal.is-open{ display:flex; }
+  .alr-modal__card{ width:min(420px,100%); border-radius:20px; padding:24px; text-align:center;
+    border:1px solid rgba(255,255,255,.14); background:linear-gradient(160deg,rgba(44,44,50,.92),rgba(12,12,14,.94));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 30px 80px rgba(0,0,0,.6); }
+  .alr-modal__logo{ width:72px; height:72px; object-fit:contain; margin:0 auto 12px; display:block; }
+  .alr-modal__side{ font-size:28px; font-weight:900; letter-spacing:.04em; margin-top:4px; }
+  .alr-modal__side.is-buy{ color:#33e6a6; text-shadow:0 0 22px rgba(51,230,166,.45); }
+  .alr-modal__side.is-sell{ color:#ff4d5e; text-shadow:0 0 22px rgba(255,77,94,.45); }
+  .alr-modal__text{ font-size:15px; margin:8px 0 20px; color:var(--ink); }
+  .alr-modal__btns{ display:flex; gap:8px; justify-content:center; }
+</style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -146,7 +159,7 @@
   .scnr-hero__tags{ font-size:13px; font-weight:600; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.06em; }
 
   /* ---- Opportunités + notifications (2026-10-06) ---- */
-  .alr{ padding:14px 16px; margin-bottom:12px; }
+  .alr{ flex:1 1 360px; min-width:0; border-left:1px solid var(--line2); padding-left:16px; margin-left:4px; }
   .alr__head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
   .alr__eyebrow{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700; }
   .alr__title{ font-size:15px; font-weight:800; margin-top:2px; }
@@ -158,7 +171,7 @@
   .alr__cards{ display:flex; gap:10px; overflow-x:auto; padding:4px 2px 8px; scrollbar-width:thin; }
   .alr__empty{ font-size:12.5px; color:var(--muted); padding:10px 2px; }
   .alr-card{
-    flex:0 0 150px; border:1px solid var(--line2); border-radius:14px; background:var(--bg);
+    flex:0 0 132px; border:1px solid var(--line2); border-radius:14px; background:var(--bg);
     padding:12px; cursor:pointer; text-align:left; font:inherit; color:var(--ink);
     display:flex; flex-direction:column; gap:6px; transition:transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s;
   }
@@ -283,9 +296,7 @@
         <button type="button" data-tf="D">1D</button>
       </div>
     </div>
-  </div>
-
-  <section class="alr card" id="alrPanel">
+    <section class="alr" id="alrPanel">
     <div class="alr__head">
       <div>
         <div class="alr__eyebrow">Opportunités</div>
@@ -312,6 +323,7 @@
       <div class="alr__rules" id="alrRules"></div>
     </div>
   </section>
+  </div>
 
   <div class="card scnr-media" id="scnrMediaCard">
     <div class="scnr-panel is-active" id="scnrPanelChart"><div id="scnrChart"></div></div>
@@ -660,6 +672,29 @@ CHESTTour.init([
 
   setInterval(loadOpportunities, 60 * 1000);
 
+  // Ouverture depuis une notification : fenêtre floutée (?alert=1&side=buy|sell)
+  function showAlertModal(deep) {
+    const sc = CHESTScanners.get(deep.get('scanner'));
+    const side = deep.get('side') === 'sell' ? 'sell' : 'buy';
+    const sym = (deep.get('symbol') || '').toUpperCase();
+    const tf = deep.get('tf') || '';
+    if (!sc) return;
+    const logo = document.getElementById('alrModalLogo');
+    logo.src = sc.logo;
+    logo.alt = sc.name;
+    const sideEl = document.getElementById('alrModalSide');
+    sideEl.textContent = side === 'buy' ? 'BUY' : 'SELL';
+    sideEl.className = 'alr-modal__side ' + (side === 'buy' ? 'is-buy' : 'is-sell');
+    document.getElementById('alrModalText').textContent = sc.name + ' · ' + (side === 'buy' ? 'BUY' : 'SELL') + ' détectée sur ' + sym + ' en ' + (TF_LABELS[tf] || tf) + ' !';
+    const modal = document.getElementById('alrModal');
+    modal.classList.add('is-open');
+    document.getElementById('alrModalClose').onclick = () => modal.classList.remove('is-open');
+    document.getElementById('alrModalOpen').onclick = () => {
+      modal.classList.remove('is-open');
+      document.getElementById('scnrMediaCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  }
+
   // ================= Démarrage =================
   // Le vrai Pine Script n'est plus dans scanner-store.js (repo public, voir son commentaire
   // d'en-tete) : on le recupere aupres du serveur de comptes, authentifie par le jeton de la
@@ -685,6 +720,8 @@ CHESTTour.init([
     const sym = (deep.get('symbol') || '').toUpperCase();
     const mkt = Object.keys(MARKETS).find((id) => MARKETS[id].pairs.some((p) => p[0] === sym));
     selectScanner(deepScanner, { market: mkt, symbol: sym || undefined, timeframe: deep.get('tf') || undefined });
+    // Après l'analyse de la page : la fenêtre est déclarée en bas du document
+    if (deep.get('alert') === '1') setTimeout(() => showAlertModal(deep), 0);
   } else if (scanners.length) {
     selectScanner(scanners[0].id);
   }
@@ -692,5 +729,17 @@ CHESTTour.init([
   loadPineSources().then(() => { if (scanners.length) renderChart(); });
 })();
 </script>
+<div class="alr-modal" id="alrModal" role="dialog" aria-modal="true" aria-labelledby="alrModalEyebrow">
+  <div class="alr-modal__card">
+    <img class="alr-modal__logo" id="alrModalLogo" alt="">
+    <div class="alr__eyebrow" id="alrModalEyebrow">Nouvelle opportunité</div>
+    <div class="alr-modal__side" id="alrModalSide"></div>
+    <div class="alr-modal__text" id="alrModalText"></div>
+    <div class="alr-modal__btns">
+      <button type="button" class="alr__btn" id="alrModalClose">Fermer</button>
+      <button type="button" class="alr__btn alr__btn--primary" id="alrModalOpen">Voir le graphique</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
