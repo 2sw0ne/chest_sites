@@ -91,13 +91,18 @@ function loadManifest() {
   if (!existsSync(f)) throw new Error("manifeste absent");
   return JSON.parse(readFileSync(f, "utf8"));
 }
+// Le navigateur ne reçoit ni paramètres d'entrée ni props du script (menu des réglages désactivé)
+function sanitizeModel(m) {
+  const { inputs, inputValues, props, propValues, ...rest } = m;
+  return rest;
+}
 async function runOne(path, isMain, all, bars) {
   let src = readFileSync(path, "utf8");
   if (isMain) src = injectHtfStates(injectMa500Len(src), all, bars);
   const prepared = await engine.prepare(src, path);
   return new Promise((resolve, reject) => {
     engine.execute({ prepared, market: { symbol: "XAUUSD", timeframe: "5" }, bars, mode: "static" }, {
-      onModel: (m) => resolve(m),
+      onModel: (m) => resolve(sanitizeModel(m)),
       onError: (e) => reject(e),
     });
   });
