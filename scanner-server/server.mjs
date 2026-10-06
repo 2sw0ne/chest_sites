@@ -17,7 +17,6 @@ const INTERNAL_SECRET = process.env.INTERNAL_SECRET || "";
 const ACCOUNTS_URL = (process.env.ACCOUNTS_INTERNAL_URL || "http://localhost:8080").replace(/\/$/, "");
 const MAX_BODY = 2 * 1024 * 1024;
 const MAX_RESTORE_BYTES = 20 * 1024 * 1024;
-const WORKER_RECYCLE_EVERY = 6; // le moteur Pine garde de la mémoire d'un calcul à l'autre : thread recyclé souvent
 
 const TF_INTERVAL = { "1": "1min", "5": "5min", "15": "15min", "30": "30min", "60": "1h", "240": "4h", "D": "1day" };
 const TF_MS = { "1": 60e3, "5": 300e3, "15": 900e3, "30": 1800e3, "60": 3600e3, "240": 14400e3, "D": 86400e3 };
@@ -29,35 +28,28 @@ const OPPORTUNITY_WINDOW = 48 * 60 * 60 * 1000;
 const toTdSymbol = (code) => (code.length === 6 ? code.slice(0, 3) + "/" + code.slice(3) : code);
 const validCode = (c) => /^[A-Z]{6}$/.test(c);
 
-// ---------------- Thread de calcul ----------------
-let worker = null;
-let workerRuns = 0;
-let reqSeq = 0;
-const pending = new Map();
-function newWorker() {
-  if (worker) worker.terminate().catch(() => {});
-  worker = new Worker(join(here, "scan-worker.mjs"), { resourceLimits: { maxOldGenerationSizeMb: 768 } });
-  workerRuns = 0;
-  worker.on("message", (m) => {
-    const p = pending.get(m.id);
-    if (!p) return;
-    pending.delete(m.id);
-    if (m.ok) p.resolve(m); else p.reject(new Error(m.error || "calcul impossible"));
-  });
-  worker.on("error", (e) => {
-    // Thread tué (mémoire) : on le relance au prochain calcul, le serveur HTTP reste debout
-    for (const p of pending.values()) p.reject(e);
-    pending.clear();
-    worker = null;
-  });
-}
-function runInWorker(files, all, bars, wantModels) {
-  if (!worker || workerRuns >= WORKER_RECYCLE_EVERY) newWorker();
-  workerRuns++;
-  const id = ++reqSeq;
+// ---------------- Calcul Pine : un processus par calcul (mémoire rendue à chaque fois) ----------------
+import { spawn } from "node:child_process";
+let calculsCount = 0;
+function runInChild(files, all, bars, wantModels, code, tf) {
+  calculsCount++;
   return new Promise((resolve, reject) => {
-    pending.set(id, { resolve, reject });
-    worker.postMessage({ id, files, all, bars, wantModels });
+    const child = spawn(process.execPath, ["--max-old-space-size=384", join(here, "scan-worker.mjs")], { stdio: ["pipe", "pipe", "pipe"] });
+    let out = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (c) => { out += c; });
+    child.stderr.on("data", () => { /* journal du calcul : ignoré */ });
+    const timer = setTimeout(() => child.kill("SIGKILL"), 120 * 1000);
+    child.on("close", () => {
+      clearTimeout(timer);
+      try {
+        const r = JSON.parse(out);
+        if (r.ok) resolve(r); else reject(new Error(r.error || "calcul impossible"));
+      } catch (e) {
+        reject(new Error("calcul interrompu"));
+      }
+    });
+    child.stdin.end(JSON.stringify({ files, all, bars, wantModels, code, tf }));
   });
 }
 
@@ -108,8 +100,8 @@ async function runScanner(name, code, tf, wantModels) {
   const files = loadManifest()[name];
   if (!Array.isArray(files) || !files.length) throw new Error("scanner inconnu");
   const { all, bars } = await getCandles(code, tf);
-  const r = await runInWorker(files.map(safePath), all, bars, wantModels);
-  return { bars, models: r.models || [], alerts: r.alerts || [] };
+  const r = await runInChild(files.map(safePath), all, bars, wantModels, code, tf);
+  return { bars, models: r.models || [], alerts: r.alerts || [], levels: r.levels || null };
 }
 // Modèles pour l'affichage : cache court et borné
 const modelCache = new Map(); // "scanner|CODE|TF" -> {at, out}
@@ -161,8 +153,11 @@ async function scanCombo(code, tf) {
   const names = Object.keys(loadManifest());
   const now = Date.now();
   for (const name of names) {
-    let alerts;
-    try { alerts = (await runScanner(name, code, tf, false)).alerts; } catch (e) { continue; }
+    let res;
+    try { res = await runScanner(name, code, tf, false); } catch (e) { continue; }
+    const alerts = res.alerts;
+    // Niveaux du dernier trade : rattachés à l'opportunité la plus récente de ce scanner
+    const lastTime = Math.max(-Infinity, ...alerts.filter((a) => sideOf(a) && typeof a.time === "number").map((a) => a.time));
     const key = `${name}|${code}|${tf}`;
     const known = WATERMARK.has(key);
     let wm = WATERMARK.get(key) ?? -Infinity;
@@ -173,6 +168,7 @@ async function scanCombo(code, tf) {
       const id = `${name}|${code}|${tf}|${a.time}`;
       if (!SIGNALS.some((s) => s.id === id)) {
         const sig = { id, scanner: name, symbol: code, tf, side, time: a.time, seenAt: now };
+        if (a.time === lastTime && res.levels) sig.levels = res.levels;
         SIGNALS.push(sig);
         // Notification uniquement pour une alerte NOUVELLE, sur un combo déjà suivi (jamais au premier calcul)
         if (known && a.time > wm) dispatch(sig);
@@ -221,7 +217,7 @@ createServer(async (req, res) => {
   const send = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(obj)); };
   try {
     if (url.pathname === "/health") {
-      return send(200, { ok: true, rssMB: Math.round(process.memoryUsage().rss / 1048576), models: modelCache.size, watching: WATCH.size, workerRuns });
+      return send(200, { ok: true, rssMB: Math.round(process.memoryUsage().rss / 1048576), models: modelCache.size, watching: WATCH.size, calculs: calculsCount });
     }
 
     if (url.pathname === "/data" && req.method === "GET") {
@@ -279,7 +275,6 @@ createServer(async (req, res) => {
       writeFileSync(join(SCRIPTS_DIR, "manifest.json"), JSON.stringify(body.manifest), "utf8");
       modelCache.clear();
       candleCache.clear();
-      newWorker();
       return send(200, { ok: true, files: Object.keys(body.files).length, scanners: Object.keys(body.manifest) });
     }
     return send(404, { error: "introuvable" });

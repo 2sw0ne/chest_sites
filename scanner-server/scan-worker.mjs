@@ -1,12 +1,10 @@
-// Thread de calcul : exécute les scripts Pine (calcul synchrone, lourd). Isolé du serveur HTTP
-// pour qu'un calcul ne bloque jamais les requêtes des membres. Le code Pine ne quitte jamais ce
-// processus : seuls les modèles et les alertes repartent, vers le serveur (jamais vers le navigateur
-// tant qu'ils n'ont pas été nettoyés, voir sanitizeModel).
-import { parentPort } from "node:worker_threads";
+// Calcul d'UN scanner, en processus séparé (lancé par server.mjs, qui le termine ensuite).
+// Pourquoi un processus et non un thread : le moteur Pine garde de la mémoire hors du tas Node,
+// que les limites de thread ne contrôlent pas. Un processus qui se termine libère tout.
+// Entrée (stdin, JSON) : { files: [chemins absolus], all: [bougies], bars: [bougies filtrées], wantModels }
+// Sortie (stdout, JSON) : { ok, alerts, models? }. Le code Pine ne sort jamais de ce processus.
 import { readFileSync } from "node:fs";
 import { PineEngine } from "@luxalgo/vela-pinets";
-
-const engine = new PineEngine();
 
 function injectMa500Len(source) {
   return source.replace("__WOLFX_MA500_LEN__", String(Math.max(2, Math.round(500 * 3))));
@@ -46,13 +44,27 @@ function sanitizeModel(m) {
   return rest;
 }
 
-async function runOne(path, isMain, all, bars) {
+// Infos du symbole (tick, échelle) : le moteur Pine les lit pour syminfo.mintick (ex. tampons en ticks)
+function symbolInfoFor(code) {
+  const base = code.slice(0, 3), quote = code.slice(3);
+  const isForex = /^[A-Z]{6}$/.test(code) && !["XAU", "XAG", "XPT", "BTC", "ETH"].includes(base);
+  let mintick = 0.01;
+  if (isForex) mintick = quote === "JPY" ? 0.001 : 0.00001;
+  else if (base === "XAG") mintick = 0.001;
+  return {
+    ticker: code, tickerid: code, main_tickerid: code, description: code, prefix: "", root: code,
+    type: isForex ? "forex" : "commodity", basecurrency: base, currency: quote, timezone: "UTC", session: "regular",
+    mintick, minmove: 1, pointvalue: 1, pricescale: Math.round(1 / mintick),
+  };
+}
+
+async function runOne(engine, path, isMain, all, bars, code, tf) {
   let src = readFileSync(path, "utf8");
   if (isMain) src = injectHtfStates(injectMa500Len(src), all, bars);
   const prepared = await engine.prepare(src, path);
   return new Promise((resolve, reject) => {
     const alerts = [];
-    engine.execute({ prepared, market: { symbol: "XAUUSD", timeframe: "5" }, bars, mode: "static" }, {
+    engine.execute({ prepared, market: { symbol: code, timeframe: tf, symbolInfo: symbolInfoFor(code) }, bars, mode: "static" }, {
       onAlert: (a) => {
         // Vela-pinets range titre et message dans `title` (objet { title, message }) : on les normalise
         const t = a.title && typeof a.title === "object" ? a.title : { title: a.title, message: a.message };
@@ -64,19 +76,38 @@ async function runOne(path, isMain, all, bars) {
   });
 }
 
-let runs = 0;
-parentPort.on("message", async (msg) => {
-  try {
-    const alerts = [], models = [];
-    for (let i = 0; i < msg.files.length; i++) {
-      const r = await runOne(msg.files[i], i === 0, msg.all, msg.bars);
-      alerts.push(...r.alerts);
-      if (msg.wantModels) models.push(r.model);
+// Niveaux du dernier trade (SL, PE, TP final) lus dans les étiquettes du script, ex. "SL (4114.45)".
+// Le TP final = TP3, sinon TP2, sinon TP1. Rien n'est renvoyé si le script n'affiche pas de trade.
+function extractLevels(models) {
+  const found = {};
+  for (const m of models) {
+    for (const l of m.labels || []) {
+      const mm = String(l.text || "").match(/^(SL|PE|TP[123])\s*\((-?[0-9.]+)\)$/);
+      if (mm) found[mm[1]] = Number(mm[2]);
     }
-    parentPort.postMessage({ id: msg.id, ok: true, alerts, models: msg.wantModels ? models : undefined });
-  } catch (e) {
-    parentPort.postMessage({ id: msg.id, ok: false, error: String((e && e.message) || e).slice(0, 300) });
   }
-  // Le moteur garde de la mémoire entre les calculs : on recycle la session régulièrement (voir server.mjs)
-  runs++;
+  if (found.SL === undefined) return null;
+  const tp = found.TP3 ?? found.TP2 ?? found.TP1 ?? null;
+  return { sl: found.SL, pe: found.PE ?? null, tp };
+}
+
+let raw = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (c) => { raw += c; });
+process.stdin.on("end", async () => {
+  try {
+    const input = JSON.parse(raw);
+    const engine = new PineEngine();
+    const alerts = [], models = [];
+    for (let i = 0; i < input.files.length; i++) {
+      const r = await runOne(engine, input.files[i], i === 0, input.all, input.bars, input.code, input.tf);
+      alerts.push(...r.alerts);
+      models.push(r.model); // toujours lus (niveaux du trade), renvoyés seulement si demandé
+    }
+    process.stdout.write(JSON.stringify({ ok: true, alerts, levels: extractLevels(models), models: input.wantModels ? models : undefined }));
+    process.exit(0);
+  } catch (e) {
+    process.stdout.write(JSON.stringify({ ok: false, error: String((e && e.message) || e).slice(0, 300) }));
+    process.exit(1);
+  }
 });
