@@ -267,6 +267,35 @@ Premier déploiement Vercel du site (`chest-nine.vercel.app`, root directory `si
 - Vérifié en direct (clé de test injectée par variable d'environnement, jamais commitée) : 401 sans jeton, 404 sur un point d'accès hors liste, 200 avec de vraies données ; graphique Stratégies (Wolfx, XAUUSD) rendu avec de vraies bougies récupérées via ce relais.
 - **Reste à faire par l'utilisateur** : définir `TWELVE_DATA_API_KEY` dans les variables d'environnement Railway du service `accounts-bridge` (même valeur que l'ancienne `config.local.js`), puis repousser/redéployer.
 
+## Stratégies : rendu des scripts côté serveur (prototype local, 2026-10-06)
+
+**Problème** : le rendu Vela sur `strategies.html` exige le texte Pine côté navigateur. Même si le secret est filtré par la session, un membre peut lire ce texte dans les DevTools. Objectif : que le code Pine ne sorte jamais du serveur.
+
+**Sources Pine** : `Trading/scanner off/` (dossier utilisateur, HORS repo) — `NEXUS.txt`, `SWYPER.txt`, `ALGOMNI.txt`, `Wolfx.txt`, `PIVOTSv2.txt`, `BLOOD/`, `PULSE/`, `WAVE/`, `HARMONICS.txt`, `STARS.txt`. Le secret du site (`accounts-bridge/scanners_secret.json`) doit en refléter la version à jour (renvoi par `POST /scanners/restore`). Toujours modifier la source dans `Trading/scanner off/`, puis resynchroniser le secret.
+
+**Prototype validé (en local)** : `Trading/scanner-node/` (hors repo) — Node 24, `@luxalgo/vela-pinets@0.2.10`, `@luxalgo/vela@0.6.21`, `pinets`.
+- `server.mjs` : exécute le script avec `PineEngine` (`prepare` puis `execute` en mode `static`, ~2 s pour 3000 bougies) et renvoie `{bars, model}` sur `GET /data?script=<nom>`. Les scripts sont lus depuis le disque du serveur, jamais servis.
+- `index.html` : `RemoteEngine` (`prepare` ignore la source, `execute` appelle `handlers.onModel(model)`) branché sur Vela. Le graphique affiche le modèle à l'identique du rendu natif. Testés : BLOOD, ALGOMNI, SWYPER, avec http://localhost:8787/?script=<nom>.
+- **Tous les scanners** (NEXUS, SWYPER, ALGOMNI, Wolfx, PIVOT, HARMONICS, STARS, BLOOD, PULSE, WAVE) s'exécutent côté serveur, scripts supplémentaires compris (chaque script = un modèle empilé sur le même graphique, sous-panneaux inclus). Préparation identique au site : `__HTF_STATES__` (NEXUS) et `__WOLFX_MA500_LEN__` (Wolfx) injectés côté serveur dans `server.mjs` (copie de `scanner-chart.js`).
+- Bougies actuelles = **synthétiques** (générateur déterministe). Non fait : vraies bougies Twelve Data côté serveur, authentification des membres, déploiement Railway, branchement dans `strategies.html`, filtrage week-end/plates (`isTradableBar`) côté serveur.
+- **Ce qui est protégé** : le texte Pine. **Ce qui ne l'est pas** : les valeurs calculées (séries, couleurs, étiquettes), les noms et défauts des `input()` (`model.inputs`). Un membre peut donc lire les résultats, pas le code.
+- **Licence** : `@luxalgo/vela-pinets` et PineTS sont AGPL-3.0. Un usage privé sans modification publique est sans risque connu ; avant une mise en ligne publique, vérifier les obligations de l'AGPL (clause réseau).
+
+**Règle de travail** : valider le rendu en local (prototype) avant de pousser sur `chest_sites`. Ne jamais pousser un rendu que l'utilisateur n'a pas testé.
+
+**Règles de rendu Vela (vérifiées, à respecter dans TOUS les scripts Pine)** :
+1. **Couleur à composante bleue = 0 → non affichée** (ligne, étiquette, bougie invisibles). `color.rgb(255,140,0)`, `color.rgb(130,0,0)`, `color.rgb(0,200,0)` disparaissent ; `color.rgb(255,140,1)`, `color.rgb(130,0,1)`, `color.rgb(0,69,137)` s'affichent. Remplacer le 0 bleu par 1 (rendu identique). Vérifié sur Blood (TP orange), Pulse (bougies), Wave, Stars.
+2. **`fill()` entre deux `hline()` : non rendu.** Pour une bande entre deux niveaux, passer par `plot(niveau, color=color.new(color.white, 100))` puis `fill(plot1, plot2, color=...)`. Les lignes `hline` restent pour les pointillés.
+3. **`barcolor()` : non rendu.** Remplacer par `plotcandle(open, high, low, close, color=..., wickcolor=..., bordercolor=...)` (na = pas de bougie).
+4. **`request.security` : renvoie des constantes.** Remplacer : clôture Heikin Ashi = `(open+high+low+close)/4` ; HTF via bucket de temps (`dayofmonth`, `weekofyear`, `time`) — déjà fait pour NEXUS, Pivot, Wave, SWYPER.
+5. **Couleur des bougies UT (Algomni) = état de tendance**, pas le sens de la bougie : une bougie haussière peut être grise, une baissière blanche. Corps ET mèche avec la même `utCandleCol`, sinon mèche blanche sur corps gris. Le script original ne colorait que la mèche.
+6. **Échelle** : un script qui trace loin du prix (Algomni) écrase l'échelle. Scanners marqués `fixedScale` (Algomni, Wave) : échelle figée sur les 150 dernières bougies (`freezeScaleToCandles`).
+7. **Bougies natives API** : transparentes (`rgba(0,0,0,0)`) pour Algomni, Blood, Wave ; Pulse garde `#004589`/`#820000` (couleurs du script, car la couche native sert de secours quand Vela ne dessine pas toutes les bougies du script).
+8. **Texte des étiquettes** et `line.new` : rendus. `shape.diamond` : non rendu → `plotchar`.
+9. **Erreur de cache** : le secret est renvoyé au serveur par `POST /scanners/restore` ; une modification de `scanner-store.js` ou `strategies.html` demande un incrément `?v=` et un Ctrl+F5.
+
+**Piège de contrôle** : le motif `rgb(...,0)` est répété dans tous les scripts. Après chaque modification de couleur, relancer la vérification (`grep -E "color\.rgb\(\s*[0-9]+\s*,\s*[0-9]+\s*,\s*0\s*\)"`).
+
 ## Plan du site (`site/*.html`)
 
 | Page | Rôle |
