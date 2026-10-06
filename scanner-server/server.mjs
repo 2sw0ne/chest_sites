@@ -31,7 +31,7 @@ const validCode = (c) => /^[A-Z]{6}$/.test(c);
 // ---------------- Calcul Pine : un processus par calcul (mémoire rendue à chaque fois) ----------------
 import { spawn } from "node:child_process";
 let calculsCount = 0;
-function runInChild(files, all, bars, wantModels, code, tf) {
+function runInChild(files, all, bars, wantModels, code, tf, scanner) {
   calculsCount++;
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ["--max-old-space-size=384", join(here, "scan-worker.mjs")], { stdio: ["pipe", "pipe", "pipe"] });
@@ -49,7 +49,7 @@ function runInChild(files, all, bars, wantModels, code, tf) {
         reject(new Error("calcul interrompu"));
       }
     });
-    child.stdin.end(JSON.stringify({ files, all, bars, wantModels, code, tf }));
+    child.stdin.end(JSON.stringify({ files, all, bars, wantModels, code, tf, scanner }));
   });
 }
 
@@ -100,7 +100,7 @@ async function runScanner(name, code, tf, wantModels) {
   const files = loadManifest()[name];
   if (!Array.isArray(files) || !files.length) throw new Error("scanner inconnu");
   const { all, bars } = await getCandles(code, tf);
-  const r = await runInChild(files.map(safePath), all, bars, wantModels, code, tf);
+  const r = await runInChild(files.map(safePath), all, bars, wantModels, code, tf, name);
   return { bars, models: r.models || [], alerts: r.alerts || [], levels: r.levels || null };
 }
 // Modèles pour l'affichage : cache court et borné
@@ -166,7 +166,11 @@ async function scanCombo(code, tf) {
       if (!side || typeof a.time !== "number") continue;
       if (a.time < now - OPPORTUNITY_WINDOW) continue;
       const id = `${name}|${code}|${tf}|${a.time}`;
-      if (!SIGNALS.some((s) => s.id === id)) {
+      const existing = SIGNALS.find((s) => s.id === id);
+      // Opportunité déjà enregistrée sans niveaux (détectée avant cette version) : on les complète
+      if (existing) {
+        if (!existing.levels && a.time === lastTime && res.levels) { existing.levels = res.levels; saveSignals(); }
+      } else {
         const sig = { id, scanner: name, symbol: code, tf, side, time: a.time, seenAt: now };
         if (a.time === lastTime && res.levels) sig.levels = res.levels;
         SIGNALS.push(sig);
@@ -177,7 +181,13 @@ async function scanCombo(code, tf) {
     }
     WATERMARK.set(key, wm);
   }
-  SIGNALS = SIGNALS.filter((s) => s.time >= now - OPPORTUNITY_WINDOW);
+  // On garde les opportunités récentes ET, pour chaque scanner et paire, la dernière (même ancienne)
+  const newest = new Map();
+  for (const s of SIGNALS) {
+    const k = `${s.scanner}|${s.symbol}|${s.tf}`;
+    if (!newest.has(k) || s.time > newest.get(k).time) newest.set(k, s);
+  }
+  SIGNALS = SIGNALS.filter((s) => s.time >= now - OPPORTUNITY_WINDOW || newest.get(`${s.scanner}|${s.symbol}|${s.tf}`) === s);
   saveSignals();
 }
 

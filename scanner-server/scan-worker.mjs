@@ -76,21 +76,92 @@ async function runOne(engine, path, isMain, all, bars, code, tf) {
   });
 }
 
-// Niveaux du dernier trade lus dans les étiquettes du script : PE (prix d'entrée), SL, et TP1..TPn
-// (ex. "SL (4114.45)", "TP1 (4145.89)"). Un script peut n'afficher que l'entrée, un TP ou trois TP.
-// Renvoie { sl, pe, tps: [valeurs dans l'ordre], tp: dernier TP } ou null si aucun trade affiché.
-function extractLevels(models) {
-  const found = {};
-  for (const m of models) {
-    for (const l of m.labels || []) {
-      const mm = String(l.text || "").match(/^(SL|PE|TP[0-9]*)\s*\((-?[0-9.]+)\)$/);
-      if (mm) found[mm[1]] = Number(mm[2]);
-    }
+// Niveaux du dernier trade, lus dans les étiquettes de CHAQUE script : chaque scanner a ses règles.
+// Une étiquette donne son prix de deux façons : écrit dans son texte ("PE (4130.17)", "Exit 1: 4156.16",
+// "Target Zone 1\n4111.30"), ou porté par son ancre quand le texte n'est qu'un nom ("BUY", "-3", "S0").
+// Les plus récentes l'emportent. Renvoie { pe, sl, tps, tp } ou null si aucun trade n'est affiché.
+const labelsOf = (models) => models.flatMap((m) => (m.labels || []).map((l) => ({ text: String(l.text || "").trim(), y: Number(l.y) })));
+// Dernière étiquette dont le texte vérifie re : { m (correspondance), y (ancre) }
+function lastMatch(L, re) {
+  for (let i = L.length - 1; i >= 0; i--) {
+    const m = L[i].text.match(re);
+    if (m) return { m, y: L[i].y };
   }
-  if (found.SL === undefined && found.PE === undefined && !Object.keys(found).some((k) => k.startsWith("TP"))) return null;
-  const tpKeys = Object.keys(found).filter((k) => k.startsWith("TP")).sort((x, y) => (Number(x.slice(2)) || 0) - (Number(y.slice(2)) || 0));
-  const tps = tpKeys.map((k) => found[k]);
-  return { sl: found.SL ?? null, pe: found.PE ?? null, tps, tp: tps.length ? tps[tps.length - 1] : null };
+  return null;
+}
+// Prix écrit dans le texte de la dernière étiquette correspondante (1er groupe de capture)
+const textPrice = (L, re) => { const r = lastMatch(L, re); return r ? Number(r.m[1]) : null; };
+// Ancre de la dernière étiquette dont le texte est exactement name
+function anchorOf(L, name) {
+  for (let i = L.length - 1; i >= 0; i--) if (L[i].text === name) return L[i].y;
+  return null;
+}
+// Séries TP1, TP2… lues dans le texte, jusqu'à la première absente
+function seriesOf(L, patron) {
+  const out = [];
+  for (let n = 1; n <= 9; n++) {
+    const v = textPrice(L, patron(n));
+    if (v == null) break;
+    out.push(v);
+  }
+  return out;
+}
+// Étiquettes "NOM (prix)" : SWYPER, Wave, Stars, Pulse
+const paren = (L, name) => textPrice(L, new RegExp(`^${name} \\((-?[0-9.]+)\\)$`));
+const parenTps = (L) => seriesOf(L, (n) => new RegExp(`^TP${n} \\((-?[0-9.]+)\\)$`));
+// Pivots : PE = étiquette BUY/SELL, posée à l'entrée. SL = 2e zone sous l'entrée (BUY) ou au-dessus (SELL).
+// TP = S0 pour un BUY, R8 pour un SELL (version hebdomadaire en repli).
+function pivotLevels(L) {
+  const side = lastMatch(L, /^(BUY|SELL)$/);
+  if (!side) return {};
+  const pe = side.y;
+  const ladder = new Map(); // dernière valeur de chaque niveau R7…S0, -1…-3
+  for (const l of L) if (/^(R[0-9]|P[0-9]|S[0-9]|-[0-9])$/.test(l.text)) ladder.set(l.text, l.y);
+  const buy = side.m[1] === "BUY";
+  const ys = [...ladder.values()];
+  const zones = buy ? ys.filter((y) => y < pe).sort((a, b) => b - a) : ys.filter((y) => y > pe).sort((a, b) => a - b);
+  const tp = buy ? anchorOf(L, "S0") ?? anchorOf(L, "S0 (Weekly)") : anchorOf(L, "R8") ?? anchorOf(L, "R8 (Weekly)");
+  return { pe, sl: zones[1] ?? null, tps: tp != null ? [tp] : [] };
+}
+const RULES = {
+  // "BUY" / "SELL" (et "BUY+" / "SELL+") : étiquette posée au prix d'entrée, aucun autre niveau
+  algomni: (L) => ({ pe: lastMatch(L, /^(BUY|SELL)\+?$/)?.y ?? null }),
+  "swyper-v6": (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
+  wave: (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
+  stars: (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
+  // Pulse n'affiche que le macro : entrée et sens, pas de SL ni de TP
+  pulse: (L) => ({ pe: paren(L, "PE") }),
+  nexus: (L) => ({
+    pe: textPrice(L, /^Opportunity Zone\s*\n\s*(-?[0-9.]+)$/),
+    sl: textPrice(L, /^Invalidation Zone\s*\n\s*(-?[0-9.]+)$/),
+    tps: [textPrice(L, /^Target Zone 1\s*\n\s*(-?[0-9.]+)$/), textPrice(L, /^Target Zone 2\s*\n\s*(-?[0-9.]+)$/)],
+  }),
+  harmonics: (L) => {
+    const tps = [];
+    for (let n = 1; n <= 9 && anchorOf(L, `Exit ${n}`) != null; n++) tps.push(anchorOf(L, `Exit ${n}`));
+    return { pe: anchorOf(L, "Entry"), sl: anchorOf(L, "Invalidation"), tps };
+  },
+  blood: (L) => ({
+    pe: textPrice(L, /^Entry:\s*(-?[0-9.]+)$/),
+    sl: textPrice(L, /^Invalidation:\s*(-?[0-9.]+)$/),
+    tps: seriesOf(L, (n) => new RegExp(`^Exit ${n}:\\s*(-?[0-9.]+)$`)),
+  }),
+  pivot: pivotLevels,
+  // WOLF : étiquettes "Entry Zone: x", "Invalid Level: x", "TP1: x"… (dernier trade affiché)
+  wolfx: (L) => ({
+    pe: textPrice(L, /^Entry Zone:\s*(-?[0-9.]+)$/),
+    sl: textPrice(L, /^Invalid Level:\s*(-?[0-9.]+)$/),
+    tps: seriesOf(L, (n) => new RegExp(`^TP${n}:\\s*(-?[0-9.]+)$`)),
+  }),
+};
+function extractLevels(scanner, models) {
+  const L = labelsOf(models);
+  const r = (RULES[scanner] || (() => ({})))(L);
+  const tps = (r.tps || []).filter((v) => v != null);
+  const pe = r.pe ?? null;
+  const sl = r.sl ?? null;
+  if (pe == null && sl == null && !tps.length) return null;
+  return { pe, sl, tps, tp: tps.length ? tps[tps.length - 1] : null };
 }
 
 let raw = "";
@@ -107,7 +178,7 @@ process.stdin.on("end", async () => {
       models.push(r.model); // toujours lus (niveaux du trade), renvoyés seulement si demandé
     }
     // Sortie complète AVANT la fin du processus : sur un tuyau, process.exit() coupait les grosses réponses
-    process.stdout.write(JSON.stringify({ ok: true, alerts, levels: extractLevels(models), models: input.wantModels ? models : undefined }), () => process.exit(0));
+    process.stdout.write(JSON.stringify({ ok: true, alerts, levels: extractLevels(input.scanner, models), models: input.wantModels ? models : undefined }), () => process.exit(0));
   } catch (e) {
     process.stdout.write(JSON.stringify({ ok: false, error: String((e && e.message) || e).slice(0, 300) }), () => process.exit(1));
   }
