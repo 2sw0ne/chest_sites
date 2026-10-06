@@ -248,6 +248,25 @@
   .alr-card__levels{ font-size:10px; }
   .alr__head{ margin-bottom:4px; }
 </style>
+<style>
+  /* Dernière opportunité + fenêtre notifications (2026-10-06, même DA que la calculatrice) */
+  .alr{ flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:0; border-left:1px solid var(--line2); padding-left:16px; }
+  .alr > .alr__eyebrow{ font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700; padding-right:14px; max-width:86px; line-height:1.3; }
+  .alr-last{ display:flex; align-items:stretch; min-height:58px; flex-wrap:wrap; }
+  .alr-last__field{ display:flex; flex-direction:column; justify-content:center; gap:4px; padding:4px 16px; border-left:1px solid var(--line2); min-width:76px; }
+  .alr-last__field:first-child{ border-left:0; padding-left:0; }
+  .alr-last__field span{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; }
+  .alr-last__field b{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .alr-last__field small{ font-size:10px; color:var(--muted); }
+  .alr-last__field b.is-buy{ color:#33e6a6; text-shadow:0 0 18px rgba(51,230,166,.45); }
+  .alr-last__field b.is-sell{ color:#ff4d5e; text-shadow:0 0 18px rgba(255,40,60,.55); }
+  .alr-last__field b.sl{ color:#ff4d5e; }
+  .alr-last__field b.pe{ color:#9b9ba1; }
+  .alr-last__field b.tp{ color:#33e6a6; }
+  .alr-last__empty{ font-size:12px; color:var(--muted); padding:0 16px; align-self:center; }
+  .alr > .alr__btn{ margin-left:auto; flex-shrink:0; }
+  .alr__chips--scroll{ max-height:120px; overflow-y:auto; }
+</style>
 </head>
 <body data-page="strategies" class="chest-root">
 
@@ -309,6 +328,30 @@
     </div>
   </section>
 
+  <div class="lotcalc-overlay" id="alrOverlay" role="dialog" aria-modal="true" aria-labelledby="alrModalTitle">
+  <div class="lotcalc-modal">
+    <div class="lotcalc-head">
+      <div><span class="lotcalc-step">Alertes — Notifications</span><h3 id="alrModalTitle">Mes notifications</h3></div>
+      <button type="button" class="lotcalc-close" id="alrClose" aria-label="Fermer">✕</button>
+    </div>
+    <div class="lotcalc-row">
+      <label>Cet appareil</label>
+      <div class="alr__status" id="alrStatus"></div>
+    </div>
+    <div class="lotcalc-row"><label>Scanners</label><div class="alr__chips" id="alrScanners"></div></div>
+    <div class="lotcalc-row"><label>Paires</label><div class="alr__chips alr__chips--scroll" id="alrPairs"></div></div>
+    <div class="lotcalc-row"><label>Unités de temps</label><div class="alr__chips" id="alrTfs"></div></div>
+    <div class="lotcalc-actions">
+      <button type="button" class="chest-btn-2" id="alrReset">Réinitialiser</button>
+      <button type="button" class="chest-btn" id="alrSave">Enregistrer</button>
+    </div>
+    <p class="alr__err" id="alrErr"></p>
+    <div class="lotcalc-result is-visible" id="alrRulesWrap">
+      <div class="lotcalc-step" style="margin-bottom:6px">Mes alertes</div>
+      <div id="alrRules"></div>
+    </div>
+  </div>
+</div>
   <main class="container">
   <div class="scnr-topbar card">
     <div class="scnr-field" style="min-width:220px">
@@ -340,33 +383,11 @@
         <button type="button" data-tf="D">1D</button>
       </div>
     </div>
-    <section class="alr" id="alrPanel">
-    <div class="alr__head">
-      <div>
-        <div class="alr__eyebrow">Opportunités</div>
-        <div class="alr__title" id="alrTitle">Dernières apparitions</div>
-      </div>
-      <button type="button" class="alr__btn" id="alrToggle" aria-expanded="false">Notifications</button>
-    </div>
-    <div class="alr__cards" id="alrCards"></div>
-    <div class="alr__settings" id="alrSettings" hidden>
-      <div class="alr__status" id="alrStatus"></div>
-      <div class="alr__actions" style="justify-content:flex-start;margin-bottom:12px">
-        <button type="button" class="alr__btn alr__btn--primary" id="alrNew">+ Nouvelle notification</button>
-      </div>
-      <div id="alrForm" hidden>
-        <div class="alr__group"><label>Paires</label><div class="alr__chips" id="alrPairs"></div></div>
-        <div class="alr__group"><label>Unités de temps</label><div class="alr__chips" id="alrTfs"></div></div>
-        <div class="alr__group"><label>Scanners</label><div class="alr__chips" id="alrScanners"></div></div>
-        <div class="alr__actions">
-          <button type="button" class="alr__btn" id="alrCancel">Annuler</button>
-          <button type="button" class="alr__btn alr__btn--primary" id="alrSave">Enregistrer</button>
-        </div>
-        <p class="alr__err" id="alrErr"></p>
-      </div>
-      <div class="alr__rules" id="alrRules"></div>
-    </div>
-  </section>
+      <section class="alr" id="alrPanel">
+      <div class="alr__eyebrow">Dernière opportunité</div>
+      <div class="alr-last" id="alrLast"></div>
+      <button type="button" class="alr__btn" id="alrToggle" aria-haspopup="dialog">Notifications</button>
+    </section>
   </div>
 
   <div class="card scnr-media" id="scnrMediaCard">
@@ -582,42 +603,32 @@ CHESTTour.init([
   }
 
   function renderOpportunities(list) {
-    const cards = document.getElementById('alrCards');
-    if (!list.length) {
-      cards.innerHTML = '<div class="alr__empty">Aucune opportunité récente sur cette paire et cette unité de temps. Le calcul se met à jour toutes les 5 minutes.</div>';
+    const box = document.getElementById('alrLast');
+    const mine = list.filter((o) => o.scanner === currentScannerId).sort((x, y) => y.time - x.time)[0];
+    if (!mine) {
+      box.innerHTML = '<div class="alr-last__empty">Aucune opportunité récente pour ce scanner sur cette paire.</div>';
       return;
     }
-    cards.innerHTML = list.map((o) => {
-      const sc = CHESTScanners.get(o.scanner);
-      if (!sc) return '';
-      const buy = o.side === 'buy';
-      const lv = o.levels;
-      const fmt = (v) => (Math.abs(v) >= 100 ? v.toFixed(2) : v.toFixed(5));
-      const levels = lv && lv.sl != null
-        ? `<div class="alr-card__levels"><span class="sl">${fmt(lv.sl)}</span><span class="bar">|</span><span class="pe">${lv.pe != null ? fmt(lv.pe) : '—'}</span><span class="bar">|</span><span class="tp">${lv.tp != null ? fmt(lv.tp) : '—'}</span></div>`
-        : '';
-      return `<button type="button" class="alr-card ${buy ? 'is-buy' : 'is-sell'}" data-scanner="${sc.id}">
-        <img class="alr-card__logo" src="${sc.logo}" alt="">
-        <div class="alr-card__side">${buy ? 'BUY' : 'SELL'}</div>
-        <div class="alr-card__meta">${timeAgo(o.time)}</div>
-        ${levels}
-      </button>`;
-    }).join('');
-    cards.querySelectorAll('.alr-card').forEach((el) => el.addEventListener('click', () => {
-      selectScanner(el.dataset.scanner, { market: currentMarket, symbol: currentSymbol, timeframe: currentTimeframe });
-      renderChart();
-      document.getElementById('scnrMediaCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }));
+    const buy = mine.side === 'buy';
+    const lv = mine.levels || {};
+    const fmt = (v) => (v == null ? '—' : (Math.abs(v) >= 100 ? v.toFixed(2) : v.toFixed(5)));
+    const t = new Date(mine.time);
+    const hh = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+    box.innerHTML = `
+      <div class="alr-last__field"><span>Heure</span><b>${hh}</b><small>${timeAgo(mine.time)}</small></div>
+      <div class="alr-last__field"><span>Sens</span><b class="${buy ? 'is-buy' : 'is-sell'}">${buy ? 'BUY' : 'SELL'}</b></div>
+      <div class="alr-last__field"><span>PE</span><b class="pe">${fmt(lv.pe)}</b></div>
+      <div class="alr-last__field"><span>SL</span><b class="sl">${fmt(lv.sl)}</b></div>
+      <div class="alr-last__field"><span>TP</span><b class="tp">${fmt(lv.tp)}</b></div>`;
   }
   async function loadOpportunities() {
-    document.getElementById('alrTitle').textContent = 'Dernières apparitions · ' + currentSymbol + ' · ' + (TF_LABELS[currentTimeframe] || currentTimeframe);
     try {
       const res = await fetch(`${scannersApi()}/alerts/signals?symbol=${encodeURIComponent(currentSymbol)}&tf=${encodeURIComponent(currentTimeframe)}`, { headers: authHeaders() });
       if (!res.ok) throw new Error('indisponible');
       const body = await res.json();
       renderOpportunities(body.opportunities || []);
     } catch (e) {
-      document.getElementById('alrCards').innerHTML = '<div class="alr__empty">Opportunités indisponibles pour le moment.</div>';
+      document.getElementById('alrLast').innerHTML = '<div class="alr-last__empty">Opportunité indisponible pour le moment.</div>';
     }
   }
 
@@ -662,7 +673,6 @@ CHESTTour.init([
   }
   function openForm(rule) {
     alrEditing = rule ? rule.id : null;
-    document.getElementById('alrForm').hidden = false;
     setChips(document.getElementById('alrPairs'), 'pair', rule ? rule.pairs : [currentSymbol]);
     setChips(document.getElementById('alrTfs'), 'tf', rule ? rule.timeframes : [currentTimeframe]);
     setChips(document.getElementById('alrScanners'), 'scanner', rule ? rule.scanners : [currentScannerId].filter(Boolean));
@@ -682,15 +692,19 @@ CHESTTour.init([
     }));
   }
 
-  document.getElementById('alrToggle').addEventListener('click', () => {
-    const box = document.getElementById('alrSettings');
-    const open = box.hidden;
-    box.hidden = !open;
-    document.getElementById('alrToggle').setAttribute('aria-expanded', String(open));
-    if (open) { refreshPushStatus(); loadRules(); }
-  });
-  document.getElementById('alrNew').addEventListener('click', () => openForm(null));
-  document.getElementById('alrCancel').addEventListener('click', () => { document.getElementById('alrForm').hidden = true; });
+  const alrOverlay = document.getElementById('alrOverlay');
+  function openAlrModal() {
+    alrOverlay.classList.add('is-open');
+    refreshPushStatus();
+    loadRules();
+    openForm(null);
+  }
+  function closeAlrModal() { alrOverlay.classList.remove('is-open'); }
+  document.getElementById('alrToggle').addEventListener('click', openAlrModal);
+  document.getElementById('alrClose').addEventListener('click', closeAlrModal);
+  alrOverlay.addEventListener('click', (e) => { if (e.target === alrOverlay) closeAlrModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAlrModal(); });
+  document.getElementById('alrReset').addEventListener('click', () => openForm(null));
   document.getElementById('alrSave').addEventListener('click', async () => {
     const err = document.getElementById('alrErr');
     const btn = document.getElementById('alrSave');
@@ -710,7 +724,7 @@ CHESTTour.init([
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || 'Enregistrement impossible.');
-      document.getElementById('alrForm').hidden = true;
+      closeAlrModal();
       loadRules();
     } catch (e) {
       err.textContent = e.message;
