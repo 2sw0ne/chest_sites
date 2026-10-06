@@ -104,10 +104,9 @@ process.stdin.on("end", async () => {
       alerts.push(...r.alerts);
       models.push(r.model); // toujours lus (niveaux du trade), renvoyés seulement si demandé
     }
-    process.stdout.write(JSON.stringify({ ok: true, alerts, levels: extractLevels(models), models: input.wantModels ? models : undefined }));
-    process.exit(0);
+    // Sortie complète AVANT la fin du processus : sur un tuyau, process.exit() coupait les grosses réponses
+    process.stdout.write(JSON.stringify({ ok: true, alerts, levels: extractLevels(models), models: input.wantModels ? models : undefined }), () => process.exit(0));
   } catch (e) {
-    process.stdout.write(JSON.stringify({ ok: false, error: String((e && e.message) || e).slice(0, 300) }));
-    process.exit(1);
+    process.stdout.write(JSON.stringify({ ok: false, error: String((e && e.message) || e).slice(0, 300) }), () => process.exit(1));
   }
 });
