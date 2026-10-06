@@ -56,11 +56,14 @@ self.addEventListener('push', (event) => {
   // Le serveur envoie la ligne ("🇺🇸 - M-30 PMI manufacturier (prévu 49,5)", "ALLIN - TP✔️
   // +1964,57$") en `title` ; titre et corps éventuels sont réunis dans le corps. La ligne
   // "from CHEST" qu'iOS ajoute sous une app installée depuis Safari est imposée par Apple.
-  const info = [data.title, data.body].filter(Boolean).join(' — ');
-  const title = 'CHEST';
+  // Alerte scanner (2026-10-06) : le serveur envoie une icône et un titre propres (nom du scanner).
+  // Sans icône -> comportement d'avant (titre CHEST, information dans le corps).
+  const isScannerAlert = !!data.icon;
+  const info = isScannerAlert ? (data.body || '') : [data.title, data.body].filter(Boolean).join(' — ');
+  const title = isScannerAlert ? (data.title || 'CHEST') : 'CHEST';
   const options = {
     body: info,
-    icon: 'assets/icon-192.png',
+    icon: data.icon || 'assets/icon-192.png',
     badge: 'assets/icon-192.png',
     data: { url: data.url || 'app.html' },
   };

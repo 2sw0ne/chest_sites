@@ -1,26 +1,67 @@
-// Service de calcul des scanners (privé). Le code Pine ne sort jamais d'ici : seul le modèle calculé est renvoyé.
+// Service de calcul des scanners (privé). Le code Pine ne sort jamais d'ici : seul le modèle calculé
+// (et la liste des opportunités détectées) est renvoyé. Le calcul Pine tourne dans scan-worker.mjs,
+// pour ne jamais bloquer les requêtes HTTP.
 import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, dirname, normalize, isAbsolute } from "node:path";
-import { PineEngine } from "@luxalgo/vela-pinets";
+import { fileURLToPath } from "node:url";
+import { Worker } from "node:worker_threads";
 
+const here = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8787);
 const SCRIPTS_DIR = process.env.SCRIPTS_DIR || "/data/scripts";
+const SIGNALS_FILE = process.env.SIGNALS_FILE || join(dirname(SCRIPTS_DIR), "signals.json");
+const WATCH_FILE = join(dirname(SIGNALS_FILE), "watch.json");
 const TD_KEY = process.env.TWELVE_DATA_API_KEY || "";
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET || "";
+const ACCOUNTS_URL = (process.env.ACCOUNTS_INTERNAL_URL || "http://localhost:8080").replace(/\/$/, "");
+const MAX_BODY = 2 * 1024 * 1024;
 const MAX_RESTORE_BYTES = 20 * 1024 * 1024;
+const WORKER_RECYCLE_EVERY = 6; // le moteur Pine garde de la mémoire d'un calcul à l'autre : thread recyclé souvent
 
-// ---- Bougies : Twelve Data (même filtre que site/js/scanner-chart.js) ----
-async function fetchCandles() {
-  if (!TD_KEY) throw new Error("clé de bougies non configurée");
-  const qs = new URLSearchParams({ symbol: "XAU/USD", interval: "5min", outputsize: "5000", timezone: "UTC", apikey: TD_KEY });
-  const res = await fetch(`https://api.twelvedata.com/time_series?${qs}`);
-  const json = await res.json();
-  if (!res.ok || json.status === "error" || !Array.isArray(json.values)) throw new Error("bougies indisponibles");
-  return json.values
-    .map((v) => ({ time: Date.parse(v.datetime.replace(" ", "T") + "Z"), open: +v.open, high: +v.high, low: +v.low, close: +v.close, volume: 0 }))
-    .sort((a, b) => a.time - b.time);
+const TF_INTERVAL = { "1": "1min", "5": "5min", "15": "15min", "30": "30min", "60": "1h", "240": "4h", "D": "1day" };
+const TF_MS = { "1": 60e3, "5": 300e3, "15": 900e3, "30": 1800e3, "60": 3600e3, "240": 14400e3, "D": 86400e3 };
+const CANDLE_TTL = 5 * 60 * 1000;
+const SCAN_DELAY = 20 * 1000; // délai après la clôture d'une bougie avant de la lire
+const WATCH_TTL = 24 * 60 * 60 * 1000;
+const OPPORTUNITY_WINDOW = 48 * 60 * 60 * 1000;
+
+const toTdSymbol = (code) => (code.length === 6 ? code.slice(0, 3) + "/" + code.slice(3) : code);
+const validCode = (c) => /^[A-Z]{6}$/.test(c);
+
+// ---------------- Thread de calcul ----------------
+let worker = null;
+let workerRuns = 0;
+let reqSeq = 0;
+const pending = new Map();
+function newWorker() {
+  if (worker) worker.terminate().catch(() => {});
+  worker = new Worker(join(here, "scan-worker.mjs"), { resourceLimits: { maxOldGenerationSizeMb: 768 } });
+  workerRuns = 0;
+  worker.on("message", (m) => {
+    const p = pending.get(m.id);
+    if (!p) return;
+    pending.delete(m.id);
+    if (m.ok) p.resolve(m); else p.reject(new Error(m.error || "calcul impossible"));
+  });
+  worker.on("error", (e) => {
+    // Thread tué (mémoire) : on le relance au prochain calcul, le serveur HTTP reste debout
+    for (const p of pending.values()) p.reject(e);
+    pending.clear();
+    worker = null;
+  });
 }
+function runInWorker(files, all, bars, wantModels) {
+  if (!worker || workerRuns >= WORKER_RECYCLE_EVERY) newWorker();
+  workerRuns++;
+  const id = ++reqSeq;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    worker.postMessage({ id, files, all, bars, wantModels });
+  });
+}
+
+// ---------------- Bougies (Twelve Data, même filtre que le site) ----------------
 function isTradableBar(c) {
   if (c.open === c.high && c.high === c.low && c.low === c.close) return false;
   const d = new Date(c.time);
@@ -31,56 +72,27 @@ function isTradableBar(c) {
   if (h === 21) return false;
   return true;
 }
-let candleSet = null;
-let candleSetAt = 0;
-const cache = new Map();
-async function loadCandles() {
-  // Cache 5 min : évite de consommer le quota Twelve Data à chaque clic
-  if (!candleSet || Date.now() - candleSetAt > 5 * 60 * 1000) {
-    const all = await fetchCandles();
-    candleSet = { all, bars: all.filter(isTradableBar) };
-    candleSetAt = Date.now();
-    cache.clear();
-  }
-  return candleSet;
-}
-
-// ---- Préparation des sources (ports fidèles de scanner-chart.js) ----
-function injectMa500Len(source) {
-  return source.replace("__WOLFX_MA500_LEN__", String(Math.max(2, Math.round(500 * 3))));
-}
-function htfStates(allBars, minutes, emaLen, smaLen) {
-  const close = new Map(), order = [];
-  for (const c of allBars) {
-    const b = Math.floor(c.time / (minutes * 60000));
-    if (!close.has(b)) order.push(b);
-    close.set(b, c.close);
-  }
-  const a = 2 / (emaLen + 1), out = new Map(), last = [];
-  let e = null;
-  for (const b of order) {
-    const cl = close.get(b);
-    e = e === null ? cl : a * cl + (1 - a) * e;
-    last.push(cl);
-    if (last.length > smaLen) last.shift();
-    const sma = last.length >= smaLen ? last.reduce((s, x) => s + x, 0) / smaLen : null;
-    out.set(b, sma === null ? 0 : (e > sma ? 1 : e < sma ? -1 : 0));
-  }
+const candleCache = new Map(); // "CODE|TF" -> {at, all, bars}
+async function getCandles(code, tf) {
+  const key = code + "|" + tf;
+  const hit = candleCache.get(key);
+  if (hit && Date.now() - hit.at < CANDLE_TTL) return hit;
+  if (!TD_KEY) throw new Error("clé de bougies non configurée");
+  const qs = new URLSearchParams({ symbol: toTdSymbol(code), interval: TF_INTERVAL[tf], outputsize: "5000", timezone: "UTC", apikey: TD_KEY });
+  const res = await fetch(`https://api.twelvedata.com/time_series?${qs}`);
+  const json = await res.json();
+  if (!res.ok || json.status === "error" || !Array.isArray(json.values)) throw new Error("bougies indisponibles");
+  const now = Date.now();
+  const all = json.values
+    .map((v) => ({ time: Date.parse(v.datetime.replace(" ", "T") + "Z"), open: +v.open, high: +v.high, low: +v.low, close: +v.close, volume: 0 }))
+    .filter((c) => c.time + TF_MS[tf] <= now) // bougie en cours exclue : une alerte ne vaut que sur bougie fermée
+    .sort((a, b) => a.time - b.time);
+  const out = { at: now, all, bars: all.filter(isTradableBar) };
+  candleCache.set(key, out);
   return out;
 }
-function injectHtfStates(source, allBars, barsOut) {
-  if (!source.includes("__HTF_STATES__")) return source;
-  const lenOf = (name, def) => { const m = source.match(new RegExp(name + "[ ]*=[ ]*input[.]int[(][ ]*([0-9]+)")); return m ? parseInt(m[1], 10) : def; };
-  const emaLen = lenOf("lenEma", 4), smaLen = lenOf("lenSma", 10);
-  const mins = [240, 60, 30, 15];
-  const maps = mins.map((m) => htfStates(allBars, m, emaLen, smaLen));
-  const st = barsOut.map((c) => maps.map((mp, i) => mp.get(Math.floor(c.time / (mins[i] * 60000))) ?? 0));
-  const lines = ["hs4", "hs1", "hs30", "hs15"].map((n, i) => `var float[] ${n} = array.from(${st.map((r) => r[i]).join(", ")})`);
-  return source.replace("__HTF_STATES__", lines.join("\n"));
-}
 
-// ---- Exécution ----
-const engine = new PineEngine();
+// ---------------- Scripts ----------------
 function safePath(rel) {
   const p = normalize(join(SCRIPTS_DIR, rel));
   if (isAbsolute(rel) || !p.startsWith(normalize(SCRIPTS_DIR))) throw new Error("chemin refusé");
@@ -91,60 +103,172 @@ function loadManifest() {
   if (!existsSync(f)) throw new Error("manifeste absent");
   return JSON.parse(readFileSync(f, "utf8"));
 }
-// Le navigateur ne reçoit ni paramètres d'entrée ni props du script (menu des réglages désactivé)
-function sanitizeModel(m) {
-  const { inputs, inputValues, props, propValues, ...rest } = m;
-  return rest;
-}
-async function runOne(path, isMain, all, bars) {
-  let src = readFileSync(path, "utf8");
-  if (isMain) src = injectHtfStates(injectMa500Len(src), all, bars);
-  const prepared = await engine.prepare(src, path);
-  return new Promise((resolve, reject) => {
-    engine.execute({ prepared, market: { symbol: "XAUUSD", timeframe: "5" }, bars, mode: "static" }, {
-      onModel: (m) => resolve(sanitizeModel(m)),
-      onError: (e) => reject(e),
-    });
-  });
-}
-async function compute(name) {
-  if (cache.has(name)) return cache.get(name);
+// Calcul d'un scanner pour une paire et une unité de temps (sans cache : la mémoire compte)
+async function runScanner(name, code, tf, wantModels) {
   const files = loadManifest()[name];
   if (!Array.isArray(files) || !files.length) throw new Error("scanner inconnu");
-  const { all, bars } = await loadCandles();
-  const models = [];
-  for (const f of files) models.push(await runOne(safePath(f), f === files[0], all, bars));
-  const out = { bars, models };
-  cache.set(name, out);
+  const { all, bars } = await getCandles(code, tf);
+  const r = await runInWorker(files.map(safePath), all, bars, wantModels);
+  return { bars, models: r.models || [], alerts: r.alerts || [] };
+}
+// Modèles pour l'affichage : cache court et borné
+const modelCache = new Map(); // "scanner|CODE|TF" -> {at, out}
+const MODEL_CACHE_MAX = 2;
+async function scannerModels(name, code, tf) {
+  const key = `${name}|${code}|${tf}`;
+  const hit = modelCache.get(key);
+  if (hit && Date.now() - hit.at < CANDLE_TTL) return hit.out;
+  const out = await runScanner(name, code, tf, true);
+  modelCache.set(key, { at: Date.now(), out });
+  while (modelCache.size > MODEL_CACHE_MAX) modelCache.delete(modelCache.keys().next().value);
   return out;
 }
 
-// ---- Restauration (appelée par accounts-bridge, admin) ----
-function readBody(req) {
+// ---------------- Opportunités (alertes BUY / SELL) ----------------
+function sideOf(a) {
+  const t = `${a.title} ${a.message}`;
+  if (/pullback|r[ée]action|[ée]tape [23]/i.test(t)) return null;
+  if (/\b(BUY|LONG)\b|UT Long|haussi/i.test(t)) return "buy";
+  if (/\b(SELL|SHORT)\b|UT Short|baissi/i.test(t)) return "sell";
+  return null;
+}
+let SIGNALS = [];
+try { if (existsSync(SIGNALS_FILE)) SIGNALS = JSON.parse(readFileSync(SIGNALS_FILE, "utf8")); } catch (e) { SIGNALS = []; }
+function saveSignals() {
+  try { writeFileSync(SIGNALS_FILE, JSON.stringify(SIGNALS), "utf8"); } catch (e) { /* volume absent en local : sans gravité */ }
+}
+const WATCH = new Map(); // "CODE|TF" -> {touched, lastBar, keep}
+try {
+  if (existsSync(WATCH_FILE)) for (const [k, v] of Object.entries(JSON.parse(readFileSync(WATCH_FILE, "utf8")))) WATCH.set(k, { ...v, touched: Date.now() });
+} catch (e) { /* rien à relancer */ }
+function saveWatch() {
+  try { writeFileSync(WATCH_FILE, JSON.stringify(Object.fromEntries([...WATCH].filter(([, w]) => w.keep)))); } catch (e) { /* volume absent en local */ }
+}
+const WATERMARK = new Map(); // "scanner|CODE|TF" -> dernière alerte déjà traitée (ms)
+
+async function dispatch(sig) {
+  if (!INTERNAL_SECRET) return;
+  try {
+    await fetch(ACCOUNTS_URL + "/alerts/dispatch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Internal-Secret": INTERNAL_SECRET },
+      body: JSON.stringify(sig),
+    });
+  } catch (e) { /* accounts-bridge injoignable : l'opportunité reste visible dans le panneau */ }
+}
+
+async function scanCombo(code, tf) {
+  const names = Object.keys(loadManifest());
+  const now = Date.now();
+  for (const name of names) {
+    let alerts;
+    try { alerts = (await runScanner(name, code, tf, false)).alerts; } catch (e) { continue; }
+    const key = `${name}|${code}|${tf}`;
+    const known = WATERMARK.has(key);
+    let wm = WATERMARK.get(key) ?? -Infinity;
+    for (const a of alerts) {
+      const side = sideOf(a);
+      if (!side || typeof a.time !== "number") continue;
+      if (a.time < now - OPPORTUNITY_WINDOW) continue;
+      const id = `${name}|${code}|${tf}|${a.time}`;
+      if (!SIGNALS.some((s) => s.id === id)) {
+        const sig = { id, scanner: name, symbol: code, tf, side, time: a.time, seenAt: now };
+        SIGNALS.push(sig);
+        // Notification uniquement pour une alerte NOUVELLE, sur un combo déjà suivi (jamais au premier calcul)
+        if (known && a.time > wm) dispatch(sig);
+      }
+      if (a.time > wm) wm = a.time;
+    }
+    WATERMARK.set(key, wm);
+  }
+  SIGNALS = SIGNALS.filter((s) => s.time >= now - OPPORTUNITY_WINDOW);
+  saveSignals();
+}
+
+// Le moteur ne sort les alertes que pour la dernière bougie : on calcule une fois par bougie fermée
+setInterval(async () => {
+  const now = Date.now();
+  for (const [k, w] of WATCH) {
+    if (!w.keep && now - w.touched > WATCH_TTL) { WATCH.delete(k); continue; }
+    const [code, tf] = k.split("|");
+    const closedStart = Math.floor(now / TF_MS[tf]) * TF_MS[tf] - TF_MS[tf];
+    if (now - (closedStart + TF_MS[tf]) < SCAN_DELAY) continue;
+    if (w.lastBar === closedStart) continue;
+    w.lastBar = closedStart;
+    candleCache.delete(k);
+    try { await scanCombo(code, tf); } catch (e) { /* bougies indisponibles : on réessaiera au prochain tour */ }
+  }
+}, 15 * 1000);
+
+// ---------------- HTTP ----------------
+function readBody(req, limit) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on("data", (c) => {
       size += c.length;
-      if (size > MAX_RESTORE_BYTES) { reject(new Error("trop volumineux")); req.destroy(); }
+      if (size > limit) { reject(new Error("trop volumineux")); req.destroy(); }
       else chunks.push(c);
     });
     req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
     req.on("error", reject);
   });
 }
+const isInternal = (req) => INTERNAL_SECRET && req.headers["x-internal-secret"] === INTERNAL_SECRET;
 
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const send = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(obj)); };
   try {
-    if (url.pathname === "/health") return send(200, { ok: true });
-    if (url.pathname === "/data" && req.method === "GET") {
-      return send(200, await compute(url.searchParams.get("script") || ""));
+    if (url.pathname === "/health") {
+      return send(200, { ok: true, rssMB: Math.round(process.memoryUsage().rss / 1048576), models: modelCache.size, watching: WATCH.size, workerRuns });
     }
+
+    if (url.pathname === "/data" && req.method === "GET") {
+      const name = url.searchParams.get("script") || "";
+      const code = (url.searchParams.get("symbol") || "XAUUSD").toUpperCase();
+      const tf = url.searchParams.get("tf") || "5";
+      if (!validCode(code) || !TF_INTERVAL[tf]) return send(400, { error: "paramètres invalides" });
+      const r = await scannerModels(name, code, tf);
+      return send(200, { bars: r.bars, models: r.models });
+    }
+
+    // Opportunités d'une paire et d'une unité de temps : dernière apparition par scanner
+    if (url.pathname === "/signals" && req.method === "GET") {
+      const code = (url.searchParams.get("symbol") || "").toUpperCase();
+      const tf = url.searchParams.get("tf") || "";
+      if (!validCode(code) || !TF_INTERVAL[tf]) return send(400, { error: "paramètres invalides" });
+      const key = `${code}|${tf}`;
+      const isNew = !WATCH.has(key);
+      const curBar = Math.floor(Date.now() / TF_MS[tf]) * TF_MS[tf] - TF_MS[tf];
+      WATCH.set(key, { touched: Date.now(), lastBar: isNew ? curBar : WATCH.get(key).lastBar, keep: WATCH.get(key)?.keep || false });
+      if (isNew) scanCombo(code, tf).catch(() => {});
+      const latest = new Map();
+      for (const s of SIGNALS) {
+        if (s.symbol !== code || s.tf !== tf) continue;
+        const prev = latest.get(s.scanner);
+        if (!prev || s.time > prev.time) latest.set(s.scanner, s);
+      }
+      const opportunities = [...latest.values()].sort((a, b) => b.time - a.time).map(({ id, seenAt, ...rest }) => rest);
+      return send(200, { opportunities });
+    }
+
+    // Combos à suivre en permanence (paires et unités de temps des règles de notification)
+    if (url.pathname === "/watch" && req.method === "POST") {
+      if (!isInternal(req)) return send(401, { error: "non autorisé" });
+      const body = JSON.parse(await readBody(req, MAX_BODY));
+      for (const c of body.combos || []) {
+        if (!validCode(c.symbol) || !TF_INTERVAL[c.tf]) continue;
+        const k = `${c.symbol}|${c.tf}`;
+        WATCH.set(k, { touched: Date.now(), lastBar: WATCH.get(k)?.lastBar, keep: true });
+      }
+      saveWatch();
+      return send(200, { ok: true, watching: WATCH.size });
+    }
+
     if (url.pathname === "/restore" && req.method === "POST") {
-      if (!INTERNAL_SECRET || req.headers["x-internal-secret"] !== INTERNAL_SECRET) return send(401, { error: "non autorisé" });
-      const body = JSON.parse(await readBody(req));
+      if (!isInternal(req)) return send(401, { error: "non autorisé" });
+      const body = JSON.parse(await readBody(req, MAX_RESTORE_BYTES));
       if (!body || typeof body.files !== "object" || typeof body.manifest !== "object") return send(400, { error: "format invalide" });
       mkdirSync(SCRIPTS_DIR, { recursive: true });
       for (const [rel, text] of Object.entries(body.files)) {
@@ -153,12 +277,14 @@ createServer(async (req, res) => {
         writeFileSync(p, String(text), "utf8");
       }
       writeFileSync(join(SCRIPTS_DIR, "manifest.json"), JSON.stringify(body.manifest), "utf8");
-      cache.clear();
-      candleSet = null;
+      modelCache.clear();
+      candleCache.clear();
+      newWorker();
       return send(200, { ok: true, files: Object.keys(body.files).length, scanners: Object.keys(body.manifest) });
     }
     return send(404, { error: "introuvable" });
   } catch (e) {
+    console.error("erreur:", String((e && e.message) || e).slice(0, 300));
     return send(500, { error: "scanner en attente" });
   }
 }).listen(PORT, () => console.log(`scanner-server sur le port ${PORT}`));

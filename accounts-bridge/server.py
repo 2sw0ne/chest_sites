@@ -230,6 +230,16 @@ def init_db():
         # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
         # plusieurs appareils abonnés (PC + téléphone), chacun avec son propre "endpoint".
         db.execute("""
+            CREATE TABLE IF NOT EXISTS alert_rules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                pairs TEXT NOT NULL,
+                timeframes TEXT NOT NULL,
+                scanners TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -771,12 +781,148 @@ def scanners_model():
         return jsonify({"error": "Scanner inconnu."}), 404
     if not SCANNER_SERVER_URL:
         return jsonify({"error": "Service de calcul non configuré."}), 503
-    url = SCANNER_SERVER_URL.rstrip("/") + "/data?" + urllib.parse.urlencode({"script": script})
+    symbol = request.args.get("symbol", "XAUUSD")
+    tf = request.args.get("tf", "5")
+    if not re.fullmatch(r"[A-Z]{6}", symbol) or tf not in ALERT_TF_LABEL:
+        return jsonify({"error": "Paramètres invalides."}), 400
+    url = SCANNER_SERVER_URL.rstrip("/") + "/data?" + urllib.parse.urlencode({"script": script, "symbol": symbol, "tf": tf})
     try:
         with urllib.request.urlopen(url, timeout=120) as resp:
             return app.response_class(resp.read(), mimetype="application/json")
     except Exception:
         return jsonify({"error": "Scanner en attente."}), 503
+
+
+# ---- Alertes scanners (2026-10-06) : règles par membre (paires, unités de temps, scanners) ----
+# Le service de calcul détecte les opportunités et appelle /alerts/dispatch ; ici on choisit
+# les membres concernés et on leur envoie une notification avec l'icône du scanner.
+ALERT_SCANNERS = {
+    "algomni": ("Algomni", "assets/logo-algomni.png"),
+    "swyper-v6": ("Swyper", "assets/logo-swyper-v2.webp"),
+    "wolfx": ("Wolfx", "assets/logo-wolfx.png"),
+    "nexus": ("NEXUS", "assets/logo-nexus.webp"),
+    "pivot": ("Pivot", "assets/logo-pivot.png"),
+    "harmonics": ("Harmonics", "assets/logo-harmonics.webp"),
+    "blood": ("Blood", "assets/logo-blood.webp"),
+    "pulse": ("Pulse", "assets/logo-pulse.webp"),
+    "wave": ("Wave", "assets/logo-wave.webp"),
+    "stars": ("Stars", "assets/logo-stars.webp"),
+}
+ALERT_TF_LABEL = {"1": "M1", "5": "M5", "15": "M15", "30": "M30", "60": "H1", "240": "H4", "D": "D1"}
+SITE_URL = os.environ.get("SITE_URL", "https://your-chest.vercel.app").rstrip("/")
+
+
+def _scanner_call(path, method="GET", body=None):
+    if not SCANNER_SERVER_URL:
+        return None
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    headers = {"Content-Type": "application/json", "X-Internal-Secret": SCANNER_INTERNAL_SECRET}
+    req = urllib.request.Request(SCANNER_SERVER_URL.rstrip("/") + path, data=data, headers=headers, method=method)
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _rule_out(row):
+    return {
+        "id": row["id"],
+        "pairs": json.loads(row["pairs"]),
+        "timeframes": json.loads(row["timeframes"]),
+        "scanners": json.loads(row["scanners"]),
+        "createdAt": row["created_at"],
+    }
+
+
+@app.route("/alerts/rules", methods=["GET"])
+def alerts_rules_list():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    rows = get_db().execute("SELECT * FROM alert_rules WHERE user_id = ? ORDER BY id DESC", (user["id"],)).fetchall()
+    return jsonify({"rules": [_rule_out(r) for r in rows]})
+
+
+@app.route("/alerts/rules", methods=["POST"])
+def alerts_rules_save():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    pairs = [p for p in (body.get("pairs") or []) if isinstance(p, str) and re.fullmatch(r"[A-Z]{6}", p)]
+    tfs = [t for t in (body.get("timeframes") or []) if t in ALERT_TF_LABEL]
+    scanners = [sc for sc in (body.get("scanners") or []) if sc in ALERT_SCANNERS]
+    if not pairs or not tfs or not scanners:
+        return jsonify({"error": "Choisis au moins une paire, une unité de temps et un scanner."}), 400
+    pairs, tfs, scanners = sorted(set(pairs)), sorted(set(tfs)), sorted(set(scanners))
+    db = get_db()
+    rid = body.get("id")
+    with db_lock:
+        if isinstance(rid, int):
+            cur = db.execute("UPDATE alert_rules SET pairs=?, timeframes=?, scanners=? WHERE id=? AND user_id=?",
+                             (json.dumps(pairs), json.dumps(tfs), json.dumps(scanners), rid, user["id"]))
+            if cur.rowcount == 0:
+                return jsonify({"error": "Règle introuvable."}), 404
+        else:
+            cur = db.execute("INSERT INTO alert_rules (user_id, pairs, timeframes, scanners, created_at) VALUES (?, ?, ?, ?, ?)",
+                             (user["id"], json.dumps(pairs), json.dumps(tfs), json.dumps(scanners), datetime.now(timezone.utc).isoformat()))
+            rid = cur.lastrowid
+        db.commit()
+    try:
+        _scanner_call("/watch", "POST", {"combos": [{"symbol": p, "tf": t} for p in pairs for t in tfs]})
+    except Exception:
+        pass  # le suivi se remettra en place au prochain enregistrement
+    row = db.execute("SELECT * FROM alert_rules WHERE id = ?", (rid,)).fetchone()
+    return jsonify({"rule": _rule_out(row)})
+
+
+@app.route("/alerts/rules/<int:rid>", methods=["DELETE"])
+def alerts_rules_delete(rid):
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    with db_lock:
+        cur = get_db().execute("DELETE FROM alert_rules WHERE id = ? AND user_id = ?", (rid, user["id"]))
+        get_db().commit()
+    return jsonify({"ok": cur.rowcount > 0})
+
+
+@app.route("/alerts/signals")
+def alerts_signals():
+    if not approved_user():
+        return jsonify({"error": "Non connecté."}), 401
+    symbol = request.args.get("symbol", "")
+    tf = request.args.get("tf", "")
+    if not re.fullmatch(r"[A-Z]{6}", symbol) or tf not in ALERT_TF_LABEL:
+        return jsonify({"error": "Paramètres invalides."}), 400
+    try:
+        return jsonify(_scanner_call("/signals?" + urllib.parse.urlencode({"symbol": symbol, "tf": tf})))
+    except Exception:
+        return jsonify({"opportunities": []})
+
+
+@app.route("/alerts/dispatch", methods=["POST"])
+def alerts_dispatch():
+    # Appelé par scanner-server (secret interne) à chaque nouvelle opportunité détectée.
+    if not SCANNER_INTERNAL_SECRET or request.headers.get("X-Internal-Secret") != SCANNER_INTERNAL_SECRET:
+        return jsonify({"error": "non autorisé"}), 401
+    ev = request.get_json(silent=True) or {}
+    scanner, symbol, tf, side = ev.get("scanner"), ev.get("symbol"), ev.get("tf"), ev.get("side")
+    if scanner not in ALERT_SCANNERS or tf not in ALERT_TF_LABEL or side not in ("buy", "sell") or not re.fullmatch(r"[A-Z]{6}", str(symbol)):
+        return jsonify({"error": "événement invalide"}), 400
+    name, logo = ALERT_SCANNERS[scanner]
+    body_text = f"{'BUY' if side == 'buy' else 'SELL'} détectée sur {symbol} en {ALERT_TF_LABEL[tf]} !"
+    db = get_db()
+    sent = 0
+    for rule in db.execute("SELECT * FROM alert_rules").fetchall():
+        if scanner not in json.loads(rule["scanners"]) or symbol not in json.loads(rule["pairs"]) or tf not in json.loads(rule["timeframes"]):
+            continue
+        subs = db.execute("SELECT * FROM push_subscriptions WHERE user_id = ?", (rule["user_id"],)).fetchall()
+        if not subs:
+            continue
+        res = _send_push_to_subscriptions(subs, name, body_text,
+                                          url=f"app.html#/strategies?scanner={scanner}&symbol={symbol}&tf={tf}",
+                                          icon=f"{SITE_URL}/{logo}")
+        sent += res.get("sent", 0)
+    return jsonify({"sent": sent})
 
 
 @app.route("/twelvedata/<endpoint>")
@@ -883,13 +1029,13 @@ def push_unsubscribe():
     return jsonify({"ok": True})
 
 
-def _send_push_to_subscriptions(subs, title, body_text, url=None):
+def _send_push_to_subscriptions(subs, title, body_text, url=None, icon=None):
     """Envoie a une liste de lignes push_subscriptions (deja chargees) ; retire tout abonnement
     expire/invalide (410 Gone, cas normal quand un navigateur se desinscrit sans le dire) plutot
     que de re-essayer indefiniment dessus."""
     if not VAPID_PRIVATE_KEY:
         return {"sent": 0, "error": "VAPID_PRIVATE_KEY non configurée côté serveur."}
-    payload = json.dumps({"title": title, "body": body_text, "url": url or "app.html"})
+    payload = json.dumps({"title": title, "body": body_text, "url": url or "app.html", "icon": icon})
     sent, dead, last_error = 0, [], None
     for sub in subs:
         try:

@@ -145,6 +145,46 @@
   }
   .scnr-hero__tags{ font-size:13px; font-weight:600; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.06em; }
 
+  /* ---- Opportunités + notifications (2026-10-06) ---- */
+  .alr{ padding:14px 16px; margin-bottom:12px; }
+  .alr__head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .alr__eyebrow{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700; }
+  .alr__title{ font-size:15px; font-weight:800; margin-top:2px; }
+  .alr__btn{ height:34px; padding:0 14px; border-radius:9px; border:1px solid var(--line2); background:var(--bg); color:var(--ink); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+  .alr__btn:hover{ border-color:var(--acc); }
+  .alr__btn--primary{ background:linear-gradient(135deg,var(--acc),var(--acc2)); border-color:transparent; color:#fff; }
+  .alr__btn--danger{ color:#ff6b78; }
+  .alr__btn:disabled{ opacity:.5; cursor:default; }
+  .alr__cards{ display:flex; gap:10px; overflow-x:auto; padding:4px 2px 8px; scrollbar-width:thin; }
+  .alr__empty{ font-size:12.5px; color:var(--muted); padding:10px 2px; }
+  .alr-card{
+    flex:0 0 150px; border:1px solid var(--line2); border-radius:14px; background:var(--bg);
+    padding:12px; cursor:pointer; text-align:left; font:inherit; color:var(--ink);
+    display:flex; flex-direction:column; gap:6px; transition:transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s;
+  }
+  .alr-card:hover{ transform:translateY(-2px); }
+  .alr-card__logo{ width:36px; height:36px; object-fit:contain; }
+  .alr-card__name{ font-size:12.5px; font-weight:800; }
+  .alr-card__meta{ font-size:10.5px; color:var(--muted); }
+  .alr-card__side{ font-size:13px; font-weight:900; letter-spacing:.04em; }
+  .alr-card.is-buy{ border-color:rgba(51,230,166,.45); box-shadow:0 0 26px rgba(51,230,166,.22), inset 0 0 22px rgba(51,230,166,.08); }
+  .alr-card.is-buy .alr-card__side{ color:#33e6a6; }
+  .alr-card.is-sell{ border-color:rgba(255,77,94,.5); box-shadow:0 0 26px rgba(255,77,94,.24), inset 0 0 22px rgba(255,77,94,.08); }
+  .alr-card.is-sell .alr-card__side{ color:#ff4d5e; }
+  .alr__settings{ margin-top:12px; border-top:1px solid var(--line2); padding-top:12px; }
+  .alr__group{ margin-bottom:12px; }
+  .alr__group > label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  .alr__chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .alr__chip{ height:30px; padding:0 11px; border-radius:999px; border:1px solid var(--line2); background:var(--bg); color:var(--muted); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+  .alr__chip.is-on{ color:#fff; border-color:transparent; background:linear-gradient(135deg,var(--acc),var(--acc2)); }
+  .alr__actions{ display:flex; gap:8px; justify-content:flex-end; }
+  .alr__err{ font-size:12px; color:#ff6b78; min-height:16px; margin:8px 0 0; }
+  .alr__rules{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .alr-rule{ display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid var(--line2); border-radius:12px; padding:10px 12px; background:var(--bg); }
+  .alr-rule__text{ font-size:12.5px; line-height:1.45; }
+  .alr-rule__text b{ font-weight:800; }
+  .alr-rule__tools{ display:flex; gap:6px; flex-shrink:0; }
+  .alr__status{ font-size:12px; color:var(--muted); margin-bottom:10px; }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
@@ -245,6 +285,34 @@
     </div>
   </div>
 
+  <section class="alr card" id="alrPanel">
+    <div class="alr__head">
+      <div>
+        <div class="alr__eyebrow">Opportunités</div>
+        <div class="alr__title" id="alrTitle">Dernières apparitions</div>
+      </div>
+      <button type="button" class="alr__btn" id="alrToggle" aria-expanded="false">Notifications</button>
+    </div>
+    <div class="alr__cards" id="alrCards"></div>
+    <div class="alr__settings" id="alrSettings" hidden>
+      <div class="alr__status" id="alrStatus"></div>
+      <div class="alr__actions" style="justify-content:flex-start;margin-bottom:12px">
+        <button type="button" class="alr__btn alr__btn--primary" id="alrNew">+ Nouvelle notification</button>
+      </div>
+      <div id="alrForm" hidden>
+        <div class="alr__group"><label>Paires</label><div class="alr__chips" id="alrPairs"></div></div>
+        <div class="alr__group"><label>Unités de temps</label><div class="alr__chips" id="alrTfs"></div></div>
+        <div class="alr__group"><label>Scanners</label><div class="alr__chips" id="alrScanners"></div></div>
+        <div class="alr__actions">
+          <button type="button" class="alr__btn" id="alrCancel">Annuler</button>
+          <button type="button" class="alr__btn alr__btn--primary" id="alrSave">Enregistrer</button>
+        </div>
+        <p class="alr__err" id="alrErr"></p>
+      </div>
+      <div class="alr__rules" id="alrRules"></div>
+    </div>
+  </section>
+
   <div class="card scnr-media" id="scnrMediaCard">
     <div class="scnr-panel is-active" id="scnrPanelChart"><div id="scnrChart"></div></div>
     <div class="scnr-panel" id="scnrPanelAbout">
@@ -264,7 +332,7 @@
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/scanner-store.js?v=25"></script>
-<script src="js/scanner-chart.js?v=21"></script>
+<script src="js/scanner-chart.js?v=22"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -397,6 +465,7 @@ CHESTTour.init([
       candles: scanner.candles,
       scannerId: scanner.id,
     });
+    loadOpportunities();
   }
 
   document.getElementById('scnrTrigger').addEventListener('click', (e) => {
@@ -434,6 +503,163 @@ CHESTTour.init([
     });
   });
 
+  // ================= Opportunités + notifications (2026-10-06) =================
+  const TF_LABELS = { '1': 'M1', '5': 'M5', '15': 'M15', '30': 'M30', '60': 'H1', '240': 'H4', 'D': 'D1' };
+  const ALERT_TFS = Object.keys(TF_LABELS);
+  function authHeaders() {
+    const t = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+    return t ? { Authorization: 'Bearer ' + t } : {};
+  }
+  function timeAgo(ms) {
+    const m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    if (m < 1) return "à l'instant";
+    if (m < 60) return 'il y a ' + m + ' min';
+    const h = Math.round(m / 60);
+    if (h < 24) return 'il y a ' + h + ' h';
+    return 'il y a ' + Math.round(h / 24) + ' j';
+  }
+  function setChips(el, attr, values) {
+    el.querySelectorAll('.alr__chip').forEach((b) => b.classList.toggle('is-on', values.includes(b.dataset[attr])));
+  }
+  function chosen(el, attr) {
+    return [...el.querySelectorAll('.alr__chip.is-on')].map((b) => b.dataset[attr]);
+  }
+
+  function renderOpportunities(list) {
+    const cards = document.getElementById('alrCards');
+    if (!list.length) {
+      cards.innerHTML = '<div class="alr__empty">Aucune opportunité récente sur cette paire et cette unité de temps. Le calcul se met à jour toutes les 5 minutes.</div>';
+      return;
+    }
+    cards.innerHTML = list.map((o) => {
+      const sc = CHESTScanners.get(o.scanner);
+      if (!sc) return '';
+      const buy = o.side === 'buy';
+      return `<button type="button" class="alr-card ${buy ? 'is-buy' : 'is-sell'}" data-scanner="${sc.id}">
+        <img class="alr-card__logo" src="${sc.logo}" alt="">
+        <div class="alr-card__name">${sc.name}</div>
+        <div class="alr-card__side">${buy ? 'BUY' : 'SELL'}</div>
+        <div class="alr-card__meta">Signal · ${timeAgo(o.time)}</div>
+      </button>`;
+    }).join('');
+    cards.querySelectorAll('.alr-card').forEach((el) => el.addEventListener('click', () => {
+      selectScanner(el.dataset.scanner, { market: currentMarket, symbol: currentSymbol, timeframe: currentTimeframe });
+      renderChart();
+      document.getElementById('scnrMediaCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+  async function loadOpportunities() {
+    document.getElementById('alrTitle').textContent = 'Dernières apparitions · ' + currentSymbol + ' · ' + (TF_LABELS[currentTimeframe] || currentTimeframe);
+    try {
+      const res = await fetch(`${scannersApi()}/alerts/signals?symbol=${encodeURIComponent(currentSymbol)}&tf=${encodeURIComponent(currentTimeframe)}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error('indisponible');
+      const body = await res.json();
+      renderOpportunities(body.opportunities || []);
+    } catch (e) {
+      document.getElementById('alrCards').innerHTML = '<div class="alr__empty">Opportunités indisponibles pour le moment.</div>';
+    }
+  }
+
+  // Notifications : statut de l'appareil, règles enregistrées, formulaire
+  async function refreshPushStatus() {
+    const el = document.getElementById('alrStatus');
+    let st = 'unsupported';
+    try { st = await window.CHESTPwa.notificationStatus(); } catch (e) { /* navigateur sans service worker */ }
+    if (st === 'enabled') el.textContent = 'Notifications actives sur cet appareil.';
+    else if (st === 'disabled') el.innerHTML = 'Notifications non activées sur cet appareil. <button type="button" class="alr__btn" id="alrEnablePush">Activer</button>';
+    else if (st === 'denied') el.textContent = 'Notifications bloquées dans le navigateur : à réactiver dans ses réglages.';
+    else if (st === 'ios-install-required') el.textContent = "Sur iPhone, ajoute d'abord CHEST à l'écran d'accueil pour recevoir les notifications.";
+    else el.textContent = "Ton navigateur ne supporte pas les notifications.";
+    const b = document.getElementById('alrEnablePush');
+    if (b) b.addEventListener('click', async () => {
+      b.disabled = true;
+      try { await window.CHESTPwa.enableNotifications(); } catch (e) { document.getElementById('alrErr').textContent = e.message; }
+      refreshPushStatus();
+    });
+  }
+  let alrRules = [];
+  let alrEditing = null;
+  async function loadRules() {
+    const box = document.getElementById('alrRules');
+    try {
+      const res = await fetch(`${scannersApi()}/alerts/rules`, { headers: authHeaders() });
+      alrRules = res.ok ? ((await res.json()).rules || []) : [];
+    } catch (e) { alrRules = []; }
+    if (!alrRules.length) { box.innerHTML = '<div class="alr__empty">Aucune notification configurée.</div>'; return; }
+    box.innerHTML = alrRules.map((r) => {
+      const names = r.scanners.map((id) => (CHESTScanners.get(id) || { name: id }).name).join(', ');
+      return `<div class="alr-rule"><div class="alr-rule__text"><b>${r.pairs.join(', ')}</b> · ${r.timeframes.map((t) => TF_LABELS[t] || t).join(', ')}<br>${names}</div>
+        <div class="alr-rule__tools"><button type="button" class="alr__btn" data-edit="${r.id}">Modifier</button><button type="button" class="alr__btn alr__btn--danger" data-del="${r.id}">Supprimer</button></div></div>`;
+    }).join('');
+    box.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openForm(alrRules.find((r) => r.id === Number(b.dataset.edit)))));
+    box.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+      const ok = window.CHESTConfirm ? await CHESTConfirm('Supprimer cette notification ?') : window.confirm('Supprimer cette notification ?');
+      if (!ok) return;
+      await fetch(`${scannersApi()}/alerts/rules/${b.dataset.del}`, { method: 'DELETE', headers: authHeaders() });
+      loadRules();
+    }));
+  }
+  function openForm(rule) {
+    alrEditing = rule ? rule.id : null;
+    document.getElementById('alrForm').hidden = false;
+    setChips(document.getElementById('alrPairs'), 'pair', rule ? rule.pairs : [currentSymbol]);
+    setChips(document.getElementById('alrTfs'), 'tf', rule ? rule.timeframes : [currentTimeframe]);
+    setChips(document.getElementById('alrScanners'), 'scanner', rule ? rule.scanners : [currentScannerId].filter(Boolean));
+    document.getElementById('alrErr').textContent = '';
+  }
+  function buildChips() {
+    const pairsEl = document.getElementById('alrPairs');
+    const tfsEl = document.getElementById('alrTfs');
+    const scEl = document.getElementById('alrScanners');
+    pairsEl.innerHTML = Object.values(MARKETS).flatMap((m) => m.pairs.map(([code]) => code))
+      .map((code) => `<button type="button" class="alr__chip" data-pair="${code}">${code}</button>`).join('');
+    tfsEl.innerHTML = ALERT_TFS.map((tf) => `<button type="button" class="alr__chip" data-tf="${tf}">${TF_LABELS[tf]}</button>`).join('');
+    scEl.innerHTML = CHESTScanners.list().map((s) => `<button type="button" class="alr__chip" data-scanner="${s.id}">${s.name}</button>`).join('');
+    [pairsEl, tfsEl, scEl].forEach((el) => el.addEventListener('click', (e) => {
+      const b = e.target.closest('.alr__chip');
+      if (b) b.classList.toggle('is-on');
+    }));
+  }
+
+  document.getElementById('alrToggle').addEventListener('click', () => {
+    const box = document.getElementById('alrSettings');
+    const open = box.hidden;
+    box.hidden = !open;
+    document.getElementById('alrToggle').setAttribute('aria-expanded', String(open));
+    if (open) { refreshPushStatus(); loadRules(); }
+  });
+  document.getElementById('alrNew').addEventListener('click', () => openForm(null));
+  document.getElementById('alrCancel').addEventListener('click', () => { document.getElementById('alrForm').hidden = true; });
+  document.getElementById('alrSave').addEventListener('click', async () => {
+    const err = document.getElementById('alrErr');
+    const btn = document.getElementById('alrSave');
+    err.textContent = '';
+    const body = {
+      pairs: chosen(document.getElementById('alrPairs'), 'pair'),
+      timeframes: chosen(document.getElementById('alrTfs'), 'tf'),
+      scanners: chosen(document.getElementById('alrScanners'), 'scanner'),
+    };
+    if (alrEditing) body.id = alrEditing;
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${scannersApi()}/alerts/rules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || 'Enregistrement impossible.');
+      document.getElementById('alrForm').hidden = true;
+      loadRules();
+    } catch (e) {
+      err.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  setInterval(loadOpportunities, 60 * 1000);
+
   // ================= Démarrage =================
   // Le vrai Pine Script n'est plus dans scanner-store.js (repo public, voir son commentaire
   // d'en-tete) : on le recupere aupres du serveur de comptes, authentifie par le jeton de la
@@ -453,7 +679,16 @@ CHESTTour.init([
 
   const scanners = CHESTScanners.list();
   renderScannerMenu();
-  if (scanners.length) selectScanner(scanners[0].id);
+  const deep = new URLSearchParams(location.search);
+  const deepScanner = deep.get('scanner');
+  if (deepScanner && CHESTScanners.get(deepScanner)) {
+    const sym = (deep.get('symbol') || '').toUpperCase();
+    const mkt = Object.keys(MARKETS).find((id) => MARKETS[id].pairs.some((p) => p[0] === sym));
+    selectScanner(deepScanner, { market: mkt, symbol: sym || undefined, timeframe: deep.get('tf') || undefined });
+  } else if (scanners.length) {
+    selectScanner(scanners[0].id);
+  }
+  buildChips();
   loadPineSources().then(() => { if (scanners.length) renderChart(); });
 })();
 </script>

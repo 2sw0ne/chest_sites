@@ -236,15 +236,20 @@
     };
   }
 
+  let remoteSeq = 0;
   async function renderRemote(opts) {
-    const { containerId, fixedScale, symbolDisplay, candles, scannerId } = opts;
+    const { containerId, fixedScale, symbolDisplay, timeframe, candles, scannerId } = opts;
     const container = document.getElementById(containerId);
     container.innerHTML = `<div class="scanner-empty">Chargement de ${symbolDisplay} et du scanner…</div>`;
     const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
     const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
     let body;
     try {
-      const res = await fetch(`${base}/scanners/model?script=${encodeURIComponent(scannerId)}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+      const seq = ++remoteSeq;
+      const qs = new URLSearchParams({ script: scannerId, symbol: symbolDisplay, tf: timeframe });
+      const res = await fetch(`${base}/scanners/model?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+      // Un changement de paire pendant le calcul : seule la dernière demande est affichée
+      if (seq !== remoteSeq) return null;
       body = await res.json();
       if (!res.ok || !Array.isArray(body.models)) {
         container.innerHTML = res.status === 401
