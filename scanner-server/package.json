@@ -1,0 +1,18 @@
+{
+  "name": "chest-scanner-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@luxalgo/vela": "0.6.21",
+    "@luxalgo/vela-pinets": "0.2.10",
+    "pinets": "*"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

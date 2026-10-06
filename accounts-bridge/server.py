@@ -732,27 +732,34 @@ def scanners_list():
 
 @app.route("/scanners/restore", methods=["POST"])
 def scanners_restore():
-    # Seule façon de poser scanners_secret.json sur le Volume Railway : ce fichier n'est JAMAIS
-    # commité (voir SCANNERS_SECRET_PATH plus haut), donc rien ne le déploie automatiquement -
-    # l'admin l'envoie une fois lui-même (depuis sa machine, jamais via git) avec par ex. :
-    # curl -X POST <url>/scanners/restore -H "Authorization: Bearer <token>" \
-    #      -H "Content-Type: application/json" --data-binary @scanners_secret.json
+    # Admin uniquement. Pose les scripts Pine sur le volume du service de calcul (scanner-server),
+    # jamais dans git ni sur accounts-bridge. Corps attendu : {"manifest": {...}, "files": {...}}.
+    # curl -X POST <url>/scanners/restore -H "Authorization: Bearer <token>"     #      -H "Content-Type: application/json" --data-binary @scanners_bundle.json
     admin = approved_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if not SCANNER_SERVER_URL or not SCANNER_INTERNAL_SECRET:
+        return jsonify({"error": "Service de calcul non configuré."}), 503
     body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return jsonify({"error": "JSON invalide."}), 400
-    with db_lock:
-        with open(SCANNERS_SECRET_PATH, "w", encoding="utf-8") as f:
-            json.dump(body, f, ensure_ascii=False)
-    return jsonify({"ok": True, "scanners": list(body.keys())})
+    if not isinstance(body, dict) or not isinstance(body.get("files"), dict) or not isinstance(body.get("manifest"), dict):
+        return jsonify({"error": "JSON invalide (attendu : manifest + files)."}), 400
+    req = urllib.request.Request(
+        SCANNER_SERVER_URL.rstrip("/") + "/restore",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "X-Internal-Secret": SCANNER_INTERNAL_SECRET},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            return app.response_class(resp.read(), mimetype="application/json")
+    except Exception:
+        return jsonify({"error": "Restauration impossible, service de calcul injoignable."}), 503
 
 
-# Scanners calcules cote serveur (2026-10-06) : le texte Pine ne sort jamais de scanner-node.
-# Le navigateur n'obtient que le modele calcule (bougies + courbes/zones/etiquettes), uniquement
-# pour un membre approuve. SCANNER_SERVER_URL = adresse interne du service de calcul.
+# Scanners calcules cote serveur (2026-10-06) : le texte Pine ne sort jamais du service de calcul.
+# Le navigateur n'obtient que le modele calcule, uniquement pour un membre approuve.
 SCANNER_SERVER_URL = os.environ.get("SCANNER_SERVER_URL", "")
+SCANNER_INTERNAL_SECRET = os.environ.get("SCANNER_INTERNAL_SECRET", "")
 
 
 @app.route("/scanners/model")
