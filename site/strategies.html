@@ -218,6 +218,22 @@
 <script src="js/accounts-auth.js?v=1"></script>
 <script src="js/sync-store.js?v=4"></script>
 <script>CHESTAccounts.guard();</script>
+<style>
+  /* Opportunités : compartiments séparés par des barres, comme les autres champs de la barre (2026-10-06) */
+  .alr{ flex:1 1 auto; min-width:0; border-left:1px solid var(--line2); padding-left:16px; margin-left:0; }
+  .alr__title{ display:none; }
+  .alr__head{ margin-bottom:6px; }
+  .alr__cards{ display:flex; align-items:stretch; gap:0; padding:0; overflow-x:auto; }
+  .alr-card{ flex:0 0 auto; width:auto; height:auto; min-width:96px; padding:4px 14px; border:0; border-left:1px solid var(--line2); border-radius:0; background:transparent; gap:3px; box-shadow:none; transform:none; }
+  .alr-card:first-child{ border-left:0; }
+  .alr-card:hover{ transform:none; }
+  .alr-card::before{ width:70px; height:70px; opacity:.45; }
+  .alr-card__logo{ width:18px; height:18px; }
+  .alr-card__side{ font-size:12px; }
+  .alr-card__meta{ display:none; }
+  .alr-card__levels{ font-size:9px; }
+  .alr__empty{ font-size:11px; }
+</style>
 </head>
 <body data-page="strategies" class="chest-root">
 
