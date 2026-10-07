@@ -332,11 +332,11 @@
     return split.groups.map((g) => ({ name: g.value == null ? 'Autres trades' : g.value, base: r3(g.base), tiers: g.tier ? [{ afterSl: g.tier.afterSl, risk: r3(g.tier.newRisk) }] : [] }));
   }
 
-  // costs (optionnel) : { spreadPoints, slPoints, commissionUsd }. Le moteur ne connaît que le
-  // résultat en R (pas le prix d'entrée ni la taille réelle de la position) : le spread, donné en
-  // points réels par l'utilisateur, est converti en fraction de risque (spreadPoints / slPoints) et
-  // ne réduit QUE les trades gagnants (jamais un perdant, décision utilisateur 2026-10-07) ; la
-  // commission est un montant fixe déduit du capital à chaque trade pris, gagnant ou perdant.
+  // costs (optionnel) : { spreadR, commissionUsd }. Le moteur ne connaît que le résultat en R, pas
+  // le prix d'entrée ni la distance réelle du stop (qui varie d'un trade à l'autre) : le spread est
+  // donc saisi directement comme une fraction de risque (ex. 0.1 = 0,1R) et ne réduit QUE les trades
+  // gagnants (jamais un perdant, décision utilisateur 2026-10-07) ; la commission est un montant fixe
+  // déduit du capital à chaque trade pris, gagnant ou perdant.
   function simulate(trades, capital0, riskConfig, costs) {
     const ordered = sortedTrades(trades);
     let capital = capital0;
@@ -345,7 +345,7 @@
     const streaks = new Map(scopes.map((sc) => [sc.key, 0]));
     const streakOf = (k) => streaks.get(k) || 0;
     const assigned = new Array(ordered.length).fill(0);
-    const spreadR = costs && costs.spreadPoints > 0 && costs.slPoints > 0 ? costs.spreadPoints / costs.slPoints : 0;
+    const spreadR = (costs && costs.spreadR > 0) ? costs.spreadR : 0;
     const commissionUsd = (costs && costs.commissionUsd) || 0;
     const curve = [{ date: toDate(ordered[0] && (ordered[0].open || ordered[0].date)), capital, trade: null, riskUsed: null }];
     buildEvents(ordered).forEach(([, kind, i]) => {
