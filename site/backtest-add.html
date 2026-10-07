@@ -195,11 +195,6 @@
   .cap-pf[hidden]{ display:none; }
   .cap-pf{ margin-top:12px; }
   .cap-pf__hint{ font-size:12px; color:var(--muted); margin:6px 0 0; }
-  .costs-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .costs-head label{ margin:0; }
-  .costs-head small{ color:var(--muted); font-weight:500; }
-  .costs-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
-  @media (max-width:640px){ .costs-grid{ grid-template-columns:1fr; } }
   @media (prefers-reduced-motion: reduce){ .cap-toggle, .cap-toggle svg{ transition:none; } }
 </style>
 <script src="js/theme.js"></script>
@@ -317,25 +312,6 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
             <p class="cap-pf__hint">Utilisé pour la colonne propfirm du rapport et son réglage automatique. Le compte propre garde le capital du dessus.</p>
           </div>
         </div>
-        <div>
-          <div class="costs-head">
-            <label><span>Coûts du broker</span> <small>(optionnel)</small></label>
-            <button type="button" class="cap-toggle" id="btCostsToggle" aria-expanded="false" aria-controls="btCostsWrap" title="Ajouter le spread et la commission du broker" aria-label="Ajouter le spread et la commission du broker">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-          </div>
-          <div class="cap-pf costs-grid" id="btCostsWrap" hidden>
-            <div>
-              <label for="btSpread">Spread (fraction du risque)</label>
-              <input id="btSpread" class="field" type="number" min="0" step="0.01" placeholder="Ex. 0.1">
-            </div>
-            <div>
-              <label for="btCommission">Commission par trade ($)</label>
-              <input id="btCommission" class="field" type="number" min="0" step="0.01" placeholder="Ex. 7">
-            </div>
-            <p class="cap-pf__hint" style="grid-column:1/-1">Le spread réduit chaque trade GAGNANT (jamais les perdants) de cette fraction de risque (ex. 0,1 = 0,1R de moins sur chaque gain) — le stop varie d'un trade à l'autre, donc ça reste le seul réglage fiable sans le prix réel de chaque position. La commission est déduite du capital à chaque trade, gagnant ou perdant.</p>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -430,7 +406,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/backtest-store.js?v=2"></script>
-<script src="js/backtest-engine.js?v=22"></script>
+<script src="js/backtest-engine.js?v=20"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js?v=2"></script>
 <script src="js/page-tour.js"></script>
@@ -770,15 +746,6 @@ CHESTTour.init([
   document.getElementById('btPfCapital').addEventListener('input', () => { paintMin(); clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); });
   document.querySelectorAll('.auto-min-usd').forEach((el) => el.addEventListener('input', () => { setMinUsd(el.value); clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 500); }));
   paintMin();
-  // Coûts du broker (spread + commission), optionnels : n'affectent pas la recherche automatique du
-  // money management, seulement le rapport final (simulate()) - lus à l'enregistrement seulement.
-  const costsOpen = () => document.getElementById('btCostsToggle').getAttribute('aria-expanded') === 'true';
-  document.getElementById('btCostsToggle').addEventListener('click', () => {
-    const open = !costsOpen();
-    document.getElementById('btCostsToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
-    document.getElementById('btCostsWrap').hidden = !open;
-    if (open) document.getElementById('btSpread').focus();
-  });
 
 
   // Réglage premium : trois profils par compte, chacun avec son objectif (voir optimizeProfiles).
@@ -952,12 +919,6 @@ CHESTTour.init([
         document.getElementById('btPfCapital').value = editingRecord.pfCapital;
         setPfCapitalOpen(true);
       }
-      if (editingRecord.costs) {
-        if (editingRecord.costs.spreadR) document.getElementById('btSpread').value = editingRecord.costs.spreadR;
-        if (editingRecord.costs.commissionUsd) document.getElementById('btCommission').value = editingRecord.costs.commissionUsd;
-        document.getElementById('btCostsToggle').setAttribute('aria-expanded', 'true');
-        document.getElementById('btCostsWrap').hidden = false;
-      }
       parsedTrades = editingRecord.trades;
       refreshBonus();
       dropzoneFilename.textContent = `Fichier déjà importé (${editingRecord.trades.length} position${editingRecord.trades.length > 1 ? 's' : ''})`;
@@ -1016,12 +977,6 @@ CHESTTour.init([
     const pfCapital = pfCapitalOpen() && pfCapitalRaw !== capital ? pfCapitalRaw : null;
     if (!parsedTrades || !parsedTrades.length) { errEl.textContent = "Importe d'abord un fichier Excel valide (étape 3)."; return; }
 
-    // Coûts du broker : optionnels, mais spread et distance du stop vont toujours ensemble (l'un
-    // sans l'autre ne permet pas de convertir le spread en fraction de risque).
-    const spreadR = Number(document.getElementById('btSpread').value) || 0;
-    const commissionUsd = Number(document.getElementById('btCommission').value) || 0;
-    const costs = (spreadR > 0 || commissionUsd > 0) ? { spreadR, commissionUsd } : null;
-
     const cp = readRiskConfig('cp');
     if (!cp) { errEl.textContent = "Le réglage automatique du compte propre n'a pas de résultat : importe ton fichier (étape 3) ou passe en mode manuel."; return; }
 
@@ -1034,10 +989,10 @@ CHESTTour.init([
     let targetId;
     try {
       if (editingRecord) {
-        window.CHESTBacktests.update(editingRecord.id, { title, description, capital, pfCapital, costs, cp, pf, trades: parsedTrades });
+        window.CHESTBacktests.update(editingRecord.id, { title, description, capital, pfCapital, cp, pf, trades: parsedTrades });
         targetId = editingRecord.id;
       } else {
-        targetId = window.CHESTBacktests.add({ title, description, capital, pfCapital, costs, cp, pf, trades: parsedTrades }).id;
+        targetId = window.CHESTBacktests.add({ title, description, capital, pfCapital, cp, pf, trades: parsedTrades }).id;
       }
     } catch (e) {
       errEl.textContent = e.message || "Le backtest n'a pas pu être enregistré.";

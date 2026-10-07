@@ -332,12 +332,7 @@
     return split.groups.map((g) => ({ name: g.value == null ? 'Autres trades' : g.value, base: r3(g.base), tiers: g.tier ? [{ afterSl: g.tier.afterSl, risk: r3(g.tier.newRisk) }] : [] }));
   }
 
-  // costs (optionnel) : { spreadR, commissionUsd }. Le moteur ne connaît que le résultat en R, pas
-  // le prix d'entrée ni la distance réelle du stop (qui varie d'un trade à l'autre) : le spread est
-  // donc saisi directement comme une fraction de risque (ex. 0.1 = 0,1R) et ne réduit QUE les trades
-  // gagnants (jamais un perdant, décision utilisateur 2026-10-07) ; la commission est un montant fixe
-  // déduit du capital à chaque trade pris, gagnant ou perdant.
-  function simulate(trades, capital0, riskConfig, costs) {
+  function simulate(trades, capital0, riskConfig) {
     const ordered = sortedTrades(trades);
     let capital = capital0;
     let skipped = 0;
@@ -345,8 +340,6 @@
     const streaks = new Map(scopes.map((sc) => [sc.key, 0]));
     const streakOf = (k) => streaks.get(k) || 0;
     const assigned = new Array(ordered.length).fill(0);
-    const spreadR = (costs && costs.spreadR > 0) ? costs.spreadR : 0;
-    const commissionUsd = (costs && costs.commissionUsd) || 0;
     const curve = [{ date: toDate(ordered[0] && (ordered[0].open || ordered[0].date)), capital, trade: null, riskUsed: null }];
     buildEvents(ordered).forEach(([, kind, i]) => {
       const t = ordered[i];
@@ -354,10 +347,8 @@
       const risk = assigned[i];
       if (!(risk > 0)) skipped++;
       else {
-        let rr = isBE(t) ? 0 : Number(t.rr) || 0;
-        if (spreadR && rr > 0) rr -= spreadR;
+        const rr = isBE(t) ? 0 : Number(t.rr) || 0;
         capital = capital * (1 + (risk / 100) * rr);
-        if (commissionUsd) capital -= commissionUsd;
         curve.push({ date: toDate(t.close || t.open || t.date), capital, trade: t, riskUsed: risk });
       }
       const sl = isSL(t);
@@ -463,8 +454,8 @@
    * mois par mois) pour un jeu de trades + une config de risque donnee.
    * riskConfig: { risk: number (%), tiers: [{afterSl, newRisk}], rules?: [{conds:[{field,value}], afterSl, risk}] }
    */
-  function computeReport(trades, capital0, riskConfig, costs) {
-    const curve = simulate(trades, capital0, riskConfig || { risk: 1, tiers: [] }, costs);
+  function computeReport(trades, capital0, riskConfig) {
+    const curve = simulate(trades, capital0, riskConfig || { risk: 1, tiers: [] });
     const taken = curve.slice(1).map((pt) => pt.trade);
     const stats = computeStats(curve, taken);
     stats.skippedTrades = curve.skipped || 0;
