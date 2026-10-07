@@ -160,6 +160,29 @@ async function dispatch(sig) {
   } catch (e) { /* accounts-bridge injoignable : l'opportunité reste visible dans le panneau */ }
 }
 
+// Finalité d'une opportunité, recalculée à partir des bougies fermées suivant son apparition :
+// "active" tant que ni le stop ni un take profit ne sont touchés ; "tpN" dès que le niveau N est
+// touché (ne redescend jamais vers un TP inférieur, seulement vers un TP plus loin) ; "sl" si le
+// stop est touché avant tout TP. Un stop touché clôt définitivement le trade : il garde le dernier
+// TP déjà atteint (ou "sl" si aucun), même si le prix retouche un TP plus loin après coup.
+function tradeStatus(side, levels, bars, fromTime) {
+  if (!levels) return null;
+  const { sl, tps } = levels;
+  if (sl == null && (!tps || !tps.length)) return null;
+  let milestone = 0;
+  for (const b of bars) {
+    if (!(b.time > fromTime)) continue;
+    if (tps && tps.length) {
+      for (let i = tps.length - 1; i >= milestone; i--) {
+        const touched = side === "buy" ? b.high >= tps[i] : b.low <= tps[i];
+        if (touched) { milestone = i + 1; break; }
+      }
+    }
+    const slHit = sl != null && (side === "buy" ? b.low <= sl : b.high >= sl);
+    if (slHit) return milestone > 0 ? `tp${milestone}` : "sl";
+  }
+  return milestone > 0 ? `tp${milestone}` : "active";
+}
 async function scanCombo(code, tf) {
   const names = Object.keys(loadManifest());
   const now = Date.now();
@@ -189,6 +212,12 @@ async function scanCombo(code, tf) {
         if (known && a.time > wm) dispatch(sig);
       }
       if (a.time > wm) wm = a.time;
+    }
+    // Finalité (actif / TPn / SL) : recalculée à chaque passage à partir des bougies fermées
+    for (const s of SIGNALS) {
+      if (s.scanner !== name || s.symbol !== code || s.tf !== tf || !s.levels) continue;
+      const status = tradeStatus(s.side, s.levels, res.bars, s.time);
+      if (status !== s.status) { s.status = status; saveSignals(); }
     }
     WATERMARK.set(key, wm);
   }

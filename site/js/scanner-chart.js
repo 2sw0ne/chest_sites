@@ -269,14 +269,14 @@
       timeframe: VELA_TIMEFRAME_MAP[opts.timeframe] || '5m',
       data: bars,
       theme: 'dark',
-      timeScale: { timezone: 'Europe/Paris' }, // heure de Paris, DST géré automatiquement
       drawings: true,
     });
     chart.registerEngine('pine', new (remoteEngine(body.models))());
     for (let i = 0; i < body.models.length; i++) {
       await chart.addIndicator(`//@version=5\n//idx:${i}\nindicator("remote-${i}")`);
     }
-    try { chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES }); } catch (e) { console.warn('Scanner: couleurs de bougies non appliquees', e); }
+    // heure de Paris (DST géré automatiquement) : s'applique via applyConfig, pas via les options du constructeur
+    try { chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES, timeScale: { timezone: 'Europe/Paris' } }); } catch (e) { console.warn('Scanner: couleurs de bougies non appliquees', e); }
     await new Promise((resolve) => setTimeout(resolve, 1000));
     showLastBars(chart, bars, 150);
     if (fixedScale) freezeScaleToCandles(chart, bars.slice(-150));
@@ -323,7 +323,6 @@
       timeframe: VELA_TIMEFRAME_MAP[timeframe] || '15m',
       data: candleData,
       theme: 'dark', // le thème clair inverse la page entière
-      timeScale: { timezone: 'Europe/Paris' }, // heure de Paris, DST géré automatiquement
       drawings: true,
     });
 
@@ -346,7 +345,7 @@
     }
 
     try {
-      chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES });
+      chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES, timeScale: { timezone: 'Europe/Paris' } });
     } catch (e) {
       console.warn('Scanner: couleurs de bougies non appliquees', e);
     }

@@ -286,6 +286,11 @@
   .alr-last__field b.pe{ color:var(--ink); }
   .alr-last__field b.sl{ color:#ff4d5e; }
   .alr-last__field b.tp{ color:#33e6a6; }
+  .alr-last__field b.is-hit{ text-shadow:0 0 16px currentColor; }
+  .alr-last__status{ margin-left:auto; align-self:center; flex-shrink:0; display:inline-flex; align-items:center; height:26px; padding:0 12px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.05em; white-space:nowrap; }
+  .alr-last__status.is-active{ color:var(--muted); background:rgba(255,255,255,.05); border:1px solid var(--line2); }
+  .alr-last__status.is-tp{ color:#33e6a6; background:rgba(51,230,166,.12); border:1px solid rgba(51,230,166,.35); text-shadow:0 0 10px rgba(51,230,166,.5); }
+  .alr-last__status.is-sl{ color:#ff4d5e; background:rgba(255,77,94,.12); border:1px solid rgba(255,77,94,.35); text-shadow:0 0 10px rgba(255,77,94,.5); }
   .alr-last__empty{ font-size:12px; color:var(--muted); }
   .alr-bell{ position:relative; width:40px; height:40px; flex-shrink:0; border-radius:50%; border:1px solid var(--line2); background:var(--bg); color:var(--ink); display:grid; place-items:center; cursor:pointer; }
   .alr-bell svg{ width:18px; height:18px; }
@@ -673,18 +678,32 @@ CHESTTour.init([
     const t = new Date(mine.time);
     const hh = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
     const tps = lv.tps || (lv.tp != null ? [lv.tp] : []);
+    // Finalité : "active" tant que rien n'est touché, "tpN" dès que ce niveau est atteint (définitif
+    // sauf à monter vers un TP plus loin), "sl" si le stop est touché avant tout TP.
+    const stMatch = /^tp(\d+)$/.exec(mine.status || '');
+    const status = !mine.status || mine.status === 'active'
+      ? { label: 'ACTIF', cls: 'is-active' }
+      : mine.status === 'sl'
+      ? { label: 'SL TOUCHÉ', cls: 'is-sl' }
+      : stMatch
+      ? { label: 'TP' + stMatch[1] + ' ATTEINT', cls: 'is-tp', hitTp: Number(stMatch[1]) }
+      : null;
     const field = (label, value, cls) => `<div class="alr-last__field"><span>${label}</span><b class="${cls}">${value}</b></div>`;
     let fields = '';
     if (lv.pe != null) fields += field('Entrée', fmt(lv.pe), 'pe');
-    if (lv.sl != null) fields += field('Stop loss', fmt(lv.sl), 'sl');
-    tps.forEach((v, i) => { fields += field(tps.length > 1 ? 'Take profit ' + (i + 1) : 'Take profit', fmt(v), 'tp'); });
+    if (lv.sl != null) fields += field('Stop loss', fmt(lv.sl), 'sl' + (status && status.cls === 'is-sl' ? ' is-hit' : ''));
+    tps.forEach((v, i) => {
+      const hit = status && status.cls === 'is-tp' && status.hitTp === i + 1;
+      fields += field(tps.length > 1 ? 'Take profit ' + (i + 1) : 'Take profit', fmt(v), 'tp' + (hit ? ' is-hit' : ''));
+    });
     box.className = 'alr-last ' + (buy ? 'is-buy' : 'is-sell');
     box.innerHTML = `
       <div class="alr-last__head">
         <span class="alr-last__badge"><i></i>${buy ? 'ACHAT' : 'VENTE'}</span>
         <span class="alr-last__time">${hh} · ${timeAgo(mine.time)}</span>
       </div>
-      <div class="alr-last__fields">${fields}</div>`;
+      <div class="alr-last__fields">${fields}</div>
+      ${status ? `<span class="alr-last__status ${status.cls}">${status.label}</span>` : ''}`;
   }
   async function loadOpportunities() {
     try {
