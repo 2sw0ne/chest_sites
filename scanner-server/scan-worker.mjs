@@ -80,12 +80,12 @@ async function runOne(engine, path, isMain, all, bars, code, tf) {
 // Une étiquette donne son prix de deux façons : écrit dans son texte ("PE (4130.17)", "Exit 1: 4156.16",
 // "Target Zone 1\n4111.30"), ou porté par son ancre quand le texte n'est qu'un nom ("BUY", "-3", "S0").
 // Les plus récentes l'emportent. Renvoie { pe, sl, tps, tp } ou null si aucun trade n'est affiché.
-const labelsOf = (models) => models.flatMap((m) => (m.labels || []).map((l) => ({ text: String(l.text || "").trim(), y: Number(l.y) })));
-// Dernière étiquette dont le texte vérifie re : { m (correspondance), y (ancre) }
+const labelsOf = (models) => models.flatMap((m) => (m.labels || []).map((l) => ({ text: String(l.text || "").trim(), y: Number(l.y), style: l.style })));
+// Dernière étiquette dont le texte vérifie re : { m (correspondance), y (ancre), style }
 function lastMatch(L, re) {
   for (let i = L.length - 1; i >= 0; i--) {
     const m = L[i].text.match(re);
-    if (m) return { m, y: L[i].y };
+    if (m) return { m, y: L[i].y, style: L[i].style };
   }
   return null;
 }
@@ -121,16 +121,22 @@ function pivotLevels(L) {
   const ys = [...ladder.values()];
   const zones = buy ? ys.filter((y) => y < pe).sort((a, b) => b - a) : ys.filter((y) => y > pe).sort((a, b) => a - b);
   const tp = buy ? anchorOf(L, "S0") ?? anchorOf(L, "S0 (Weekly)") : anchorOf(L, "R8") ?? anchorOf(L, "R8 (Weekly)");
-  return { pe, sl: zones[1] ?? null, tps: tp != null ? [tp] : [] };
+  return { pe, sl: zones[1] ?? null, tps: tp != null ? [tp] : [], side: buy ? "buy" : "sell" };
 }
 const RULES = {
   // "BUY" / "SELL" (et "BUY+" / "SELL+") : étiquette posée au prix d'entrée, aucun autre niveau
-  algomni: (L) => ({ pe: lastMatch(L, /^(BUY|SELL)\+?$/)?.y ?? null }),
+  algomni: (L) => {
+    const r = lastMatch(L, /^(BUY|SELL)\+?$/);
+    return { pe: r?.y ?? null, side: r ? (r.m[1] === "BUY" ? "buy" : "sell") : null };
+  },
   "swyper-v6": (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
   wave: (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
   stars: (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
-  // Pulse n'affiche que le macro : entrée et sens, pas de SL ni de TP
-  pulse: (L) => ({ pe: paren(L, "PE") }),
+  // Pulse n'affiche que le macro : entrée et sens (flèche haut/bas), pas de SL ni de TP
+  pulse: (L) => {
+    const r = lastMatch(L, /^[▲▼]?\s*PE \((-?[0-9.]+)\)$/);
+    return { pe: r ? Number(r.m[1]) : null, side: r ? (r.style === "arrowup" ? "buy" : r.style === "arrowdown" ? "sell" : null) : null };
+  },
   nexus: (L) => ({
     pe: textPrice(L, /^Opportunity Zone\s*\n\s*(-?[0-9.]+)$/),
     sl: textPrice(L, /^Invalidation Zone\s*\n\s*(-?[0-9.]+)$/),
@@ -154,6 +160,14 @@ const RULES = {
     tps: seriesOf(L, (n) => new RegExp(`^TP${n}:\\s*(-?[0-9.]+)$`)),
   }),
 };
+// Sens du trade : donné explicitement par la règle (étiquette BUY/SELL, flèche) quand elle le sait,
+// sinon déduit de la position du stop ou du 1er TP par rapport à l'entrée (SL/TP sous l'entrée = vente).
+function inferSide(r) {
+  if (r.side) return r.side;
+  if (r.pe != null && r.sl != null) return r.sl < r.pe ? "buy" : "sell";
+  if (r.pe != null && r.tps && r.tps.length) return r.tps[0] < r.pe ? "sell" : "buy";
+  return null;
+}
 function extractLevels(scanner, models) {
   const L = labelsOf(models);
   const r = (RULES[scanner] || (() => ({})))(L);
@@ -161,7 +175,7 @@ function extractLevels(scanner, models) {
   const pe = r.pe ?? null;
   const sl = r.sl ?? null;
   if (pe == null && sl == null && !tps.length) return null;
-  return { pe, sl, tps, tp: tps.length ? tps[tps.length - 1] : null };
+  return { pe, sl, tps, tp: tps.length ? tps[tps.length - 1] : null, side: inferSide(r) };
 }
 
 let raw = "";

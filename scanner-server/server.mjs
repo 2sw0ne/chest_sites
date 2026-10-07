@@ -116,27 +116,31 @@ async function scannerModels(name, code, tf) {
   return out;
 }
 
-// ---------------- Opportunités (alertes BUY / SELL) ----------------
-// Certains scripts déclarent PLUSIEURS alertcondition différentes : la vraie entrée (avec niveaux),
-// et des indicateurs secondaires sans niveaux (tendance, cassure, retournement...). Sans ce filtre,
-// un signal décoratif peut s'afficher comme opportunité avec les niveaux d'un AUTRE trade, ou à la
-// place du vrai signal si les deux tombent sur la même bougie. Seul le titre exact de la vraie
-// entrée est retenu pour ces scanners (les autres gardent la détection générique ci-dessous).
-const TRADE_ALERT_TITLES = {
-  algomni: /^FINAL (BUY|SELL)\+?$/, // écarte UT Long/Short et les conditions "... internal"
-  wave: /^Signal (BUY|SELL) \(score\)$/, // écarte les cassures KDE et les retournements Exp-RSI
-};
-function sideOf(name, a) {
-  const t = `${a.title} ${a.message}`;
-  const only = TRADE_ALERT_TITLES[name];
-  if (only && !only.test(a.title)) return null;
-  if (/pullback|r[ée]action|[ée]tape [23]|internal/i.test(t)) return null;
-  if (/\b(BUY|LONG)\b|UT Long|haussi/i.test(t)) return "buy";
-  if (/\b(SELL|SHORT)\b|UT Short|baissi/i.test(t)) return "sell";
-  return null;
-}
+// ---------------- Opportunités (achat / vente) ----------------
+// L'alerte Pine (alertcondition) ne se déclenche que sur la TOUTE DERNIÈRE bougie calculée : si le
+// serveur rate ce passage précis (redémarrage, ralentissement...), le signal est perdu pour toujours,
+// même si l'étiquette reste bien visible sur le graphique. Détecté en vrai : Algomni/Wolf/Blood
+// affichaient un signal plus récent sur le graphique que celui montré par la carte (2026-10-07).
+// On détecte donc l'opportunité autrement : à chaque passage, `levels` (scan-worker.mjs) relit
+// l'étiquette ACTUELLE du trade dans l'historique complet des étiquettes (pas seulement la dernière
+// bougie) et calcule son sens. Dès que cette identité (sens + prix d'entrée) change par rapport à la
+// dernière connue pour ce scanner/paire/unité de temps, c'est un nouveau trade.
 let SIGNALS = [];
 try { if (existsSync(SIGNALS_FILE)) SIGNALS = JSON.parse(readFileSync(SIGNALS_FILE, "utf8")); } catch (e) { SIGNALS = []; }
+// Dernière identité connue ("sens|prix d'entrée") par scanner/paire/unité de temps, pour détecter un
+// changement de trade sans jamais redéclencher sur le même trade déjà vu. Reconstruite au démarrage
+// à partir des opportunités déjà enregistrées, pour ne pas les re-signaler comme "nouvelles" à froid.
+const LAST_TRADE = new Map();
+{
+  const latestByKey = new Map();
+  for (const s of SIGNALS) {
+    if (!s.levels || s.side == null || s.levels.pe == null) continue;
+    const k = `${s.scanner}|${s.symbol}|${s.tf}`;
+    const prev = latestByKey.get(k);
+    if (!prev || s.time > prev.time) latestByKey.set(k, s);
+  }
+  for (const [k, s] of latestByKey) LAST_TRADE.set(k, `${s.side}|${s.levels.pe}`);
+}
 function saveSignals() {
   try { writeFileSync(SIGNALS_FILE, JSON.stringify(SIGNALS), "utf8"); } catch (e) { /* volume absent en local : sans gravité */ }
 }
@@ -189,29 +193,24 @@ async function scanCombo(code, tf) {
   for (const name of names) {
     let res;
     try { res = await runScanner(name, code, tf, false); } catch (e) { continue; }
-    const alerts = res.alerts;
-    // Niveaux du dernier trade : rattachés à l'opportunité la plus récente de ce scanner
-    const lastTime = Math.max(-Infinity, ...alerts.filter((a) => sideOf(name, a) && typeof a.time === "number").map((a) => a.time));
     const key = `${name}|${code}|${tf}`;
-    const known = WATERMARK.has(key);
-    let wm = WATERMARK.get(key) ?? -Infinity;
-    for (const a of alerts) {
-      const side = sideOf(name, a);
-      if (!side || typeof a.time !== "number") continue;
-      if (a.time < now - OPPORTUNITY_WINDOW) continue;
-      const id = `${name}|${code}|${tf}|${a.time}`;
-      const existing = SIGNALS.find((s) => s.id === id);
-      // Opportunité déjà enregistrée sans niveaux (détectée avant cette version) : on les complète
-      if (existing) {
-        if (!existing.levels && a.time === lastTime && res.levels) { existing.levels = res.levels; saveSignals(); }
-      } else {
-        const sig = { id, scanner: name, symbol: code, tf, side, time: a.time, seenAt: now };
-        if (a.time === lastTime && res.levels) sig.levels = res.levels;
-        SIGNALS.push(sig);
-        // Notification uniquement pour une alerte NOUVELLE, sur un combo déjà suivi (jamais au premier calcul)
-        if (known && a.time > wm) dispatch(sig);
+    const known = WATERMARK.has(key); // déjà vu au moins une fois : jamais de notification au tout premier calcul
+    const lv = res.levels;
+    if (lv && lv.side && lv.pe != null) {
+      const identity = `${lv.side}|${lv.pe}`;
+      if (LAST_TRADE.get(key) !== identity) {
+        LAST_TRADE.set(key, identity);
+        // Bougie la plus récente du calcul = horodatage du trade (pas "maintenant") : l'étiquette peut
+        // être apparue plusieurs bougies avant d'être détectée (passage de service manqué, etc.)
+        const barTime = res.bars.length ? res.bars[res.bars.length - 1].time : now;
+        const id = `${name}|${code}|${tf}|${barTime}`;
+        if (!SIGNALS.some((s) => s.id === id)) {
+          const sig = { id, scanner: name, symbol: code, tf, side: lv.side, time: barTime, seenAt: now, levels: lv, status: "active" };
+          SIGNALS.push(sig);
+          saveSignals();
+          if (known) dispatch(sig);
+        }
       }
-      if (a.time > wm) wm = a.time;
     }
     // Finalité (actif / TPn / SL) : recalculée à chaque passage à partir des bougies fermées
     for (const s of SIGNALS) {
@@ -219,7 +218,7 @@ async function scanCombo(code, tf) {
       const status = tradeStatus(s.side, s.levels, res.bars, s.time);
       if (status !== s.status) { s.status = status; saveSignals(); }
     }
-    WATERMARK.set(key, wm);
+    WATERMARK.set(key, now);
   }
   // On garde les opportunités récentes ET, pour chaque scanner et paire, la dernière (même ancienne)
   const newest = new Map();
