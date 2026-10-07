@@ -343,7 +343,7 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/backtest-store.js?v=2"></script>
-<script src="js/backtest-engine.js?v=20"></script>
+<script src="js/backtest-engine.js?v=21"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/propfirm-fit.js?v=9"></script>
 <script src="js/page-tour.js"></script>
@@ -484,7 +484,7 @@ CHESTTour.init([
   document.getElementById('heroPeriod').textContent = monthCount;
   document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}`;
 
-  const heroReport = window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp));
+  const heroReport = window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp), record.costs);
   document.getElementById('heroGrade').textContent = computeGrade(heroReport.stats);
 
   let mmDetailAccount = 'cp';
@@ -680,8 +680,8 @@ CHESTTour.init([
   function journalReports() {
     if (!journalFullReports) {
       journalFullReports = {
-        cp: window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp)),
-        pf: hasPf ? window.CHESTBacktestEngine.computeReport(record.trades, pfCapital, riskCfg(record.pf)) : null,
+        cp: window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp), record.costs),
+        pf: hasPf ? window.CHESTBacktestEngine.computeReport(record.trades, pfCapital, riskCfg(record.pf), record.costs) : null,
       };
       const dates = journalFullReports.cp.curve.slice(1).map((pt) => pt.date).filter(Boolean);
       const last = dates.length ? dates.reduce((a, b) => (b > a ? b : a)) : new Date();
@@ -1226,8 +1226,8 @@ CHESTTour.init([
 
   function renderAll() {
     const trades = filteredTrades();
-    const cpReport = window.CHESTBacktestEngine.computeReport(trades, record.capital, riskCfg(record.cp));
-    const pfReport = hasPf ? window.CHESTBacktestEngine.computeReport(trades, pfCapital, riskCfg(record.pf)) : null;
+    const cpReport = window.CHESTBacktestEngine.computeReport(trades, record.capital, riskCfg(record.cp), record.costs);
+    const pfReport = hasPf ? window.CHESTBacktestEngine.computeReport(trades, pfCapital, riskCfg(record.pf), record.costs) : null;
     const slStreak = maxConsecutiveSl(trades);
     const counts = { TP: 0, SL: 0, BE: 0 };
     trades.forEach((t) => { const r = String(t.result).toUpperCase(); if (counts[r] != null) counts[r] += 1; });
