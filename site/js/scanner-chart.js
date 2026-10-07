@@ -269,6 +269,7 @@
       timeframe: VELA_TIMEFRAME_MAP[opts.timeframe] || '5m',
       data: bars,
       theme: 'dark',
+      timeScale: { timezone: 'Europe/Paris' }, // heure de Paris, DST géré automatiquement
       drawings: true,
     });
     chart.registerEngine('pine', new (remoteEngine(body.models))());
@@ -322,6 +323,7 @@
       timeframe: VELA_TIMEFRAME_MAP[timeframe] || '15m',
       data: candleData,
       theme: 'dark', // le thème clair inverse la page entière
+      timeScale: { timezone: 'Europe/Paris' }, // heure de Paris, DST géré automatiquement
       drawings: true,
     });
 

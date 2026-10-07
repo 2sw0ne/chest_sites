@@ -117,9 +117,20 @@ async function scannerModels(name, code, tf) {
 }
 
 // ---------------- Opportunités (alertes BUY / SELL) ----------------
-function sideOf(a) {
+// Certains scripts déclarent PLUSIEURS alertcondition différentes : la vraie entrée (avec niveaux),
+// et des indicateurs secondaires sans niveaux (tendance, cassure, retournement...). Sans ce filtre,
+// un signal décoratif peut s'afficher comme opportunité avec les niveaux d'un AUTRE trade, ou à la
+// place du vrai signal si les deux tombent sur la même bougie. Seul le titre exact de la vraie
+// entrée est retenu pour ces scanners (les autres gardent la détection générique ci-dessous).
+const TRADE_ALERT_TITLES = {
+  algomni: /^FINAL (BUY|SELL)\+?$/, // écarte UT Long/Short et les conditions "... internal"
+  wave: /^Signal (BUY|SELL) \(score\)$/, // écarte les cassures KDE et les retournements Exp-RSI
+};
+function sideOf(name, a) {
   const t = `${a.title} ${a.message}`;
-  if (/pullback|r[ée]action|[ée]tape [23]/i.test(t)) return null;
+  const only = TRADE_ALERT_TITLES[name];
+  if (only && !only.test(a.title)) return null;
+  if (/pullback|r[ée]action|[ée]tape [23]|internal/i.test(t)) return null;
   if (/\b(BUY|LONG)\b|UT Long|haussi/i.test(t)) return "buy";
   if (/\b(SELL|SHORT)\b|UT Short|baissi/i.test(t)) return "sell";
   return null;
@@ -157,12 +168,12 @@ async function scanCombo(code, tf) {
     try { res = await runScanner(name, code, tf, false); } catch (e) { continue; }
     const alerts = res.alerts;
     // Niveaux du dernier trade : rattachés à l'opportunité la plus récente de ce scanner
-    const lastTime = Math.max(-Infinity, ...alerts.filter((a) => sideOf(a) && typeof a.time === "number").map((a) => a.time));
+    const lastTime = Math.max(-Infinity, ...alerts.filter((a) => sideOf(name, a) && typeof a.time === "number").map((a) => a.time));
     const key = `${name}|${code}|${tf}`;
     const known = WATERMARK.has(key);
     let wm = WATERMARK.get(key) ?? -Infinity;
     for (const a of alerts) {
-      const side = sideOf(a);
+      const side = sideOf(name, a);
       if (!side || typeof a.time !== "number") continue;
       if (a.time < now - OPPORTUNITY_WINDOW) continue;
       const id = `${name}|${code}|${tf}|${a.time}`;
