@@ -24,7 +24,9 @@ CHEST_DEFAULT_PUSH_URL="https://accounts-bridge-production.up.railway.app/mt5/ea
 chest_prepare_ea() {
   log_info "CHEST: preparation de l'EA CHESTLive"
   EXP_DIR="$MT5/MQL5/Experts"
-  mkdir -p "$EXP_DIR" "$MT5/Config" || true
+  # Files/ (fichier d'etat de l'EA) et Logs/ (journal des Print) : absents de cette installation allegee,
+  # sans eux l'EA ne peut rien ecrire (Print et FileOpen echouent en silence).
+  mkdir -p "$EXP_DIR" "$MT5/Config" "$MT5/MQL5/Files" "$MT5/MQL5/Logs" || true
   if ! cp "$CHEST_EA_SRC" "$EXP_DIR/CHESTLive.mq5"; then
     log_info "CHEST: source de l'EA introuvable ($CHEST_EA_SRC)"
     return 0
@@ -127,6 +129,7 @@ chest_tail_logs() {
         # Contenu reel du fichier de demarrage et des profils (mot de passe masque) - diagnostic unique.
         tr -d '\r' < "$MT5/startup.ini" 2>/dev/null | sed -e 's/^Password=.*/Password=***/' -e 's/^/[STARTCFG] /'
         iconv -f UTF-16LE -t UTF-8 "$MT5/terminal.ini" 2>/dev/null | tr -d '\r' | grep -i -E 'profile|^\[' | head -n 12 | sed 's/^/[TERMINI] /'
+        log_info "CHEST: MQL5 = [$(ls "$MT5/MQL5" 2>/dev/null | tr '\n' ' ')]"
         log_info "CHEST: profils = [$(find "$MT5/Profiles" -maxdepth 3 2>/dev/null | sed "s|^$MT5/Profiles/||" | head -n 15 | tr '\n' ' ')]"
         log_info "CHEST: racine MT5 = [$(ls "$MT5" 2>/dev/null | tr '\n' ' ')] Profiles=[$(ls "$MT5/Profiles" 2>/dev/null | tr '\n' ' ')] Config=[$(ls "$MT5/Config" 2>/dev/null | tr '\n' ' ')]"
       fi
