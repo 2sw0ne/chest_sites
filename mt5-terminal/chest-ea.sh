@@ -134,6 +134,17 @@ chest_tail_logs() {
         log_info "CHEST: racine MT5 = [$(ls "$MT5" 2>/dev/null | tr '\n' ' ')] Profiles=[$(ls "$MT5/Profiles" 2>/dev/null | tr '\n' ' ')] Config=[$(ls "$MT5/Config" 2>/dev/null | tr '\n' ' ')]"
       fi
     fi
+    # Garde-fou : un compte est configure (MT5_LOGIN) mais l'EA n'a rien ecrit depuis plus de 2 min (apres 4 min
+    # de demarrage) - typiquement l'EA a ete retire parce que la synchro du symbole a expire avant la connexion
+    # au compte ("symbol synchronization timeout"). On arrete le terminal : main.sh se termine, Railway relance
+    # le conteneur (politique ALWAYS) et l'EA se rattache sur un terminal deja connecte.
+    if [ -n "${MT5_LOGIN:-}" ] && [ $((tick * 20)) -gt 240 ]; then
+      if ! find "$MT5/MQL5/Files/chest_status.txt" -mmin -2 2>/dev/null | grep -q .; then
+        log_info "CHEST: EA silencieux depuis plus de 2 min alors qu'un compte est configure - redemarrage du terminal"
+        pkill -f terminal64 2>/dev/null || kill $(ps 2>/dev/null | grep '[t]erminal64' | awk '{print $1}') 2>/dev/null || true
+        sleep 10
+      fi
+    fi
     # Etat ecrit par l'EA lui-meme (MQL5/Files/chest_status.txt) : recopie a chaque changement.
     stf="$MT5/MQL5/Files/chest_status.txt"
     if [ -f "$stf" ]; then

@@ -73,10 +73,34 @@ Puis dans le terminal (noVNC, temporaire) :
 L'EA est en **lecture seule** (aucun `OrderSend`). Utiliser le mot de passe **investisseur** : même si le
 conteneur était compromis, il ne pourrait pas trader.
 
-## Statut honnête
+## Diagnostic à distance (tout se lit dans les logs Railway du service)
 
-Écrit le 2026-10-09 à partir de l'historique de la v1. **Non compilé ni testé sur un vrai terminal** :
-`CHESTLive.mq5` n'a pas pu être compilé hors de MetaEditor (pas de Wine/MT5 en local). Côté serveur
-(`/mt5/ea-push`, `/mt5/live`, notifications, dédoublonnage) et côté navigateur (`js/mt5-live.js`), les
-tests locaux passent. Le premier point à valider en réel : que le terminal se connecte à ton compte
-Vantage depuis Railway (la connexion par la fenêtre MT5 fonctionnait déjà).
+Le conteneur recopie dans ses logs, sans noVNC : `[EA-COMPILE]` (compilation), `[STARTCFG]` (fichier de
+démarrage, mot de passe masqué), `[TERMINAL]`/`[TERMINAL2]` (journal du terminal : connexion au compte,
+EA chargé/retiré), `[EASTATUS]` (fichier `MQL5/Files/chest_status.txt` écrit par l'EA : code du WebRequest,
+autorisations, connexion) et une ligne `CHEST: etat` par minute (processus, fenêtres, EA compilé).
+Filtres utiles dans `get-logs` : `EASTATUS`, `TERMINAL2`, `CHEST: etat`, `Result:`.
+Pour VOIR l'écran : un proxy TCP Railway vers le port **5901** (websockify, chemin `/websockify`), puis un
+client noVNC 1.4 (`core/rfb.js` sur jsDelivr ; la 1.5 n'a plus de module ES) servi depuis une page locale en
+`ws://<hôte>:<port>/websockify`. **Supprimer le proxy juste après** : cet écran n'a pas de mot de passe.
+
+## Pièges trouvés le 2026-10-09 (tous corrigés dans `chest-ea.sh`)
+
+1. **`/config:C:/MT5/common.ini` était lu comme `C:\`** (journal : `successfully initialized from start config "C:\"`)
+   → le fichier de démarrage n'était JAMAIS appliqué. Il faut des antislashs (`/config:C:\MT5\startup.ini`).
+2. **Le `common.ini` de l'image est en UTF-16LE sans BOM** : ni autologin ni `[StartUp]` pris en compte. On
+   génère `startup.ini` en texte brut (forme documentée par MetaQuotes) et on y ajoute `[Experts]` + `[StartUp]`.
+3. **Journaux en minuscules** : `logs/` (et non `Logs/`). Et `MQL5/Files` + `MQL5/Logs` n'existent pas dans
+   cette installation allégée → créés au démarrage, sinon `Print`/`FileOpen` de l'EA échouent en silence.
+4. **Sans compte connecté, l'EA ne peut pas démarrer** : `initializing of CHESTLive failed with code 0
+   (symbol synchronization timeout)` puis `expert CHESTLive removed`. Le terminal affiche alors la modale
+   « Select a company to open an account with ». Il FAUT un compte (`MT5_LOGIN`/`MT5_PASSWORD`/`MT5_SERVER`,
+   plus `SERVER` = même valeur). Si l'EA est retiré malgré un compte (synchro expirée avant la connexion),
+   un garde-fou arrête le terminal après 4 min et Railway relance le conteneur (politique ALWAYS).
+
+## Statut
+
+Vérifié en production (logs Railway) : image figée par empreinte, patches vérifiés au build, EA compilé
+(0 erreur), `startup.ini` lu, EA attaché automatiquement, serveur (`/mt5/ea-push`, `/mt5/live`) et Dashboard
+testés. **Reste à valider avec un vrai compte** : connexion à Vantage depuis Railway, heartbeat puis envois
+réels (`[EASTATUS] push status=200`), puis positions/notifications.
