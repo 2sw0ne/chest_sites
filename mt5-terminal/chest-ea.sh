@@ -13,7 +13,7 @@
 # applique : ni autologin, ni [Experts], ni [StartUp]. Avec des antislashs (forme documentee par
 # MetaQuotes : /config:C:\chemin\fichier.ini) le chemin est correct.
 start_mt5() {
-  wine64 C:/MT5/terminal64.exe /portable '/config:C:\MT5\common.ini' &
+  wine64 C:/MT5/terminal64.exe /portable '/config:C:\MT5\startup.ini' &
   MT5_PID=$!
   wait_for_terminal64
 }
@@ -54,12 +54,19 @@ chest_prepare_ea() {
     log_info "CHEST: ECHEC de compilation de l'EA - voir les lignes [EA-COMPILE] ci-dessus"
   fi
 
-  # --- Fichier de demarrage : experts autorises + EA attache a un graphique ----------------------
-  STARTUP="$MT5/common.ini"
-  if [ -f "$STARTUP" ]; then
-    iconv -f UTF-16LE -t UTF-8 "$STARTUP" > /tmp/chest_common.txt 2>/dev/null || cp "$STARTUP" /tmp/chest_common.txt
-    awk '/^\[Experts\]/{skip=1; next} /^\[StartUp\]/{skip=1; next} /^\[/{skip=0} !skip{print}' /tmp/chest_common.txt > /tmp/chest_common2.txt
-    cat >> /tmp/chest_common2.txt <<EOFSTART
+  # --- Fichier de demarrage : TEXTE BRUT (forme documentee par MetaQuotes) ----------------------
+  # L'image upstream ecrit common.ini en UTF-16LE SANS BOM ; MT5 ne semble pas l'interpreter (ni autologin
+  # ni [StartUp] appliques). startup.ini est donc genere ici en texte brut CRLF, a partir des identifiants
+  # deja injectes par apply_mt5_config, auquel on ajoute les sections [Experts] et [StartUp].
+  STARTUP="$MT5/startup.ini"
+  if [ -f "$MT5/common.ini" ]; then
+    iconv -f UTF-16LE -t UTF-8 "$MT5/common.ini" 2>/dev/null | tr -d '\r' > /tmp/chest_common.txt || : > /tmp/chest_common.txt
+  else
+    : > /tmp/chest_common.txt
+  fi
+  grep -q '^\[Common\]' /tmp/chest_common.txt || printf '[Common]\nLogin=%s\nServer=%s\nPassword=%s\n' "${MT5_LOGIN:-}" "${MT5_SERVER:-}" "${MT5_PASSWORD:-}" > /tmp/chest_common.txt
+  awk '/^\[Experts\]/{skip=1; next} /^\[StartUp\]/{skip=1; next} /^\[/{skip=0} !skip{print}' /tmp/chest_common.txt > /tmp/chest_common2.txt
+  cat >> /tmp/chest_common2.txt <<EOFSTART
 [Experts]
 Enabled=1
 AllowLiveTrading=1
@@ -72,21 +79,18 @@ Expert=CHESTLive
 Symbol=EURUSD
 Period=M5
 EOFSTART
-    iconv -f UTF-8 -t UTF-16LE /tmp/chest_common2.txt > "$STARTUP" || true
-    rm -f /tmp/chest_common.txt /tmp/chest_common2.txt
-    log_info "CHEST: demarrage configure (experts + WebRequest $ORIGIN + EA attache a EURUSD M5)"
-  else
-    log_info "CHEST: $STARTUP absent - EA non attache automatiquement"
-  fi
+  awk '{printf "%s\r\n", $0}' /tmp/chest_common2.txt > "$STARTUP"
+  rm -f /tmp/chest_common.txt /tmp/chest_common2.txt
+  log_info "CHEST: startup.ini genere en texte brut (experts + WebRequest $ORIGIN + EA attache a EURUSD M5)"
 
-  # Reglages propres du terminal (Config/common.ini) : memes cles, section [Experts] seulement.
+  # Reglages propres du terminal (Config/common.ini) : UTF-16LE AVEC BOM, comme les ecrit MT5 lui-meme.
   TERMCFG="$MT5/Config/common.ini"
   if [ -f "$TERMCFG" ]; then
-    iconv -f UTF-16LE -t UTF-8 "$TERMCFG" > /tmp/chest_term.txt 2>/dev/null || cp "$TERMCFG" /tmp/chest_term.txt
-    awk '/^\[Experts\]/{skip=1; next} /^\[/{skip=0} !skip{print}' /tmp/chest_term.txt > /tmp/chest_term2.txt
+    iconv -f UTF-16 -t UTF-8 "$TERMCFG" 2>/dev/null | tr -d '\r' > /tmp/chest_term.txt || : > /tmp/chest_term.txt
   else
-    : > /tmp/chest_term2.txt
+    : > /tmp/chest_term.txt
   fi
+  awk '/^\[Experts\]/{skip=1; next} /^\[/{skip=0} !skip{print}' /tmp/chest_term.txt > /tmp/chest_term2.txt
   cat >> /tmp/chest_term2.txt <<EOFTERM
 [Experts]
 Enabled=1
@@ -95,7 +99,7 @@ AllowDllImport=0
 WebRequest=1
 WebRequestUrl=$ORIGIN
 EOFTERM
-  iconv -f UTF-8 -t UTF-16LE /tmp/chest_term2.txt > "$TERMCFG" || true
+  { printf '\377\376'; awk '{printf "%s\r\n", $0}' /tmp/chest_term2.txt | iconv -f UTF-8 -t UTF-16LE; } > "$TERMCFG" || true
   rm -f /tmp/chest_term.txt /tmp/chest_term2.txt
   return 0
 }
@@ -121,7 +125,7 @@ chest_tail_logs() {
       log_info "CHEST: etat - terminal64 procs=$procs fenetres=$wins ex5=$ex5 Logs=[$tlogs] MQL5/Logs=[$elogs] tous-logs=[$alllogs] titres=[$titles]"
       if [ "$tick" -eq 1 ]; then
         # Contenu reel du fichier de demarrage et des profils (mot de passe masque) - diagnostic unique.
-        iconv -f UTF-16LE -t UTF-8 "$MT5/common.ini" 2>/dev/null | tr -d '\r' | sed -e 's/^Password=.*/Password=***/' -e 's/^/[STARTCFG] /'
+        tr -d '\r' < "$MT5/startup.ini" 2>/dev/null | sed -e 's/^Password=.*/Password=***/' -e 's/^/[STARTCFG] /'
         iconv -f UTF-16LE -t UTF-8 "$MT5/terminal.ini" 2>/dev/null | tr -d '\r' | grep -i -E 'profile|^\[' | head -n 12 | sed 's/^/[TERMINI] /'
         log_info "CHEST: profils = [$(find "$MT5/Profiles" -maxdepth 3 2>/dev/null | sed "s|^$MT5/Profiles/||" | head -n 15 | tr '\n' ' ')]"
         log_info "CHEST: racine MT5 = [$(ls "$MT5" 2>/dev/null | tr '\n' ' ')] Profiles=[$(ls "$MT5/Profiles" 2>/dev/null | tr '\n' ' ')] Config=[$(ls "$MT5/Config" 2>/dev/null | tr '\n' ' ')]"
