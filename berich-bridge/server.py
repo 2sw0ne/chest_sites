@@ -143,7 +143,19 @@ def webhook():
 
 @app.get("/signals")
 def signals():
-    return jsonify(_load())
+    # CORS ouvert en lecture : berich.html (domaine Vercel) lit cette route depuis le navigateur.
+    # Sans cet en-tête le navigateur bloque la reponse et la page affichait « Impossible de
+    # charger les signaux » alors que les webhooks arrivaient bien (verifie en production le
+    # 2026-10-09). Donnees non sensibles, comme calendar-bridge.
+    resp = jsonify(_load())
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@app.get("/health")
+def health():
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

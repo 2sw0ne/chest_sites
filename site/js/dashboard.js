@@ -76,6 +76,9 @@
   let activeAccountData = null; // compte actif, enrichi des vraies donnees Myfxbook si besoin (voir refreshActiveAccount)
   let liveFloating = null; // P&L flottant estimé des positions ouvertes (js/live-sim.js), null = pas de suivi live
   let liveSimAccountId = null;
+  let mt5Snap = null; // instantané EXACT du terminal MT5 (js/mt5-live.js), null = pas d'EA récent -> Myfxbook + suivi estimé
+  let liveRealizedDelta = 0; // gains/pertes déjà clôturés sur MT5 mais pas encore vus par Myfxbook
+  let mt5RenderKey = '';
 
   function loadAccounts() {
     let list;
@@ -233,8 +236,38 @@
   }
 
   function onLiveSimUpdate(state) {
+    if (mt5Snap) return; // le flux MT5 exact prime sur l'estimation
     liveFloating = state.error ? null : state.floating;
     if (activeAccountData && activeAccountData.myfxbook) renderAll();
+  }
+
+  // Flux MT5 en direct (compte Live Swann uniquement : un seul terminal, celui de l'admin). Quand un
+  // instantané récent existe, il remplace le suivi estimé : P&L flottant exact, et le solde réel vient
+  // du terminal (Myfxbook peut avoir des heures de retard sur les positions clôturées).
+  function onMt5Update(snap) {
+    const wasLive = !!mt5Snap;
+    mt5Snap = snap || null;
+    if (!activeAccountData || !activeAccountData.isLiveSwann) return;
+    if (snap) {
+      if (window.CHESTLiveSim) window.CHESTLiveSim.stop();
+      liveFloating = typeof snap.floating === 'number' ? snap.floating : 0;
+      const key = [snap.balance, snap.floating, (snap.positions || []).length].join('|');
+      if (key !== mt5RenderKey) { mt5RenderKey = key; renderAll(); }
+    } else if (wasLive) {
+      mt5RenderKey = '';
+      liveFloating = null;
+      renderAll(); // renderAll relance le suivi estimé de secours
+    }
+  }
+
+  // Part du solde MT5 que Myfxbook n'a pas encore vue (positions clôturées entre deux synchros). Ignorée
+  // si un dépôt/retrait récent a pu fausser l'écart, ou si l'écart est aberrant (autre compte, devise...).
+  function realizedDeltaFromMt5(mfxBalance) {
+    if (!mt5Snap || typeof mt5Snap.balance !== 'number' || !mfxBalance) return 0;
+    const d = mt5Snap.balance - mfxBalance;
+    const recentBalanceOp = mt5Snap.balanceOpAt && (Date.now() / 1000 - mt5Snap.balanceOpAt) < 6 * 3600;
+    if (recentBalanceOp || Math.abs(d) > 0.25 * mfxBalance || Math.abs(d) < 0.01) return 0;
+    return d;
   }
 
   // Courbe INTRA-JOURNEE pour l'onglet "Jour" : dailyHistory n'a qu'UN point
@@ -1286,7 +1319,9 @@
     // sur SAMPLE_PERIODS (compte de demo).
     if (activeAccountData.myfxbook) {
       if (activeAccountData.startCapital) startCapitalById[activeAccountData.id] = activeAccountData.startCapital;
-      const live = withLiveFloating(buildDailyHistory(activeAccountData), activeAccountData.balance, liveFloating);
+      liveRealizedDelta = activeAccountData.isLiveSwann ? realizedDeltaFromMt5(activeAccountData.balance) : 0;
+      const live = withLiveFloating(buildDailyHistory(activeAccountData), activeAccountData.balance,
+        liveFloating == null ? null : liveFloating + liveRealizedDelta);
       if (liveFloating != null) {
         activeAccountData.equity = live.balance;
         activeAccountData.pnl = liveFloating;
@@ -1775,10 +1810,12 @@
     if (activeAccountData.id !== lastCalAccountId) { calOffsetDays = 0; lastCalAccountId = activeAccountData.id; }
     renderPayouts(activeAccountData);
     renderMiniCalendar(activeAccountData);
-    if (activeAccountData.myfxbook && window.CHESTLiveSim) {
+    if (activeAccountData.isLiveSwann && window.CHESTMt5Live) window.CHESTMt5Live.start(onMt5Update);
+    else if (window.CHESTMt5Live) { window.CHESTMt5Live.stop(); mt5Snap = null; liveRealizedDelta = 0; }
+    if (activeAccountData.myfxbook && window.CHESTLiveSim && !mt5Snap) {
       if (liveSimAccountId !== activeAccountData.id) { liveFloating = null; liveSimAccountId = activeAccountData.id; }
       window.CHESTLiveSim.start(activeAccountData.myfxbook, onLiveSimUpdate);
-    } else if (window.CHESTLiveSim) {
+    } else if (!activeAccountData.myfxbook && window.CHESTLiveSim) {
       window.CHESTLiveSim.stop();
       liveFloating = null;
       liveSimAccountId = null;

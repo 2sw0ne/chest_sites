@@ -112,6 +112,13 @@ VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:swann.lafon@gmai
 # volontairement simple vu l'echelle du projet (3 services Railway, tous a moi).
 INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
 
+# Secret DEDIE a l'Expert Advisor MT5 (mt5-terminal/CHESTLive.mq5, 2026-10-09) - volontairement
+# different d'INTERNAL_PUSH_SECRET : il vit en clair dans un fichier a l'interieur du terminal Wine,
+# une frontiere de confiance plus faible que nos autres services Railway.
+MT5_EA_SECRET = os.environ.get("MT5_EA_SECRET", "")
+# Au-dela de cet age, un instantane MT5 n'est plus "en direct" : le Dashboard retombe sur Myfxbook.
+MT5_SNAPSHOT_FRESH_SECONDS = 90
+
 # Notification email a chaque nouvelle inscription en attente - toutes ces
 # variables sont optionnelles ; s'il en manque une, on logue et on continue
 # sans email plutot que de faire echouer l'inscription pour ca.
@@ -227,6 +234,25 @@ def init_db():
         # Comptes rendus semaine/mois deja envoyes (2026-10-01, voir check_digests) - une ligne par
         # periode, pour ne jamais renvoyer le meme compte rendu apres un redemarrage.
         db.execute("CREATE TABLE IF NOT EXISTS push_digest_log (period_key TEXT PRIMARY KEY, sent_at TEXT)")
+        # Dernier instantane du terminal MT5 (solde, equity, positions ouvertes) pousse par l'EA
+        # CHESTLive - un enregistrement par compte MT5 (login), toujours ecrase par le plus recent.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mt5_live_snapshot (
+                login TEXT PRIMARY KEY,
+                data TEXT NOT NULL,
+                received_at TEXT NOT NULL
+            )
+        """)
+        # Evenements deja notifies (ouverture/cloture d'un deal) : l'EA peut renvoyer le meme deal
+        # apres un redemarrage, une cle primaire (login, ticket, kind) garantit une seule notification.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mt5_ea_events (
+                login TEXT NOT NULL,
+                ticket INTEGER NOT NULL,
+                kind TEXT NOT NULL,
+                PRIMARY KEY (login, ticket, kind)
+            )
+        """)
         # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
         # plusieurs appareils abonnés (PC + téléphone), chacun avec son propre "endpoint".
         db.execute("""
@@ -1290,6 +1316,106 @@ def push_broadcast():
         return jsonify(send_typed_push(ntype, url, lambda db, uid, p: message))
     result = send_push_to_all(title or "CHEST", text, url)
     return jsonify(result)
+
+
+# ---------------------------------------------------------------- Compte MT5 en direct (2026-10-09)
+# Myfxbook ne se resynchronise qu'a ses propres moments (parfois des heures) : impossible de detecter
+# une position prise ni de tenir le solde a jour. Un Expert Advisor (mt5-terminal/CHESTLive.mq5) tourne
+# dans le vrai terminal MT5 et POUSSE ici, via WebRequest, un instantane (solde, equity, positions
+# ouvertes) toutes les quelques secondes + a chaque deal. Aucun sondage externe, aucune API Python
+# MT5 (RPyC/mt5.login), qui avaient provoque les timeouts de l'ancienne version.
+def _mt5_event_message(db, user_id, prefs, ev, snap):
+    name = _family_name(db, user_id)
+    side = "BUY" if str(ev.get("side")) == "BUY" else "SELL"
+    symbol = str(ev.get("symbol") or "").strip()
+    if ev.get("kind") == "open":
+        arrow = "📈" if side == "BUY" else "📉"
+        return f"{name} - Vous avez pris un {side} {symbol} {arrow}".replace("  ", " ")
+    net = _num(ev.get("profit"))
+    balance = _num(snap.get("balance"))
+    pct = (net / (balance - net) * 100.0) if (net is not None and balance and balance - net > 0) else None
+    reason = int(ev.get("reason") or -1)
+    # ENUM_DEAL_REASON (doc MQL5) : 4 = SL, 5 = TP, 6 = Stop Out ; le reste = cloture manuelle/autre.
+    mark = {5: "TP✔️", 4: "SL❌", 6: "Stop Out ❌"}.get(reason, "Clôturé ✔️" if (net or 0) >= 0 else "Clôturé ❌")
+    return f"{name} - {mark} {_fmt_value(prefs, net, pct)}".strip()
+
+
+@app.route("/mt5/ea-push", methods=["POST"])
+def mt5_ea_push():
+    if not MT5_EA_SECRET or request.headers.get("X-EA-Secret") != MT5_EA_SECRET:
+        return jsonify({"error": "Non autorisé."}), 401
+    body = request.get_json(silent=True) or {}
+    if body.get("heartbeat"):
+        # L'EA tourne mais aucun compte n'est connecte : on confirme juste que l'URL/secret fonctionnent.
+        return jsonify({"ok": True, "heartbeat": True})
+    login = str(body.get("login") or "").strip()
+    if not login or login == "0":
+        return jsonify({"error": "login requis."}), 400
+
+    positions = []
+    for p in (body.get("positions") or [])[:60]:
+        if not isinstance(p, dict):
+            continue
+        positions.append({
+            "ticket": int(_num(p.get("ticket")) or 0),
+            "symbol": str(p.get("symbol") or "")[:24],
+            "side": "BUY" if str(p.get("side")) == "BUY" else "SELL",
+            "volume": _num(p.get("volume")), "open": _num(p.get("open")), "current": _num(p.get("current")),
+            "sl": _num(p.get("sl")), "tp": _num(p.get("tp")),
+            "profit": _num(p.get("profit")), "swap": _num(p.get("swap")), "time": int(_num(p.get("time")) or 0),
+        })
+    snap = {
+        "login": login, "server": str(body.get("server") or "")[:64], "currency": str(body.get("currency") or "")[:8],
+        "balance": _num(body.get("balance")), "equity": _num(body.get("equity")),
+        "margin": _num(body.get("margin")), "floating": _num(body.get("floating")),
+        "balanceOpAt": int(_num(body.get("balanceOpAt")) or 0),  # derniere operation de solde (depot/retrait), epoch s
+        "positions": positions,
+    }
+    if snap["balance"] is None or snap["equity"] is None:
+        return jsonify({"error": "balance et equity requis."}), 400
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    ev = body.get("event") if isinstance(body.get("event"), dict) else None
+    is_new_event = False
+    with db_lock:
+        db = get_db()
+        db.execute(
+            "INSERT INTO mt5_live_snapshot (login, data, received_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(login) DO UPDATE SET data = excluded.data, received_at = excluded.received_at",
+            (login, json.dumps(snap), now),
+        )
+        if ev and ev.get("kind") in ("open", "close") and _num(ev.get("ticket")):
+            cur = db.execute("INSERT OR IGNORE INTO mt5_ea_events (login, ticket, kind) VALUES (?, ?, ?)",
+                             (login, int(_num(ev["ticket"])), ev["kind"]))
+            is_new_event = cur.rowcount > 0
+        db.commit()
+
+    result = {"ok": True}
+    if is_new_event:
+        ntype = "position_open" if ev["kind"] == "open" else "position_close"
+        # Compte personnel de l'admin : jamais envoye aux autres membres.
+        result["push"] = send_typed_push(
+            ntype, "dashboard.html",
+            lambda db_, uid, prefs: _mt5_event_message(db_, uid, prefs, ev, snap),
+            admins_only=True,
+        )
+    return jsonify(result)
+
+
+@app.route("/mt5/live")
+def mt5_live():
+    user = approved_user()
+    if not user or not user["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    with db_lock:
+        row = get_db().execute("SELECT data, received_at FROM mt5_live_snapshot ORDER BY received_at DESC LIMIT 1").fetchone()
+    if not row:
+        return jsonify({"connected": False})
+    received = datetime.strptime(row["received_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    age = (datetime.now(timezone.utc) - received).total_seconds()
+    snap = json.loads(row["data"])
+    return jsonify({"connected": True, "fresh": age <= MT5_SNAPSHOT_FRESH_SECONDS, "ageSeconds": int(age),
+                    "receivedAt": row["received_at"], **snap})
 
 
 # ---------------------------------------------------------------- Comptes rendus semaine / mois

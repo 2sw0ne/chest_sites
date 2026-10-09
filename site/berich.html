@@ -585,10 +585,11 @@
   const invalidated = loadInvalidated();
 
   async function fetchCurrentXauPrice() {
-    const key = window.CHEST_CONFIG && window.CHEST_CONFIG.twelveDataApiKey;
-    if (!key) return null;
+    // La clé Twelve Data n'est plus côté navigateur : relais authentifié d'accounts-bridge.
     try {
-      const res = await fetch(`https://api.twelvedata.com/price?symbol=XAU/USD&apikey=${key}`);
+      const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+      const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+      const res = await fetch(`${base}/twelvedata/price?symbol=${encodeURIComponent('XAU/USD')}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
       const json = await res.json();
       const price = parseFloat(json.price);
       return isNaN(price) ? null : price;
