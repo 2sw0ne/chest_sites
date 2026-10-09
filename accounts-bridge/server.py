@@ -255,6 +255,16 @@ def init_db():
         """)
         # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
         # plusieurs appareils abonnés (PC + téléphone), chacun avec son propre "endpoint".
+        # Backtests partagés entre membres : une copie en attente dans la boîte du destinataire, supprimée dès qu'il l'a reçue.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS shared_backtests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_user INTEGER NOT NULL,
+                to_user INTEGER NOT NULL,
+                payload TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS alert_rules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -449,6 +459,93 @@ def list_members():
     db = get_db()
     rows = db.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
     return jsonify({"members": [user_public(r) for r in rows]})
+
+
+# ---------------------------------------------------------------- Partage de backtests entre membres
+@app.route("/members/search")
+def members_search():
+    """Recherche d'un membre approuvé par prénom / nom, pour lui envoyer un backtest. Ne renvoie jamais l'e-mail."""
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    q = (request.args.get("q") or "").strip().lower()
+    if len(q) < 2:
+        return jsonify({"members": []})
+    db = get_db()
+    rows = db.execute(
+        "SELECT id, first_name, last_name FROM users WHERE status = 'approved' AND id != ? ORDER BY first_name, last_name",
+        (user["id"],),
+    ).fetchall()
+    words = q.split()
+    out = []
+    for r in rows:
+        full = f"{r['first_name']} {r['last_name']}".lower()
+        if all(w in full for w in words):
+            out.append({"id": r["id"], "name": f"{r['first_name']} {r['last_name']}".strip()})
+        if len(out) >= 8:
+            break
+    return jsonify({"members": out})
+
+
+@app.route("/backtests/share", methods=["POST"])
+def backtests_share():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    to_id = body.get("toUserId")
+    bt = body.get("backtest")
+    if not isinstance(to_id, int) or not isinstance(bt, dict) or not isinstance(bt.get("trades"), list):
+        return jsonify({"error": "Demande invalide."}), 400
+    db = get_db()
+    dest = db.execute("SELECT id, first_name, last_name FROM users WHERE id = ? AND status = 'approved'", (to_id,)).fetchone()
+    if not dest or dest["id"] == user["id"]:
+        return jsonify({"error": "Membre introuvable."}), 404
+    # On ne garde que ce qui décrit le backtest : jamais d'identifiant local ni de réglage de partage d'origine.
+    keep = {k: bt.get(k) for k in ("title", "description", "capital", "pfCapital", "cp", "pf", "trades")}
+    payload = json.dumps({
+        "backtest": keep,
+        "from": {"name": f"{user['first_name']} {user['last_name']}".strip()},
+    }, separators=(",", ":"))
+    if len(payload) > 40 * 1024 * 1024:
+        return jsonify({"error": "Backtest trop volumineux pour être partagé."}), 413
+    with db_lock:
+        db.execute(
+            "INSERT INTO shared_backtests (from_user, to_user, payload, created_at) VALUES (?, ?, ?, ?)",
+            (user["id"], dest["id"], payload, datetime.now(timezone.utc).isoformat()),
+        )
+        db.commit()
+    return jsonify({"ok": True, "to": f"{dest['first_name']} {dest['last_name']}".strip()})
+
+
+@app.route("/backtests/inbox")
+def backtests_inbox():
+    """Backtests reçus et pas encore récupérés par ce membre."""
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    rows = db.execute("SELECT id, payload, created_at FROM shared_backtests WHERE to_user = ? ORDER BY id", (user["id"],)).fetchall()
+    items = []
+    for r in rows:
+        try:
+            d = json.loads(r["payload"])
+        except ValueError:
+            continue
+        items.append({"id": r["id"], "from": d.get("from"), "backtest": d.get("backtest"), "createdAt": r["created_at"]})
+    return jsonify({"items": items})
+
+
+@app.route("/backtests/inbox/<int:item_id>/ack", methods=["POST"])
+def backtests_inbox_ack(item_id):
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    with db_lock:
+        db = get_db()
+        db.execute("DELETE FROM shared_backtests WHERE id = ? AND to_user = ?", (item_id, user["id"]))
+        db.commit()
+    return jsonify({"ok": True})
 
 
 @app.route("/members/<int:member_id>/approve", methods=["POST"])
@@ -935,7 +1032,8 @@ def alerts_dispatch():
     if scanner not in ALERT_SCANNERS or tf not in ALERT_TF_LABEL or side not in ("buy", "sell") or not re.fullmatch(r"[A-Z]{6}", str(symbol)):
         return jsonify({"error": "événement invalide"}), 400
     name, logo = ALERT_SCANNERS[scanner]
-    body_text = f"{'BUY' if side == 'buy' else 'SELL'} détectée sur {symbol} en {ALERT_TF_LABEL[tf]} !"
+    arrow = "📈" if side == "buy" else "📉"
+    body_text = f"{arrow} {'BUY' if side == 'buy' else 'SELL'} détectée sur {symbol} en {ALERT_TF_LABEL[tf]} !"
     db = get_db()
     sent = 0
     for rule in db.execute("SELECT * FROM alert_rules").fetchall():

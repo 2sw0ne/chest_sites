@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<link rel="stylesheet" href="css/backtest-da.css?v=12">
+<link rel="stylesheet" href="css/backtest-da.css?v=14">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -242,6 +242,12 @@
     </header>
 
 
+<div class="bt-loading" id="btLoading" role="status" aria-live="polite" aria-hidden="true">
+  <div class="bt-loading__card">
+    <span class="bt-loading__ring" aria-hidden="true"></span>
+    <span class="bt-loading__txt">Calcul en cours<i></i></span>
+  </div>
+</div>
 <main class="bt-main" id="mainZone">
   <div class="empty-note" id="emptyNote" style="display:none">Backtest introuvable. <a href="backtesting.html">Retour au hub</a>.</div>
 
@@ -249,6 +255,15 @@
 
     <section class="bt-hero-glow">
       <a href="backtesting.html" class="chest-back">← Backtesting</a>
+      <div class="bt-menu" id="btMenuWrap">
+        <button type="button" class="bt-menu__btn" id="btMenuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Options du backtest">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="bt-menu__list" id="btMenuList" hidden>
+          <button type="button" id="btDownload">Télécharger en HTML</button>
+          <button type="button" id="btShare">Partager à un membre</button>
+        </div>
+      </div>
       <div class="bt-hero-glow__inner">
         <span class="bt-hero-glow__badge" id="heroBadge"></span>
         <h1 class="bt-hero-glow__title" id="heroTitle"></h1>
@@ -343,6 +358,7 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/backtest-store.js?v=2"></script>
+<script src="js/backtest-share.js?v=3"></script>
 <script src="js/backtest-engine.js?v=20"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/propfirm-fit.js?v=9"></script>
@@ -398,12 +414,25 @@ CHESTTour.init([
   const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
   const MONTHS_FR_SHORT = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
 
-  function fmtMoney(v) { return '$' + Math.round(v).toLocaleString('fr-FR'); }
+  // Montants géants (résultats composés) : forme compacte dès le milliard, sinon les chiffres débordent de leur case.
+  const frDec = (v) => v.toFixed(1).replace('.', ',');
+  function compactBig(a) {
+    return a >= 1e15 ? a.toExponential(1).replace('.', ',').replace('e+', 'e') : a >= 1e12 ? frDec(a / 1e12) + ' T' : a >= 1e9 ? frDec(a / 1e9) + ' Md' : a >= 1e6 ? frDec(a / 1e6) + ' M' : null;
+  }
+  function fmtMoney(v) {
+    const a = Math.abs(v), c = a >= 1e9 ? compactBig(a) : null;
+    return (v < 0 ? '−' : '') + '$' + (c || Math.round(a).toLocaleString('fr-FR'));
+  }
+  // Graduations de l'axe : toujours courtes.
+  function fmtMoneyTick(v) {
+    const a = Math.abs(v), c = compactBig(a);
+    return '$' + (c || (a >= 1e4 ? Math.round(a / 1e3).toLocaleString('fr-FR') + ' k' : Math.round(a).toLocaleString('fr-FR')));
+  }
   function fmtMoneySigned(v) { return (v >= 0 ? '+' : '−') + Math.round(Math.abs(v)).toLocaleString('fr-FR'); }
   function fmtPct(v) {
     if (Math.abs(v) >= 1e5) { // résultats composés géants : plus lisibles en multiple du capital
       const m = 1 + v / 100;
-      return '×' + (m >= 1e12 ? (m / 1e12).toFixed(1).replace('.', ',') + ' T' : m >= 1e9 ? (m / 1e9).toFixed(1).replace('.', ',') + ' Md' : m >= 1e6 ? (m / 1e6).toFixed(1).replace('.', ',') + ' M' : Math.round(m).toLocaleString('fr-FR'));
+      return '×' + (m >= 1e15 ? m.toExponential(1).replace('.', ',').replace('e+', 'e') : m >= 1e12 ? (m / 1e12).toFixed(1).replace('.', ',') + ' T' : m >= 1e9 ? (m / 1e9).toFixed(1).replace('.', ',') + ' Md' : m >= 1e6 ? (m / 1e6).toFixed(1).replace('.', ',') + ' M' : Math.round(m).toLocaleString('fr-FR'));
     }
     return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
   }
@@ -444,15 +473,27 @@ CHESTTour.init([
     });
     return max;
   }
-  // Note synthetique E->S a partir des resultats du backtesting (heuristique
-  // transparente, pas un vrai systeme de certification) : combine retour,
-  // drawdown max, profit factor et taux de reussite en un score sur 100.
-  function computeGrade(stats) {
-    const perfPts = Math.max(0, Math.min(stats.performancePct, 200)) / 200 * 40;
-    const ddPts = Math.max(0, Math.min(30, 30 - stats.maxDrawdownPct * 0.75));
-    const pfPts = stats.profitFactor != null ? Math.max(0, Math.min(stats.profitFactor, 3)) / 3 * 20 : 0;
-    const wrPts = Math.max(0, Math.min(stats.winRatePct, 70)) / 70 * 10;
-    const score = perfPts + ddPts + pfPts + wrPts;
+  // Note E -> S (heuristique transparente, pas une certification) : 50 % expansion du compte + 50 % cohérence.
+  //  - Expansion : croissance mensuelle moyenne composée (8 % par mois = score plein).
+  //  - Cohérence : part de mois positifs, régularité de la courbe (R² du log du capital) et drawdown max (40 % = score nul).
+  // Calculée sur le compte propfirm quand il existe (c'est le capital affiché), sinon sur le compte propre.
+  function computeGrade(report) {
+    const curve = report.curve, months = report.monthly || [];
+    const start = curve[0].capital, end = curve[curve.length - 1].capital;
+    if (!(start > 0) || !(end > 0) || curve.length < 3 || !months.length) return 'E';
+    const g = Math.pow(end / start, 1 / months.length) - 1;
+    const expansion = Math.max(0, Math.min(1, g / 0.08));
+    const posShare = months.filter((m) => m.pct > 0).length / months.length;
+    // R² de ln(capital) contre le rang du trade : 1 = croissance parfaitement régulière.
+    const n = curve.length;
+    let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+    curve.forEach((pt, i) => { const y = Math.log(Math.max(pt.capital, 1e-9)); sx += i; sy += y; sxx += i * i; syy += y * y; sxy += i * y; });
+    const cov = sxy - sx * sy / n, vx = sxx - sx * sx / n, vy = syy - sy * sy / n;
+    const r2 = vx > 0 && vy > 0 ? Math.max(0, Math.min(1, (cov * cov) / (vx * vy))) * (cov > 0 ? 1 : 0) : 0;
+    const dd = Math.abs(report.stats.maxDrawdownPct || 0);
+    const ddScore = Math.max(0, Math.min(1, 1 - dd / 40));
+    const coherence = 0.35 * posShare + 0.35 * r2 + 0.30 * ddScore;
+    const score = 100 * (0.5 * expansion + 0.5 * coherence);
     if (score >= 90) return 'S';
     if (score >= 80) return 'A+';
     if (score >= 70) return 'A';
@@ -470,8 +511,8 @@ CHESTTour.init([
   document.getElementById('heroDesc').textContent = record.description || 'Backtest ajouté depuis un fichier Excel personnel.';
   // Capital propfirm séparé (2026-10-02, backtest-add.html) : null = même capital que le compte propre.
   const pfCapital = record.pfCapital || record.capital;
-  document.getElementById('heroCapital').textContent = pfCapital !== record.capital
-    ? `${fmtMoney(record.capital)} · PF ${fmtMoney(pfCapital)}` : fmtMoney(record.capital);
+  // Capital initial : celui de la propfirm uniquement (demande utilisateur, 2026-10-09).
+  document.getElementById('heroCapital').textContent = fmtMoney(pfCapital);
   document.getElementById('heroTrades').textContent = record.trades.length;
 
   const sortedAll = window.CHESTBacktestEngine.sortedTrades(record.trades);
@@ -484,8 +525,11 @@ CHESTTour.init([
   document.getElementById('heroPeriod').textContent = monthCount;
   document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}`;
 
-  const heroReport = window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp));
-  document.getElementById('heroGrade').textContent = computeGrade(heroReport.stats);
+  const heroReport = hasPf
+    ? window.CHESTBacktestEngine.computeReport(record.trades, pfCapital, riskCfg(record.pf))
+    : window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp));
+  document.getElementById('heroGrade').textContent = computeGrade(heroReport);
+  document.getElementById('heroGrade').parentElement.title = 'Note = 50 % expansion du compte (croissance mensuelle moyenne) + 50 % cohérence (mois positifs, régularité de la courbe, drawdown). Heuristique, pas une certification.';
 
   let mmDetailAccount = 'cp';
   let rawMM = false;
@@ -507,6 +551,21 @@ CHESTTour.init([
     return record.trades.filter((t) => selectedYears.has(tradeDate(t).getFullYear()));
   }
 
+  // Indicateur de chargement : s'affiche (en fondu après ~150 ms, donc jamais pour une action instantanée) pendant un
+  // recalcul lourd. 60 ms laissées au navigateur pour peindre le voile avant de bloquer le fil principal.
+  function loading(fn) {
+    const el = document.getElementById('btLoading');
+    el.classList.add('is-on');
+    const done = () => el.classList.remove('is-on');
+    // setTimeout seul (pas de requestAnimationFrame : il ne se déclenche pas dans un onglet masqué, le voile resterait bloqué).
+    setTimeout(() => {
+      try {
+        const r = fn();
+        if (r && typeof r.then === 'function') r.then(done, done); else done(); // tâche asynchrone : le voile reste jusqu'à la fin
+      } catch (e) { done(); throw e; }
+    }, 60);
+  }
+
   function renderYearFilter() {
     const el = document.getElementById('yearFilter');
     if (allYears.length <= 1) { el.style.display = 'none'; return; }
@@ -521,7 +580,7 @@ CHESTTour.init([
           selectedYears.add(y);
         }
         renderYearFilter();
-        renderAll();
+        loading(renderAll);
       });
     });
   }
@@ -575,7 +634,7 @@ CHESTTour.init([
     grid.querySelectorAll('[data-mm-account]').forEach((btn) => {
       btn.addEventListener('click', () => {
         mmDetailAccount = btn.dataset.mmAccount;
-        renderAll();
+        loading(renderAll);
         document.getElementById('detailSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
@@ -635,7 +694,7 @@ CHESTTour.init([
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            y: { grid: { color: gridColor }, ticks: { color: tick, callback: (v) => fmtMoney(v) } },
+            y: { grid: { color: gridColor }, ticks: { color: tick, callback: (v) => fmtMoneyTick(v) } },
             x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8 } },
           },
         },
@@ -709,7 +768,7 @@ CHESTTour.init([
     btnWrap.innerHTML = `<button type="button" id="journalPickBtn" class="${journalPickerOpen ? 'is-active' : ''}">Période : ${rangeLabel()} ▾</button>`;
     document.getElementById('journalPickBtn').addEventListener('click', () => {
       journalPickerOpen = !journalPickerOpen;
-      renderJournal();
+      loading(renderJournal);
     });
     const pk = document.getElementById('journalPicker');
     pk.hidden = !journalPickerOpen;
@@ -740,13 +799,13 @@ CHESTTour.init([
           <button type="button" class="chest-btn" id="jpApply">Appliquer</button>
         </div>`}`;
 
-    pk.querySelectorAll('[data-ptab]').forEach((b) => b.addEventListener('click', () => { journalPickTab = b.dataset.ptab; renderJournal(); }));
-    pk.querySelectorAll('[data-py]').forEach((b) => b.addEventListener('click', () => { journalPickYear = Number(b.dataset.py); renderJournal(); }));
+    pk.querySelectorAll('[data-ptab]').forEach((b) => b.addEventListener('click', () => { journalPickTab = b.dataset.ptab; loading(renderJournal); }));
+    pk.querySelectorAll('[data-py]').forEach((b) => b.addEventListener('click', () => { journalPickYear = Number(b.dataset.py); loading(renderJournal); }));
     pk.querySelectorAll('[data-pm]').forEach((b) => b.addEventListener('click', () => {
       journalRange = { mode: 'month', key: b.dataset.pm };
       journalPickerOpen = false;
       journalPage = 1;
-      renderJournal();
+      loading(renderJournal);
     }));
     const apply = document.getElementById('jpApply');
     if (apply) apply.addEventListener('click', () => {
@@ -755,7 +814,7 @@ CHESTTour.init([
       journalRange = { mode: 'custom', from, to };
       journalPickerOpen = false;
       journalPage = 1;
-      renderJournal();
+      loading(renderJournal);
     });
   }
 
@@ -769,14 +828,14 @@ CHESTTour.init([
       accountGroup.innerHTML = `
         <button type="button" data-jaccount="cp" class="${journalAccount === 'cp' ? 'is-active' : ''}">Compte propre</button>
         <button type="button" data-jaccount="pf" class="${journalAccount === 'pf' ? 'is-active' : ''}">Propfirm</button>`;
-      accountGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalAccount = b.dataset.jaccount; journalPage = 1; renderJournal(); }));
+      accountGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalAccount = b.dataset.jaccount; journalPage = 1; loading(renderJournal); }));
     } else {
       accountGroup.style.display = 'none';
     }
 
     const resultGroup = document.getElementById('journalResultGroup');
     resultGroup.innerHTML = ['ALL', 'TP', 'SL', 'BE'].map((r) => `<button type="button" data-jresult="${r}" class="${journalResultFilter === r ? 'is-active' : ''}">${r === 'ALL' ? 'Tous' : r}</button>`).join('');
-    resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; journalPage = 1; renderJournal(); }));
+    resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; journalPage = 1; loading(renderJournal); }));
 
     const optionalCols = collectOptionalColumns(record.trades);
     let rowsAll = report.curve.slice(1).map((pt, i) => {
@@ -796,7 +855,7 @@ CHESTTour.init([
     if (canOrder) {
       orderGroup.style.display = '';
       orderGroup.innerHTML = `<button type="button" data-jorder="close" class="${journalOrder === 'close' ? 'is-active' : ''}">Par clôture</button><button type="button" data-jorder="open" class="${journalOrder === 'open' ? 'is-active' : ''}">Par ouverture</button>`;
-      orderGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalOrder = b.dataset.jorder; journalPage = 1; renderJournal(); }));
+      orderGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalOrder = b.dataset.jorder; journalPage = 1; loading(renderJournal); }));
     } else {
       orderGroup.style.display = 'none';
     }
@@ -859,7 +918,7 @@ CHESTTour.init([
     const remaining = total - shownCount;
     more.innerHTML = remaining > 0 ? `<button type="button" class="chest-btn-2" id="journalMoreBtn">Afficher ${Math.min(remaining, JOURNAL_PAGE)} positions de plus (${remaining} restantes)</button>` : '';
     const moreBtn = document.getElementById('journalMoreBtn');
-    if (moreBtn) moreBtn.addEventListener('click', () => { journalPage += 1; renderJournal(); });
+    if (moreBtn) moreBtn.addEventListener('click', () => { journalPage += 1; loading(renderJournal); });
   }
 
   // ---- 03 · Recommandation : prop firm ou compte propre ----
@@ -1268,8 +1327,26 @@ CHESTTour.init([
     rawMM = !rawMM;
     document.getElementById('rawMmToggle').classList.toggle('is-active', rawMM);
     document.getElementById('rawMmToggle').setAttribute('aria-pressed', String(rawMM));
-    renderFit(filteredTrades());
+    loading(() => renderFit(filteredTrades()));
   });
+
+  // ---- Menu ⋮ : télécharger / partager ----
+  (function initBtMenu() {
+    const btn = document.getElementById('btMenuBtn'), list = document.getElementById('btMenuList');
+    const setOpen = (o) => { list.hidden = !o; btn.setAttribute('aria-expanded', String(o)); };
+    btn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(list.hidden); });
+    document.addEventListener('click', () => setOpen(false));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+    document.getElementById('btShare').addEventListener('click', () => { setOpen(false); window.CHESTShare.openShareDialog(record); });
+    document.getElementById('btDownload').addEventListener('click', () => {
+      setOpen(false);
+      loading(() => window.CHESTShare.downloadHtml(record).catch((err) => window.alert('Export impossible : ' + ((err && err.message) || 'erreur inconnue'))));
+    });
+    // Backtest reçu d'un autre membre : étiquette « by … » (copie indépendante, modifiable).
+    if (record.sharedBy && record.sharedBy.name) {
+      document.getElementById('heroBadge').insertAdjacentHTML('beforeend', `<span class="bt-shared-tag">by ${escHtml(record.sharedBy.name.split(' ')[0])}</span>`);
+    }
+  })();
 
   renderYearFilter();
   renderAll();
