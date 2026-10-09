@@ -91,20 +91,34 @@ EOFTERM
 
 # Recopie periodique des nouvelles lignes des journaux (terminal : connexion au compte ; EA : envois).
 chest_tail_logs() {
+  tick=0
   while true; do
     sleep 20
+    tick=$((tick + 1))
+    # Etat resume toutes les 60 s : permet de diagnostiquer a distance (terminal vivant ? journaux ? EA compile ?).
+    if [ $((tick % 3)) -eq 1 ]; then
+      procs=$(ps 2>/dev/null | grep -c '[t]erminal64' || true)
+      tlogs=$(ls "$MT5/Logs" 2>/dev/null | tr '\n' ' ')
+      elogs=$(ls "$MT5/MQL5/Logs" 2>/dev/null | tr '\n' ' ')
+      ex5="non"; [ -f "$MT5/MQL5/Experts/CHESTLive.ex5" ] && ex5="oui"
+      wins=$(xdotool search --onlyvisible --classname terminal64.exe 2>/dev/null | wc -l | tr -d ' ')
+      titles=""
+      for w in $(xdotool search --onlyvisible --classname terminal64.exe 2>/dev/null | head -n 6); do
+        titles="$titles | $(xdotool getwindowname "$w" 2>/dev/null)"
+      done
+      log_info "CHEST: etat - terminal64 procs=$procs fenetres=$wins ex5=$ex5 Logs=[$tlogs] MQL5/Logs=[$elogs] titres=[$titles]"
+    fi
     for spec in "Logs:TERMINAL" "MQL5/Logs:EA"; do
       dir="${spec%%:*}"; label="${spec##*:}"
       f=$(ls -t "$MT5/$dir"/*.log 2>/dev/null | head -n 1)
       [ -n "$f" ] || continue
-      key=$(printf '%s' "$label")
-      iconv -f UTF-16LE -t UTF-8 "$f" > "/tmp/chest_log_$key.txt" 2>/dev/null || cp "$f" "/tmp/chest_log_$key.txt"
-      n=$(wc -l < "/tmp/chest_log_$key.txt" | tr -d ' ')
-      prev=$(cat "/tmp/chest_seen_$key" 2>/dev/null || echo 0)
+      iconv -f UTF-16LE -t UTF-8 "$f" > "/tmp/chest_log_$label.txt" 2>/dev/null || cp "$f" "/tmp/chest_log_$label.txt"
+      n=$(wc -l < "/tmp/chest_log_$label.txt" | tr -d ' ')
+      prev=$(cat "/tmp/chest_seen_$label" 2>/dev/null || echo 0)
       [ "$n" -lt "$prev" ] && prev=0
       if [ "$n" -gt "$prev" ]; then
-        tail -n +$((prev + 1)) "/tmp/chest_log_$key.txt" | tail -n 40 | sed "s/^/[$label] /"
-        echo "$n" > "/tmp/chest_seen_$key"
+        tail -n +$((prev + 1)) "/tmp/chest_log_$label.txt" | tail -n 40 | sed "s/^/[$label] /"
+        echo "$n" > "/tmp/chest_seen_$label"
       fi
     done
   done
