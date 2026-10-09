@@ -131,6 +131,15 @@ chest_tail_logs() {
         log_info "CHEST: racine MT5 = [$(ls "$MT5" 2>/dev/null | tr '\n' ' ')] Profiles=[$(ls "$MT5/Profiles" 2>/dev/null | tr '\n' ' ')] Config=[$(ls "$MT5/Config" 2>/dev/null | tr '\n' ' ')]"
       fi
     fi
+    # Etat ecrit par l'EA lui-meme (MQL5/Files/chest_status.txt) : recopie a chaque changement.
+    stf="$MT5/MQL5/Files/chest_status.txt"
+    if [ -f "$stf" ]; then
+      tr -d '\r' < "$stf" > /tmp/chest_status_now.txt
+      if ! cmp -s /tmp/chest_status_now.txt /tmp/chest_status_prev.txt 2>/dev/null; then
+        sed 's/^/[EASTATUS] /' /tmp/chest_status_now.txt
+        cp /tmp/chest_status_now.txt /tmp/chest_status_prev.txt
+      fi
+    fi
     for spec in "Logs:TERMINAL" "logs:TERMINAL2" "MQL5/Logs:EA" "MQL5/logs:EA2"; do
       dir="${spec%%:*}"; label="${spec##*:}"
       f=$(ls -t "$MT5/$dir"/*.log 2>/dev/null | head -n 1)

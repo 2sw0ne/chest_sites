@@ -39,6 +39,16 @@ ulong  g_lastEventDeal = 0;   // garde-fou memoire ; la vraie dedup est cote ser
 // Prototype : OnInit() appelle cette fonction, definie plus bas.
 void ScanBalanceOps();
 
+// Fichier d'etat lisible depuis l'exterieur (MQL5/Files/chest_status.txt) : permet de diagnostiquer l'EA a
+// distance (autorisations, connexion, code retour du WebRequest) sans acces a l'onglet Experts du terminal.
+void WriteStatus(string text)
+  {
+   int h = FileOpen("chest_status.txt", FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(h == INVALID_HANDLE) return;
+   FileWriteString(h, TimeToString(TimeGMT(), TIME_DATE | TIME_SECONDS) + " UTC " + text + "\r\n");
+   FileClose(h);
+  }
+
 //+------------------------------------------------------------------+
 int OnInit()
   {
@@ -46,6 +56,8 @@ int OnInit()
       Print("CHESTLive: EaSecret vide - accounts-bridge refusera les envois (401). Renseigne-le dans les entrees de l'EA.");
    ScanBalanceOps();
    EventSetTimer(MathMax(2, PushSeconds));
+   WriteStatus(StringFormat("init login=%I64d algo_terminal=%d algo_ea=%d connected=%d", (long)AccountInfoInteger(ACCOUNT_LOGIN),
+               (int)TerminalInfoInteger(TERMINAL_TRADE_ALLOWED), (int)MQLInfoInteger(MQL_TRADE_ALLOWED), (int)TerminalInfoInteger(TERMINAL_CONNECTED)));
    Print("CHESTLive: demarre, compte ", (long)AccountInfoInteger(ACCOUNT_LOGIN), " sur ", AccountInfoString(ACCOUNT_SERVER));
    return(INIT_SUCCEEDED);
   }
@@ -226,6 +238,10 @@ void Push(string eventJson)
 
    ResetLastError();
    int status = WebRequest("POST", PushUrl, headers, 4000, data, result, resultHeaders);
+   int lastErr = GetLastError();
+   WriteStatus(StringFormat("push status=%d err=%d login=%I64d connected=%d algo_terminal=%d algo_ea=%d heartbeat=%d url=%s",
+               status, lastErr, login, (int)TerminalInfoInteger(TERMINAL_CONNECTED),
+               (int)TerminalInfoInteger(TERMINAL_TRADE_ALLOWED), (int)MQLInfoInteger(MQL_TRADE_ALLOWED), (int)(!connected), PushUrl));
    if(status == 200)
      {
       g_failCount = 0;
