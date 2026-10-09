@@ -106,9 +106,13 @@ chest_tail_logs() {
       for w in $(xdotool search --onlyvisible --classname terminal64.exe 2>/dev/null | head -n 6); do
         titles="$titles | $(xdotool getwindowname "$w" 2>/dev/null)"
       done
-      log_info "CHEST: etat - terminal64 procs=$procs fenetres=$wins ex5=$ex5 Logs=[$tlogs] MQL5/Logs=[$elogs] titres=[$titles]"
+      alllogs=$(find "$MT5" -maxdepth 4 -iname '*.log' 2>/dev/null | sed "s|^$MT5/||" | head -n 10 | tr '\n' ' ')
+      log_info "CHEST: etat - terminal64 procs=$procs fenetres=$wins ex5=$ex5 Logs=[$tlogs] MQL5/Logs=[$elogs] tous-logs=[$alllogs] titres=[$titles]"
+      if [ "$tick" -eq 1 ]; then
+        log_info "CHEST: racine MT5 = [$(ls "$MT5" 2>/dev/null | tr '\n' ' ')] Profiles=[$(ls "$MT5/Profiles" 2>/dev/null | tr '\n' ' ')] Config=[$(ls "$MT5/Config" 2>/dev/null | tr '\n' ' ')]"
+      fi
     fi
-    for spec in "Logs:TERMINAL" "MQL5/Logs:EA"; do
+    for spec in "Logs:TERMINAL" "logs:TERMINAL2" "MQL5/Logs:EA" "MQL5/logs:EA2"; do
       dir="${spec%%:*}"; label="${spec##*:}"
       f=$(ls -t "$MT5/$dir"/*.log 2>/dev/null | head -n 1)
       [ -n "$f" ] || continue
