@@ -545,6 +545,14 @@ Demande utilisateur : choisir ses notifications dans Compte, format court, $ ou 
   pull ne l'écrase jamais tant qu'elle est marquée. `backtest-store.js` signale aussi un stockage plein au
   lieu d'échouer en silence.
 
+## Synchro : « mes backtests ne s'enregistrent pas vraiment » — cause Safari (2026-10-09)
+
+Retour utilisateur. Constats : le Mac de l'utilisateur est sous **Safari** (user-agent des logs Railway `Version/26.2 Safari`), et chaque chargement de page poussait TOUTES les clés vers `/sync` (POST de 1 à 7 s, plusieurs coupés par la navigation : statut 499).
+- **Cause** : `sync-store.js` interceptait les écritures par `localStorage.setItem = fn` (affectation sur l'INSTANCE). Chrome l'accepte, mais Safari/Firefox ne s'y fient pas (sources anciennes : bugzilla Mozilla 1141698, ChangeLog WebKit). Sans interception, rien n'était marqué « à envoyer » : la page suivante tirait la version serveur, périmée, et écrasait la copie locale — le backtest disparaissait. **Reproduit** en simulant une écriture non interceptée : ancien code `[A,B]` → `[A]` ; nouveau code `[A,B]` conservé et envoyé. Non vérifié sur un vrai Safari (pas disponible ici), le mécanisme est donc très probable mais pas prouvé.
+- **Correctif (`sync-store.js?v=5`, 13 pages)** : (1) interception par `Storage.prototype.setItem` ; (2) empreinte par clé de la dernière valeur connue du serveur (`chest_sync_base`, non synchronisée) : une clé dont l'empreinte locale diffère a été modifiée ici, donc un pull ne l'écrase jamais et elle part au prochain envoi — indépendamment de l'interception ; (3) on n'envoie plus que les clés changées (plus tout à chaque page) ; (4) le pull écrit sans repasser par l'interception (il renvoyait les données qu'il venait de recevoir) ; (5) `flushNow()` attend au plus 10 s, le POST a un délai de 30 s. Ce qui n'a pas pu partir reste protégé et repart au chargement suivant.
+- Limite inchangée : « dernier écrit gagne » par clé, sans fusion — deux appareils qui modifient `chest_backtests` en parallèle se marchent dessus.
+- Retiré le même jour sur demande : l'option « Simuler le spread » du Backtesting (essai commité puis reverté, jamais poussé).
+
 ## Dashboard : profits faux corrigés, courbe centrée sur le capital de départ (2026-10-02)
 
 Retour utilisateur avec capture : profit du jour -5 679,69 $ au lieu de -4 658,54 $, profit total

@@ -41,25 +41,55 @@
 
   // BUG REEL (2026-10-01, retour utilisateur : "les backtests que j'ajoute ne s'enregistrent pas") :
   // ajouter un backtest puis ouvrir aussitot son rapport laissait la page suivante tirer la version
-  // SERVEUR (pas encore a jour) et ECRASER la copie locale toute neuve - puis la renvoyer telle
-  // quelle au serveur. Meme course que le compte du Journal (voir flushNow plus bas), mais pour
-  // TOUTES les cles. Correctif general : chaque cle modifiee ici est marquee "pas encore envoyee"
-  // (chest_sync_dirty, hors synchro) jusqu'a ce que le serveur confirme l'avoir recue ; tant qu'elle
-  // l'est, un pull ne l'ecrase jamais - c'est la copie locale qui repart vers le serveur.
+  // SERVEUR (pas encore a jour) et ECRASER la copie locale toute neuve. Premier correctif : marquer chaque cle
+  // modifiee "pas encore envoyee" (chest_sync_dirty) en interceptant localStorage.setItem.
+  //
+  // 2e BUG REEL (2026-10-09, meme symptome, Safari) : l'interception se faisait par `localStorage.setItem = fn`.
+  // Cette affectation sur l'INSTANCE n'est pas fiable selon le navigateur (Chrome la prend ; Safari/Firefox
+  // creent une simple cle ou ignorent - sources d'epoque : bugzilla Mozilla 1141698, ChangeLog WebKit) : sur
+  // Safari rien n'etait marque ni envoye au moment de l'enregistrement, et le pull de la page suivante
+  // ecrasait la copie locale. Corrige de deux facons qui se completent :
+  //   1. l'interception passe par Storage.prototype.setItem (le seul endroit fiable) ;
+  //   2. SANS dependre de l'interception, on retient pour chaque cle l'empreinte de la derniere valeur
+  //      connue du serveur (chest_sync_base). Une cle dont l'empreinte locale differe a ete modifiee ici
+  //      depuis la derniere synchro : un pull ne l'ecrase jamais, et elle part au prochain envoi.
+  // Au passage, on n'envoie plus TOUTES les cles a chaque chargement de page (logs Railway : POST de 1 a 7 s,
+  // souvent coupes par la navigation = 499) mais seulement celles qui ont change.
   const DIRTY_KEY = 'chest_sync_dirty';
-  function loadDirty() {
-    try { return JSON.parse(localStorage.getItem(DIRTY_KEY) || '{}') || {}; } catch (e) { return {}; }
+  const BASE_KEY = 'chest_sync_base';
+  const origSetItem = Storage.prototype.setItem;
+  const rawSet = (k, v) => origSetItem.call(localStorage, k, v);
+
+  function loadMap(key) {
+    try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; }
   }
-  function saveDirty(d) {
-    try { realSetItemEarly(DIRTY_KEY, JSON.stringify(d)); } catch (e) { /* tant pis */ }
+  function saveMap(key, m) {
+    try { rawSet(key, JSON.stringify(m)); } catch (e) { /* tant pis */ }
   }
-  const realSetItemEarly = localStorage.setItem.bind(localStorage);
-  function markDirty(key) { const d = loadDirty(); d[key] = Date.now(); saveDirty(d); }
-  // Retire le marquage des cles envoyees, sauf si elles ont encore change depuis l'envoi.
-  function clearDirty(sent) {
-    const d = loadDirty();
-    Object.keys(sent).forEach((key) => { if (localStorage.getItem(key) === sent[key]) delete d[key]; });
-    saveDirty(d);
+  // Empreinte rapide (FNV-1a 32 bits + longueur) : pas de valeur copiee, juste de quoi detecter un changement.
+  function hashStr(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return str.length + ':' + h.toString(36);
+  }
+  function markDirty(key) { const d = loadMap(DIRTY_KEY); d[key] = Date.now(); saveMap(DIRTY_KEY, d); }
+  // Le serveur a confirme avoir recu `sent` : retire le marquage et memorise l'empreinte, sauf si la cle a
+  // encore change depuis l'envoi.
+  function markSynced(sent) {
+    const d = loadMap(DIRTY_KEY), b = loadMap(BASE_KEY);
+    Object.keys(sent).forEach((key) => {
+      if (localStorage.getItem(key) === sent[key]) { delete d[key]; b[key] = hashStr(sent[key]); }
+    });
+    saveMap(DIRTY_KEY, d); saveMap(BASE_KEY, b);
+  }
+  // Cles suivies modifiees ici depuis la derniere synchro confirmee (ou jamais synchronisees).
+  function collectChanged() {
+    const b = loadMap(BASE_KEY), out = {};
+    SYNCED_KEYS.forEach((key) => {
+      const v = localStorage.getItem(key);
+      if (v !== null && b[key] !== hashStr(v)) out[key] = v;
+    });
+    return out;
   }
 
   function apiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
@@ -70,30 +100,26 @@
     try { return SYNCED_KEYS.some((k) => localStorage.getItem(k) !== null); } catch (e) { return true; }
   }
 
-  // BUG REEL corrige ici (2026-09-26, retour utilisateur : "j'ai pas mes rapports de backtesting"
-  // / "j'ai pas les familles aussi") : la 1re version n'interceptait que les FUTURES écritures
-  // (setItem monkey-patché plus bas) - tout ce qui était déjà dans le navigateur AVANT même
-  // l'existence de cette synchro (backtests, familles créés les jours précédents) n'avait jamais
-  // été poussé vers le serveur, donc n'existait nulle part pour qu'un autre appareil le récupère.
-  // pushExistingLocalData() corrige ça en poussant, à CHAQUE chargement de page, la valeur
-  // actuelle de toute clé suivie déjà présente en local - pas seulement celles qui viennent de
-  // changer. Ça peut sembler redondant (renvoyer une donnée qui n'a pas bougé), mais c'est
-  // largement moins cher qu'un vrai bug de données manquantes, et le volume reste minime.
-  function pushExistingLocalData() {
+  function postSync(data, timeoutMs) {
     const token = getToken();
-    if (!token) return;
-    const data = {};
-    SYNCED_KEYS.forEach((key) => {
-      const v = localStorage.getItem(key);
-      if (v !== null) data[key] = v;
-    });
-    if (!Object.keys(data).length) return;
-    fetch(apiBase() + '/sync', {
+    const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs || 30000) : null;
+    return fetch(apiBase() + '/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ data }),
-    }).then((res) => { if (res.ok) clearDirty(data); })
-      .catch(() => { /* tant pis, retentera au prochain chargement de page */ });
+      signal: ctrl ? ctrl.signal : undefined,
+    }).then((res) => { if (res.ok) markSynced(data); })
+      .catch(() => { /* reste "non synchronisee" : repartira au prochain envoi ou chargement de page */ })
+      .finally(() => { if (timer) clearTimeout(timer); });
+  }
+
+  // Envoie ce qui a change localement (voir collectChanged) - et seulement cela.
+  function pushChanged() {
+    if (!getToken()) return Promise.resolve();
+    const data = collectChanged();
+    if (!Object.keys(data).length) return Promise.resolve();
+    return postSync(data);
   }
 
   async function pullSync() {
@@ -106,70 +132,48 @@
       const body = await res.json();
       const data = (body && body.data) || {};
       let changed = false;
-      const dirty = loadDirty();
+      const dirty = loadMap(DIRTY_KEY);
+      const base = loadMap(BASE_KEY);
       Object.keys(data).forEach((key) => {
         if (SYNCED_KEYS.indexOf(key) === -1) return;
+        const local = localStorage.getItem(key);
         if (dirty[key]) return; // modifiee ici et pas encore confirmee par le serveur : la locale gagne
-        if (localStorage.getItem(key) !== data[key]) { localStorage.setItem(key, data[key]); changed = true; }
+        if (local !== null && base[key] && base[key] !== hashStr(local)) return; // modifiee ici depuis la derniere synchro
+        if (local !== data[key]) { rawSet(key, data[key]); changed = true; }
+        base[key] = hashStr(data[key]);
       });
+      saveMap(BASE_KEY, base);
       // Nouvel appareil (rien en local avant) qui vient de recevoir de vraies données : un seul
-      // rechargement pour que la page déjà affichée (rendue vide/par défaut) les reflète, sans quoi
-      // il faudrait naviguer manuellement pour les voir apparaître.
+      // rechargement pour que la page déjà affichée (rendue vide/par défaut) les reflète.
       if (wasEmpty && changed) { location.reload(); return; }
     } catch (e) { /* hors-ligne / serveur injoignable : on garde ce qu'il y a deja en local */ }
-    // Ce que CET appareil a en local (déjà là avant, ou reçu du serveur juste au-dessus) part
-    // aussi vers le serveur - voir le commentaire de pushExistingLocalData().
-    pushExistingLocalData();
+    pushChanged();
   }
   pullSync();
 
-  let pending = {};
   let flushTimer = null;
   function flush() {
     flushTimer = null;
-    const token = getToken();
-    const batch = pending;
-    pending = {};
-    if (!token || !Object.keys(batch).length) return Promise.resolve();
-    // Retourne la promesse (2026-09-27, corrige un vrai bug retour utilisateur : "compte du
-    // journal introuvable" apres avoir cree un compte puis change de page presque aussitot) -
-    // avant, cet appel etait "fire and forget" : creer un compte du Journal puis naviguer vers une
-    // AUTRE page (dashboard.html) quasi instantanement ne laissait pas le temps aux 600ms de debounce
-    // de s'ecouler ni a ce fetch de finir - le PULL de la page suivante arrivait alors AVANT que le
-    // serveur n'ait ce nouveau compte, et l'ECRASAIT localement avec l'ancienne version (toujours
-    // "dernier pull gagne", jamais de fusion) - le compte tout juste cree disparaissait purement et
-    // simplement. Voir window.CHESTSync.flushNow(), attendu explicitement par journal.html avant de
-    // changer de page apres une creation.
-    return fetch(apiBase() + '/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ data: batch }),
-    }).then((res) => { if (res.ok) clearDirty(batch); })
-      .catch(() => { /* reste marquee : repartira au prochain chargement de page */ });
+    return pushChanged();
   }
 
-  const realSetItem = localStorage.setItem.bind(localStorage);
-  localStorage.setItem = function (key, value) {
-    realSetItem(key, value);
-    if (SYNCED_KEYS.indexOf(key) !== -1) {
+  Storage.prototype.setItem = function (key, value) {
+    origSetItem.call(this, key, value);
+    if (this === localStorage && SYNCED_KEYS.indexOf(key) !== -1) {
       markDirty(key);
-      pending[key] = value;
       if (!flushTimer) flushTimer = setTimeout(flush, 600);
     }
   };
-  // Vide immediatement ce qui reste en attente si l'onglet se ferme/change de page - sinon la
-  // derniere modification juste avant un changement de page pouvait ne jamais partir.
+  // Vide immediatement ce qui reste en attente si l'onglet se ferme/change de page.
   window.addEventListener('pagehide', () => { if (flushTimer) { clearTimeout(flushTimer); flush(); } });
 
-  // API publique minimale (2026-09-27) : force l'envoi immediat de ce qui est en attente, et
-  // ATTEND que ce soit fait - a utiliser juste avant une navigation volontaire vers une autre page
-  // qui va elle-meme re-synchroniser (voir journal.html, jaSave). pagehide seul ne suffit pas ici :
-  // un changement de page DECLENCHE par notre propre code (window.location.href = ...) doit
-  // pouvoir attendre la fin du fetch avant de partir, ce que pagehide ne garantit pas.
+  // API publique minimale : force l'envoi immediat de ce qui a change et ATTEND (au plus 10 s, pour ne jamais
+  // bloquer l'utilisateur si le serveur est lent - ce qui n'a pas pu partir reste protege et repartira au
+  // prochain chargement). A utiliser juste avant une navigation volontaire (journal.html, backtest-add.html).
   window.CHESTSync = {
     flushNow: async () => {
       if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
-      await flush();
+      await Promise.race([flush(), new Promise((r) => setTimeout(r, 10000))]);
     },
   };
 })();
