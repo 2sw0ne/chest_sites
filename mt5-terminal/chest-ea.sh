@@ -7,6 +7,17 @@
 #      pour pouvoir diagnostiquer connexion, compilation et envois sans ouvrir l'ecran noVNC.
 # Toutes les fonctions finissent par `return 0` : main.sh tourne sous `set -e`.
 
+# Redefinit start_mt5 (defini dans mt5.sh de l'image, source AVANT ce fichier). Constat en production le
+# 2026-10-09 (journal du terminal) : lance avec `/config:C:/MT5/common.ini`, MT5 lit le chemin comme
+# "C:\" ("successfully initialized from start config "C:\"") - le fichier de demarrage n'etait donc JAMAIS
+# applique : ni autologin, ni [Experts], ni [StartUp]. Avec des antislashs (forme documentee par
+# MetaQuotes : /config:C:\chemin\fichier.ini) le chemin est correct.
+start_mt5() {
+  wine64 C:/MT5/terminal64.exe /portable '/config:C:\MT5\common.ini' &
+  MT5_PID=$!
+  wait_for_terminal64
+}
+
 CHEST_EA_SRC=/app/src/CHESTLive.mq5
 CHEST_DEFAULT_PUSH_URL="https://accounts-bridge-production.up.railway.app/mt5/ea-push"
 
