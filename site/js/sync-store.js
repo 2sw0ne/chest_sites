@@ -36,7 +36,7 @@
     'chest_berich_connection', 'chest_berich_taken', 'chest_berich_last_risk_choice',
     'chest_sentiment_pair', 'chest_timezone', 'chest_profile',
     'chest_scanner_drawings', 'chest_theme', 'chest_admin_preview_mode', 'chest_ui_scale',
-    'chest_notif_prefs',
+    'chest_notif_prefs', 'chest_mt5_ledger',
   ];
 
   // BUG REEL (2026-10-01, retour utilisateur : "les backtests que j'ajoute ne s'enregistrent pas") :

@@ -18,11 +18,32 @@ start_mt5() {
   wait_for_terminal64
 }
 
+# Compte choisi depuis le site (2026-10-09) : le controleur (chest-control.py) range login / serveur / mot de passe
+# investisseur dans /data/account/ puis arrete le terminal ; au redemarrage du conteneur on les relit ICI, avant
+# apply_mt5_config (point d'ancrage ajoute dans main.sh par le Dockerfile), ce qui remplace les variables Railway
+# MT5_LOGIN / MT5_PASSWORD / MT5_SERVER. Sans fichier, les variables Railway restent la source (premier demarrage).
+chest_load_account() {
+  d=/data/account
+  if [ -f "$d/login" ] && [ -f "$d/server" ] && [ -f "$d/password" ]; then
+    MT5_LOGIN=$(cat "$d/login"); MT5_SERVER=$(cat "$d/server"); MT5_PASSWORD=$(cat "$d/password")
+    SERVER="$MT5_SERVER"
+    export MT5_LOGIN MT5_SERVER MT5_PASSWORD SERVER
+    log_info "CHEST: compte branche depuis le site : $MT5_LOGIN sur $MT5_SERVER"
+  fi
+  return 0
+}
+
 CHEST_EA_SRC=/app/src/CHESTLive.mq5
 CHEST_DEFAULT_PUSH_URL="https://accounts-bridge-production.up.railway.app/mt5/ea-push"
 
 chest_prepare_ea() {
   log_info "CHEST: preparation de l'EA CHESTLive"
+  # Controleur HTTP (reseau prive) : permet a accounts-bridge de changer de compte, voir chest-control.py.
+  if [ -f /app/src/chest-control.py ] && command -v python3 >/dev/null 2>&1; then
+    python3 /app/src/chest-control.py &
+  else
+    log_info "CHEST: controleur indisponible (python3 ou chest-control.py absent) - le compte ne se change que par les variables Railway"
+  fi
   EXP_DIR="$MT5/MQL5/Experts"
   # Files/ (fichier d'etat de l'EA) et Logs/ (journal des Print) : absents de cette installation allegee,
   # sans eux l'EA ne peut rien ecrire (Print et FileOpen echouent en silence).
@@ -67,6 +88,12 @@ chest_prepare_ea() {
     : > /tmp/chest_common.txt
   fi
   grep -q '^\[Common\]' /tmp/chest_common.txt || printf '[Common]\nLogin=%s\nServer=%s\nPassword=%s\n' "${MT5_LOGIN:-}" "${MT5_SERVER:-}" "${MT5_PASSWORD:-}" > /tmp/chest_common.txt
+  # Identifiants = ceux de l'environnement (variables Railway OU compte choisi depuis le site, voir chest_load_account),
+  # imposes dans [Common] quoi que contienne le common.ini de l'image. ENVIRON : pas d'interpretation des \ du mot de passe.
+  if [ -n "${MT5_LOGIN:-}" ]; then
+    export MT5_LOGIN MT5_SERVER MT5_PASSWORD
+    awk 'BEGIN{c=0} /^\[Common\]/{print; print "Login=" ENVIRON["MT5_LOGIN"]; print "Server=" ENVIRON["MT5_SERVER"]; print "Password=" ENVIRON["MT5_PASSWORD"]; c=1; next} /^\[/{c=0} c && /^(Login|Server|Password)=/{next} {print}' /tmp/chest_common.txt > /tmp/chest_common_id.txt && mv /tmp/chest_common_id.txt /tmp/chest_common.txt
+  fi
   awk '/^\[Experts\]/{skip=1; next} /^\[StartUp\]/{skip=1; next} /^\[/{skip=0} !skip{print}' /tmp/chest_common.txt > /tmp/chest_common2.txt
   cat >> /tmp/chest_common2.txt <<EOFSTART
 [Experts]
@@ -140,9 +167,19 @@ chest_tail_logs() {
     # le conteneur (politique ALWAYS) et l'EA se rattache sur un terminal deja connecte.
     if [ -n "${MT5_LOGIN:-}" ] && [ $((tick * 20)) -gt 240 ]; then
       if ! find "$MT5/MQL5/Files/chest_status.txt" -mmin -2 2>/dev/null | grep -q .; then
-        log_info "CHEST: EA silencieux depuis plus de 2 min alors qu'un compte est configure - redemarrage du terminal"
-        pkill -f terminal64 2>/dev/null || kill $(ps 2>/dev/null | grep '[t]erminal64' | awk '{print $1}') 2>/dev/null || true
-        sleep 10
+        # Au plus 3 relances d'affilee (compteur sur le volume) : sans ca, un mot de passe faux relancerait le terminal
+        # toutes les 5 minutes pour toujours, et le courtier finirait par bloquer le compte pour trop de tentatives.
+        silent_n=$(cat /data/ea-silent-restarts 2>/dev/null || echo 0)
+        if [ "$silent_n" -ge 3 ] 2>/dev/null; then
+          [ "$silent_n" -eq 3 ] && { log_info "CHEST: EA toujours silencieux apres 3 relances - arret des relances automatiques (verifier le compte : numero, serveur, mot de passe investisseur)"; echo 4 > /data/ea-silent-restarts 2>/dev/null || true; }
+        else
+          echo $((silent_n + 1)) > /data/ea-silent-restarts 2>/dev/null || true
+          log_info "CHEST: EA silencieux depuis plus de 2 min alors qu'un compte est configure - redemarrage du terminal ($((silent_n + 1))/3)"
+          pkill -f terminal64 2>/dev/null || kill $(ps 2>/dev/null | grep '[t]erminal64' | awk '{print $1}') 2>/dev/null || true
+          sleep 10
+        fi
+      else
+        rm -f /data/ea-silent-restarts 2>/dev/null || true
       fi
     fi
     # Etat ecrit par l'EA lui-meme (MQL5/Files/chest_status.txt) : recopie a chaque changement.

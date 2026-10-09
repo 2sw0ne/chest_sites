@@ -387,7 +387,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=1"></script>
-<script src="js/sync-store.js?v=5"></script>
+<script src="js/sync-store.js?v=6"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="journal" class="chest-root">
@@ -1512,6 +1512,20 @@ CHESTTour.init([
       CHESTJournal.list().filter((e) => e.accountId === editingAccountId && e.riskUnit === 'pct' && e.rrActual != null)
         .forEach((e) => CHESTJournal.update(e.id, { pnl: Math.round(e.rrActual * balance * (e.riskValue || 0)) / 100 }));
     } else saved = CHESTJournal.addAccount(Object.assign({ live: [] }, account));
+    // Venu du Dashboard ("+ Nouveau compte du Journal" pendant l'ajout d'un compte MT5, voir js/dashboard.js) :
+    // on ne reste pas ici, on retourne finir la connexion avec ce compte tout juste cree - jamais pour une
+    // simple modification (editingAccountId).
+    if (!editingAccountId && new URLSearchParams(window.location.search).get('fromLiveConnect') === '1') {
+      try {
+        localStorage.setItem('chest_live_connect_resume', '1');
+        localStorage.setItem('chest_live_connect_resume_account', saved.id);
+      } catch (e) { /* tant pis */ }
+      // ATTEND que le compte tout juste cree soit arrive sur le serveur avant de changer de page (sinon le pull de
+      // dashboard.html peut l'ecraser : "Compte du Journal introuvable", voir js/sync-store.js, CHESTSync.flushNow()).
+      try { if (window.CHESTSync) await window.CHESTSync.flushNow(); } catch (e) { /* tant pis, on part quand meme */ }
+      window.location.href = 'dashboard.html';
+      return;
+    }
     // Precaution anti-course (2026-09-27, vrai bug retour utilisateur : un compte tout juste créé
     // disparaissait si la page changeait avant que l'écriture serveur n'ait eu le temps de partir -
     // voir js/sync-store.js, window.CHESTSync.flushNow()) - cette page va se recharger juste
@@ -1968,6 +1982,8 @@ CHESTTour.init([
     const params = new URLSearchParams(window.location.search);
     const acc = params.get('acc') ? accounts.find((a) => a.id === params.get('acc')) : null;
     if (!acc) {
+      // Venu du Dashboard pour creer un compte a connecter au terminal MT5 : ouvre directement le formulaire de creation.
+      if (params.get('fromLiveConnect') === '1') { openAccountForm(null); return; }
       showView('hub');
       await renderHub();
       // Synchro discrète des comptes live (max toutes les 5 min), puis les cartes se remettent à jour.

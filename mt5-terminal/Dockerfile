@@ -53,9 +53,13 @@ RUN chmod +x /app/src/persist.sh \
 # l'attache a un graphique et recopie les journaux MT5/EA dans les logs du conteneur.
 COPY CHESTLive.mq5 /app/src/CHESTLive.mq5
 COPY chest-ea.sh /app/src/chest-ea.sh
+# Controleur HTTP du compte MT5 (chest-control.py) : python3 vient d'Alpine (apk) s'il manque dans l'image.
+COPY chest-control.py /app/src/chest-control.py
+RUN (command -v python3 >/dev/null 2>&1 || apk add --no-cache python3) && python3 -m py_compile /app/src/chest-control.py
 RUN chmod +x /app/src/chest-ea.sh \
     && sed -i '/^\. \/app\/src\/persist\.sh$/a . /app/src/chest-ea.sh' /app/src/main.sh \
     && sed -i '/^restore_persisted_config$/a chest_prepare_ea' /app/src/main.sh \
+    && sed -i '/^apply_mt5_config$/i chest_load_account' /app/src/main.sh \
     && sed -i '/^persist_config_loop &$/a chest_tail_logs &' /app/src/main.sh
 
 # Garde-fou de build : un `sed` dont l'ancre n'existe pas ne change rien SANS erreur (c'est deja arrive).
@@ -64,6 +68,7 @@ RUN grep -q '^\. /app/src/persist\.sh$' /app/src/main.sh \
     && grep -q '^\. /app/src/chest-ea\.sh$' /app/src/main.sh \
     && grep -q '^restore_persisted_config$' /app/src/main.sh \
     && grep -q '^chest_prepare_ea$' /app/src/main.sh \
+    && grep -q '^chest_load_account$' /app/src/main.sh \
     && grep -q '^persist_config_loop &$' /app/src/main.sh \
     && grep -q '^chest_tail_logs &$' /app/src/main.sh \
     && ! grep -q '^login_automation &$' /app/src/main.sh \

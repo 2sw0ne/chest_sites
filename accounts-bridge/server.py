@@ -118,6 +118,13 @@ INTERNAL_PUSH_SECRET = os.environ.get("INTERNAL_PUSH_SECRET", "")
 MT5_EA_SECRET = os.environ.get("MT5_EA_SECRET", "")
 # Au-dela de cet age, un instantane MT5 n'est plus "en direct" : le Dashboard retombe sur Myfxbook.
 MT5_SNAPSHOT_FRESH_SECONDS = 90
+# Pilotage du compte connecte au terminal MT5 depuis le site (2026-10-09). accounts-bridge ne se connecte
+# JAMAIS lui-meme au terminal : il transmet {login, mot de passe investisseur, serveur} au petit controleur
+# du conteneur mt5-terminal (reseau PRIVE Railway, secret partage), qui range les identifiants sur son volume
+# et relance le terminal. Le mot de passe n'est donc jamais stocke ici ; seul le compte courant (sans mot de
+# passe) est memorise, pour que le Dashboard sache a quoi il est relie.
+MT5_CONTROL_URL = os.environ.get("MT5_CONTROL_URL", "").rstrip("/")
+MT5_CONTROL_SECRET = os.environ.get("MT5_CONTROL_SECRET", "")
 
 # Notification email a chaque nouvelle inscription en attente - toutes ces
 # variables sont optionnelles ; s'il en manque une, on logue et on continue
@@ -241,6 +248,16 @@ def init_db():
                 login TEXT PRIMARY KEY,
                 data TEXT NOT NULL,
                 received_at TEXT NOT NULL
+            )
+        """)
+        # Compte MT5 actuellement branche au terminal (UNE seule ligne : un terminal = un compte). Sans mot de passe.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mt5_live_state (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                login TEXT NOT NULL,
+                server TEXT NOT NULL,
+                journal_account_id TEXT,
+                connected_at TEXT NOT NULL
             )
         """)
         # Evenements deja notifies (ouverture/cloture d'un deal) : l'EA peut renvoyer le meme deal
@@ -1512,8 +1529,83 @@ def mt5_live():
     received = datetime.strptime(row["received_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
     age = (datetime.now(timezone.utc) - received).total_seconds()
     snap = json.loads(row["data"])
+    st = get_db().execute("SELECT login, journal_account_id FROM mt5_live_state WHERE id = 1").fetchone()
+    # `site` : le terminal a ete branche depuis le site (POST /mt5/connect) ; sinon il tourne sur les variables Railway.
+    site = {"login": st["login"], "journalAccountId": st["journal_account_id"]} if st else None
     return jsonify({"connected": True, "fresh": age <= MT5_SNAPSHOT_FRESH_SECONDS, "ageSeconds": int(age),
-                    "receivedAt": row["received_at"], **snap})
+                    "receivedAt": row["received_at"], "site": site, **snap})
+
+
+_MT5_LOGIN_RE = re.compile(r"^[0-9]{3,12}$")
+_MT5_SERVER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._-]{1,63}$")
+
+
+@app.route("/mt5/connect", methods=["POST"])
+def mt5_connect():
+    """Branche un compte MT5 (mot de passe INVESTISSEUR) au terminal. Reserve a l'admin : un seul terminal partage."""
+    user = approved_user()
+    if not user or not user["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if not MT5_CONTROL_URL or not MT5_CONTROL_SECRET:
+        return jsonify({"error": "Le terminal MT5 n'est pas relié au serveur (MT5_CONTROL_URL / MT5_CONTROL_SECRET manquants)."}), 503
+    body = request.get_json(silent=True) or {}
+    login = str(body.get("login") or "").strip()
+    server = str(body.get("server") or "").strip()
+    password = body.get("investorPassword")
+    journal_id = body.get("journalAccountId")
+    if not _MT5_LOGIN_RE.match(login):
+        return jsonify({"error": "Numéro de compte MT5 invalide (chiffres uniquement)."}), 400
+    if not _MT5_SERVER_RE.match(server):
+        return jsonify({"error": "Nom de serveur invalide."}), 400
+    if not isinstance(password, str) or not (1 <= len(password) <= 128) or "\n" in password or "\r" in password:
+        return jsonify({"error": "Mot de passe investisseur invalide."}), 400
+    req = urllib.request.Request(
+        MT5_CONTROL_URL + "/switch",
+        data=json.dumps({"login": login, "server": server, "password": password}).encode("utf-8"),
+        headers={"Content-Type": "application/json", "X-Control-Secret": MT5_CONTROL_SECRET},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            resp.read()
+    except urllib.error.HTTPError as e:
+        return jsonify({"error": f"Le terminal a refusé la demande ({e.code})."}), 502
+    except (urllib.error.URLError, OSError):
+        return jsonify({"error": "Le terminal MT5 ne répond pas (il redémarre peut-être) : réessaie dans une minute."}), 502
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    with db_lock:
+        db = get_db()
+        db.execute(
+            "INSERT INTO mt5_live_state (id, login, server, journal_account_id, connected_at) VALUES (1, ?, ?, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET login = excluded.login, server = excluded.server, "
+            "journal_account_id = excluded.journal_account_id, connected_at = excluded.connected_at",
+            (login, server, str(journal_id)[:64] if journal_id else None, now),
+        )
+        # Le flux de l'ancien compte n'a plus lieu d'etre : on repart d'un instantane vide.
+        db.execute("DELETE FROM mt5_live_snapshot WHERE login != ?", (login,))
+        db.commit()
+    return jsonify({"ok": True, "login": login, "server": server, "restarting": True})
+
+
+@app.route("/mt5/status")
+def mt5_status():
+    """Compte actuellement branche au terminal + etat du flux (n'importe quel membre approuve ; jamais de mot de passe)."""
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    st = db.execute("SELECT login, server, journal_account_id, connected_at FROM mt5_live_state WHERE id = 1").fetchone()
+    if not st:
+        return jsonify({"connected": False})
+    out = {"connected": True, "login": st["login"], "server": st["server"],
+           "journalAccountId": st["journal_account_id"], "connectedAt": st["connected_at"], "live": False}
+    row = db.execute("SELECT data, received_at FROM mt5_live_snapshot WHERE login = ?", (st["login"],)).fetchone()
+    if row:
+        received = datetime.strptime(row["received_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - received).total_seconds()
+        out["live"] = age <= MT5_SNAPSHOT_FRESH_SECONDS
+        out["ageSeconds"] = int(age)
+    return jsonify(out)
 
 
 # ---------------------------------------------------------------- Comptes rendus semaine / mois

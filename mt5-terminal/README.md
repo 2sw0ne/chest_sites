@@ -61,6 +61,19 @@ Puis dans le terminal (noVNC, temporaire) :
    **Entrées** : `EaSecret` = la valeur de `MT5_EA_SECRET`, `PushUrl` = `…/mt5/ea-push`.
 3. Dans l'onglet Journal / Experts du terminal, chercher `CHESTLive: demarre`.
 
+## Changer de compte depuis le site (2026-10-09)
+
+Dashboard → « Connecter un compte » → **Compte MT5** (admin) envoie `POST /mt5/connect` à accounts-bridge, qui transmet
+{numéro, mot de passe investisseur, serveur} au **contrôleur** du conteneur (`chest-control.py`, port 8090, réseau PRIVÉ Railway
+uniquement, secret `MT5_CONTROL_SECRET` identique sur les deux services). Le contrôleur range les identifiants dans `/data/account/`
+(fichiers 600) puis arrête `terminal64` ; Railway relance le conteneur et `chest_load_account` (chest-ea.sh, ancré dans main.sh AVANT
+`apply_mt5_config`) relit ces fichiers — ils remplacent `MT5_LOGIN` / `MT5_PASSWORD` / `MT5_SERVER`. Aucun RPyC, aucune API Python MT5.
+- accounts-bridge ne garde JAMAIS le mot de passe : seulement le compte courant (table `mt5_live_state`, sans mot de passe).
+- Variables : `MT5_CONTROL_SECRET` (les deux services) ; `MT5_CONTROL_URL` = `http://${{mt5-terminal.RAILWAY_PRIVATE_DOMAIN}}:8090` (accounts-bridge).
+- Garde-fou : au plus 3 relances automatiques d'affilée si l'EA reste silencieux (`/data/ea-silent-restarts`), puis arrêt avec un message
+  dans les logs — un mot de passe faux ne doit pas relancer le terminal indéfiniment (le courtier finirait par bloquer le compte).
+- Changer de compte coupe le flux ~1 à 2 minutes (redémarrage du conteneur).
+
 ## Vérifier
 
 - Logs de l'EA : `…/MT5/MQL5/Logs/*.log` (Console Railway, `tail`). Erreur `4060` = URL non autorisée ;
