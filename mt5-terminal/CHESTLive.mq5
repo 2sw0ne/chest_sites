@@ -54,10 +54,12 @@ int OnInit()
   {
    if(EaSecret == "")
       Print("CHESTLive: EaSecret vide - accounts-bridge refusera les envois (401). Renseigne-le dans les entrees de l'EA.");
-   ScanBalanceOps();
+   // Etat ecrit AVANT toute lecture d'historique : ScanBalanceOps() peut attendre la synchro de l'historique du compte
+   // (donc bloquer OnInit) tant que le terminal n'est pas connecte - le fichier d'etat doit exister quoi qu'il arrive.
    EventSetTimer(MathMax(2, PushSeconds));
    WriteStatus(StringFormat("init login=%I64d algo_terminal=%d algo_ea=%d connected=%d", (long)AccountInfoInteger(ACCOUNT_LOGIN),
                (int)TerminalInfoInteger(TERMINAL_TRADE_ALLOWED), (int)MQLInfoInteger(MQL_TRADE_ALLOWED), (int)TerminalInfoInteger(TERMINAL_CONNECTED)));
+   ScanBalanceOps();
    Print("CHESTLive: demarre, compte ", (long)AccountInfoInteger(ACCOUNT_LOGIN), " sur ", AccountInfoString(ACCOUNT_SERVER));
    return(INIT_SUCCEEDED);
   }
