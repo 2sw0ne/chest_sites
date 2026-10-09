@@ -12,16 +12,10 @@
     source: ['source', 'signal', 'source du signal'],
     confirmation: ['confirmation', 'confirmations', 'note', 'notes'],
     order: ['ordre', 'order', 'direction', 'sens', 'buy/sell', 'achat/vente', 'type'],
-    // Colonnes numeriques pour la simulation du spread (distance du stop de chaque trade)
-    entryPrice: ['prix d\'entree', 'prix entree', 'prix d\'ouverture', 'prix ouverture', 'entry price', 'open price'],
-    exitPrice: ['prix de sortie', 'prix sortie', 'prix de cloture', 'prix cloture', 'exit price', 'close price'],
-    slPips: ['sl (pips)', 'sl pips', 'stop (pips)', 'stop pips', 'stop loss (pips)', 'distance sl', 'distance du stop'],
-    pips: ['pips', 'pips realises', 'resultat (pips)'],
   };
-  const NUMERIC_FIELDS = ['entryPrice', 'exitPrice', 'slPips', 'pips'];
   // Libelles humains pour l'affichage (colonnes reconnues) - reutilise par
   // backtest-view.html pour les en-tetes du journal.
-  const FIELD_LABELS = { open: 'Ouverture', close: 'Clôture', source: 'Source', confirmation: 'Confirmation', order: 'Ordre', entryPrice: 'Prix d\'entrée', exitPrice: 'Prix de sortie', slPips: 'SL (pips)', pips: 'Pips' };
+  const FIELD_LABELS = { open: 'Ouverture', close: 'Clôture', source: 'Source', confirmation: 'Confirmation', order: 'Ordre' };
 
   const ACCENTS = { à: 'a', â: 'a', ä: 'a', é: 'e', è: 'e', ê: 'e', ë: 'e', î: 'i', ï: 'i', ô: 'o', ö: 'o', ù: 'u', û: 'u', ü: 'u', ç: 'c' };
   function normalize(s) {
@@ -52,13 +46,6 @@
     return new Date(epoch + Math.round(n * 86400) * 1000);
   }
 
-  // Nombre depuis une cellule (virgule decimale tolerée) ; null si illisible.
-  function toNumber(v) {
-    if (typeof v === 'number') return isFinite(v) ? v : null;
-    const n = Number(String(v).replace(/\s/g, '').replace(',', '.'));
-    return isFinite(n) ? n : null;
-  }
-
   function toIsoDate(v) {
     if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toISOString();
     if (typeof v === 'number') return excelSerialToDate(v).toISOString();
@@ -68,7 +55,7 @@
 
   /**
    * Parse un fichier Excel (File) -> { trades, errors, hasHeader, optionalColumnsFound, extraLabels }.
-   * optionalColumnsFound : champs reconnus (open/close/source/confirmation/order + entryPrice/exitPrice/slPips/pips pour le spread).
+   * optionalColumnsFound : champs reconnus (open/close/source/confirmation/order).
    * extraLabels : libelles des colonnes non reconnues, conservees telles
    * quelles (ex. l'IA les nomme "Facultatif" si elle ne sait pas ou les
    * ranger) - la donnee n'est jamais jetee, juste affichee sous son propre
@@ -119,12 +106,7 @@
         if (v === '' || v == null) return;
         const { field, label } = colMap[idx];
         if (field) {
-          if (NUMERIC_FIELDS.indexOf(field) >= 0) {
-            const n = toNumber(v);
-            if (n != null) trade[field] = n;
-          } else {
-            trade[field] = (field === 'open' || field === 'close') ? (toIsoDate(v) || String(v)) : String(v);
-          }
+          trade[field] = (field === 'open' || field === 'close') ? (toIsoDate(v) || String(v)) : String(v);
         } else {
           trade.extra[label] = String(v);
         }

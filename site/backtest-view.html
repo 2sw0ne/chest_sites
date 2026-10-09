@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<link rel="stylesheet" href="css/backtest-da.css?v=13">
+<link rel="stylesheet" href="css/backtest-da.css?v=12">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -270,26 +270,6 @@
       </div>
     </section>
 
-    <section class="bt-sec" id="spreadSection">
-      <div class="bt-sec__head"><span class="chest-step">Option — Spread du courtier</span></div>
-      <div class="chest-glass bt-spread">
-        <label class="bt-spread__check">
-          <input type="checkbox" id="spreadOn">
-          <span><b>Simuler le spread</b><i>Retire le coût du spread de chaque trade. S'applique à toute la page : cartes, courbe, recommandation propfirm, mensuel et journal.</i></span>
-        </label>
-        <div class="bt-spread__body" id="spreadBody" hidden>
-          <div class="bt-spread__grid">
-            <label>Courtier / propfirm<select id="spreadProfile"></select></label>
-            <label>Instrument<select id="spreadInstrument"></select></label>
-            <label>Spread moyen (pips)<input type="number" id="spreadPips" step="0.1" min="0" inputmode="decimal"></label>
-            <label>Stop moyen (pips)<input type="number" id="spreadStop" step="1" min="0" inputmode="decimal" placeholder="si absent du fichier"></label>
-          </div>
-          <p class="bt-spread__sum" id="spreadSummary"></p>
-          <p class="bt-note">Les spreads proposés par courtier ou propfirm sont des <b>ordres de grandeur indicatifs</b>, donnés de mémoire et non vérifiés sur leurs sites (commission aller-retour incluse en équivalent spread) : remplace-les par le spread réellement vu dans ton MT5 pour un résultat fiable. Un spread moyen constant ne modélise ni l'élargissement aux annonces et à l'ouverture, ni le slippage. Convention : 1 pip = 0,10 $ sur l'or, 0,0001 sur les paires en USD/EUR/GBP, 0,01 sur les paires JPY, 1 point ou 1 $ sur indices et Bitcoin.</p>
-        </div>
-      </div>
-    </section>
-
     <section class="bt-sec" id="mmSection">
       <div class="bt-sec__head">
         <span class="chest-step">01 — Deux possibilités</span>
@@ -363,10 +343,9 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/backtest-store.js?v=2"></script>
-<script src="js/backtest-engine.js?v=21"></script>
-<script src="js/spread-sim.js?v=2"></script>
+<script src="js/backtest-engine.js?v=20"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
-<script src="js/propfirm-fit.js?v=10"></script>
+<script src="js/propfirm-fit.js?v=9"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -508,9 +487,6 @@ CHESTTour.init([
   const heroReport = window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp));
   document.getElementById('heroGrade').textContent = computeGrade(heroReport.stats);
 
-  // Spread simulé (backtest-view applique le coût sur record.trades en mémoire ; le stockage garde les trades d'origine).
-  const rawTrades = record.trades;
-  let spreadSummary = null;
   let mmDetailAccount = 'cp';
   let rawMM = false;
   let journalAccount = 'cp';
@@ -1214,7 +1190,7 @@ CHESTTour.init([
       ${res.meta.raw ? `<p class="bt-note bt-note--warn">Money management <b>brut</b> : ton réglage ${mmDetailAccount === 'pf' ? 'propfirm' : 'compte propre'} enregistré est testé tel quel, à son risque réel, dans chaque prop firm — le calcul ne le rabaisse plus pour rester sous le seuil de sécurité (0,5 compte perdu / période en moyenne). Regarde bien « ≈ X compte perdu / période » à côté du money management avant de miser dessus : un chiffre au-dessus de 0,5 veut dire que tu perdrais le compte plus d'une fois sur deux périodes comme celle-ci. Une firme dont le plafond de risque par trade est plus bas que ton risque réel n'apparaît pas ici (règle qu'on ne peut pas contourner).</p>`
         : res.meta.mm ? `<p class="bt-note">Money management « ${mmDetailAccount === 'pf' ? 'Propfirm' : 'Compte propre'} » : pour chaque firme, la simulation essaie ${fitUserCfgFor(mmDetailAccount) ? `ton réglage ${mmDetailAccount === 'pf' ? 'propfirm' : 'compte propre'} enregistré et ` : ''}les trois profils du calcul automatique ${mmDetailAccount === 'pf' ? 'propfirm' : 'compte propre'} (${res.meta.mmNames.filter((n) => n !== 'Ton réglage').join(', ')}) — paliers après SL, pause, logiques séparées, décidés à l'ouverture d'après les trades déjà clôturés — recale leur risque sur celui de la firme et garde ce qui retire le plus. Réglages calculés sur cet historique, sans test hors échantillon dans cette simulation. Change de compte en section 01 pour voir la recommandation avec l'autre money management.</p>` : ''}
       <p class="bt-note">Indice de recommandation (0 à 100) : retraits nets 30 %, rapidité du 1er retrait 15 %, départs qui retirent 15 %, départs gagnants 15 %, challenge validé 10 %, comptes non perdus 10 %, retraits sans report de cohérence 5 %. Le choix du risque, de l'option de retrait et du money management de chaque firme suit le même indice, parmi ceux qui perdent au plus un demi-compte par période.</p>
-      <p class="bt-note">Simulation sur la période sélectionnée en haut de page (${periodLabel()}), pas une prédiction ni un conseil financier. Chaque jour de cette période sert de départ (${res.meta.starts} départs, qui se recoupent), jusqu'à la fin de la même période : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Les trades qui traversent un week-end ou la nuit sont détectés grâce aux heures d'ouverture et de clôture ; une détention interdite fait perdre le compte. Seuls les trades clôturés comptent : pas de perte flottante, ${spreadSummary ? 'ni swaps ni slippage (le spread, lui, est simulé : option en haut de page)' : 'ni spreads, swaps ou slippage'} ; les règles d'annonces ne sont pas simulées. Les frais du challenge sont les prix affichés sur les pages officielles (tarif normal quand il est connu), remboursements compris quand ils sont documentés. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
+      <p class="bt-note">Simulation sur la période sélectionnée en haut de page (${periodLabel()}), pas une prédiction ni un conseil financier. Chaque jour de cette période sert de départ (${res.meta.starts} départs, qui se recoupent), jusqu'à la fin de la même période : challenge, compte financé, retraits, perte de compte et rachat (3 achats maximum). Le plancher de perte suiveur est recalculé après minuit sur le solde de fin de journée. Les trades qui traversent un week-end ou la nuit sont détectés grâce aux heures d'ouverture et de clôture ; une détention interdite fait perdre le compte. Seuls les trades clôturés comptent : pas de perte flottante, ni spreads, swaps ou slippage ; les règles d'annonces ne sont pas simulées. Les frais du challenge sont les prix affichés sur les pages officielles (tarif normal quand il est connu), remboursements compris quand ils sont documentés. Les règles (dont la cohérence des retraits, lue firme par firme) viennent des pages officielles, relevées le ${longDate(window.CHESTPropRules.verifiedOn)} — elles changent souvent, le site de la firme fait foi avant tout achat.${(window.CHESTPropRules.excluded || []).map((x) => ` ${escHtml(x.firm)} n'est pas simulée : ${escHtml(x.reason)}`).join('')}</p>`;
 
     // Volet replié par défaut (décision utilisateur, 2026-09-22) : cliquer le badge « Prop firm recommandée »
     // déplie la phrase du verdict ET l'avertissement week-end ensemble (les deux vivent dans le même volet).
@@ -1272,9 +1248,8 @@ CHESTTour.init([
   });
 
   // Pistes : ce que l'historique suggère en plus, en petit et sans jamais promettre (voir findInsights).
-  function renderInsights() {
+  (function renderInsights() {
     const el = document.getElementById('insights');
-    el.hidden = true;
     const r = window.CHESTBacktestEngine.findInsights(record.trades);
     const rows = [];
     const fr1 = (v) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).replace('.', ',') + ' R';
@@ -1287,7 +1262,7 @@ CHESTTour.init([
     if (!rows.length) return;
     el.innerHTML = `<span class="bt-insights__k">Piste détectée · à confirmer</span>${rows.join('')}<p>À tester avec « + Si » ou le Réglage premium. Mesuré sur cet historique (heures lues en UTC), ce n'est pas une prédiction.</p>`;
     el.hidden = false;
-  }
+  })();
 
   document.getElementById('rawMmToggle').addEventListener('click', () => {
     rawMM = !rawMM;
@@ -1296,85 +1271,9 @@ CHESTTour.init([
     renderFit(filteredTrades());
   });
 
-  // ---- Option « Simuler le spread » : recalcule record.trades (copie en mémoire) puis redessine toute la page ----
-  const SP = window.CHESTSpread;
-  const spreadState = Object.assign({ on: false, profile: 'ftmo', instrument: SP.guessInstrument(`${record.title} ${record.description || ''}`), pips: null, stop: '' }, record.spread || {});
-  const fr = (v, d = 2) => Number(v).toFixed(d).replace('.', ',');
-  const spreadPipsNow = () => (spreadState.pips != null ? spreadState.pips : SP.profileById(spreadState.profile).spreads[spreadState.instrument]);
-  const saveSpreadState = () => { try { window.CHESTBacktests.update(record.id, { spread: Object.assign({}, spreadState) }); } catch (e) { /* stockage plein : l'option reste active pour cette visite */ } };
-
-  function spreadSummaryHtml() {
-    const sum = spreadSummary;
-    if (!sum) return '';
-    const inst = SP.INSTRUMENTS[spreadState.instrument];
-    const pips = spreadPipsNow();
-    const price = inst.unit ? ` (${fr(sum.spreadPrice)} ${inst.unit})` : '';
-    if (!(pips > 0)) return 'Spread à 0 : aucun coût appliqué.';
-    if (!sum.adjusted) {
-      return `<span class="neg">Aucune distance de stop disponible.</span> Le fichier n'a ni « Prix d'entrée » et « Prix de sortie », ni « SL (pips) », ni « Pips » : saisis un <b>stop moyen en pips</b> ci-dessus, ou réimporte le fichier avec ces colonnes (Modifier ce backtest).`;
-    }
-    const by = sum.bySource;
-    const parts = [];
-    if (by.sl + by.prix + by.pips) parts.push(`<b>${by.sl + by.prix + by.pips}</b> avec leur propre stop (${by.sl ? 'SL (pips)' : by.prix ? 'prix d\'entrée et de sortie' : 'pips'})`);
-    if (by.mediane) parts.push(`<b>${by.mediane}</b> au stop médian du fichier (${fr(sum.medianStopPrice / sum.pip, 1)} pips)`);
-    if (by.saisi) parts.push(`<b>${by.saisi}</b> au stop saisi`);
-    let t = `Spread <b>${fr(pips, 1)} pips</b>${price} sur ${spreadState.instrument}. Coût moyen : <b class="neg">−${fr(sum.avgCostR)} R</b> par trade ajusté — ${sum.adjusted} trade${sum.adjusted > 1 ? 's' : ''} sur ${sum.total} : ${parts.join(', ')}.`;
-    if (sum.skipped) t += ` <span class="neg">${sum.skipped} trade${sum.skipped > 1 ? 's' : ''} sans distance de stop non ajusté${sum.skipped > 1 ? 's' : ''}</span> : saisis un stop moyen pour les inclure.`;
-    if (sum.priceMismatch) t += ` <span class="neg">Les prix d'entrée du fichier (≈ ${sum.medianEntryPrice >= 100 ? Math.round(sum.medianEntryPrice).toLocaleString('fr-FR') : fr(sum.medianEntryPrice, 4)}) ne ressemblent pas à ${spreadState.instrument}</span> : vérifie l'instrument, sinon le coût est faux.`;
-    if (sum.realShare < 0.5) t += ` Les stops viennent surtout d'une valeur moyenne, pas de chaque trade : le résultat reste une estimation.`;
-    return t;
-  }
-
-  function refreshSpreadUi() {
-    document.getElementById('spreadOn').checked = spreadState.on;
-    document.getElementById('spreadBody').hidden = !spreadState.on;
-    document.getElementById('spreadProfile').value = spreadState.profile;
-    document.getElementById('spreadInstrument').value = spreadState.instrument;
-    document.getElementById('spreadPips').value = String(spreadPipsNow());
-    document.getElementById('spreadStop').value = spreadState.stop;
-    document.getElementById('spreadSummary').innerHTML = spreadSummaryHtml();
-    const badge = document.getElementById('heroBadge');
-    badge.querySelector('.bt-spread-tag')?.remove();
-    if (spreadState.on && spreadSummary && spreadSummary.adjusted) badge.insertAdjacentHTML('beforeend', '<span class="bt-spread-tag">spread</span>');
-  }
-
-  function applySpread() {
-    if (spreadState.on) {
-      const r = SP.apply(rawTrades, { spreadPips: spreadPipsNow(), instrument: spreadState.instrument, stopPips: spreadState.stop });
-      record.trades = r.trades;
-      spreadSummary = r.summary;
-    } else {
-      record.trades = rawTrades;
-      spreadSummary = null;
-    }
-    journalFullReports = null;
-    fitCache.clear();
-    fitPaintedKey = null;
-    document.getElementById('heroGrade').textContent = computeGrade(window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp)).stats);
-    refreshSpreadUi();
-    renderAll();
-    renderJournal();
-    renderInsights();
-  }
-
-  (function initSpreadControls() {
-    const profSel = document.getElementById('spreadProfile');
-    ['Référence', 'Propfirms', 'Courtiers', 'Stress test'].forEach((g) => {
-      const opts = SP.PROFILES.filter((p) => p.group === g).map((p) => `<option value="${p.id}">${p.label}</option>`).join('');
-      profSel.insertAdjacentHTML('beforeend', g === 'Référence' ? opts : `<optgroup label="${g}">${opts}</optgroup>`);
-    });
-    document.getElementById('spreadInstrument').innerHTML = SP.ORDER.map((k) => `<option value="${k}">${SP.INSTRUMENTS[k].label}</option>`).join('');
-    const change = () => { saveSpreadState(); applySpread(); };
-    document.getElementById('spreadOn').addEventListener('change', (e) => { spreadState.on = e.target.checked; change(); });
-    profSel.addEventListener('change', (e) => { spreadState.profile = e.target.value; spreadState.pips = null; change(); });
-    document.getElementById('spreadInstrument').addEventListener('change', (e) => { spreadState.instrument = e.target.value; spreadState.pips = null; change(); });
-    document.getElementById('spreadPips').addEventListener('change', (e) => { const v = Number(e.target.value); spreadState.pips = e.target.value !== '' && v >= 0 ? v : null; change(); });
-    document.getElementById('spreadStop').addEventListener('change', (e) => { spreadState.stop = e.target.value; change(); });
-  })();
-
   renderYearFilter();
-  if (spreadState.on) applySpread(); else { refreshSpreadUi(); renderAll(); renderJournal(); }
-  renderInsights();
+  renderAll();
+  renderJournal();
 })();
 </script>
 </body>
