@@ -17,6 +17,8 @@
 
   function isSL(t) { return String(t.result).toUpperCase() === 'SL'; }
   function isBE(t) { return String(t.result).toUpperCase() === 'BE'; }
+  // R realise d'un trade. Un BE vaut 0 R, sauf si la simulation de spread a pose `beRr` (cout du spread, < 0).
+  function rrOf(t) { return isBE(t) ? (Number(t.beRr) || 0) : (Number(t.rr) || 0); }
 
   // Ordre chronologique par cloture (ou ouverture, ou date simple si ni l'un
   // ni l'autre n'est fourni) - meme esprit que buildEvents() dans
@@ -347,7 +349,7 @@
       const risk = assigned[i];
       if (!(risk > 0)) skipped++;
       else {
-        const rr = isBE(t) ? 0 : Number(t.rr) || 0;
+        const rr = rrOf(t);
         capital = capital * (1 + (risk / 100) * rr);
         curve.push({ date: toDate(t.close || t.open || t.date), capital, trade: t, riskUsed: risk });
       }
@@ -434,8 +436,8 @@
   function computeStats(curve, trades) {
     const wins = trades.filter((t) => !isSL(t)).length;
     const losses = trades.filter((t) => isSL(t)).length;
-    const grossWin = trades.filter((t) => Number(t.rr) > 0).reduce((s, t) => s + Number(t.rr), 0);
-    const grossLoss = Math.abs(trades.filter((t) => Number(t.rr) < 0).reduce((s, t) => s + Number(t.rr), 0));
+    const grossWin = trades.filter((t) => rrOf(t) > 0).reduce((s, t) => s + rrOf(t), 0);
+    const grossLoss = Math.abs(trades.filter((t) => rrOf(t) < 0).reduce((s, t) => s + rrOf(t), 0));
     const startCap = curve[0].capital;
     const finalCap = curve[curve.length - 1].capital;
     return {
@@ -600,7 +602,7 @@
     const n = ordered.length;
     const rr = new Float64Array(n), sl = new Uint8Array(n), hr = new Int8Array(n), dk = new Array(n), mk = new Array(n);
     ordered.forEach((t, i) => {
-      rr[i] = isBE(t) ? 0 : Number(t.rr) || 0;
+      rr[i] = rrOf(t);
       sl[i] = isSL(t) ? 1 : 0;
       const h = openHour(t); hr[i] = h == null ? -1 : h;
       const d = toDate(t.close || t.open || t.date);
@@ -1201,7 +1203,7 @@
     const ordered = sortedTrades(trades);
     const n = ordered.length;
     const minG = minGroupOf(n);
-    const R = ordered.map((t) => (isBE(t) ? 0 : Number(t.rr) || 0));
+    const R = ordered.map((t) => (rrOf(t)));
     const fields = detectBonusFields(ordered);
     const tips = [];
     fields.forEach((f) => f.values.forEach((val) => {
@@ -1225,7 +1227,7 @@
   }
 
   window.CHESTBacktestEngine = {
-    sortedTrades, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizeProfiles, riskSeries, describeConfig, describeSplit,
+    sortedTrades, rrOf, effectiveRisk, resolveRisk, simulate, computeReport, optimizeCp, optimizePf, optimizeProfiles, riskSeries, describeConfig, describeSplit,
     detectBonusFields, detectLeakFields, findInsights, fieldLabel, condsMatch, bonusValue, RISK_GRID,
   };
 })();

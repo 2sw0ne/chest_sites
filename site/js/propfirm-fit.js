@@ -49,8 +49,7 @@
       if (isNaN(d.getTime())) return;
       const w = weightOf ? weightOf(t, idx) : 1;
       if (!(w > 0)) return;
-      const res = String(t.result).toUpperCase();
-      rr.push(res === 'BE' ? 0 : (Number(t.rr) || 0) * w);
+      rr.push(window.CHESTBacktestEngine.rrOf(t) * w);
       day.push(Math.floor(d.getTime() / 86400000));
       let crosses = false, over = false;
       if (t.open && t.close) {

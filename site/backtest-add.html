@@ -277,6 +277,10 @@ Colonnes suivantes, dans l'ordre de ton choix, à ajouter UNIQUEMENT si l'inform
 - "Source" → source ou nom du signal, si connu
 - "Confirmation" → note de confirmation du setup, si connue
 - "Ordre" → sens de la position, "Buy" ou "Sell", si connu
+- "Prix d'entrée" → prix d'entrée de la position (nombre), si connu
+- "Prix de sortie" → prix de sortie réel de la position (nombre), si connu
+- "SL (pips)" → distance du stop loss en pips, si connue
+- "Pips" → pips réalisés (gain ou perte) par la position, si connus
 
 Si mon fichier original contient d'autres informations utiles qui ne correspondent à aucune de ces catégories, garde-les quand même : ajoute-les dans des colonnes supplémentaires nommées "Facultatif" (ou "Facultatif 2", "Facultatif 3"... s'il y en a plusieurs) plutôt que de les supprimer.
 
@@ -406,9 +410,9 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/backtest-store.js?v=2"></script>
-<script src="js/backtest-engine.js?v=20"></script>
+<script src="js/backtest-engine.js?v=21"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="js/xlsx-import.js?v=2"></script>
+<script src="js/xlsx-import.js?v=3"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
