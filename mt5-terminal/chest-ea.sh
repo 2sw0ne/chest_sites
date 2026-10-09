@@ -120,6 +120,10 @@ chest_tail_logs() {
       alllogs=$(find "$MT5" -maxdepth 4 -iname '*.log' 2>/dev/null | sed "s|^$MT5/||" | head -n 10 | tr '\n' ' ')
       log_info "CHEST: etat - terminal64 procs=$procs fenetres=$wins ex5=$ex5 Logs=[$tlogs] MQL5/Logs=[$elogs] tous-logs=[$alllogs] titres=[$titles]"
       if [ "$tick" -eq 1 ]; then
+        # Contenu reel du fichier de demarrage et des profils (mot de passe masque) - diagnostic unique.
+        iconv -f UTF-16LE -t UTF-8 "$MT5/common.ini" 2>/dev/null | tr -d '\r' | sed -e 's/^Password=.*/Password=***/' -e 's/^/[STARTCFG] /'
+        iconv -f UTF-16LE -t UTF-8 "$MT5/terminal.ini" 2>/dev/null | tr -d '\r' | grep -i -E 'profile|^\[' | head -n 12 | sed 's/^/[TERMINI] /'
+        log_info "CHEST: profils = [$(find "$MT5/Profiles" -maxdepth 3 2>/dev/null | sed "s|^$MT5/Profiles/||" | head -n 15 | tr '\n' ' ')]"
         log_info "CHEST: racine MT5 = [$(ls "$MT5" 2>/dev/null | tr '\n' ' ')] Profiles=[$(ls "$MT5/Profiles" 2>/dev/null | tr '\n' ' ')] Config=[$(ls "$MT5/Config" 2>/dev/null | tr '\n' ' ')]"
       fi
     fi
