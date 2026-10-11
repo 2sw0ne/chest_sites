@@ -210,6 +210,12 @@ async function scanCombo(code, tf) {
           saveSignals();
           if (known) dispatch(sig);
         }
+      } else {
+        // Même trade (identité inchangée) : si la façon de calculer ses niveaux a changé depuis
+        // (script ajusté), on rafraîchit le signal déjà enregistré plutôt que de le laisser figé
+        // avec d'anciens niveaux jusqu'à la prochaine opportunité.
+        const cur = SIGNALS.find((s) => s.scanner === name && s.symbol === code && s.tf === tf && s.side === lv.side && s.levels && s.levels.pe === lv.pe);
+        if (cur && JSON.stringify(cur.levels) !== JSON.stringify(lv)) { cur.levels = lv; saveSignals(); }
       }
     }
     // Finalité (actif / TPn / SL) : recalculée à chaque passage à partir des bougies fermées

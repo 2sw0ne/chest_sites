@@ -159,12 +159,9 @@ const RULES = {
     sl: textPrice(L, /^Invalid Level:\s*(-?[0-9.]+)$/),
     tps: seriesOf(L, (n) => new RegExp(`^TP${n}:\\s*(-?[0-9.]+)$`)),
   }),
-  // Supernova : seuls "Buy"/"Sell" sont affichés (l'original ne montre que ça, les
-  // niveaux ne sortent que par webhook) - étiquette posée au prix d'entrée, comme Algomni
-  supernova: (L) => {
-    const r = lastMatch(L, /^(Buy|Sell)$/);
-    return { pe: r?.y ?? null, side: r ? (r.m[1] === "Buy" ? "buy" : "sell") : null };
-  },
+  // Supernova : PE, SL (dernier pivot ZigZag qui a armé le signal) et TP1 (3R) - étiquettes
+  // ajoutées pour CHEST, l'original n'affiche que les labels Buy/Sell
+  supernova: (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
 };
 // Sens du trade : donné explicitement par la règle (étiquette BUY/SELL, flèche) quand elle le sait,
 // sinon déduit de la position du stop ou du 1er TP par rapport à l'entrée (SL/TP sous l'entrée = vente).
