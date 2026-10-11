@@ -118,10 +118,10 @@
   /* ---------- Compte "Live" (Myfxbook, admin, toujours synchronise) ---------- */
   .acc-switcher__btn.is-live{ border-color:rgba(51,230,166,.4); }
   .avatar.is-live, .acc-menu__item .avatar.is-live{ background:linear-gradient(135deg,#1fbd88,var(--green)); }
-  /* Etoile "Live Shield" (2026-10-11) : declarative, voir dashboard.js toggleLiveShield - pas une
-     donnee lue depuis Myfxbook (aucun champ API ne l'expose), juste un reperage visuel choisi par
-     l'utilisateur. */
-  .live-shield-star{ font-size:.85em; filter:drop-shadow(0 0 4px rgba(245,166,35,.6)); }
+  /* Etoile "Compte principal" (2026-10-11, renommee depuis "Live Shield") : declarative, voir
+     dashboard.js toggleMainAccount - pas une donnee lue depuis Myfxbook (aucun champ API ne
+     l'expose), juste un reperage visuel choisi par l'utilisateur. */
+  .main-account-star{ font-size:.85em; filter:drop-shadow(0 0 4px rgba(245,166,35,.6)); white-space:nowrap; }
 
   /* ---------- Etape "identite du compte" (broker/PF + numero, plus de nom libre) ---------- */
   .broker-grid-sm{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
@@ -823,7 +823,7 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=8"></script>
-<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=48"></script>
+<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=49"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>

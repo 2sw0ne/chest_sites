@@ -734,13 +734,13 @@
       <div class="acc-row">
         <button class="acc-menu__item ${a.id === activeId ? 'is-active' : ''}" data-id="${a.id}">
           <span class="avatar ${a.isLiveSwann ? 'is-live' : ''}">${a.isLiveSwann ? '🟢' : initials(a.name)}</span>
-          <span><strong>${a.name}${a.liveShield ? ' <span class="live-shield-star" title="Live Shield actif">⭐</span>' : ''}</strong><span>${journalName ? '📒 ' + journalName : `#${a.number} · ${a.type}`}</span></span>
+          <span><strong>${a.name}${a.isMainAccount ? ' <span class="main-account-star" title="Compte principal">⭐</span>' : ''}</strong><span>${journalName ? '📒 ' + journalName : `#${a.number} · ${a.type}`}</span></span>
         </button>
         ${canDelete ? `
         <div class="acc-tools">
           <button type="button" class="acc-tools__btn" aria-label="Options du compte ${a.name}">⋮</button>
           <div class="acc-tools__menu">
-            <button type="button" data-toggle-liveshield="${a.id}">${a.liveShield ? '⭐ Retirer Live Shield' : '⭐ Marquer Live Shield'}</button>
+            <button type="button" data-toggle-main-account="${a.id}">${a.isMainAccount ? '⭐ Retirer le compte principal' : '⭐ Définir comme compte principal'}</button>
             <button type="button" data-reattach-account="${a.id}">📒 Rattacher à un autre journal</button>
             <button type="button" data-rename-account="${a.id}">✎ Renommer le compte</button>
             <button type="button" class="is-danger" data-delete-account="${a.id}">Supprimer</button>
@@ -769,27 +769,27 @@
     list.querySelectorAll('[data-reattach-account]').forEach((btn) => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); openReattachJournalModal(btn.dataset.reattachAccount); });
     });
-    list.querySelectorAll('[data-toggle-liveshield]').forEach((btn) => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); toggleLiveShield(btn.dataset.toggleLiveshield); });
+    list.querySelectorAll('[data-toggle-main-account]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMainAccount(btn.dataset.toggleMainAccount); });
     });
   }
 
-  // Etoile "Live Shield" (2026-10-11) : purement declarative, CHEST ne peut pas verifier ce statut
-  // via l'API Myfxbook (voir renderAccountHeader) - sert juste a reperer le compte sur lequel
-  // l'utilisateur a paye l'abonnement Myfxbook. Un seul compte a la fois peut l'avoir (meme
-  // contrainte reelle que Myfxbook : la licence ne vit que sur un compte a la fois, transferable
-  // depuis myfxbook.com).
-  function toggleLiveShield(id) {
+  // Etoile "Compte principal" (2026-10-11, renommee depuis "Live Shield") : purement declarative,
+  // CHEST ne peut pas verifier le statut de l'abonnement payant Myfxbook via l'API (voir
+  // renderAccountHeader) - sert juste a reperer le compte sur lequel l'utilisateur a paye
+  // l'abonnement. Un seul compte a la fois peut l'avoir (meme contrainte reelle que Myfxbook : la
+  // licence ne vit que sur un compte a la fois, transferable depuis myfxbook.com).
+  function toggleMainAccount(id) {
     const accounts = loadAccounts();
     const acc = accounts.find((a) => a.id === id);
     if (!acc) return;
-    const turningOn = !acc.liveShield;
-    accounts.forEach((a) => { delete a.liveShield; });
-    if (turningOn) acc.liveShield = true;
+    const turningOn = !acc.isMainAccount;
+    accounts.forEach((a) => { delete a.isMainAccount; });
+    if (turningOn) acc.isMainAccount = true;
     saveAccounts(accounts);
     closeMenu();
     renderAll();
-    showToast(turningOn ? `⭐ "${acc.name}" marqué Live Shield` : 'Live Shield retiré');
+    showToast(turningOn ? `⭐ "${acc.name}" défini comme compte principal` : 'Compte principal retiré');
   }
 
   async function renameAccount(id) {
@@ -868,14 +868,17 @@
     avatarEl.classList.toggle('is-live', !!a.isLiveSwann);
     const accNameEl = document.getElementById('accName');
     accNameEl.textContent = a.name;
-    // Etoile Live Shield (2026-10-11, demande utilisateur) : purement declaratif - CHEST ne peut
-    // pas lire ce statut via l'API Myfxbook (aucun champ documente), donc c'est l'utilisateur qui
-    // marque lui-meme le compte sur lequel il a active l'abonnement payant (voir toggleLiveShield).
-    if (a.liveShield) {
+    // Etoile "Compte principal" (2026-10-11, renommee depuis "Live Shield") : purement declaratif -
+    // CHEST ne peut pas lire ce statut via l'API Myfxbook (aucun champ documente), donc c'est
+    // l'utilisateur qui marque lui-meme le compte sur lequel il a active l'abonnement payant (voir
+    // toggleMainAccount). Espace INSECABLE avant l'etoile (retour utilisateur : elle passait a la
+    // ligne sur un nom un peu long, donc "en dessous" plutot qu'a cote) - un espace normal autorise
+    // le navigateur a couper la ligne juste avant l'etoile, l'espace insecable l'en empeche.
+    if (a.isMainAccount) {
       const star = document.createElement('span');
-      star.className = 'live-shield-star';
-      star.title = 'Live Shield Myfxbook actif sur ce compte (déclaré par toi)';
-      star.textContent = ' ⭐';
+      star.className = 'main-account-star';
+      star.title = 'Compte principal (déclaré par toi)';
+      star.textContent = ' ⭐';
       accNameEl.appendChild(star);
     }
     document.getElementById('accSub').textContent = `#${a.number} · ${a.type}`;
