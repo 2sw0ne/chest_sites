@@ -165,7 +165,7 @@
       defaultTimeframe: "5",
       candles: null,
       logoInitials: "SN",
-      logoColor: "#5e72ff",
+      logoColor: "#3b7bff",
       logo: "assets/logo-supernova.webp",
       pineSource: null,
     },
