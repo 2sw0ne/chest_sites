@@ -270,6 +270,7 @@
       data: bars,
       theme: 'dark',
       drawings: true,
+      volume: false, // légende "Volume 0.00" jamais utile ici (pas de vraie donnée de volume)
     });
     chart.registerEngine('pine', new (remoteEngine(body.models))());
     for (let i = 0; i < body.models.length; i++) {
@@ -324,6 +325,7 @@
       data: candleData,
       theme: 'dark', // le thème clair inverse la page entière
       drawings: true,
+      volume: false, // légende "Volume 0.00" jamais utile ici (pas de vraie donnée de volume)
     });
 
     chart.registerEngine('pine', new PineEngine());
