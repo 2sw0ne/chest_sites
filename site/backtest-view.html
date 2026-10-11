@@ -932,21 +932,28 @@ CHESTTour.init([
 
   // Le calcul (js/propfirm-fit.js) est lourd sur un gros historique (page gelée, retour
   // utilisateur 2026-10-11) : il tourne dans un Worker séparé pour ne jamais bloquer la page.
-  // Repli sur place (même fil) si le navigateur ne sait pas charger de Worker.
+  // Repli sur place (même fil) si le navigateur ne sait pas charger de Worker - systematique pour
+  // le rapport exporté (js/backtest-share.js, window.__CHEST_EXPORT__) : un fichier HTML telecharge
+  // puis ouvert en double-clic vit sur file://, et `new Worker('js/...')` y echoue TOUJOURS avec
+  // une SecurityError ("cannot be accessed from origin 'null'") - le fichier du worker n'est de
+  // toute facon pas embarque dans l'export (ce n'est pas une balise <script src>, buildExportHtml ne
+  // peut pas le detecter). Autant ne jamais tenter l'appel plutot que compter sur l'exception.
   let fitWorker = null;
   const fitPending = new Map();
   let fitReqId = 0;
-  try {
-    fitWorker = new Worker('js/backtest-fit-worker.js?v=1');
-    fitWorker.onmessage = (e) => {
-      const { id, result, error } = e.data;
-      const p = fitPending.get(id);
-      if (!p) return;
-      fitPending.delete(id);
-      if (error) p.reject(new Error(error)); else p.resolve(result);
-    };
-    fitWorker.onerror = () => { fitWorker = null; fitPending.forEach((p) => p.reject(new Error('worker'))); fitPending.clear(); };
-  } catch (e) { fitWorker = null; }
+  if (!window.__CHEST_EXPORT__) {
+    try {
+      fitWorker = new Worker('js/backtest-fit-worker.js?v=1');
+      fitWorker.onmessage = (e) => {
+        const { id, result, error } = e.data;
+        const p = fitPending.get(id);
+        if (!p) return;
+        fitPending.delete(id);
+        if (error) p.reject(new Error(error)); else p.resolve(result);
+      };
+      fitWorker.onerror = () => { fitWorker = null; fitPending.forEach((p) => p.reject(new Error('worker'))); fitPending.clear(); };
+    } catch (e) { fitWorker = null; }
+  }
   function fitAsync(trades, capital, opts) {
     if (!fitWorker) return Promise.resolve(window.CHESTPropFit.fit(trades, capital, opts));
     const id = ++fitReqId;
