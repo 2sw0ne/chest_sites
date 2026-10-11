@@ -1363,6 +1363,14 @@
   }
   // `ref` = valeur neutre (2026-10-02 : le capital de depart en $, 0 en %) - vert au-dessus,
   // rouge en dessous.
+  //
+  // BUG REEL (2026-10-11, retour utilisateur avec capture : "le 0% est transparent... ren[d] la
+  // ligne nette") : le fondu vers une opacite nulle pres de la ligne de reference (addPlateauStops)
+  // etait utilise a la fois pour le remplissage (voulu - un appui visuel qui s'efface pres de 0) ET
+  // pour le TRAIT lui-meme, qui devenait donc invisible a chaque fois que la courbe passait pres de
+  // sa reference - exactement la zone generalement la plus dense en points (voir capture, courbe
+  // entre -2% et +1%). Le trait ne fond plus jamais : opacite pleine des deux cotes, seule la teinte
+  // change pile a la traversee de la reference.
   function buildHeatGradient(chartInstance, series, forLine, ref) {
     const r = ref || 0;
     const { ctx: c2d, chartArea, scales } = chartInstance;
@@ -1372,12 +1380,25 @@
     // rester un simple appui visuel derriere lui (retour utilisateur 2026-10-11, "trop vague").
     const peak = forLine ? 1 : 0.42;
     const maxV = Math.max(...series, r), minV = Math.min(...series, r);
-    if (maxV <= r) { addPlateauStops(grad, 1, 0, peak, NEON_RED); return grad; }
-    if (minV >= r) { addPlateauStops(grad, 0, 1, peak, NEON_GREEN); return grad; }
+    if (maxV <= r) {
+      if (forLine) { grad.addColorStop(0, rgbaColor(NEON_RED, peak)); grad.addColorStop(1, rgbaColor(NEON_RED, peak)); return grad; }
+      addPlateauStops(grad, 1, 0, peak, NEON_RED); return grad;
+    }
+    if (minV >= r) {
+      if (forLine) { grad.addColorStop(0, rgbaColor(NEON_GREEN, peak)); grad.addColorStop(1, rgbaColor(NEON_GREEN, peak)); return grad; }
+      addPlateauStops(grad, 0, 1, peak, NEON_GREEN); return grad;
+    }
     const zeroY = scales.y.getPixelForValue(r);
     const span = chartArea.bottom - chartArea.top;
     let zeroT = span ? (zeroY - chartArea.top) / span : 0.5;
     zeroT = Math.max(0.04, Math.min(0.96, zeroT));
+    if (forLine) {
+      grad.addColorStop(0, rgbaColor(NEON_GREEN, peak));
+      grad.addColorStop(zeroT, rgbaColor(NEON_GREEN, peak));
+      grad.addColorStop(zeroT, rgbaColor(NEON_RED, peak));
+      grad.addColorStop(1, rgbaColor(NEON_RED, peak));
+      return grad;
+    }
     addPlateauStops(grad, 0, zeroT, peak, NEON_GREEN);
     addPlateauStops(grad, 1, zeroT, peak, NEON_RED);
     return grad;
