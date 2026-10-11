@@ -159,6 +159,9 @@ const RULES = {
     sl: textPrice(L, /^Invalid Level:\s*(-?[0-9.]+)$/),
     tps: seriesOf(L, (n) => new RegExp(`^TP${n}:\\s*(-?[0-9.]+)$`)),
   }),
+  // Supernova : étiquettes "PE (x)"/"SL (x)"/"TPn (x)" ajoutées pour CHEST (l'original
+  // n'affiche que les labels "Buy"/"Sell", les niveaux ne sortent que par webhook)
+  supernova: (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
 };
 // Sens du trade : donné explicitement par la règle (étiquette BUY/SELL, flèche) quand elle le sait,
 // sinon déduit de la position du stop ou du 1er TP par rapport à l'entrée (SL/TP sous l'entrée = vente).

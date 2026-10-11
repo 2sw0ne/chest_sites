@@ -947,6 +947,7 @@ ALERT_SCANNERS = {
     "pulse": ("Pulse", "assets/logo-pulse.webp"),
     "wave": ("Wave", "assets/logo-wave.webp"),
     "stars": ("Stars", "assets/logo-stars.webp"),
+    "supernova": ("Supernova", "assets/logo-supernova.webp"),
 }
 ALERT_TF_LABEL = {"1": "M1", "5": "M5", "15": "M15", "30": "M30", "60": "H1", "240": "H4", "D": "D1"}
 SITE_URL = os.environ.get("SITE_URL", "https://your-chest.vercel.app").rstrip("/")

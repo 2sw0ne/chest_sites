@@ -155,6 +155,20 @@
       logo: "assets/logo-stars.webp",
       pineSource: null,
     },
+    {
+      id: "supernova",
+      name: "Supernova",
+      description: "Suiveur de tendance : point d'entrée, invalidation et plusieurs objectifs de take profit, filtré par heures de fort volume.",
+      tags: ["Suivi de tendance"],
+      market: "commodities",
+      defaultSymbol: "XAUUSD",
+      defaultTimeframe: "5",
+      candles: null,
+      logoInitials: "SN",
+      logoColor: "#5e72ff",
+      logo: "assets/logo-supernova.webp",
+      pineSource: null,
+    },
   ];
 
   function list() { return SCANNERS.slice(); }
