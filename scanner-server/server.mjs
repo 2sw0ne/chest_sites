@@ -12,6 +12,7 @@ const PORT = Number(process.env.PORT || 8787);
 const SCRIPTS_DIR = process.env.SCRIPTS_DIR || "/data/scripts";
 const SIGNALS_FILE = process.env.SIGNALS_FILE || join(dirname(SCRIPTS_DIR), "signals.json");
 const WATCH_FILE = join(dirname(SIGNALS_FILE), "watch.json");
+const CREDITS_FILE = join(dirname(SIGNALS_FILE), "credits.json");
 const TD_KEY = process.env.TWELVE_DATA_API_KEY || "";
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET || "";
 const ACCOUNTS_URL = (process.env.ACCOUNTS_INTERNAL_URL || "http://localhost:8080").replace(/\/$/, "");
@@ -24,6 +25,40 @@ const CANDLE_TTL = 5 * 60 * 1000;
 const SCAN_DELAY = 20 * 1000; // délai après la clôture d'une bougie avant de la lire
 const WATCH_TTL = 24 * 60 * 60 * 1000;
 const OPPORTUNITY_WINDOW = 48 * 60 * 60 * 1000;
+
+// ---------------- Budget de crédits Twelve Data (2026-10-11) ----------------
+// La clé Twelve Data est PARTAGÉE avec accounts-bridge (calendar.js, scanner-chart.js,
+// berich-chart.js, lot-calculator.js - voir accounts-bridge/server.py, /twelvedata/<endpoint>) :
+// plafond réel 800 crédits/jour (voir twelvedata.com/pricing, plan Basic : "8 API (800 a day)" = 8
+// crédits/minute, plafonné à 800/jour, pas "8 clés"). Avant cette limite, le rescan systématique à
+// chaque clôture de bougie (voir la boucle plus bas) pouvait consommer tout le quota à lui seul et
+// affamer les autres services pour le reste de la journée (retour utilisateur : le calendrier
+// affichait "résultat réel indisponible... quota atteint"). Ici, ce service se réserve une PART du
+// quota total plutôt que de le consommer en entier - le reste (REST_SHARE) reste disponible pour
+// calendar/BERICH/calculette. Ajustable via SCANNER_DAILY_CREDIT_BUDGET si besoin.
+const DAILY_CREDIT_BUDGET = Number(process.env.SCANNER_DAILY_CREDIT_BUDGET || 550); // sur 800 - garde ~250 pour le reste
+function todayKeyUtc() { return new Date().toISOString().slice(0, 10); } // jour calendaire UTC
+let credits = { day: todayKeyUtc(), used: 0 };
+try {
+  if (existsSync(CREDITS_FILE)) {
+    const saved = JSON.parse(readFileSync(CREDITS_FILE, "utf8"));
+    if (saved && saved.day === todayKeyUtc()) credits = saved; // sinon : jour different, on repart a 0 plus bas
+  }
+} catch (e) { /* fichier absent/corrompu au premier demarrage : on repart a 0, sans gravite */ }
+function saveCredits() {
+  try { writeFileSync(CREDITS_FILE, JSON.stringify(credits)); } catch (e) { /* volume absent en local */ }
+}
+// Remise a zero automatique au changement de jour UTC - verifiee a chaque appel, cout nul, pas
+// besoin d'un cron separe.
+function resetCreditsIfNewDay() {
+  const today = todayKeyUtc();
+  if (credits.day !== today) { credits = { day: today, used: 0 }; saveCredits(); }
+}
+function creditsRemaining() { resetCreditsIfNewDay(); return DAILY_CREDIT_BUDGET - credits.used; }
+// Incrementee AVANT l'appel reseau (jamais apres) : en cas d'erreur Twelve Data (reseau, 429...) on
+// prefere compter un credit de trop plutot que risquer d'en compter un de moins et depasser le
+// budget reserve - l'objectif est de ne JAMAIS le depasser, pas d'etre pile dessus a l'unite pres.
+function spendCredit() { resetCreditsIfNewDay(); credits.used += 1; saveCredits(); }
 
 const toTdSymbol = (code) => (code.length === 6 ? code.slice(0, 3) + "/" + code.slice(3) : code);
 const validCode = (c) => /^[A-Z]{6}$/.test(c);
@@ -70,6 +105,15 @@ async function getCandles(code, tf) {
   const hit = candleCache.get(key);
   if (hit && Date.now() - hit.at < CANDLE_TTL) return hit;
   if (!TD_KEY) throw new Error("clé de bougies non configurée");
+  if (creditsRemaining() <= 0) {
+    // Budget du jour epuise : on sert la derniere donnee connue (perimee mais honnete, affichee
+    // telle quelle) plutot que de risquer de depasser le budget reserve a ce service - jamais
+    // d'appel Twelve Data au-dela. Sans donnee du tout, on echoue proprement (deja gere par
+    // l'appelant : "bougies indisponibles").
+    if (hit) return hit;
+    throw new Error("budget Twelve Data du jour atteint pour ce service");
+  }
+  spendCredit();
   const qs = new URLSearchParams({ symbol: toTdSymbol(code), interval: TF_INTERVAL[tf], outputsize: "5000", timezone: "UTC", apikey: TD_KEY });
   const res = await fetch(`https://api.twelvedata.com/time_series?${qs}`);
   const json = await res.json();
@@ -272,7 +316,10 @@ createServer(async (req, res) => {
   const send = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(obj)); };
   try {
     if (url.pathname === "/health") {
-      return send(200, { ok: true, rssMB: Math.round(process.memoryUsage().rss / 1048576), models: modelCache.size, watching: WATCH.size, calculs: calculsCount });
+      return send(200, {
+        ok: true, rssMB: Math.round(process.memoryUsage().rss / 1048576), models: modelCache.size, watching: WATCH.size, calculs: calculsCount,
+        twelveDataCredits: { budget: DAILY_CREDIT_BUDGET, used: credits.used, remaining: creditsRemaining(), day: credits.day },
+      });
     }
 
     if (url.pathname === "/data" && req.method === "GET") {
