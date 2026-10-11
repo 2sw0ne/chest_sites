@@ -610,7 +610,12 @@
     const evs = buildEvents(ordered);
     const ev = new Int32Array(evs.length);
     evs.forEach((e, k) => { ev[k] = e[2] * 2 + e[1]; }); // idx × 2 + 1 (ouverture) ou 0 (clôture)
-    return { n, rr, sl, hr, dk, mk, ev, zeros: new Int16Array(n) };
+    // `asg` (risque assigné par trade) : un seul buffer réutilisé par TOUS les evalRange() de ce `pre` (voir
+    // plus bas) - en allouer un frais à chaque appel a pu dépasser le Go de poubelle jetée sur un gros
+    // historique (plusieurs dizaines de milliers d'appels pendant une recherche de réglage premium), jusqu'à
+    // planter l'onglet en "Out of Memory" (retour utilisateur 2026-10-11, backtest de 8169 trades). Sûr : à
+    // chaque appel, chaque case utilisée est écrite (ouverture du trade) avant d'être lue (sa clôture).
+    return { n, rr, sl, hr, dk, mk, ev, zeros: new Int16Array(n), asg: new Float64Array(n) };
   }
 
   // Un état = { bi (risque de base), ti (palier), mi[] (multiplicateur par groupe) } ; groupe 0 = « le reste ».
@@ -636,7 +641,7 @@
   function evalRange(pre, lo, hi, gid, cfg) {
     let cap = 1, peak = 1, maxDd = 0, streak = 0;
     const gstk = cfg.gcfg ? new Int32Array(cfg.gcfg.length) : null; // séries propres à chaque valeur (mode « séparé »)
-    const asg = new Float64Array(pre.n);
+    const asg = pre.asg;
     let lastD = null, prevEnd = 1, dayEnd = 1, maxDaily = 0, bestDay = 0, sumPos = 0;
     let lastM = null, mStart = 1;
     const months = [];
