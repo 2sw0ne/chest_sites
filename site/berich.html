@@ -113,6 +113,10 @@
   .wizard-panel h2{ font-size:17px; font-weight:700; margin:0 0 6px; }
   .wizard-panel .hint{ font-size:12.5px; color:var(--muted); line-height:1.55; margin:0 0 20px; }
   .wizard-actions{ display:flex; gap:10px; margin-top:20px; }
+  /* Choix "où faire tourner l'EA" (2026-10-11) : .chest-seg est le composant segmente deja utilise
+     ailleurs sur CHEST (ex. mini-calendrier du Dashboard) - jamais un nouveau style ad hoc. */
+  .ea-host-explain{ font-size:12.5px; color:var(--muted); line-height:1.65; background:var(--bg); border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin:14px 0 22px; }
+  .ea-host-explain b{ color:var(--ink); }
 
   .broker-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
   @media (max-width:520px){ .broker-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
@@ -266,6 +270,23 @@
         qu'à cliquer sur un bouton, dans le terminal, pour envoyer l'ordre. Rien n'est automatique par
         défaut, et aucun mot de passe ne transite nulle part — l'EA tourne dans ton propre MT5, déjà connecté.
       </p>
+
+      <p class="hint" style="margin-bottom:10px"><b style="color:var(--ink)">Où le faire tourner ?</b> Les étapes d'installation ci-dessous sont identiques dans les deux cas — seule la machine change.</p>
+      <div class="chest-seg" id="eaHostToggle" style="margin-bottom:0">
+        <button type="button" class="is-active" data-host="pc">Sur ton PC</button>
+        <button type="button" data-host="vps">Sur un VPS personnel</button>
+      </div>
+      <div class="ea-host-explain" id="eaHostExplainPc">
+        Gratuit, rien à installer ailleurs. <b>Ton PC doit rester allumé et MT5 ouvert</b> pour que les signaux
+        continuent d'arriver — pratique pour tester, moins pour un suivi 24/24.
+      </div>
+      <div class="ea-host-explain" id="eaHostExplainVps" hidden>
+        Un petit PC loué à ton nom chez un hébergeur générique (ex. Contabo, OVH, Vultr — environ 5 à 15 €/mois),
+        qui reste allumé 24/24 indépendamment de ton PC. Tu y installes MT5 et cet EA exactement comme ci-dessous,
+        juste depuis cette machine distante. <b>CHEST n'héberge rien et ne voit jamais tes identifiants</b>,
+        quelle que soit la machine choisie — c'est entre toi et ton hébergeur.
+      </div>
+
       <ol style="margin:0 0 20px;padding-left:20px;font-size:13px;color:var(--muted);line-height:1.9">
         <li>Télécharge <code>BERICH_Receiver.mq5</code> ci-dessous.</li>
         <li>Ouvre-le dans MetaEditor (<code>F4</code> dans MT5) et compile (<code>F7</code>).</li>
@@ -402,6 +423,17 @@
     }
     document.getElementById('brokerOtherConfirm').addEventListener('click', confirmOtherBroker);
     brokerOtherInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmOtherBroker(); });
+
+    // ---- Choix "où faire tourner l'EA" (2026-10-11) : purement informatif, les deux chemins
+    // mènent aux mêmes étapes d'installation juste en dessous - aucune donnée à retenir. ----
+    document.getElementById('eaHostToggle').querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.getElementById('eaHostToggle').querySelectorAll('button').forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        document.getElementById('eaHostExplainPc').hidden = btn.dataset.host !== 'pc';
+        document.getElementById('eaHostExplainVps').hidden = btn.dataset.host !== 'vps';
+      });
+    });
 
     // ---- Étape 2 : installer l'EA — ne débloque la page qu'une fois cette
     // étape confirmée (plus de "connexion" factice serveur/identifiants). ----
