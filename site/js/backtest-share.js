@@ -157,16 +157,6 @@
     const root = doc.documentElement;
     root.classList.add('is-embedded');
     root.setAttribute('data-theme', 'dark');
-    // Piste "blanc par endroits en file://" (2026-10-12, retour utilisateur persistant malgre les
-    // correctifs CSS precedents) : sans signal explicite, Chrome peut appliquer SON PROPRE mode
-    // sombre automatique ("Automatically darken web content", reglage navigateur, pas notre CSS) a
-    // une page qu'il ne reconnait pas comme deja sombre - plus probable sur un fichier local ouvert
-    // en double-clic que sur un vrai site. <meta name="color-scheme"> est le signal standard pour
-    // desactiver totalement cette reecriture heuristique, quel que soit le navigateur/reglage.
-    const colorScheme = doc.createElement('meta');
-    colorScheme.name = 'color-scheme';
-    colorScheme.content = 'dark';
-    doc.head.insertBefore(colorScheme, doc.head.firstChild);
 
     // Feuilles de style locales -> <style>
     for (const link of [...doc.querySelectorAll('link[rel="stylesheet"]')]) {
@@ -207,18 +197,16 @@ window.CHESTTour={init:function(){}};`;
     doc.head.insertBefore(stub, doc.head.firstChild);
 
     const extra = doc.createElement('style');
-    // BUG REEL (2026-10-12, retour utilisateur avec capture : le rapport telecharge puis ouvert en
-    // double-clic - file:// - s'affichait delave : hero clair au lieu de sombre, chiffres
-    // CAPITAL/TRADES/PERIODE invisibles). Corrige en forcant des couleurs pleines (voir commit
-    // precedent) - confirme par l'utilisateur : fond et chiffres desormais corrects. Reste ensuite un
-    // point cosmetique (titre blanc uni au lieu du degrade rose du site) : le titre utilisait
-    // color-mix() pour calculer sa teinte de fin de degrade - fonction CSS plus recente que
-    // background-clip:text (deja confirme fonctionnel ailleurs sur cette page). On retente le degrade
-    // en remplacant SEULEMENT color-mix() par sa couleur deja calculee a l'avance (#fe94c7 = 55% blanc
-    // + 45% #fc1283 en sRGB, meme formule que color-mix(in srgb,#fff 55%,var(--acc))), pour isoler si
-    // c'etait bien cette fonction precise le point de fragilite.
-    extra.textContent = `html{color-scheme:dark !important}
-html,body{background:#050505 !important}
+    // BUG REEL (2026-10-12, retour utilisateur avec plusieurs captures : le rapport telecharge puis
+    // ouvert en double-clic - file:// - restait plus clair que le site a chaque passe (blanc, puis
+    // gris une fois color-scheme ajoute). Cause trouvee en lisant le CSS : html.is-embedded
+    // .chest-shell{ background:transparent } (chest-da.css) - une regle pensee pour l'iframe du
+    // shell (app.html fournit le fond, la page embarquee doit rester transparente pour ne pas le
+    // doubler) qui s'applique AUSSI a l'export, puisque buildExportHtml ajoute cette meme classe
+    // is-embedded. Dans un fichier autonome il n'y a pas de parent pour fournir ce fond - demande
+    // explicite utilisateur : ne plus compter sur color-scheme/le navigateur, fixer la couleur
+    // nous-memes, directement, sur CHAQUE conteneur qui pourrait peindre par-dessus.
+    extra.textContent = `html,body,.chest-shell,#mainZone{background:#050505 !important}
 .bt-hero-glow{background:#050505 !important}
 .bt-hero-glow__title{background:linear-gradient(180deg,#fff,#fe94c7) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
 .bt-hero-glow__stats span{color:#fff !important}
