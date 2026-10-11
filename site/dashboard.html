@@ -469,7 +469,7 @@
     <div class="chest-glass">
       <span class="chest-step">01 — Aucun compte</span>
       <h2>Ajoute ton premier compte</h2>
-      <p>Relie ton compte via Myfxbook, ou directement à ton terminal MT5 (admin) — rattaché à un compte du Journal qui suit tes phases de challenge et superpose l'historique automatiquement.</p>
+      <p>Relie ton compte via Myfxbook — rattaché à un compte du Journal qui suit tes phases de challenge et superpose l'historique automatiquement.</p>
       <button type="button" class="chest-btn" id="dashEmptyAddBtn">+ Ajouter un compte</button>
     </div>
   </div>
@@ -628,65 +628,6 @@
   <div class="connmodal-modal">
     <button type="button" class="connmodal-close" id="addAccountClose" aria-label="Fermer">✕</button>
     <h2>🔗 Connecter un compte</h2>
-
-    <!-- Choix Myfxbook / Compte MT5 (réintroduit le 2026-10-09 sur demande : « en annexe à Myfxbook »).
-         Réservé à l'admin : un seul terminal MT5 partagé, le changer affecte tout le monde. Caché entièrement
-         pour un membre. Le mot de passe INVESTISSEUR (lecture seule) est transmis au terminal, jamais gardé par le site. -->
-    <div class="pill-group" id="addAccountModeToggle" hidden style="margin-bottom:18px">
-      <button type="button" data-mode="myfxbook" class="is-active">Myfxbook</button>
-      <button type="button" data-mode="live">Compte MT5</button>
-    </div>
-
-    <div id="liveJournalStep" hidden>
-      <p class="hint">Une connexion MT5 se rattache à un compte du <b>Journal</b> — c'est lui qui sait pour quelle propfirm et quelle phase c'est. Choisis un compte existant (pour changer sa connexion, ex. nouvelle phase) ou crée-en un nouveau.</p>
-      <div class="pill-group" id="liveKindToggle" style="margin-top:14px">
-        <button type="button" data-kind="propfirm" class="is-active">Propfirm</button>
-        <button type="button" data-kind="own">Compte propre</button>
-      </div>
-      <div id="liveJournalList" style="margin-top:16px;display:flex;flex-direction:column;gap:8px"></div>
-      <div class="wizard-actions" style="margin-top:18px">
-        <button type="button" class="btn btn-ghost" id="liveJournalNewBtn">+ Nouveau compte du Journal</button>
-      </div>
-    </div>
-
-    <div id="liveStageStep" hidden>
-      <p class="hint" id="liveStageHint">À quelle phase du challenge es-tu maintenant ?</p>
-      <div class="pill-group" id="liveStageToggle" style="margin-top:12px"></div>
-      <div class="wizard-actions" style="margin-top:18px">
-        <button type="button" class="btn btn-ghost" id="liveStageBack">← Retour</button>
-        <button type="button" class="btn btn-primary" id="liveStageNext">Continuer</button>
-      </div>
-    </div>
-
-    <div id="liveStepIntro" hidden>
-      <p class="hint">Connexion directe au terminal MT5 du site : solde, equity, positions et notifications en direct, sans attendre Myfxbook. Utilise le mot de passe <b>investisseur</b> (lecture seule, jamais celui de trading). Un terminal ne sert qu'<b>un compte à la fois</b> : brancher celui-ci remplace le précédent, dont l'historique reste dans CHEST. Le terminal redémarre (1 à 2 minutes) avant que le flux apparaisse.</p>
-      <p class="hint" id="liveJournalSummary" style="margin-top:4px"></p>
-      <p class="hint" id="liveRulesFacts" style="margin-top:6px;font-size:12px;line-height:1.7"></p>
-      <div class="form-stack" style="margin-top:18px" id="liveLoginForm">
-        <div>
-          <label for="liveLogin">Numéro de compte MT5</label>
-          <input id="liveLogin" class="field" type="text" inputmode="numeric" autocomplete="off">
-        </div>
-        <div>
-          <label for="livePassword">Mot de passe investisseur</label>
-          <input id="livePassword" class="field" type="password" autocomplete="off">
-        </div>
-        <div id="liveBrokerPickBlock" hidden>
-          <label>Broker / plateforme</label>
-          <div class="broker-grid-sm" id="liveBrokerGrid" style="margin-top:8px"></div>
-        </div>
-        <div>
-          <label for="liveServer">Serveur du broker</label>
-          <select id="liveServer" class="field"><option value="">Choisis d'abord le broker ci-dessus…</option></select>
-          <input id="liveServerOther" class="field" type="text" placeholder="Nom exact du serveur (affiché dans MT5)" autocomplete="off" style="margin-top:8px;display:none">
-        </div>
-        <p class="hint" id="liveConnectError" style="color:var(--red);display:none"></p>
-      </div>
-      <div class="wizard-actions" style="margin-top:18px">
-        <button type="button" class="btn btn-ghost" id="liveIntroBack">← Retour</button>
-        <button type="button" class="btn btn-primary" id="liveConnectBtn">Connecter</button>
-      </div>
-    </div>
 
     <div id="mfxStepIntro">
       <div class="method-steps">
@@ -857,9 +798,7 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=7"></script>
-<script src="js/live-sim.js?v=2"></script>
-<script src="js/mt5-live.js?v=2"></script>
-<script src="js/dashboard.js?v=44"></script>
+<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=44"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>

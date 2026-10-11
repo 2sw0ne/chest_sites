@@ -76,9 +76,6 @@
   let activeAccountData = null; // compte actif, enrichi des vraies donnees Myfxbook si besoin (voir refreshActiveAccount)
   let liveFloating = null; // P&L flottant estimé des positions ouvertes (js/live-sim.js), null = pas de suivi live
   let liveSimAccountId = null;
-  let mt5Snap = null; // instantané EXACT du terminal MT5 (js/mt5-live.js), null = pas d'EA récent -> Myfxbook + suivi estimé
-  let liveRealizedDelta = 0; // gains/pertes déjà clôturés sur MT5 mais pas encore vus par Myfxbook
-  let mt5RenderKey = '';
 
   function loadAccounts() {
     let list;
@@ -236,88 +233,8 @@
   }
 
   function onLiveSimUpdate(state) {
-    if (mt5Snap) return; // le flux MT5 exact prime sur l'estimation
     liveFloating = state.error ? null : state.floating;
     if (activeAccountData && activeAccountData.myfxbook) renderAll();
-  }
-
-  // Flux MT5 en direct (compte Live Swann uniquement : un seul terminal, celui de l'admin). Quand un
-  // instantané récent existe, il remplace le suivi estimé : P&L flottant exact, et le solde réel vient
-  // du terminal (Myfxbook peut avoir des heures de retard sur les positions clôturées).
-  function onMt5Update(snap) {
-    const wasLive = !!mt5Snap;
-    const acc = activeAccountData;
-    if (!acc) { mt5Snap = snap || null; return; }
-    const isMirror = !!acc.mt5Live;
-    if (!acc.isLiveSwann && !isMirror) { mt5Snap = snap || null; return; }
-    // `snap.site` = le terminal a ete branche DEPUIS LE SITE (voir /mt5/connect). Compte miroir : l'instantane doit etre
-    // celui de SON numero. Live Swann (compte Myfxbook de l'admin) : seulement tant que le terminal n'a pas ete
-    // rebranche sur un autre compte - sinon on afficherait le solde d'un autre compte.
-    const applicable = !!snap && (isMirror ? !!snap.site && String(snap.login) === String(acc.mt5Live.login) : !snap.site);
-    mt5Snap = applicable ? snap : null;
-    if (applicable) {
-      if (window.CHESTLiveSim) window.CHESTLiveSim.stop();
-      liveFloating = typeof snap.floating === 'number' ? snap.floating : 0;
-      if (isMirror) mt5LedgerUpdate(acc.mt5Live.login, snap);
-      const key = [snap.balance, snap.equity, snap.floating, (snap.positions || []).length].join('|');
-      if (key !== mt5RenderKey) { mt5RenderKey = key; renderAll(); }
-    } else if (wasLive) {
-      mt5RenderKey = '';
-      liveFloating = null;
-      renderAll(); // renderAll relance le suivi estime de secours (compte Myfxbook)
-    }
-  }
-
-  // ---- Compte MT5 sans Myfxbook : registre local equity/jour ----
-  // Le terminal ne pousse que l'etat COURANT (pas d'historique) : le Dashboard note lui-meme, jour par jour,
-  // l'equity d'ouverture et la derniere vue. Les periodes (jour/semaine/mois...) sont donc calculees DEPUIS LA
-  // CONNEXION - dit tel quel a l'ecran, jamais presente comme l'historique complet du compte.
-  const MT5_LEDGER_KEY = 'chest_mt5_ledger';
-  function mt5LedgerAll() { try { return JSON.parse(localStorage.getItem(MT5_LEDGER_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function mt5LedgerUpdate(login, snap) {
-    if (typeof snap.equity !== 'number' || typeof snap.balance !== 'number') return;
-    const all = mt5LedgerAll();
-    const rec = all[login] || { start: snap.balance, startAt: new Date().toISOString(), days: {}, last: null };
-    const day = isoDateLocal(new Date());
-    const prevDays = Object.keys(rec.days).sort();
-    const prevClose = prevDays.length ? rec.days[prevDays[prevDays.length - 1]].c : null;
-    if (!rec.days[day]) rec.days[day] = { o: prevClose != null ? prevClose : snap.balance, c: snap.equity }; // 1er jour : ouverture = solde realise a la connexion
-    const changed = Math.abs(rec.days[day].c - snap.equity) > 0.004 || !rec.last || rec.last.balance !== snap.balance;
-    rec.days[day].c = snap.equity;
-    rec.last = { balance: snap.balance, equity: snap.equity, at: Date.now() };
-    if (changed || !all[login]) { all[login] = rec; try { localStorage.setItem(MT5_LEDGER_KEY, JSON.stringify(all)); } catch (e) { /* stockage plein */ } }
-  }
-  // Donnees d'affichage d'un compte miroir MT5 (voir refreshActiveAccount).
-  function buildMt5Mirror(a) {
-    const rec = mt5LedgerAll()[a.mt5Live.login] || null;
-    const snap = mt5Snap;
-    const startCapital = rec ? rec.start : (snap ? snap.balance : 0);
-    const days = rec ? Object.keys(rec.days).sort() : [];
-    const daily = days.map((d) => {
-      const r = rec.days[d];
-      const pnl = Math.round((r.c - r.o) * 100) / 100;
-      return { date: d, pnl, pct: startCapital ? (pnl / startCapital) * 100 : 0, source: 'real' };
-    });
-    const balance = snap ? snap.balance : (rec && rec.last ? rec.last.balance : 0);
-    const equity = snap ? snap.equity : (rec && rec.last ? rec.last.equity : balance);
-    a.balance = balance; a.equity = equity; a.pnl = snap && typeof snap.floating === 'number' ? snap.floating : 0;
-    a.startCapital = startCapital; a.dailyHistory = daily;
-    a.today = todayPnlFromHistory(daily, []);
-    a.mt5Waiting = !snap;
-    a.periods = computeAllPeriods(daily, equity, [], [], startCapital || null, a.today);
-    if (a.challengeObjectives) {
-      a.objectives = evaluateChallengeObjectivesFromHistory(a.challengeObjectives, daily, a.objectivesResetAt);
-    }
-  }
-
-  // Part du solde MT5 que Myfxbook n'a pas encore vue (positions clôturées entre deux synchros). Ignorée
-  // si un dépôt/retrait récent a pu fausser l'écart, ou si l'écart est aberrant (autre compte, devise...).
-  function realizedDeltaFromMt5(mfxBalance) {
-    if (!mt5Snap || typeof mt5Snap.balance !== 'number' || !mfxBalance) return 0;
-    const d = mt5Snap.balance - mfxBalance;
-    const recentBalanceOp = mt5Snap.balanceOpAt && (Date.now() / 1000 - mt5Snap.balanceOpAt) < 6 * 3600;
-    if (recentBalanceOp || Math.abs(d) > 0.25 * mfxBalance || Math.abs(d) < 0.01) return 0;
-    return d;
   }
 
   // Courbe INTRA-JOURNEE pour l'onglet "Jour" : dailyHistory n'a qu'UN point
@@ -928,9 +845,9 @@
     avatarEl.textContent = a.isLiveSwann ? '🟢' : initials(a.name);
     avatarEl.classList.toggle('is-live', !!a.isLiveSwann);
     document.getElementById('accName').textContent = a.name;
-    document.getElementById('accSub').textContent = `#${a.number} · ${a.type}` + (a.mt5Live ? (a.mt5Waiting ? ' · MT5 en attente du terminal…' : ' · 🟢 MT5 en direct') : '');
+    document.getElementById('accSub').textContent = `#${a.number} · ${a.type}`;
     const titleEl = document.getElementById('accKindTitle');
-    titleEl.textContent = a.isPropfirm ? 'Propfirm' : ((a.myfxbook || a.mt5Live) ? 'Compte propre' : 'Démo');
+    titleEl.textContent = a.isPropfirm ? 'Propfirm' : (a.myfxbook ? 'Compte propre' : 'Démo');
     // Journal rattaché (2026-09-29, demande utilisateur : "on vois tout les compte avec notifier
     // le journal rattaché").
     const journalTag = document.getElementById('accJournalTag');
@@ -1362,17 +1279,14 @@
 
   async function refreshActiveAccount() {
     const raw = currentAccount();
-    activeAccountData = raw.myfxbook ? { ...(await enrichWithMyfxbook(raw)) } : { ...raw };
-    if (activeAccountData.mt5Live && !activeAccountData.myfxbook) buildMt5Mirror(activeAccountData);
+    activeAccountData = raw.myfxbook ? { ...(await enrichWithMyfxbook(raw)) } : raw;
 
     // Compte reel (myfxbook) : pipeline pour construire dailyHistory + les 4 periodes + les
     // objectifs. Sans myfxbook, `activeAccountData.periods` reste absent et `render()` retombe
     // sur SAMPLE_PERIODS (compte de demo).
     if (activeAccountData.myfxbook) {
       if (activeAccountData.startCapital) startCapitalById[activeAccountData.id] = activeAccountData.startCapital;
-      liveRealizedDelta = activeAccountData.isLiveSwann ? realizedDeltaFromMt5(activeAccountData.balance) : 0;
-      const live = withLiveFloating(buildDailyHistory(activeAccountData), activeAccountData.balance,
-        liveFloating == null ? null : liveFloating + liveRealizedDelta);
+      const live = withLiveFloating(buildDailyHistory(activeAccountData), activeAccountData.balance, liveFloating);
       if (liveFloating != null) {
         activeAccountData.equity = live.balance;
         activeAccountData.pnl = liveFloating;
@@ -1568,20 +1482,6 @@
 
   let chosenPhase = null; // 'phase1' | 'phase2' | 'funded' | null - propfirm reconnue uniquement
 
-  // ---- Compte MT5 (annexe à Myfxbook, 2026-10-09 ; réservé admin : un seul terminal partagé) ----
-  // 'myfxbook' | 'live' conditionne quel bloc du modal s'affiche (mfxStepIntro / liveStepIntro).
-  let chosenAddMode = 'myfxbook';
-  let pendingLiveJournalId = null;
-  let pendingLiveStage = null; // 'p1'|'p2'|'funded'|null (null = compte propre, pas de phase)
-  let pendingLiveKind = 'propfirm'; // 'propfirm'|'own' - filtre #liveJournalList
-  let pendingLiveBroker = null; // {id, name, servers} resolu pour le compte du Journal choisi, ou choisi a la main
-  const LIVE_CONNECT_RESUME_KEY = 'chest_live_connect_resume'; // voir liveJournalNewBtn + resumeLiveConnectAfterJournalCreate
-  function mt5ApiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
-  function mt5AuthHeaders() {
-    const t = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
-    return t ? { Authorization: 'Bearer ' + t } : {};
-  }
-
   function openAddAccountModal() {
     chosenBroker = null;
     chosenAccountKind = 'own';
@@ -1595,23 +1495,6 @@
     populateJournalSelect();
     document.getElementById('addAccountJournal').value = '';
     document.getElementById('addAccountJournalNewName').value = '';
-    chosenAddMode = 'myfxbook';
-    pendingLiveJournalId = null; pendingLiveStage = null; pendingLiveKind = 'propfirm'; pendingLiveBroker = null;
-    const isAdminUser = window.CHESTAccounts && CHESTAccounts.isAdmin && CHESTAccounts.isAdmin();
-    document.getElementById('addAccountModeToggle').hidden = !isAdminUser;
-    document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.mode === 'myfxbook'));
-    document.getElementById('liveJournalStep').hidden = true;
-    document.querySelectorAll('#liveKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === 'propfirm'));
-    document.getElementById('liveStageStep').hidden = true;
-    document.getElementById('liveStepIntro').hidden = true;
-    document.getElementById('liveLogin').value = '';
-    document.getElementById('livePassword').value = '';
-    document.getElementById('liveBrokerPickBlock').hidden = true;
-    document.querySelectorAll('#liveBrokerGrid .broker-card-sm').forEach((c) => c.classList.remove('is-selected'));
-    document.getElementById('liveServer').innerHTML = '<option value="">Choisis d\'abord le broker ci-dessus…</option>';
-    document.getElementById('liveServerOther').value = '';
-    document.getElementById('liveServerOther').style.display = 'none';
-    document.getElementById('liveConnectError').style.display = 'none';
     document.getElementById('mfxStepIntro').hidden = false;
     document.getElementById('mfxDetailsStep').hidden = true;
     // Preremplit avec le dernier identifiant Myfxbook connecte avec succes (voir saveLastMfxLogin) -
@@ -1695,48 +1578,6 @@
         <span class="broker-card-sm__icon">✎</span>
         <span>Autre</span>
       </button>`;
-
-    // Grille identique pour le broker/plateforme de la connexion MT5 : le menu des serveurs depend du broker choisi.
-    const liveBrokerGrid = document.getElementById('liveBrokerGrid');
-    liveBrokerGrid.innerHTML = window.CHEST_BROKERS.map((b) => `
-      <button type="button" class="broker-card-sm" data-broker-id="${b.id}">
-        <img src="${chestBrokerLogo(b.domain)}" alt="" onerror="this.remove()">
-        <span>${b.name}</span>
-      </button>`).join('') + `
-      <button type="button" class="broker-card-sm" data-broker-id="other">
-        <span class="broker-card-sm__icon">✎</span>
-        <span>Autre</span>
-      </button>`;
-    function populateLiveServerSelect(broker) {
-      const select = document.getElementById('liveServer');
-      const otherInput = document.getElementById('liveServerOther');
-      if (broker && Array.isArray(broker.servers) && broker.servers.length) {
-        select.innerHTML = broker.servers.map((s) => `<option value="${s}">${s}</option>`).join('')
-          + '<option value="__other__">Autre (nom exact non listé)…</option>';
-        select.value = broker.servers[0];
-        otherInput.style.display = 'none';
-        otherInput.value = '';
-      } else {
-        // Broker sans liste de serveurs connue : jamais de liste inventee, saisie directe du nom affiche dans MT5.
-        select.innerHTML = '<option value="__other__">Nom exact du serveur (aucune liste connue pour ce broker)</option>';
-        select.value = '__other__';
-        otherInput.style.display = '';
-      }
-    }
-    function selectLiveBroker(broker) {
-      pendingLiveBroker = broker;
-      liveBrokerGrid.querySelectorAll('.broker-card-sm').forEach((c) => c.classList.toggle('is-selected', c.dataset.brokerId === (broker ? broker.id : null)));
-      populateLiveServerSelect(broker);
-    }
-    liveBrokerGrid.querySelectorAll('.broker-card-sm').forEach((card) => {
-      card.addEventListener('click', () => {
-        const id = card.dataset.brokerId;
-        selectLiveBroker(id === 'other' ? { id: 'other', name: '', servers: null } : window.CHEST_BROKERS.find((x) => x.id === id));
-      });
-    });
-    document.getElementById('liveServer').addEventListener('change', (e) => {
-      document.getElementById('liveServerOther').style.display = e.target.value === '__other__' ? '' : 'none';
-    });
 
     // Reinitialise le bloc "Objectifs" pour refleter le broker choisi -
     // un broker classique (kind:'broker') n'ouvre JAMAIS les parametres de
@@ -1827,7 +1668,6 @@
     });
 
     document.getElementById('addAccountFinish').addEventListener('click', () => {
-      if (chosenAddMode === 'live') return; // le mode MT5 a son propre bouton (liveConnectBtn)
       if (!chosenBroker || !chosenBroker.name) { showToast('Choisis un broker/propfirm'); return; }
       if (!mfxSelected) return;
       const email = document.getElementById('mfxEmail').value.trim();
@@ -1872,222 +1712,6 @@
         payouts: [], objectivesResetAt: isoDateLocal(new Date()),
       });
     });
-
-    // ---- Choix Myfxbook / Compte MT5 ----
-    document.querySelectorAll('#addAccountModeToggle button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        chosenAddMode = btn.dataset.mode;
-        document.getElementById('mfxStepIntro').hidden = chosenAddMode !== 'myfxbook';
-        document.getElementById('liveJournalStep').hidden = chosenAddMode !== 'live';
-        document.getElementById('liveStageStep').hidden = true;
-        document.getElementById('liveStepIntro').hidden = true;
-        document.getElementById('mfxDetailsStep').hidden = true;
-        if (chosenAddMode === 'live') renderLiveJournalPicker();
-      });
-    });
-
-    // ---- Compte MT5 : rattachement a un compte du Journal ----
-    // Le Journal (js/journal-store.js : propfirm / modele / phase / regles verifiees) reste la source de verite de
-    // "ce que trade ce compte" ; le Dashboard n'en est qu'un miroir (chest_accounts) tague `journalAccountId`.
-    function stageLabelFor(acc) {
-      if (!acc || acc.type !== 'propfirm' || !acc.modelId) return null;
-      const model = window.CHESTJournal.challengeModels(acc.propfirmId).find((m) => m.id === acc.modelId);
-      if (!model) return null;
-      return (window.CHESTJournal.stageList(model).find((st) => st.id === acc.stage) || {}).label || null;
-    }
-    function nextStageAfter(acc) {
-      const model = window.CHESTJournal.challengeModels(acc.propfirmId).find((m) => m.id === acc.modelId);
-      if (!model) return acc.stage;
-      const stages = window.CHESTJournal.stageList(model);
-      const i = stages.findIndex((st) => st.id === acc.stage);
-      return i === -1 || i === stages.length - 1 ? acc.stage : stages[i + 1].id;
-    }
-    function renderLiveJournalPicker() {
-      const list = document.getElementById('liveJournalList');
-      const all = (window.CHESTJournal && window.CHESTJournal.listAccounts()) || [];
-      const accounts = all.filter((a) => (pendingLiveKind === 'propfirm' ? a.type === 'propfirm' : a.type !== 'propfirm'));
-      if (!all.length) { list.innerHTML = '<p class="hint">Aucun compte dans le Journal pour l\'instant.</p>'; return; }
-      if (!accounts.length) {
-        list.innerHTML = `<p class="hint">Aucun compte "${pendingLiveKind === 'propfirm' ? 'propfirm' : 'propre'}" dans le Journal — crée-en un nouveau, ou change le type ci-dessus.</p>`;
-        return;
-      }
-      list.innerHTML = accounts.map((a) => {
-        const stage = stageLabelFor(a);
-        const live = a.mt5Live ? ' · <b style="color:var(--green)">🟢 connecté</b>' : '';
-        return `<button type="button" class="mfx-account-row" data-id="${a.id}">
-          <span><strong>${a.name}</strong><span>${a.type === 'propfirm' ? 'Propfirm' : 'Compte propre'}${stage ? ' · ' + stage : ''}${live}</span></span>
-        </button>`;
-      }).join('');
-      list.querySelectorAll('.mfx-account-row').forEach((row) => {
-        row.addEventListener('click', () => selectJournalForLive(all.find((a) => a.id === row.dataset.id)));
-      });
-    }
-    document.querySelectorAll('#liveKindToggle button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#liveKindToggle button').forEach((b) => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        pendingLiveKind = btn.dataset.kind;
-        renderLiveJournalPicker();
-      });
-    });
-    function selectJournalForLive(acc) {
-      pendingLiveJournalId = acc.id;
-      document.getElementById('liveJournalStep').hidden = true;
-      if (acc.type === 'propfirm' && acc.modelId) {
-        const model = window.CHESTJournal.challengeModels(acc.propfirmId).find((m) => m.id === acc.modelId);
-        const stages = model ? window.CHESTJournal.stageList(model) : [{ id: 'p1', label: 'Phase 1' }];
-        const suggested = nextStageAfter(acc);
-        pendingLiveStage = suggested;
-        document.getElementById('liveStageHint').textContent = `"${acc.name}" est actuellement en ${stageLabelFor(acc) || 'phase 1'}. À quelle phase te connectes-tu maintenant ? (par défaut : la suivante — change si besoin, même pour revenir sur une phase déjà passée)`;
-        document.getElementById('liveStageToggle').innerHTML = stages.map((st) => `<button type="button" data-stage="${st.id}" class="${st.id === suggested ? 'is-active' : ''}">${st.label}</button>`).join('');
-        document.querySelectorAll('#liveStageToggle button').forEach((b) => b.addEventListener('click', () => {
-          document.querySelectorAll('#liveStageToggle button').forEach((x) => x.classList.remove('is-active'));
-          b.classList.add('is-active');
-          pendingLiveStage = b.dataset.stage;
-        }));
-        document.getElementById('liveStageStep').hidden = false;
-      } else {
-        pendingLiveStage = null;
-        showLiveStepIntro(acc);
-      }
-    }
-    // Regles preconnues : CHESTPropRules (js/propfirm-rules.js, verifiees sur les pages officielles).
-    function liveRulesFactsFor(acc) {
-      if (!acc || acc.type !== 'propfirm' || !acc.modelId) return null;
-      const model = window.CHESTJournal.challengeModels(acc.propfirmId).find((m) => m.id === acc.modelId);
-      return model && model.facts ? model.facts : null;
-    }
-    // Broker MT5 du compte du Journal (propfirm reconnue dans CHEST_BROKERS) : prereplit la liste des serveurs.
-    function resolveLiveBroker(acc) {
-      if (acc && acc.type === 'propfirm' && acc.propfirmId) {
-        const b = window.CHEST_BROKERS.find((x) => x.id === acc.propfirmId && Array.isArray(x.servers) && x.servers.length);
-        if (b) return b;
-      }
-      return null;
-    }
-    function showLiveStepIntro(acc) {
-      document.getElementById('liveStageStep').hidden = true;
-      const stageTxt = pendingLiveStage ? ' · ' + (stageLabelFor(Object.assign({}, acc, { stage: pendingLiveStage })) || pendingLiveStage) : '';
-      document.getElementById('liveJournalSummary').innerHTML = `Connexion pour : <b>${acc.name}</b>${stageTxt}`;
-      const facts = liveRulesFactsFor(acc);
-      const factsEl = document.getElementById('liveRulesFacts');
-      if (factsEl) factsEl.innerHTML = facts ? facts.map((f) => `• ${f}`).join('<br>') : '';
-      const resolved = resolveLiveBroker(acc);
-      const pickBlock = document.getElementById('liveBrokerPickBlock');
-      if (resolved) { pickBlock.hidden = true; selectLiveBroker(resolved); }
-      else { pickBlock.hidden = false; selectLiveBroker(pendingLiveBroker); }
-      document.getElementById('liveStepIntro').hidden = false;
-    }
-    document.getElementById('liveJournalNewBtn').addEventListener('click', () => {
-      // Reutilise l'ecran de creation DEJA riche de journal.html (propfirm, modele, phase, regles verifiees...) plutot
-      // que de le dupliquer ; on revient ici automatiquement une fois le compte cree (voir journal.html, jaSave).
-      try { localStorage.setItem(LIVE_CONNECT_RESUME_KEY, '1'); } catch (e) { /* tant pis */ }
-      window.location.href = 'journal.html?fromLiveConnect=1';
-    });
-    document.getElementById('liveStageBack').addEventListener('click', () => {
-      document.getElementById('liveStageStep').hidden = true;
-      document.getElementById('liveJournalStep').hidden = false;
-    });
-    document.getElementById('liveStageNext').addEventListener('click', () => {
-      const acc = window.CHESTJournal.listAccounts().find((a) => a.id === pendingLiveJournalId);
-      if (acc) showLiveStepIntro(acc);
-    });
-    document.getElementById('liveIntroBack').addEventListener('click', () => {
-      document.getElementById('liveStepIntro').hidden = true;
-      const acc = window.CHESTJournal.listAccounts().find((a) => a.id === pendingLiveJournalId);
-      if (acc && acc.type === 'propfirm' && acc.modelId) document.getElementById('liveStageStep').hidden = false;
-      else document.getElementById('liveJournalStep').hidden = false;
-    });
-
-    document.getElementById('liveConnectBtn').addEventListener('click', async () => {
-      const login = document.getElementById('liveLogin').value.trim();
-      const password = document.getElementById('livePassword').value;
-      const serverSel = document.getElementById('liveServer').value;
-      const server = (serverSel === '__other__' ? document.getElementById('liveServerOther').value : serverSel).trim();
-      const errEl = document.getElementById('liveConnectError');
-      if (!login || !password || !server) {
-        errEl.textContent = 'Numéro de compte, mot de passe investisseur et serveur sont requis.';
-        errEl.style.display = '';
-        return;
-      }
-      const journalAcc = window.CHESTJournal.listAccounts().find((a) => a.id === pendingLiveJournalId);
-      if (!journalAcc) { errEl.textContent = 'Compte du Journal introuvable — recommence.'; errEl.style.display = ''; return; }
-      errEl.style.display = 'none';
-      const btn = document.getElementById('liveConnectBtn');
-      btn.disabled = true;
-      const prevLabel = btn.textContent;
-      btn.textContent = 'Envoi au terminal…';
-      try {
-        const res = await fetch(mt5ApiBase() + '/mt5/connect', {
-          method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, mt5AuthHeaders()),
-          body: JSON.stringify({ login, investorPassword: password, server, journalAccountId: journalAcc.id }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || body.error) throw new Error(body.error || 'Échec de la demande au terminal MT5.');
-        const newStage = pendingLiveStage != null ? pendingLiveStage : journalAcc.stage;
-        // Le Journal garde le compte, la phase et le mode : une connexion reussie le fait passer en "auto".
-        window.CHESTJournal.updateAccount(journalAcc.id, { mt5Live: { login, server }, stage: newStage, connectionMode: 'mt5', mode: 'auto' });
-        // Historique du challenge : detecte etape validee / compte crame / retrait probable (CHESTJournal.attachStageAccount).
-        const stageRes = window.CHESTJournal.attachStageAccount(journalAcc.id, {
-          connType: 'mt5', connRef: 'mt5', stage: newStage, startBalance: journalAcc.balance || 0,
-        });
-        if (stageRes && stageRes.needsSplitPct) {
-          const val = await CHESTPrompt('Quel pourcentage du profit gardes-tu (le reste va au propfirm) ? Sert à calculer automatiquement tes retraits sur ce journal.', { value: '80', confirmLabel: 'Valider' });
-          if (val !== null) window.CHESTJournal.setPayoutSplitPct(journalAcc.id, Math.min(100, Math.max(1, parseFloat(val) || 80)));
-        }
-        // Chaque compte MT5 (phase 1, phase 2, finance...) = un compte miroir distinct, meme numero = meme compte.
-        const stageLbl = stageLabelFor(Object.assign({}, journalAcc, { stage: newStage }));
-        const accounts = loadAccounts();
-        let mirror = accounts.find((a) => a.mt5Live && String(a.mt5Live.login) === String(login));
-        const name = stageLbl ? `${journalAcc.name} · ${stageLbl}` : journalAcc.name;
-        if (mirror) {
-          Object.assign(mirror, { journalAccountId: journalAcc.id, name, mt5Live: { login, server }, isPropfirm: journalAcc.type === 'propfirm' });
-        } else {
-          mirror = {
-            id: 'acc-' + Date.now(), journalAccountId: journalAcc.id, name,
-            number: login, type: 'Réel', broker: journalAcc.name,
-            balance: 0, equity: 0, pnl: 0, today: 0, example: false, mt5Live: { login, server },
-            isPropfirm: journalAcc.type === 'propfirm', payouts: [], objectivesResetAt: isoDateLocal(new Date()),
-          };
-          accounts.push(mirror);
-        }
-        saveAccounts(accounts);
-        localStorage.setItem(ACTIVE_KEY, mirror.id);
-        closeAddAccountModal();
-        closeMenu();
-        renderAll();
-        showToast('Compte envoyé au terminal ✓ — le flux apparaît dans 1 à 2 minutes');
-      } catch (e) {
-        errEl.textContent = e.message || 'Échec de la demande au terminal MT5.';
-        errEl.style.display = '';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = prevLabel;
-      }
-    });
-
-    // Retour automatique depuis "+ Nouveau compte du Journal" : reprend le flux exactement la ou il s'etait arrete.
-    (function resumeLiveConnectAfterJournalCreate() {
-      let resumeId = null;
-      try {
-        if (localStorage.getItem(LIVE_CONNECT_RESUME_KEY) === '1') resumeId = localStorage.getItem(LIVE_CONNECT_RESUME_KEY + '_account');
-        localStorage.removeItem(LIVE_CONNECT_RESUME_KEY);
-        localStorage.removeItem(LIVE_CONNECT_RESUME_KEY + '_account');
-      } catch (e) { /* tant pis */ }
-      if (!resumeId || !window.CHESTJournal) return;
-      const acc = window.CHESTJournal.listAccounts().find((a) => a.id === resumeId);
-      if (!acc) return;
-      openAddAccountModal();
-      chosenAddMode = 'live';
-      document.querySelectorAll('#addAccountModeToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.mode === 'live'));
-      document.getElementById('mfxStepIntro').hidden = true;
-      pendingLiveKind = acc.type === 'propfirm' ? 'propfirm' : 'own';
-      document.querySelectorAll('#liveKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === pendingLiveKind));
-      selectJournalForLive(acc);
-    })();
 
     // ---- Login Myfxbook -> choix du compte -> broker/propfirm + objectifs ----
     let mfxAccounts = [];
@@ -2151,12 +1775,10 @@
     if (activeAccountData.id !== lastCalAccountId) { calOffsetDays = 0; lastCalAccountId = activeAccountData.id; }
     renderPayouts(activeAccountData);
     renderMiniCalendar(activeAccountData);
-    if ((activeAccountData.isLiveSwann || activeAccountData.mt5Live) && window.CHESTMt5Live) window.CHESTMt5Live.start(onMt5Update);
-    else if (window.CHESTMt5Live) { window.CHESTMt5Live.stop(); mt5Snap = null; liveRealizedDelta = 0; }
-    if (activeAccountData.myfxbook && window.CHESTLiveSim && !mt5Snap) {
+    if (activeAccountData.myfxbook && window.CHESTLiveSim) {
       if (liveSimAccountId !== activeAccountData.id) { liveFloating = null; liveSimAccountId = activeAccountData.id; }
       window.CHESTLiveSim.start(activeAccountData.myfxbook, onLiveSimUpdate);
-    } else if (!activeAccountData.myfxbook && window.CHESTLiveSim) {
+    } else if (window.CHESTLiveSim) {
       window.CHESTLiveSim.stop();
       liveFloating = null;
       liveSimAccountId = null;
