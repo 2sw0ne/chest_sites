@@ -954,12 +954,14 @@
       rangeEl.textContent = '';
       const series = (a && a.calendar14) || SAMPLE_CAL_14;
       const today = new Date();
+      const maxAbs = Math.max(1, ...series.map((v) => Math.abs(v)));
       const cells = series.map((pnl, i) => {
         const d = new Date(today);
         d.setDate(d.getDate() - (series.length - 1 - i));
         const cls = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
         const pnlLabel = pnl === 0 ? '—' : (pnl > 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(0);
-        return `<div class="mini-cal__cell ${cls}"><span class="d">${d.getDate()}/${d.getMonth() + 1}</span><span class="p">${pnlLabel}</span></div>`;
+        const mag = (Math.abs(pnl) / maxAbs).toFixed(3);
+        return `<div class="mini-cal__cell ${cls}" tabindex="0" style="--mag:${mag};--i:${i}"><span class="d">${d.getDate()}/${d.getMonth() + 1}</span><span class="p">${pnlLabel}</span></div>`;
       }).join('');
       document.getElementById('miniCalGrid').innerHTML = cells;
       const dateAt = (offsetFromEnd) => { const d = new Date(today); d.setDate(d.getDate() - offsetFromEnd); return d; };
@@ -985,14 +987,23 @@
       days.push({ date: d, key, pnl: rec ? rec.pnl : null, pct: rec ? rec.pct : null, source: rec ? rec.source : null });
     }
     // %/$ - meme bascule que le graphique juste au-dessus (retour direct utilisateur du 2026-09-16).
-    const cells = days.map(({ date, key, pnl, pct }) => {
+    // Intensite de chaque case (--mag) proportionnelle au plus gros mouvement de LA FENETRE AFFICHEE
+    // (pas un maximum absolu toutes periodes confondues) : une vraie heatmap, lisible quelle que soit
+    // la volatilite du compte (retour utilisateur 2026-10-11, "carre sur lequel on a pas specifiquement
+    // travaille") - et l'autre unite (ex. $ si la carte est en %) reste consultable au survol/focus,
+    // meme logique que l'infobulle de la courbe d'equity juste au-dessus.
+    const fmtPct = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+    const fmtUsd = (v) => `${v >= 0 ? '+' : '-'}$${Math.abs(v).toFixed(0)}`;
+    const maxAbs = Math.max(1, ...days.map(({ pnl, pct }) => Math.abs(unit === 'percent' ? (pct || 0) : (pnl || 0))));
+    const cells = days.map(({ date, key, pnl, pct }, i) => {
       const v = unit === 'percent' ? pct : pnl;
+      const alt = unit === 'percent' ? pnl : pct;
       const toneClass = v === null ? '' : (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
       const cls = toneClass + (key === todayIso ? ' is-today' : '');
-      const label = v === null ? '·' : v === 0 ? '—'
-        : unit === 'percent' ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
-          : `${v >= 0 ? '+' : '-'}$${Math.abs(v).toFixed(0)}`;
-      return `<div class="mini-cal__cell ${cls}"><span class="d">${date.getDate()}/${date.getMonth() + 1}</span><span class="p">${label}</span></div>`;
+      const label = v === null ? '·' : v === 0 ? '—' : unit === 'percent' ? fmtPct(v) : fmtUsd(v);
+      const altLabel = alt == null ? '' : `<span class="alt">${unit === 'percent' ? fmtUsd(alt) : fmtPct(alt)}</span>`;
+      const mag = v === null ? 0 : (Math.abs(v) / maxAbs).toFixed(3);
+      return `<div class="mini-cal__cell ${cls}" tabindex="0" style="--mag:${mag};--i:${i}"><span class="d">${date.getDate()}/${date.getMonth() + 1}</span><span class="p">${label}</span>${altLabel}</div>`;
     }).join('');
     document.getElementById('miniCalGrid').innerHTML = cells;
     const isPercent = unit === 'percent';

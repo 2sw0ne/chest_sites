@@ -271,12 +271,33 @@
   }
   .day-nav__today.is-active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
   .mini-cal__grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
-  .mini-cal__cell{ aspect-ratio:1; min-height:0; border-radius:8px; background:var(--bg); border:1px solid var(--line); padding:5px; display:flex; flex-direction:column; justify-content:space-between; gap:2px; overflow:hidden; }
-  .mini-cal__cell.pos{ background:rgba(51,230,166,.1); border-color:rgba(51,230,166,.3); }
-  .mini-cal__cell.neg{ background:rgba(255,77,94,.1); border-color:rgba(255,77,94,.3); }
-  .mini-cal__cell .d{ font-size:10px; color:var(--faint); }
-  .mini-cal__cell .p{ font-size:9.5px; font-weight:700; }
+  /* Grille retravaillee en vraie heatmap (retour utilisateur 2026-10-11 : "carre sur lequel on a pas
+     specifiquement travaille") : l'intensite de chaque case suit l'ampleur du jour (--mag, 0..1,
+     calculee en JS par rapport au plus gros mouvement de la fenetre affichee), pas un simple on/off
+     pos/neg a opacite fixe - un petit jour se voit a peine, un gros jour ressort vraiment. */
+  .mini-cal__cell{
+    position:relative; aspect-ratio:1; min-height:0; border-radius:8px; background:var(--panel-2);
+    border:1px solid var(--line); padding:5px; display:flex; flex-direction:column; justify-content:space-between;
+    gap:2px; overflow:hidden; transition:transform .15s cubic-bezier(.16,1,.3,1), box-shadow .15s ease, border-color .15s ease;
+    animation:miniCalIn .32s cubic-bezier(.16,1,.3,1) backwards; animation-delay:calc(var(--i,0) * 12ms);
+  }
+  @keyframes miniCalIn{ from{ opacity:0; transform:scale(.93); } to{ opacity:1; transform:scale(1); } }
+  @media (prefers-reduced-motion: reduce){ .mini-cal__cell{ animation:none; } }
+  .mini-cal__cell.pos{ background:rgba(51,230,166, calc(.05 + var(--mag,0) * .22)); border-color:rgba(51,230,166, calc(.18 + var(--mag,0) * .5)); }
+  .mini-cal__cell.neg{ background:rgba(255,77,94, calc(.05 + var(--mag,0) * .22)); border-color:rgba(255,77,94, calc(.18 + var(--mag,0) * .5)); }
+  .mini-cal__cell.pos:hover, .mini-cal__cell.neg:hover{ transform:translateY(-2px); z-index:1; }
+  .mini-cal__cell.pos:hover{ box-shadow:0 6px 16px rgba(51,230,166,.18); }
+  .mini-cal__cell.neg:hover{ box-shadow:0 6px 16px rgba(255,77,94,.18); }
+  .mini-cal__cell .d{ font-size:10px; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .mini-cal__cell .p{ font-size:9.5px; font-weight:700; font-variant-numeric:tabular-nums; transition:opacity .15s ease; }
   .mini-cal__cell.pos .p{ color:var(--green); } .mini-cal__cell.neg .p{ color:var(--red); }
+  /* Unite alternative (ex. $ quand la carte affiche du %) : masquee, revelee au survol/focus - meme
+     logique que l'infobulle ajoutee a la courbe d'equity juste au-dessus (voir dashboard.js). */
+  .mini-cal__cell .alt{ position:absolute; inset:auto 5px 5px 5px; font-size:9px; font-weight:600; color:var(--ink);
+    background:var(--panel); border-radius:5px; padding:1px 4px; opacity:0; transform:translateY(2px);
+    transition:opacity .12s ease, transform .12s ease; pointer-events:none; text-align:right; font-variant-numeric:tabular-nums; }
+  .mini-cal__cell:hover .alt, .mini-cal__cell:focus-visible .alt{ opacity:1; transform:translateY(0); }
+  .mini-cal__cell:hover .p, .mini-cal__cell:focus-visible .p{ opacity:0; }
   .mini-cal__cell.is-today{ border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
 
   /* ---------- Outils : timeline des sessions + force des devises ---------- */
