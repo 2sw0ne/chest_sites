@@ -456,11 +456,18 @@
   // niveaux d'entrée/stop/take, ni P&L en $ réel — seulement date/résultat/RR. On les importe donc
   // tels quels (pas de valeur inventée pour remplir les colonnes du journal), taggés "backtest" et
   // notés avec le nom du backtest d'origine pour qu'on sache toujours d'où ils viennent.
+  // Un backtest peut compter des milliers de positions : `add()` relit et réécrit TOUT
+  // chest_journal à chaque appel (voir plus bas) - l'appeler en boucle est O(n²) et gelait
+  // la page "indéfiniment" sur un gros fichier (retour utilisateur, 2026-10-11). On construit
+  // ici tous les enregistrements en mémoire et on ne lit/réécrit le localStorage qu'UNE fois.
   function importBacktestTrades(accountId, backtest) {
     const trades = (backtest && backtest.trades) || [];
-    let added = 0;
-    trades.forEach((t) => {
-      add({
+    const items = list();
+    const stamp = Date.now().toString(36);
+    trades.forEach((t, i) => {
+      items.push(Object.assign({
+        id: `jr_${stamp}${i.toString(36)}` + Math.random().toString(36).slice(2, 6),
+        source: 'manual', tags: ['backtest'],
         date: t.date,
         pair: (t.source && String(t.source)) || backtest.title || 'Backtest',
         side: null,
@@ -470,14 +477,13 @@
         rrActual: typeof t.rr === 'number' ? t.rr : null,
         result: t.result || null,
         pnl: null,
-        tags: ['backtest'],
         chartLink: null,
         notes: `Importé (brut) depuis le backtest "${backtest.title}"${t.confirmation ? ' · ' + t.confirmation : ''}`,
         accountId,
-      });
-      added++;
+      }));
     });
-    return added;
+    persist(items);
+    return trades.length;
   }
 
   // ---------- Myfxbook -> entrées de journal ----------

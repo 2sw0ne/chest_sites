@@ -580,7 +580,7 @@ CHESTTour.init([
           selectedYears.add(y);
         }
         renderYearFilter();
-        loading(renderAll);
+        renderAll();
       });
     });
   }
@@ -634,7 +634,7 @@ CHESTTour.init([
     grid.querySelectorAll('[data-mm-account]').forEach((btn) => {
       btn.addEventListener('click', () => {
         mmDetailAccount = btn.dataset.mmAccount;
-        loading(renderAll);
+        renderAll();
         document.getElementById('detailSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
@@ -768,7 +768,7 @@ CHESTTour.init([
     btnWrap.innerHTML = `<button type="button" id="journalPickBtn" class="${journalPickerOpen ? 'is-active' : ''}">Période : ${rangeLabel()} ▾</button>`;
     document.getElementById('journalPickBtn').addEventListener('click', () => {
       journalPickerOpen = !journalPickerOpen;
-      loading(renderJournal);
+      renderJournal();
     });
     const pk = document.getElementById('journalPicker');
     pk.hidden = !journalPickerOpen;
@@ -799,13 +799,13 @@ CHESTTour.init([
           <button type="button" class="chest-btn" id="jpApply">Appliquer</button>
         </div>`}`;
 
-    pk.querySelectorAll('[data-ptab]').forEach((b) => b.addEventListener('click', () => { journalPickTab = b.dataset.ptab; loading(renderJournal); }));
-    pk.querySelectorAll('[data-py]').forEach((b) => b.addEventListener('click', () => { journalPickYear = Number(b.dataset.py); loading(renderJournal); }));
+    pk.querySelectorAll('[data-ptab]').forEach((b) => b.addEventListener('click', () => { journalPickTab = b.dataset.ptab; renderJournal(); }));
+    pk.querySelectorAll('[data-py]').forEach((b) => b.addEventListener('click', () => { journalPickYear = Number(b.dataset.py); renderJournal(); }));
     pk.querySelectorAll('[data-pm]').forEach((b) => b.addEventListener('click', () => {
       journalRange = { mode: 'month', key: b.dataset.pm };
       journalPickerOpen = false;
       journalPage = 1;
-      loading(renderJournal);
+      renderJournal();
     }));
     const apply = document.getElementById('jpApply');
     if (apply) apply.addEventListener('click', () => {
@@ -814,7 +814,7 @@ CHESTTour.init([
       journalRange = { mode: 'custom', from, to };
       journalPickerOpen = false;
       journalPage = 1;
-      loading(renderJournal);
+      renderJournal();
     });
   }
 
@@ -828,14 +828,14 @@ CHESTTour.init([
       accountGroup.innerHTML = `
         <button type="button" data-jaccount="cp" class="${journalAccount === 'cp' ? 'is-active' : ''}">Compte propre</button>
         <button type="button" data-jaccount="pf" class="${journalAccount === 'pf' ? 'is-active' : ''}">Propfirm</button>`;
-      accountGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalAccount = b.dataset.jaccount; journalPage = 1; loading(renderJournal); }));
+      accountGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalAccount = b.dataset.jaccount; journalPage = 1; renderJournal(); }));
     } else {
       accountGroup.style.display = 'none';
     }
 
     const resultGroup = document.getElementById('journalResultGroup');
     resultGroup.innerHTML = ['ALL', 'TP', 'SL', 'BE'].map((r) => `<button type="button" data-jresult="${r}" class="${journalResultFilter === r ? 'is-active' : ''}">${r === 'ALL' ? 'Tous' : r}</button>`).join('');
-    resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; journalPage = 1; loading(renderJournal); }));
+    resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; journalPage = 1; renderJournal(); }));
 
     const optionalCols = collectOptionalColumns(record.trades);
     let rowsAll = report.curve.slice(1).map((pt, i) => {
@@ -855,7 +855,7 @@ CHESTTour.init([
     if (canOrder) {
       orderGroup.style.display = '';
       orderGroup.innerHTML = `<button type="button" data-jorder="close" class="${journalOrder === 'close' ? 'is-active' : ''}">Par clôture</button><button type="button" data-jorder="open" class="${journalOrder === 'open' ? 'is-active' : ''}">Par ouverture</button>`;
-      orderGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalOrder = b.dataset.jorder; journalPage = 1; loading(renderJournal); }));
+      orderGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalOrder = b.dataset.jorder; journalPage = 1; renderJournal(); }));
     } else {
       orderGroup.style.display = 'none';
     }
@@ -918,7 +918,7 @@ CHESTTour.init([
     const remaining = total - shownCount;
     more.innerHTML = remaining > 0 ? `<button type="button" class="chest-btn-2" id="journalMoreBtn">Afficher ${Math.min(remaining, JOURNAL_PAGE)} positions de plus (${remaining} restantes)</button>` : '';
     const moreBtn = document.getElementById('journalMoreBtn');
-    if (moreBtn) moreBtn.addEventListener('click', () => { journalPage += 1; loading(renderJournal); });
+    if (moreBtn) moreBtn.addEventListener('click', () => { journalPage += 1; renderJournal(); });
   }
 
   // ---- 03 · Recommandation : prop firm ou compte propre ----
@@ -929,6 +929,32 @@ CHESTTour.init([
   const fitCache = new Map();
   let fitPaintedKey = null;
   let fitTimer = null;
+
+  // Le calcul (js/propfirm-fit.js) est lourd sur un gros historique (page gelée, retour
+  // utilisateur 2026-10-11) : il tourne dans un Worker séparé pour ne jamais bloquer la page.
+  // Repli sur place (même fil) si le navigateur ne sait pas charger de Worker.
+  let fitWorker = null;
+  const fitPending = new Map();
+  let fitReqId = 0;
+  try {
+    fitWorker = new Worker('js/backtest-fit-worker.js?v=1');
+    fitWorker.onmessage = (e) => {
+      const { id, result, error } = e.data;
+      const p = fitPending.get(id);
+      if (!p) return;
+      fitPending.delete(id);
+      if (error) p.reject(new Error(error)); else p.resolve(result);
+    };
+    fitWorker.onerror = () => { fitWorker = null; fitPending.forEach((p) => p.reject(new Error('worker'))); fitPending.clear(); };
+  } catch (e) { fitWorker = null; }
+  function fitAsync(trades, capital, opts) {
+    if (!fitWorker) return Promise.resolve(window.CHESTPropFit.fit(trades, capital, opts));
+    const id = ++fitReqId;
+    return new Promise((resolve, reject) => {
+      fitPending.set(id, { resolve, reject });
+      fitWorker.postMessage({ id, trades, capital, opts });
+    });
+  }
 
   function nFr(n, d = 0) { return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: d, minimumFractionDigits: d }); }
   function pctFr(n, d = 0) { return `${nFr(n, d)} %`; }
@@ -1277,9 +1303,9 @@ CHESTTour.init([
     document.getElementById('fitBody').innerHTML = '<div class="cal-state">Simulation de la vie des comptes…</div>';
     clearTimeout(fitTimer);
     fitTimer = setTimeout(() => {
-      const res = window.CHESTPropFit.fit(trades, mmDetailAccount === 'pf' ? pfCapital : record.capital, { userConfig: fitUserCfgFor(mmDetailAccount), accountKind: mmDetailAccount, rawMM });
-      fitCache.set(key, res);
-      paintFit(res, key);
+      fitAsync(trades, mmDetailAccount === 'pf' ? pfCapital : record.capital, { userConfig: fitUserCfgFor(mmDetailAccount), accountKind: mmDetailAccount, rawMM })
+        .then((res) => { fitCache.set(key, res); paintFit(res, key); })
+        .catch(() => { document.getElementById('fitBody').innerHTML = '<div class="cal-state">Calcul impossible — réessaie.</div>'; });
     }, 30);
   }
 
@@ -1327,7 +1353,7 @@ CHESTTour.init([
     rawMM = !rawMM;
     document.getElementById('rawMmToggle').classList.toggle('is-active', rawMM);
     document.getElementById('rawMmToggle').setAttribute('aria-pressed', String(rawMM));
-    loading(() => renderFit(filteredTrades()));
+    renderFit(filteredTrades());
   });
 
   // ---- Menu ⋮ : télécharger / partager ----

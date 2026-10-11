@@ -491,6 +491,32 @@ CHESTTour.init([
 
   // ---- Bonus du fichier (étiquette W/L/P, tendance/contre, confirmation…) ----
   const ENG = window.CHESTBacktestEngine;
+
+  // Le réglage premium (ENG.optimizeProfiles) est un vrai optimiseur (grille de risques × paliers ×
+  // règles "Si", 300 tirages Monte-Carlo) : sur un gros fichier importé il gelait toute la page
+  // (retour utilisateur 2026-10-11, "pareil dans le backtesting"). Même Worker que backtest-view.html.
+  let optWorker = null;
+  const optPending = new Map();
+  let optReqId = 0;
+  try {
+    optWorker = new Worker('js/backtest-fit-worker.js?v=1');
+    optWorker.onmessage = (e) => {
+      const { id, result, error } = e.data;
+      const p = optPending.get(id);
+      if (!p) return;
+      optPending.delete(id);
+      if (error) p.reject(new Error(error)); else p.resolve(result);
+    };
+    optWorker.onerror = () => { optWorker = null; optPending.forEach((p) => p.reject(new Error('worker'))); optPending.clear(); };
+  } catch (e) { optWorker = null; }
+  function optimizeAsync(trades, capital, account, opts) {
+    if (!optWorker) return Promise.resolve(ENG.optimizeProfiles(trades, capital, account, opts));
+    const id = ++optReqId;
+    return new Promise((resolve, reject) => {
+      optPending.set(id, { resolve, reject });
+      optWorker.postMessage({ id, kind: 'optimize', trades, capital, account, opts });
+    });
+  }
   let bonusFields = [];
   const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fr = (n, d = 1) => Number(n).toFixed(d).replace('.', ',');
@@ -724,9 +750,15 @@ CHESTTour.init([
       const capital = capitalFor(account);
       let split = autoSplit[account];
       if (split && !bonusFields.some((f) => f.key === split)) { split = autoSplit[account] = null; paintSplit(account); }
-      const res = ENG.optimizeProfiles(parsedTrades, capital, account, { split, minRiskPct: minRiskPct(account) });
-      if (res.error) { clearAuto(resultEl); resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
-      renderPremium(resultEl, res, account);
+      optimizeAsync(parsedTrades, capital, account, { split, minRiskPct: minRiskPct(account) }).then((res) => {
+        if (token !== autoToken[account]) return;
+        if (res.error) { clearAuto(resultEl); resultEl.innerHTML = `<span class="warn">${esc(res.error)}</span>`; return; }
+        renderPremium(resultEl, res, account);
+      }).catch(() => {
+        if (token !== autoToken[account]) return;
+        clearAuto(resultEl);
+        resultEl.innerHTML = `<span class="warn">Calcul impossible — réessaie.</span>`;
+      });
     }, 30);
   }
   const runAutoAll = () => ['cp', 'pf'].forEach((a) => { if (isAutoActive(a)) runAuto(a); });
