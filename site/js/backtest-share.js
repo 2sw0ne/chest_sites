@@ -157,6 +157,16 @@
     const root = doc.documentElement;
     root.classList.add('is-embedded');
     root.setAttribute('data-theme', 'dark');
+    // Piste "blanc par endroits en file://" (2026-10-12, retour utilisateur persistant malgre les
+    // correctifs CSS precedents) : sans signal explicite, Chrome peut appliquer SON PROPRE mode
+    // sombre automatique ("Automatically darken web content", reglage navigateur, pas notre CSS) a
+    // une page qu'il ne reconnait pas comme deja sombre - plus probable sur un fichier local ouvert
+    // en double-clic que sur un vrai site. <meta name="color-scheme"> est le signal standard pour
+    // desactiver totalement cette reecriture heuristique, quel que soit le navigateur/reglage.
+    const colorScheme = doc.createElement('meta');
+    colorScheme.name = 'color-scheme';
+    colorScheme.content = 'dark';
+    doc.head.insertBefore(colorScheme, doc.head.firstChild);
 
     // Feuilles de style locales -> <style>
     for (const link of [...doc.querySelectorAll('link[rel="stylesheet"]')]) {
@@ -207,7 +217,8 @@ window.CHESTTour={init:function(){}};`;
     // en remplacant SEULEMENT color-mix() par sa couleur deja calculee a l'avance (#fe94c7 = 55% blanc
     // + 45% #fc1283 en sRGB, meme formule que color-mix(in srgb,#fff 55%,var(--acc))), pour isoler si
     // c'etait bien cette fonction precise le point de fragilite.
-    extra.textContent = `html,body{background:#050505 !important}
+    extra.textContent = `html{color-scheme:dark !important}
+html,body{background:#050505 !important}
 .bt-hero-glow{background:#050505 !important}
 .bt-hero-glow__title{background:linear-gradient(180deg,#fff,#fe94c7) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
 .bt-hero-glow__stats span{color:#fff !important}
