@@ -1471,11 +1471,14 @@
         datasets: [
           // Lueur discrete (retour utilisateur 2026-10-11 : la courbe etait "trop vague" - trait et
           // flou reduits pour rester net a distance de lecture plutot que de noyer la ligne).
-          { data: series, borderWidth: 2, pointRadius: 0, pointHitRadius: 0, tension: .1, fill: false,
+          // Tension/jointures legerement arrondies (retour utilisateur suivant : les pics etaient
+          // trop pointus) - .2 reste sobre, pas de gonflement entre points comme a .3.
+          { data: series, borderWidth: 2, pointRadius: 0, pointHitRadius: 0, tension: .2,
+            borderJoinStyle: 'round', borderCapStyle: 'round', fill: false,
             borderColor: (c) => buildHeatGradient(c.chart, series, true, ref) },
           { // trait net + remplissage, par-dessus
             data: series, borderWidth: 2.25, pointRadius: 0, pointHoverRadius: 4, pointHoverBorderWidth: 2,
-            pointHoverBackgroundColor: '#0b0b0d', tension: .1,
+            pointHoverBackgroundColor: '#0b0b0d', tension: .2, borderJoinStyle: 'round', borderCapStyle: 'round',
             borderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
             pointHoverBorderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
             backgroundColor: (c) => buildHeatGradient(c.chart, series, false, ref),
