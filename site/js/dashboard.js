@@ -1357,7 +1357,9 @@
     const { ctx: c2d, chartArea, scales } = chartInstance;
     if (!chartArea) return forLine ? '#33e6a6' : 'rgba(51,230,166,.1)';
     const grad = c2d.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-    const peak = forLine ? 1 : 0.85;
+    // Remplissage moins sature (etait 0.85) : a cette intensite il noyait le trait au lieu de
+    // rester un simple appui visuel derriere lui (retour utilisateur 2026-10-11, "trop vague").
+    const peak = forLine ? 1 : 0.42;
     const maxV = Math.max(...series, r), minV = Math.min(...series, r);
     if (maxV <= r) { addPlateauStops(grad, 1, 0, peak, NEON_RED); return grad; }
     if (minV >= r) { addPlateauStops(grad, 0, 1, peak, NEON_GREEN); return grad; }
@@ -1381,8 +1383,8 @@
     beforeDatasetDraw(c, args) {
       if (!args.meta.dataset || args.index !== 0) return;
       c.ctx.save();
-      c.ctx.shadowColor = 'rgba(160,255,220,.4)';
-      c.ctx.shadowBlur = 7;
+      c.ctx.shadowColor = 'rgba(160,255,220,.35)';
+      c.ctx.shadowBlur = 4;
     },
     afterDatasetDraw(c, args) { if (args.index === 0) c.ctx.restore(); },
   };
@@ -1427,18 +1429,23 @@
     const ctx = document.getElementById('equityChart');
     if (!ctx || !window.Chart) return;
     if (chart) chart.destroy();
+    // Format d'une valeur de la courbe, identique au formatteur de l'axe Y - reutilise par
+    // l'infobulle au survol (retour utilisateur 2026-10-11 : voir le % exact sous la souris).
+    const fmtVal = (v) => unit === 'percent' ? (v >= 0 ? '+' : '') + v.toFixed(2) + '%' : '$' + Math.round(v).toLocaleString('fr-FR');
     chart = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
         datasets: [
-          { // passe de lueur (large, floue, sans remplissage) - dessinee en dessous
-            data: series, borderWidth: 5, pointRadius: 0, tension: .3, fill: false,
-            borderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
-          },
+          // Lueur discrete (retour utilisateur 2026-10-11 : la courbe etait "trop vague" - trait et
+          // flou reduits pour rester net a distance de lecture plutot que de noyer la ligne).
+          { data: series, borderWidth: 2, pointRadius: 0, pointHitRadius: 0, tension: .1, fill: false,
+            borderColor: (c) => buildHeatGradient(c.chart, series, true, ref) },
           { // trait net + remplissage, par-dessus
-            data: series, borderWidth: 2.5, pointRadius: 0, tension: .3,
+            data: series, borderWidth: 2.25, pointRadius: 0, pointHoverRadius: 4, pointHoverBorderWidth: 2,
+            pointHoverBackgroundColor: '#0b0b0d', tension: .1,
             borderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
+            pointHoverBorderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
             backgroundColor: (c) => buildHeatGradient(c.chart, series, false, ref),
             fill: d.refCapital ? { value: ref } : true,
           },
@@ -1446,7 +1453,14 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            filter: (item) => item.datasetIndex === 1, // la passe de lueur ne doit pas doubler l'infobulle
+            callbacks: { label: (item) => fmtVal(item.parsed.y), title: (items) => items[0] ? String(items[0].label) : '' },
+          },
+        },
         scales: {
           y: { min: yMin, max: yMax, grid: { color: grid }, ticks: { color: tick, callback: (v) => unit === 'percent' ? v.toFixed(1) + '%' : '$' + Math.round(v) } },
           x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8 } }
