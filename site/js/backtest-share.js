@@ -199,17 +199,17 @@ window.CHESTTour={init:function(){}};`;
     const extra = doc.createElement('style');
     // BUG REEL (2026-10-12, retour utilisateur avec capture : le rapport telecharge puis ouvert en
     // double-clic - file:// - s'affichait delave : hero clair au lieu de sombre, chiffres
-    // CAPITAL/TRADES/PERIODE invisibles). Verifie : le MEME fichier, servi en http (localhost),
-    // s'affiche parfaitement (getComputedStyle confirme un degrade/texte corrects) - donc rien de
-    // casse dans le contenu genere, mais le titre utilise color-mix() + background-clip:text (un
-    // degrade applique comme "remplissage" du texte), un mecanisme plus subtil qu'une simple couleur
-    // - jamais pu reproduire le rendu file:// exact dans cet environnement pour isoler la cause
-    // precise. Plutot que de laisser un rapport telecharge dependre d'un effet fragile, le hero de
-    // l'export utilise ici des couleurs pleines et garanties (fond opaque + texte blanc uni) au lieu
-    // du degrade/clip-text - moins spectaculaire, mais jamais invisible quel que soit le contexte.
+    // CAPITAL/TRADES/PERIODE invisibles). Corrige en forcant des couleurs pleines (voir commit
+    // precedent) - confirme par l'utilisateur : fond et chiffres desormais corrects. Reste ensuite un
+    // point cosmetique (titre blanc uni au lieu du degrade rose du site) : le titre utilisait
+    // color-mix() pour calculer sa teinte de fin de degrade - fonction CSS plus recente que
+    // background-clip:text (deja confirme fonctionnel ailleurs sur cette page). On retente le degrade
+    // en remplacant SEULEMENT color-mix() par sa couleur deja calculee a l'avance (#fe94c7 = 55% blanc
+    // + 45% #fc1283 en sRGB, meme formule que color-mix(in srgb,#fff 55%,var(--acc))), pour isoler si
+    // c'etait bien cette fonction precise le point de fragilite.
     extra.textContent = `html,body{background:#050505 !important}
 .bt-hero-glow{background:#050505 !important}
-.bt-hero-glow__title{background:none !important;-webkit-text-fill-color:#fff !important;color:#fff !important}
+.bt-hero-glow__title{background:linear-gradient(180deg,#fff,#fe94c7) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
 .bt-hero-glow__stats span{color:#fff !important}
 .chest-back,#editLink,#deleteBtn,.bt-hero-glow__actions,#btMenuWrap,.chest-fab,.lotcalc-fab,#sidebarToggle{display:none !important}
 .bt-export-note{max-width:820px;margin:28px auto 0;padding:0 16px 40px;text-align:center;font-size:11.5px;line-height:1.6;color:#5c5c63}`;
