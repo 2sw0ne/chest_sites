@@ -734,12 +734,13 @@
       <div class="acc-row">
         <button class="acc-menu__item ${a.id === activeId ? 'is-active' : ''}" data-id="${a.id}">
           <span class="avatar ${a.isLiveSwann ? 'is-live' : ''}">${a.isLiveSwann ? '🟢' : initials(a.name)}</span>
-          <span><strong>${a.name}</strong><span>${journalName ? '📒 ' + journalName : `#${a.number} · ${a.type}`}</span></span>
+          <span><strong>${a.name}${a.liveShield ? ' <span class="live-shield-star" title="Live Shield actif">⭐</span>' : ''}</strong><span>${journalName ? '📒 ' + journalName : `#${a.number} · ${a.type}`}</span></span>
         </button>
         ${canDelete ? `
         <div class="acc-tools">
           <button type="button" class="acc-tools__btn" aria-label="Options du compte ${a.name}">⋮</button>
           <div class="acc-tools__menu">
+            <button type="button" data-toggle-liveshield="${a.id}">${a.liveShield ? '⭐ Retirer Live Shield' : '⭐ Marquer Live Shield'}</button>
             <button type="button" data-reattach-account="${a.id}">📒 Rattacher à un autre journal</button>
             <button type="button" data-rename-account="${a.id}">✎ Renommer le compte</button>
             <button type="button" class="is-danger" data-delete-account="${a.id}">Supprimer</button>
@@ -768,6 +769,27 @@
     list.querySelectorAll('[data-reattach-account]').forEach((btn) => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); openReattachJournalModal(btn.dataset.reattachAccount); });
     });
+    list.querySelectorAll('[data-toggle-liveshield]').forEach((btn) => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); toggleLiveShield(btn.dataset.toggleLiveshield); });
+    });
+  }
+
+  // Etoile "Live Shield" (2026-10-11) : purement declarative, CHEST ne peut pas verifier ce statut
+  // via l'API Myfxbook (voir renderAccountHeader) - sert juste a reperer le compte sur lequel
+  // l'utilisateur a paye l'abonnement Myfxbook. Un seul compte a la fois peut l'avoir (meme
+  // contrainte reelle que Myfxbook : la licence ne vit que sur un compte a la fois, transferable
+  // depuis myfxbook.com).
+  function toggleLiveShield(id) {
+    const accounts = loadAccounts();
+    const acc = accounts.find((a) => a.id === id);
+    if (!acc) return;
+    const turningOn = !acc.liveShield;
+    accounts.forEach((a) => { delete a.liveShield; });
+    if (turningOn) acc.liveShield = true;
+    saveAccounts(accounts);
+    closeMenu();
+    renderAll();
+    showToast(turningOn ? `⭐ "${acc.name}" marqué Live Shield` : 'Live Shield retiré');
   }
 
   async function renameAccount(id) {
@@ -844,7 +866,18 @@
     const avatarEl = document.getElementById('accAvatar');
     avatarEl.textContent = a.isLiveSwann ? '🟢' : initials(a.name);
     avatarEl.classList.toggle('is-live', !!a.isLiveSwann);
-    document.getElementById('accName').textContent = a.name;
+    const accNameEl = document.getElementById('accName');
+    accNameEl.textContent = a.name;
+    // Etoile Live Shield (2026-10-11, demande utilisateur) : purement declaratif - CHEST ne peut
+    // pas lire ce statut via l'API Myfxbook (aucun champ documente), donc c'est l'utilisateur qui
+    // marque lui-meme le compte sur lequel il a active l'abonnement payant (voir toggleLiveShield).
+    if (a.liveShield) {
+      const star = document.createElement('span');
+      star.className = 'live-shield-star';
+      star.title = 'Live Shield Myfxbook actif sur ce compte (déclaré par toi)';
+      star.textContent = ' ⭐';
+      accNameEl.appendChild(star);
+    }
     document.getElementById('accSub').textContent = `#${a.number} · ${a.type}`;
     const titleEl = document.getElementById('accKindTitle');
     titleEl.textContent = a.isPropfirm ? 'Propfirm' : (a.myfxbook ? 'Compte propre' : 'Démo');
