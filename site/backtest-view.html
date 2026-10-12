@@ -398,12 +398,16 @@ CHESTTour.init([
   // elle ne les mélange pas sur un même écran (voir renderFit / la clé de cache qui inclut mmDetailAccount).
   const fitUserCfgFor = (account) => (account === 'pf' ? (hasPf ? record.pf : null) : record.cp);
   const bonusLabel = (key) => window.CHESTBacktestEngine.fieldLabel(key);
-  // Bascule %→R (2026-10-12, demande utilisateur) : purement un affichage, jamais touché au calcul
-  // sous-jacent (toujours en % réel). 1R = le risque de BASE de chaque ligne de money management (celui
-  // de son propre groupe/logique — TREND, CONTRE, « Autres trades »…) : un palier à 0,5 % après 1 SL sur
-  // une base de 1 % devient "0,5R après 1 SL" ; la même réduction sur une base de 0,75 % devient "0,67R",
-  // puisque le ratio réel au risque pris est différent. Jamais appliqué aux % qui ne sont pas des risques
-  // par trade (retraits, drawdown, performance totale…) : ces valeurs n'ont pas d'équivalent R stable.
+  // Bascule %→R (2026-10-12, demande utilisateur, étendue le même jour : « je veux que les R soit
+  // affiché PARTOUT dans les résultats, perf totale, par mois et par jour, les % total »). Jamais touché
+  // au calcul sous-jacent (toujours en % réel en coulisse). 1R = le risque de BASE du compte (cfg.risk —
+  // le même « 1R » déjà affiché dans « Risque <b>1R</b> » pour les money management). Deux usages :
+  // 1) description du money management (risque de base/palier/règles) : pour une ligne de logique
+  //    (TREND, CONTRE…) 1R = la base de CETTE ligne (riskTxt/tierFr, déjà en place) ;
+  // 2) performance agrégée (perf totale, drawdown max, courbe d'équity, mensuel, journal) : chaque
+  //    trade PRIS contribue `(risque réellement utilisé ce trade-là ÷ risque de base du compte) × son
+  //    RR` — additif (pas composé, contrairement au $/%) : un trade dont le risque a été réduit (palier
+  //    après SL) ne pèse qu'une fraction de R, comme sur un vrai carnet de suivi en R.
   let rMode = false;
   function rFmt(x) {
     const v = Math.round(x * 100) / 100;
@@ -411,6 +415,44 @@ CHESTTour.init([
     return s.replace('.', ',') + 'R';
   }
   const riskTxt = (r, base) => (r === 0 ? 'ignoré' : rMode && base > 0 ? rFmt(r / base) : String(r).replace('.', ',') + ' %');
+  // Série R d'un report : cumul, par trade (pour le journal/mensuel) et la courbe complète (pour le graphique).
+  function rSeries(report, baseRisk) {
+    const taken = report.curve.slice(1);
+    let cum = 0;
+    const points = [0];
+    const perTrade = [];
+    taken.forEach((pt) => {
+      const res = String(pt.trade.result).toUpperCase();
+      const rr = res === 'BE' ? 0 : (Number(pt.trade.rr) || 0);
+      const w = baseRisk > 0 ? (pt.riskUsed || 0) / baseRisk : 0;
+      const contrib = w * rr;
+      cum += contrib;
+      points.push(cum);
+      const day = pt.date ? isoLocal(pt.date) : null;
+      perTrade.push({ date: pt.date, day, monthKey: day ? day.slice(0, 7) : 'inconnu', r: contrib });
+    });
+    return { points, perTrade, totalR: cum };
+  }
+  function rMonthly(perTrade) {
+    const months = new Map();
+    perTrade.forEach((p) => {
+      if (!months.has(p.monthKey)) months.set(p.monthKey, { r: 0, trades: 0 });
+      const m = months.get(p.monthKey); m.r += p.r; m.trades += 1;
+    });
+    return months;
+  }
+  function rMaxDrawdown(points) {
+    let peak = points[0], maxDd = 0;
+    points.forEach((v) => { if (v > peak) peak = v; const dd = peak - v; if (dd > maxDd) maxDd = dd; });
+    return maxDd;
+  }
+  // Format d'une valeur R agrégée (signée) — distinct de rFmt() (celui des lignes de money management,
+  // jamais signé puisque ce sont des fractions de risque, pas un gain/perte).
+  function fmtR(v) {
+    const a = Math.abs(v);
+    const n = a >= 1000 ? (a / 1000).toFixed(1).replace('.', ',') + ' k' : a.toFixed(1).replace('.', ',');
+    return (v >= 0 ? '+' : '−') + n + 'R';
+  }
   // Réglage « Si » séparé : un money management par valeur du bonus.
   function splitSummary(sp) {
     return sp.groups.map((g) => `<b>${g.value == null ? 'Autres trades' : g.value}</b> ${riskTxt(g.base, g.base)} par trade${g.tier ? `, puis ${g.tier.newRisk === 0 ? 'pause' : riskTxt(g.tier.newRisk, g.base)} après ${g.tier.afterSl === 1 ? '1 SL' : g.tier.afterSl + " SL d'affilée"}` : ''}`).join(' · ');
@@ -615,10 +657,14 @@ CHESTTour.init([
       ? `<div class="mm-card__rules"><span class="mm-card__rules-k">${pm ? `Réglage premium${pm.name ? ' · ' + pm.name : ''}${pm.split ? ' · Si ' + pm.split.label + ' séparé' : ''}` : 'Réglage du risque'}</span> ${pm && pm.split && pm.split.groups ? splitSummary(pm.split) : rulesSummary(cfg)}${skipped ? ` · <b>${skipped}</b> trade${skipped > 1 ? 's' : ''} ignoré${skipped > 1 ? 's' : ''}` : ''}${oosNote}</div>`
       : '';
     const isSelected = mmDetailAccount === account;
+    const rs = rMode ? rSeries(report, riskCfg(cfg).risk) : null;
+    const perfVal = rMode ? rs.totalR : s.performancePct;
+    const perfTxt = rMode ? fmtR(rs.totalR) : fmtPct(s.performancePct);
+    const ddTxt = rMode ? '-' + rMaxDrawdown(rs.points).toFixed(1).replace('.', ',') + 'R' : '-' + s.maxDrawdownPct.toFixed(1) + '%';
     return `
       <div class="mm-card chest-glass chest-glass--mini" style="--mm-color:${color}">
         <span class="mm-card__tag">${label}</span>
-        <div class="mm-card__perf val ${s.performancePct >= 0 ? 'pos' : 'neg'}">${fmtPct(s.performancePct)}</div>
+        <div class="mm-card__perf val ${perfVal >= 0 ? 'pos' : 'neg'}">${perfTxt}</div>
         <div class="mm-card__capital">Capital final <b>${fmtMoney(s.finalCapital)}</b></div>
         <div class="mm-card__counts">
           <span class="result-badge tp">${counts.TP} TP</span>
@@ -627,7 +673,7 @@ CHESTTour.init([
         </div>
         <div class="mm-card__mini">
           <div><div class="mm-card__mini-label">Win rate</div><div class="mm-card__mini-value">${s.winRatePct.toFixed(1)}%</div></div>
-          <div><div class="mm-card__mini-label">Max DD</div><div class="mm-card__mini-value">-${s.maxDrawdownPct.toFixed(1)}%</div></div>
+          <div><div class="mm-card__mini-label">Max DD</div><div class="mm-card__mini-value">${ddTxt}</div></div>
           <div><div class="mm-card__mini-label">Profit factor</div><div class="mm-card__mini-value">${s.profitFactor != null ? s.profitFactor.toFixed(2) : '—'}</div></div>
         </div>
         <div class="mm-card__extra">
@@ -658,6 +704,8 @@ CHESTTour.init([
   function renderDetail(report) {
     document.getElementById('detailLabel').textContent = mmDetailAccount === 'pf' ? 'Propfirm' : 'Compte propre';
     const s = report.stats;
+    const detailCfg = mmDetailAccount === 'pf' ? record.pf : record.cp;
+    const rs = rMode ? rSeries(report, riskCfg(detailCfg).risk) : null;
     // R moyen des TP (2026-10-12, demande utilisateur) : moyenne du RR des trades réellement PRIS (donc
     // après money management — un trade mis en pause par une règle « Si » n'y entre pas) qui ne sont ni
     // SL ni BE, sur `report.curve` (même source que les autres stats de cette carte).
@@ -666,11 +714,11 @@ CHESTTour.init([
     const avgTpR = tpRs.length ? tpRs.reduce((a, b) => a + b, 0) / tpRs.length : null;
 
     document.getElementById('statsGrid').innerHTML = [
-      ['Performance totale', fmtPct(s.performancePct), s.performancePct >= 0 ? 'pos' : 'neg'],
+      ['Performance totale', rMode ? fmtR(rs.totalR) : fmtPct(s.performancePct), (rMode ? rs.totalR : s.performancePct) >= 0 ? 'pos' : 'neg'],
       ['Capital final', fmtMoney(s.finalCapital), 'neutral'],
       ['Positions', s.totalTrades, 'neutral'],
       ['Taux de réussite', s.winRatePct.toFixed(1) + '%', 'neutral'],
-      ['Drawdown max', '-' + s.maxDrawdownPct.toFixed(1) + '%', 'neg'],
+      ['Drawdown max', rMode ? '-' + rMaxDrawdown(rs.points).toFixed(1).replace('.', ',') + 'R' : '-' + s.maxDrawdownPct.toFixed(1) + '%', 'neg'],
       ['Profit factor', s.profitFactor != null ? s.profitFactor.toFixed(2) : '—', 'neutral'],
       ['R moyen des TP', avgTpR != null ? (avgTpR >= 0 ? '+' : '−') + Math.abs(avgTpR).toFixed(2).replace('.', ',') + 'R' : '—', 'neutral'],
     ].map(([label, value, tone]) => `
@@ -693,10 +741,11 @@ CHESTTour.init([
     const isDark = true; // thème clair = page inversée, graphiques dessinés en sombre
     const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
     const tick = isDark ? '#9b9ba1' : '#65656b';
-    const series = report.curve.map((pt) => pt.capital);
+    const series = rMode ? rs.points : report.curve.map((pt) => pt.capital);
     const up = series[series.length - 1] >= series[0];
     const lineRgb = up ? '#33e6a6' : '#ff4d5e';
     const fillRgb = up ? '51,230,166' : '255,77,94';
+    const tickFmt = rMode ? (v) => (v >= 0 ? '+' : '') + v.toFixed(0) + 'R' : (v) => fmtMoneyTick(v);
     const ctx = document.getElementById('equityChart');
     if (chart) chart.destroy();
     if (window.Chart && ctx) {
@@ -716,7 +765,7 @@ CHESTTour.init([
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            y: { grid: { color: gridColor }, ticks: { color: tick, callback: (v) => fmtMoneyTick(v) } },
+            y: { grid: { color: gridColor }, ticks: { color: tick, callback: tickFmt } },
             x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8 } },
           },
         },
@@ -726,30 +775,42 @@ CHESTTour.init([
 
   function renderMonthly(cpReport, pfReport) {
     const el = document.getElementById('monthlyTable');
+    const rCpByKey = rMode ? rMonthly(rSeries(cpReport, riskCfg(record.cp).risk).perTrade) : null;
+    const cpVal = (m) => (rMode ? (rCpByKey.get(m.key) || { r: 0 }).r : m.pct);
+    const fmt = (v) => (rMode ? fmtR(v) : fmtPct(v));
     if (!hasPf) {
       el.innerHTML = `<div class="monthly-row monthly-row--3col head"><span>Mois</span><span>Trades</span><span>Performance</span></div>` +
-        cpReport.monthly.map((m) => `
+        cpReport.monthly.map((m) => {
+          const v = cpVal(m);
+          return `
           <div class="monthly-row monthly-row--3col">
             <span>${monthLabelShort(m.key)}</span>
             <span>${m.trades}</span>
-            <span class="val ${m.pct >= 0 ? 'pos' : 'neg'}">${fmtPct(m.pct)}</span>
-          </div>`).join('');
+            <span class="val ${v >= 0 ? 'pos' : 'neg'}">${fmt(v)}</span>
+          </div>`;
+        }).join('');
       return;
     }
     const pfByKey = new Map(pfReport.monthly.map((m) => [m.key, m]));
+    const rPfByKey = rMode ? rMonthly(rSeries(pfReport, riskCfg(record.pf).risk).perTrade) : null;
+    const pfVal = (m) => {
+      if (rMode) return (rPfByKey.get(m.key) || { r: 0 }).r;
+      const pf = pfByKey.get(m.key);
+      return pf ? pf.pct : 0;
+    };
     el.innerHTML = `<div class="monthly-row head"><span>Mois</span><span>Trades</span><span>Compte propre</span><span>Propfirm</span><span>Meilleur</span></div>` +
       cpReport.monthly.map((m) => {
-        const pf = pfByKey.get(m.key);
-        const pfPct = pf ? pf.pct : 0;
-        const better = m.pct >= pfPct ? 'Compte propre' : 'Propfirm';
-        const betterPct = Math.max(m.pct, pfPct);
+        const cpV = cpVal(m);
+        const pfV = pfVal(m);
+        const better = cpV >= pfV ? 'Compte propre' : 'Propfirm';
+        const betterV = Math.max(cpV, pfV);
         return `
           <div class="monthly-row">
             <span>${monthLabelShort(m.key)}</span>
             <span>${m.trades}</span>
-            <span class="val ${m.pct >= 0 ? 'pos' : 'neg'}">${fmtPct(m.pct)}</span>
-            <span class="val ${pfPct >= 0 ? 'pos' : 'neg'}">${fmtPct(pfPct)}</span>
-            <span class="best"><span class="val ${betterPct >= 0 ? 'pos' : 'neg'}">${fmtPct(betterPct)}</span><small>${better}</small></span>
+            <span class="val ${cpV >= 0 ? 'pos' : 'neg'}">${fmt(cpV)}</span>
+            <span class="val ${pfV >= 0 ? 'pos' : 'neg'}">${fmt(pfV)}</span>
+            <span class="best"><span class="val ${betterV >= 0 ? 'pos' : 'neg'}">${fmt(betterV)}</span><small>${better}</small></span>
           </div>`;
       }).join('');
   }
@@ -860,13 +921,17 @@ CHESTTour.init([
     resultGroup.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { journalResultFilter = b.dataset.jresult; journalPage = 1; renderJournal(); }));
 
     const optionalCols = collectOptionalColumns(record.trades);
+    const jCfg = (journalAccount === 'pf' && reports.pf) ? record.pf : record.cp;
+    const jBaseRisk = riskCfg(jCfg).risk;
     let rowsAll = report.curve.slice(1).map((pt, i) => {
       const prevCapital = report.curve[i].capital;
       const t = pt.trade;
       const pctChange = prevCapital > 0 ? (pt.capital / prevCapital - 1) * 100 : 0;
       const variation = pt.capital - prevCapital;
       const day = pt.date ? isoLocal(pt.date) : null;
-      return { idx: i + 1, trade: t, capital: pt.capital, pctChange, variation, day, monthKey: day ? day.slice(0, 7) : 'inconnu' };
+      const res = String(t.result).toUpperCase();
+      const rContrib = jBaseRisk > 0 ? ((pt.riskUsed || 0) / jBaseRisk) * (res === 'BE' ? 0 : (Number(t.rr) || 0)) : 0;
+      return { idx: i + 1, trade: t, capital: pt.capital, pctChange, rContrib, variation, day, monthKey: day ? day.slice(0, 7) : 'inconnu' };
     });
 
     // Ordre d'affichage : par défaut l'ordre de clôture (celui de la courbe). Si le fichier donne l'ouverture ET la clôture,
@@ -906,7 +971,7 @@ CHESTTour.init([
       byMonth.get(r.monthKey).push(r);
     });
 
-    const headCells = ['#', 'Date', ...optionalCols.map((c) => c.label), 'Résultat', '%', 'Capital après', 'Variation $'];
+    const headCells = ['#', 'Date', ...optionalCols.map((c) => c.label), 'Résultat', rMode ? 'R' : '%', 'Capital après', 'Variation $'];
     const colCount = headCells.length;
 
     const groupKeys = [...byMonth.keys()];
@@ -920,13 +985,14 @@ CHESTTour.init([
       if (!visibleRows.length) return;
       bodyHtml += `<tr class="month-sep"><td colspan="${colCount}">${key === 'inconnu' ? 'Date inconnue' : monthLabel(key)}<span class="month-sep__stats">${rows.length} position${rows.length > 1 ? 's' : ''} · ${tpCount} TP · ${slCount} SL · ${beCount} BE</span></td></tr>`;
       bodyHtml += visibleRows.map((r) => {
-        const tone = r.pctChange > 1e-9 ? 'pos' : (r.pctChange < -1e-9 ? 'neg' : 'neutral');
+        const metricVal = rMode ? r.rContrib : r.pctChange;
+        const tone = metricVal > 1e-9 ? 'pos' : (metricVal < -1e-9 ? 'neg' : 'neutral');
         const cells = [
           `<td class="idx">${r.idx}</td>`,
           `<td>${dateCellHtml(r.trade)}</td>`,
           ...optionalCols.map((c) => `<td class="extra-col">${c.getValue(r.trade)}</td>`),
           `<td>${resultBadgeHtml(r.trade.result)}</td>`,
-          `<td class="num val ${tone}">${fmtPct(r.pctChange)}</td>`,
+          `<td class="num val ${tone}">${rMode ? fmtR(r.rContrib) : fmtPct(r.pctChange)}</td>`,
           `<td class="num">${fmtMoney(r.capital)}</td>`,
           `<td class="num val ${tone}">${fmtMoneySigned(r.variation)}</td>`,
         ];
@@ -1393,13 +1459,18 @@ CHESTTour.init([
     rMode = !rMode;
     document.getElementById('rModeToggle').classList.toggle('is-active', rMode);
     document.getElementById('rModeToggle').setAttribute('aria-pressed', String(rMode));
+    const trades = filteredTrades();
+    const cpReport = window.CHESTBacktestEngine.computeReport(trades, record.capital, riskCfg(record.cp));
+    const pfReport = hasPf ? window.CHESTBacktestEngine.computeReport(trades, pfCapital, riskCfg(record.pf)) : null;
     renderMmCards(
-      window.CHESTBacktestEngine.computeReport(filteredTrades(), record.capital, riskCfg(record.cp)),
-      hasPf ? window.CHESTBacktestEngine.computeReport(filteredTrades(), pfCapital, riskCfg(record.pf)) : null,
-      maxConsecutiveSl(filteredTrades()),
-      (() => { const c = { TP: 0, SL: 0, BE: 0 }; filteredTrades().forEach((t) => { const r = String(t.result).toUpperCase(); if (c[r] != null) c[r] += 1; }); return c; })(),
-      filteredTrades().length
+      cpReport, pfReport,
+      maxConsecutiveSl(trades),
+      (() => { const c = { TP: 0, SL: 0, BE: 0 }; trades.forEach((t) => { const r = String(t.result).toUpperCase(); if (c[r] != null) c[r] += 1; }); return c; })(),
+      trades.length
     );
+    renderDetail(mmDetailAccount === 'pf' && pfReport ? pfReport : cpReport);
+    renderMonthly(cpReport, pfReport);
+    renderJournal();
     const fitKey = [...selectedYears].sort().join(',') + '|' + mmDetailAccount + '|' + (rawMM ? 'raw' : 'opt');
     if (fitCache.has(fitKey)) paintFit(fitCache.get(fitKey), fitKey);
   });
