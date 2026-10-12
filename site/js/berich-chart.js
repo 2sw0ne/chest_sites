@@ -597,7 +597,38 @@ hline(${n(levels.sl)}, "SL", color=color.red, linestyle=hline.style_dashed)
 hline(${n(levels.tp)}, "TP", color=color.green, linestyle=hline.style_dashed)`;
   }
 
-  async function render(containerId, levels) {
+  // Trace d'une étiquette "indélébile" par position REÇUE PAR WEBHOOK (ouverte ou déjà clôturée),
+  // à l'heure réelle de la position — pas une recréation du signal par la logique du script
+  // (celle-ci recalcule déjà ses propres BUY/SELL sur les données, voir PINE_SOURCE ci-dessus),
+  // ici c'est une façade purement visuelle qui rejoue l'historique réel de berich-store.js. Une
+  // étiquette apparaît une seule fois, dès que la bougie courante atteint son heure (`time`), et
+  // ne bouge plus jamais ensuite (`var bool shownN`, jamais réinitialisé) : c'est la trace
+  // indélébile demandée. Couleurs reprises des jetons CHEST (--green/--red) ; composante bleue
+  // jamais nulle (règle de rendu Vela, voir CLAUDE.md du projet) sans quoi l'étiquette est invisible.
+  function historySource(signals) {
+    const rows = (signals || [])
+      .filter((s) => Number.isFinite(Number(s.time)) && Number.isFinite(Number(s.entry)))
+      .sort((a, b) => a.time - b.time)
+      .slice(-80); // garde-fou lisibilité — bien en-dessous de max_labels_count
+    if (!rows.length) return null;
+    const blocks = rows.map((s, i) => {
+      const isBuy = s.side !== 'sell';
+      const t = Math.floor(Number(s.time));
+      const col = isBuy ? 'color.new(#33e6a6,0)' : 'color.new(#ff4d5e,0)';
+      const style = isBuy ? 'label.style_label_up' : 'label.style_label_down';
+      const resTxt = s.status === 'closed' ? (s.result === 'TP' ? ' · TP ✓' : ' · SL ✗') : '';
+      const txt = (isBuy ? 'ACHAT' : 'VENTE') + resTxt;
+      return `var bool shown${i} = false
+if not shown${i} and time >= ${t}
+    shown${i} := true
+    label.new(bar_index, ${isBuy ? 'low' : 'high'}, "${txt}", style=${style}, color=${col}, textcolor=color.new(#050505,0), size=size.small)`;
+    }).join('\n');
+    return `//@version=5
+indicator("BERICH historique", overlay=true, max_labels_count=500)
+${blocks}`;
+  }
+
+  async function render(containerId, levels, history) {
     const container = document.getElementById(containerId);
 
     container.innerHTML = '<div class="scanner-empty">Chargement des données XAU/USD et de ton scanner…</div>';
@@ -627,6 +658,14 @@ hline(${n(levels.tp)}, "TP", color=color.green, linestyle=hline.style_dashed)`;
 
     chart.registerEngine('pine', new PineEngine());
     await chart.addIndicator(PINE_SOURCE);
+    const historySrc = historySource(history);
+    if (historySrc) {
+      try {
+        await chart.addIndicator(historySrc);
+      } catch (e) {
+        console.warn('BERICH: historique des positions non tracé', e);
+      }
+    }
     if (levels && [levels.entry, levels.sl, levels.tp].every((v) => Number.isFinite(Number(v)))) {
       try {
         await chart.addIndicator(levelsSource(levels));

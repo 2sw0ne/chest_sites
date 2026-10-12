@@ -288,7 +288,10 @@
     <section class="bt-sec" id="mmSection">
       <div class="bt-sec__head">
         <span class="chest-step">01 — Deux possibilités</span>
-        <div class="pill-group" id="yearFilter"></div>
+        <div class="bt-sec__tools">
+          <button type="button" id="rModeToggle" class="bt-raw-toggle" aria-pressed="false" title="Affiche les risques en multiples de R (risque:reward) plutôt qu'en %">% → R</button>
+          <div class="pill-group" id="yearFilter"></div>
+        </div>
       </div>
       <div class="mm-grid" id="mmGrid"></div>
     </section>
@@ -395,19 +398,31 @@ CHESTTour.init([
   // elle ne les mélange pas sur un même écran (voir renderFit / la clé de cache qui inclut mmDetailAccount).
   const fitUserCfgFor = (account) => (account === 'pf' ? (hasPf ? record.pf : null) : record.cp);
   const bonusLabel = (key) => window.CHESTBacktestEngine.fieldLabel(key);
-  const riskTxt = (r) => (r === 0 ? 'ignoré' : String(r).replace('.', ',') + ' %');
+  // Bascule %→R (2026-10-12, demande utilisateur) : purement un affichage, jamais touché au calcul
+  // sous-jacent (toujours en % réel). 1R = le risque de BASE de chaque ligne de money management (celui
+  // de son propre groupe/logique — TREND, CONTRE, « Autres trades »…) : un palier à 0,5 % après 1 SL sur
+  // une base de 1 % devient "0,5R après 1 SL" ; la même réduction sur une base de 0,75 % devient "0,67R",
+  // puisque le ratio réel au risque pris est différent. Jamais appliqué aux % qui ne sont pas des risques
+  // par trade (retraits, drawdown, performance totale…) : ces valeurs n'ont pas d'équivalent R stable.
+  let rMode = false;
+  function rFmt(x) {
+    const v = Math.round(x * 100) / 100;
+    const s = v.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    return s.replace('.', ',') + 'R';
+  }
+  const riskTxt = (r, base) => (r === 0 ? 'ignoré' : rMode && base > 0 ? rFmt(r / base) : String(r).replace('.', ',') + ' %');
   // Réglage « Si » séparé : un money management par valeur du bonus.
   function splitSummary(sp) {
-    return sp.groups.map((g) => `<b>${g.value == null ? 'Autres trades' : g.value}</b> ${riskTxt(g.base)} par trade${g.tier ? `, puis ${g.tier.newRisk === 0 ? 'pause' : riskTxt(g.tier.newRisk)} après ${g.tier.afterSl === 1 ? '1 SL' : g.tier.afterSl + " SL d'affilée"}` : ''}`).join(' · ');
+    return sp.groups.map((g) => `<b>${g.value == null ? 'Autres trades' : g.value}</b> ${riskTxt(g.base, g.base)} par trade${g.tier ? `, puis ${g.tier.newRisk === 0 ? 'pause' : riskTxt(g.tier.newRisk, g.base)} après ${g.tier.afterSl === 1 ? '1 SL' : g.tier.afterSl + " SL d'affilée"}` : ''}`).join(' · ');
   }
   // Réglage lisible : risque de base, palier, puis règles « Si ».
   function rulesSummary(cfg) {
-    const parts = [`Risque <b>${riskTxt(cfg.risk)}</b>`];
-    (cfg.tiers || []).forEach((t) => parts.push(`<b>${t.newRisk === 0 ? 'pause' : riskTxt(t.newRisk)}</b> après ${t.afterSl} SL`));
+    const parts = [`Risque <b>${riskTxt(cfg.risk, cfg.risk)}</b>`];
+    (cfg.tiers || []).forEach((t) => parts.push(`<b>${t.newRisk === 0 ? 'pause' : riskTxt(t.newRisk, cfg.risk)}</b> après ${t.afterSl} SL`));
     (cfg.rules || []).forEach((r) => {
       const c = r.conds.map((x) => (x.field.indexOf('d:') === 0 && x.field !== 'd:window' ? x.value : `${bonusLabel(x.field)} ${x.value}`)).join(' + ');
       const after = r.afterSl ? ` après ${r.afterSl} SL` : '';
-      parts.push(`${c}${after} → <b>${r.afterSl && r.risk === 0 ? 'pause' : riskTxt(r.risk)}</b>`);
+      parts.push(`${c}${after} → <b>${r.afterSl && r.risk === 0 ? 'pause' : riskTxt(r.risk, cfg.risk)}</b>`);
     });
     return parts.join(' · ');
   }
@@ -643,6 +658,12 @@ CHESTTour.init([
   function renderDetail(report) {
     document.getElementById('detailLabel').textContent = mmDetailAccount === 'pf' ? 'Propfirm' : 'Compte propre';
     const s = report.stats;
+    // R moyen des TP (2026-10-12, demande utilisateur) : moyenne du RR des trades réellement PRIS (donc
+    // après money management — un trade mis en pause par une règle « Si » n'y entre pas) qui ne sont ni
+    // SL ni BE, sur `report.curve` (même source que les autres stats de cette carte).
+    const takenTrades = report.curve.slice(1).map((pt) => pt.trade).filter(Boolean);
+    const tpRs = takenTrades.filter((t) => { const r = String(t.result).toUpperCase(); return r !== 'SL' && r !== 'BE'; }).map((t) => Number(t.rr) || 0);
+    const avgTpR = tpRs.length ? tpRs.reduce((a, b) => a + b, 0) / tpRs.length : null;
 
     document.getElementById('statsGrid').innerHTML = [
       ['Performance totale', fmtPct(s.performancePct), s.performancePct >= 0 ? 'pos' : 'neg'],
@@ -651,6 +672,7 @@ CHESTTour.init([
       ['Taux de réussite', s.winRatePct.toFixed(1) + '%', 'neutral'],
       ['Drawdown max', '-' + s.maxDrawdownPct.toFixed(1) + '%', 'neg'],
       ['Profit factor', s.profitFactor != null ? s.profitFactor.toFixed(2) : '—', 'neutral'],
+      ['R moyen des TP', avgTpR != null ? (avgTpR >= 0 ? '+' : '−') + Math.abs(avgTpR).toFixed(2).replace('.', ',') + 'R' : '—', 'neutral'],
     ].map(([label, value, tone]) => `
       <div>
         <div class="chest-label">${label}</div>
@@ -983,16 +1005,18 @@ CHESTTour.init([
   function usdFr(n) { return (n >= 0 ? '' : '−') + nFr(Math.abs(n)) + ' $'; }
   function longDate(iso) { return iso ? new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; }
   const riskFr = (v) => String(+Number(v).toFixed(3)).replace('.', ',');
-  const tierFr = (t) => `${t.risk === 0 ? 'pause' : riskFr(t.risk) + ' %'} après ${t.afterSl === 1 ? '1 SL' : t.afterSl + " SL d'affilée"}`;
+  // base : risque de référence de la LIGNE (l.base) — voir riskTxt plus haut pour le même principe.
+  const tierFr = (t, base) => `${t.risk === 0 ? 'pause' : rMode && base > 0 ? rFmt(t.risk / base) : riskFr(t.risk) + ' %'} après ${t.afterSl === 1 ? '1 SL' : t.afterSl + " SL d'affilée"}`;
+  const baseFr = (v) => (rMode ? rFmt(1) : riskFr(v) + ' %'); // le risque de base d'une ligne = 1R par définition
   // Money management retenu pour une firme, une ligne par logique (TREND, CONTRE…).
   function mmLinesHtml(mm) {
     return `<div class="bt-mm">${mm.lines.map((l) => {
       if (l.text) return `<span class="bt-mm__line"><em>${escHtml(l.name)}</em> ${escHtml(l.text)}</span>`;
-      const tiers = l.tiers.length ? ', puis ' + l.tiers.map((t) => `<b>${tierFr(t)}</b>`).join(', ') : '';
-      return `<span class="bt-mm__line">${l.name ? `<em>${escHtml(l.name)}</em> ` : ''}<b>${riskFr(l.base)} %</b> par trade${tiers}</span>`;
+      const tiers = l.tiers.length ? ', puis ' + l.tiers.map((t) => `<b>${tierFr(t, l.base)}</b>`).join(', ') : '';
+      return `<span class="bt-mm__line">${l.name ? `<em>${escHtml(l.name)}</em> ` : ''}<b>${baseFr(l.base)}</b> par trade${tiers}</span>`;
     }).join('')}</div>`;
   }
-  const mmShort = (mm) => mm.lines.map((l) => (l.text ? `${l.name} ${l.text}` : `${l.name ? l.name + ' ' : ''}${riskFr(l.base)} %${l.tiers.length ? ' → ' + l.tiers.map(tierFr).join(', ') : ''}`)).join(' · ');
+  const mmShort = (mm) => mm.lines.map((l) => (l.text ? `${l.name} ${l.text}` : `${l.name ? l.name + ' ' : ''}${baseFr(l.base)}${l.tiers.length ? ' → ' + l.tiers.map((t) => tierFr(t, l.base)).join(', ') : ''}`)).join(' · ');
   function escHtml(v) { return String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
   function minDaysText(md) {
@@ -1361,6 +1385,23 @@ CHESTTour.init([
     document.getElementById('rawMmToggle').classList.toggle('is-active', rawMM);
     document.getElementById('rawMmToggle').setAttribute('aria-pressed', String(rawMM));
     renderFit(filteredTrades());
+  });
+
+  // %→R : jamais un recalcul (rMode ne change aucun chiffre sous-jacent, seulement comment on les écrit) —
+  // on redessine directement avec les données déjà en cache plutôt que de rejouer propfirm-fit.js pour rien.
+  document.getElementById('rModeToggle').addEventListener('click', () => {
+    rMode = !rMode;
+    document.getElementById('rModeToggle').classList.toggle('is-active', rMode);
+    document.getElementById('rModeToggle').setAttribute('aria-pressed', String(rMode));
+    renderMmCards(
+      window.CHESTBacktestEngine.computeReport(filteredTrades(), record.capital, riskCfg(record.cp)),
+      hasPf ? window.CHESTBacktestEngine.computeReport(filteredTrades(), pfCapital, riskCfg(record.pf)) : null,
+      maxConsecutiveSl(filteredTrades()),
+      (() => { const c = { TP: 0, SL: 0, BE: 0 }; filteredTrades().forEach((t) => { const r = String(t.result).toUpperCase(); if (c[r] != null) c[r] += 1; }); return c; })(),
+      filteredTrades().length
+    );
+    const fitKey = [...selectedYears].sort().join(',') + '|' + mmDetailAccount + '|' + (rawMM ? 'raw' : 'opt');
+    if (fitCache.has(fitKey)) paintFit(fitCache.get(fitKey), fitKey);
   });
 
   // ---- Menu ⋮ : télécharger / partager ----

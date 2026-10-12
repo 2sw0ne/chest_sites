@@ -67,7 +67,6 @@
   .chart-wrap__head{ display:flex; align-items:center; justify-content:space-between; padding:18px 22px 0; }
   #tvChart{ width:100%; height:480px; position:relative; }
   .scanner-empty{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--muted); font-size:13.5px; text-align:center; padding:0 24px; }
-  .chart-note{ padding:14px 22px 20px; font-size:12.5px; color:var(--muted); line-height:1.5; }
 
   .signal-card{ padding:24px 26px; margin-bottom:16px; }
   .signal-card__head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
@@ -86,7 +85,8 @@
   .signal__scanner{ font-size:11.5px; color:var(--muted); }
 
   .levels{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-  .levels div{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel); }
+  .levels div{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel); transition:border-color .2s cubic-bezier(.16,1,.3,1); }
+  .levels div:hover{ border-color:rgba(249,164,94,.5); }
   .levels span{ display:block; font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
   .levels strong{ display:block; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
   .levels .entry strong{ color:var(--ink); }
@@ -107,9 +107,15 @@
   /* ---------- Assistant d'inscription (aucun compte relié) ---------- */
   .wizard-card{ padding:36px 32px 32px; max-width:560px; margin:0 auto; }
   .wizard-steps{ display:flex; gap:8px; margin-bottom:28px; }
-  .wizard-step{ flex:1; text-align:center; padding-bottom:10px; border-bottom:2px solid var(--line2); font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--faint); }
-  .wizard-step.is-active{ border-color:var(--acc); color:var(--ink); }
-  .wizard-step.is-done{ border-color:var(--acc); color:var(--muted); }
+  .wizard-step{ flex:1; text-align:center; padding-bottom:10px; border-bottom:2px solid var(--line2); font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--faint); position:relative; transition:color .2s, border-color .2s; }
+  .wizard-step::after{
+    content:''; position:absolute; left:0; bottom:-2px; height:2px; width:0;
+    background:linear-gradient(90deg,#fc1283,#f9a45e); transition:width .35s cubic-bezier(.16,1,.3,1);
+  }
+  .wizard-step.is-active::after, .wizard-step.is-done::after{ width:100%; }
+  .wizard-step.is-active{ color:var(--ink); }
+  .wizard-step.is-done{ color:var(--muted); }
+  @media (prefers-reduced-motion:reduce){ .wizard-step::after{ transition:none; } }
   .wizard-panel h2{ font-size:17px; font-weight:700; margin:0 0 6px; }
   .wizard-panel .hint{ font-size:12.5px; color:var(--muted); line-height:1.55; margin:0 0 20px; }
   .wizard-actions{ display:flex; gap:10px; margin-top:20px; }
@@ -131,11 +137,24 @@
 
   /* ---------- Panneau position : attente / active ---------- */
   .signal-hero{ padding:0; overflow:hidden; margin-bottom:16px; }
-  .signal-hero__waiting{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:56px 24px; text-align:center; }
-  .pulse-dot{ width:11px; height:11px; border-radius:50%; background:var(--acc); animation:pulseDot 1.8s infinite; }
-  @keyframes pulseDot{ 0%{box-shadow:0 0 0 0 rgba(252,18,131,.45);} 70%{box-shadow:0 0 0 16px rgba(252,18,131,0);} 100%{box-shadow:0 0 0 0 rgba(252,18,131,0);} }
-  .signal-hero__waiting p{ font-size:13.5px; color:var(--muted); margin:0; max-width:360px; }
-  .signal-hero__waiting .signal-meta{ margin-top:4px; }
+  .signal-hero__waiting{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:60px 24px 56px; text-align:center; position:relative; }
+  .signal-hero__waiting::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 60% 55% at 50% 0%, rgba(252,18,131,.08), transparent 70%);
+  }
+  .waiting-orb{ position:relative; width:54px; height:54px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .waiting-orb__core{
+    width:11px; height:11px; border-radius:50%;
+    background:linear-gradient(135deg,#fc1283,#f9a45e);
+    box-shadow:0 0 18px rgba(252,18,131,.55);
+  }
+  .waiting-orb__ring{ position:absolute; inset:0; border-radius:50%; border:1px solid rgba(252,18,131,.4); animation:waitingRing 2.6s cubic-bezier(.16,1,.3,1) infinite; }
+  .waiting-orb__ring--2{ animation-delay:.9s; border-color:rgba(249,164,94,.3); }
+  @keyframes waitingRing{ 0%{ transform:scale(.3); opacity:.85; } 100%{ transform:scale(2.8); opacity:0; } }
+  @media (prefers-reduced-motion:reduce){ .waiting-orb__ring{ animation:none; opacity:.5; transform:scale(1.4); } }
+  .signal-hero__waiting h3{ position:relative; margin:0; font-size:16px; font-weight:700; letter-spacing:-.015em; color:var(--ink); }
+  .signal-hero__waiting p{ position:relative; font-size:13px; color:var(--muted); margin:0; max-width:360px; line-height:1.65; }
+  .signal-hero__waiting .signal-meta{ position:relative; margin-top:2px; }
 
   .signal-hero__active{ display:grid; grid-template-columns:1fr 1.3fr; }
   @media (max-width:760px){ .signal-hero__active{ grid-template-columns:1fr; } }
@@ -145,10 +164,14 @@
   .side-pill-lg{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; padding:6px 16px; border-radius:var(--radius-pill); }
   .side-pill-lg.buy{ color:var(--green); background:rgba(51,230,166,.16); }
   .side-pill-lg.sell{ color:var(--red); background:rgba(255,77,94,.16); }
-  .big-trade-btn{ width:100%; max-width:270px; padding:20px; font-size:17px; font-weight:800; border-radius:var(--radius); border:none; cursor:pointer; color:#fff; letter-spacing:-.005em; transition:transform .15s; }
+  .big-trade-btn{ width:100%; max-width:270px; padding:20px; font-size:17px; font-weight:800; border-radius:var(--radius); border:none; cursor:pointer; color:#fff; letter-spacing:-.005em; transition:transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s cubic-bezier(.16,1,.3,1); }
+  .big-trade-btn:hover{ transform:translateY(-2px); }
   .big-trade-btn:active{ transform:scale(.97); }
   .big-trade-btn.buy{ background:linear-gradient(135deg,#1fbd88,var(--green)); box-shadow:0 16px 36px rgba(51,230,166,.3); }
+  .big-trade-btn.buy:hover{ box-shadow:0 20px 44px rgba(51,230,166,.42); }
   .big-trade-btn.sell{ background:linear-gradient(135deg,var(--red),#ff7a86); box-shadow:0 16px 36px rgba(255,77,94,.3); }
+  .big-trade-btn.sell:hover{ box-shadow:0 20px 44px rgba(255,77,94,.42); }
+  @media (prefers-reduced-motion:reduce){ .big-trade-btn{ transition:none; } .big-trade-btn:hover{ transform:none; } }
   .signal-hero__confirmed{ font-size:13px; font-weight:700; color:var(--green); text-align:center; }
 
   .signal-hero__info{ padding:26px 28px; border-left:1px solid var(--line); display:flex; flex-direction:column; gap:16px; }
@@ -157,7 +180,8 @@
   .signal-hero__symbol b{ font-size:20px; font-weight:800; letter-spacing:-.01em; }
 
   .signal-hero__levels{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-  .signal-hero__levels div{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel); }
+  .signal-hero__levels div{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel); transition:border-color .2s cubic-bezier(.16,1,.3,1); }
+  .signal-hero__levels div:hover{ border-color:rgba(249,164,94,.5); }
   .signal-hero__levels span{ display:block; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
   .signal-hero__levels strong{ display:block; font-size:14.5px; font-weight:700; font-variant-numeric:tabular-nums; }
   .signal-hero__levels .entry strong{ color:var(--ink); }
@@ -320,7 +344,6 @@
         <span class="eyebrow" style="margin:0">Vue marché</span>
       </div>
       <div id="tvChart"></div>
-      <p class="chart-note" id="chartNote">XAU/USD uniquement pour l'instant — ton vrai script <b>BE FR€E</b> tourne réellement ici (PineTS + Vela, données Twelve Data), pas une recréation approximative. Seul le tableau de tendance multi-timeframe (cosmétique) est désactivé — trop lent à calculer sur des timeframes courts. La vraie détection de trade reste le webhook TradingView ci-dessous, pas ce graphique.</p>
     </div>
 
     <div id="historyWrap" hidden>
@@ -346,7 +369,7 @@
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
-<script src="js/berich-chart.js?v=11"></script>
+<script src="js/berich-chart.js?v=12"></script>
 <script src="js/page-tour.js"></script>
 <script>
 (() => {
@@ -472,14 +495,19 @@
   ]);
 
   // ---------- Graphique — ton vrai script BE FR€E, exécuté en direct (XAU/USD uniquement) ----------
-  // Le graphique est redessiné seulement quand le signal actif change (voir loadAndRender).
+  // Le graphique est redessiné quand le signal actif change OU quand l'historique bouge (nouveau
+  // signal ouvert, ou un signal existant qui vient de se clôturer — même id, mais son étiquette
+  // doit alors afficher TP/SL) : l'empreinte couvre id+status+result de chaque signal connu.
   let chartKey = null;
-  function renderChartFor(active) {
-    const key = active ? active.id : 'none';
+  function signalsFingerprint(signals) {
+    return (signals || []).map((s) => `${s.id}:${s.status}:${s.result || ''}`).join('|');
+  }
+  function renderChartFor(active, signals) {
+    const key = (active ? active.id : 'none') + '#' + signalsFingerprint(signals);
     if (key === chartKey) return;
     chartKey = key;
     const levels = active ? { entry: active.entry, sl: active.sl, tp: active.tp } : null;
-    CHESTBerichChart.render('tvChart', levels).catch((e) => {
+    CHESTBerichChart.render('tvChart', levels, signals || []).catch((e) => {
       console.error('BERICH chart', e);
       chartKey = null;
       document.getElementById('tvChart').innerHTML = `<div class="scanner-empty">Erreur graphique : ${e.message}</div>`;
@@ -494,9 +522,13 @@
   function renderWaiting(meta) {
     document.getElementById('signalHero').innerHTML = `
       <div class="signal-hero__waiting">
-        <span class="pulse-dot"></span>
-        <h3 style="margin:0;font-size:15px;font-weight:700">En attente d'une position</h3>
-        <p>Dès que ton scanner BE FR€E détecte un signal, il apparaît ici avec entrée/SL/TP et un bouton pour le confirmer.</p>
+        <div class="waiting-orb">
+          <span class="waiting-orb__ring"></span>
+          <span class="waiting-orb__ring waiting-orb__ring--2"></span>
+          <span class="waiting-orb__core"></span>
+        </div>
+        <h3>BE FR€E surveille XAU/USD</h3>
+        <p>Pas de position ouverte pour l'instant. Au premier signal détecté, son entrée, son stop et son objectif apparaissent ici — il ne reste qu'à confirmer.</p>
         <span class="signal-meta">${meta}</span>
       </div>`;
   }
@@ -595,6 +627,21 @@
   }
 
   let __allSignals = [];
+  let __historySeed = [];
+
+  // ---------- Historique antérieur au webhook (positions déjà prises avant que berich-bridge ne
+  // les reçoive) : posé une fois dans ce fichier par l'utilisateur, fusionné aux vrais signaux
+  // webhook pour que leurs étiquettes apparaissent aussi sur le graphique ET dans l'historique du
+  // bas — jamais depuis le webhook (qui ne connaît que ce qui arrive à partir de maintenant), donc
+  // une source séparée, en lecture seule côté site. Vide par défaut.
+  async function loadHistorySeed() {
+    try {
+      const res = await fetch(`data/berich-history-seed.json?nocache=${Date.now()}`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return Array.isArray(json) ? json : [];
+    } catch (e) { return []; }
+  }
 
   // ---------- Invalidation par écart de prix ----------
   // Un signal pas encore pris reste affiché tel quel (demande explicite du
@@ -640,7 +687,9 @@
       return;
     }
 
-    __allSignals = data.signals || [];
+    // Les positions antérieures (seed) viennent toujours avant les vraies positions webhook dans
+    // la liste — l'ordre réel est de toute façon recalculé par horodatage dans historySource().
+    __allSignals = [...__historySeed, ...(data.signals || [])];
     const taken = CHESTBerich.loadTaken();
     let waitingMeta = data.example
       ? 'Exemple — en attente d’un vrai signal webhook'
@@ -660,7 +709,7 @@
       }
     }
 
-    renderChartFor(active);
+    renderChartFor(active, __allSignals);
     if (active) renderActive(active, taken);
     else renderWaiting(waitingMeta);
 
@@ -668,6 +717,7 @@
   }
 
   loadAndRender();
+  loadHistorySeed().then((seed) => { __historySeed = seed; if (seed.length) loadAndRender(); });
   setInterval(loadAndRender, 20000);
 })();
 </script>
