@@ -134,7 +134,20 @@
       if (f.payoutCapPct && amount * 100 > f.payoutCapPct) { amount = f.payoutCapPct / 100; withdrawn = amount / (opt.splitPct / 100); }
       o.payouts += amount;
       o.count++;
-      if (o.firstPay === null) o.firstPay = d - startDay + 1;
+      if (o.firstPay === null) {
+        o.firstPay = d - startDay + 1;
+        // Delai REEL entre validation et 1er retrait (et non deux compteurs absolus depuis le debut
+        // du challenge) - BUG REEL trouve suite a un retour utilisateur (2026-10-12, capture a
+        // l'appui) : l'affichage comparait une MOYENNE (validation, sur TOUS les departs finances) a
+        // une MEDIANE (1er retrait, sur les seuls departs qui retirent au moins une fois) - deux
+        // statistiques sur deux populations differentes, d'ou un ecart illisible (0,4 j) qui donnait
+        // l'impression fausse que le retrait suit quasi immediatement la validation. Le calcul
+        // respectait deja le delai minimum (opt.firstAfterDays, ex. 14 j pour la plupart des firmes) -
+        // seul l'affichage etait trompeur. Ce nouveau champ mesure directement l'ecart reel par
+        // depart (toujours >= opt.firstAfterDays par construction), pour un chiffre qui ne peut plus
+        // etre lu de travers.
+        o.firstPayAfterFunding = d - (startDay + o.fundedDay - 1);
+      }
       if (m.fee.refund === 'first' && o.count === 1) o.refund += feeF;
       if (m.fee.refund === 'third' && o.count === 3) o.refund += feeF;
       if (withdrawn >= profit - 1e-12) { bal = 1; } else { bal -= withdrawn; }
@@ -243,7 +256,7 @@
   function evaluate(P, starts, m, opt, challengeRisk, risk) {
     const endDay = P.day[P.n - 1] + 1;
     const spanMonths = (P.day[P.n - 1] - P.day[0] + 1) / 30.4;
-    const nets = [], monthlyNets = [], pays = [], fundedDays = [], firstPays = [];
+    const nets = [], monthlyNets = [], pays = [], fundedDays = [], firstPays = [], firstPayDelays = [];
     let funded = 0, paid = 0, lost = 0, delayed = 0, delaySum = 0, payoutCount = 0, fails = 0, violStarts = 0;
     starts.forEach((s) => {
       const o = lifecycle(P, s, m, opt, challengeRisk, endDay, risk);
@@ -264,7 +277,7 @@
         const activeMonths = Math.max((endDay - fundedDayAbs) / 30.4, 1 / 30.4);
         monthlyNets.push(netPct / activeMonths);
       }
-      if (o.count > 0) { paid++; firstPays.push(o.firstPay); }
+      if (o.count > 0) { paid++; firstPays.push(o.firstPay); firstPayDelays.push(o.firstPayAfterFunding); }
       if (o.violations > 0) violStarts++;
       lost += o.lost; fails += o.challFails; delayed += o.delayed; delaySum += o.delayDays; payoutCount += o.count;
     });
@@ -301,6 +314,11 @@
       // représentative qu'un seul jour médian quand la distribution est étalée (peu de très longs départs).
       meanFundedDay: fundedDays.length ? mean(fundedDays) : null,
       medianFirstPay: firstPays.length ? quantile(firstPays.slice().sort((a, b) => a - b), 0.5) : null,
+      // Delai moyen/median entre VALIDATION et 1er retrait (voir lifecycle/tryPayout) - toujours >=
+      // opt.firstAfterDays par construction, contrairement a comparer deux compteurs absolus depuis
+      // le debut du challenge sur deux populations differentes (voir commit lie).
+      meanFirstPayDelay: firstPayDelays.length ? mean(firstPayDelays) : null,
+      medianFirstPayDelay: firstPayDelays.length ? quantile(firstPayDelays.slice().sort((a, b) => a - b), 0.5) : null,
       lostPerStart: (lost + fails) / n,
       fundedLostPerStart: lost / n,
       payoutCount, delayedPayouts: delayed, avgDelayDays: delayed ? delaySum / delayed : 0,

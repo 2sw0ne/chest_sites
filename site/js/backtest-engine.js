@@ -298,7 +298,13 @@
   // globale. `scale` multiplie tous les risques (la simulation propfirm recale le risque par firme).
   function describeConfig(cfg, scale) {
     const s = scale == null ? 1 : scale;
-    const r3 = (x) => Math.round(x * s * 1000) / 1000;
+    // BUG REEL (2026-10-12) : multiplier un risque deja propre par `scale` (le rescale propfirm,
+    // best.risk / chosen.c.ref - voir propfirm-fit.js) redonnait des decimales non pratiques
+    // (0.066 %, 0.661 %...), meme apres le fix de practicalRisk() plus haut qui, lui, ne voit jamais
+    // ce `scale`. r3 applique desormais la MEME regle pratique (0.05 % le plus proche, 0 en dessous
+    // de 0.1 %) qu'au calcul d'origine, pour que le reglage affiche pour une propfirm reste aussi
+    // tradable que celui affiche pour un compte propre.
+    const r3 = (x) => practicalRisk(x * s);
     const rules = cfg.rules || [];
     const groups = new Map();
     const others = [];
@@ -328,7 +334,7 @@
   // Idem à partir d'un réglage « séparé » du calcul automatique (une ligne par valeur du bonus).
   function describeSplit(split, scale) {
     const s = scale == null ? 1 : scale;
-    const r3 = (x) => Math.round(x * s * 1000) / 1000;
+    const r3 = (x) => practicalRisk(x * s); // meme fix que describeConfig() juste au-dessus
     return split.groups.map((g) => ({ name: g.value == null ? 'Autres trades' : g.value, base: r3(g.base), tiers: g.tier ? [{ afterSl: g.tier.afterSl, risk: r3(g.tier.newRisk) }] : [] }));
   }
 
@@ -556,7 +562,25 @@
   const round3 = (x) => Math.round(x * 1000) / 1000;
   // Risque d'un palier / d'un multiplicateur : jamais sous le plus petit risque réalisable (lot minimum), 0 = pause.
   const minOf = (prof) => (prof.minRisk == null ? 0.05 : prof.minRisk);
-  const tierRisk = (prof, base, f) => (f === 0 ? 0 : Math.max(round3(base * f), minOf(prof)));
+  // BUG REEL (2026-10-12, retour utilisateur avec capture : "0.066% ... autant ne pas le trader",
+  // "0.661% ... faut que ce soit rond") : un risque de palier/groupe est un produit base × fraction
+  // (TIERS va jusqu'a 1/3, MULTS jusqu'a 0.5/0.75) - meme avec un `base` deja propre (venant de
+  // GRID_CP/GRID_PF), le PRODUIT ne l'est presque jamais (0.2 × 1/3 = 0.0667...). round3() arrondissait
+  // a 3 decimales (0.001 pres) - une precision illisible et impossible a vraiment trader (pas de
+  // courtier ne propose un lot calibre a 0.001 % de risque pres). Arrondi desormais au 0.05 % le plus
+  // proche - DANS LE CALCUL LUI-MEME, pas seulement a l'affichage, pour que la performance annoncee
+  // soit celle d'un reglage reellement applicable, pas d'une valeur theorique inatteignable. En
+  // dessous de 0.1 %, le risque n'est de toute facon plus tradable sur un compte normal : traite comme
+  // une pause (0) plutot que d'arrondir vers un chiffre qui donnerait une fausse impression de reglage
+  // fin.
+  const PRACTICAL_RISK_STEP = 0.05;
+  const PRACTICAL_RISK_FLOOR = 0.1;
+  function practicalRisk(x) {
+    if (!(x > 0)) return 0;
+    const stepped = Math.round(x / PRACTICAL_RISK_STEP) * PRACTICAL_RISK_STEP;
+    return stepped < PRACTICAL_RISK_FLOOR - 1e-9 ? 0 : round3(stepped);
+  }
+  const tierRisk = (prof, base, f) => (f === 0 ? 0 : Math.max(practicalRisk(base * f), minOf(prof)));
 
   // steps : limites de plus en plus souples, essayées dans l'ordre tant qu'aucun réglage ne les respecte.
   const PROFILES = {
@@ -624,7 +648,7 @@
     const t = TIERS[st.ti];
     const rg = [-1];
     const cap = prof.grid[prof.grid.length - 1];
-    if (gs) for (let g = 1; g < gs.groups.length; g++) rg.push(MULTS[st.mi[g]] === 1 ? -1 : MULTS[st.mi[g]] === 0 ? 0 : Math.min(cap, Math.max(round3(base * MULTS[st.mi[g]]), minOf(prof))));
+    if (gs) for (let g = 1; g < gs.groups.length; g++) rg.push(MULTS[st.mi[g]] === 1 ? -1 : MULTS[st.mi[g]] === 0 ? 0 : Math.min(cap, Math.max(practicalRisk(base * MULTS[st.mi[g]]), minOf(prof))));
     return { base, tier: t ? { a: t.a, r: tierRisk(prof, base, t.f) } : null, rg };
   }
 
