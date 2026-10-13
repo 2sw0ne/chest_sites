@@ -14,6 +14,14 @@ const SIGNALS_FILE = process.env.SIGNALS_FILE || join(dirname(SCRIPTS_DIR), "sig
 const WATCH_FILE = join(dirname(SIGNALS_FILE), "watch.json");
 const CREDITS_FILE = join(dirname(SIGNALS_FILE), "credits.json");
 const TD_KEY = process.env.TWELVE_DATA_API_KEY || "";
+// Compte Twelve Data SÉPARÉ pour la boucle d'alarme (2026-10-13, demande utilisateur : "le système
+// d'alarme pourrait être indépendant des scanners avec un autre compte") : ouvrir un scanner par
+// simple curiosité partageait jusqu'ici le MÊME quota que la surveillance en fond qui détecte les
+// vrais trades - un coup d'œil pouvait donc affamer l'alarme pour le reste de la journée. Avec une
+// clé dédiée, la boucle setInterval (la vraie "alarme", tourne 24/7 qu'on regarde ou non) ne dépend
+// plus jamais de la consultation ponctuelle des graphiques (/data, /signals), et vice-versa. Repli
+// sur TD_KEY si la variable n'est pas encore définie, pour ne jamais casser l'alarme en attendant.
+const TD_KEY_ALARM = process.env.TWELVE_DATA_API_KEY_ALARM || TD_KEY;
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET || "";
 const ACCOUNTS_URL = (process.env.ACCOUNTS_INTERNAL_URL || "http://localhost:8080").replace(/\/$/, "");
 const MAX_BODY = 2 * 1024 * 1024;
@@ -40,23 +48,33 @@ const SCAN_DELAY = 20 * 1000; // délai après la clôture d'une bougie avant de
 const WATCH_TTL = 3 * 60 * 60 * 1000;
 const OPPORTUNITY_WINDOW = 48 * 60 * 60 * 1000;
 
-// ---------------- Budget de crédits Twelve Data (2026-10-11) ----------------
-// La clé Twelve Data est PARTAGÉE avec accounts-bridge (calendar.js, scanner-chart.js,
-// berich-chart.js, lot-calculator.js - voir accounts-bridge/server.py, /twelvedata/<endpoint>) :
-// plafond réel 800 crédits/jour (voir twelvedata.com/pricing, plan Basic : "8 API (800 a day)" = 8
-// crédits/minute, plafonné à 800/jour, pas "8 clés"). Avant cette limite, le rescan systématique à
-// chaque clôture de bougie (voir la boucle plus bas) pouvait consommer tout le quota à lui seul et
-// affamer les autres services pour le reste de la journée (retour utilisateur : le calendrier
-// affichait "résultat réel indisponible... quota atteint"). Ici, ce service se réserve une PART du
-// quota total plutôt que de le consommer en entier - le reste (REST_SHARE) reste disponible pour
-// calendar/BERICH/calculette. Ajustable via SCANNER_DAILY_CREDIT_BUDGET si besoin.
-const DAILY_CREDIT_BUDGET = Number(process.env.SCANNER_DAILY_CREDIT_BUDGET || 550); // sur 800 - garde ~250 pour le reste
+// ---------------- Budget de crédits Twelve Data (2026-10-11, scindé en 2 comptes le 2026-10-13) ----------------
+// Jusqu'ici une SEULE clé Twelve Data, partagée avec accounts-bridge (calendar.js, lot-calculator.js) :
+// plafond réel 800 crédits/jour par clé (plan Basic gratuit, "8 API (800 a day)" = 8/min, plafonné
+// 800/jour - jamais "8 clés"). Avant cette limite, le rescan systématique à chaque clôture de bougie
+// pouvait consommer tout le quota à lui seul (retour utilisateur : calendrier "quota atteint").
+// Retour utilisateur du 2026-10-13 : un simple coup d'œil à un scanner partageait encore CE MÊME
+// quota avec la boucle d'alarme (le vrai système qui doit tourner 24/7 pour détecter les trades) -
+// une consultation ponctuelle pouvait donc affamer l'alarme pour le reste de la journée. Deux
+// comptes Twelve Data séparés maintenant (TD_KEY pour la consultation à la demande /data+/signals,
+// TD_KEY_ALARM pour la boucle de fond setInterval) : chacun son propre budget de 800/jour, aucun des
+// deux ne peut plus affamer l'autre. `credits` garde une entrée par source ('view'/'alarm').
+// "view" reste conservateur (550/800) : cette clé reste partagée avec accounts-bridge (calendar.js,
+// lot-calculator.js). "alarm" peut aller bien plus haut (780/800) : c'est un compte Twelve Data
+// dédié, rien d'autre ne le partage.
+const DEFAULT_BUDGET = { view: Number(process.env.SCANNER_DAILY_CREDIT_BUDGET || 550), alarm: Number(process.env.SCANNER_DAILY_CREDIT_BUDGET_ALARM || 780) };
 function todayKeyUtc() { return new Date().toISOString().slice(0, 10); } // jour calendaire UTC
-let credits = { day: todayKeyUtc(), used: 0 };
+let credits = { day: todayKeyUtc(), used: { view: 0, alarm: 0 } };
 try {
   if (existsSync(CREDITS_FILE)) {
     const saved = JSON.parse(readFileSync(CREDITS_FILE, "utf8"));
-    if (saved && saved.day === todayKeyUtc()) credits = saved; // sinon : jour different, on repart a 0 plus bas
+    // Ancien format (un seul compteur global, avant le scindage) : migré vers "view" (la source la
+    // plus probable de la conso passée), "alarm" repart à 0 avec son propre compte tout neuf.
+    if (saved && saved.day === todayKeyUtc()) {
+      credits = typeof saved.used === "number"
+        ? { day: saved.day, used: { view: saved.used, alarm: 0 } }
+        : { day: saved.day, used: { view: saved.used?.view || 0, alarm: saved.used?.alarm || 0 } };
+    }
   }
 } catch (e) { /* fichier absent/corrompu au premier demarrage : on repart a 0, sans gravite */ }
 function saveCredits() {
@@ -66,13 +84,13 @@ function saveCredits() {
 // besoin d'un cron separe.
 function resetCreditsIfNewDay() {
   const today = todayKeyUtc();
-  if (credits.day !== today) { credits = { day: today, used: 0 }; saveCredits(); }
+  if (credits.day !== today) { credits = { day: today, used: { view: 0, alarm: 0 } }; saveCredits(); }
 }
-function creditsRemaining() { resetCreditsIfNewDay(); return DAILY_CREDIT_BUDGET - credits.used; }
+function creditsRemaining(source) { resetCreditsIfNewDay(); return DEFAULT_BUDGET[source] - credits.used[source]; }
 // Incrementee AVANT l'appel reseau (jamais apres) : en cas d'erreur Twelve Data (reseau, 429...) on
 // prefere compter un credit de trop plutot que risquer d'en compter un de moins et depasser le
 // budget reserve - l'objectif est de ne JAMAIS le depasser, pas d'etre pile dessus a l'unite pres.
-function spendCredit() { resetCreditsIfNewDay(); credits.used += 1; saveCredits(); }
+function spendCredit(source) { resetCreditsIfNewDay(); credits.used[source] += 1; saveCredits(); }
 
 const toTdSymbol = (code) => (code.length === 6 ? code.slice(0, 3) + "/" + code.slice(3) : code);
 const validCode = (c) => /^[A-Z]{6}$/.test(c);
@@ -113,22 +131,27 @@ function isTradableBar(c) {
   if (h === 21) return false;
   return true;
 }
+// Un seul cache de bougies partagé par les deux sources : la DONNÉE est identique quelle que soit
+// la clé qui l'a payée, donc une bougie déjà récupérée par l'alarme profite gratuitement à une
+// consultation qui arrive juste après (et vice-versa) - seul le crédit dépensé pour l'obtenir est
+// compté séparément selon qui l'a demandée.
 const candleCache = new Map(); // "CODE|TF" -> {at, all, bars}
-async function getCandles(code, tf) {
+async function getCandles(code, tf, source) {
   const key = code + "|" + tf;
   const hit = candleCache.get(key);
   if (hit && Date.now() - hit.at < candleTtl(tf)) return hit;
-  if (!TD_KEY) throw new Error("clé de bougies non configurée");
-  if (creditsRemaining() <= 0) {
+  const tdKey = source === "alarm" ? TD_KEY_ALARM : TD_KEY;
+  if (!tdKey) throw new Error("clé de bougies non configurée");
+  if (creditsRemaining(source) <= 0) {
     // Budget du jour epuise : on sert la derniere donnee connue (perimee mais honnete, affichee
     // telle quelle) plutot que de risquer de depasser le budget reserve a ce service - jamais
     // d'appel Twelve Data au-dela. Sans donnee du tout, on echoue proprement (deja gere par
     // l'appelant : "bougies indisponibles").
     if (hit) return hit;
-    throw new Error("budget Twelve Data du jour atteint pour ce service");
+    throw new Error(`budget Twelve Data du jour atteint (${source === "alarm" ? "alarme" : "consultation"})`);
   }
-  spendCredit();
-  const qs = new URLSearchParams({ symbol: toTdSymbol(code), interval: TF_INTERVAL[tf], outputsize: "5000", timezone: "UTC", apikey: TD_KEY });
+  spendCredit(source);
+  const qs = new URLSearchParams({ symbol: toTdSymbol(code), interval: TF_INTERVAL[tf], outputsize: "5000", timezone: "UTC", apikey: tdKey });
   const res = await fetch(`https://api.twelvedata.com/time_series?${qs}`);
   const json = await res.json();
   if (!res.ok || json.status === "error" || !Array.isArray(json.values)) throw new Error("bougies indisponibles");
@@ -154,21 +177,23 @@ function loadManifest() {
   return JSON.parse(readFileSync(f, "utf8"));
 }
 // Calcul d'un scanner pour une paire et une unité de temps (sans cache : la mémoire compte)
-async function runScanner(name, code, tf, wantModels) {
+// source : 'view' (consultation à la demande, /data+/signals) ou 'alarm' (boucle de fond) - decide
+// quelle clé/quel budget Twelve Data est débité si une vraie requête est nécessaire.
+async function runScanner(name, code, tf, wantModels, source) {
   const files = loadManifest()[name];
   if (!Array.isArray(files) || !files.length) throw new Error("scanner inconnu");
-  const { all, bars } = await getCandles(code, tf);
+  const { all, bars } = await getCandles(code, tf, source);
   const r = await runInChild(files.map(safePath), all, bars, wantModels, code, tf, name);
   return { bars, models: r.models || [], alerts: r.alerts || [], levels: r.levels || null };
 }
 // Modèles pour l'affichage : cache court et borné
 const modelCache = new Map(); // "scanner|CODE|TF" -> {at, out}
 const MODEL_CACHE_MAX = 2;
-async function scannerModels(name, code, tf) {
+async function scannerModels(name, code, tf, source) {
   const key = `${name}|${code}|${tf}`;
   const hit = modelCache.get(key);
   if (hit && Date.now() - hit.at < candleTtl(tf)) return hit.out;
-  const out = await runScanner(name, code, tf, true);
+  const out = await runScanner(name, code, tf, true, source);
   modelCache.set(key, { at: Date.now(), out });
   while (modelCache.size > MODEL_CACHE_MAX) modelCache.delete(modelCache.keys().next().value);
   return out;
@@ -245,12 +270,12 @@ function tradeStatus(side, levels, bars, fromTime) {
   }
   return milestone > 0 ? `tp${milestone}` : "active";
 }
-async function scanCombo(code, tf) {
+async function scanCombo(code, tf, source) {
   const names = Object.keys(loadManifest());
   const now = Date.now();
   for (const name of names) {
     let res;
-    try { res = await runScanner(name, code, tf, false); } catch (e) { continue; }
+    try { res = await runScanner(name, code, tf, false, source); } catch (e) { continue; }
     const key = `${name}|${code}|${tf}`;
     const known = WATERMARK.has(key); // déjà vu au moins une fois : jamais de notification au tout premier calcul
     const lv = res.levels;
@@ -315,7 +340,7 @@ setInterval(async () => {
     if (now - (closedStart + TF_MS[tf]) < SCAN_DELAY) continue;
     if (w.lastBar === closedStart) continue;
     w.lastBar = closedStart;
-    try { await scanCombo(code, tf); } catch (e) { /* bougies indisponibles : on réessaiera au prochain tour */ }
+    try { await scanCombo(code, tf, "alarm"); } catch (e) { /* bougies indisponibles : on réessaiera au prochain tour */ }
   }
 }, 15 * 1000);
 
@@ -342,7 +367,11 @@ createServer(async (req, res) => {
     if (url.pathname === "/health") {
       return send(200, {
         ok: true, rssMB: Math.round(process.memoryUsage().rss / 1048576), models: modelCache.size, watching: WATCH.size, calculs: calculsCount,
-        twelveDataCredits: { budget: DAILY_CREDIT_BUDGET, used: credits.used, remaining: creditsRemaining(), day: credits.day },
+        twelveDataCredits: {
+          day: credits.day,
+          view: { budget: DEFAULT_BUDGET.view, used: credits.used.view, remaining: creditsRemaining("view") },
+          alarm: { budget: DEFAULT_BUDGET.alarm, used: credits.used.alarm, remaining: creditsRemaining("alarm") },
+        },
       });
     }
 
@@ -351,7 +380,7 @@ createServer(async (req, res) => {
       const code = (url.searchParams.get("symbol") || "XAUUSD").toUpperCase();
       const tf = url.searchParams.get("tf") || "5";
       if (!validCode(code) || !TF_INTERVAL[tf]) return send(400, { error: "paramètres invalides" });
-      const r = await scannerModels(name, code, tf);
+      const r = await scannerModels(name, code, tf, "view");
       return send(200, { bars: r.bars, models: r.models });
     }
 
@@ -364,7 +393,7 @@ createServer(async (req, res) => {
       const isNew = !WATCH.has(key);
       const curBar = Math.floor(Date.now() / TF_MS[tf]) * TF_MS[tf] - TF_MS[tf];
       WATCH.set(key, { touched: Date.now(), lastBar: isNew ? curBar : WATCH.get(key).lastBar, keep: WATCH.get(key)?.keep || false });
-      if (isNew) scanCombo(code, tf).catch(() => {});
+      if (isNew) scanCombo(code, tf, "view").catch(() => {});
       const latest = new Map();
       for (const s of SIGNALS) {
         if (s.symbol !== code || s.tf !== tf) continue;
