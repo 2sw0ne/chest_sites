@@ -32,7 +32,12 @@ const TF_MS = { "1": 60e3, "5": 300e3, "15": 900e3, "30": 1800e3, "60": 3600e3, 
 // fraîcheur y reste nécessaire pour détecter un signal à temps).
 function candleTtl(tf) { return Math.max(5 * 60 * 1000, (TF_MS[tf] || 0) / 2); }
 const SCAN_DELAY = 20 * 1000; // délai après la clôture d'une bougie avant de la lire
-const WATCH_TTL = 24 * 60 * 60 * 1000;
+// BUG RÉEL (2026-10-13, retour utilisateur : "pourquoi ça se limite aussi vite alors que je l'ai
+// même pas utilisé ?") : un simple coup d'œil à N'IMPORTE QUEL scanner/paire/unité de temps (même
+// sans règle d'alerte) l'inscrit pour 24h de rafraîchissement en arrière-plan (voir /signals plus
+// bas, `keep:false`) — réduit à 3h, largement assez pour une session de trading, sans laisser un
+// simple coup d'œil continuer à consommer des crédits toute la journée suivante.
+const WATCH_TTL = 3 * 60 * 60 * 1000;
 const OPPORTUNITY_WINDOW = 48 * 60 * 60 * 1000;
 
 // ---------------- Budget de crédits Twelve Data (2026-10-11) ----------------
@@ -290,6 +295,17 @@ async function scanCombo(code, tf) {
 }
 
 // Le moteur ne sort les alertes que pour la dernière bougie : on calcule une fois par bougie fermée
+// BUG RÉEL (2026-10-13, retour utilisateur : "pourquoi ça se limite aussi vite alors que je l'ai
+// même pas utilisé ?") : ce `candleCache.delete(k)` forçait un VRAI refetch Twelve Data (1 crédit)
+// à chaque bougie fermée de chaque combo surveillé, quelle que soit sa durée — candleTtl(tf) (voir
+// plus haut) n'avait donc jamais d'effet ici, seulement sur les requêtes ponctuelles hors suivi.
+// Pour un seul combo M1 surveillé 24h/24, ça faisait jusqu'à 1440 crédits/jour (M5 : 288/jour) - un
+// simple coup d'œil à un scanner (24h de suivi auto, même sans règle d'alerte) suffisait à vider le
+// quota du service en quelques heures. Retiré : getCandles() applique maintenant son propre délai
+// (candleTtl(tf), plancher 5 min) ici aussi - un combo M1 n'est donc plus rafraîchi qu'au maximum
+// toutes les 5 min (au lieu de chaque minute), au prix d'un léger délai de détection sur les unités
+// de temps rapides (jusqu'à ~5 min sur M1/M5, inchangé sur M15 et plus lent où le plancher ne
+// change déjà rien) - un compromis assumé face à l'alternative (plus aucun scanner functional).
 setInterval(async () => {
   const now = Date.now();
   for (const [k, w] of WATCH) {
@@ -299,7 +315,6 @@ setInterval(async () => {
     if (now - (closedStart + TF_MS[tf]) < SCAN_DELAY) continue;
     if (w.lastBar === closedStart) continue;
     w.lastBar = closedStart;
-    candleCache.delete(k);
     try { await scanCombo(code, tf); } catch (e) { /* bougies indisponibles : on réessaiera au prochain tour */ }
   }
 }, 15 * 1000);
