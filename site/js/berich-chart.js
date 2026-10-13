@@ -605,15 +605,27 @@ hline(${n(levels.tp)}, "TP", color=color.green, linestyle=hline.style_dashed)`;
   // ne bouge plus jamais ensuite (`var bool shownN`, jamais réinitialisé) : c'est la trace
   // indélébile demandée. Couleurs reprises des jetons CHEST (--green/--red) ; composante bleue
   // jamais nulle (règle de rendu Vela, voir CLAUDE.md du projet) sans quoi l'étiquette est invisible.
+  // BUG RÉEL (2026-10-13, retour utilisateur : "les positions sont arrivées mais j'en vois aucune
+  // sur le graphique") : berich-bridge/server.py pose `time` en chaîne ISO ("2026-10-08T19:25:00Z",
+  // `time.strftime(...)`), pas en epoch — `Number(s.time)` vaut alors NaN et le filtre écartait
+  // TOUTES les vraies positions webhook (seules celles du seed, posées ici en epoch ms, passaient).
+  function toMs(v) {
+    if (v == null) return NaN;
+    if (typeof v === 'number') return v;
+    const n = Number(v);
+    if (Number.isFinite(n)) return n; // epoch déjà en chaîne
+    const t = Date.parse(v); // format réel du webhook (ISO)
+    return Number.isFinite(t) ? t : NaN;
+  }
   function historySource(signals) {
     const rows = (signals || [])
-      .filter((s) => Number.isFinite(Number(s.time)) && Number.isFinite(Number(s.entry)))
-      .sort((a, b) => a.time - b.time)
+      .filter((s) => Number.isFinite(toMs(s.time)))
+      .sort((a, b) => toMs(a.time) - toMs(b.time))
       .slice(-80); // garde-fou lisibilité — bien en-dessous de max_labels_count
     if (!rows.length) return null;
     const blocks = rows.map((s, i) => {
       const isBuy = s.side !== 'sell';
-      const t = Math.floor(Number(s.time));
+      const t = Math.floor(toMs(s.time));
       const col = isBuy ? 'color.new(#33e6a6,0)' : 'color.new(#ff4d5e,0)';
       const style = isBuy ? 'label.style_label_up' : 'label.style_label_down';
       const resTxt = s.status === 'closed' ? (s.result === 'TP' ? ' · TP ✓' : ' · SL ✗') : '';
