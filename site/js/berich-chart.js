@@ -640,8 +640,87 @@ indicator("BERICH historique", overlay=true, max_labels_count=500)
 ${blocks}`;
   }
 
+  // Overlay HTML par-dessus le graphique (2026-10-13, demande utilisateur) : façade visuelle des
+  // positions webhook, indépendante du moteur Pine — Vela/PineTS n'exécute actuellement AUCUN
+  // script Pine côté client (confirmé : même l'exemple officiel minimal de la doc LuxAlgo ne
+  // produit rien sur ce déploiement, donc le problème n'est pas dans nos scripts) ; cet overlay ne
+  // dépend que du rendu des bougies (qui fonctionne) et de `chart.getVisibleRange()` (seule API de
+  // repère temporel publique trouvée sur Vela 0.6.21 - pas de conversion prix->pixel exposée, d'où
+  // une "piste" horizontale de pastilles en haut du graphique plutôt qu'un marqueur au prix exact).
+  // Position horizontale par INDEX de bougie (pas par temps brut) : les bougies hors marché
+  // (week-end, pause) sont déjà retirées de `candles` avant d'arriver ici (isTradableBar), donc
+  // l'espacement réel entre deux bougies n'est pas uniforme en temps - seul l'index l'est.
+  function buildOverlay(container, candles, signals, chart) {
+    const old = container.querySelector('.berich-ov');
+    if (old) { if (old.__cleanup) old.__cleanup(); old.remove(); }
+    if (!candles.length) return;
+
+    const rows = (signals || [])
+      .filter((s) => Number.isFinite(toMs(s.time)))
+      .map((s) => Object.assign({}, s, { _t: toMs(s.time) }))
+      .sort((a, b) => a._t - b._t);
+    if (!rows.length) return;
+
+    const cs = getComputedStyle(container);
+    if (cs.position === 'static') container.style.position = 'relative';
+    const ov = document.createElement('div');
+    ov.className = 'berich-ov';
+    ov.style.cssText = 'position:absolute;inset:0;overflow:hidden;z-index:5;pointer-events:none;font-family:inherit;';
+    container.appendChild(ov);
+
+    function firstIndexAtOrAfter(t) {
+      // candles est trie croissant (fetchXauCandles) - recherche lineaire : <= quelques milliers
+      // d'elements, largement sous le budget d'un repositionnement a 250ms.
+      for (let i = 0; i < candles.length; i++) if (candles[i].time >= t) return i;
+      return candles.length - 1;
+    }
+
+    function reposition() {
+      const vr = typeof chart.getVisibleRange === 'function' ? chart.getVisibleRange() : null;
+      const width = container.clientWidth;
+      if (!vr || !width) return;
+      let i0 = firstIndexAtOrAfter(vr.from);
+      let i1 = candles.length - 1;
+      for (let i = candles.length - 1; i >= 0; i--) { if (candles[i].time <= vr.to) { i1 = i; break; } }
+      const span = Math.max(1, i1 - i0);
+      const frag = document.createDocumentFragment();
+      rows.forEach((s) => {
+        const idx = firstIndexAtOrAfter(s._t);
+        if (idx < i0 - 2 || idx > i1 + 2) return; // hors de la fenêtre visible : inutile de dessiner
+        const x = ((idx - i0) / span) * width;
+        const isBuy = s.side !== 'sell';
+        const closed = s.status === 'closed';
+        const col = isBuy ? '#33e6a6' : '#ff4d5e';
+        const txt = (isBuy ? '▲' : '▼') + (closed ? (s.result === 'TP' ? ' ✓' : ' ✗') : '');
+        const el = document.createElement('div');
+        el.style.cssText = `position:absolute;left:${x}px;top:8px;transform:translateX(-50%);
+          pointer-events:auto;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;
+          border-radius:999px;background:rgba(5,5,5,.8);border:1px solid ${col};color:${col};
+          white-space:nowrap;cursor:default;`;
+        el.textContent = txt;
+        el.title = `${s.symbol || SYMBOL_DISPLAY} · ${isBuy ? 'Achat' : 'Vente'}${closed ? ' · ' + s.result : ''} · ${new Date(s._t).toLocaleString('fr-FR')}`;
+        frag.appendChild(el);
+      });
+      ov.innerHTML = '';
+      ov.appendChild(frag);
+    }
+
+    reposition();
+    const timer = setInterval(reposition, 250);
+    const onResize = () => reposition();
+    window.addEventListener('resize', onResize);
+    ov.__cleanup = () => { clearInterval(timer); window.removeEventListener('resize', onResize); };
+  }
+
   async function render(containerId, levels, history) {
     const container = document.getElementById(containerId);
+
+    // render() est rappelé à chaque rafraîchissement (signal actif qui change, poll 20s côté
+    // berich.html) : sans ça, chaque appel laisserait tourner pour toujours l'ancien minuteur de
+    // repositionnement de l'overlay précédent (container.innerHTML plus bas le détache du DOM
+    // sans jamais l'arrêter).
+    const prevOverlay = container.querySelector('.berich-ov');
+    if (prevOverlay && prevOverlay.__cleanup) prevOverlay.__cleanup();
 
     container.innerHTML = '<div class="scanner-empty">Chargement des données XAU/USD et de ton scanner…</div>';
 
@@ -687,6 +766,7 @@ ${blocks}`;
     }
 
     lockIndicators(chart);
+    buildOverlay(container, candles, history, chart);
 
     // Couleurs de bougies personnalisables. Appliqué en dernier et sans
     // bloquer le reste : un souci ici ne doit pas empêcher le scanner de s'afficher.
