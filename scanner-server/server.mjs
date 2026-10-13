@@ -21,7 +21,16 @@ const MAX_RESTORE_BYTES = 20 * 1024 * 1024;
 
 const TF_INTERVAL = { "1": "1min", "5": "5min", "15": "15min", "30": "30min", "60": "1h", "240": "4h", "D": "1day" };
 const TF_MS = { "1": 60e3, "5": 300e3, "15": 900e3, "30": 1800e3, "60": 3600e3, "240": 14400e3, "D": 86400e3 };
-const CANDLE_TTL = 5 * 60 * 1000;
+// BUG RÉEL (2026-10-13, retour utilisateur : "les scanners sont encore en attente" - budget Twelve
+// Data épuisé en quelques heures, 3 jours de suite). Cause confirmée via /health en prod
+// (twelveDataCredits: budget 700, used 700) : un TTL fixe de 5 min, identique pour TOUTES les unités
+// de temps, force un refetch (1 crédit) toutes les 5 min pour CHAQUE combo surveillé/consulté -
+// y compris H4/D1, dont une bougie ne change tout simplement pas assez vite pour justifier un
+// refresh aussi fréquent. TTL maintenant proportionnel à la durée de la bougie elle-même (la moitié,
+// plancher 5 min) : H1 -> 30 min, H4 -> 2h, D1 -> 12h au lieu de 5 min partout - réduit fortement la
+// consommation sur les unités de temps lentes, sans toucher M1/M5/M15 (déjà au plancher, la
+// fraîcheur y reste nécessaire pour détecter un signal à temps).
+function candleTtl(tf) { return Math.max(5 * 60 * 1000, (TF_MS[tf] || 0) / 2); }
 const SCAN_DELAY = 20 * 1000; // délai après la clôture d'une bougie avant de la lire
 const WATCH_TTL = 24 * 60 * 60 * 1000;
 const OPPORTUNITY_WINDOW = 48 * 60 * 60 * 1000;
@@ -103,7 +112,7 @@ const candleCache = new Map(); // "CODE|TF" -> {at, all, bars}
 async function getCandles(code, tf) {
   const key = code + "|" + tf;
   const hit = candleCache.get(key);
-  if (hit && Date.now() - hit.at < CANDLE_TTL) return hit;
+  if (hit && Date.now() - hit.at < candleTtl(tf)) return hit;
   if (!TD_KEY) throw new Error("clé de bougies non configurée");
   if (creditsRemaining() <= 0) {
     // Budget du jour epuise : on sert la derniere donnee connue (perimee mais honnete, affichee
@@ -153,7 +162,7 @@ const MODEL_CACHE_MAX = 2;
 async function scannerModels(name, code, tf) {
   const key = `${name}|${code}|${tf}`;
   const hit = modelCache.get(key);
-  if (hit && Date.now() - hit.at < CANDLE_TTL) return hit.out;
+  if (hit && Date.now() - hit.at < candleTtl(tf)) return hit.out;
   const out = await runScanner(name, code, tf, true);
   modelCache.set(key, { at: Date.now(), out });
   while (modelCache.size > MODEL_CACHE_MAX) modelCache.delete(modelCache.keys().next().value);
