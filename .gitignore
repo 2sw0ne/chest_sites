@@ -41,5 +41,10 @@ accounts-bridge/scanners_secret.json
 # Brouillons locaux
 scratch/
 
+# scanner-server : installe par Railway a chaque build (package.json seul suffit,
+# jamais besoin de versionner node_modules ou un lockfile ici)
+scanner-server/node_modules/
+scanner-server/package-lock.json
+
 # School : fichiers déposés par l admin (documents, vidéos, miniatures), propres à chaque serveur
 accounts-bridge/school_files/

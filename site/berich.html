@@ -369,7 +369,7 @@
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
-<script src="js/berich-chart.js?v=14"></script>
+<script src="js/scanner-chart.js?v=24"></script>
 <script src="js/page-tour.js"></script>
 <script>
 (() => {
@@ -494,24 +494,24 @@
     { selector: '#historyWrap', title: 'Historique', text: 'Les signaux déjà clôturés (TP ou SL). Le journal complet, avec le détail par compte, est dans « Journal complet ».' },
   ]);
 
-  // ---------- Graphique — ton vrai script BE FR€E, exécuté en direct (XAU/USD uniquement) ----------
-  // Le graphique est redessiné quand le signal actif change OU quand l'historique bouge (nouveau
-  // signal ouvert, ou un signal existant qui vient de se clôturer — même id, mais son étiquette
-  // doit alors afficher TP/SL) : l'empreinte couvre id+status+result de chaque signal connu.
-  let chartKey = null;
-  function signalsFingerprint(signals) {
-    return (signals || []).map((s) => `${s.id}:${s.status}:${s.result || ''}`).join('|');
-  }
-  function renderChartFor(active, signals) {
-    const key = (active ? active.id : 'none') + '#' + signalsFingerprint(signals);
-    if (key === chartKey) return;
-    chartKey = key;
-    const levels = active ? { entry: active.entry, sl: active.sl, tp: active.tp } : null;
-    CHESTBerichChart.render('tvChart', levels, signals || []).catch((e) => {
-      console.error('BERICH chart', e);
-      chartKey = null;
-      document.getElementById('tvChart').innerHTML = `<div class="scanner-empty">Erreur graphique : ${e.message}</div>`;
-    });
+  // ---------- Graphique — calculé côté serveur (2026-10-13), même pipeline que Stratégies ----------
+  // Le moteur PineTS en direct dans le navigateur (esm.sh) ne compilait plus aucun script Pine
+  // (confirmé même avec l'exemple officiel minimal de la doc LuxAlgo — régression indépendante de
+  // ce code). Le rendu "distant" de scanner-chart.js (déjà utilisé par Stratégies) contourne le
+  // problème : scanner-server calcule le script "BE FR€E" (adapté pour le calcul serveur —
+  // request.security retiré, voir scanner off/BeRich.txt vs manifest berich) et renvoie juste le
+  // modèle déjà calculé ; Vela ne fait plus qu'afficher, jamais compiler. Un seul rendu au
+  // chargement (pas à chaque poll de signal) : le modèle lui-même est caché côté serveur et
+  // n'évolue pas assez vite pour justifier un redessin toutes les 20s.
+  function renderScannerChart() {
+    window.CHESTScannerChart.render({
+      containerId: 'tvChart',
+      remote: true,
+      scannerId: 'berich',
+      symbolDisplay: 'XAUUSD',
+      timeframe: '5',
+      candles: { upColor: '#089981', downColor: '#ffffff', wickUpColor: '#089981', wickDownColor: '#ffffff' },
+    }).catch((e) => console.error('BERICH chart', e));
   }
 
   // ---------- Position : attente / active / historique ----------
@@ -682,13 +682,12 @@
     try {
       data = await CHESTBerich.fetchSignals();
     } catch (e) {
-      renderChartFor(null);
       renderWaiting('Impossible de charger les signaux.');
       return;
     }
 
     // Les positions antérieures (seed) viennent toujours avant les vraies positions webhook dans
-    // la liste — l'ordre réel est de toute façon recalculé par horodatage dans historySource().
+    // la liste — renderHistory()/renderActive() ne s'en soucient pas, ils ne filtrent que par statut.
     __allSignals = [...__historySeed, ...(data.signals || [])];
     const taken = CHESTBerich.loadTaken();
     let waitingMeta = data.example
@@ -709,13 +708,13 @@
       }
     }
 
-    renderChartFor(active, __allSignals);
     if (active) renderActive(active, taken);
     else renderWaiting(waitingMeta);
 
     renderHistory(__allSignals);
   }
 
+  renderScannerChart();
   loadAndRender();
   loadHistorySeed().then((seed) => { __historySeed = seed; if (seed.length) loadAndRender(); });
   setInterval(loadAndRender, 20000);
