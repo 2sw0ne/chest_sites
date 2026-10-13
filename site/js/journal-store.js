@@ -585,6 +585,38 @@
     }
   }
 
+  // Lit l'instantané poussé par CHESTAccountPush.mq5 depuis le VPS personnel du membre (voir
+  // vps-guide.html, accounts-bridge GET /vps/data/<id>). Contrairement à syncLiveAccount
+  // (Myfxbook) : pas d'historique de trades ici, l'EA ne pousse qu'un instantané (solde/équité/
+  // positions ouvertes) — `info` reste volontairement dans la même forme que Myfxbook
+  // (balance/equity/currency) pour que tout code qui lit déjà `live.info` (BERICH, Dashboard)
+  // fonctionne sans modification, mais sans profit/gain/drawdown/deposits (inconnus côté EA).
+  function apiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
+  function authHeaders() {
+    const token = window.CHESTAccounts && window.CHESTAccounts.getToken && window.CHESTAccounts.getToken();
+    return token ? { Authorization: 'Bearer ' + token } : {};
+  }
+  async function syncVpsLiveAccount(accountId, liveId) {
+    const acc = listAccounts().find((a) => a.id === accountId);
+    const live = liveAccounts(acc).find((l) => l.id === liveId);
+    if (!live) throw new Error('Compte live introuvable.');
+    if (!live.vpsId) throw new Error('Identifiant VPS manquant.');
+    const res = await fetch(`${apiBase()}/vps/data/${live.vpsId}`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('Connexion au serveur impossible.');
+    const json = await res.json();
+    if (!json.data) {
+      updateLiveAccount(accountId, liveId, { lastError: "En attente du premier envoi de l'EA…" });
+      return { pending: true };
+    }
+    const d = json.data;
+    updateLiveAccount(accountId, liveId, {
+      lastSync: new Date().toISOString(), lastError: null,
+      info: { balance: d.balance, equity: d.equity, margin: d.margin, marginFree: d.marginFree, currency: d.currency || null, positions: d.positions || [], pushedAt: d.updatedAt },
+    });
+    if (d.balance != null) updateActiveStageBalance(accountId, d.balance, liveId);
+    return { pending: false };
+  }
+
   // Entrées d'UN journal, pour tout ou partie de sa famille : member = 'all' | 'main' | id d'un compte live.
   // Journal principal = saisie manuelle du compte (les anciennes entrées sans compte vont au plus ancien) + positions BERICH
   // (rattachées au premier journal manuel, comme avant). En vue agrégée, une saisie manuelle qui double une position d'un
@@ -675,7 +707,7 @@
   }
 
   window.CHESTJournal = {
-    list, add, update, remove, berichEntries, allEntries, entriesFor, liveAccounts, addLiveAccount, updateLiveAccount, removeLiveAccount, syncLiveAccount, extEntries, mergeExternal, mfxToEntry, computeStats, importBacktestTrades,
+    list, add, update, remove, berichEntries, allEntries, entriesFor, liveAccounts, addLiveAccount, updateLiveAccount, removeLiveAccount, syncLiveAccount, syncVpsLiveAccount, extEntries, mergeExternal, mfxToEntry, computeStats, importBacktestTrades,
     knownTags, rememberTag, favoritePairs, toggleFavoritePair,
     propfirms, challengeModels, stageList, stageRules, propfirmLogo,
     listAccounts, addAccount, updateAccount, removeAccount,

@@ -259,6 +259,23 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        # Comptes "VPS personnel" (2026-10-13) - un membre qui fait tourner MT5 sur SON PROPRE VPS
+        # (voir vps-guide.html) installe un petit EA (CHESTAccountPush.mq5) qui pousse ici un
+        # instantané (solde/équité/marge/positions ouvertes) toutes les ~30s. `id` (32 hex générés
+        # par /vps/register) joue le rôle de secret non devinable pour /vps/push/<id> - l'EA n'a pas
+        # de session membre (même principe que GET /school/files/<key>). Contrairement à Myfxbook,
+        # pas d'historique de trades ici (l'EA ne pousse qu'un instantané, pas le journal complet) -
+        # limite assumée et dite à l'utilisateur, voir vps-guide.html.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS vps_accounts (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                label TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                last_push_at TEXT,
+                last_data TEXT
+            )
+        """)
         db.commit()
 
 
@@ -1022,6 +1039,116 @@ def alerts_dispatch():
                                           icon=f"{SITE_URL}/{logo}")
         sent += res.get("sent", 0)
     return jsonify({"sent": sent})
+
+
+def _num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+VPS_PUSH_MAX_POSITIONS = 200
+
+
+@app.route("/vps/register", methods=["POST"])
+def vps_register():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    label = (body.get("label") or "Compte VPS").strip()[:80] or "Compte VPS"
+    vid = secrets.token_hex(16)
+    with db_lock:
+        get_db().execute(
+            "INSERT INTO vps_accounts (id, user_id, label, created_at) VALUES (?, ?, ?, ?)",
+            (vid, user["id"], label, datetime.now(timezone.utc).isoformat()),
+        )
+        get_db().commit()
+    return jsonify({"id": vid, "label": label})
+
+
+@app.route("/vps/list")
+def vps_list():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    rows = get_db().execute(
+        "SELECT id, label, created_at, last_push_at FROM vps_accounts WHERE user_id = ? ORDER BY created_at DESC",
+        (user["id"],),
+    ).fetchall()
+    return jsonify({"accounts": [dict(r) for r in rows]})
+
+
+@app.route("/vps/rename/<vid>", methods=["POST"])
+def vps_rename(vid):
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    label = (body.get("label") or "").strip()[:80]
+    if not label:
+        return jsonify({"error": "Nom requis."}), 400
+    with db_lock:
+        cur = get_db().execute("UPDATE vps_accounts SET label = ? WHERE id = ? AND user_id = ?", (label, vid, user["id"]))
+        get_db().commit()
+    return jsonify({"ok": cur.rowcount > 0})
+
+
+@app.route("/vps/delete/<vid>", methods=["POST"])
+def vps_delete(vid):
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    with db_lock:
+        cur = get_db().execute("DELETE FROM vps_accounts WHERE id = ? AND user_id = ?", (vid, user["id"]))
+        get_db().commit()
+    return jsonify({"ok": cur.rowcount > 0})
+
+
+@app.route("/vps/data/<vid>")
+def vps_data(vid):
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    row = get_db().execute("SELECT * FROM vps_accounts WHERE id = ? AND user_id = ?", (vid, user["id"])).fetchone()
+    if not row:
+        return jsonify({"error": "Compte introuvable."}), 404
+    data = json.loads(row["last_data"]) if row["last_data"] else None
+    return jsonify({"label": row["label"], "lastPushAt": row["last_push_at"], "data": data})
+
+
+@app.route("/vps/push/<vid>", methods=["POST"])
+def vps_push(vid):
+    # Appelé par l'EA CHESTAccountPush.mq5 depuis le VPS personnel du membre - pas de session
+    # membre ici (voir le commentaire sur la table vps_accounts), l'id lui-même (32 hex non
+    # devinables) est le secret. Jamais d'authentification Bearer attendue sur cette route.
+    db = get_db()
+    row = db.execute("SELECT id FROM vps_accounts WHERE id = ?", (vid,)).fetchone()
+    if not row:
+        return jsonify({"error": "Identifiant inconnu."}), 404
+    body = request.get_json(silent=True) or {}
+    positions = body.get("positions")
+    if not isinstance(positions, list):
+        positions = []
+    data = {
+        "balance": _num(body.get("balance")),
+        "equity": _num(body.get("equity")),
+        "margin": _num(body.get("margin")),
+        "marginFree": _num(body.get("marginFree")),
+        "currency": (str(body.get("currency") or "")[:10] or None),
+        "login": (str(body.get("login")) if body.get("login") is not None else None),
+        "server": (str(body.get("server") or "")[:80] or None),
+        "positions": positions[:VPS_PUSH_MAX_POSITIONS],
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+    }
+    with db_lock:
+        db.execute(
+            "UPDATE vps_accounts SET last_data = ?, last_push_at = ? WHERE id = ?",
+            (json.dumps(data), data["updatedAt"], vid),
+        )
+        db.commit()
+    return jsonify({"ok": True})
 
 
 @app.route("/twelvedata/<endpoint>")

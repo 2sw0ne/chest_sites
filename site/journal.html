@@ -387,7 +387,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=2"></script>
-<script src="js/sync-store.js?v=7"></script>
+<script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="journal" class="chest-root">
@@ -758,21 +758,43 @@
 <div class="jr-modal" id="jrLiveModal" hidden>
   <div class="jr-modal__box">
     <button type="button" class="jr-modal__close" id="jrLiveClose" aria-label="Fermer">✕</button>
-    <h2>Ajouter un compte live (Myfxbook)</h2>
+    <h2>Ajouter un compte live</h2>
     <p style="margin:0;font-size:12.5px;color:var(--muted)" id="jrLiveFor"></p>
     <div id="jrLiveStep1">
-      <ol>
-        <li>Une seule fois sur <a href="https://www.myfxbook.com" target="_blank" rel="noopener" style="color:var(--ink)">myfxbook.com</a> : Portfolio → Add Account → ton broker MT4/MT5, ton numéro de compte et ton <b>mot de passe investisseur</b> (lecture seule).</li>
-        <li>Choisis « Auto Update » (gratuit) : aucune application à laisser ouverte.</li>
-        <li>Reviens ici et connecte-toi avec ton e-mail et ton mot de passe <b>Myfxbook</b> (pas ceux de ton broker).</li>
-      </ol>
-      <label for="jrLiveEmail">E-mail Myfxbook</label>
-      <input id="jrLiveEmail" type="email" autocomplete="off">
-      <label for="jrLivePass">Mot de passe Myfxbook</label>
-      <input id="jrLivePass" type="password" autocomplete="off">
-      <p class="jr-modal__err" id="jrLiveErr" hidden></p>
-      <div class="jr-modal__foot"><button type="button" class="chest-btn" id="jrLiveConnect">Se connecter</button></div>
-      <p style="margin:12px 0 0;font-size:11.5px;color:var(--faint);line-height:1.5">Ces identifiants restent dans ce navigateur (comme pour les comptes du Dashboard) et ne servent qu'à lire ton historique.</p>
+      <div class="jr-segmented" id="jrLiveMethodToggle" role="group" aria-label="Méthode de connexion" style="margin:14px 0">
+        <button type="button" data-method="myfxbook" class="is-active" aria-pressed="true">MyFxBook</button>
+        <button type="button" data-method="vps" aria-pressed="false">VPS personnel</button>
+      </div>
+      <div id="jrLiveMfxForm">
+        <ol>
+          <li>Une seule fois sur <a href="https://www.myfxbook.com" target="_blank" rel="noopener" style="color:var(--ink)">myfxbook.com</a> : Portfolio → Add Account → ton broker MT4/MT5, ton numéro de compte et ton <b>mot de passe investisseur</b> (lecture seule).</li>
+          <li>Choisis « Auto Update » (gratuit) : aucune application à laisser ouverte.</li>
+          <li>Reviens ici et connecte-toi avec ton e-mail et ton mot de passe <b>Myfxbook</b> (pas ceux de ton broker).</li>
+        </ol>
+        <label for="jrLiveEmail">E-mail Myfxbook</label>
+        <input id="jrLiveEmail" type="email" autocomplete="off">
+        <label for="jrLivePass">Mot de passe Myfxbook</label>
+        <input id="jrLivePass" type="password" autocomplete="off">
+        <p class="jr-modal__err" id="jrLiveErr" hidden></p>
+        <div class="jr-modal__foot"><button type="button" class="chest-btn" id="jrLiveConnect">Se connecter</button></div>
+        <p style="margin:12px 0 0;font-size:11.5px;color:var(--faint);line-height:1.5">Ces identifiants restent dans ce navigateur (comme pour les comptes du Dashboard) et ne servent qu'à lire ton historique.</p>
+      </div>
+      <div id="jrLiveVpsForm" hidden>
+        <p style="margin:0 0 12px;font-size:12.5px;color:var(--muted);line-height:1.6">Solde et équité en direct via un petit serveur loué à ton nom, pas d'historique de trades automatique ici — <a href="vps-guide.html" target="_blank" rel="noopener" style="color:var(--ink)">voir le guide complet →</a></p>
+        <label for="jrVpsLabel">Nom de ce compte</label>
+        <input id="jrVpsLabel" type="text" placeholder="ex. FTMO Challenge">
+        <div id="jrVpsGeneratedWrap" hidden style="margin-top:12px">
+          <label>Identifiant à coller dans l'EA (PushId)</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <input id="jrVpsGeneratedId" type="text" readonly style="font-family:monospace;font-size:12.5px">
+            <button type="button" class="chest-btn-2" id="jrVpsCopyBtn">Copier</button>
+          </div>
+        </div>
+        <div class="jr-modal__foot" style="margin-top:14px">
+          <button type="button" class="chest-btn" id="jrVpsGenerateBtn">Générer mon identifiant</button>
+          <button type="button" class="chest-btn-2" id="jrVpsContinueBtn" hidden>Continuer</button>
+        </div>
+      </div>
     </div>
     <div id="jrLiveStep2" hidden>
       <label>Quel compte relié à ton profil Myfxbook ?</label>
@@ -1033,7 +1055,7 @@ CHESTTour.init([
       const isOpen = openFamilies.has(a.id) || isFam;
       const inner = [];
       if (a.mode !== 'auto') inner.push(rowHtml(a.id, 'main', 'JP', 'Journal principal', 'Manuel', isFam && currentMember === 'main'));
-      lives.forEach((l) => inner.push(rowHtml(a.id, l.id, '🟢', l.name, `#${l.accountId} · ${l.info && l.info.balance != null ? money(l.info.balance) : (l.demo ? 'Démo' : 'Réel')}`, isFam && currentMember === l.id)));
+      lives.forEach((l) => inner.push(rowHtml(a.id, l.id, '🟢', l.name, `${l.kind === 'vps' ? 'VPS' : '#' + l.accountId} · ${l.info && l.info.balance != null ? money(l.info.balance) : (l.demo ? 'Démo' : 'Réel')}`, isFam && currentMember === l.id)));
       if (!inner.length) inner.push('<div class="jr-acc-menu__item" style="cursor:default;color:var(--faint);font-size:12px">Vide — survole la flèche → pour ajouter un compte live.</div>');
       return `
         <div class="acc-menu__family">
@@ -1077,7 +1099,7 @@ CHESTTour.init([
       const warn = l.lastError ? `<span class="jr-live-warn">Synchro impossible : ${l.lastError}${l.lastSync ? ` — dernières données du ${timeFr(l.lastSync)}` : ''}</span>`
         : l.possibleGap ? `<span class="jr-live-warn">Le lot est arrivé plein (50 trades) sans recouvrement avec ce qui était déjà importé : des trades ont pu être ratés entre deux synchronisations. Synchronise plus souvent, ou complète à la main.</span>`
         : l.firstBatch && l.lastLimitReached ? `<span class="jr-live-warn">Myfxbook ne fournit que les 50 dernières transactions : les trades plus anciens ne sont pas repris. Ils s'ajouteront désormais à chaque synchronisation.</span>` : '';
-      return `<div class="jr-live-row"><span class="jr-live-dot ${l.lastError ? 'err' : ''}"></span><b>${l.name}</b><span>${i.demo || l.demo ? 'Démo' : 'Réel'} · #${l.accountId}</span><span>Solde ${i.balance != null ? money(i.balance) : '—'}</span>${i.equity != null ? `<span>Équité ${money(i.equity)}</span>` : ''}${i.drawdown != null ? `<span>DD ${i.drawdown}%</span>` : ''}<span>synchro ${timeFr(l.lastSync)}</span>${warn}</div>`;
+      return `<div class="jr-live-row"><span class="jr-live-dot ${l.lastError ? 'err' : ''}"></span><b>${l.name}</b><span>${l.kind === 'vps' ? 'VPS' : (i.demo || l.demo ? 'Démo' : 'Réel') + ' · #' + l.accountId}</span><span>Solde ${i.balance != null ? money(i.balance) : '—'}</span>${i.equity != null ? `<span>Équité ${money(i.equity)}</span>` : ''}${i.drawdown != null ? `<span>DD ${i.drawdown}%</span>` : ''}<span>synchro ${timeFr(l.lastSync)}</span>${warn}</div>`;
     }).join('') + `<div class="jr-live-row"><span class="jr-live-actions"><button type="button" class="chest-btn-2" id="jrSyncBtn">↻ Synchroniser</button><button type="button" class="chest-btn-2" id="jrLiveAddBtn">＋ Ajouter un compte live</button>${currentMember !== 'all' && currentMember !== 'main' ? '<button type="button" class="btn btn-ghost" id="jrLiveRemoveBtn" style="color:var(--red)">Retirer ce compte live</button>' : ''}</span></div>`;
     document.getElementById('jrSyncBtn').addEventListener('click', () => syncLives(acc, true));
     document.getElementById('jrLiveAddBtn').addEventListener('click', () => openLiveModal(acc.id));
@@ -1097,7 +1119,7 @@ CHESTTour.init([
     const btn = document.getElementById('jrSyncBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Synchronisation…'; }
     for (const l of lives) {
-      try { await CHESTJournal.syncLiveAccount(acc.id, l.id); }
+      try { await (l.kind === 'vps' ? CHESTJournal.syncVpsLiveAccount(acc.id, l.id) : CHESTJournal.syncLiveAccount(acc.id, l.id)); }
       catch (e) { CHESTJournal.updateAccount(acc.id, { live: CHESTJournal.liveAccounts(fresh()).map((x) => (x.id === l.id ? Object.assign({}, x, { lastError: e.message }) : x)) }); }
     }
     if (quiet) return true;
@@ -1109,6 +1131,8 @@ CHESTTour.init([
 
   // ---- Modale « Ajouter un compte live » : e-mail + mot de passe Myfxbook -> choix du compte relié ----
   let liveTarget = null;
+  let jrLiveMethod = 'myfxbook';
+  let jrVpsGenerated = null;
   function openLiveModal(accId) {
     liveTarget = accId;
     const acc = CHESTJournal.listAccounts().find((a) => a.id === accId);
@@ -1118,9 +1142,78 @@ CHESTTour.init([
     document.getElementById('jrLiveStep3').hidden = true;
     document.getElementById('jrLiveErr').hidden = true;
     document.getElementById('jrLivePass').value = '';
+    jrLiveMethod = 'myfxbook';
+    jrVpsGenerated = null;
+    document.querySelectorAll('#jrLiveMethodToggle button').forEach((b) => {
+      const active = b.dataset.method === 'myfxbook';
+      b.classList.toggle('is-active', active);
+      b.setAttribute('aria-pressed', String(active));
+    });
+    document.getElementById('jrLiveMfxForm').hidden = false;
+    document.getElementById('jrLiveVpsForm').hidden = true;
+    document.getElementById('jrVpsLabel').value = '';
+    document.getElementById('jrVpsGeneratedWrap').hidden = true;
+    document.getElementById('jrVpsGenerateBtn').hidden = false;
+    document.getElementById('jrVpsContinueBtn').hidden = true;
     document.getElementById('jrLiveModal').hidden = false;
     setTimeout(() => document.getElementById('jrLiveEmail').focus(), 50);
   }
+  document.querySelectorAll('#jrLiveMethodToggle button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#jrLiveMethodToggle button').forEach((b) => { b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-pressed', 'true');
+      jrLiveMethod = btn.dataset.method;
+      document.getElementById('jrLiveMfxForm').hidden = jrLiveMethod !== 'myfxbook';
+      document.getElementById('jrLiveVpsForm').hidden = jrLiveMethod !== 'vps';
+    });
+  });
+  function jrApiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
+  function jrAuthHeaders() {
+    const token = window.CHESTAccounts && window.CHESTAccounts.getToken();
+    return token ? { Authorization: 'Bearer ' + token } : {};
+  }
+  document.getElementById('jrVpsGenerateBtn').addEventListener('click', async () => {
+    const label = document.getElementById('jrVpsLabel').value.trim() || 'Mon VPS';
+    const btn = document.getElementById('jrVpsGenerateBtn');
+    btn.disabled = true; btn.textContent = 'Génération…';
+    try {
+      const res = await fetch(`${jrApiBase()}/vps/register`, {
+        method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, jrAuthHeaders()),
+        body: JSON.stringify({ label }),
+      });
+      const data = await res.json();
+      if (!data.id) throw new Error('no id');
+      jrVpsGenerated = { id: data.id, label };
+      document.getElementById('jrVpsGeneratedWrap').hidden = false;
+      document.getElementById('jrVpsGeneratedId').value = data.id;
+      btn.hidden = true;
+      document.getElementById('jrVpsContinueBtn').hidden = false;
+    } catch (e) {
+      showToast("Impossible de générer l'identifiant pour l'instant.");
+    } finally {
+      btn.disabled = false; btn.textContent = 'Générer mon identifiant';
+    }
+  });
+  document.getElementById('jrVpsCopyBtn').addEventListener('click', () => {
+    const input = document.getElementById('jrVpsGeneratedId');
+    input.select();
+    navigator.clipboard && navigator.clipboard.writeText(input.value).catch(() => {});
+    showToast('Copié ✓');
+  });
+  document.getElementById('jrVpsContinueBtn').addEventListener('click', async () => {
+    if (!jrVpsGenerated) return;
+    const target = CHESTJournal.listAccounts().find((a) => a.id === liveTarget);
+    const rec = CHESTJournal.addLiveAccount(liveTarget, { kind: 'vps', name: jrVpsGenerated.label, vpsId: jrVpsGenerated.id });
+    let startBalance = 0;
+    try {
+      await CHESTJournal.syncVpsLiveAccount(liveTarget, rec.id);
+      const fresh = CHESTJournal.liveAccounts(CHESTJournal.listAccounts().find((x) => x.id === liveTarget)).find((l) => l.id === rec.id);
+      if (fresh && fresh.info && fresh.info.balance != null) startBalance = fresh.info.balance;
+    } catch (e2) { CHESTJournal.updateLiveAccount(liveTarget, rec.id, { lastError: e2.message }); }
+    pendingLiveAttach = { connType: 'vps', connRef: rec.id, startBalance };
+    finishLiveAttachOrAskStage();
+  });
   const closeLiveModal = () => { document.getElementById('jrLiveModal').hidden = true; document.getElementById('jrLivePass').value = ''; };
   document.getElementById('jrLiveClose').addEventListener('click', closeLiveModal);
   document.getElementById('jrLiveModal').addEventListener('click', (e) => { if (e.target.id === 'jrLiveModal') closeLiveModal(); });

@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* ================= Hero BE FR€E — fond neon plein largeur, meme principe
      que .scnr-hero (Stratégies) et .sentiment-hero (Calendrier) : breakout
@@ -198,11 +199,42 @@
   .history-row:last-child{ border-bottom:none; }
   .history-row__left{ display:flex; align-items:center; gap:10px; color:var(--muted); }
   .history-row__left b{ color:var(--ink); }
+
+  /* ---------- Cockpit (2026-10-13) : performance BE FR€E, compte suivi, contexte marché ----------
+     Rapport façon Dashboard mais dans les couleurs BERICH (vert #33e6a6 des gains, rouge des pertes -
+     mêmes jetons --green/--red que tout le reste du site, jamais une palette à part) + éléments
+     spécifiques à BERICH (stats sur les positions BE FR€E confirmées, contexte XAU/USD). */
+  .cockpit-head{ margin-bottom:14px; }
+  .cockpit-card{ padding:26px 28px; margin-bottom:16px; }
+  .cockpit-empty{ font-size:13px; color:var(--muted); line-height:1.6; margin:4px 0 0; }
+  #berichEquityWrap{ height:150px; margin-top:22px; }
+  @media (max-width:640px){ #berichEquityWrap{ height:120px; } }
+
+  .acc-pick-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .acc-pick-row label{ font-size:12.5px; color:var(--muted); white-space:nowrap; }
+  .acc-pick-row select{ flex:1; min-width:180px; }
+  .acc-summary{ display:flex; gap:28px; flex-wrap:wrap; margin-top:20px; }
+  .acc-summary div span{ display:block; font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+  .acc-summary div strong{ display:block; font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; }
+
+  .sent-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+  .sent-badge{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; padding:7px 16px; border-radius:var(--radius-pill); flex-shrink:0; }
+  .sent-badge.pos{ color:var(--green); background:rgba(51,230,166,.14); }
+  .sent-badge.neg{ color:var(--red); background:rgba(255,77,94,.14); }
+  .sent-badge.neutral{ color:var(--muted); background:var(--panel-2); }
+  .sent-drivers{ display:flex; flex-direction:column; gap:8px; }
+  .sent-driver{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12.5px; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); }
+  .sent-driver__name{ display:flex; align-items:center; gap:8px; color:var(--muted); min-width:0; }
+  .sent-driver__name b{ font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sent-driver__tone{ font-weight:700; white-space:nowrap; }
+  .sent-driver__tone.pos{ color:var(--green); }
+  .sent-driver__tone.neg{ color:var(--red); }
+  .sent-driver__tone.neutral{ color:var(--faint); }
 </style>
 <script src="js/theme.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=2"></script>
-<script src="js/sync-store.js?v=7"></script>
+<script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="berich" class="chest-root">
@@ -305,10 +337,12 @@
         continuent d'arriver — pratique pour tester, moins pour un suivi 24/24.
       </div>
       <div class="ea-host-explain" id="eaHostExplainVps" hidden>
-        Un petit PC loué à ton nom chez un hébergeur générique (ex. Contabo, OVH, Vultr — environ 5 à 15 €/mois),
-        qui reste allumé 24/24 indépendamment de ton PC. Tu y installes MT5 et cet EA exactement comme ci-dessous,
-        juste depuis cette machine distante. <b>CHEST n'héberge rien et ne voit jamais tes identifiants</b>,
-        quelle que soit la machine choisie — c'est entre toi et ton hébergeur.
+        Un petit PC loué à ton nom, qui reste allumé 24/24 indépendamment du tien — tu y installes MT5
+        et cet EA exactement comme ci-dessous, juste depuis cette machine distante. <b>CHEST n'héberge
+        rien et ne voit jamais tes identifiants</b>, quelle que soit la machine choisie. En plus de
+        recevoir les signaux BERICH, un VPS permet de relier ton compte à CHEST pour voir ton solde et
+        ton équité en direct partout sur le site — <a href="vps-guide.html">voir le guide complet
+        (VPS recommandé, installation pas à pas) →</a>
       </div>
 
       <ol style="margin:0 0 20px;padding-left:20px;font-size:13px;color:var(--muted);line-height:1.9">
@@ -335,6 +369,32 @@
         <span id="connLabel">—</span>
       </div>
       <a href="account.html#connexion" class="btn btn-secondary" style="padding:9px 18px;font-size:12.5px">Modifier la connexion</a>
+    </div>
+
+    <div class="cockpit-head"><span class="chest-step">01 — Ta performance BE FR€E</span></div>
+    <div class="card cockpit-card" id="berichPerfCard">
+      <div class="chest-kpis" id="berichKpis"></div>
+      <div id="berichEquityWrap"><canvas id="berichEquityChart"></canvas></div>
+      <p class="cockpit-empty" id="berichPerfEmpty" hidden>Aucun trade confirmé pour l'instant — dès ta première position prise, ses stats et sa courbe apparaissent ici.</p>
+    </div>
+
+    <div class="cockpit-head"><span class="chest-step">02 — Compte suivi</span></div>
+    <div class="card cockpit-card" id="berichAccountCard">
+      <div class="acc-pick-row">
+        <label for="berichAccountSelect">Quel compte du Journal suit BE FR€E ?</label>
+        <select id="berichAccountSelect" class="field"></select>
+      </div>
+      <p class="cockpit-empty" id="berichAccountEmpty" hidden>Choisis un compte pour voir son solde et ses stats ici — MyFxBook, EA ou saisie manuelle, peu importe la source : CHEST affiche ce que ce compte du Journal sait déjà.</p>
+      <div class="acc-summary" id="berichAccountSummary" hidden></div>
+    </div>
+
+    <div class="cockpit-head"><span class="chest-step">03 — Contexte marché</span></div>
+    <div class="card cockpit-card" id="berichSentimentCard">
+      <div class="sent-row">
+        <span class="sent-badge neutral" id="sentBadge">—</span>
+        <span class="signal-meta" id="sentNote">Chargement du calendrier…</span>
+      </div>
+      <div class="sent-drivers" id="sentDrivers"></div>
     </div>
 
     <div class="card signal-hero" id="signalHero"></div>
@@ -369,6 +429,9 @@
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
+<script src="js/propfirm-rules.js"></script>
+<script src="js/journal-store.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="js/scanner-chart.js?v=24"></script>
 <script src="js/page-tour.js"></script>
 <script>
@@ -489,6 +552,9 @@
   CHESTTour.init([
     { selector: '.berich-hero', title: 'BERICH', text: 'Le graphique en direct de ton scanner BE FR€E, les signaux détectés et de quoi prendre position en un clic.' },
     { selector: '.conn-bar', title: 'Ton broker', text: 'Le broker ou la propfirm choisi à la configuration (informatif). Le vrai calcul du risque se fait dans l\'EA MT5, sur ton vrai solde. « Modifier la connexion » te renvoie vers Compte.' },
+    { selector: '#berichPerfCard', title: 'Ta performance', text: 'Les stats réelles de tes positions BE FR€E confirmées : winrate, R:R moyen, résultat de la semaine et du mois, courbe cumulée.' },
+    { selector: '#berichAccountCard', title: 'Compte suivi', text: 'Relie un compte du Journal (MyFxBook, EA ou saisie manuelle) pour voir son solde et ses stats ici, quelle que soit la façon dont il est alimenté.' },
+    { selector: '#berichSentimentCard', title: 'Contexte marché', text: 'Un biais indicatif sur l\'or, basé sur les annonces US à fort impact de la semaine — une heuristique statistique, jamais une prédiction garantie.' },
     { selector: '#signalHero', title: 'Position en cours', text: 'Dès qu\'un signal arrive, son entrée, son SL et son TP s\'affichent ici. « Prendre le trade » confirme ton intention et l\'enregistre dans ton journal ; l\'exécution réelle passe par l\'EA MT5. Un signal non pris disparaît si le prix s\'éloigne trop.' },
     { selector: '.chart-wrap', title: 'Le graphique', text: 'Ton vrai script BE FR€E tourne ici en direct (XAU/USD uniquement). La détection des trades passe par le webhook, pas par ce graphique.' },
     { selector: '#historyWrap', title: 'Historique', text: 'Les signaux déjà clôturés (TP ou SL). Le journal complet, avec le détail par compte, est dans « Journal complet ».' },
@@ -628,6 +694,7 @@
 
   let __allSignals = [];
   let __historySeed = [];
+  let __berichChart = null;
 
   // ---------- Historique antérieur au webhook (positions déjà prises avant que berich-bridge ne
   // les reçoive) : posé une fois dans ce fichier par l'utilisateur, fusionné aux vrais signaux
@@ -714,6 +781,208 @@
     renderHistory(__allSignals);
   }
 
+  // ================= Cockpit : performance BE FR€E, compte suivi, contexte marché =================
+  // Section « 01 — Ta performance » : purement dérivée des positions BERICH confirmées
+  // (CHESTJournal.berichEntries(), déjà existant — lit chest_berich_taken et calcule rrActual/pnl
+  // honnêtement à partir du risque réellement choisi au moment de la prise). Zéro configuration
+  // nécessaire : fonctionne dès la première position prise, avant même qu'un compte soit relié.
+  function fmtSigned(v, suffix) {
+    if (v == null || isNaN(v)) return '—';
+    const s = v >= 0 ? '+' : '−';
+    return s + Math.abs(v).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (suffix || '');
+  }
+  function toneClass(v) { return v == null ? '' : v > 0 ? 'is-pos' : v < 0 ? 'is-neg' : ''; }
+  // Semaine lundi->dimanche contenant `ref` (même convention que calendar.js, dupliquée ici à
+  // dessein — petit calcul autonome, pas de dépendance croisée entre ces deux fichiers).
+  function weekBounds(ref) {
+    const d = new Date(ref); d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    const monday = new Date(d); monday.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23, 59, 59, 999);
+    return { monday, sunday };
+  }
+
+  async function renderBerichPerf() {
+    const kpisEl = document.getElementById('berichKpis');
+    const emptyEl = document.getElementById('berichPerfEmpty');
+    let rows = [];
+    try { rows = await CHESTJournal.berichEntries(); } catch (e) { rows = []; }
+    const closed = rows.filter((r) => r.result && r.pnl != null).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (!closed.length) {
+      kpisEl.innerHTML = '';
+      emptyEl.hidden = false;
+      document.getElementById('berichEquityWrap').style.display = 'none';
+      return;
+    }
+    emptyEl.hidden = true;
+    document.getElementById('berichEquityWrap').style.display = '';
+
+    const now = new Date();
+    const { monday } = weekBounds(now);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const sum = (list) => list.reduce((s, r) => s + r.pnl, 0);
+    const weekPnl = sum(closed.filter((r) => new Date(r.date) >= monday));
+    const monthPnl = sum(closed.filter((r) => new Date(r.date) >= monthStart));
+    const totalPnl = sum(closed);
+    const stats = CHESTJournal.computeStats(rows);
+
+    kpisEl.innerHTML = `
+      <div><div class="chest-label" style="margin-bottom:8px">Résultat total</div><div class="chest-kpi__val ${toneClass(totalPnl)}">${fmtSigned(totalPnl, '$')}</div><div class="chest-kpi__note">${closed.length} position${closed.length > 1 ? 's' : ''} confirmée${closed.length > 1 ? 's' : ''}</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Cette semaine</div><div class="chest-kpi__val ${toneClass(weekPnl)}">${fmtSigned(weekPnl, '$')}</div><div class="chest-kpi__note">depuis lundi</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Ce mois</div><div class="chest-kpi__val ${toneClass(monthPnl)}">${fmtSigned(monthPnl, '$')}</div><div class="chest-kpi__note">depuis le 1er</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">Winrate</div><div class="chest-kpi__val">${stats.winRatePct != null ? stats.winRatePct + '%' : '—'}</div><div class="chest-kpi__note">${stats.tp} TP · ${stats.sl} SL${stats.be ? ' · ' + stats.be + ' BE' : ''}</div></div>
+      <div><div class="chest-label" style="margin-bottom:8px">R:R moyen</div><div class="chest-kpi__val">${stats.avgRR != null ? stats.avgRR.toFixed(2) + 'R' : '—'}</div><div class="chest-kpi__note">reward ÷ risk</div></div>`;
+
+    let cum = 0;
+    const series = closed.map((r) => { cum += r.pnl; return cum; });
+    const labels = closed.map((r) => new Date(r.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+    const ctx = document.getElementById('berichEquityChart');
+    if (ctx && window.Chart) {
+      if (__berichChart) __berichChart.destroy();
+      const positive = cum >= 0;
+      __berichChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ data: series, borderWidth: 2, pointRadius: 0, tension: .25, fill: true,
+          borderColor: positive ? '#33e6a6' : '#ff4d5e',
+          backgroundColor: positive ? 'rgba(51,230,166,.1)' : 'rgba(255,77,94,.1)' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => fmtSigned(c.parsed.y, '$') } } },
+          scales: {
+            x: { display: false },
+            y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#9b9ba1', callback: (v) => fmtSigned(v, '$') } },
+          },
+        },
+      });
+    }
+  }
+
+  // Section « 02 — Compte suivi » : relie un compte DÉJÀ existant du Journal (MyFxBook, EA ou
+  // saisie manuelle — peu importe la source, CHESTJournal.entriesFor() les agrège déjà toutes) au
+  // lieu de réinventer un système de connexion séparé pour BERICH. Choix mémorisé localement et
+  // synchronisé entre appareils (voir sync-store.js, clé chest_berich_linked_account).
+  const LINKED_ACCOUNT_KEY = 'chest_berich_linked_account';
+
+  async function renderAccountSummary(accId) {
+    const summaryEl = document.getElementById('berichAccountSummary');
+    const emptyEl = document.getElementById('berichAccountEmpty');
+    const accounts = CHESTJournal.listAccounts();
+    const acc = accounts.find((a) => a.id === accId);
+    if (!acc) { summaryEl.hidden = true; emptyEl.hidden = false; return; }
+    emptyEl.hidden = true;
+    summaryEl.hidden = false;
+    summaryEl.innerHTML = '<div><span>Solde</span><strong>—</strong></div>';
+
+    const lives = CHESTJournal.liveAccounts(acc);
+    const liveInfo = lives.find((l) => l.info)?.info || null;
+    const balance = liveInfo ? liveInfo.balance : acc.balance;
+    const equity = liveInfo ? liveInfo.equity : null;
+
+    let rows = [];
+    try { rows = await CHESTJournal.entriesFor(acc, 'all'); } catch (e) { rows = []; }
+    const stats = CHESTJournal.computeStats(rows);
+
+    summaryEl.innerHTML = `
+      <div><span>Compte</span><strong style="font-size:15px">${acc.name}</strong></div>
+      <div><span>Solde</span><strong>${balance != null ? money(balance) : '—'}</strong></div>
+      ${equity != null ? `<div><span>Équité</span><strong>${money(equity)}</strong></div>` : ''}
+      <div><span>Résultat total</span><strong style="${stats.totalPnl > 0 ? 'color:var(--green)' : stats.totalPnl < 0 ? 'color:var(--red)' : ''}">${stats.totalPnl != null ? fmtSigned(stats.totalPnl, '$') : '—'}</strong></div>
+      <div><span>Winrate</span><strong>${stats.winRatePct != null ? stats.winRatePct + '%' : '—'}</strong></div>`;
+  }
+
+  function initAccountPicker() {
+    const sel = document.getElementById('berichAccountSelect');
+    const accounts = CHESTJournal.listAccounts();
+    if (!accounts.length) {
+      sel.innerHTML = '<option value="">Aucun compte dans le Journal — crée-en un d\'abord</option>';
+      sel.disabled = true;
+      document.getElementById('berichAccountEmpty').hidden = false;
+      document.getElementById('berichAccountEmpty').textContent = 'Aucun compte dans le Journal pour l\'instant — ajoutes-en un (Journal → Nouveau compte) pour voir son solde et ses stats ici.';
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">— Choisir —</option>' + accounts.map((a) => `<option value="${a.id}">${a.name}</option>`).join('');
+    let saved = null;
+    try { saved = localStorage.getItem(LINKED_ACCOUNT_KEY); } catch (e) { /* tant pis */ }
+    if (saved && accounts.some((a) => a.id === saved)) {
+      sel.value = saved;
+      renderAccountSummary(saved);
+    } else {
+      document.getElementById('berichAccountEmpty').hidden = false;
+    }
+    sel.addEventListener('change', () => {
+      try { localStorage.setItem(LINKED_ACCOUNT_KEY, sel.value); } catch (e) { /* tant pis */ }
+      if (sel.value) renderAccountSummary(sel.value);
+      else { document.getElementById('berichAccountSummary').hidden = true; document.getElementById('berichAccountEmpty').hidden = false; }
+    });
+  }
+
+  // Section « 03 — Contexte marché » : biais indicatif sur XAU/USD à partir des annonces US à fort
+  // impact de la semaine en cours — même logique que computeForecastSentiment() de calendar.js
+  // (dupliquée ici à dessein, comme hero-bg.js/welcome.js : petit calcul autonome, le driver unique
+  // de l'or est l'USD avec un poids négatif — dollar fort pèse sur l'or). Jamais présenté comme une
+  // prédiction, toujours étiqueté comme heuristique (convention DA du site).
+  function sentForecastTone(ev) {
+    const shownNum = parseFloat(String(ev.consensus).replace(',', '.'));
+    const refNum = parseFloat(String(ev.previous).replace(',', '.'));
+    if (!ev.consensus || isNaN(shownNum) || isNaN(refNum) || !ev.directionBias) return 'neutral';
+    const diff = shownNum - refNum;
+    if (Math.abs(diff) < 1e-9) return 'neutral';
+    const beat = diff > 0;
+    return (ev.directionBias === 'up' ? beat : !beat) ? 'pos' : 'neg';
+  }
+  async function renderSentiment() {
+    const badge = document.getElementById('sentBadge');
+    const note = document.getElementById('sentNote');
+    const driversEl = document.getElementById('sentDrivers');
+    const IMP_W = { high: 3, medium: 2, low: 1 };
+    try {
+      const url = (window.CHEST_CONFIG && window.CHEST_CONFIG.calendarApiUrl) || 'data/calendar.json';
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('404');
+      const data = await res.json();
+      const events = data.events || [];
+      const { monday, sunday } = weekBounds(new Date());
+      const weekEvents = events.filter((ev) => {
+        if (ev.country !== 'US' || ev.importance === 'low') return false;
+        const d = new Date(ev.date + 'T00:00:00');
+        return d >= monday && d <= sunday;
+      });
+      // tone = effet sur l'OR (pas le ton brut de la donnée USD) - l'or est inverse à l'USD (driver
+      // weight -1, comme XAUUSD dans calendar.js) : une donnée USD haussière (tone='pos') pèse donc
+      // en 'neg' sur l'or, et réciproquement. Même convention que les cartes de calendar.js (colorées
+      // par effet sur l'instrument cible, jamais par le ton brut de la devise motrice).
+      let score = 0;
+      const drivers = weekEvents.map((ev) => {
+        const raw = sentForecastTone(ev);
+        const tone = raw === 'neutral' ? 'neutral' : raw === 'pos' ? 'neg' : 'pos';
+        if (tone !== 'neutral') score += (tone === 'pos' ? 1 : -1) * (IMP_W[ev.importance] || 1);
+        return { ev, tone };
+      }).sort((a, b) => (a.ev.date + (a.ev.time || '')).localeCompare(b.ev.date + (b.ev.time || '')));
+
+      const bias = score >= 2 ? 'pos' : score <= -2 ? 'neg' : 'neutral';
+      badge.className = 'sent-badge ' + bias;
+      badge.textContent = bias === 'pos' ? 'Biais haussier · or' : bias === 'neg' ? 'Biais baissier · or' : 'Biais neutre · or';
+      note.textContent = drivers.length
+        ? `Heuristique statistique, pas une prédiction — basée sur ${drivers.length} annonce${drivers.length > 1 ? 's' : ''} US cette semaine (le dollar pèse sur l'or en sens inverse).`
+        : "Aucune annonce US à fort impact cette semaine pour l'instant.";
+      driversEl.innerHTML = drivers.slice(0, 4).map(({ ev, tone }) => `
+        <div class="sent-driver">
+          <span class="sent-driver__name"><span class="fi fi-us flag-ic"></span><b>${ev.event}</b></span>
+          <span class="sent-driver__tone ${tone}">${ev.released ? (ev.actual || '—') : (ev.consensus ? 'prévu ' + ev.consensus : '—')}</span>
+        </div>`).join('');
+    } catch (e) {
+      badge.className = 'sent-badge neutral';
+      badge.textContent = '—';
+      note.textContent = 'Calendrier en attente — réessaie dans un instant.';
+      driversEl.innerHTML = '';
+    }
+  }
+
+  renderBerichPerf();
+  initAccountPicker();
+  renderSentiment();
   renderScannerChart();
   loadAndRender();
   loadHistorySeed().then((seed) => { __historySeed = seed; if (seed.length) loadAndRender(); });

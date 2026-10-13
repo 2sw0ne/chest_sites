@@ -24,6 +24,7 @@
     'backtest-add':     { cat: 'Recherche', label: 'Nouveau backtest',    nav: 'backtesting' },
     'backtest-view':    { cat: 'Recherche', label: 'Rapport de backtest', nav: 'backtesting' },
     'strategy-example': { cat: 'Scanners',  label: 'Fiche stratégie',     nav: 'strategies' },
+    'vps-guide':        { cat: 'Réglages',  label: 'Connexion VPS',       nav: 'account' },
   };
   const DEFAULT_PAGE = 'dashboard';
   const AUTH_PAGES = ['login', 'signup', 'index'];

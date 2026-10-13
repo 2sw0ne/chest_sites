@@ -719,6 +719,54 @@
     }
   }
 
+  // ---------- Connexion VPS personnelle (2026-10-13, voir vps-guide.html) : l'EA ne pousse qu'un
+  // instantané (solde/équité/positions ouvertes), jamais d'historique de trades - contrairement à
+  // Myfxbook, `periods` (profit/winrate/R:R/drawdown PAR PÉRIODE) n'a donc aucune vraie donnée pour
+  // les construire. Plutôt que de laisser `render()` retomber sur SAMPLE_PERIODS (données de démo
+  // inventées, qui s'afficheraient comme si elles étaient réelles - malhonnête), vpsPeriods() fournit
+  // un jeu de périodes "réel mais sans historique" : les montants en direct (solde/équité) sont
+  // vrais, le reste affiche honnêtement "—". ----------
+  const vpsCache = {};
+  const VPS_CACHE_MS = 20 * 1000; // notre propre serveur, pas de quota tiers a menager - rafraichi souvent
+  function vpsPeriods(balance, equity) {
+    const period = {
+      profit: '—', profitSub: 'Historique non disponible (VPS)', profitDollar: '—', profitDollarSub: '',
+      rr: '—', winrate: '—', winrateSub: 'Connexion VPS : pas d\'historique de trades',
+      dd: '—', ddSub: '', tradedDays: 0, tradedDaysSub: '',
+      equity: [equity != null ? equity : (balance || 0)],
+    };
+    return { day: period, week: period, month: period, all: period };
+  }
+  async function fetchVpsAccount(vps) {
+    const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+    const token = window.CHESTAccounts && window.CHESTAccounts.getToken();
+    const res = await fetch(`${base}/vps/data/${vps.id}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    if (!res.ok) throw new Error('Connexion au serveur impossible.');
+    const json = await res.json();
+    if (!json.data) return { balance: 0, equity: 0, pnl: 0, vpsPending: true };
+    const d = json.data;
+    return {
+      balance: d.balance || 0, equity: d.equity != null ? d.equity : (d.balance || 0),
+      pnl: (d.equity != null && d.balance != null) ? Math.round((d.equity - d.balance) * 100) / 100 : 0,
+      vpsPositions: d.positions || [], vpsPushedAt: d.updatedAt, vpsPending: false,
+    };
+  }
+  async function enrichWithVps(account) {
+    if (!account.vps) return account;
+    const cached = vpsCache[account.id];
+    if (cached && Date.now() - cached.at < VPS_CACHE_MS) {
+      return { ...account, ...cached.data, example: false, periods: vpsPeriods(cached.data.balance, cached.data.equity) };
+    }
+    try {
+      const data = await fetchVpsAccount(account.vps);
+      vpsCache[account.id] = { at: Date.now(), data };
+      return { ...account, ...data, example: false, periods: vpsPeriods(data.balance, data.equity) };
+    } catch (e) {
+      console.error('VPS', e);
+      return { ...account, vpsError: e.message, periods: vpsPeriods(account.balance, account.equity) };
+    }
+  }
+
   // ---------- Switcher de comptes : liste PLATE, plus de familles imbriquées (2026-09-29, demande
   // utilisateur : "les famille ce sont les journal... on vois tout les compte avec notifier le
   // journal rattaché (pas de famille)") - chaque compte affiche simplement le journal auquel il
@@ -842,6 +890,14 @@
       });
       acc.journalLiveId = live ? live.id : null;
       if (live) window.CHESTJournal.syncLiveAccount(journalId, live.id).catch(() => { /* resynchronisable depuis journal.html */ });
+    } else if (acc.vps && window.CHESTJournal) {
+      // Compte VPS : meme principe, voir le commentaire juste au-dessus.
+      if (acc.journalAccountId && acc.journalLiveId) {
+        window.CHESTJournal.removeLiveAccount(acc.journalAccountId, acc.journalLiveId);
+      }
+      const live = window.CHESTJournal.addLiveAccount(journalId, { kind: 'vps', name: acc.name, vpsId: acc.vps.id });
+      acc.journalLiveId = live ? live.id : null;
+      if (live) window.CHESTJournal.syncVpsLiveAccount(journalId, live.id).catch(() => { /* resynchronisable depuis journal.html */ });
     }
     acc.journalAccountId = journalId;
     saveAccounts(accounts);
@@ -883,7 +939,7 @@
     }
     document.getElementById('accSub').textContent = `#${a.number} · ${a.type}`;
     const titleEl = document.getElementById('accKindTitle');
-    titleEl.textContent = a.isPropfirm ? 'Propfirm' : (a.myfxbook ? 'Compte propre' : 'Démo');
+    titleEl.textContent = a.isPropfirm ? 'Propfirm' : ((a.myfxbook || a.vps) ? 'Compte propre' : 'Démo');
     // Journal rattaché (2026-09-29, demande utilisateur : "on vois tout les compte avec notifier
     // le journal rattaché").
     const journalTag = document.getElementById('accJournalTag');
@@ -1326,7 +1382,7 @@
 
   async function refreshActiveAccount() {
     const raw = currentAccount();
-    activeAccountData = raw.myfxbook ? { ...(await enrichWithMyfxbook(raw)) } : raw;
+    activeAccountData = raw.myfxbook ? { ...(await enrichWithMyfxbook(raw)) } : raw.vps ? { ...(await enrichWithVps(raw)) } : raw;
 
     // Compte reel (myfxbook) : pipeline pour construire dailyHistory + les 4 periodes + les
     // objectifs. Sans myfxbook, `activeAccountData.periods` reste absent et `render()` retombe
@@ -1551,6 +1607,8 @@
 
   let chosenBroker = null; // {id, name} ou {id:'other', name: <saisi>} - meme convention que le wizard BERICH
   let chosenAccountKind = 'own'; // 'own' | 'propfirm' - conditionne l'affichage des payouts et le choix cp/pf du backtest de depart
+  let connMethod = 'myfxbook'; // 'myfxbook' | 'vps' - methode choisie dans la 1re etape de la modale
+  let vpsGenerated = null; // {id, label} une fois l'identifiant VPS genere (voir vps-guide.html)
 
   // Journal (obligatoire, remplace l'ancien "Backtesting de depart" - 2026-09-29, demande
   // utilisateur : "myfxbooks remplace juste le choix d'un backetsting par le choix d'un journal...
@@ -1571,6 +1629,19 @@
     chosenBroker = null;
     chosenAccountKind = 'own';
     chosenPhase = null;
+    connMethod = 'myfxbook';
+    vpsGenerated = null;
+    document.querySelectorAll('#connMethodToggle button').forEach((b) => {
+      const active = b.dataset.method === 'myfxbook';
+      b.classList.toggle('is-active', active);
+      b.setAttribute('aria-pressed', String(active));
+    });
+    document.getElementById('methodMfxIntro').hidden = false;
+    document.getElementById('methodVpsIntro').hidden = true;
+    document.getElementById('vpsLabelInput').value = '';
+    document.getElementById('vpsGeneratedWrap').hidden = true;
+    document.getElementById('vpsGenerateBtn').hidden = false;
+    document.getElementById('vpsContinueBtn').hidden = true;
     document.querySelectorAll('#accountKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === 'own'));
     document.getElementById('accountKindBlock').hidden = true;
     document.getElementById('objectivesStepBlock').hidden = true;
@@ -1649,6 +1720,57 @@
     document.getElementById('addAccountClose').addEventListener('click', closeAddAccountModal);
     document.getElementById('addAccountModal').addEventListener('click', (e) => {
       if (e.target.id === 'addAccountModal') closeAddAccountModal();
+    });
+
+    // ---- Méthode de connexion : MyFxBook (par défaut) ou VPS personnel (2026-10-13) ----
+    document.querySelectorAll('#connMethodToggle button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#connMethodToggle button').forEach((b) => { b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); });
+        btn.classList.add('is-active');
+        btn.setAttribute('aria-pressed', 'true');
+        connMethod = btn.dataset.method;
+        document.getElementById('methodMfxIntro').hidden = connMethod !== 'myfxbook';
+        document.getElementById('methodVpsIntro').hidden = connMethod !== 'vps';
+      });
+    });
+
+    function apiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
+    function authHeaders() {
+      const token = window.CHESTAccounts && window.CHESTAccounts.getToken();
+      return token ? { Authorization: 'Bearer ' + token } : {};
+    }
+    document.getElementById('vpsGenerateBtn').addEventListener('click', async () => {
+      const label = document.getElementById('vpsLabelInput').value.trim() || 'Mon VPS';
+      const btn = document.getElementById('vpsGenerateBtn');
+      btn.disabled = true; btn.textContent = 'Génération…';
+      try {
+        const res = await fetch(`${apiBase()}/vps/register`, {
+          method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+          body: JSON.stringify({ label }),
+        });
+        const data = await res.json();
+        if (!data.id) throw new Error('no id');
+        vpsGenerated = { id: data.id, label };
+        document.getElementById('vpsGeneratedWrap').hidden = false;
+        document.getElementById('vpsGeneratedId').value = data.id;
+        btn.hidden = true;
+        document.getElementById('vpsContinueBtn').hidden = false;
+      } catch (e) {
+        showToast("Impossible de générer l'identifiant pour l'instant.");
+      } finally {
+        btn.disabled = false; btn.textContent = 'Générer mon identifiant';
+      }
+    });
+    document.getElementById('vpsCopyBtn').addEventListener('click', () => {
+      const input = document.getElementById('vpsGeneratedId');
+      input.select();
+      navigator.clipboard && navigator.clipboard.writeText(input.value).catch(() => {});
+      showToast('Copié ✓');
+    });
+    document.getElementById('vpsContinueBtn').addEventListener('click', () => {
+      if (!vpsGenerated) return;
+      document.getElementById('mfxStepIntro').hidden = true;
+      document.getElementById('mfxDetailsStep').hidden = false;
     });
 
     // Grille de brokers (meme liste que le wizard BERICH/Stratégies, window.CHEST_BROKERS)
@@ -1752,7 +1874,44 @@
       document.getElementById('mfxStepIntro').hidden = false;
     });
 
+    // ---- Méthode VPS : même étape broker/objectifs/journal que MyFxBook, juste une source
+    // différente pour le compte live (voir vpsGenerated, rempli par vpsGenerateBtn plus haut). ----
+    function finishVpsAccount() {
+      if (!chosenBroker || !chosenBroker.name) { showToast('Choisis un broker/propfirm'); return; }
+      if (!vpsGenerated) return;
+      let journalAccountId = document.getElementById('addAccountJournal').value || null;
+      const newJournalName = document.getElementById('addAccountJournalNewName').value.trim();
+      if (!journalAccountId && newJournalName && window.CHESTJournal) {
+        const created = window.CHESTJournal.addAccount({
+          name: newJournalName, type: 'own', propfirmId: null, modelId: null, stage: null,
+          balance: 0, riskUnit: 'pct', riskValue: 1,
+          connectionMode: 'manual', mode: 'manual', rules: null, live: [],
+        });
+        journalAccountId = created.id;
+      }
+      if (!journalAccountId) { showToast('Un journal est obligatoire — choisis-en un existant, ou tape un nom pour en créer un nouveau.'); return; }
+      let journalLiveId = null;
+      if (window.CHESTJournal) {
+        const live = window.CHESTJournal.addLiveAccount(journalAccountId, {
+          kind: 'vps', name: `${chosenBroker.name} · ${vpsGenerated.label}`, vpsId: vpsGenerated.id,
+        });
+        if (live) {
+          journalLiveId = live.id;
+          window.CHESTJournal.syncVpsLiveAccount(journalAccountId, live.id).catch(() => { /* resynchronisable depuis journal.html */ });
+        }
+      }
+      finalizeNewAccount({
+        name: `${chosenBroker.name} · ${vpsGenerated.label}`, number: '—',
+        type: 'Réel', broker: chosenBroker.name, brokerId: chosenBroker.id,
+        balance: 0, equity: 0, pnl: 0, today: 0,
+        example: false, vps: { id: vpsGenerated.id }, journalAccountId, journalLiveId,
+        challengeObjectives: readObjectives(), isPropfirm: chosenAccountKind === 'propfirm',
+        payouts: [], objectivesResetAt: isoDateLocal(new Date()),
+      });
+    }
+
     document.getElementById('addAccountFinish').addEventListener('click', () => {
+      if (connMethod === 'vps') { finishVpsAccount(); return; }
       if (!chosenBroker || !chosenBroker.name) { showToast('Choisis un broker/propfirm'); return; }
       if (!mfxSelected) return;
       const email = document.getElementById('mfxEmail').value.trim();

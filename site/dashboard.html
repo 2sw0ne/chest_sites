@@ -440,7 +440,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=2"></script>
-<script src="js/sync-store.js?v=7"></script>
+<script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
 </head>
 <body data-page="dashboard" class="chest-root">
@@ -654,32 +654,64 @@
     <button type="button" class="connmodal-close" id="addAccountClose" aria-label="Fermer">✕</button>
     <h2>🔗 Connecter un compte</h2>
 
+    <div class="chest-seg" id="connMethodToggle" style="margin-bottom:18px" role="group" aria-label="Méthode de connexion">
+      <button type="button" class="is-active" data-method="myfxbook" aria-pressed="true">MyFxBook</button>
+      <button type="button" data-method="vps" aria-pressed="false">VPS personnel</button>
+    </div>
+
     <div id="mfxStepIntro">
-      <div class="method-steps">
-        <h3>Une seule fois, sur myfxbook.com</h3>
-        <ol>
-          <li>Crée un compte gratuit sur <a href="https://www.myfxbook.com" target="_blank" rel="noopener">myfxbook.com</a> si tu n'en as pas déjà un.</li>
-          <li>Portfolio → Add Account → choisis ton broker/serveur MT4-MT5, ton numéro de compte, et ton <b>mot de passe investisseur</b> (lecture seule — jamais ton vrai mot de passe de trading).</li>
-          <li>Choisis l'option <b>"Auto Update"</b> (gratuite) — synchro ~toutes les 24h, aucun logiciel à laisser ouvert.</li>
-        </ol>
-      </div>
-      <div class="form-stack" style="margin-top:18px" id="mfxLoginForm">
-        <div>
-          <label for="mfxEmail">Email Myfxbook</label>
-          <input id="mfxEmail" class="field" type="email" autocomplete="off">
+      <div id="methodMfxIntro">
+        <div class="method-steps">
+          <h3>Une seule fois, sur myfxbook.com</h3>
+          <ol>
+            <li>Crée un compte gratuit sur <a href="https://www.myfxbook.com" target="_blank" rel="noopener">myfxbook.com</a> si tu n'en as pas déjà un.</li>
+            <li>Portfolio → Add Account → choisis ton broker/serveur MT4-MT5, ton numéro de compte, et ton <b>mot de passe investisseur</b> (lecture seule — jamais ton vrai mot de passe de trading).</li>
+            <li>Choisis l'option <b>"Auto Update"</b> (gratuite) — synchro ~toutes les 24h, aucun logiciel à laisser ouvert.</li>
+          </ol>
         </div>
-        <div>
-          <label for="mfxPassword">Mot de passe Myfxbook</label>
-          <input id="mfxPassword" class="field" type="password" autocomplete="off">
+        <div class="form-stack" style="margin-top:18px" id="mfxLoginForm">
+          <div>
+            <label for="mfxEmail">Email Myfxbook</label>
+            <input id="mfxEmail" class="field" type="email" autocomplete="off">
+          </div>
+          <div>
+            <label for="mfxPassword">Mot de passe Myfxbook</label>
+            <input id="mfxPassword" class="field" type="password" autocomplete="off">
+          </div>
+          <p class="hint" id="mfxLoginError" style="color:var(--red);display:none"></p>
         </div>
-        <p class="hint" id="mfxLoginError" style="color:var(--red);display:none"></p>
+        <div id="mfxAccountsPicker" hidden style="margin-top:18px">
+          <label>Quel compte relié à ton profil Myfxbook ?</label>
+          <div id="mfxAccountsList" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div class="wizard-actions" style="margin-top:18px">
+          <button type="button" class="btn btn-primary" id="mfxConnectBtn">Se connecter</button>
+        </div>
       </div>
-      <div id="mfxAccountsPicker" hidden style="margin-top:18px">
-        <label>Quel compte relié à ton profil Myfxbook ?</label>
-        <div id="mfxAccountsList" style="display:flex;flex-direction:column;gap:8px"></div>
-      </div>
-      <div class="wizard-actions" style="margin-top:18px">
-        <button type="button" class="btn btn-primary" id="mfxConnectBtn">Se connecter</button>
+
+      <div id="methodVpsIntro" hidden>
+        <div class="method-steps">
+          <h3>Ton propre VPS, en direct</h3>
+          <p class="hint" style="margin:0 0 4px">Solde et équité en direct (pas de délai de 24h), au prix d'un petit serveur loué à ton nom — <a href="vps-guide.html" target="_blank" rel="noopener">voir le guide complet →</a>. Pas d'historique de trades automatique ici (contrairement à MyFxBook) : ajoute en plus une connexion MyFxBook sur le même compte si tu veux aussi remplir ton Journal tout seul.</p>
+        </div>
+        <div class="form-stack" style="margin-top:14px">
+          <div>
+            <label for="vpsLabelInput">Nom de ce compte</label>
+            <input id="vpsLabelInput" class="field" type="text" placeholder="ex. FTMO Challenge">
+          </div>
+        </div>
+        <div id="vpsGeneratedWrap" hidden style="margin-top:16px">
+          <label>Identifiant à coller dans l'EA (onglet Inputs, champ PushId)</label>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="vpsGeneratedId" class="field" type="text" readonly style="font-family:monospace;font-size:13px">
+            <button type="button" class="btn btn-secondary" id="vpsCopyBtn">Copier</button>
+          </div>
+          <p class="hint" style="margin-top:8px">Installe l'EA sur ton VPS (voir le guide), colle cet identifiant, puis continue — même sans premier envoi reçu, le compte peut être créé tout de suite.</p>
+        </div>
+        <div class="wizard-actions" style="margin-top:18px">
+          <button type="button" class="btn btn-primary" id="vpsGenerateBtn">Générer mon identifiant</button>
+          <button type="button" class="btn btn-secondary" id="vpsContinueBtn" hidden>Continuer</button>
+        </div>
       </div>
     </div>
 
