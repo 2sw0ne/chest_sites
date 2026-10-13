@@ -331,10 +331,20 @@ async function scanCombo(code, tf, source) {
 // toutes les 5 min (au lieu de chaque minute), au prix d'un léger délai de détection sur les unités
 // de temps rapides (jusqu'à ~5 min sur M1/M5, inchangé sur M15 et plus lent où le plancher ne
 // change déjà rien) - un compromis assumé face à l'alternative (plus aucun scanner functional).
+// BUG RÉEL (2026-10-13, retour utilisateur : "les graphiques et mes 800 crédits sont en fonction du
+// nombre de fois où j'ouvre le graphique, sinon ils n'ont pas d'intérêt à tourner en fond") : cette
+// boucle traitait TOUS les combos de WATCH, y compris ceux arrivés par simple consultation (/signals
+// avec keep:false - voir plus bas) - et pire, /signals retouche `touched` à CHAQUE appel, donc un
+// onglet Stratégies resté ouvert (loadOpportunities toutes les 60s) empêchait ce combo d'expirer et
+// le faisait tourner dans l'alarme indéfiniment, même sans la moindre règle d'alerte dessus. Filtré
+// désormais sur `w.keep` : seuls les VRAIS combos d'alerte (créés via /watch, une règle explicite)
+// tournent ici avec la clé "alarm" - un combo juste consulté reste dans WATCH (pour que les
+// prochaines secondes/minutes profitent du cache) mais n'est plus jamais rescanné tout seul ; il ne
+// se rafraîchit qu'à la prochaine vraie requête /data ou /signals (clé "view").
 setInterval(async () => {
   const now = Date.now();
   for (const [k, w] of WATCH) {
-    if (!w.keep && now - w.touched > WATCH_TTL) { WATCH.delete(k); continue; }
+    if (!w.keep) { if (now - w.touched > WATCH_TTL) WATCH.delete(k); continue; }
     const [code, tf] = k.split("|");
     const closedStart = Math.floor(now / TF_MS[tf]) * TF_MS[tf] - TF_MS[tf];
     if (now - (closedStart + TF_MS[tf]) < SCAN_DELAY) continue;
