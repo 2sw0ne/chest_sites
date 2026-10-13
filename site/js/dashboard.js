@@ -4,16 +4,6 @@
   const ACCOUNTS_KEY = 'chest_accounts';
   const ACTIVE_KEY = 'chest_active_account';
   const LIVE_SWANN_KEY = 'chest_live_account';
-  // Dernier identifiant Myfxbook utilisé avec succès dans "Ajouter un compte" (2026-09-24, demande
-  // utilisateur : "pas le mettre à chaque fois") - même principe déjà accepté ailleurs sur ce site
-  // pour Myfxbook (Live Swann, comptes live du Journal : identifiants gardés dans le navigateur).
-  const MFX_LAST_LOGIN_KEY = 'chest_mfx_last_login';
-  function saveLastMfxLogin(email, password) {
-    try { localStorage.setItem(MFX_LAST_LOGIN_KEY, JSON.stringify({ email, password })); } catch (e) { /* tant pis */ }
-  }
-  function loadLastMfxLogin() {
-    try { return JSON.parse(localStorage.getItem(MFX_LAST_LOGIN_KEY) || 'null'); } catch (e) { return null; }
-  }
 
   // Exemple de données — partagées par les comptes de démonstration.
   const SAMPLE_PERIODS = {
@@ -693,7 +683,9 @@
     if (!account.myfxbook) return account;
     if (account.isLiveSwann) return account; // deja resynchronise a chaque chargement, voir tryLoadLiveSwann
     const cached = myfxbookCache[account.id];
-    if (cached && cached.data && Date.now() - cached.at < MYFXBOOK_CACHE_MS) {
+    // Offre « Live » (connect.html) : Myfxbook est en Live Update (temps réel), on le relit chaque minute.
+    const ttl = account.myfxbook.plan === 'live' ? 60 * 1000 : MYFXBOOK_CACHE_MS;
+    if (cached && cached.data && Date.now() - cached.at < ttl) {
       return { ...account, ...cached.data, example: false };
     }
     try {
@@ -1599,83 +1591,6 @@
 
   function closeMenu() { document.getElementById('accMenu').classList.remove('is-open'); }
 
-  // ---------- Assistant "Ajouter un compte" — Myfxbook uniquement (retour
-  // direct utilisateur du 2026-09-15 : le choix MT5-local a ete retire, trop
-  // de friction face a Myfxbook qui ne demande aucun logiciel). Specifique a
-  // CHAQUE compte du Dashboard, contrairement a CHESTBerich (une seule
-  // connexion partagee pour Stratégies/BERICH). ----------
-
-  let chosenBroker = null; // {id, name} ou {id:'other', name: <saisi>} - meme convention que le wizard BERICH
-  let chosenAccountKind = 'own'; // 'own' | 'propfirm' - conditionne l'affichage des payouts et le choix cp/pf du backtest de depart
-  let connMethod = 'myfxbook'; // 'myfxbook' | 'vps' - methode choisie dans la 1re etape de la modale
-  let vpsGenerated = null; // {id, label} une fois l'identifiant VPS genere (voir vps-guide.html)
-
-  // Journal (obligatoire, remplace l'ancien "Backtesting de depart" - 2026-09-29, demande
-  // utilisateur : "myfxbooks remplace juste le choix d'un backetsting par le choix d'un journal...
-  // tout les position noté dans myfxbooks doivent etre enregistrer indépendament et
-  // automatiquement dans un journal soit deja crée soit qu'on doit crée") : la liste vient de
-  // CHESTJournal.listAccounts(), donc repopulee a chaque ouverture pour refleter les comptes du
-  // Journal ajoutes/supprimes depuis journal.html entre-temps.
-  function populateJournalSelect() {
-    const select = document.getElementById('addAccountJournal');
-    const items = (window.CHESTJournal && window.CHESTJournal.listAccounts()) || [];
-    select.innerHTML = '<option value="">— Choisir un journal existant —</option>'
-      + items.map((a) => `<option value="${a.id}">${a.name}</option>`).join('');
-  }
-
-  let chosenPhase = null; // 'phase1' | 'phase2' | 'funded' | null - propfirm reconnue uniquement
-
-  function openAddAccountModal() {
-    chosenBroker = null;
-    chosenAccountKind = 'own';
-    chosenPhase = null;
-    connMethod = 'myfxbook';
-    vpsGenerated = null;
-    document.querySelectorAll('#connMethodToggle button').forEach((b) => {
-      const active = b.dataset.method === 'myfxbook';
-      b.classList.toggle('is-active', active);
-      b.setAttribute('aria-pressed', String(active));
-    });
-    document.getElementById('methodMfxIntro').hidden = false;
-    document.getElementById('methodVpsIntro').hidden = true;
-    document.getElementById('vpsLabelInput').value = '';
-    document.getElementById('vpsGeneratedWrap').hidden = true;
-    document.getElementById('vpsGenerateBtn').hidden = false;
-    document.getElementById('vpsContinueBtn').hidden = true;
-    document.querySelectorAll('#accountKindToggle button').forEach((b) => b.classList.toggle('is-active', b.dataset.kind === 'own'));
-    document.getElementById('accountKindBlock').hidden = true;
-    document.getElementById('objectivesStepBlock').hidden = true;
-    document.getElementById('addAccountPhaseBlock').hidden = true;
-    document.querySelectorAll('#addAccountPhaseToggle button').forEach((b) => b.classList.remove('is-active'));
-    document.getElementById('addAccountRulesNote').textContent = '';
-    populateJournalSelect();
-    document.getElementById('addAccountJournal').value = '';
-    document.getElementById('addAccountJournalNewName').value = '';
-    document.getElementById('mfxStepIntro').hidden = false;
-    document.getElementById('mfxDetailsStep').hidden = true;
-    // Preremplit avec le dernier identifiant Myfxbook connecte avec succes (voir saveLastMfxLogin) -
-    // toujours modifiable si on ajoute un compte d'un AUTRE profil Myfxbook.
-    const lastMfx = loadLastMfxLogin();
-    document.getElementById('mfxEmail').value = (lastMfx && lastMfx.email) || '';
-    document.getElementById('mfxPassword').value = (lastMfx && lastMfx.password) || '';
-    document.getElementById('mfxLoginError').style.display = 'none';
-    document.getElementById('mfxLoginForm').hidden = false;
-    document.getElementById('mfxAccountsPicker').hidden = true;
-    document.getElementById('addAccountBrokerOther').value = '';
-    document.getElementById('addAccountBrokerOther').style.display = 'none';
-    ['objMinDays', 'objProfitTarget', 'objMaxDailyLoss', 'objMaxLoss'].forEach((id) => { document.getElementById(id).value = ''; });
-    document.querySelectorAll('#addAccountBrokerGrid .broker-card-sm').forEach((c) => c.classList.remove('is-selected'));
-    document.getElementById('addAccountModal').classList.add('is-open');
-  }
-  function closeAddAccountModal() {
-    document.getElementById('addAccountModal').classList.remove('is-open');
-  }
-
-  // Supprimer un compte (2026-09-24, demande utilisateur) - CHESTConfirm() plutôt qu'un
-  // window.confirm() natif, qui ne fonctionne pas dans ce panneau d'aperçu intégré (voir
-  // js/confirm-dialog.js). Ne supprime QUE le miroir du Dashboard (chest_accounts) - le compte du
-  // Journal et tout son historique de trades restent intacts (2026-09-29, demande utilisateur :
-  // "si ils sont supprimer les infos reste dans leur journal").
   async function deleteAccount(id) {
     const accounts = loadAccounts();
     const account = accounts.find((a) => a.id === id);
@@ -1688,320 +1603,6 @@
     showToast('Compte supprimé');
   }
 
-  function finalizeNewAccount(fields, presetId) {
-    const accounts = loadAccounts().filter((a) => a.id !== 'live-swann');
-    const id = presetId || ('acc-' + Date.now());
-    accounts.push({ id, ...fields });
-    saveAccounts(accounts);
-    localStorage.setItem(ACTIVE_KEY, id);
-    closeAddAccountModal();
-    closeMenu();
-    renderAll();
-    showToast('Compte ajouté ✓');
-  }
-
-  function readObjectives() {
-    const minDays = parseFloat(document.getElementById('objMinDays').value);
-    const profitTarget = parseFloat(document.getElementById('objProfitTarget').value);
-    const maxDailyLoss = parseFloat(document.getElementById('objMaxDailyLoss').value);
-    const maxLoss = parseFloat(document.getElementById('objMaxLoss').value);
-    // Rien de rempli -> pas de regles de challenge pour ce compte (compte
-    // perso classique) : on garde `null`, jamais de fausses regles inventees.
-    if ([minDays, profitTarget, maxDailyLoss, maxLoss].every((v) => isNaN(v))) return null;
-    return {
-      minTradingDays: isNaN(minDays) ? 0 : minDays,
-      profitTargetPct: isNaN(profitTarget) ? 0 : profitTarget,
-      maxDailyLossPct: isNaN(maxDailyLoss) ? 0 : maxDailyLoss,
-      maxLossPct: isNaN(maxLoss) ? 0 : maxLoss,
-    };
-  }
-
-  function initAddAccountModal() {
-    document.getElementById('addAccountClose').addEventListener('click', closeAddAccountModal);
-    document.getElementById('addAccountModal').addEventListener('click', (e) => {
-      if (e.target.id === 'addAccountModal') closeAddAccountModal();
-    });
-
-    // ---- Méthode de connexion : MyFxBook (par défaut) ou VPS personnel (2026-10-13) ----
-    document.querySelectorAll('#connMethodToggle button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#connMethodToggle button').forEach((b) => { b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); });
-        btn.classList.add('is-active');
-        btn.setAttribute('aria-pressed', 'true');
-        connMethod = btn.dataset.method;
-        document.getElementById('methodMfxIntro').hidden = connMethod !== 'myfxbook';
-        document.getElementById('methodVpsIntro').hidden = connMethod !== 'vps';
-      });
-    });
-
-    function apiBase() { return (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080'; }
-    function authHeaders() {
-      const token = window.CHESTAccounts && window.CHESTAccounts.getToken();
-      return token ? { Authorization: 'Bearer ' + token } : {};
-    }
-    document.getElementById('vpsGenerateBtn').addEventListener('click', async () => {
-      const label = document.getElementById('vpsLabelInput').value.trim() || 'Mon VPS';
-      const btn = document.getElementById('vpsGenerateBtn');
-      btn.disabled = true; btn.textContent = 'Génération…';
-      try {
-        const res = await fetch(`${apiBase()}/vps/register`, {
-          method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-          body: JSON.stringify({ label }),
-        });
-        const data = await res.json();
-        if (!data.id) throw new Error('no id');
-        vpsGenerated = { id: data.id, label };
-        document.getElementById('vpsGeneratedWrap').hidden = false;
-        document.getElementById('vpsGeneratedId').value = data.id;
-        btn.hidden = true;
-        document.getElementById('vpsContinueBtn').hidden = false;
-      } catch (e) {
-        showToast("Impossible de générer l'identifiant pour l'instant.");
-      } finally {
-        btn.disabled = false; btn.textContent = 'Générer mon identifiant';
-      }
-    });
-    document.getElementById('vpsCopyBtn').addEventListener('click', () => {
-      const input = document.getElementById('vpsGeneratedId');
-      input.select();
-      navigator.clipboard && navigator.clipboard.writeText(input.value).catch(() => {});
-      showToast('Copié ✓');
-    });
-    document.getElementById('vpsContinueBtn').addEventListener('click', () => {
-      if (!vpsGenerated) return;
-      document.getElementById('mfxStepIntro').hidden = true;
-      document.getElementById('mfxDetailsStep').hidden = false;
-    });
-
-    // Grille de brokers (meme liste que le wizard BERICH/Stratégies, window.CHEST_BROKERS)
-    // - identite du compte par broker+numero, plus de nom libre a taper.
-    const brokerGrid = document.getElementById('addAccountBrokerGrid');
-    brokerGrid.innerHTML = window.CHEST_BROKERS.map((b) => `
-      <button type="button" class="broker-card-sm" data-broker-id="${b.id}">
-        <img src="${chestBrokerLogo(b.domain)}" alt="" onerror="this.remove()">
-        <span>${b.name}</span>
-      </button>`).join('') + `
-      <button type="button" class="broker-card-sm" data-broker-id="other">
-        <span class="broker-card-sm__icon">✎</span>
-        <span>Autre</span>
-      </button>`;
-
-    // Reinitialise le bloc "Objectifs" pour refleter le broker choisi -
-    // un broker classique (kind:'broker') n'ouvre JAMAIS les parametres de
-    // propfirm, un propfirm reconnu (kind:'propfirm') affiche direct les
-    // boutons de phase prereplis - retour direct utilisateur du 2026-09-16
-    // ("quand on choisit le broker, ca n'ouvre pas les parametres de
-    // propfirm ; quand je choisis une propfirm, ca me met le volet avec les
-    // parametres preremplis selon la phase").
-    function applyBrokerObjectivesUI(b) {
-      const kindBlock = document.getElementById('accountKindBlock');
-      const objBlock = document.getElementById('objectivesStepBlock');
-      const phaseBlock = document.getElementById('addAccountPhaseBlock');
-      const noteEl = document.getElementById('addAccountRulesNote');
-      document.querySelectorAll('#addAccountPhaseToggle button').forEach((btn) => btn.classList.remove('is-active'));
-      chosenPhase = null;
-      if (b && b.kind === 'propfirm') {
-        chosenAccountKind = 'propfirm';
-        kindBlock.hidden = true;
-        objBlock.hidden = false;
-        phaseBlock.hidden = !b.rules;
-        noteEl.textContent = b.rulesNote || '';
-        ['objMinDays', 'objProfitTarget', 'objMaxDailyLoss', 'objMaxLoss'].forEach((id) => { document.getElementById(id).value = ''; });
-      } else if (b && b.kind === 'broker') {
-        chosenAccountKind = 'own';
-        kindBlock.hidden = true;
-        objBlock.hidden = true;
-      } else {
-        // "Autre" - kind inconnu, l'utilisateur tranche lui-meme.
-        kindBlock.hidden = false;
-        document.querySelectorAll('#accountKindToggle button').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.kind === 'own'));
-        chosenAccountKind = 'own';
-        objBlock.hidden = true;
-        phaseBlock.hidden = true;
-        noteEl.textContent = '';
-      }
-    }
-
-    brokerGrid.querySelectorAll('.broker-card-sm').forEach((card) => {
-      card.addEventListener('click', () => {
-        brokerGrid.querySelectorAll('.broker-card-sm').forEach((c) => c.classList.remove('is-selected'));
-        card.classList.add('is-selected');
-        const id = card.dataset.brokerId;
-        const otherInput = document.getElementById('addAccountBrokerOther');
-        if (id === 'other') {
-          chosenBroker = { id: 'other', name: '' };
-          otherInput.style.display = '';
-          otherInput.focus();
-          applyBrokerObjectivesUI(null);
-        } else {
-          const b = window.CHEST_BROKERS.find((x) => x.id === id);
-          chosenBroker = { id: b.id, name: b.name, kind: b.kind, rules: b.rules };
-          otherInput.style.display = 'none';
-          applyBrokerObjectivesUI(b);
-        }
-      });
-    });
-    document.getElementById('addAccountBrokerOther').addEventListener('input', (e) => {
-      if (chosenBroker && chosenBroker.id === 'other') chosenBroker.name = e.target.value.trim();
-    });
-
-    document.querySelectorAll('#accountKindToggle button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#accountKindToggle button').forEach((b) => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        chosenAccountKind = btn.dataset.kind;
-        document.getElementById('objectivesStepBlock').hidden = chosenAccountKind !== 'propfirm';
-      });
-    });
-
-    document.querySelectorAll('#addAccountPhaseToggle button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#addAccountPhaseToggle button').forEach((b) => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        chosenPhase = btn.dataset.phase;
-        const rules = chosenBroker && chosenBroker.rules && chosenBroker.rules[chosenPhase];
-        if (rules) {
-          document.getElementById('objMinDays').value = rules.minTradingDays ?? '';
-          document.getElementById('objProfitTarget').value = rules.profitTargetPct ?? '';
-          document.getElementById('objMaxDailyLoss').value = rules.maxDailyLossPct ?? '';
-          document.getElementById('objMaxLoss').value = rules.maxLossPct ?? '';
-        }
-      });
-    });
-
-    document.getElementById('mfxDetailsBack').addEventListener('click', () => {
-      document.getElementById('mfxDetailsStep').hidden = true;
-      document.getElementById('mfxStepIntro').hidden = false;
-    });
-
-    // ---- Méthode VPS : même étape broker/objectifs/journal que MyFxBook, juste une source
-    // différente pour le compte live (voir vpsGenerated, rempli par vpsGenerateBtn plus haut). ----
-    function finishVpsAccount() {
-      if (!chosenBroker || !chosenBroker.name) { showToast('Choisis un broker/propfirm'); return; }
-      if (!vpsGenerated) return;
-      let journalAccountId = document.getElementById('addAccountJournal').value || null;
-      const newJournalName = document.getElementById('addAccountJournalNewName').value.trim();
-      if (!journalAccountId && newJournalName && window.CHESTJournal) {
-        const created = window.CHESTJournal.addAccount({
-          name: newJournalName, type: 'own', propfirmId: null, modelId: null, stage: null,
-          balance: 0, riskUnit: 'pct', riskValue: 1,
-          connectionMode: 'manual', mode: 'manual', rules: null, live: [],
-        });
-        journalAccountId = created.id;
-      }
-      if (!journalAccountId) { showToast('Un journal est obligatoire — choisis-en un existant, ou tape un nom pour en créer un nouveau.'); return; }
-      let journalLiveId = null;
-      if (window.CHESTJournal) {
-        const live = window.CHESTJournal.addLiveAccount(journalAccountId, {
-          kind: 'vps', name: `${chosenBroker.name} · ${vpsGenerated.label}`, vpsId: vpsGenerated.id,
-        });
-        if (live) {
-          journalLiveId = live.id;
-          window.CHESTJournal.syncVpsLiveAccount(journalAccountId, live.id).catch(() => { /* resynchronisable depuis journal.html */ });
-        }
-      }
-      finalizeNewAccount({
-        name: `${chosenBroker.name} · ${vpsGenerated.label}`, number: '—',
-        type: 'Réel', broker: chosenBroker.name, brokerId: chosenBroker.id,
-        balance: 0, equity: 0, pnl: 0, today: 0,
-        example: false, vps: { id: vpsGenerated.id }, journalAccountId, journalLiveId,
-        challengeObjectives: readObjectives(), isPropfirm: chosenAccountKind === 'propfirm',
-        payouts: [], objectivesResetAt: isoDateLocal(new Date()),
-      });
-    }
-
-    document.getElementById('addAccountFinish').addEventListener('click', () => {
-      if (connMethod === 'vps') { finishVpsAccount(); return; }
-      if (!chosenBroker || !chosenBroker.name) { showToast('Choisis un broker/propfirm'); return; }
-      if (!mfxSelected) return;
-      const email = document.getElementById('mfxEmail').value.trim();
-      const password = document.getElementById('mfxPassword').value;
-      // Journal OBLIGATOIRE (2026-09-29, demande utilisateur : "tout les position noté dans
-      // myfxbooks doivent etre enregistrer indépendament et automatiquement dans un journal soit
-      // deja crée soit qu'on doit crée") - un journal existant est choisi, ou un nouveau nom tape
-      // cree un journal vierge a la volee.
-      let journalAccountId = document.getElementById('addAccountJournal').value || null;
-      const newJournalName = document.getElementById('addAccountJournalNewName').value.trim();
-      if (!journalAccountId && newJournalName && window.CHESTJournal) {
-        const created = window.CHESTJournal.addAccount({
-          name: newJournalName, type: 'own', propfirmId: null, modelId: null, stage: null,
-          balance: parseFloat(mfxSelected.balance) || 0, riskUnit: 'pct', riskValue: 1,
-          connectionMode: 'manual', mode: 'manual', rules: null, live: [],
-        });
-        journalAccountId = created.id;
-      }
-      if (!journalAccountId) { showToast('Un journal est obligatoire — choisis-en un existant, ou tape un nom pour en créer un nouveau.'); return; }
-      // Le compte Myfxbook devient AUSSI un "compte live" du Journal choisi (meme mecanisme que
-      // journal.html - voir CHESTJournal.addLiveAccount/syncLiveAccount) - ses positions Myfxbook
-      // rejoignent le journal, vierge ou deja rempli, en plus de leur affichage normal sur ce
-      // compte du Dashboard. `journalLiveId` permet de deplacer cet enregistrement plus tard (voir
-      // reattachAccountToJournal) si le compte est rattache a un AUTRE journal.
-      let journalLiveId = null;
-      if (window.CHESTJournal) {
-        const live = window.CHESTJournal.addLiveAccount(journalAccountId, {
-          name: `${chosenBroker.name} · #${mfxSelected.id}`, email, password, accountId: mfxSelected.id,
-          demo: !!mfxSelected.demo, currency: mfxSelected.currency || null,
-        });
-        if (live) {
-          journalLiveId = live.id;
-          window.CHESTJournal.syncLiveAccount(journalAccountId, live.id).catch(() => { /* resynchronisable depuis journal.html */ });
-        }
-      }
-      finalizeNewAccount({
-        name: `${chosenBroker.name} · #${mfxSelected.id}`, number: String(mfxSelected.id),
-        type: mfxSelected.demo ? 'Démo' : 'Réel', broker: chosenBroker.name, brokerId: chosenBroker.id,
-        balance: parseFloat(mfxSelected.balance) || 0, equity: parseFloat(mfxSelected.equity) || 0, pnl: 0, today: 0,
-        example: false, myfxbook: { email, password, accountId: mfxSelected.id }, journalAccountId, journalLiveId,
-        challengeObjectives: readObjectives(), isPropfirm: chosenAccountKind === 'propfirm',
-        payouts: [], objectivesResetAt: isoDateLocal(new Date()),
-      });
-    });
-
-    // ---- Login Myfxbook -> choix du compte -> broker/propfirm + objectifs ----
-    let mfxAccounts = [];
-    let mfxSelected = null;
-
-    document.getElementById('mfxConnectBtn').addEventListener('click', async () => {
-      const email = document.getElementById('mfxEmail').value.trim();
-      const password = document.getElementById('mfxPassword').value;
-      const errEl = document.getElementById('mfxLoginError');
-      errEl.style.display = 'none';
-      if (!email || !password) { errEl.textContent = 'Email et mot de passe requis.'; errEl.style.display = ''; return; }
-
-      const btn = document.getElementById('mfxConnectBtn');
-      btn.disabled = true; btn.textContent = 'Connexion…';
-      try {
-        const session = await CHESTMyfxbook.login(email, password);
-        mfxAccounts = await CHESTMyfxbook.getMyAccounts(session);
-        CHESTMyfxbook.logout(session);
-        saveLastMfxLogin(email, password); // identifiants valides - reutilises au prochain "Ajouter un compte"
-        if (!mfxAccounts.length) {
-          errEl.textContent = "Aucun compte relié à ce profil Myfxbook — va d'abord sur myfxbook.com > Portfolio > Add Account.";
-          errEl.style.display = '';
-          return;
-        }
-        const picker = document.getElementById('mfxAccountsPicker');
-        picker.hidden = false;
-        document.getElementById('mfxAccountsList').innerHTML = mfxAccounts.map((a, i) => `
-          <button type="button" class="mfx-account-row" data-i="${i}">
-            <span><strong>${a.name}</strong><span>${a.demo ? 'Démo' : 'Réel'} · ${a.currency || ''}</span></span>
-            <b>${money(parseFloat(a.balance) || 0)}</b>
-          </button>`).join('');
-        document.querySelectorAll('#mfxAccountsList .mfx-account-row').forEach((row) => {
-          row.addEventListener('click', () => {
-            mfxSelected = mfxAccounts[Number(row.dataset.i)];
-            document.getElementById('mfxStepIntro').hidden = true;
-            document.getElementById('mfxDetailsStep').hidden = false;
-          });
-        });
-      } catch (e) {
-        errEl.textContent = e.message;
-        errEl.style.display = '';
-      } finally {
-        btn.disabled = false; btn.textContent = 'Se connecter';
-      }
-    });
-  }
 
   async function renderAll() {
     const raw = currentAccount();
@@ -2072,16 +1673,15 @@
       if (!document.getElementById('accSwitcher').contains(e.target)) closeMenu();
     });
 
-    initAddAccountModal();
     // Ouvre directement "Ajouter un compte" (2026-09-27/29, demande utilisateur : "on va oublier les
     // familles" / "à côté une fonction d'ajouter un compte un petit +") - chaque compte se rattache
     // a un compte du Journal (voir addAccountFinish), plus de famille a creer.
-    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => openAddAccountModal());
+    document.getElementById('dashEmptyAddBtn').addEventListener('click', () => { window.location.href = 'connect.html'; });
     initReattachJournalModal();
     initPayoutModal();
     initEditObjectivesModal();
     initMiniCalSettings();
-    document.getElementById('familyAddBtn').addEventListener('click', () => openAddAccountModal());
+    document.getElementById('familyAddBtn').addEventListener('click', () => { window.location.href = 'connect.html'; });
 
     const unitButtons = document.querySelectorAll('#unitToggle button');
     unitButtons.forEach((btn) => {

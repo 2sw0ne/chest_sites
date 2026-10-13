@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connecter un compte — CHEST</title>
+<link rel="icon" type="image/png" href="assets/logo-chest.png">
+<style>html,body{background:#050505}</style>
+<script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=4">
+<link rel="stylesheet" href="css/chest-da.css?v=18">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
+<link rel="stylesheet" href="css/connect-da.css?v=1">
+<script src="js/theme.js?v=2"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/config.local.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/accounts-auth.js?v=2"></script>
+<script src="js/sync-store.js?v=8"></script>
+<script>CHESTAccounts.guard();</script>
+</head>
+<body data-page="connect" class="chest-root">
+
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 22 112" preserveAspectRatio="none"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+      <a href="school.html" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <div class="cx">
+      <section class="cx-stage" id="cxOffers">
+        <div class="cx-ghost" aria-hidden="true">Connexion</div>
+        <div class="cx-glow" aria-hidden="true"></div>
+        <span class="cx-kicker">Connecter un compte</span>
+        <h1 class="cx-h1"><span>Trois façons de relier ton compte.</span></h1>
+        <p class="cx-sub">Une seule fois : ensuite Dashboard, Journal et BERICH lisent tes vrais chiffres. Choisis selon ce que tu attends — tu peux combiner plus tard.</p>
+
+        <div class="cx-goal">
+          <small id="cxGoalLabel">Ce que tu veux avant tout</small>
+          <div class="cx-seg" role="group" aria-labelledby="cxGoalLabel" id="cxGoal">
+            <button type="button" data-goal="stats" aria-pressed="true">Suivre mes stats</button>
+            <button type="button" data-goal="live" aria-pressed="false">Voir en temps réel</button>
+            <button type="button" data-goal="trade" aria-pressed="false">Trader BERICH 24/24</button>
+          </div>
+        </div>
+
+        <div class="cx-plans" id="cxPlans"></div>
+
+        <div class="cx-compare-toggle">
+          <button type="button" class="cx-link" id="cxCompareBtn" aria-expanded="false" aria-controls="cxCompare">
+            Tout comparer
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="cx-compare" id="cxCompare" hidden>
+          <table>
+            <thead><tr><th></th><th>Essentiel</th><th>Live</th><th>Pro · VPS</th></tr></thead>
+            <tbody>
+              <tr><th>Fraîcheur des chiffres</th><td>Toutes les 2 à 4 h</td><td class="cx-yes">Temps réel</td><td class="cx-yes">Toutes les 30 s</td></tr>
+              <tr><th>Historique des trades dans le Journal</th><td class="cx-yes">Automatique (50 dernières transactions par synchro)</td><td class="cx-yes">Automatique</td><td class="cx-no">Non — à combiner avec MyFxBook</td></tr>
+              <tr><th>Positions ouvertes</th><td class="cx-no">Non</td><td class="cx-no">Non</td><td class="cx-yes">Oui, avec leur résultat latent</td></tr>
+              <tr><th>Exécution des signaux BERICH</th><td class="cx-no">Non</td><td class="cx-no">Non</td><td class="cx-yes">Oui, EA BERICH sur ton VPS</td></tr>
+              <tr><th>Logiciel à laisser ouvert</th><td class="cx-yes">Aucun</td><td class="cx-yes">Aucun</td><td>MT5 sur le VPS (allumé 24/24)</td></tr>
+              <tr><th>Identifiants confiés</th><td>Myfxbook (mot de passe investisseur côté broker)</td><td>Myfxbook (mot de passe investisseur côté broker)</td><td>Aucun : un identifiant CHEST à coller dans l'EA</td></tr>
+              <tr><th>Coût</th><td>Gratuit</td><td>Abonnement Live Update chez Myfxbook</td><td>Location du VPS, dès 8,40 $/mois</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="cx-flow" id="cxFlow" hidden aria-live="polite">
+        <aside class="cx-rail">
+          <div class="cx-rail__plan">
+            <div><b id="cxFlowPlan">—</b><small id="cxFlowPlanSub"></small></div>
+            <button type="button" class="cx-link" id="cxChangePlan" style="padding:6px 0">Changer</button>
+          </div>
+          <ol class="cx-steps" id="cxSteps"></ol>
+        </aside>
+        <div class="cx-panel">
+          <span class="cx-panel__num" id="cxStepNum"></span>
+          <h2 id="cxStepTitle" tabindex="-1"></h2>
+          <p class="cx-panel__lead" id="cxStepLead"></p>
+          <div class="cx-panel__body" id="cxStepBody"></div>
+          <div class="cx-actions" id="cxActions">
+            <button type="button" class="cx-btn-2" id="cxBack">← Retour</button>
+            <div class="cx-actions__right">
+              <button type="button" class="cx-btn-2" id="cxAlt" hidden></button>
+              <button type="button" class="cx-btn" id="cxNext">Continuer</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="js/nav.js?v=2"></script>
+<script src="js/chest-ui.js?v=2"></script>
+<script src="js/myfxbook-store.js?v=5"></script>
+<script src="js/berich-brokers.js"></script>
+<script src="js/berich-store.js"></script>
+<script src="js/propfirm-rules.js"></script>
+<script src="js/journal-store.js?v=9"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nf = (v, d) => Number(v).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const money = (v) => (v < 0 ? '−' : '') + '$' + nf(Math.abs(v), 2);
+  const num = (v) => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const isoDateLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const apiBase = () => (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+  const authHeaders = () => { const t = CHESTAccounts.getToken(); return t ? { Authorization: 'Bearer ' + t } : {}; };
+  const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const DASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 12h10" stroke-linecap="round"/></svg>';
+  const INFO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>';
+  function ago(ms) {
+    const m = Math.round(ms / 60000);
+    if (m < 1) return "à l'instant"; if (m < 60) return `il y a ${m} min`;
+    const h = Math.round(m / 60); if (h < 24) return `il y a ${h} h`; return `il y a ${Math.round(h / 24)} j`;
+  }
+
+  // ================= Offres =================
+  // Faits Myfxbook (aide officielle, relue le 2026-10-13) : Auto Update gratuit = mise à jour toutes les 2 à 4 h,
+  // Live Update payant = temps réel. Le prix du Live Update est fixé par Myfxbook (offres Single / Flexible) ;
+  // CHEST ne perçoit rien sur aucune offre.
+  const PLANS = {
+    essentiel: {
+      name: 'Essentiel', price: 'Gratuit', per: '', who: 'Pour suivre ses stats sans rien installer',
+      desc: 'MyFxBook en Auto Update : ton compte remonte tout seul, ton Journal se remplit automatiquement.',
+      method: 'myfxbook', mfxPlan: 'auto',
+      feats: [[1, 'Dashboard, Journal et BERICH alimentés'], [1, 'Historique des trades importé dans le Journal'], [1, 'Aucun logiciel à laisser ouvert'], [1, 'Chiffres mis à jour toutes les 2 à 4 h'], [0, 'Pas de temps réel ni de positions ouvertes']],
+      fine: 'Mot de passe investisseur (lecture seule) côté broker.',
+    },
+    live: {
+      name: 'Live', price: '≈ 5 $', per: '/mois', who: 'Abonnement Live Update, payé à Myfxbook',
+      desc: 'Même connexion MyFxBook, mais en temps réel : CHEST relit ton compte chaque minute.',
+      method: 'myfxbook', mfxPlan: 'live',
+      feats: [[1, 'Tout ce que contient Essentiel'], [1, 'Chiffres en temps réel côté Myfxbook'], [1, 'CHEST rafraîchit chaque minute (au lieu de 5)'], [1, 'Aucun logiciel à laisser ouvert'], [0, 'Pas de positions ouvertes en direct']],
+      fine: 'Tarif fixé par Myfxbook (offres Single ou Flexible) — CHEST ne perçoit rien.',
+    },
+    pro: {
+      name: 'Pro · VPS', price: '8,40 $', per: '/mois', who: 'Location d\'un VPS chez ForexCheapVPS',
+      desc: 'Ton MT5 tourne 24/24 sur ton propre serveur : solde, équité et positions toutes les 30 s, et BERICH peut y exécuter ses signaux.',
+      method: 'vps',
+      feats: [[1, 'Solde, équité et positions toutes les 30 s'], [1, 'Positions ouvertes avec leur résultat latent'], [1, 'Exécution des signaux BERICH sur ton VPS'], [1, 'Aucun identifiant confié à CHEST'], [0, 'Historique : à combiner avec MyFxBook']],
+      fine: 'Prix indicatif du plan Standard M-4 (engagement annuel) — 12 $/mois sans engagement.',
+    },
+  };
+  const GOAL_PLAN = { stats: 'essentiel', live: 'live', trade: 'pro' };
+  const params = new URLSearchParams(location.search);
+  let goal = params.get('from') === 'berich' ? 'trade' : 'stats';
+
+  function renderPlans() {
+    const reco = GOAL_PLAN[goal];
+    $('cxPlans').innerHTML = Object.entries(PLANS).map(([key, p]) => `
+      <article class="cx-plan ${key === reco ? 'is-reco' : ''}" aria-label="Offre ${esc(p.name)}">
+        <span class="cx-plan__badge">Recommandé pour toi</span>
+        <div class="cx-plan__name">${esc(p.name)}</div>
+        <div class="cx-plan__price"><b>${esc(p.price)}</b>${p.per ? `<span>${esc(p.per)}</span>` : ''}</div>
+        <div class="cx-plan__who">${esc(p.who)}</div>
+        <p class="cx-plan__desc">${esc(p.desc)}</p>
+        <ul class="cx-feats">
+          ${p.feats.map(([on, t]) => `<li class="${on ? '' : 'is-off'}"><span class="cx-check" aria-hidden="true">${on ? CHECK : DASH}</span><span><span class="cx-sr">${on ? 'Inclus : ' : 'Non inclus : '}</span>${esc(t)}</span></li>`).join('')}
+        </ul>
+        <div class="cx-plan__cta"><button type="button" class="cx-pill" data-plan="${key}">Choisir ${esc(p.name.split(' ')[0])}</button></div>
+        <p class="cx-plan__fine">${esc(p.fine)}</p>
+      </article>`).join('');
+    $('cxPlans').querySelectorAll('[data-plan]').forEach((b) => b.addEventListener('click', () => startFlow(b.dataset.plan)));
+  }
+  $('cxGoal').querySelectorAll('button').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.goal === goal));
+    b.addEventListener('click', () => {
+      goal = b.dataset.goal;
+      $('cxGoal').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      renderPlans();
+    });
+  });
+  $('cxCompareBtn').addEventListener('click', () => {
+    const open = $('cxCompare').hidden;
+    $('cxCompare').hidden = !open;
+    $('cxCompareBtn').setAttribute('aria-expanded', String(open));
+  });
+
+  // ================= Parcours =================
+  const STEPS = {
+    myfxbook: ['prep', 'login', 'account', 'broker', 'journal', 'recap'],
+    vps: ['vps', 'id', 'ea', 'verify', 'broker', 'journal', 'recap'],
+  };
+  const LABEL = { prep: 'Préparer Myfxbook', login: 'Se connecter', account: 'Choisir le compte', broker: 'Broker & règles', journal: 'Journal', recap: 'Confirmer', vps: 'Ton VPS', id: 'Identifiant CHEST', ea: "Installer l'EA", verify: 'Vérification en direct' };
+  const F = { plan: null, method: null, i: 0, d: {} };
+
+  function freshData() {
+    const last = (() => { try { return JSON.parse(localStorage.getItem('chest_mfx_last_login') || 'null'); } catch (e) { return null; } })();
+    return {
+      email: (last && last.email) || '', password: (last && last.password) || '',
+      mfxAccounts: null, mfxSelected: null,
+      broker: null, brokerOther: '', detected: null, accountKind: 'own', phase: null, objectives: { minTradingDays: '', profitTargetPct: '', maxDailyLossPct: '', maxLossPct: '' },
+      journalMode: null, journalId: params.get('journal') || '', journalName: '',
+      hasVps: null, vpsLabel: '', vpsId: null, vpsData: null,
+      useForBerich: params.get('from') === 'berich' || !localStorage.getItem('chest_berich_linked_account'),
+    };
+  }
+  function startFlow(planKey) {
+    F.plan = planKey; F.method = PLANS[planKey].method; F.i = 0; F.d = freshData();
+    $('cxOffers').hidden = true; $('cxFlow').hidden = false;
+    $('cxFlowPlan').textContent = PLANS[planKey].name;
+    $('cxFlowPlanSub').textContent = PLANS[planKey].method === 'vps' ? 'VPS personnel' : (PLANS[planKey].mfxPlan === 'live' ? 'MyFxBook · Live Update' : 'MyFxBook · Auto Update');
+    try { history.replaceState(null, '', `?plan=${planKey}${params.get('from') ? '&from=' + params.get('from') : ''}`); } catch (e) { /* tant pis */ }
+    renderStep();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function backToOffers() {
+    stopPolling();
+    $('cxFlow').hidden = true; $('cxOffers').hidden = false;
+    try { history.replaceState(null, '', location.pathname); } catch (e) { /* tant pis */ }
+  }
+  $('cxChangePlan').addEventListener('click', backToOffers);
+
+  const steps = () => STEPS[F.method];
+  const stepKey = () => steps()[F.i];
+
+  function renderRail() {
+    $('cxSteps').innerHTML = steps().map((k, i) => `
+      <li class="${i < F.i ? 'is-done' : i === F.i ? 'is-current' : ''}" ${i === F.i ? 'aria-current="step"' : ''}>
+        <i>${i < F.i ? CHECK.replace('stroke-width="3"', 'stroke-width="3" width="12" height="12"') : i + 1}</i><span>${LABEL[k]}</span>
+      </li>`).join('');
+  }
+
+  function setActions({ next = 'Continuer', nextDisabled = false, alt = null, hideBack = false, hideAll = false } = {}) {
+    $('cxActions').hidden = hideAll;
+    $('cxBack').hidden = hideBack;
+    $('cxBack').textContent = F.i === 0 ? '← Offres' : '← Retour';
+    $('cxNext').textContent = next;
+    $('cxNext').disabled = nextDisabled;
+    $('cxAlt').hidden = !alt;
+    if (alt) $('cxAlt').textContent = alt;
+  }
+  function head(title, lead) {
+    $('cxStepNum').textContent = `Étape ${F.i + 1} sur ${steps().length}`;
+    $('cxStepTitle').textContent = title;
+    $('cxStepLead').innerHTML = lead;
+  }
+
+  function renderStep() {
+    stopPolling();
+    renderRail();
+    const body = $('cxStepBody');
+    body.style.animation = 'none'; void body.offsetWidth; body.style.animation = '';
+    RENDER[stepKey()](body);
+  }
+  function go(delta) {
+    const n = F.i + delta;
+    if (n < 0) { backToOffers(); return; }
+    F.i = Math.min(n, steps().length - 1);
+    renderStep();
+    $('cxStepTitle').focus({ preventScroll: true });
+  }
+  $('cxBack').addEventListener('click', () => go(-1));
+  $('cxNext').addEventListener('click', async () => {
+    const h = NEXT[stepKey()];
+    if (h) { const ok = await h(); if (!ok) return; }
+    if (stepKey() === 'recap') return; // la confirmation gère sa propre suite
+    go(1);
+  });
+  $('cxAlt').addEventListener('click', () => { const h = ALT[stepKey()]; if (h) h(); });
+
+  // ---------- Détection du broker depuis le nom de serveur MT (Myfxbook ou EA) ----------
+  // Ordre de confiance : préfixe de serveur connu (ex. "VantageMarkets-Live 3" -> "vantagemarkets"), puis nom
+  // du broker. Jamais un identifiant court seul ("ig", "xm") : il se retrouverait par hasard dans n'importe quel nom.
+  function detectBroker(...hints) {
+    const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const hay = norm(hints.filter(Boolean).join(' '));
+    if (!hay) return null;
+    const stem = (s) => norm(s).replace(/(live|demo|server|real|mt5)\d*$/, '').replace(/(live|demo|server|real|mt5)$/, '');
+    return window.CHEST_BROKERS.find((b) => (b.servers || []).some((s) => { const st = stem(s); return st.length >= 4 && hay.includes(st); }))
+      || window.CHEST_BROKERS.find((b) => { const n = norm(b.name); return n.length >= 4 && hay.includes(n); })
+      || null;
+  }
+  function pickBroker(b) {
+    F.d.broker = b ? { id: b.id, name: b.name, kind: b.kind, rules: b.rules || null, rulesNote: b.rulesNote || '' } : null;
+    F.d.accountKind = b && b.kind === 'propfirm' ? 'propfirm' : 'own';
+    F.d.phase = null;
+  }
+
+  const RENDER = {}, NEXT = {}, ALT = {};
+
+  // ---------- Myfxbook : préparation ----------
+  RENDER.prep = (body) => {
+    const live = PLANS[F.plan].mfxPlan === 'live';
+    head('Prépare ton compte sur Myfxbook', 'Myfxbook lit ton compte MT4/MT5 à ta place, CHEST lit Myfxbook. À faire une seule fois, sur <b>myfxbook.com</b>.');
+    body.innerHTML = `
+      <ol class="cx-todo">
+        <li><span>Crée un compte <b>gratuit</b> sur <a href="https://www.myfxbook.com" target="_blank" rel="noopener">myfxbook.com</a> si tu n'en as pas.</span></li>
+        <li><span><b>Portfolio → Add Account</b> : ton broker, ton numéro de compte et ton <b>mot de passe investisseur</b> (lecture seule — jamais ton mot de passe de trading).</span></li>
+        <li><span>Méthode de mise à jour : ${live ? '<b>Live Update</b> (payante, temps réel — offre Single ou Flexible dans les réglages de ton compte Myfxbook).' : '<b>Auto Update</b> (gratuite, mise à jour toutes les 2 à 4 h, aucun logiciel à laisser ouvert).'}</span></li>
+      </ol>
+      ${live ? `<div class="cx-callout">${INFO}<span>Live Update se paie <b>directement à Myfxbook</b>, CHEST ne perçoit rien. Si tu l'actives plus tard, rien à refaire ici : la synchronisation devient simplement plus rapide.</span></div>` : ''}`;
+    setActions({ next: 'C\'est fait' });
+  };
+
+  // ---------- Myfxbook : identifiants ----------
+  RENDER.login = (body) => {
+    head('Connecte-toi à Myfxbook', 'E-mail et mot de passe de ton compte <b>Myfxbook</b> — pas ceux de ton broker. Ils restent dans ce navigateur et ne servent qu\'à lire ton compte.');
+    body.innerHTML = `
+      <div class="cx-fields">
+        <div class="cx-field"><label for="cxEmail">E-mail Myfxbook</label><input id="cxEmail" type="email" autocomplete="username" value="${esc(F.d.email)}"></div>
+        <div class="cx-field"><label for="cxPass">Mot de passe Myfxbook</label><input id="cxPass" type="password" autocomplete="current-password" value="${esc(F.d.password)}" aria-describedby="cxLoginErr"></div>
+        <p class="cx-err" id="cxLoginErr" hidden></p>
+      </div>`;
+    setActions({ next: 'Se connecter' });
+    const focus = F.d.email ? $('cxPass') : $('cxEmail');
+    setTimeout(() => focus.focus(), 60);
+    body.querySelectorAll('input').forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('cxNext').click(); }));
+  };
+  NEXT.login = async () => {
+    const email = $('cxEmail').value.trim(), password = $('cxPass').value, err = $('cxLoginErr');
+    err.hidden = true; $('cxPass').removeAttribute('aria-invalid');
+    if (!email || !password) { err.textContent = 'E-mail et mot de passe Myfxbook requis.'; err.hidden = false; return false; }
+    const btn = $('cxNext'); btn.disabled = true; btn.textContent = 'Connexion…';
+    try {
+      const session = await CHESTMyfxbook.login(email, password);
+      const accounts = await CHESTMyfxbook.getMyAccounts(session);
+      CHESTMyfxbook.logout(session);
+      F.d.email = email; F.d.password = password; F.d.mfxAccounts = accounts;
+      try { localStorage.setItem('chest_mfx_last_login', JSON.stringify({ email, password })); } catch (e) { /* tant pis */ }
+      if (!accounts.length) { err.textContent = 'Aucun compte relié à ce profil Myfxbook — ajoute-le d\'abord sur myfxbook.com (Portfolio → Add Account).'; err.hidden = false; return false; }
+      return true;
+    } catch (e) {
+      err.textContent = e.message || 'Connexion impossible — vérifie tes identifiants Myfxbook.'; err.hidden = false;
+      $('cxPass').setAttribute('aria-invalid', 'true');
+      return false;
+    } finally { btn.disabled = false; btn.textContent = 'Se connecter'; }
+  };
+
+  // ---------- Myfxbook : choix du compte ----------
+  function alreadyLinkedMfx() {
+    try { return new Set(JSON.parse(localStorage.getItem('chest_accounts') || '[]').filter((a) => a.myfxbook).map((a) => String(a.myfxbook.accountId))); } catch (e) { return new Set(); }
+  }
+  RENDER.account = (body) => {
+    head('Quel compte relier ?', 'Les comptes de ton profil Myfxbook. Le broker est reconnu à partir du serveur, tu pourras le corriger à l\'étape suivante.');
+    const linked = alreadyLinkedMfx();
+    body.innerHTML = `<div class="cx-tiles" id="cxAccList">${F.d.mfxAccounts.map((a, i) => {
+      const server = a.server && a.server.name ? a.server.name : '';
+      const updated = a.lastUpdateDate ? Date.parse(String(a.lastUpdateDate).replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$1-$2')) : NaN;
+      const isLinked = linked.has(String(a.id));
+      const sel = F.d.mfxSelected && String(F.d.mfxSelected.id) === String(a.id);
+      return `<button type="button" class="cx-tile" data-i="${i}" aria-pressed="${sel}" ${isLinked ? 'disabled' : ''}>
+        ${isLinked ? '<span class="cx-tile__tag">Déjà relié</span>' : ''}
+        <span class="cx-tile__ic">${esc((a.name || '?').slice(0, 2).toUpperCase())}</span>
+        <span class="cx-tile__main"><b>${esc(a.name)}</b><small>${a.demo === true || a.demo === 'true' ? 'Démo' : 'Réel'}${a.currency ? ' · ' + esc(a.currency) : ''}${server ? ' · ' + esc(server) : ''}${!isNaN(updated) ? ' · maj ' + ago(Date.now() - updated) : ''}</small></span>
+        <span class="cx-tile__side">${num(a.balance) != null ? money(num(a.balance)) : '—'}</span>
+      </button>`;
+    }).join('')}</div><div id="cxAccNote"></div>`;
+    setActions({ nextDisabled: !F.d.mfxSelected });
+    body.querySelectorAll('.cx-tile').forEach((t) => t.addEventListener('click', () => {
+      const a = F.d.mfxAccounts[Number(t.dataset.i)];
+      F.d.mfxSelected = a;
+      body.querySelectorAll('.cx-tile').forEach((x) => x.setAttribute('aria-pressed', String(x === t)));
+      const det = detectBroker(a.server && a.server.name, a.name);
+      F.d.detected = det ? det.id : null;
+      if (det) pickBroker(det);
+      // Offre Live : un compte que Myfxbook n'a pas relu depuis plus d'une heure n'est probablement pas en Live Update.
+      const updated = a.lastUpdateDate ? Date.parse(String(a.lastUpdateDate).replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$1-$2')) : NaN;
+      $('cxAccNote').innerHTML = PLANS[F.plan].mfxPlan === 'live' && !isNaN(updated) && Date.now() - updated > 3600000
+        ? `<div class="cx-callout">${INFO}<span>Myfxbook n'a pas relu ce compte depuis <b>${ago(Date.now() - updated).replace('il y a ', '')}</b> : Live Update ne semble pas encore actif. Tu peux continuer — la synchronisation s'accélérera dès que tu l'activeras sur Myfxbook.</span></div>` : '';
+      $('cxNext').disabled = false;
+    }));
+  };
+
+  // ---------- VPS : prêt ? ----------
+  RENDER.vps = (body) => {
+    head('As-tu déjà un VPS avec MT5 ?', 'Un VPS est un petit ordinateur Windows loué, allumé 24/24 : ton MT5 y tourne au lieu de dépendre de ton PC.');
+    body.innerHTML = `
+      <div class="cx-big-choices">
+        <button type="button" class="cx-tile" data-v="yes" aria-pressed="${F.d.hasVps === 'yes'}"><b>Oui, MT5 tourne déjà dessus</b><span>Connecté à mon compte de trading, sur un serveur allumé en continu.</span></button>
+        <button type="button" class="cx-tile" data-v="no" aria-pressed="${F.d.hasVps === 'no'}"><b>Pas encore</b><span>Montre-moi lequel prendre et comment l'installer — c'est prêt en environ une heure.</span></button>
+      </div>
+      <div id="cxVpsHelp"></div>`;
+    const help = () => {
+      $('cxVpsHelp').innerHTML = F.d.hasVps !== 'no' ? '' : `
+        <div class="cx-recap" style="margin-top:18px">
+          <div><span>Hébergeur recommandé</span><b>ForexCheapVPS — Standard M-4</b></div>
+          <div><span>Ressources</span><b>4 Go RAM · 2 vCPU · 40 Go NVMe · jusqu'à 4 plateformes</b></div>
+          <div><span>Prix</span><b>8,40 $/mois (annuel) · 12 $/mois sans engagement</b></div>
+        </div>
+        <ol class="cx-todo" style="margin-top:14px">
+          <li><span>Commande le plan <b>Standard M-4</b> sur <a href="https://www.forexcheapvps.com" target="_blank" rel="noopener">forexcheapvps.com</a> (région « Other Region » pour éviter le surcoût).</span></li>
+          <li><span>Connecte-toi au VPS avec <b>Connexion Bureau à distance</b> (Windows) ou l'app <b>Microsoft Remote Desktop</b> (Mac), avec les accès reçus par e-mail.</span></li>
+          <li><span>Sur le VPS : installe <b>MetaTrader 5</b> et connecte-toi à ton compte (mot de passe investisseur conseillé).</span></li>
+        </ol>
+        <p style="margin:12px 0 0;font-size:12px"><a class="cx-link" style="padding:0;color:var(--chest-acc-2)" href="vps-guide.html" target="_blank" rel="noopener">Guide détaillé pas à pas →</a></p>`;
+    };
+    help();
+    setActions({ next: F.d.hasVps === 'no' ? 'Mon VPS est prêt' : 'Continuer', nextDisabled: !F.d.hasVps });
+    body.querySelectorAll('.cx-big-choices .cx-tile').forEach((t) => t.addEventListener('click', () => {
+      F.d.hasVps = t.dataset.v;
+      body.querySelectorAll('.cx-big-choices .cx-tile').forEach((x) => x.setAttribute('aria-pressed', String(x === t)));
+      help();
+      setActions({ next: F.d.hasVps === 'no' ? 'Mon VPS est prêt' : 'Continuer' });
+    }));
+  };
+
+  // ---------- VPS : identifiant ----------
+  RENDER.id = (body) => {
+    head('Ton identifiant CHEST', 'Il relie l\'EA de ton VPS à ton compte CHEST. Garde-le pour toi : il permet d\'écrire les chiffres affichés sur ton compte.');
+    body.innerHTML = `
+      <div class="cx-fields">
+        <div class="cx-field"><label for="cxVpsLabel">Nom de ce compte</label><input id="cxVpsLabel" type="text" placeholder="ex. FTMO Challenge 100k" value="${esc(F.d.vpsLabel)}" ${F.d.vpsId ? 'disabled' : ''}><small>Pour le reconnaître dans CHEST.</small></div>
+        ${F.d.vpsId ? `<div class="cx-field"><label for="cxVpsIdOut">Identifiant généré</label><div class="cx-copy"><input id="cxVpsIdOut" type="text" readonly value="${esc(F.d.vpsId)}"><button type="button" class="cx-btn-2" data-copy="cxVpsIdOut">Copier</button></div><small>Tu le colleras dans l'EA à l'étape suivante.</small></div>` : ''}
+        <p class="cx-err" id="cxIdErr" hidden></p>
+      </div>`;
+    wireCopy(body);
+    setActions({ next: F.d.vpsId ? 'Continuer' : 'Générer mon identifiant' });
+  };
+  NEXT.id = async () => {
+    if (F.d.vpsId) return true;
+    const label = $('cxVpsLabel').value.trim() || 'Mon VPS';
+    const btn = $('cxNext'); btn.disabled = true; btn.textContent = 'Génération…';
+    try {
+      const res = await fetch(`${apiBase()}/vps/register`, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify({ label }) });
+      const data = await res.json();
+      if (!data.id) throw new Error(data.error || 'no id');
+      F.d.vpsId = data.id; F.d.vpsLabel = label;
+      RENDER.id($('cxStepBody'));
+    } catch (e) {
+      $('cxIdErr').textContent = "Impossible de générer l'identifiant pour l'instant — réessaie dans un instant."; $('cxIdErr').hidden = false;
+      btn.disabled = false; btn.textContent = 'Générer mon identifiant';
+    }
+    return false; // on reste sur l'étape pour montrer l'identifiant
+  };
+
+  // ---------- VPS : EA ----------
+  RENDER.ea = (body) => {
+    head("Installe l'EA sur ton VPS", 'Un petit programme qui lit ton solde, ton équité et tes positions et les envoie à CHEST. Il ne passe <b>jamais</b> d\'ordre. À faire depuis le bureau à distance de ton VPS.');
+    body.innerHTML = `
+      <ol class="cx-todo">
+        <li><span>Télécharge <a href="downloads/CHESTAccountPush.mq5" download><b>CHESTAccountPush.mq5</b></a> et copie-le dans <code>MQL5/Experts</code> (MT5 → <code>Fichier → Ouvrir le dossier de données</code>).</span></li>
+        <li><span>MetaEditor (<code>F4</code>) → ouvre le fichier → compile (<code>F7</code>) : « 0 erreur ».</span></li>
+        <li><span><code>Outils → Options → Expert Advisors</code> : coche <b>« Allow WebRequest for listed URL »</b> et ajoute cette adresse :
+          <div class="cx-copy" style="margin-top:8px"><input id="cxUrlOut" class="cx-field" type="text" readonly value="${esc(apiBase())}" style="height:40px;border-radius:10px;border:1px solid var(--chest-border);background:rgba(255,255,255,.03);color:var(--chest-ink);padding:0 12px;flex:1;min-width:0"><button type="button" class="cx-btn-2" data-copy="cxUrlOut" style="min-height:40px">Copier</button></div></span></li>
+        <li><span>Glisse l'EA sur un graphique, onglet <b>Inputs</b> → colle ton identifiant dans <code>PushId</code>, puis coche <b>« Autoriser le trading algorithmique »</b>.
+          <div class="cx-copy" style="margin-top:8px"><input id="cxIdOut2" type="text" readonly value="${esc(F.d.vpsId || '')}" style="height:40px;border-radius:10px;border:1px solid var(--chest-border);background:rgba(255,255,255,.03);color:var(--chest-ink);padding:0 12px;flex:1;min-width:0;font-family:ui-monospace,Consolas,monospace"><button type="button" class="cx-btn-2" data-copy="cxIdOut2" style="min-height:40px">Copier</button></div></span></li>
+      </ol>
+      <div class="cx-callout">${INFO}<span><b>Pour exécuter BERICH sur ce VPS</b>, installe aussi <a href="https://raw.githubusercontent.com/2sw0ne/BERICH/main/BERICH_Receiver.mq5" download style="color:var(--chest-acc-2)">BERICH_Receiver.mq5</a> de la même façon, sur un graphique XAUUSD. Il dessine chaque signal et calcule le lot sur ton vrai solde.</span></div>`;
+    wireCopy(body);
+    setActions({ next: "J'ai installé l'EA" });
+  };
+
+  // ---------- VPS : vérification en direct ----------
+  let pollTimer = null;
+  function stopPolling() { clearTimeout(pollTimer); pollTimer = null; }
+  RENDER.verify = (body) => {
+    head('Vérification en direct', 'CHEST attend le premier envoi de ton EA. Dès qu\'il arrive (moins de 30 s après l\'activation), tes chiffres s\'affichent ici.');
+    const draw = () => {
+      const d = F.d.vpsData;
+      body.innerHTML = d ? `
+        <div class="cx-live is-ok" role="status">
+          <div class="cx-live__orb"><i>${CHECK.replace('<svg', '<svg width="20" height="20"')}</i></div>
+          <div><h3>Ton compte remonte bien</h3><p>Compte ${esc(d.login || '—')}${d.server ? ' · ' + esc(d.server) : ''} · reçu ${ago(Date.now() - Date.parse(d.updatedAt))}</p></div>
+        </div>
+        <div class="cx-nums">
+          <div class="cx-num"><b>${d.balance != null ? money(d.balance) : '—'}</b><span>Solde</span></div>
+          <div class="cx-num"><b>${d.equity != null ? money(d.equity) : '—'}</b><span>Équité</span></div>
+          <div class="cx-num"><b>${(d.positions || []).length}</b><span>Position${(d.positions || []).length > 1 ? 's' : ''} ouverte${(d.positions || []).length > 1 ? 's' : ''}</span></div>
+          ${d.currency ? `<div class="cx-num"><b>${esc(d.currency)}</b><span>Devise</span></div>` : ''}
+        </div>` : `
+        <div class="cx-live" role="status">
+          <div class="cx-live__orb"><i></i></div>
+          <div><h3>En attente du premier envoi…</h3><p>Vérification toutes les 4 secondes. Tu peux aussi continuer sans attendre : le compte se remplira tout seul.</p></div>
+        </div>
+        <ol class="cx-todo" style="margin-top:16px">
+          <li><span>Rien après une minute ? Regarde l'onglet <b>Experts</b> en bas de MT5 : « l'URL n'est pas autorisée » = adresse WebRequest manquante (étape précédente).</span></li>
+          <li><span>« PushId vide » = identifiant pas collé dans l'onglet <b>Inputs</b> de l'EA.</span></li>
+          <li><span>Icône triste en haut à droite du graphique = <b>trading algorithmique</b> désactivé dans MT5.</span></li>
+        </ol>`;
+      setActions(d ? { next: 'Continuer' } : { next: 'Continuer', nextDisabled: true, alt: 'Continuer sans attendre' });
+    };
+    draw();
+    const poll = async () => {
+      try {
+        const res = await fetch(`${apiBase()}/vps/data/${F.d.vpsId}`, { headers: authHeaders() });
+        const json = await res.json();
+        if (json.data) {
+          F.d.vpsData = json.data;
+          const det = detectBroker(json.data.server);
+          if (det && !F.d.broker) { F.d.detected = det.id; pickBroker(det); }
+          draw(); return;
+        }
+      } catch (e) { /* réseau : on retente */ }
+      if (stepKey() === 'verify') pollTimer = setTimeout(poll, 4000);
+    };
+    if (!F.d.vpsData) poll();
+  };
+  ALT.verify = () => go(1);
+
+  // ---------- Broker & règles ----------
+  RENDER.broker = (body) => {
+    head('Broker et règles', F.d.detected ? `Reconnu automatiquement d'après ton serveur — vérifie et précise ta phase si c'est une propfirm.` : 'Chez qui est ce compte ? Pour une propfirm, les règles de la phase se remplissent toutes seules (modifiables).');
+    const b = F.d.broker;
+    const tiles = window.CHEST_BROKERS.map((x) => `<button type="button" class="cx-tile" data-b="${x.id}" aria-pressed="${!!b && b.id === x.id}">${F.d.detected === x.id ? '<span class="cx-tile__tag">Détecté</span>' : ''}<img src="https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(x.domain)}" alt="" onerror="this.remove()"><span class="cx-tile__main"><b>${esc(x.name)}</b><small>${x.kind === 'propfirm' ? 'Propfirm' : 'Broker'}</small></span></button>`).join('')
+      + `<button type="button" class="cx-tile" data-b="other" aria-pressed="${!!b && b.id === 'other'}"><span class="cx-tile__ic">✎</span><span class="cx-tile__main"><b>Autre</b><small>Saisie libre</small></span></button>`;
+    const isProp = F.d.accountKind === 'propfirm';
+    const o = F.d.objectives;
+    body.innerHTML = `
+      <div class="cx-tiles cx-tiles--4">${tiles}</div>
+      ${b && b.id === 'other' ? `
+        <div class="cx-fields cx-fields--2" style="margin-top:16px">
+          <div class="cx-field"><label for="cxOtherName">Nom du broker / propfirm</label><input id="cxOtherName" type="text" value="${esc(F.d.brokerOther)}"></div>
+          <div class="cx-field"><label>Type de compte</label><div class="cx-pills" id="cxKind"><button type="button" data-k="own" aria-pressed="${!isProp}">Compte propre</button><button type="button" data-k="propfirm" aria-pressed="${isProp}">Propfirm</button></div></div>
+        </div>` : ''}
+      ${b && isProp ? `
+        <div style="margin-top:22px">
+          ${b.rules ? `<div class="cx-field"><label>Phase actuelle</label><div class="cx-pills" id="cxPhase">
+            <button type="button" data-p="phase1" aria-pressed="${F.d.phase === 'phase1'}">Phase 1</button>
+            <button type="button" data-p="phase2" aria-pressed="${F.d.phase === 'phase2'}">Phase 2</button>
+            <button type="button" data-p="funded" aria-pressed="${F.d.phase === 'funded'}">Financé</button></div>
+            ${b.rulesNote ? `<small style="margin-top:8px">${esc(b.rulesNote)}</small>` : ''}</div>` : ''}
+          <div class="cx-fields cx-fields--4" style="margin-top:16px" id="cxObj">
+            <div class="cx-field"><label for="o1">Jours min.</label><input id="o1" data-o="minTradingDays" type="number" min="0" step="1" value="${esc(o.minTradingDays)}"></div>
+            <div class="cx-field"><label for="o2">Objectif (%)</label><input id="o2" data-o="profitTargetPct" type="number" min="0" step="0.1" value="${esc(o.profitTargetPct)}"></div>
+            <div class="cx-field"><label for="o3">Perte jour max (%)</label><input id="o3" data-o="maxDailyLossPct" type="number" min="0" step="0.1" value="${esc(o.maxDailyLossPct)}"></div>
+            <div class="cx-field"><label for="o4">Perte max (%)</label><input id="o4" data-o="maxLossPct" type="number" min="0" step="0.1" value="${esc(o.maxLossPct)}"></div>
+          </div>
+        </div>` : ''}`;
+    setActions({ nextDisabled: !b || (b.id === 'other' && !F.d.brokerOther.trim()) });
+    body.querySelectorAll('[data-b]').forEach((t) => t.addEventListener('click', () => {
+      if (t.dataset.b === 'other') { F.d.broker = { id: 'other', name: '', kind: null }; F.d.accountKind = 'own'; }
+      else pickBroker(window.CHEST_BROKERS.find((x) => x.id === t.dataset.b));
+      F.d.objectives = { minTradingDays: '', profitTargetPct: '', maxDailyLossPct: '', maxLossPct: '' };
+      RENDER.broker(body);
+    }));
+    const other = $('cxOtherName');
+    if (other) other.addEventListener('input', () => { F.d.brokerOther = other.value; $('cxNext').disabled = !other.value.trim(); });
+    body.querySelectorAll('#cxKind button').forEach((k) => k.addEventListener('click', () => { F.d.accountKind = k.dataset.k; RENDER.broker(body); }));
+    body.querySelectorAll('#cxPhase button').forEach((p) => p.addEventListener('click', () => {
+      F.d.phase = p.dataset.p;
+      const r = b.rules && b.rules[F.d.phase];
+      if (r) Object.keys(F.d.objectives).forEach((k) => { F.d.objectives[k] = r[k] == null ? '' : String(r[k]); });
+      RENDER.broker(body);
+    }));
+    body.querySelectorAll('[data-o]').forEach((inp) => inp.addEventListener('input', () => { F.d.objectives[inp.dataset.o] = inp.value; }));
+  };
+
+  // ---------- Journal ----------
+  function defaultAccountName() {
+    const bn = F.d.broker ? (F.d.broker.id === 'other' ? F.d.brokerOther.trim() : F.d.broker.name) : '';
+    if (F.method === 'vps') return `${bn ? bn + ' · ' : ''}${F.d.vpsLabel || 'VPS'}`;
+    const a = F.d.mfxSelected;
+    return `${bn ? bn + ' · ' : ''}#${a ? (a.accountId || a.id) : ''}`;
+  }
+  RENDER.journal = (body) => {
+    const list = CHESTJournal.listAccounts();
+    if (!F.d.journalMode) F.d.journalMode = F.d.journalId && list.some((a) => a.id === F.d.journalId) ? 'existing' : 'new';
+    if (!F.d.journalName) F.d.journalName = defaultAccountName();
+    head('Dans quel journal ?', 'Chaque compte se rattache à un journal, qui enregistre ses positions et suit tes phases de challenge. Un journal peut regrouper plusieurs comptes (phase 1, phase 2, financé…).');
+    body.innerHTML = `
+      <div class="cx-big-choices">
+        <button type="button" class="cx-tile" data-m="new" aria-pressed="${F.d.journalMode === 'new'}"><b>Nouveau journal</b><span>Un journal vierge, dédié à ce compte.</span></button>
+        <button type="button" class="cx-tile" data-m="existing" aria-pressed="${F.d.journalMode === 'existing'}" ${list.length ? '' : 'disabled'}><b>Journal existant</b><span>${list.length ? `L'un de tes ${list.length} journaux — idéal pour une nouvelle phase du même challenge.` : 'Aucun journal pour l\'instant.'}</span></button>
+      </div>
+      <div class="cx-fields" style="margin-top:18px">
+        ${F.d.journalMode === 'new'
+          ? `<div class="cx-field"><label for="cxJName">Nom du journal</label><input id="cxJName" type="text" value="${esc(F.d.journalName)}"></div>`
+          : `<div class="cx-field"><label for="cxJSel">Journal</label><select id="cxJSel">${list.map((a) => `<option value="${a.id}" ${a.id === F.d.journalId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></div>`}
+      </div>`;
+    if (F.d.journalMode === 'existing' && !F.d.journalId && list[0]) F.d.journalId = list[0].id;
+    const valid = () => (F.d.journalMode === 'new' ? !!F.d.journalName.trim() : !!F.d.journalId);
+    setActions({ nextDisabled: !valid() });
+    body.querySelectorAll('[data-m]').forEach((t) => t.addEventListener('click', () => { F.d.journalMode = t.dataset.m; RENDER.journal(body); }));
+    const n = $('cxJName'); if (n) n.addEventListener('input', () => { F.d.journalName = n.value; $('cxNext').disabled = !valid(); });
+    const s = $('cxJSel'); if (s) s.addEventListener('change', () => { F.d.journalId = s.value; });
+  };
+
+  // ---------- Récapitulatif + création ----------
+  function readObjectives() {
+    const o = F.d.objectives, v = (k) => num(o[k]);
+    if (F.d.accountKind !== 'propfirm' || Object.keys(o).every((k) => v(k) == null)) return null;
+    return { minTradingDays: v('minTradingDays') || 0, profitTargetPct: v('profitTargetPct') || 0, maxDailyLossPct: v('maxDailyLossPct') || 0, maxLossPct: v('maxLossPct') || 0 };
+  }
+  RENDER.recap = (body) => {
+    const p = PLANS[F.plan];
+    const bn = F.d.broker.id === 'other' ? F.d.brokerOther.trim() : F.d.broker.name;
+    const obj = readObjectives();
+    const jName = F.d.journalMode === 'new' ? F.d.journalName : ((CHESTJournal.listAccounts().find((a) => a.id === F.d.journalId) || {}).name || '—');
+    const src = F.method === 'vps'
+      ? `VPS personnel${F.d.vpsData ? ' · reçu ' + ago(Date.now() - Date.parse(F.d.vpsData.updatedAt)) : ' · en attente du premier envoi'}`
+      : `MyFxBook · ${p.mfxPlan === 'live' ? 'Live Update' : 'Auto Update'}`;
+    const acc = F.method === 'vps'
+      ? `${F.d.vpsLabel}${F.d.vpsData && F.d.vpsData.login ? ' · #' + F.d.vpsData.login : ''}`
+      : `${F.d.mfxSelected.name} · #${F.d.mfxSelected.accountId || F.d.mfxSelected.id}`;
+    const bal = F.method === 'vps' ? (F.d.vpsData ? F.d.vpsData.balance : null) : num(F.d.mfxSelected.balance);
+    head('Tout est prêt', 'Vérifie, puis connecte. Tu pourras tout modifier ensuite depuis le Dashboard ou le Journal.');
+    body.innerHTML = `
+      <div class="cx-recap">
+        <div><span>Offre</span><b>${esc(p.name)}</b></div>
+        <div><span>Source</span><b>${esc(src)}</b></div>
+        <div><span>Compte</span><b>${esc(acc)}</b></div>
+        ${bal != null ? `<div><span>Solde</span><b>${money(bal)}</b></div>` : ''}
+        <div><span>Broker</span><b>${esc(bn)}${F.d.accountKind === 'propfirm' ? ' · propfirm' + (F.d.phase ? ' · ' + ({ phase1: 'phase 1', phase2: 'phase 2', funded: 'financé' })[F.d.phase] : '') : ''}</b></div>
+        ${obj ? `<div><span>Objectifs</span><b>${obj.profitTargetPct} % objectif · −${obj.maxDailyLossPct} % jour · −${obj.maxLossPct} % max${obj.minTradingDays ? ' · ' + obj.minTradingDays + ' j min' : ''}</b></div>` : ''}
+        <div><span>Journal</span><b>${esc(jName)}${F.d.journalMode === 'new' ? ' (nouveau)' : ''}</b></div>
+      </div>
+      <label class="cx-toggle"><input type="checkbox" id="cxBerich" ${F.d.useForBerich ? 'checked' : ''}><span><b>Suivre BE FR€E avec ce compte</b>BERICH calculera le risque de chaque signal en dollars sur son solde${F.method === 'vps' ? ', et affichera ses positions en direct' : ''}.</span></label>
+      <p class="cx-err" id="cxCreateErr" hidden></p>`;
+    $('cxBerich').addEventListener('change', (e) => { F.d.useForBerich = e.target.checked; });
+    setActions({ next: 'Connecter le compte' });
+  };
+  NEXT.recap = async () => {
+    const btn = $('cxNext'); btn.disabled = true; btn.textContent = 'Connexion…';
+    try {
+      const bn = F.d.broker.id === 'other' ? F.d.brokerOther.trim() : F.d.broker.name;
+      const vps = F.method === 'vps';
+      const startBalance = vps ? (F.d.vpsData ? F.d.vpsData.balance || 0 : 0) : (num(F.d.mfxSelected.balance) || 0);
+      // 1. Journal (existant ou créé)
+      let journalId = F.d.journalMode === 'existing' ? F.d.journalId : null;
+      if (!journalId) {
+        journalId = CHESTJournal.addAccount({
+          name: F.d.journalName.trim(), type: 'own', propfirmId: null, modelId: null, stage: null,
+          balance: startBalance, riskUnit: 'pct', riskValue: 1, connectionMode: 'manual', mode: 'manual', rules: null, live: [],
+        }).id;
+      }
+      // 2. Compte live du journal (même mécanisme que journal.html / dashboard.js)
+      const name = defaultAccountName();
+      const live = vps
+        ? CHESTJournal.addLiveAccount(journalId, { kind: 'vps', name, vpsId: F.d.vpsId })
+        : CHESTJournal.addLiveAccount(journalId, { name, email: F.d.email, password: F.d.password, accountId: F.d.mfxSelected.id, demo: F.d.mfxSelected.demo === true || F.d.mfxSelected.demo === 'true', currency: F.d.mfxSelected.currency || null });
+      const syncP = live ? (vps ? CHESTJournal.syncVpsLiveAccount(journalId, live.id) : CHESTJournal.syncLiveAccount(journalId, live.id)).catch(() => {}) : Promise.resolve();
+      // 3. Compte du Dashboard (miroir du compte live, même schéma que dashboard.js)
+      const accounts = (() => { try { return JSON.parse(localStorage.getItem('chest_accounts') || '[]'); } catch (e) { return []; } })().filter((a) => a.id !== 'live-swann');
+      const id = 'acc-' + Date.now();
+      const base = {
+        id, name, broker: bn, brokerId: F.d.broker.id, pnl: 0, today: 0, example: false,
+        journalAccountId: journalId, journalLiveId: live ? live.id : null,
+        challengeObjectives: readObjectives(), isPropfirm: F.d.accountKind === 'propfirm',
+        payouts: [], objectivesResetAt: isoDateLocal(new Date()),
+      };
+      accounts.push(vps
+        ? Object.assign(base, { number: (F.d.vpsData && F.d.vpsData.login) || '—', type: 'Réel', balance: startBalance, equity: F.d.vpsData && F.d.vpsData.equity != null ? F.d.vpsData.equity : startBalance, vps: { id: F.d.vpsId } })
+        : Object.assign(base, { number: String(F.d.mfxSelected.accountId || F.d.mfxSelected.id), type: F.d.mfxSelected.demo === true || F.d.mfxSelected.demo === 'true' ? 'Démo' : 'Réel', balance: startBalance, equity: num(F.d.mfxSelected.equity) || startBalance, myfxbook: { email: F.d.email, password: F.d.password, accountId: F.d.mfxSelected.id, plan: PLANS[F.plan].mfxPlan } }));
+      localStorage.setItem('chest_accounts', JSON.stringify(accounts));
+      localStorage.setItem('chest_active_account', id);
+      // 4. BERICH : compte suivi + broker par défaut si aucune connexion BERICH n'existe encore
+      if (F.d.useForBerich) {
+        localStorage.setItem('chest_berich_linked_account', journalId);
+        if (!CHESTBerich.loadConnection()) CHESTBerich.saveConnection({ broker: bn, server: '', riskPercent: 1, riskMode: 'manual', presets: CHESTBerich.defaultPresets(), activePresetId: null });
+      }
+      await syncP;
+      if (window.CHESTSync && CHESTSync.flushNow) await CHESTSync.flushNow();
+      renderDone(name);
+      return false;
+    } catch (e) {
+      $('cxCreateErr').textContent = 'Impossible de créer le compte : ' + (e.message || 'erreur inconnue'); $('cxCreateErr').hidden = false;
+      btn.disabled = false; btn.textContent = 'Connecter le compte';
+      return false;
+    }
+  };
+
+  function renderDone(name) {
+    $('cxSteps').querySelectorAll('li').forEach((li) => { li.className = 'is-done'; li.querySelector('i').innerHTML = CHECK.replace('stroke-width="3"', 'stroke-width="3" width="12" height="12"'); });
+    $('cxStepNum').textContent = ''; $('cxStepTitle').textContent = ''; $('cxStepLead').innerHTML = '';
+    $('cxStepBody').innerHTML = `
+      <div class="cx-done">
+        <div class="cx-done__mark">${CHECK.replace('<svg', '<svg width="30" height="30"')}</div>
+        <h2>Compte connecté</h2>
+        <p><b style="color:var(--chest-ink)">${esc(name)}</b> est relié. ${F.method === 'vps' ? 'Ses chiffres se mettent à jour toutes les 30 s.' : PLANS[F.plan].mfxPlan === 'live' ? 'CHEST le relira chaque minute.' : 'Myfxbook le met à jour toutes les 2 à 4 h.'}${F.d.useForBerich ? ' BERICH le suit désormais.' : ''}</p>
+        <div class="cx-done__actions">
+          <a class="cx-btn" href="dashboard.html">Ouvrir le Dashboard</a>
+          ${F.d.useForBerich ? '<a class="cx-btn-2" href="berich.html">Voir BERICH</a>' : ''}
+          <button type="button" class="cx-btn-2" id="cxAgain">Connecter un autre compte</button>
+        </div>
+      </div>`;
+    setActions({ hideAll: true });
+    $('cxAgain').addEventListener('click', backToOffers);
+  }
+
+  function wireCopy(root) {
+    root.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => {
+      const input = $(b.dataset.copy); input.select();
+      (navigator.clipboard ? navigator.clipboard.writeText(input.value) : Promise.reject()).then(() => showToast('Copié ✓')).catch(() => { document.execCommand('copy'); showToast('Copié ✓'); });
+    }));
+  }
+
+  // ================= Démarrage =================
+  renderPlans();
+  const startPlan = params.get('plan');
+  if (startPlan && PLANS[startPlan]) startFlow(startPlan);
+})();
+</script>
+</body>
+</html>
