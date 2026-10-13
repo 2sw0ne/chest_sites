@@ -167,6 +167,23 @@
   // Vide immediatement ce qui reste en attente si l'onglet se ferme/change de page.
   window.addEventListener('pagehide', () => { if (flushTimer) { clearTimeout(flushTimer); flush(); } });
 
+  // BUG RÉEL (2026-10-13, retour utilisateur : "j'ai créé un autre compte et je vois mes éléments
+  // de mon compte principal") : logout() ne retirait que le jeton de session (accounts-auth.js) -
+  // jamais les vraies données (chest_accounts, chest_backtests, chest_journal...). Se connecter à
+  // un AUTRE compte dans le même navigateur affichait donc encore tout l'ancien compte, et pouvait
+  // même finir par le pousser vers le nouveau (tout `setItem` sur une clé suivie la marque "à
+  // envoyer", voir Storage.prototype.setItem plus bas). Appelée par accounts-auth.js à la
+  // déconnexion, et à la connexion si le compte qui se connecte diffère de celui déjà en cache -
+  // un removeItem() direct (jamais setItem) donc jamais repoussé vers le serveur par erreur.
+  function clearLocalData() {
+    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+    try {
+      SYNCED_KEYS.forEach((k) => localStorage.removeItem(k));
+      localStorage.removeItem(DIRTY_KEY);
+      localStorage.removeItem(BASE_KEY);
+    } catch (e) { /* tant pis */ }
+  }
+
   // API publique minimale : force l'envoi immediat de ce qui a change et ATTEND (au plus 10 s, pour ne jamais
   // bloquer l'utilisateur si le serveur est lent - ce qui n'a pas pu partir reste protege et repartira au
   // prochain chargement). A utiliser juste avant une navigation volontaire (journal.html, backtest-add.html).
@@ -175,5 +192,6 @@
       if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
       await Promise.race([flush(), new Promise((r) => setTimeout(r, 10000))]);
     },
+    clearLocalData,
   };
 })();

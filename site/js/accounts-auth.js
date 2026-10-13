@@ -62,6 +62,17 @@ window.CHESTAccounts = (() => {
       body: JSON.stringify({ email, password }),
     });
     try {
+      // BUG RÉEL (2026-10-13, retour utilisateur : "j'ai créé un autre compte et je vois mes
+      // éléments de mon compte principal") : se connecter à un AUTRE compte dans le même navigateur
+      // sans être passé par logout() (jeton expiré, test de plusieurs comptes...) laissait les
+      // données de l'ancien compte en localStorage - vues (et potentiellement repoussées) sous le
+      // nouveau compte. On compare AVANT d'écraser USER_KEY : même compte qui se reconnecte (jeton
+      // expiré) -> on garde tout, rien à perdre ; compte différent -> données locales purgées
+      // (jamais celles du serveur, voir CHESTSync.clearLocalData).
+      const prevUser = getUser();
+      if (!prevUser || prevUser.id !== data.user.id) {
+        try { window.CHESTSync && window.CHESTSync.clearLocalData && window.CHESTSync.clearLocalData(); } catch (e) { /* tant pis */ }
+      }
       // remember !== false -> comportement historique (persistant) par
       // defaut ; decoche explicitement "Se souvenir de moi" -> sessionStorage.
       const store = remember === false ? sessionStorage : localStorage;
@@ -77,6 +88,7 @@ window.CHESTAccounts = (() => {
       localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY);
       sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(USER_KEY);
     } catch (e) { /* tant pis */ }
+    try { window.CHESTSync && window.CHESTSync.clearLocalData && window.CHESTSync.clearLocalData(); } catch (e) { /* tant pis */ }
     if (headers.Authorization) {
       fetch(`${apiBase()}/logout`, { method: 'POST', headers }).catch(() => {});
     }
