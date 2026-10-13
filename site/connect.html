@@ -98,7 +98,7 @@
             <thead><tr><th></th><th>Essentiel</th><th>Live</th><th>Pro · VPS</th></tr></thead>
             <tbody>
               <tr><th>Fraîcheur des chiffres</th><td>Toutes les 2 à 4 h</td><td class="cx-yes">Temps réel</td><td class="cx-yes">Toutes les 30 s</td></tr>
-              <tr><th>Historique des trades dans le Journal</th><td class="cx-yes">Automatique (50 dernières transactions par synchro)</td><td class="cx-yes">Automatique</td><td class="cx-no">Non — à combiner avec MyFxBook</td></tr>
+              <tr><th>Historique des trades dans le Journal</th><td class="cx-yes">Automatique (50 dernières transactions par synchro)</td><td class="cx-yes">Automatique</td><td class="cx-yes">Automatique, chaque position sur 1 an</td></tr>
               <tr><th>Positions ouvertes</th><td class="cx-no">Non</td><td class="cx-no">Non</td><td class="cx-yes">Oui, avec leur résultat latent</td></tr>
               <tr><th>Exécution des signaux BERICH</th><td class="cx-no">Non</td><td class="cx-no">Non</td><td class="cx-yes">Oui, EA BERICH sur ton VPS</td></tr>
               <tr><th>Logiciel à laisser ouvert</th><td class="cx-yes">Aucun</td><td class="cx-yes">Aucun</td><td>MT5 sur le VPS (allumé 24/24)</td></tr>
@@ -141,7 +141,7 @@
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/propfirm-rules.js"></script>
-<script src="js/journal-store.js?v=9"></script>
+<script src="js/journal-store.js?v=10"></script>
 <script>
 (() => {
   'use strict';
@@ -185,7 +185,7 @@
       name: 'Pro · VPS', price: '8,40 $', per: '/mois', who: 'Location d\'un VPS chez ForexCheapVPS',
       desc: 'Ton MT5 tourne 24/24 sur ton propre serveur : solde, équité et positions toutes les 30 s, et BERICH peut y exécuter ses signaux.',
       method: 'vps',
-      feats: [[1, 'Solde, équité et positions toutes les 30 s'], [1, 'Positions ouvertes avec leur résultat latent'], [1, 'Exécution des signaux BERICH sur ton VPS'], [1, 'Aucun identifiant confié à CHEST'], [0, 'Historique : à combiner avec MyFxBook']],
+      feats: [[1, 'Solde, équité et positions toutes les 30 s'], [1, 'Positions ouvertes avec leur résultat latent'], [1, 'Historique complet (1 an) : Dashboard et Journal'], [1, 'Exécution des signaux BERICH sur ton VPS'], [1, 'Aucun identifiant confié à CHEST']],
       fine: 'Prix indicatif du plan Standard M-4 (engagement annuel) — 12 $/mois sans engagement.',
     },
   };
@@ -474,7 +474,7 @@
 
   // ---------- VPS : EA ----------
   RENDER.ea = (body) => {
-    head("Installe l'EA sur ton VPS", 'Un petit programme qui lit ton solde, ton équité et tes positions et les envoie à CHEST. Il ne passe <b>jamais</b> d\'ordre. À faire depuis le bureau à distance de ton VPS.');
+    head("Installe l'EA sur ton VPS", 'Un petit programme qui lit ton solde, ton équité, tes positions ouvertes et ton historique de trades, et les envoie à CHEST. Il ne passe <b>jamais</b> d\'ordre. À faire depuis le bureau à distance de ton VPS.');
     body.innerHTML = `
       <ol class="cx-todo">
         <li><span>Télécharge <a href="downloads/CHESTAccountPush.mq5" download><b>CHESTAccountPush.mq5</b></a> et copie-le dans <code>MQL5/Experts</code> (MT5 → <code>Fichier → Ouvrir le dossier de données</code>).</span></li>

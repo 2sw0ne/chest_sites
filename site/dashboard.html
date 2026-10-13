@@ -225,6 +225,24 @@
      (voir .chest-spot dans dashboard.html) ; seule .acc-sync-error survit
      telle quelle, réutilisée à côté du libellé "Compte propre/Propfirm". ---------- */
   .acc-sync-error{ color:var(--red); font-size:14px; cursor:help; }
+  /* Formule de connexion du compte actif (connect.html : Essentiel / Live / Pro · VPS) + fraîcheur. */
+  .conn-tag{ display:inline-flex; align-items:center; gap:7px; font-size:11px; color:var(--chest-ink-3); }
+  .conn-tag[hidden]{ display:none; }
+  .conn-tag b{ color:var(--chest-ink-2); font-weight:600; }
+  .conn-tag i{ width:6px; height:6px; border-radius:50%; background:var(--chest-ink-3); flex-shrink:0; }
+  .conn-tag i.is-live{ background:var(--chest-green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .conn-tag a{ color:var(--chest-acc-2); text-decoration:none; font-weight:600; }
+  .conn-tag a:hover{ color:#fff; }
+  /* Positions ouvertes en direct (VPS) - lignes sur filets, pas de cartes. */
+  .openpos{ display:flex; flex-direction:column; }
+  .openpos__row{ display:grid; grid-template-columns:minmax(90px,1fr) 70px 80px repeat(3,minmax(80px,1fr)) minmax(100px,1fr); gap:14px; align-items:center;
+    padding:12px 0; border-top:1px solid var(--chest-rule-row); font-size:13px; font-variant-numeric:tabular-nums; }
+  .openpos__row.is-head{ border-top:none; padding-top:0; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--chest-ink-3); }
+  .openpos__row b{ font-weight:700; }
+  .openpos__side{ font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+  .openpos__side.buy{ color:var(--chest-green); } .openpos__side.sell{ color:var(--chest-red); }
+  .openpos__row .r{ text-align:right; }
+  @media (max-width:760px){ .openpos__row{ grid-template-columns:1fr 60px 1fr; } .openpos__row > .opt{ display:none; } }
 
   /* ---------- Volet "outils" (chevron géré par #toolsToggle, plus par
      l'ancienne classe .more-toggle — voir chest-btn-2 dans le markup) ---------- */
@@ -506,6 +524,7 @@
           <span class="chest-step">01 — Compte actif</span>
           <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--chest-ink-3)"><span id="accKindTitle">Compte propre</span><span class="acc-sync-error" id="accSyncError" hidden>⚠</span></span>
           <span style="font-size:11px;color:var(--chest-ink-3)" id="accJournalTag" hidden></span>
+          <span class="conn-tag" id="accConnTag" hidden></span>
         </div>
         <div class="acc-switcher" id="accSwitcher">
           <button class="acc-switcher__btn" id="accSwitcherBtn">
@@ -540,6 +559,15 @@
       <div><div class="chest-label" style="margin-bottom:8px">Jours tradés</div><div class="chest-kpi__val" id="kpiTradedDays">—</div><div class="chest-kpi__note" id="kpiTradedDaysSub">—</div></div>
     </div>
   </section>
+
+  <!-- Positions ouvertes en direct : comptes reliés par VPS (offre Pro), l'EA les pousse toutes les 30 s. -->
+  <div class="chest-section" id="openPosSection" hidden style="padding-top:22px;padding-bottom:26px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="chest-step">Positions ouvertes · en direct</span>
+      <span style="font-size:11.5px;color:var(--chest-ink-3)" id="openPosMeta"></span>
+    </div>
+    <div class="openpos" id="openPosList"></div>
+  </div>
 
   <div class="chest-section" id="payoutBar" hidden style="padding-top:20px;padding-bottom:20px">
     <div class="payout-bar__head">
@@ -728,8 +756,8 @@
      ne s'attache plus a un compte du Dashboard, seulement a un Journal, voir backtesting.html). -->
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
-<script src="js/journal-store.js?v=9"></script>
-<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=50"></script>
+<script src="js/journal-store.js?v=10"></script>
+<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=52"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>

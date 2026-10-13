@@ -276,6 +276,28 @@ def init_db():
                 last_data TEXT
             )
         """)
+        # Historique des comptes VPS (2026-10-13) : positions CLÔTURÉES envoyées par l'EA (dédupliquées
+        # par ticket MT5, mises à jour si renvoyées) et courbe solde/équité (un point toutes les 15 min
+        # au plus). C'est ce qui donne à un compte VPS profit, winrate, R:R et courbe sur le Dashboard,
+        # comme un compte Myfxbook, au lieu d'un simple instantané.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS vps_deals (
+                vps_id TEXT NOT NULL,
+                ticket INTEGER NOT NULL,
+                close_time INTEGER NOT NULL,
+                data TEXT NOT NULL,
+                PRIMARY KEY (vps_id, ticket)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS vps_equity (
+                vps_id TEXT NOT NULL,
+                ts INTEGER NOT NULL,
+                balance REAL,
+                equity REAL,
+                PRIMARY KEY (vps_id, ts)
+            )
+        """)
         db.commit()
 
 
@@ -1049,6 +1071,25 @@ def _num(v):
 
 
 VPS_PUSH_MAX_POSITIONS = 200
+VPS_PUSH_MAX_DEALS = 2000
+VPS_EQUITY_STEP_SEC = 15 * 60
+
+
+def _clean_deal(d):
+    """Une position clôturée telle qu'envoyée par CHESTAccountPush.mq5 (heures déjà en UTC, secondes)."""
+    try:
+        ticket = int(d.get("ticket"))
+        close_time = int(d.get("closeTime"))
+    except (TypeError, ValueError):
+        return None
+    side = "sell" if str(d.get("side", "")).lower() == "sell" else "buy"
+    return ticket, close_time, {
+        "ticket": ticket, "position": d.get("position"), "symbol": str(d.get("symbol") or "")[:20], "side": side,
+        "volume": _num(d.get("volume")), "openTime": _num(d.get("openTime")), "closeTime": close_time,
+        "openPrice": _num(d.get("openPrice")), "closePrice": _num(d.get("closePrice")),
+        "sl": _num(d.get("sl")), "tp": _num(d.get("tp")),
+        "profit": _num(d.get("profit")), "swap": _num(d.get("swap")), "commission": _num(d.get("commission")),
+    }
 
 
 @app.route("/vps/register", methods=["POST"])
@@ -1101,9 +1142,33 @@ def vps_delete(vid):
     if not user:
         return jsonify({"error": "Non connecté."}), 401
     with db_lock:
-        cur = get_db().execute("DELETE FROM vps_accounts WHERE id = ? AND user_id = ?", (vid, user["id"]))
-        get_db().commit()
+        db = get_db()
+        cur = db.execute("DELETE FROM vps_accounts WHERE id = ? AND user_id = ?", (vid, user["id"]))
+        if cur.rowcount:
+            db.execute("DELETE FROM vps_deals WHERE vps_id = ?", (vid,))
+            db.execute("DELETE FROM vps_equity WHERE vps_id = ?", (vid,))
+        db.commit()
     return jsonify({"ok": cur.rowcount > 0})
+
+
+@app.route("/vps/history/<vid>")
+def vps_history(vid):
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    if not db.execute("SELECT 1 FROM vps_accounts WHERE id = ? AND user_id = ?", (vid, user["id"])).fetchone():
+        return jsonify({"error": "Compte introuvable."}), 404
+    try:
+        days = max(1, min(800, int(request.args.get("days", 400))))
+    except ValueError:
+        days = 400
+    since = int(time.time()) - days * 86400
+    deals = [json.loads(r["data"]) for r in db.execute(
+        "SELECT data FROM vps_deals WHERE vps_id = ? AND close_time >= ? ORDER BY close_time", (vid, since)).fetchall()]
+    equity = [{"ts": r["ts"], "balance": r["balance"], "equity": r["equity"]} for r in db.execute(
+        "SELECT ts, balance, equity FROM vps_equity WHERE vps_id = ? AND ts >= ? ORDER BY ts", (vid, since)).fetchall()]
+    return jsonify({"deals": deals, "equity": equity})
 
 
 @app.route("/vps/data/<vid>")
@@ -1124,14 +1189,18 @@ def vps_push(vid):
     # membre ici (voir le commentaire sur la table vps_accounts), l'id lui-même (32 hex non
     # devinables) est le secret. Jamais d'authentification Bearer attendue sur cette route.
     db = get_db()
-    row = db.execute("SELECT id FROM vps_accounts WHERE id = ?", (vid,)).fetchone()
+    row = db.execute("SELECT id, last_data FROM vps_accounts WHERE id = ?", (vid,)).fetchone()
     if not row:
         return jsonify({"error": "Identifiant inconnu."}), 404
+    prev = json.loads(row["last_data"]) if row["last_data"] else {}
     body = request.get_json(silent=True) or {}
     positions = body.get("positions")
     if not isinstance(positions, list):
         positions = []
     data = {
+        "deposits": _num(body.get("deposits")),
+        "withdrawals": _num(body.get("withdrawals")),
+        "eaVersion": (str(body.get("eaVersion") or "")[:12] or None),
         "balance": _num(body.get("balance")),
         "equity": _num(body.get("equity")),
         "margin": _num(body.get("margin")),
@@ -1142,13 +1211,31 @@ def vps_push(vid):
         "positions": positions[:VPS_PUSH_MAX_POSITIONS],
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
+    # L'EA n'envoie dépôts/retraits qu'à la synchro complète (toutes les 30 min) : un envoi léger ne
+    # doit pas effacer ces valeurs (ni la version de l'EA).
+    for k in ("deposits", "withdrawals", "eaVersion"):
+        if data[k] is None and prev.get(k) is not None:
+            data[k] = prev[k]
+    deals = body.get("deals")
+    deals = [x for x in (_clean_deal(d) for d in (deals if isinstance(deals, list) else [])[:VPS_PUSH_MAX_DEALS] if isinstance(d, dict)) if x]
+    now = int(time.time())
     with db_lock:
         db.execute(
             "UPDATE vps_accounts SET last_data = ?, last_push_at = ? WHERE id = ?",
             (json.dumps(data), data["updatedAt"], vid),
         )
+        if deals:
+            db.executemany(
+                "INSERT INTO vps_deals (vps_id, ticket, close_time, data) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(vps_id, ticket) DO UPDATE SET close_time = excluded.close_time, data = excluded.data",
+                [(vid, t, c, json.dumps(d)) for t, c, d in deals],
+            )
+        last = db.execute("SELECT MAX(ts) AS ts FROM vps_equity WHERE vps_id = ?", (vid,)).fetchone()["ts"]
+        if data["balance"] is not None and (last is None or now - last >= VPS_EQUITY_STEP_SEC):
+            db.execute("INSERT OR REPLACE INTO vps_equity (vps_id, ts, balance, equity) VALUES (?, ?, ?, ?)",
+                       (vid, now, data["balance"], data["equity"]))
         db.commit()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "deals": len(deals)})
 
 
 @app.route("/twelvedata/<endpoint>")

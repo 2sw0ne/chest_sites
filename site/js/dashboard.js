@@ -263,7 +263,7 @@
   // periode (2026-09-29, demande utilisateur : le Backtesting ne s'attache plus a un compte du
   // Dashboard, seulement a un Journal - voir backtesting.html "Rattacher à un journal").
   function unifiedTradesList(account, riskPct) {
-    if (account.myfxbook && account.history) {
+    if ((account.myfxbook || account.vps) && account.history) {
       return realTradesWithRR(account.id, account.history, riskPct, account.balance);
     }
     return [];
@@ -478,7 +478,7 @@
   // tout le compte, puis l'ecart restant avec le solde reel (profit total = solde - capital de
   // depart, comme le "Profit" de Myfxbook) est porte par le plus ancien jour connu.
   function buildDailyHistory(account) {
-    if (!account.myfxbook) return [];
+    if (!account.myfxbook && !account.vps) return [];
     const gainDays = realDailyPnlFromHistory(account.id, account.startCapital);
     const start = account.startCapital;
     const tradeDays = start ? dailyPnlFromTrades(account.history) : [];
@@ -711,50 +711,85 @@
     }
   }
 
-  // ---------- Connexion VPS personnelle (2026-10-13, voir vps-guide.html) : l'EA ne pousse qu'un
-  // instantané (solde/équité/positions ouvertes), jamais d'historique de trades - contrairement à
-  // Myfxbook, `periods` (profit/winrate/R:R/drawdown PAR PÉRIODE) n'a donc aucune vraie donnée pour
-  // les construire. Plutôt que de laisser `render()` retomber sur SAMPLE_PERIODS (données de démo
-  // inventées, qui s'afficheraient comme si elles étaient réelles - malhonnête), vpsPeriods() fournit
-  // un jeu de périodes "réel mais sans historique" : les montants en direct (solde/équité) sont
-  // vrais, le reste affiche honnêtement "—". ----------
+  // ---------- Connexion VPS personnelle (offre Pro, voir connect.html) ----------
+  // L'EA CHESTAccountPush.mq5 (v1.1+) pousse un instantané (solde/équité/positions ouvertes) ET les
+  // positions clôturées + dépôts/retraits. Ces positions sont converties au format de l'historique
+  // Myfxbook (vpsDealsAsHistory) : le compte VPS passe ensuite par EXACTEMENT le même calcul que
+  // Myfxbook (refreshActiveAccount : jours, périodes, winrate, R:R, objectifs, mini-calendrier).
+  // EA plus ancien (instantané seul) : vpsPeriods() — chiffres en direct vrais, le reste « — »,
+  // jamais les données de démo SAMPLE_PERIODS.
   const vpsCache = {};
-  const VPS_CACHE_MS = 20 * 1000; // notre propre serveur, pas de quota tiers a menager - rafraichi souvent
+  const VPS_CACHE_MS = 20 * 1000; // notre propre serveur, aucun quota tiers à ménager
+  const VPS_HISTORY_CACHE_MS = 90 * 1000;
   function vpsPeriods(balance, equity) {
     const period = {
-      profit: '—', profitSub: 'Historique non disponible (VPS)', profitDollar: '—', profitDollarSub: '',
-      rr: '—', winrate: '—', winrateSub: 'Connexion VPS : pas d\'historique de trades',
+      profit: '—', profitSub: "En attente de l'historique de l'EA", profitDollar: '—', profitDollarSub: '',
+      rr: '—', winrate: '—', winrateSub: "Mets à jour l'EA (v1.1) pour l'historique",
       dd: '—', ddSub: '', tradedDays: 0, tradedDaysSub: '',
       equity: [equity != null ? equity : (balance || 0)],
     };
-    return { day: period, week: period, month: period, all: period };
+    return { day: period, week: period, month: period, all: period, full: period };
   }
-  async function fetchVpsAccount(vps) {
+  // Position clôturée de l'EA (heures UTC en secondes) -> ligne au format get-history de Myfxbook.
+  function vpsDealsAsHistory(deals) {
+    return (deals || []).map((d) => ({
+      openTime: d.openTime ? new Date(d.openTime * 1000).toISOString() : null,
+      closeTime: new Date(d.closeTime * 1000).toISOString(),
+      symbol: d.symbol, action: d.side === 'sell' ? 'Sell' : 'Buy',
+      openPrice: d.openPrice, closePrice: d.closePrice, sl: d.sl || null, tp: d.tp || null,
+      profit: d.profit, commission: d.commission, interest: d.swap, sizing: { value: d.volume },
+      ticket: d.ticket,
+    }));
+  }
+  async function vpsGet(path) {
     const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
     const token = window.CHESTAccounts && window.CHESTAccounts.getToken();
-    const res = await fetch(`${base}/vps/data/${vps.id}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    const res = await fetch(`${base}${path}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
     if (!res.ok) throw new Error('Connexion au serveur impossible.');
-    const json = await res.json();
+    return res.json();
+  }
+  async function fetchVpsAccount(vps, localId) {
+    const json = await vpsGet(`/vps/data/${vps.id}`);
     if (!json.data) return { balance: 0, equity: 0, pnl: 0, vpsPending: true };
     const d = json.data;
-    return {
+    const out = {
       balance: d.balance || 0, equity: d.equity != null ? d.equity : (d.balance || 0),
       pnl: (d.equity != null && d.balance != null) ? Math.round((d.equity - d.balance) * 100) / 100 : 0,
-      vpsPositions: d.positions || [], vpsPushedAt: d.updatedAt, vpsPending: false,
+      vpsPositions: d.positions || [], vpsPushedAt: d.updatedAt, vpsPending: false, vpsEaVersion: d.eaVersion || null,
+      number: d.login || undefined,
     };
+    // Historique (plus lourd) relu moins souvent que l'instantané.
+    const prev = vpsCache[localId];
+    if (prev && prev.historyAt && Date.now() - prev.historyAt < VPS_HISTORY_CACHE_MS) {
+      out.history = prev.data.history; out.startCapital = prev.data.startCapital; out.historyAt = prev.historyAt;
+    } else {
+      try {
+        const h = await vpsGet(`/vps/history/${vps.id}?days=400`);
+        out.history = vpsDealsAsHistory(h.deals);
+        out.historyAt = Date.now();
+      } catch (e) { out.history = prev && prev.data.history; }
+      // Capital de départ = dépôts - retraits (même définition que Myfxbook), envoyé par l'EA v1.1.
+      out.startCapital = d.deposits > 0 ? d.deposits - (d.withdrawals || 0) : null;
+    }
+    if (out.history && !out.history.length) out.history = null;
+    // Sans dépôts connus : capital au début de l'historique reçu = solde - somme des positions clôturées.
+    if (out.history && !out.startCapital) {
+      out.startCapital = Math.round((out.balance - out.history.reduce((sum, t) => sum + (Number(t.profit) || 0), 0)) * 100) / 100;
+    }
+    return out;
   }
   async function enrichWithVps(account) {
     if (!account.vps) return account;
     const cached = vpsCache[account.id];
-    if (cached && Date.now() - cached.at < VPS_CACHE_MS) {
-      return { ...account, ...cached.data, example: false, periods: vpsPeriods(cached.data.balance, cached.data.equity) };
-    }
+    const withPeriods = (data) => ({ ...account, ...data, example: false, ...(data.history ? {} : { periods: vpsPeriods(data.balance, data.equity) }) });
+    if (cached && Date.now() - cached.at < VPS_CACHE_MS) return withPeriods(cached.data);
     try {
-      const data = await fetchVpsAccount(account.vps);
-      vpsCache[account.id] = { at: Date.now(), data };
-      return { ...account, ...data, example: false, periods: vpsPeriods(data.balance, data.equity) };
+      const data = await fetchVpsAccount(account.vps, account.id);
+      vpsCache[account.id] = { at: Date.now(), historyAt: data.historyAt, data };
+      return withPeriods(data);
     } catch (e) {
       console.error('VPS', e);
+      if (cached) return { ...withPeriods(cached.data), vpsError: e.message };
       return { ...account, vpsError: e.message, periods: vpsPeriods(account.balance, account.equity) };
     }
   }
@@ -938,6 +973,7 @@
     const jName = journalNameFor(a);
     if (jName) { journalTag.textContent = '📒 ' + jName; journalTag.hidden = false; }
     else { journalTag.hidden = true; }
+    renderConnTag(a);
     const errEl = document.getElementById('accSyncError');
     if (a.myfxbookError) {
       errEl.hidden = false;
@@ -955,6 +991,55 @@
     const todayEl = document.getElementById('resToday');
     todayEl.textContent = (a.today >= 0 ? '+' : '') + money(a.today);
     todayEl.className = a.today >= 0 ? 'pos' : 'neg';
+  }
+
+  // Formule de connexion (connect.html) + fraîcheur des chiffres, avec un lien vers la formule
+  // supérieure quand elle apporte quelque chose de concret à ce compte.
+  function renderConnTag(a) {
+    const el = document.getElementById('accConnTag');
+    if (!el) return;
+    const since = (t) => { if (!t) return ''; const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : `il y a ${Math.round(m / 60)} h`; };
+    let html = '';
+    if (a.vps) {
+      const t = a.vpsPushedAt ? Date.parse(a.vpsPushedAt) : null;
+      html = a.vpsPending
+        ? `<i></i><b>Pro · VPS</b> — en attente du premier envoi de l'EA · <a href="vps-guide.html">guide</a>`
+        : `<i class="${t && Date.now() - t < 120000 ? 'is-live' : ''}"></i><b>Pro · VPS</b> — reçu ${since(t)}`;
+    } else if (a.myfxbook && !a.isLiveSwann) {
+      const cached = myfxbookCache[a.id];
+      const live = a.myfxbook.plan === 'live';
+      html = live
+        ? `<i class="is-live"></i><b>Live</b> — Myfxbook en temps réel · relu ${since(cached && cached.at)} · <a href="connect.html?plan=pro">positions ouvertes : Pro →</a>`
+        : `<i></i><b>Essentiel</b> — Myfxbook toutes les 2 à 4 h · relu ${since(cached && cached.at)} · <a href="connect.html?plan=live">passer en temps réel →</a>`;
+    } else if (!a.isLiveSwann) {
+      html = '<i></i><b>Saisie manuelle</b> · <a href="connect.html">connecter ce compte →</a>';
+    }
+    el.innerHTML = html;
+    el.hidden = !html;
+  }
+
+  // Positions ouvertes en direct (comptes VPS uniquement : l'EA les pousse, Myfxbook ne les fournit pas).
+  function renderOpenPositions(a) {
+    const section = document.getElementById('openPosSection');
+    if (!section) return;
+    const pos = a && a.vps && Array.isArray(a.vpsPositions) ? a.vpsPositions : null;
+    section.hidden = !pos;
+    if (!pos) return;
+    const latent = pos.reduce((s, q) => s + (Number(q.profit) || 0), 0);
+    document.getElementById('openPosMeta').innerHTML = pos.length
+      ? `${pos.length} position${pos.length > 1 ? 's' : ''} · latent <b class="${latent >= 0 ? 'pos' : 'neg'}">${latent >= 0 ? '+' : ''}${money(latent)}</b>`
+      : '';
+    const fmt = (v) => (v ? Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 5 }) : '—');
+    document.getElementById('openPosList').innerHTML = pos.length ? `
+      <div class="openpos__row is-head"><span>Symbole</span><span>Sens</span><span>Lots</span><span class="opt">Entrée</span><span class="opt">Stop</span><span class="opt">Objectif</span><span class="r">Latent</span></div>
+      ${pos.map((q) => `<div class="openpos__row">
+        <b>${String(q.symbol || '—').replace(/[<>&"]/g, '')}</b>
+        <span class="openpos__side ${q.side === 'sell' ? 'sell' : 'buy'}">${q.side === 'sell' ? 'Vente' : 'Achat'}</span>
+        <span>${Number(q.volume || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</span>
+        <span class="opt">${fmt(q.priceOpen)}</span><span class="opt">${fmt(q.sl)}</span><span class="opt">${fmt(q.tp)}</span>
+        <b class="r ${Number(q.profit) >= 0 ? 'pos' : 'neg'}">${Number(q.profit) >= 0 ? '+' : ''}${money(Number(q.profit) || 0)}</b>
+      </div>`).join('')}`
+      : '<p style="margin:0;font-size:12.5px;color:var(--chest-ink-3)">Aucune position ouverte en ce moment.</p>';
   }
 
   function renderObjectives(a) {
@@ -1379,12 +1464,14 @@
     // Compte reel (myfxbook) : pipeline pour construire dailyHistory + les 4 periodes + les
     // objectifs. Sans myfxbook, `activeAccountData.periods` reste absent et `render()` retombe
     // sur SAMPLE_PERIODS (compte de demo).
-    if (activeAccountData.myfxbook) {
+    if (activeAccountData.myfxbook || (activeAccountData.vps && activeAccountData.history)) {
       if (activeAccountData.startCapital) startCapitalById[activeAccountData.id] = activeAccountData.startCapital;
-      const live = withLiveFloating(buildDailyHistory(activeAccountData), activeAccountData.balance, liveFloating);
-      if (liveFloating != null) {
+      // VPS : le flottant est RÉEL (équité - solde poussés par l'EA), pas l'estimation de live-sim.js.
+      const floating = activeAccountData.vps ? activeAccountData.pnl : liveFloating;
+      const live = withLiveFloating(buildDailyHistory(activeAccountData), activeAccountData.balance, floating);
+      if (floating != null) {
         activeAccountData.equity = live.balance;
-        activeAccountData.pnl = liveFloating;
+        activeAccountData.pnl = floating;
       }
       activeAccountData.dailyHistory = rescaleDailyHistoryPnl(live.dailyHistory, live.balance, activeAccountData.startCapital);
       activeAccountData.today = todayPnlFromHistory(activeAccountData.dailyHistory, activeAccountData.history);
@@ -1617,6 +1704,7 @@
     await refreshActiveAccount();
     renderAccountHeader(activeAccountData);
     renderObjectives(activeAccountData);
+    renderOpenPositions(activeAccountData);
     if (activeAccountData.id !== lastCalAccountId) { calOffsetDays = 0; lastCalAccountId = activeAccountData.id; }
     renderPayouts(activeAccountData);
     renderMiniCalendar(activeAccountData);
@@ -1638,6 +1726,15 @@
       localStorage.setItem(ACTIVE_KEY, 'live-swann');
     }
     await renderAll();
+
+    // Comptes « en direct » (connect.html) : VPS (instantané poussé toutes les 30 s) et Myfxbook Live
+    // (temps réel côté Myfxbook, relu chaque minute grâce au cache par formule) - le Dashboard se met à
+    // jour tout seul tant que l'onglet est visible. Les comptes Essentiel n'en ont pas besoin (2 à 4 h).
+    setInterval(async () => {
+      if (document.hidden) return;
+      const a = currentAccount();
+      if (a && (a.vps || (a.myfxbook && a.myfxbook.plan === 'live'))) await renderAll();
+    }, 30 * 1000);
 
     // "h24" : Live Swann se resynchronise tout seul pendant que l'onglet
     // reste ouvert, sans avoir besoin de recharger la page - myfxbook lui-meme

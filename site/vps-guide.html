@@ -137,7 +137,7 @@
 
       <div class="vg-step card">
         <div class="vg-step__head"><span class="vg-step__num">4</span><h2 class="vg-step__title">Installer l'EA CHEST</h2></div>
-        <p>Un petit programme (Expert Advisor) qui lit ton solde/équité/positions et les envoie à CHEST — rien d'autre, aucun ordre n'est jamais passé.</p>
+        <p>Un petit programme (Expert Advisor) qui lit ton solde, ton équité, tes positions et ton historique de trades et les envoie à CHEST — rien d'autre, aucun ordre n'est jamais passé.</p>
         <ol>
           <li>Télécharge <code>CHESTAccountPush.mq5</code> ci-dessous, <b>depuis le VPS</b> (dans le bureau à distance).</li>
           <li>Copie-le dans le dossier <code>MQL5/Experts</code> de MT5 (accessible via <code>Fichier → Ouvrir le dossier de données</code> dans MT5).</li>
@@ -176,7 +176,7 @@
       <div class="vg-step card">
         <div class="vg-step__head"><span class="vg-step__num">6</span><h2 class="vg-step__title">Vérifier que ça remonte</h2></div>
         <p>Une fois l'EA actif sur le graphique (icône souriante en haut à droite du graphique), ton solde est envoyé toutes les 30 secondes. La liste ci-dessus passe au vert dès la première réception — reviens ensuite sur <a href="dashboard.html">Dashboard</a> ou <a href="berich.html">BERICH</a> pour voir tes chiffres en direct.</p>
-        <p style="margin:0"><b>Limite à connaître :</b> cette connexion envoie un instantané (solde, équité, positions ouvertes), pas l'historique détaillé de tes trades — pour que tes trades passés remplissent automatiquement ton Journal, ajoute en plus une connexion MyFxBook sur le même compte (Journal → compte → « + Ajouter un compte live »).</p>
+        <p style="margin:0"><b>Ce qui remonte :</b> solde, équité et positions ouvertes toutes les 30 secondes ; tes positions clôturées sur un an au démarrage de l'EA puis toutes les 30 minutes (Dashboard : profit, winrate, R:R, courbe ; Journal : une ligne par position). Si tu avais installé une version précédente de l'EA, remplace-la par celle-ci (v1.1) pour l'historique.</p>
       </div>
 
     </main>

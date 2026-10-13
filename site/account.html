@@ -27,6 +27,36 @@
   /* ---------- Liste de réglages (sans carte : un filet par ligne, l'état en
      clair sous l'intitulé, le bouton "Changer" en chest-btn-2 — voir DA §12). ---------- */
   .settings-list{ padding:8px 34px 34px; }
+
+  /* ---------- 01 — Comptes de trading (lignes sur filets, comme les réglages) ---------- */
+  .ta{ padding:10px 34px 6px; }
+  .ta-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:14px; }
+  .ta-row{ display:grid; grid-template-columns:44px minmax(0,1.6fr) minmax(0,1.3fr) minmax(0,.9fr) 300px; gap:18px; align-items:center;
+    padding:18px 0; border-top:1px solid var(--chest-rule); }
+  .ta-av{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13.5px;
+    color:#fff; background:var(--chest-grad); box-shadow:0 10px 26px rgba(252,18,131,.25); }
+  .ta-main{ min-width:0; }
+  .ta-main b{ display:block; font-size:14.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ta-main span{ display:block; font-size:12px; color:var(--chest-ink-3); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ta-main em{ font-style:normal; color:var(--chest-green); }
+  .ta-plan b{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700; }
+  .ta-plan b::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--chest-ink-3); }
+  .ta-plan--pro b::before, .ta-plan--live b::before{ background:var(--chest-green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .ta-plan--ess b::before{ background:var(--chest-acc-2); }
+  .ta-plan span{ display:block; font-size:11.5px; color:var(--chest-ink-3); margin-top:3px; }
+  .ta-bal{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .ta-bal span{ display:block; font-size:10.5px; font-weight:500; color:var(--chest-ink-3); margin-top:2px; }
+  .ta-act{ display:flex; align-items:center; gap:14px; justify-content:flex-end; flex-wrap:wrap; }
+  .ta-act a{ font-size:12px; font-weight:600; color:var(--chest-acc-2); text-decoration:none; white-space:nowrap; }
+  .ta-act a:hover{ color:#fff; }
+  .ta-empty{ padding:20px 0; border-top:1px solid var(--chest-rule); font-size:13px; color:var(--chest-ink-2); line-height:1.6; }
+  .ta-empty b{ color:var(--chest-ink); }
+  @media (max-width:900px){
+    .ta{ padding:10px 20px 6px; }
+    .ta-row{ grid-template-columns:44px minmax(0,1fr); }
+    .ta-plan, .ta-bal, .ta-act{ grid-column:2; }
+    .ta-act{ justify-content:flex-start; }
+  }
   .settings-row{
     display:flex; align-items:center; justify-content:space-between; gap:20px;
     padding:18px 0; border-bottom:1px solid var(--chest-rule);
@@ -221,12 +251,26 @@
 
     <main>
   <div class="page-head chest-titleglow" style="padding:40px 34px 26px">
-    <div class="chest-step" style="margin-bottom:16px">01 — Réglages</div>
+    <div class="chest-step" style="margin-bottom:16px">Ton espace</div>
     <h1 class="chest-h1" style="font-size:56px">Compte</h1>
-    <p class="chest-body" style="max-width:520px;margin-top:14px">Réglages de ton espace CHEST — chaque ligne montre l'état actuel, "Changer" ouvre les vrais contrôles.</p>
+    <p class="chest-body" style="max-width:560px;margin-top:14px">Tes comptes de trading reliés à CHEST, puis les réglages de ton espace — chaque ligne montre l'état actuel.</p>
   </div>
 
-  <div class="settings-list" style="border-top:1px solid var(--chest-rule)">
+  <!-- Comptes de trading reliés (2026-10-13) : formule de connexion (Essentiel / Live / Pro · VPS),
+       broker, journal, compte suivi par BERICH, et l'action utile pour chacun. -->
+  <section class="ta" aria-labelledby="taTitle">
+    <div class="ta-head">
+      <div>
+        <div class="chest-step" id="taTitle">01 — Comptes de trading</div>
+        <p class="chest-body" style="margin:8px 0 0;max-width:560px">Chaque compte relié et la façon dont il remonte ses chiffres. Une formule supérieure se prend compte par compte.</p>
+      </div>
+      <a class="chest-btn" href="connect.html" style="text-decoration:none">Connecter un compte</a>
+    </div>
+    <div id="taList"></div>
+  </section>
+
+  <div class="chest-step" style="padding:34px 34px 0">02 — Réglages</div>
+  <div class="settings-list" style="border-top:1px solid var(--chest-rule);margin-top:16px">
     <div class="settings-row">
       <div class="settings-row__info">
         <span class="settings-row__swatch" id="themeRowSwatch"></span>
@@ -288,11 +332,11 @@
     <div class="settings-row" id="connexion">
       <div class="settings-row__info">
         <div class="settings-row__text">
-          <p class="settings-row__title">Connexion trading (broker/propfirm)</p>
+          <p class="settings-row__title">BERICH : broker et risque</p>
           <p class="settings-row__value" id="berichRowValue">Non configurée — connecte ton compte depuis <a href="strategies.html" style="color:var(--acc)">Stratégies</a> ou <a href="berich.html" style="color:var(--acc)">BERICH</a>.</p>
         </div>
       </div>
-      <button type="button" class="chest-btn-2" data-open-drawer="berich" data-drawer-title="Connexion trading (broker/propfirm)">Changer</button>
+      <button type="button" class="chest-btn-2" data-open-drawer="berich" data-drawer-title="BERICH : broker et risque">Changer</button>
     </div>
 
     <div class="settings-row" id="liveAccountRow" data-admin-only hidden>
@@ -511,7 +555,58 @@
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
+<script src="js/propfirm-rules.js"></script>
+<script src="js/journal-store.js?v=10"></script>
 <script src="js/myfxbook-store.js?v=4"></script>
+<script>
+// ---------- 01 — Comptes de trading ----------
+(() => {
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = (v) => (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function plan(a) {
+    if (a.vps) return { cls: 'pro', name: 'Pro · VPS', what: 'solde, positions et historique toutes les 30 s', up: null };
+    if (a.myfxbook) return a.myfxbook.plan === 'live'
+      ? { cls: 'live', name: 'Live', what: 'Myfxbook en temps réel', up: { href: 'connect.html?plan=pro', label: 'Positions en direct : Pro' } }
+      : { cls: 'ess', name: 'Essentiel', what: 'Myfxbook, mise à jour toutes les 2 à 4 h', up: { href: 'connect.html?plan=live', label: 'Passer en temps réel' } };
+    return { cls: 'man', name: 'Saisie manuelle', what: 'aucune connexion', up: { href: 'connect.html', label: 'Connecter ce compte' } };
+  }
+  function render() {
+    const list = (() => { try { return JSON.parse(localStorage.getItem('chest_accounts') || '[]'); } catch (e) { return []; } })().filter((a) => a.id !== 'live-swann');
+    const journals = window.CHESTJournal ? CHESTJournal.listAccounts() : [];
+    let linked = null;
+    try { linked = localStorage.getItem('chest_berich_linked_account'); } catch (e) { /* tant pis */ }
+    const el = document.getElementById('taList');
+    if (!list.length) {
+      el.innerHTML = '<div class="ta-empty"><b>Aucun compte relié pour l’instant.</b> Relie ton premier compte : MyFxBook gratuit, MyFxBook en temps réel ou ton propre VPS.</div>';
+      return;
+    }
+    el.innerHTML = list.map((a) => {
+      const p = plan(a);
+      const j = journals.find((x) => x.id === a.journalAccountId);
+      const ini = (String(a.name || '?').match(/[A-Za-zÀ-ÿ0-9]+/g) || ['?']).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+      return `
+        <div class="ta-row">
+          <span class="ta-av">${esc(ini)}</span>
+          <div class="ta-main">
+            <b>${esc(a.name)}</b>
+            <span>${esc(a.broker || '—')}${a.isPropfirm ? ' · propfirm' : ''}${j ? ' · journal « ' + esc(j.name) + ' »' : ''}${j && linked === j.id ? ' · <em>suivi par BERICH</em>' : ''}</span>
+          </div>
+          <div class="ta-plan ta-plan--${p.cls}"><b>${p.name}</b><span>${p.what}</span></div>
+          <div class="ta-bal">${a.balance != null ? money(Number(a.balance) || 0) : '—'}<span>dernier solde connu</span></div>
+          <div class="ta-act">
+            <button type="button" class="chest-btn-2" data-open="${esc(a.id)}">Ouvrir</button>
+            ${p.up ? `<a href="${p.up.href}">${p.up.label} →</a>` : (a.vps ? '<a href="vps-guide.html">Guide VPS →</a>' : '')}
+          </div>
+        </div>`;
+    }).join('');
+    el.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {
+      try { localStorage.setItem('chest_active_account', b.dataset.open); } catch (e) { /* tant pis */ }
+      window.location.href = 'dashboard.html';
+    }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render); else render();
+})();
+</script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -991,7 +1086,7 @@ CHESTTour.init([
         (c.server ? ' · ' + escapeHtml(c.server) : '') +
         (maskedLogin ? ' · ' + escapeHtml(maskedLogin) : '');
     } else {
-      el.innerHTML = 'Non configurée — connecte ton compte depuis la page <a href="berich.html" style="color:var(--acc)">BERICH</a>.';
+      el.innerHTML = 'Non configuré — se règle tout seul quand tu relies un compte que BERICH suit (<a href="connect.html?from=berich" style="color:var(--acc)">Connecter un compte</a>), ou ici.';
     }
   }
 

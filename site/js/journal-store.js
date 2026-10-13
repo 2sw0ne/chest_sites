@@ -492,7 +492,10 @@
   // « 03/01/2010 14:13 » (MM/JJ/AAAA, heure du courtier lue comme heure locale)
   function parseMfxDate(str) {
     const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(String(str || ''));
-    return m ? new Date(+m[3], +m[1] - 1, +m[2], +(m[4] || 0), +(m[5] || 0)) : null;
+    if (m) return new Date(+m[3], +m[1] - 1, +m[2], +(m[4] || 0), +(m[5] || 0));
+    // Historique VPS (CHESTAccountPush.mq5) : dates ISO en UTC.
+    if (/^\d{4}-\d{2}-\d{2}T/.test(String(str || ''))) { const d = new Date(str); return isNaN(d) ? null : d; }
+    return null;
   }
   // `profit` de get-history.json est DEJA le resultat net (commission et swap deduits) : c'est la colonne
   // « Net Profit » de l'historique Myfxbook (2026-10-02, retour utilisateur avec capture : -509,54 $ sur
@@ -609,12 +612,30 @@
       return { pending: true };
     }
     const d = json.data;
+    // Positions clôturées (EA v1.1+) -> entrées du Journal, au même format que Myfxbook (mfxToEntry),
+    // identifiées par ticket MT5 (une clôture partielle = une ligne, comme dans l'historique MT5).
+    let merged = null;
+    try {
+      const h = await fetch(`${apiBase()}/vps/history/${live.vpsId}?days=400`, { headers: authHeaders() }).then((r) => (r.ok ? r.json() : null));
+      const deals = h && Array.isArray(h.deals) ? h.deals : [];
+      if (deals.length) {
+        const txs = deals.map((x) => ({
+          ticket: x.ticket, symbol: x.symbol, action: x.side === 'sell' ? 'Sell' : 'Buy',
+          openTime: x.openTime ? new Date(x.openTime * 1000).toISOString() : null, closeTime: new Date(x.closeTime * 1000).toISOString(),
+          openPrice: x.openPrice, closePrice: x.closePrice, sl: x.sl || null, tp: x.tp || null,
+          profit: x.profit, commission: x.commission, interest: x.swap, sizing: { value: x.volume },
+        }));
+        const before = balancesBefore(txs, d.balance);
+        const entries = txs.map((tx, i) => Object.assign(mfxToEntry(tx, live, before.get(i)), { id: `vps-${live.id}-${tx.ticket}`, source: 'vps' }));
+        merged = mergeExternal(live.id, entries, { limit: 100000, refresh: true });
+      }
+    } catch (e) { /* historique indisponible : l'instantané reste à jour */ }
     updateLiveAccount(accountId, liveId, {
       lastSync: new Date().toISOString(), lastError: null,
       info: { balance: d.balance, equity: d.equity, margin: d.margin, marginFree: d.marginFree, currency: d.currency || null, positions: d.positions || [], pushedAt: d.updatedAt },
     });
     if (d.balance != null) updateActiveStageBalance(accountId, d.balance, liveId);
-    return { pending: false };
+    return { pending: false, merged };
   }
 
   // Entrées d'UN journal, pour tout ou partie de sa famille : member = 'all' | 'main' | id d'un compte live.
