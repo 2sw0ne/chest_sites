@@ -154,6 +154,12 @@
       </div>
       <p class="auth-hint">8 caractères minimum.</p>
 
+      <div class="auth-field">
+        <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="14" r="4"/><path d="M11 11.5 20 3M16.5 6.5 19 9M14.5 8.5 16.5 10.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <input id="inviteCode" type="text" placeholder="Mot de passe d'inscription" required autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="inviteHint">
+      </div>
+      <p class="auth-hint" id="inviteHint">Donné par l'administrateur de CHEST : sans lui, l'inscription n'est pas possible.</p>
+
       <p class="auth-error" id="formError"></p>
 
       <button type="submit" class="auth-submit" id="submitBtn">
@@ -168,7 +174,7 @@
 
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=2"></script>
+<script src="js/accounts-auth.js?v=3"></script>
 <script src="js/hero-bg.js"></script>
 <script>
 (() => {
@@ -206,11 +212,12 @@
     const lastName = cap(document.getElementById('lastName').value);
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
+    const inviteCode = document.getElementById('inviteCode').value.trim();
 
     submitBtn.disabled = true;
     submitLabel.textContent = 'Envoi…';
     try {
-      const result = await CHESTAccounts.signup({ firstName, lastName, email, password });
+      const result = await CHESTAccounts.signup({ firstName, lastName, email, password, inviteCode });
       form.hidden = true;
       statusEl.textContent = result.message;
       statusEl.classList.add('is-visible', result.status === 'approved' ? 'is-approved' : 'is-pending');

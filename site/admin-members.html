@@ -10,7 +10,23 @@
      polices/CSS externes chargent, surtout juste apres la connexion (branche
      experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
      charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
-<style>html,body{background:#050505}</style>
+<style>html,body{background:#050505}
+  /* Mot de passe d'inscription */
+  .invite__form{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:18px; }
+  .invite__field{ position:relative; flex:0 1 340px; min-width:220px; }
+  .invite__field input{
+    width:100%; height:46px; padding:0 84px 0 16px; border-radius:12px; font:inherit; font-size:16px; font-weight:700;
+    letter-spacing:.14em; color:var(--chest-ink); background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.12);
+  }
+  .invite__field input:focus{ outline:none; border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.15); }
+  .invite__copy{
+    position:absolute; right:6px; top:6px; height:34px; padding:0 12px; border-radius:9px; cursor:pointer; font:inherit;
+    font-size:12px; font-weight:600; color:var(--chest-ink-2); background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  }
+  .invite__copy:hover{ color:var(--chest-ink); }
+  .invite__msg{ font-size:12.5px; color:var(--chest-ink-2); }
+  .invite__msg.is-ok{ color:var(--chest-green); } .invite__msg.is-err{ color:var(--chest-red); }
+</style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -55,10 +71,10 @@
 <script src="js/theme.js?v=2"></script>
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=2"></script>
+<script src="js/accounts-auth.js?v=3"></script>
 <script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=10">
+<link rel="stylesheet" href="css/v2.css?v=11">
 </head>
 <body data-page="admin-members" class="chest-root">
 
@@ -111,13 +127,32 @@
     <div style="min-width:0">
       <div class="chest-step" style="margin-bottom:16px">01 — Accès</div>
       <h1 class="chest-h1" style="font-size:48px">Gestion des membres</h1>
-      <p class="chest-body" style="max-width:480px;margin-top:14px">L'inscription est ouverte à tous et approuvée automatiquement — retrouve ici tous les membres et bloque un compte si besoin.</p>
+      <p class="chest-body" style="max-width:480px;margin-top:14px">Toute inscription demande le mot de passe d'inscription ci-dessous ; le compte est ensuite actif tout de suite. Retrouve ici tous les membres et bloque un compte si besoin.</p>
     </div>
     <div class="chest-kpis" id="memberCounts" style="flex-shrink:0;width:auto"></div>
   </section>
 
-  <section class="chest-section" id="membersCard" style="border-top:1px solid var(--chest-rule)">
-    <div class="member-empty" id="membersLoading">Chargement…</div>
+  <!-- Mot de passe d'inscription (2026-10-14) : demandé à toute nouvelle inscription, choisi ici par l'admin. -->
+  <section class="chest-section invite" aria-labelledby="inviteTitle">
+    <div class="invite__head">
+      <div>
+        <div class="chest-step" id="inviteTitle">02 — Mot de passe d'inscription</div>
+        <p class="chest-body" style="margin:8px 0 0;max-width:520px">Sans lui, personne ne peut créer de compte. Donne-le uniquement aux personnes que tu veux faire entrer ; le changer ne touche pas les membres déjà inscrits. Les majuscules ne comptent pas.</p>
+      </div>
+    </div>
+    <form class="invite__form" id="inviteForm" autocomplete="off">
+      <div class="invite__field">
+        <input id="inviteInput" type="text" minlength="3" maxlength="64" required spellcheck="false" aria-label="Mot de passe d'inscription" placeholder="Chargement…">
+        <button type="button" class="invite__copy" id="inviteCopy" aria-label="Copier le mot de passe">Copier</button>
+      </div>
+      <button type="submit" class="chest-btn" id="inviteSave">Enregistrer</button>
+      <span class="invite__msg" id="inviteMsg" role="status"></span>
+    </form>
+  </section>
+
+  <section class="chest-section" style="border-top:1px solid var(--chest-rule)">
+    <div class="chest-step" style="margin-bottom:6px">03 — Membres</div>
+    <div id="membersCard"><div class="member-empty" id="membersLoading">Chargement…</div></div>
   </section>
 </main>
 </div>
@@ -218,5 +253,31 @@ CHESTTour.init([
 })();
 </script>
 <script src="js/v2.js?v=3"></script>
+<script>
+// Mot de passe d'inscription : lu et modifié via le serveur de comptes (réservé à l'admin).
+(() => {
+  const api = () => (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+  const auth = () => ({ Authorization: 'Bearer ' + (CHESTAccounts.getToken() || ''), 'Content-Type': 'application/json' });
+  const input = document.getElementById('inviteInput'), msg = document.getElementById('inviteMsg'), save = document.getElementById('inviteSave');
+  const say = (t, cls) => { msg.textContent = t; msg.className = 'invite__msg' + (cls ? ' ' + cls : ''); };
+  fetch(api() + '/admin/signup-code', { headers: auth() }).then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+    .then(({ ok, d }) => { if (!ok) throw new Error(d.error); input.value = d.code; input.placeholder = ''; })
+    .catch(() => { input.placeholder = 'Indisponible'; say("Impossible de lire le mot de passe pour l'instant.", 'is-err'); });
+  document.getElementById('inviteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    save.disabled = true; say('Enregistrement…');
+    try {
+      const r = await fetch(api() + '/admin/signup-code', { method: 'POST', headers: auth(), body: JSON.stringify({ code: input.value.trim() }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Erreur');
+      input.value = d.code; say('Enregistré : les prochaines inscriptions demanderont « ' + d.code + ' ».', 'is-ok');
+    } catch (err) { say(err.message || "Impossible d'enregistrer.", 'is-err'); }
+    save.disabled = false;
+  });
+  document.getElementById('inviteCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(input.value); say('Copié.', 'is-ok'); } catch (e) { input.select(); }
+  });
+})();
+</script>
 </body>
 </html>

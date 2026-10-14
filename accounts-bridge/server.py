@@ -198,6 +198,15 @@ def init_db():
             )
         """)
         db.execute("CREATE TABLE IF NOT EXISTS school_meta (key TEXT PRIMARY KEY, value TEXT)")
+        # Réglages du site modifiables par l'admin (2026-10-14) — ex. le mot de passe d'inscription.
+        db.execute("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value TEXT)")
+        # Vidéo de présentation vue en entier (2026-10-14, demande utilisateur : obligatoire à la première
+        # connexion d'un NOUVEAU membre). Les membres déjà inscrits au moment de la migration sont marqués
+        # comme l'ayant vue : seules les nouvelles inscriptions la reçoivent obligatoirement.
+        user_cols = [r[1] for r in db.execute("PRAGMA table_info(users)").fetchall()]  # r[1] = nom de colonne (connexion sans row_factory ici)
+        if "tuto_seen_at" not in user_cols:
+            db.execute("ALTER TABLE users ADD COLUMN tuto_seen_at TEXT")
+            db.execute("UPDATE users SET tuto_seen_at = ?", (datetime.now(timezone.utc).isoformat(),))
         # Surcharges admin des 5 vitrines fixes de la Newsletter (Welcome) -
         # meme principe que school_entries (une entree de meme id remplace le
         # contenu code en dur), id limite aux 5 cartes existantes (voir
@@ -303,6 +312,27 @@ def init_db():
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+# Mot de passe demandé à TOUTE nouvelle inscription (2026-10-14, demande utilisateur), modifiable par l'admin
+# (admin-members.html). Comparaison sans tenir compte des majuscules ni des espaces autour.
+SIGNUP_CODE_DEFAULT = "FUJI"
+
+
+def get_setting(key, default=None):
+    row = get_db().execute("SELECT value FROM site_settings WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row and row["value"] is not None else default
+
+
+def set_setting(key, value):
+    db = get_db()
+    with db_lock:
+        db.execute("INSERT INTO site_settings (key, value) VALUES (?, ?) "
+                   "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value))
+        db.commit()
+
+
+def signup_code():
+    return get_setting("signup_code", SIGNUP_CODE_DEFAULT)
+
 
 def user_public(row):
     return {
@@ -313,6 +343,7 @@ def user_public(row):
         "status": row["status"],
         "isAdmin": bool(row["is_admin"]),
         "createdAt": row["created_at"],
+        "tutoSeen": bool(row["tuto_seen_at"]) if "tuto_seen_at" in row.keys() else True,
     }
 
 
@@ -375,6 +406,11 @@ def signup():
         return jsonify({"error": "Le mot de passe doit faire au moins 4 caractères."}), 400
 
     db = get_db()
+    has_users = db.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"] > 0
+    # Le tout premier compte (propriétaire du site) n'a pas besoin du mot de passe d'inscription.
+    invite = (body.get("inviteCode") or "").strip()
+    if has_users and invite.lower() != (signup_code() or "").strip().lower():
+        return jsonify({"error": "Mot de passe d'inscription incorrect. Demande-le à l'administrateur."}), 403
     with db_lock:
         existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         if existing:
@@ -464,6 +500,33 @@ def me():
     if not user:
         return jsonify({"error": "Non connecté."}), 401
     return jsonify(user_public(user))
+
+
+@app.route("/me/tuto-seen", methods=["POST"])
+def me_tuto_seen():
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    with db_lock:
+        db.execute("UPDATE users SET tuto_seen_at = COALESCE(tuto_seen_at, ?) WHERE id = ?",
+                   (datetime.now(timezone.utc).isoformat(), user["id"]))
+        db.commit()
+    row = db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
+    return jsonify(user_public(row))
+
+
+@app.route("/admin/signup-code", methods=["GET", "POST"])
+def admin_signup_code():
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if request.method == "POST":
+        code = ((request.get_json(silent=True) or {}).get("code") or "").strip()
+        if len(code) < 3 or len(code) > 64:
+            return jsonify({"error": "Entre 3 et 64 caractères."}), 400
+        set_setting("signup_code", code)
+    return jsonify({"code": signup_code()})
 
 
 @app.route("/members")

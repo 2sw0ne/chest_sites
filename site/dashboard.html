@@ -534,9 +534,44 @@
   .chest-root .mini-cal__cell.pos{ background:linear-gradient(160deg, rgba(51,230,166, calc(.08 + var(--mag,0) * .26)), rgba(51,230,166,.03)); }
   .chest-root .mini-cal__cell.neg{ background:linear-gradient(160deg, rgba(255,77,94, calc(.08 + var(--mag,0) * .26)), rgba(255,77,94,.03)); }
   .chest-root .objective-row{ border-bottom-color:rgba(255,255,255,.06); }
-  .chest-root #toolsToggle{ background:none !important; border:0 !important; box-shadow:none !important; padding:4px 0 !important; border-radius:0 !important; }
-  .chest-root #toolsToggle:active{ transform:none !important; }
-  @media (hover:hover) and (pointer:fine){ .chest-root #toolsToggle:hover .chest-step{ color:var(--chest-ink-2); } }
+  /* Volet Outils : une vraie barre qu'on a envie de cliquer */
+  .chest-root .tools-bar{
+    position:relative; width:100%; display:flex; align-items:center; gap:18px; padding:18px 20px; text-align:left; cursor:pointer;
+    font:inherit; color:var(--chest-ink); border-radius:18px; border:1px solid rgba(255,255,255,.1);
+    background:radial-gradient(120% 140% at 0% 0%, rgba(252,18,131,.12), transparent 55%), linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 24px 50px -30px rgba(0,0,0,.8);
+    transition:border-color .25s cubic-bezier(.23,1,.32,1), box-shadow .25s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1);
+  }
+  .chest-root .tools-bar:active{ transform:scale(.99); }
+  .chest-root .tools-bar:focus-visible{ outline:2px solid rgba(249,164,94,.85); outline-offset:3px; }
+  @media (hover:hover) and (pointer:fine){
+    .chest-root .tools-bar:hover{ border-color:rgba(249,164,94,.55); box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(249,164,94,.25), 0 0 34px rgba(252,18,131,.18); }
+    .chest-root .tools-bar:hover .tools-bar__cta{ background:var(--chest-grad); color:#fff; border-color:transparent; box-shadow:0 10px 26px rgba(252,18,131,.35); }
+  }
+  .chest-root .tools-bar__ic{
+    width:46px; height:46px; flex-shrink:0; border-radius:14px; display:grid; place-items:center; color:#fff;
+    background:var(--chest-grad); box-shadow:0 10px 26px rgba(252,18,131,.35), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  .chest-root .tools-bar__ic svg{ width:22px; height:22px; }
+  .chest-root .tools-bar__text{ display:flex; flex-direction:column; gap:5px; min-width:0; flex:1; }
+  .chest-root .tools-bar__title{ font-size:16px; font-weight:700; letter-spacing:-.015em; }
+  .chest-root .tools-bar__sub{ font-size:12.5px; color:var(--chest-ink-2); line-height:1.45; }
+  .chest-root .tools-bar__cta{
+    flex-shrink:0; display:inline-flex; align-items:center; gap:8px; padding:9px 14px 9px 16px; border-radius:999px;
+    font-size:12.5px; font-weight:700; color:var(--chest-ink); border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.05);
+    transition:background .25s, color .25s, border-color .25s, box-shadow .25s;
+  }
+  .chest-root .tools-bar__cta .chev{ display:grid; place-items:center; transition:transform .3s cubic-bezier(.23,1,.32,1); }
+  .chest-root .tools-bar__cta svg{ width:15px; height:15px; }
+  .chest-root .tools-bar__close{ display:none; }
+  .chest-root .tools-bar.is-open .tools-bar__open{ display:none; }
+  .chest-root .tools-bar.is-open .tools-bar__close{ display:inline; }
+  .chest-root .tools-bar.is-open .chev{ transform:rotate(180deg); }
+  .chest-root .tools-bar.is-open{ border-color:rgba(249,164,94,.4); }
+  @media (max-width:640px){
+    .chest-root .tools-bar{ flex-wrap:wrap; padding:16px; gap:14px; }
+    .chest-root .tools-bar__cta{ width:100%; justify-content:center; }
+  }
 
   /* v2 — objectifs en jauges */
   .chest-root .v2obj{ flex-wrap:wrap; row-gap:10px; padding:16px 4px; }
@@ -561,10 +596,10 @@
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
-<script src="js/accounts-auth.js?v=2"></script>
+<script src="js/accounts-auth.js?v=3"></script>
 <script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=10">
+<link rel="stylesheet" href="css/v2.css?v=11">
 </head>
 <body data-page="dashboard" class="chest-root">
 
@@ -750,9 +785,17 @@
   </div>
 
   <section class="chest-section">
-    <button class="chest-btn-2" id="toolsToggle" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:14px">
-      <span class="chest-step">04 — Outils</span>
-      <span style="font-size:11.5px;color:var(--chest-ink-3)">Sessions · force des devises <span class="chev">▾</span></span>
+    <!-- v2 : volet Outils bien visible — icône, titre, phrase d'explication, bouton Ouvrir/Fermer (2026-10-14). -->
+    <button type="button" class="tools-bar" id="toolsToggle" aria-expanded="false" aria-controls="toolsPanel">
+      <span class="tools-bar__ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3z"/></svg>
+      </span>
+      <span class="tools-bar__text">
+        <span class="chest-step">04 — Outils</span>
+        <span class="tools-bar__title">Sessions de marché et force des devises</span>
+        <span class="tools-bar__sub">Qui est ouvert en ce moment (Sydney, Tokyo, Londres, New York) et quelles devises tirent le marché.</span>
+      </span>
+      <span class="tools-bar__cta"><span class="tools-bar__open">Ouvrir</span><span class="tools-bar__close">Fermer</span><span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
     </button>
     <div class="more-panel" id="toolsPanel">
       <div class="more-panel__inner">
@@ -865,7 +908,7 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=10"></script>
-<script src="js/live-sim.js?v=3"></script><script src="js/dashboard.js?v=56"></script>
+<script src="js/live-sim.js?v=3"></script><script src="js/dashboard.js?v=57"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>
@@ -878,7 +921,7 @@ CHESTTour.init([
   { selector: '.chest-glass--chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde, construite à partir de tes vraies positions synchronisées via Myfxbook.' },
   { selector: '#objectivesList', title: 'Objectifs du challenge', text: 'Les règles de ton challenge propfirm (objectif de profit, perte du jour, perte max, jours minimum) et où tu en es. La roue dentée à côté du titre les règle.' },
   { selector: '#miniCalGrid', title: 'Performance par jour', text: 'Le résultat de chaque jour de trading, avec les totaux par semaine. Les flèches font défiler la fenêtre affichée.' },
-  { selector: '#toolsToggle', title: 'Outils', text: 'Un clic déplie la timeline des sessions (Sydney, Tokyo, Londres, New York) et la force des devises en direct.' },
+  { selector: '#toolsToggle', title: 'Outils', text: 'Clique « Ouvrir » : la timeline des sessions (Sydney, Tokyo, Londres, New York) et la force des devises en direct se déplient juste dessous.' },
 ]);
 </script>
 <script src="js/v2.js?v=3"></script>

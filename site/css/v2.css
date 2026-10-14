@@ -326,3 +326,10 @@ body[data-page] .v2-foot__brand img{ width:26px; height:26px; filter:drop-shadow
 body[data-page] .v2-foot__txt{ margin:0; font-size:12.5px; color:var(--chest-ink-2); }
 body[data-page] .v2-foot__warn{ margin:6px 0 0; max-width:560px; font-size:11.5px; line-height:1.6; color:var(--chest-ink-3); }
 body[data-page] .v2-foot__copy{ margin:4px 0 0; font-size:11px; color:var(--chest-ink-3); letter-spacing:.04em; }
+
+/* ---------- 18. Une seule barre de défilement ----------
+   `html, body{overflow-x:hidden}` (chest-da.css) fait du body une zone de défilement potentielle ; dès que la
+   lueur de fond (::before, agrandie par sa dérive) dépassait le bas d'une page courte — Journal, Backtesting,
+   School sur un écran haut —, le body affichait SA barre en plus de celle de la page. `clip` coupe ce qui dépasse
+   sans jamais créer de zone de défilement : seule la page défile (les fenêtres fixes et le sticky ne sont pas touchés). */
+body.chest-root[data-page]{ overflow-x:clip; overflow-y:clip; }

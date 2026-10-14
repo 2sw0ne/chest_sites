@@ -1860,6 +1860,7 @@
 
     toolsToggle.addEventListener('click', () => {
       const isOpen = toolsToggle.classList.toggle('is-open');
+      toolsToggle.setAttribute('aria-expanded', String(isOpen));
       toolsPanel.style.maxHeight = isOpen ? toolsPanel.scrollHeight + 'px' : '0px';
       if (isOpen && !toolsLoaded) {
         toolsLoaded = true;

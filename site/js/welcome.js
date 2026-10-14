@@ -1137,6 +1137,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (closed || root.hidden) return;
+    if (html.classList.contains('is-tuto')) return; // la vidéo de présentation est au-dessus : le Welcome ne réagit pas
     if (e.key === 'Escape') {
       e.preventDefault();
       if (sheet.classList.contains('is-open')) closeSheet(); else glide();

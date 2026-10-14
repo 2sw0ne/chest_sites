@@ -47,12 +47,25 @@ window.CHESTAccounts = (() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  async function signup({ firstName, lastName, email, password }) {
+  async function signup({ firstName, lastName, email, password, inviteCode }) {
     return jsonFetch('/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, email, password }),
+      body: JSON.stringify({ firstName, lastName, email, password, inviteCode }),
     });
+  }
+
+  // Vidéo de présentation vue en entier (js/tuto.js) : le serveur le retient, et le membre stocké est mis à jour
+  // là où il est rangé (localStorage ou sessionStorage), pour ne plus la rendre obligatoire.
+  async function markTutoSeen() {
+    const token = getToken();
+    if (!token) return null;
+    const user = await jsonFetch('/me/tuto-seen', { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+    try {
+      if (localStorage.getItem(USER_KEY)) localStorage.setItem(USER_KEY, JSON.stringify(user));
+      if (sessionStorage.getItem(USER_KEY)) sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+    } catch (e) { /* stockage indisponible */ }
+    return user;
   }
 
   async function login({ email, password, remember }) {
@@ -169,5 +182,5 @@ window.CHESTAccounts = (() => {
   verifySessionAlive();
   setInterval(verifySessionAlive, 120000);
 
-  return { getToken, getUser, isLoggedIn, isAdmin, signup, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, guard };
+  return { getToken, getUser, isLoggedIn, isAdmin, signup, markTutoSeen, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, guard };
 })();
