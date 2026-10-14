@@ -246,6 +246,7 @@
       if (m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded', 'false');
     });
   }
+  let bentoToolsBound = false;
   function initBentoTools() {
     if (!isAdminEffective()) return;
     root.querySelectorAll('[data-bento-id]').forEach((card) => {
@@ -256,6 +257,10 @@
       span.innerHTML = `<button type="button" class="wel-tools__btn" data-tools-toggle aria-haspopup="true" aria-expanded="false" title="Options"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button><div class="wel-tools__menu" hidden><button type="button" data-bento-edit="${id}">Modifier</button></div>`;
       card.appendChild(span);
     });
+    // Un seul écouteur, même si initBentoTools est rappelée (connexion intégrée, réouverture du
+    // Welcome) : avec deux écouteurs, chaque clic ouvrait le menu ⋮ puis le refermait aussitôt.
+    if (bentoToolsBound) return;
+    bentoToolsBound = true;
     root.addEventListener('click', (e) => {
       const toggle = e.target.closest('[data-tools-toggle]');
       if (toggle) {

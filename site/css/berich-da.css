@@ -17,8 +17,10 @@
   --br-line:   rgba(127,245,214,.14);
 }
 
-/* ---------- Profondeur : plans de lumière fixes derrière tout le contenu ---------- */
-.chest-root .br-depth{ position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+/* ---------- Profondeur : plans de lumière posés en haut de page, qui défilent avec elle ----------
+   (retour utilisateur : pas de lueur fixe à l'écran, elle reste à sa place quand on descend) */
+.chest-root .chest-main{ position:relative; }
+.chest-root .br-depth{ position:absolute; left:0; right:0; top:0; height:min(1600px,180vh); pointer-events:none; z-index:0; overflow:hidden; }
 .chest-root .br-depth i{ position:absolute; border-radius:50%; filter:blur(90px); }
 .chest-root .br-depth i:nth-child(1){ width:70vw; height:52vh; left:15vw; top:-14vh; background:radial-gradient(closest-side, rgba(51,230,166,.22), transparent); }
 .chest-root .br-depth i:nth-child(2){ width:46vw; height:46vh; right:-12vw; top:28vh; background:radial-gradient(closest-side, rgba(45,212,207,.12), transparent); animation:brDrift 26s ease-in-out infinite alternate; }

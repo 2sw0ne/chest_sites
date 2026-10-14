@@ -1142,30 +1142,31 @@
       prevBtn.disabled = true; nextBtn.disabled = true; todayBtn.classList.add('is-active');
       rangeEl.textContent = '';
       const series = (a && a.calendar14) || SAMPLE_CAL_14;
-      const today = new Date();
+      const today = new Date(); today.setHours(0, 0, 0, 0);
       const maxAbs = Math.max(1, ...series.map((v) => Math.abs(v)));
-      const cells = series.map((pnl, i) => {
-        const d = new Date(today);
-        d.setDate(d.getDate() - (series.length - 1 - i));
-        const cls = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
-        const pnlLabel = pnl === 0 ? '—' : (pnl > 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(0);
-        const mag = (Math.abs(pnl) / maxAbs).toFixed(3);
+      // Valeur du jour d'il y a n jours (la série finit aujourd'hui)
+      const valAt = (d) => { const n = Math.round((today - d) / 864e5); return n >= 0 && n < series.length ? series[series.length - 1 - n] : null; };
+      const sunday = new Date(today); sunday.setDate(sunday.getDate() + ((7 - sunday.getDay()) % 7));
+      const sdays = [];
+      for (let i = 13; i >= 0; i--) { const d = new Date(sunday); d.setDate(d.getDate() - i); sdays.push({ d, pnl: d > today ? null : valAt(d), future: d > today }); }
+      const cells = sdays.map(({ d, pnl, future }, i) => {
+        const cls = (pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '') + (future ? ' is-future' : '');
+        const pnlLabel = future ? '' : pnl == null ? '·' : pnl === 0 ? '—' : (pnl > 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(0);
+        const mag = pnl == null ? 0 : (Math.abs(pnl) / maxAbs).toFixed(3);
         return `<div class="mini-cal__cell ${cls}" tabindex="0" style="--mag:${mag};--i:${i}"><span class="d">${d.getDate()}/${d.getMonth() + 1}</span><span class="p">${pnlLabel}</span></div>`;
       }).join('');
       document.getElementById('miniCalGrid').innerHTML = cells;
-      const dateAt = (offsetFromEnd) => { const d = new Date(today); d.setDate(d.getDate() - offsetFromEnd); return d; };
-      const weeks = [];
-      for (let w = 0; w < series.length / 7; w++) {
-        const week = series.slice(w * 7, w * 7 + 7);
-        weeks.push({ d1: dateAt(series.length - 1 - w * 7), d2: dateAt(series.length - 7 - w * 7), value: week.reduce((s, v) => s + v, 0) });
-      }
+      const weeks = [0, 1].map((w) => { const wk = sdays.slice(w * 7, w * 7 + 7); return { d1: wk[0].d, d2: wk[6].d, value: wk.reduce((t, x) => t + (x.pnl || 0), 0) }; });
       renderWeekTotals(weeks, false);
       return;
     }
 
     const byDate = new Map(history.map((d) => [d.date, d]));
+    // Chaque ligne va du lundi au dimanche : la fenêtre se termine le dimanche de la semaine visée
+    // (les jours à venir de la semaine en cours restent vides).
     const endDate = new Date();
     endDate.setDate(endDate.getDate() - calOffsetDays);
+    endDate.setDate(endDate.getDate() + ((7 - endDate.getDay()) % 7));
     const todayIso = isoDateLocal(new Date());
     const days = [];
     for (let i = CAL_WINDOW - 1; i >= 0; i--) {
@@ -1188,8 +1189,9 @@
       const v = unit === 'percent' ? pct : pnl;
       const alt = unit === 'percent' ? pnl : pct;
       const toneClass = v === null ? '' : (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
-      const cls = toneClass + (key === todayIso ? ' is-today' : '');
-      const label = v === null ? '·' : v === 0 ? '—' : unit === 'percent' ? fmtPct(v) : fmtUsd(v);
+      const future = key > todayIso;
+      const cls = toneClass + (key === todayIso ? ' is-today' : '') + (future ? ' is-future' : '');
+      const label = future ? '' : v === null ? '·' : v === 0 ? '—' : unit === 'percent' ? fmtPct(v) : fmtUsd(v);
       const altLabel = alt == null ? '' : `<span class="alt">${unit === 'percent' ? fmtUsd(alt) : fmtPct(alt)}</span>`;
       const mag = v === null ? 0 : (Math.abs(v) / maxAbs).toFixed(3);
       return `<div class="mini-cal__cell ${cls}" tabindex="0" style="--mag:${mag};--i:${i}"><span class="d">${date.getDate()}/${date.getMonth() + 1}</span><span class="p">${label}</span>${altLabel}</div>`;

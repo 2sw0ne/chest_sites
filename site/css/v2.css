@@ -20,11 +20,13 @@
   --v2-d3: rgba(140,70,255,.06);
 }
 
-/* ---------- 1. Profondeur : plans de lumière fixes derrière le contenu ----------
+/* ---------- 1. Profondeur : plans de lumière posés en haut de la page ----------
    Un seul pseudo-élément, sous tout le contenu (z-index:-1 → au-dessus du fond
-   du canevas, sous les blocs). Fixe : il ne défile pas, la page glisse dessus. */
-body.chest-root[data-page]:not([data-page="berich"])::before{
-  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+   du canevas, sous les blocs). Il défile AVEC la page (retour utilisateur : pas
+   de lueur fixe à l'écran) — comme la lueur derrière un titre. */
+body.chest-root[data-page]{ position:relative; }
+body.chest-root[data-page]:not([data-page="berich"]):not([data-page="calendar"])::before{
+  content:''; position:absolute; left:0; right:0; top:0; height:min(1500px,170vh); z-index:-1; pointer-events:none;
   background:
     radial-gradient(ellipse 52% 42% at 18% -6%, var(--v2-d1), transparent 70%),
     radial-gradient(ellipse 38% 46% at 104% 38%, var(--v2-d2), transparent 72%),
@@ -174,20 +176,9 @@ html.v2-js body[data-page] .v2-r{
 html.v2-js body[data-page] .v2-r.v2-r--fade{ transform:none; }
 html.v2-js body[data-page] .v2-r.is-in{ opacity:1; transform:none; }
 
-body[data-page] .v2-cursor{
-  position:fixed; left:0; top:0; z-index:-1; width:720px; height:720px; margin:-360px 0 0 -360px;
-  border-radius:50%; pointer-events:none; opacity:0; transition:opacity .6s var(--v2-ease);
-  background:radial-gradient(closest-side, var(--v2-cursor, rgba(252,18,131,.085)), transparent 72%);
-  will-change:transform;
-}
-body[data-page] .v2-cursor.is-on{ opacity:1; }
-body[data-page="berich"] { --v2-cursor: rgba(51,230,166,.07); }
-body[data-page="strategies"]{ --v2-cursor: rgba(249,164,94,.07); }
-body[data-page="calendar"]  { --v2-cursor: rgba(232,179,57,.06); }
-
 /* Le fond dérive très lentement : la lumière n'est jamais figée */
 body.chest-root[data-page]:not([data-page="berich"])::before{
-  inset:-12%; animation:v2Drift 38s ease-in-out infinite alternate;
+  animation:v2Drift 38s ease-in-out infinite alternate;
 }
 @keyframes v2Drift{
   0%  { transform:translate3d(0,0,0) scale(1); }
@@ -211,7 +202,6 @@ body[data-page] .bt-grid{ gap:18px; }
 body[data-page] .bt-card{
   border:1px solid rgba(255,255,255,.075) !important; border-radius:20px !important; overflow:hidden;
   background:
-    radial-gradient(420px circle at var(--px,50%) var(--py,-20%), rgba(255,255,255,.07), transparent 60%),
     linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012) 50%, rgba(255,255,255,.004)) !important;
   backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 34px 60px -38px rgba(0,0,0,.85) !important;
@@ -316,3 +306,23 @@ body[data-page] .dv2-head__hint{ font-size:11.5px; color:var(--chest-ink-3); }
 .chest-shell .chest-nav.has-ind .chest-nav__item.is-active{ background:transparent !important; }
 .chest-shell .chest-nav.has-ind .chest-nav__item::before{ display:none; }
 @media (prefers-reduced-motion:reduce){ .chest-shell .chest-nav .v2-nav-ind{ transition:none; } }
+
+/* ---------- 17. Pied de page : logo, une phrase, rien d'autre ---------- */
+body[data-page] .site-footer.v2-foot{ position:relative; border-top:0 !important; margin-top:clamp(40px,8vh,80px); }
+body[data-page] .site-footer.v2-foot::before{ content:''; position:absolute; left:8%; right:8%; top:0; height:1px; background:var(--v2-rule); }
+body[data-page] .v2-foot__inner{ max-width:720px; margin:0 auto; padding:40px 24px 46px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:10px; }
+body[data-page] .v2-foot__brand{ display:inline-flex; align-items:center; gap:10px; text-decoration:none; color:var(--chest-ink); font-size:16px; font-weight:700; letter-spacing:-.02em; }
+body[data-page] .v2-foot__brand img{ width:26px; height:26px; filter:drop-shadow(0 0 10px rgba(252,18,131,.55)); }
+body[data-page] .v2-foot__txt{ margin:0; font-size:12.5px; color:var(--chest-ink-2); }
+body[data-page] .v2-foot__warn{ margin:6px 0 0; max-width:560px; font-size:11.5px; line-height:1.6; color:var(--chest-ink-3); }
+body[data-page] .v2-foot__copy{ margin:4px 0 0; font-size:11px; color:var(--chest-ink-3); letter-spacing:.04em; }
+
+/* ---------- 17. Pied de page : logo, une phrase, rien d'autre ---------- */
+body[data-page] .site-footer.v2-foot{ position:relative; z-index:1; border-top:0 !important; margin-top:clamp(40px,8vh,80px); }
+body[data-page] .site-footer.v2-foot::before{ content:''; position:absolute; left:8%; right:8%; top:0; height:1px; background:var(--v2-rule); }
+body[data-page] .v2-foot__inner{ max-width:720px; margin:0 auto; padding:40px 24px 46px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:10px; }
+body[data-page] .v2-foot__brand{ display:inline-flex; align-items:center; gap:10px; text-decoration:none; color:var(--chest-ink); font-size:16px; font-weight:700; letter-spacing:-.02em; }
+body[data-page] .v2-foot__brand img{ width:26px; height:26px; filter:drop-shadow(0 0 10px rgba(252,18,131,.55)); }
+body[data-page] .v2-foot__txt{ margin:0; font-size:12.5px; color:var(--chest-ink-2); }
+body[data-page] .v2-foot__warn{ margin:6px 0 0; max-width:560px; font-size:11.5px; line-height:1.6; color:var(--chest-ink-3); }
+body[data-page] .v2-foot__copy{ margin:4px 0 0; font-size:11px; color:var(--chest-ink-3); letter-spacing:.04em; }

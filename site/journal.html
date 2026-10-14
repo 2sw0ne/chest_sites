@@ -415,7 +415,7 @@
     font-size:clamp(100px,17vw,240px); font-weight:700; letter-spacing:-.06em; line-height:1;
     background:linear-gradient(180deg, rgba(200,120,255,.1), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .chest-root .jrh__top{ display:flex; align-items:center; justify-content:center; gap:8px 16px; flex-wrap:wrap; font-size:11.5px; color:var(--chest-ink-3); }
-  .chest-root .jrh__label{ margin-top:34px; font-size:10px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--chest-ink-3); }
+  .chest-root .jrh__label{ margin-top:18px; font-size:10px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--chest-ink-3); }
   .chest-root .jrh__num{ margin-top:12px; font-size:clamp(52px,7.4vw,96px); font-weight:700; letter-spacing:-.055em; line-height:.95; font-variant-numeric:tabular-nums; }
   .chest-root .jrh__num.is-pos{ background:linear-gradient(180deg,#fff 8%,#c9fbe9 45%,var(--chest-green)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 36px rgba(51,230,166,.3)); }
   .chest-root .jrh__num.is-neg{ background:linear-gradient(180deg,#fff 8%,#ffc2c9 45%,var(--chest-red)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 36px rgba(255,77,94,.3)); }
@@ -443,7 +443,7 @@
 
   /* ═════════════ v2 — héros d'un journal ═════════════ */
   .chest-root .jrd{ position:relative; text-align:center; padding:28px clamp(18px,4vw,34px) 0; }
-  .chest-root .jrd__top{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; }
+  .chest-root .jrd__top{ display:flex; align-items:center; }
   .chest-root .jrd__top .jr-back{ justify-self:start; }
   .chest-root .jrd__acc{ margin-top:22px; display:flex; justify-content:center; }
   .chest-root .jrd .jr-acc-menu{ left:50%; transform:translateX(-50%); text-align:left; }
@@ -466,7 +466,7 @@
 <script src="js/accounts-auth.js?v=2"></script>
 <script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=8">
+<link rel="stylesheet" href="css/v2.css?v=10">
 </head>
 <body data-page="journal" class="chest-root">
 
@@ -619,8 +619,6 @@
     <section class="jrd" id="jrDetailHero">
       <div class="jrd__top">
         <a href="journal.html" class="jr-back" id="jrBackLink">← Journaux</a>
-        <span class="chest-step">01 — Journal</span>
-        <span class="jrd__spacer"></span>
       </div>
       <div class="jrd__acc">
       <div class="jr-acc-switcher" id="jrAccSwitcher">
@@ -914,7 +912,13 @@
   </div>
 </div>
 
-<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
+<footer class="site-footer v2-foot">
+  <div class="v2-foot__inner">
+    <a href="dashboard.html" class="v2-foot__brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+    <p class="v2-foot__txt">Ton espace de trading : comptes, journal, backtests et scanners au même endroit.</p>
+    <p class="v2-foot__copy">© 2026 CHEST</p>
+  </div>
+</footer>
 
 <script src="js/nav.js?v=2"></script>
 <script src="js/chest-ui.js?v=2"></script>
@@ -1079,11 +1083,10 @@ CHESTTour.init([
           ${withData.length > 1 ? `<path d="${sumPath}" fill="none" stroke="#fff" stroke-width="2.4" pathLength="1" class="jrh__line jrh__line--sum"/>` : ''}
         </svg>
         <span class="jrh__dot" style="left:${(X(last.t) / W * 100).toFixed(2)}%;top:${(Y(last.c) / H * 100).toFixed(2)}%"></span>
-        <span class="jrh__scale">Positions clôturées, en $ · zéro en pointillés${withData.length > 1 ? ' · en blanc : la somme' : ''}</span>`;
+`;
     }
     el.innerHTML = `
       <div class="jrh__ghost" aria-hidden="true">Journal</div>
-      <div class="jrh__top"><span class="chest-step">01 — Tous tes journaux</span><span>${items.length} journal${items.length > 1 ? 'x' : ''} · ${trades.toLocaleString('fr-FR')} positions</span></div>
       <div class="jrh__label">Résultat cumulé</div>
       <div class="jrh__num is-${sign || 'flat'}" data-v2-count>${withData.length ? fmtMoney(total) : '—'}</div>
       <p class="jrh__sub">${withData.length ? 'La somme du P&amp;L de tes positions clôturées, tous comptes confondus.' : 'Ajoute ou synchronise des positions pour voir ta courbe se dessiner ici.'}</p>
@@ -2311,6 +2314,6 @@ CHESTTour.init([
   loadAndRender();
 })();
 </script>
-<script src="js/v2.js?v=2"></script>
+<script src="js/v2.js?v=3"></script>
 </body>
 </html>

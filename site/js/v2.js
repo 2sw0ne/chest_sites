@@ -1,10 +1,10 @@
 /* ============================================================
    CHEST v2 — mouvement commun à toutes les pages de l'app
-   1. Lumière qui suit le pointeur (lissée, souris seulement)
+   (La lumière qui suivait la souris a été retirée : seul le Dashboard
+   garde la sienne, celle d'origine — retour utilisateur.)
    2. Apparition des blocs au défilement (au-dessus de la ligne de
       flottaison : en cascade dès le chargement)
    3. Chiffres qui défilent jusqu'à leur valeur quand ils changent
-   4. Reflet qui suit le curseur sur les cartes
    Rien ne s'anime si l'appareil demande moins de mouvement.
    Chargé en fin de <body>, après les scripts de la page.
    ============================================================ */
@@ -13,29 +13,7 @@
   const body = document.body;
   if (!body || !body.dataset.page) return;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   document.documentElement.classList.add('v2-js');
-
-  // ---------- 1. Lumière du pointeur ----------
-  if (fine && !reduce) {
-    const glow = document.createElement('div');
-    glow.className = 'v2-cursor';
-    glow.setAttribute('aria-hidden', 'true');
-    body.appendChild(glow);
-    let tx = innerWidth * .5, ty = innerHeight * .25, x = tx, y = ty, raf = 0;
-    const loop = () => {
-      x += (tx - x) * .09; y += (ty - y) * .09;
-      glow.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
-      raf = (Math.abs(tx - x) + Math.abs(ty - y) > .4) ? requestAnimationFrame(loop) : 0;
-    };
-    addEventListener('pointermove', (e) => {
-      tx = e.clientX; ty = e.clientY;
-      if (!glow.classList.contains('is-on')) glow.classList.add('is-on');
-      if (!raf) raf = requestAnimationFrame(loop);
-    }, { passive: true });
-    document.addEventListener('pointerleave', () => glow.classList.remove('is-on'));
-    loop();
-  }
 
   // ---------- 2. Apparition au défilement ----------
   const main = document.querySelector('.chest-main > main');
@@ -151,14 +129,4 @@
     }).observe(main || body, { childList: true, subtree: true });
   }
 
-  // ---------- 4. Reflet qui suit le curseur sur les cartes ----------
-  if (fine && !reduce) {
-    document.addEventListener('pointermove', (e) => {
-      const card = e.target.closest && e.target.closest('.bt-card, .v2-sheen');
-      if (!card) return;
-      const r = card.getBoundingClientRect();
-      card.style.setProperty('--px', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
-      card.style.setProperty('--py', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
-    }, { passive: true });
-  }
 })();

@@ -134,6 +134,10 @@
   .chest-root .dv2-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin-bottom:20px; }
   .chest-root .dv2-head__hint{ font-size:11.5px; color:var(--chest-ink-3); }
   .chest-root #btKpis .chest-label{ margin-bottom:9px; }
+
+  /* v2 — la carte « à la une » porte une étoile */
+  .chest-root .bt-card.is-spot .bt-card__title::after{ content:'★'; margin-left:8px; font-size:13px; color:#f9a45e; text-shadow:0 0 10px rgba(249,164,94,.7); vertical-align:2px; }
+  .chest-root .bth__name{ margin-top:10px; }
 </style>
 <script src="js/theme.js?v=2"></script>
 <script src="js/config.js?v=3"></script>
@@ -142,7 +146,7 @@
 <script src="js/accounts-auth.js?v=2"></script>
 <script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=8">
+<link rel="stylesheet" href="css/v2.css?v=10">
 </head>
 <body data-page="backtesting" class="chest-root">
 
@@ -195,10 +199,6 @@
        Calendrier), onglets pour passer d'un algo à l'autre, puis la bibliothèque en chiffres. -->
   <section class="bth" id="btHero">
     <div class="bth__ghost" aria-hidden="true">Backtesting</div>
-    <div class="bth__top">
-      <span class="chest-step">01 — À la une</span>
-      <span class="bth__meta" id="bthMeta"></span>
-    </div>
     <div class="bth__pick" id="bthPick" role="tablist" aria-label="Algorithme mis en avant"></div>
     <div class="bth__body" id="bthBody"></div>
     <div class="bth__curve" id="bthCurve"></div>
@@ -254,7 +254,13 @@
   </div>
 </div>
 
-<footer class="site-footer"><div class="site-footer__inner">CHEST — usage personnel.</div></footer>
+<footer class="site-footer v2-foot">
+  <div class="v2-foot__inner">
+    <a href="dashboard.html" class="v2-foot__brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+    <p class="v2-foot__txt">Ton espace de trading : comptes, journal, backtests et scanners au même endroit.</p>
+    <p class="v2-foot__copy">© 2026 CHEST</p>
+  </div>
+</footer>
 
 <script src="js/nav.js?v=2"></script>
 <script src="js/chest-ui.js?v=2"></script>
@@ -364,11 +370,16 @@
   const esc = (v) => String(v == null ? '' : v).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
   const money0 = (v) => '$' + Math.round(v).toLocaleString('fr-FR');
   const fmtMonth = (d) => (d ? new Date(d).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : '');
+  function currentSpotId(items) {
+    let chosen = null;
+    try { chosen = localStorage.getItem(SPOT_KEY); } catch (e) { /* stockage indisponible */ }
+    if (items.some((b) => b.id === chosen)) return chosen;
+    if (!items.length) return null;
+    return items.map((b) => ({ b, pf: reportFor(b).stats.profitFactor || 0 })).reduce((a, x) => (x.pf > a.pf ? x : a)).b.id;
+  }
   function renderSpot(items) {
     const body = document.getElementById('bthBody'), curveEl = document.getElementById('bthCurve');
-    const pickEl = document.getElementById('bthPick'), meta = document.getElementById('bthMeta');
-    const totalTrades = items.reduce((s, b) => s + (b.trades || []).length, 0);
-    meta.textContent = items.length ? `${items.length} algorithme${items.length > 1 ? 's' : ''} · ${totalTrades.toLocaleString('fr-FR')} positions simulées` : '';
+    const pickEl = document.getElementById('bthPick');
     if (!items.length) {
       pickEl.innerHTML = ''; pickEl.hidden = true; curveEl.innerHTML = '';
       body.innerHTML = `<h1 class="bth__name">Ton premier backtest</h1>
@@ -377,15 +388,13 @@
       return;
     }
     const reports = items.map((b) => ({ b, r: reportFor(b) }));
-    let chosen = null;
-    try { chosen = localStorage.getItem(SPOT_KEY); } catch (e) { /* stockage indisponible */ }
-    let cur = reports.find((x) => x.b.id === chosen);
-    if (!cur) cur = reports.reduce((a, x) => ((x.r.stats.profitFactor || 0) > (a.r.stats.profitFactor || 0) ? x : a), reports[0]);
+    const spot = currentSpotId(items);
+    const cur = reports.find((x) => x.b.id === spot) || reports[0];
     pickEl.hidden = reports.length < 2;
     pickEl.innerHTML = reports.map((x) => `<button type="button" role="tab" aria-selected="${x === cur}" data-spot="${esc(x.b.id)}">${esc(x.b.title)}</button>`).join('');
     pickEl.querySelectorAll('[data-spot]').forEach((btn) => btn.addEventListener('click', () => {
       try { localStorage.setItem(SPOT_KEY, btn.dataset.spot); } catch (e) { /* stockage indisponible */ }
-      renderSpot(window.CHESTBacktests.list());
+      renderCards();
     }));
     const { b, r } = cur, st = r.stats;
     const pct = st.performancePct, cap0 = capitalFor(b);
@@ -394,7 +403,7 @@
     const sign = pct >= 0 ? 'pos' : 'neg';
     const fmtPct = (v) => (v >= 0 ? '+' : '') + v.toLocaleString('fr-FR', { maximumFractionDigits: Math.abs(v) >= 1000 ? 0 : 1 }) + ' %';
     body.innerHTML = `
-      <h1 class="bth__name">${esc(b.title)}${hasPfConfig(b) ? '<span class="bth__badge">Propfirm</span>' : ''}${b.sharedBy ? `<span class="bth__badge">by ${esc(String(b.sharedBy.name || '').split(' ')[0])}</span>` : ''}</h1>
+      <h1 class="bth__name">${esc(b.title)}${b.sharedBy ? `<span class="bth__badge">by ${esc(String(b.sharedBy.name || '').split(' ')[0])}</span>` : ''}</h1>
       <p class="bth__desc">${esc(b.description || 'Backtest importé depuis un fichier Excel personnel.')}</p>
       <div class="bth__num is-${sign}" data-v2-count>${fmtPct(pct)}</div>
       <div class="bth__sub">de <b>${money0(cap0)}</b> à <b>${money0(st.finalCapital)}</b>${first ? ` · ${fmtMonth(first)} → ${fmtMonth(last)}` : ''}</div>
@@ -435,7 +444,7 @@
         <path d="${line}" fill="none" stroke="url(#bthL)" stroke-width="2.4" stroke-linejoin="round" pathLength="1" class="bth__line"/>
       </svg>
       <span class="bth__dot" style="top:${(endY / H * 100).toFixed(2)}%;--c:${col}"></span>
-      <span class="bth__scale">${logScale ? 'Échelle logarithmique · capital de départ en pointillés' : 'Capital de départ en pointillés'}</span>`;
+`;
   }
 
   function renderCards() {
@@ -443,6 +452,7 @@
     const items = window.CHESTBacktests.list();
     renderKpis(items);
     renderSpot(items);
+    const spotId = currentSpotId(items);
     const wrap = document.createElement('div');
     wrap.innerHTML = items.map((b) => {
       const report = reportFor(b);
@@ -451,13 +461,14 @@
       const uid = String(b.id).replace(/[^a-zA-Z0-9]/g, '');
       const pct = report.stats.performancePct;
       return `
-      <div class="bt-card bt-card--custom chest-glass--mini${b.sharedBy ? ' bt-card--shared' : ''}">
+      <div class="bt-card bt-card--custom chest-glass--mini${b.sharedBy ? ' bt-card--shared' : ''}${spotId === b.id ? ' is-spot' : ''}">
         <a class="bt-card__hit" href="backtest-view.html?id=${encodeURIComponent(b.id)}" aria-label="Ouvrir ${b.title}"></a>
         <div class="bt-card__top">
           <div class="bt-card__title">${b.title}${b.sharedBy ? `<span class="bt-card__by">by ${String(b.sharedBy.name || '').split(' ')[0].replace(/[<>&"]/g, '')}</span>` : ''}</div>
           <div class="bt-card__menu">
             <button type="button" class="bt-card__menu-btn" data-menu-toggle aria-label="Options du backtest">⋮</button>
             <div class="bt-card__menu-list" data-menu-list hidden>
+              <button type="button" data-spot-id="${b.id}">${spotId === b.id ? '★ À la une' : 'Mettre à la une'}</button>
               <a href="backtest-view.html?id=${encodeURIComponent(b.id)}">Voir le rapport</a>
               <a href="backtest-add.html?edit=${encodeURIComponent(b.id)}">Modifier</a>
               <button type="button" data-attach-journal-id="${b.id}">Rattacher à un journal</button>
@@ -497,6 +508,14 @@
         const isOpen = !list.hidden;
         closeAllMenus();
         list.hidden = isOpen;
+      });
+    });
+    grid.querySelectorAll('.bt-card--custom [data-spot-id]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation(); closeAllMenus();
+        try { localStorage.setItem(SPOT_KEY, btn.dataset.spotId); } catch (err) { /* stockage indisponible */ }
+        renderCards();
+        document.getElementById('btHero').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
     grid.querySelectorAll('.bt-card--custom [data-delete-id]').forEach((btn) => {
@@ -587,12 +606,12 @@
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '#btHero', title: 'À la une', text: 'Un algorithme mis en avant avec sa courbe complète (échelle logarithmique quand le rendement est composé). Les onglets au-dessus passent d\'un algo à l\'autre ; « + Nouveau backtest » lance l\'assistant d\'import.' },
+  { selector: '#btHero', title: 'À la une', text: 'L\'algorithme mis en avant et sa courbe complète. Pour en choisir un autre : les onglets au-dessus, ou « Mettre à la une » dans le menu ⋮ d\'une carte.' },
   { selector: '#btKpis', title: 'Vue d\'ensemble', text: 'Le résumé de ta bibliothèque, en indicateurs comparables d\'un backtest à l\'autre : profit factor, taux de réussite et drawdown le plus faible.' },
   { selector: '.bt-grid', title: 'Un backtest = une carte', text: 'La mini-courbe montre l\'évolution du capital simulé. Clique la carte pour ouvrir son rapport complet ; le menu ⋮ permet de modifier ou supprimer un backtest.' },
   { selector: '.bt-card__add', title: 'Ajouter un backtest', text: 'Importe un nouveau fichier : l\'assistant te guide en 4 étapes (fichier, infos, import, gestion du risque).' },
 ]);
 </script>
-<script src="js/v2.js?v=2"></script>
+<script src="js/v2.js?v=3"></script>
 </body>
 </html>
