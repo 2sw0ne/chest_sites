@@ -157,7 +157,12 @@
     try {
       const { rows, at } = await compute(mfx);
       const pnls = rows.map((r) => r.est.pnl).filter((p) => p != null);
-      state = { floating: pnls.length ? pnls.reduce((a, b) => a + b, 0) : 0, count: rows.length, at };
+      // Positions ouvertes une à une (formule Live : affichées sur le Dashboard, résultat latent estimé)
+      const positions = rows.map((r) => ({
+        symbol: r.sym, side: r.est.side === 'Vente' ? 'sell' : 'buy', volume: r.est.lots,
+        priceOpen: r.est.entry, sl: r.est.sl, tp: r.est.tp, profit: r.est.pnl,
+      }));
+      state = { floating: pnls.length ? pnls.reduce((a, b) => a + b, 0) : 0, count: rows.length, positions, at };
     } catch (e) {
       state = { floating: null, count: 0, at: new Date(), error: true };
     }

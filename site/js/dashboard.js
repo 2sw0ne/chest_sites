@@ -222,8 +222,10 @@
     return { dailyHistory: hist, balance: balance + floating };
   }
 
+  let livePositions = null; // positions ouvertes MyFxBook (formule Live), via live-sim.js
   function onLiveSimUpdate(state) {
     liveFloating = state.error ? null : state.floating;
+    livePositions = state.error ? null : (state.positions || null);
     if (activeAccountData && activeAccountData.myfxbook) renderAll();
   }
 
@@ -1022,13 +1024,17 @@
   function renderOpenPositions(a) {
     const section = document.getElementById('openPosSection');
     if (!section) return;
-    const pos = a && a.vps && Array.isArray(a.vpsPositions) ? a.vpsPositions : null;
+    // VPS (Pro) : positions lues par l'EA. MyFxBook Live : positions MyFxBook, résultat latent estimé
+    // depuis le prix en direct (live-sim.js) — dit « estimé » à l'écran.
+    const isLive = !!(a && !a.vps && a.myfxbook && a.myfxbook.plan === 'live');
+    const pos = a && a.vps && Array.isArray(a.vpsPositions) ? a.vpsPositions : (isLive && Array.isArray(livePositions) ? livePositions : null);
     section.hidden = !pos;
     if (!pos) return;
-    const latent = pos.reduce((s, q) => s + (Number(q.profit) || 0), 0);
-    document.getElementById('openPosMeta').innerHTML = pos.length
-      ? `${pos.length} position${pos.length > 1 ? 's' : ''} · latent <b class="${latent >= 0 ? 'pos' : 'neg'}">${latent >= 0 ? '+' : ''}${money(latent)}</b>`
-      : '';
+    const known = pos.filter((q) => q.profit != null && isFinite(q.profit));
+    const latent = known.reduce((s, q) => s + Number(q.profit), 0);
+    document.getElementById('openPosMeta').innerHTML = pos.length && known.length
+      ? `${pos.length} position${pos.length > 1 ? 's' : ''} · latent${isLive ? ' estimé' : ''} <b class="${latent >= 0 ? 'pos' : 'neg'}">${latent >= 0 ? '+' : ''}${money(latent)}</b>`
+      : (pos.length ? `${pos.length} position${pos.length > 1 ? 's' : ''}` : '');
     const fmt = (v) => (v ? Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 5 }) : '—');
     document.getElementById('openPosList').innerHTML = pos.length ? `
       <div class="openpos__row is-head"><span>Symbole</span><span>Sens</span><span>Lots</span><span class="opt">Entrée</span><span class="opt">Stop</span><span class="opt">Objectif</span><span class="r">Latent</span></div>
@@ -1037,7 +1043,7 @@
         <span class="openpos__side ${q.side === 'sell' ? 'sell' : 'buy'}">${q.side === 'sell' ? 'Vente' : 'Achat'}</span>
         <span>${Number(q.volume || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</span>
         <span class="opt">${fmt(q.priceOpen)}</span><span class="opt">${fmt(q.sl)}</span><span class="opt">${fmt(q.tp)}</span>
-        <b class="r ${Number(q.profit) >= 0 ? 'pos' : 'neg'}">${Number(q.profit) >= 0 ? '+' : ''}${money(Number(q.profit) || 0)}</b>
+        ${q.profit == null || !isFinite(q.profit) ? '<b class="r">—</b>' : `<b class="r ${Number(q.profit) >= 0 ? 'pos' : 'neg'}">${Number(q.profit) >= 0 ? '+' : ''}${money(Number(q.profit))}</b>`}
       </div>`).join('')}`
       : '<p style="margin:0;font-size:12.5px;color:var(--chest-ink-3)">Aucune position ouverte en ce moment.</p>';
   }

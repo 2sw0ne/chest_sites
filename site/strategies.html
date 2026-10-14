@@ -756,7 +756,18 @@ CHESTTour.init([
     box.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
       const ok = window.CHESTConfirm ? await CHESTConfirm('Supprimer cette notification ?') : window.confirm('Supprimer cette notification ?');
       if (!ok) return;
-      await fetch(`${scannersApi()}/alerts/rules/${b.dataset.del}`, { method: 'DELETE', headers: authHeaders() });
+      b.disabled = true;
+      let deleted = false;
+      try {
+        const res = await fetch(`${scannersApi()}/alerts/rules/${b.dataset.del}`, { method: 'DELETE', headers: authHeaders() });
+        deleted = res.ok && (await res.json()).ok !== false;
+      } catch (e) { deleted = false; }
+      if (!deleted) {
+        b.disabled = false;
+        document.getElementById('alrErr').textContent = 'La notification n\'a pas pu être supprimée. Réessaie dans un instant.';
+        return;
+      }
+      document.getElementById('alrErr').textContent = '';
       loadRules();
     }));
   }

@@ -325,7 +325,9 @@ def add_cors_headers(resp):
     # convention que calendar-bridge/server.py.
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Range"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    # DELETE indispensable : sans lui, le navigateur bloquait la suppression des notifications de
+    # scanner (DELETE /alerts/rules/<id>) avant même qu'elle atteigne le serveur.
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
     return resp
 
 

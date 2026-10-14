@@ -100,7 +100,7 @@
             <tbody>
               <tr><th>Fraîcheur des chiffres</th><td>Toutes les 2 à 4 h</td><td class="cx-yes">Temps réel</td><td class="cx-yes">Toutes les 30 s</td></tr>
               <tr><th>Historique des trades dans le Journal</th><td class="cx-yes">Automatique (50 dernières transactions par synchro)</td><td class="cx-yes">Automatique</td><td class="cx-yes">Automatique, chaque position sur 1 an</td></tr>
-              <tr><th>Positions ouvertes</th><td class="cx-no">Non</td><td class="cx-no">Non</td><td class="cx-yes">Oui, avec leur résultat latent</td></tr>
+              <tr><th>Positions ouvertes</th><td class="cx-no">Non</td><td class="cx-yes">Oui, résultat latent estimé</td><td class="cx-yes">Oui, avec leur résultat latent</td></tr>
               <tr><th>Exécution des signaux BERICH</th><td class="cx-no">Non</td><td class="cx-no">Non</td><td class="cx-yes">Oui, EA BERICH sur ton VPS</td></tr>
               <tr><th>Logiciel à laisser ouvert</th><td class="cx-yes">Aucun</td><td class="cx-yes">Aucun</td><td>MT5 sur le VPS (allumé 24/24)</td></tr>
               <tr><th>Identifiants confiés</th><td>Myfxbook (mot de passe investisseur côté broker)</td><td>Myfxbook (mot de passe investisseur côté broker)</td><td>Aucun : un identifiant CHEST à coller dans l'EA</td></tr>
@@ -187,7 +187,7 @@
       name: 'Live', price: '≈ 5 $', per: '/mois', who: 'Abonnement Live Update, payé à Myfxbook',
       desc: 'Même connexion MyFxBook, mais en temps réel : CHEST relit ton compte chaque minute.',
       method: 'myfxbook', mfxPlan: 'live',
-      feats: [[1, 'Tout ce que contient Essentiel'], [1, 'Chiffres en temps réel côté Myfxbook'], [1, 'CHEST rafraîchit chaque minute (au lieu de 5)'], [1, 'Aucun logiciel à laisser ouvert'], [0, 'Pas de positions ouvertes en direct']],
+      feats: [[1, 'Tout ce que contient Essentiel'], [1, 'Chiffres en temps réel côté Myfxbook'], [1, 'CHEST rafraîchit chaque minute (au lieu de 5)'], [1, 'Positions ouvertes en direct (latent estimé)'], [1, 'Aucun logiciel à laisser ouvert']],
       fine: 'Tarif fixé par Myfxbook (offres Single ou Flexible) — CHEST ne perçoit rien.',
     },
     pro: {
