@@ -34,9 +34,28 @@
 
 /* ---------- Ligne d'état (plus de pastilles : du texte) ---------- */
 .chest-root .br-top{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:22px 0 0; font-size:12px; color:var(--chest-ink-2); }
-.chest-root .br-top__brand{ display:flex; align-items:center; gap:10px; color:var(--chest-ink); font-weight:600; letter-spacing:-.01em; }
-.chest-root .br-top__brand img{ width:28px; height:28px; object-fit:contain; filter:drop-shadow(0 4px 14px rgba(51,230,166,.45)); }
-.chest-root .br-top__brand small{ font-weight:500; color:var(--chest-ink-3); }
+/* Marque (v2) : le logo et le nom sont l'en-tête de la page, pas une mention en petit. */
+.chest-root .br-top{ padding-top:26px; }
+.chest-root .br-top__brand{ display:flex; align-items:center; gap:18px; color:var(--chest-ink); }
+.chest-root .br-logo{ position:relative; width:62px; height:62px; flex-shrink:0; display:grid; place-items:center; }
+.chest-root .br-logo::before{ content:''; position:absolute; inset:-16px; border-radius:50%; pointer-events:none;
+  background:conic-gradient(from 0deg, transparent 0 12%, rgba(51,230,166,.55) 26%, transparent 42%, rgba(45,212,207,.4) 66%, transparent 82%);
+  filter:blur(16px); opacity:.85; animation:brSpin 12s linear infinite; }
+.chest-root .br-logo::after{ content:''; position:absolute; inset:-30px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(closest-side, rgba(51,230,166,.22), transparent); }
+.chest-root .br-logo img{ position:relative; z-index:1; width:62px; height:62px; object-fit:contain;
+  filter:drop-shadow(0 8px 24px rgba(51,230,166,.5)); animation:brFloat 6s ease-in-out infinite; }
+.chest-root .br-wordmark{ display:flex; flex-direction:column; gap:7px; }
+.chest-root .br-wordmark b{ font-size:clamp(28px,3vw,40px); font-weight:700; letter-spacing:.14em; line-height:.95;
+  background:linear-gradient(100deg, #ffffff 0%, #d8fff1 30%, var(--br-mint) 55%, var(--br-aqua) 70%, #ffffff 85%, #d8fff1 100%);
+  background-size:220% 100%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 22px rgba(51,230,166,.32)); animation:brSheen 9s var(--v2-ease, ease) infinite; }
+.chest-root .br-wordmark small{ font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--chest-ink-3); }
+@keyframes brSpin{ to{ transform:rotate(360deg); } }
+@keyframes brFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+@keyframes brSheen{ 0%,55%{ background-position:100% 0; } 100%{ background-position:-120% 0; } }
+@media (prefers-reduced-motion:reduce){ .chest-root .br-logo::before, .chest-root .br-logo img, .chest-root .br-wordmark b{ animation:none; } }
+@media (max-width:640px){ .chest-root .br-logo, .chest-root .br-logo img{ width:46px; height:46px; } .chest-root .br-top__brand{ gap:14px; } }
 .chest-root .br-top__right{ margin-left:auto; display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
 .chest-root .br-stat{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; position:relative; }
 .chest-root .br-stat b{ color:var(--chest-ink); font-weight:600; font-variant-numeric:tabular-nums; }

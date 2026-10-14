@@ -14,13 +14,14 @@
 <link rel="stylesheet" href="css/layout.css?v=4">
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<link rel="stylesheet" href="css/berich-da.css?v=3">
+<link rel="stylesheet" href="css/berich-da.css?v=4">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <script src="js/theme.js?v=2"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=2"></script>
 <script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
+<link rel="stylesheet" href="css/v2.css?v=4">
 </head>
 <body data-page="berich" class="chest-root">
 
@@ -75,7 +76,10 @@
 
       <!-- Ligne d'état : marque, flux, prix, biais (texte, sans pastille). -->
       <div class="br-top">
-        <span class="br-top__brand"><img src="assets/logo-berich.png?v=2" alt="">BERICH <small>· BE FR€E sur XAU/USD, 5 min</small></span>
+        <span class="br-top__brand">
+          <span class="br-logo" aria-hidden="true"><img src="assets/logo-berich.png?v=2" alt=""></span>
+          <span class="br-wordmark"><b>BERICH</b><small>Scanner BE FR€E · XAU/USD · 5 min</small></span>
+        </span>
         <div class="br-top__right">
           <span class="br-stat" id="brStatus"><span class="br-dot"></span><span>Connexion au flux…</span></span>
           <span class="br-stat" id="brPriceStat" hidden><span>XAU/USD</span><b id="brPrice">—</b></span>

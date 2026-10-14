@@ -452,6 +452,91 @@
   @media (max-width: 560px){ .kpi-grid,.results-grid{ grid-template-columns:1fr; } }
 
   p.hint{ font-size:12.5px; color:var(--muted); line-height:1.5; }
+
+  /* ═════════════ v2 — héros centré, courbe juste dessous (même logique que BERICH) ═════════════ */
+  .chest-root .dv2-hero{ text-align:center; padding:42px clamp(18px,4vw,34px) 6px; }
+  .chest-root .dv2-hero::before{
+    content:''; position:absolute; left:50%; top:96px; width:min(760px,92%); height:280px; transform:translateX(-50%);
+    pointer-events:none; border-radius:50%; filter:blur(40px); opacity:.9; transition:background .6s var(--v2-ease);
+    background:radial-gradient(closest-side, rgba(252,18,131,.2), rgba(249,164,94,.06) 60%, transparent);
+  }
+  .chest-root .dv2-hero[data-sign="pos"]::before{ background:radial-gradient(closest-side, rgba(51,230,166,.16), rgba(252,18,131,.08) 62%, transparent); }
+  .chest-root .dv2-hero[data-sign="neg"]::before{ background:radial-gradient(closest-side, rgba(255,77,94,.17), rgba(252,18,131,.06) 62%, transparent); }
+  .chest-root .dv2-hero__top{ display:flex; align-items:center; justify-content:center; gap:8px 16px; flex-wrap:wrap; font-size:11px; color:var(--chest-ink-3); }
+  .chest-root .dv2-hero__kind{ display:inline-flex; align-items:center; gap:6px; }
+  .chest-root .dv2-hero__acc{ margin-top:18px; display:flex; justify-content:center; }
+  .chest-root .dv2-hero .acc-switcher__btn{
+    border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.035); border-radius:999px; padding:6px 16px 6px 6px;
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    transition:border-color .2s var(--v2-ease), background-color .2s var(--v2-ease), transform .16s var(--v2-ease);
+  }
+  .chest-root .dv2-hero .acc-switcher__btn:active{ transform:scale(.97); }
+  @media (hover:hover) and (pointer:fine){ .chest-root .dv2-hero .acc-switcher__btn:hover{ border-color:rgba(249,164,94,.45); background:rgba(255,255,255,.055); } }
+  .chest-root .dv2-hero .acc-switcher__btn .avatar{ border-radius:50%; }
+  .chest-root .dv2-hero .acc-menu{ left:50%; transform:translateX(-50%); text-align:left; }
+  .chest-root .dv2-hero__num{ margin-top:22px; }
+  .chest-root .dv2-hero__num .chest-hero-num{ font-size:clamp(64px,8.6vw,112px); }
+  .chest-root .dv2-hero__sub{ margin-top:4px; font-size:13px; color:var(--chest-ink-2); font-variant-numeric:tabular-nums; }
+
+  .chest-root .dv2-facts{ margin:28px 0 0; display:flex; justify-content:center; flex-wrap:wrap; row-gap:16px; }
+  .chest-root .dv2-facts > div{ padding:0 28px; border-left:1px solid transparent; border-image:linear-gradient(180deg, transparent, rgba(255,255,255,.13), transparent) 1; }
+  .chest-root .dv2-facts > div:first-child{ border-left:0; }
+  .chest-root .dv2-facts dt{ font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--chest-ink-3); }
+  .chest-root .dv2-facts dd{ margin:7px 0 0; font-size:18px; font-weight:700; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }
+  .chest-root .dv2-facts dd.pos{ color:var(--chest-green); text-shadow:0 0 16px rgba(51,230,166,.3); }
+  .chest-root .dv2-facts dd.neg{ color:var(--chest-red); text-shadow:0 0 16px rgba(255,77,94,.28); }
+
+  .chest-root .dv2-chart{ margin:36px auto 0; max-width:1240px; text-align:left; }
+  .chest-root .dv2-chart__bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+  .chest-root .dv2-chart__plot{ position:relative; height:clamp(260px,36vh,380px); }
+  /* Onglets soulignés : plus de pastille blanche, un trait lumineux sous l'option active */
+  .chest-root .dv2-hero .chest-seg{ border:0 !important; background:none !important; box-shadow:none !important; padding:0; gap:22px; }
+  .chest-root .dv2-hero .dv2-unit{ gap:14px; }
+  .chest-root .dv2-hero .chest-seg > button{
+    position:relative; padding:9px 0 !important; border-radius:0 !important; background:none !important;
+    font-size:12.5px; font-weight:600; color:var(--chest-ink-3) !important;
+  }
+  .chest-root .dv2-hero .chest-seg > button::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:2px; border-radius:2px;
+    background:var(--chest-grad); box-shadow:0 0 10px rgba(252,18,131,.55);
+    transform:scaleX(0); transition:transform .26s var(--v2-ease);
+  }
+  .chest-root .dv2-hero .chest-seg > button.is-active{ color:var(--chest-ink) !important; }
+  .chest-root .dv2-hero .chest-seg > button.is-active::after{ transform:scaleX(1); }
+  @media (hover:hover) and (pointer:fine){ .chest-root .dv2-hero .chest-seg > button:not(.is-active):hover{ color:var(--chest-ink-2) !important; } }
+
+  .chest-root .dv2-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin-bottom:20px; }
+  .chest-root .dv2-head__hint{ font-size:11.5px; color:var(--chest-ink-3); }
+  .chest-root .dv2-kpis .chest-label{ margin-bottom:9px; }
+  .chest-root .dv2-live{ display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:10px; vertical-align:2px;
+    background:var(--chest-green); box-shadow:0 0 0 3px rgba(51,230,166,.16); animation:dv2Pulse 2.4s ease-in-out infinite; }
+  @keyframes dv2Pulse{ 50%{ box-shadow:0 0 0 6px rgba(51,230,166,0); } }
+  .chest-root #openPosSection{ padding-top:24px; padding-bottom:26px; }
+  .chest-root .dv2-payouts{ padding-top:20px; padding-bottom:20px; }
+  .chest-root .dv2-payouts .payout-bar__info{ gap:14px; }
+  .chest-root .dv2-payouts .payout-bar__info strong{ font-size:17px; font-variant-numeric:tabular-nums; }
+  .chest-root .dv2-small{ padding:7px 14px; font-size:12.5px; }
+
+  @media (max-width:640px){
+    .chest-root .dv2-hero{ padding-top:28px; }
+    .chest-root .dv2-facts{ display:grid; grid-template-columns:1fr 1fr; }
+    .chest-root .dv2-facts > div{ padding:0 10px; }
+    .chest-root .dv2-facts > div:nth-child(odd){ border-left:0; }
+    .chest-root .dv2-chart__bar{ justify-content:center; }
+    .chest-root .dv2-hero .chest-seg{ gap:16px; }
+  }
+  @media (prefers-reduced-motion:reduce){ .chest-root .dv2-live{ animation:none; } }
+
+  /* v2 — bas de page : séparateur estompé, cases du calendrier plus douces, volet Outils sans gros bouton gris */
+  .chest-root .chest-split > div[style*="chest-rule"]{ background:linear-gradient(180deg, transparent, rgba(255,255,255,.1), transparent) !important; }
+  .chest-root .mini-cal__cell{ border-radius:10px; }
+  .chest-root .mini-cal__cell:not(.pos):not(.neg){ background:rgba(255,255,255,.018); border-color:rgba(255,255,255,.05); }
+  .chest-root .mini-cal__cell.pos{ background:linear-gradient(160deg, rgba(51,230,166, calc(.08 + var(--mag,0) * .26)), rgba(51,230,166,.03)); }
+  .chest-root .mini-cal__cell.neg{ background:linear-gradient(160deg, rgba(255,77,94, calc(.08 + var(--mag,0) * .26)), rgba(255,77,94,.03)); }
+  .chest-root .objective-row{ border-bottom-color:rgba(255,255,255,.06); }
+  .chest-root #toolsToggle{ background:none !important; border:0 !important; box-shadow:none !important; padding:4px 0 !important; border-radius:0 !important; }
+  .chest-root #toolsToggle:active{ transform:none !important; }
+  @media (hover:hover) and (pointer:fine){ .chest-root #toolsToggle:hover .chest-step{ color:var(--chest-ink-2); } }
 </style>
 <script src="js/theme.js?v=2"></script>
 <script src="js/config.js?v=3"></script>
@@ -460,6 +545,7 @@
 <script src="js/accounts-auth.js?v=2"></script>
 <script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
+<link rel="stylesheet" href="css/v2.css?v=4">
 </head>
 <body data-page="dashboard" class="chest-root">
 
@@ -516,95 +602,92 @@
       <button type="button" class="chest-btn" id="dashEmptyAddBtn">Connecter un compte</button>
     </div>
   </div>
-  <section class="chest-spot" id="heroSpot">
+  <!-- v2 : héros centré — compte, résultat, chiffres du compte, puis la courbe juste dessous
+       (même logique que BERICH). Les infos secondaires (KPI, positions, payouts, objectifs) suivent. -->
+  <section class="chest-spot dv2-hero" id="heroSpot">
     <div class="chest-spot__layer" id="heroGlow"></div>
-    <div style="padding:36px 30px 26px;display:flex;align-items:flex-start;justify-content:space-between;gap:40px;flex-wrap:wrap">
-      <div style="min-width:0">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
-          <span class="chest-step">01 — Compte actif</span>
-          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--chest-ink-3)"><span id="accKindTitle">Compte propre</span><span class="acc-sync-error" id="accSyncError" hidden>⚠</span></span>
-          <span style="font-size:11px;color:var(--chest-ink-3)" id="accJournalTag" hidden></span>
-          <span class="conn-tag" id="accConnTag" hidden></span>
+    <div class="dv2-hero__top">
+      <span class="chest-step">01 — Compte actif</span>
+      <span class="dv2-hero__kind"><span id="accKindTitle">Compte propre</span><span class="acc-sync-error" id="accSyncError" hidden>⚠</span></span>
+      <span class="dv2-hero__journal" id="accJournalTag" hidden></span>
+      <span class="conn-tag" id="accConnTag" hidden></span>
+    </div>
+    <div class="dv2-hero__acc">
+      <div class="acc-switcher" id="accSwitcher">
+        <button class="acc-switcher__btn" id="accSwitcherBtn">
+          <span class="avatar" id="accAvatar">—</span>
+          <span class="meta"><strong id="accName">—</strong><span id="accSub">—</span></span>
+          <span class="chev">▾</span>
+        </button>
+        <div class="acc-menu" id="accMenu">
+          <div id="accMenuList"></div>
+          <div class="acc-menu__divider"></div>
+          <button class="acc-menu__item acc-menu__add" id="familyAddBtn"><span>＋</span> Ajouter un compte</button>
         </div>
-        <div class="acc-switcher" id="accSwitcher">
-          <button class="acc-switcher__btn" id="accSwitcherBtn">
-            <span class="avatar" id="accAvatar">—</span>
-            <span class="meta"><strong id="accName">—</strong><span id="accSub">—</span></span>
-            <span class="chev">▾</span>
-          </button>
-          <div class="acc-menu" id="accMenu">
-            <div id="accMenuList"></div>
-            <div class="acc-menu__divider"></div>
-            <button class="acc-menu__item acc-menu__add" id="familyAddBtn"><span>＋</span> Ajouter un compte</button>
-          </div>
-        </div>
-        <div style="margin-top:22px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
-          <span class="chest-hero-num chest-grad-text" id="kpiProfit">—</span>
-          <span style="font-size:12.5px;color:var(--chest-ink-2);padding-bottom:8px" id="kpiProfitSub">—</span>
-        </div>
-        <div style="margin-top:14px;font-size:13px;color:var(--chest-ink-2)">Equity <b id="resEquity" style="color:var(--chest-ink);font-variant-numeric:tabular-nums">—</b></div>
-      </div>
-      <div style="width:200px;flex-shrink:0;display:flex;flex-direction:column">
-        <div style="padding:10px 0;border-bottom:1px solid var(--chest-rule)"><div class="chest-label" style="margin-bottom:4px">Balance</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums" id="resBalance">—</div></div>
-        <div style="padding:10px 0;border-bottom:1px solid var(--chest-rule)"><div class="chest-label" style="margin-bottom:4px">PnL non réalisé</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums" id="resPnl">—</div></div>
-        <div style="padding:10px 0"><div class="chest-label" style="margin-bottom:4px">Profit du jour</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums" id="resToday">—</div></div>
       </div>
     </div>
+    <div class="dv2-hero__num"><span class="chest-hero-num chest-grad-text" id="kpiProfit">—</span></div>
+    <div class="dv2-hero__sub" id="kpiProfitSub">—</div>
+    <dl class="dv2-facts">
+      <div><dt>Equity</dt><dd id="resEquity">—</dd></div>
+      <div><dt>Balance</dt><dd id="resBalance">—</dd></div>
+      <div><dt>PnL non réalisé</dt><dd id="resPnl">—</dd></div>
+      <div><dt>Profit du jour</dt><dd id="resToday">—</dd></div>
+    </dl>
 
-    <div class="chest-kpis" style="padding:6px 30px 34px">
-      <div><div class="chest-label" style="margin-bottom:8px">Profit</div><div class="chest-kpi__val" id="kpiProfitDollar">—</div><div class="chest-kpi__note" id="kpiProfitDollarSub">—</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">R:R moyen</div><div class="chest-kpi__val" id="kpiRR">—</div><div class="chest-kpi__note">reward ÷ risk</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">Winrate</div><div class="chest-kpi__val" id="kpiWinrate">—</div><div class="chest-kpi__note" id="kpiWinrateSub">—</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">Max Drawdown</div><div class="chest-kpi__val" id="kpiDD">—</div><div class="chest-kpi__note" id="kpiDDSub">—</div></div>
-      <div><div class="chest-label" style="margin-bottom:8px">Jours tradés</div><div class="chest-kpi__val" id="kpiTradedDays">—</div><div class="chest-kpi__note" id="kpiTradedDaysSub">—</div></div>
-    </div>
-  </section>
-
-  <!-- Positions ouvertes en direct : comptes reliés par VPS (offre Pro), l'EA les pousse toutes les 30 s. -->
-  <div class="chest-section" id="openPosSection" hidden style="padding-top:22px;padding-bottom:26px">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
-      <span class="chest-step">Positions ouvertes · en direct</span>
-      <span style="font-size:11.5px;color:var(--chest-ink-3)" id="openPosMeta"></span>
-    </div>
-    <div class="openpos" id="openPosList"></div>
-  </div>
-
-  <div class="chest-section" id="payoutBar" hidden style="padding-top:20px;padding-bottom:20px">
-    <div class="payout-bar__head">
-      <div class="payout-bar__info"><span class="chest-label">Payouts reçus</span><strong id="payoutTotal" style="font-size:17px">$0</strong></div>
-      <div class="payout-bar__actions">
-        <button type="button" class="icon-btn payout-bar__collapse" id="payoutListToggle" title="Afficher/masquer le détail" aria-label="Afficher/masquer le détail des payouts"><span class="chev">▾</span></button>
-      </div>
-    </div>
-    <div class="payout-bar__list" id="payoutList" hidden></div>
-    <button type="button" class="chest-btn-2" id="payoutAddBtn" style="padding:7px 14px;font-size:12.5px;margin-top:10px">+ Ajouter un payout</button>
-  </div>
-
-  <section class="chest-section">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px">
-      <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
-        <span class="chest-step">02 — Courbe d'equity</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <div class="chest-seg" id="periodPills">
+    <div class="dv2-chart">
+      <div class="dv2-chart__bar">
+        <div class="chest-seg dv2-tabs" id="periodPills">
           <button data-period="day">Jour</button>
           <button data-period="week">Semaine</button>
           <button data-period="month" class="is-active">Mois</button>
           <button data-period="all">Année</button>
           <button data-period="full">Tout</button>
         </div>
-        <div class="chest-seg" id="unitToggle">
+        <div class="chest-seg dv2-unit" id="unitToggle">
           <button data-unit="dollar">$</button>
           <button data-unit="percent" class="is-active">%</button>
         </div>
       </div>
-    </div>
-    <div class="chest-glass chest-glass--chart" style="padding:22px 24px 16px">
-      <div style="position:relative;width:100%;height:296px">
+      <div class="chest-glass--chart dv2-chart__plot">
         <canvas id="equityChart"></canvas>
       </div>
     </div>
   </section>
+
+  <section class="chest-section dv2-kpis">
+    <div class="dv2-head">
+      <span class="chest-step">02 — La période en chiffres</span>
+      <span class="dv2-head__hint">Calculés sur la période choisie au-dessus de la courbe.</span>
+    </div>
+    <div class="chest-kpis">
+      <div><div class="chest-label">Profit</div><div class="chest-kpi__val" id="kpiProfitDollar">—</div><div class="chest-kpi__note" id="kpiProfitDollarSub">—</div></div>
+      <div><div class="chest-label">R:R moyen</div><div class="chest-kpi__val" id="kpiRR">—</div><div class="chest-kpi__note">gain moyen ÷ perte moyenne</div></div>
+      <div><div class="chest-label">Winrate</div><div class="chest-kpi__val" id="kpiWinrate">—</div><div class="chest-kpi__note" id="kpiWinrateSub">—</div></div>
+      <div><div class="chest-label">Max drawdown</div><div class="chest-kpi__val" id="kpiDD">—</div><div class="chest-kpi__note" id="kpiDDSub">—</div></div>
+      <div><div class="chest-label">Jours tradés</div><div class="chest-kpi__val" id="kpiTradedDays">—</div><div class="chest-kpi__note" id="kpiTradedDaysSub">—</div></div>
+    </div>
+  </section>
+
+  <!-- Positions ouvertes en direct : comptes reliés par VPS (offre Pro), l'EA les pousse toutes les 30 s. -->
+  <div class="chest-section" id="openPosSection" hidden>
+    <div class="dv2-head">
+      <span class="chest-step"><i class="dv2-live"></i>Positions ouvertes · en direct</span>
+      <span class="dv2-head__hint" id="openPosMeta"></span>
+    </div>
+    <div class="openpos" id="openPosList"></div>
+  </div>
+
+  <div class="chest-section dv2-payouts" id="payoutBar" hidden>
+    <div class="payout-bar__head">
+      <div class="payout-bar__info"><span class="chest-label">Payouts reçus</span><strong id="payoutTotal">$0</strong></div>
+      <div class="payout-bar__actions">
+        <button type="button" class="chest-btn-2 dv2-small" id="payoutAddBtn">+ Ajouter un payout</button>
+        <button type="button" class="icon-btn payout-bar__collapse" id="payoutListToggle" title="Afficher/masquer le détail" aria-label="Afficher/masquer le détail des payouts"><span class="chev">▾</span></button>
+      </div>
+    </div>
+    <div class="payout-bar__list" id="payoutList" hidden></div>
+  </div>
 
   <section class="chest-section chest-split" style="padding:0">
     <div style="padding:30px 34px 30px;position:relative">
@@ -757,7 +840,7 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=10"></script>
-<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=52"></script>
+<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=53"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>
@@ -765,7 +848,7 @@
 CHESTTour.init([
   { selector: '#accSwitcher', title: 'Choisis ton compte', text: 'Ici tu changes de compte. Chaque compte est rattaché à un compte du Journal (📒 affiché sous son nom), qui garde son historique même si le compte est supprimé ou rattaché ailleurs. Le ⋮ de chaque compte permet de le renommer, le rattacher à un autre journal, ou le supprimer.' },
   { selector: '#kpiProfit', title: 'Ton résultat', text: 'Le profit du compte actif sur la période choisie, avec l\'equity juste dessous. À droite : balance, PnL non réalisé et profit du jour, synchronisés via Myfxbook.' },
-  { selector: '#heroSpot .chest-kpis', title: 'Indicateurs clés', text: 'Profit en dollars, R:R moyen, winrate, drawdown max et jours tradés sur la période choisie.' },
+  { selector: '.dv2-kpis .chest-kpis', title: 'Indicateurs clés', text: 'Profit en dollars, R:R moyen, winrate, drawdown max et jours tradés sur la période choisie.' },
   { selector: '#periodPills', title: 'Choisis la période', text: 'Jour, semaine, mois, année ou tout : la fenêtre s\'applique à la courbe et aux indicateurs. À côté, $ / % change l\'unité.' },
   { selector: '.chest-glass--chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde, construite à partir de tes vraies positions synchronisées via Myfxbook.' },
   { selector: '#objectivesList', title: 'Objectifs du challenge', text: 'Les règles de ton challenge propfirm (objectif de profit, perte du jour, perte max, jours minimum) et où tu en es. La roue dentée à côté du titre les règle.' },

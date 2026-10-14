@@ -1492,6 +1492,9 @@
     const d = (a.periods || SAMPLE_PERIODS)[period];
     document.getElementById('kpiProfit').textContent = d.profit;
     document.getElementById('kpiProfitSub').textContent = d.profitSub;
+    // v2 : la lueur du héros prend la couleur du résultat (vert / rouge).
+    const heroEl = document.getElementById('heroSpot');
+    if (heroEl) heroEl.dataset.sign = /^\s*[-−]/.test(String(d.profit)) ? 'neg' : (/^\s*\+/.test(String(d.profit)) ? 'pos' : '');
     const profitDollarEl = document.getElementById('kpiProfitDollar');
     profitDollarEl.textContent = d.profitDollar || '—';
     profitDollarEl.classList.toggle('is-pos', String(d.profitDollar || '').startsWith('+'));
@@ -1549,7 +1552,7 @@
     const grad = c2d.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
     // Remplissage moins sature (etait 0.85) : a cette intensite il noyait le trait au lieu de
     // rester un simple appui visuel derriere lui (retour utilisateur 2026-10-11, "trop vague").
-    const peak = forLine ? 1 : 0.42;
+    const peak = forLine ? 1 : 0.3;
     const maxV = Math.max(...series, r), minV = Math.min(...series, r);
     if (maxV <= r) {
       if (forLine) { grad.addColorStop(0, rgbaColor(NEON_RED, peak)); grad.addColorStop(1, rgbaColor(NEON_RED, peak)); return grad; }
@@ -1594,8 +1597,8 @@
 
   function drawChart(d) {
     const isDark = true; // le thème clair inverse la page entière : les graphiques restent dessinés pour un fond sombre
-    const grid = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
-    const tick = isDark ? '#9b9ba1' : '#65656b';
+    const grid = isDark ? 'rgba(255,255,255,.045)' : 'rgba(0,0,0,.07)';
+    const tick = isDark ? '#6f6f76' : '#65656b';
 
     // Reference neutre = capital de depart du compte (2026-10-02) : en $, la courbe s'organise
     // autour de ce montant (au milieu de l'axe), en %, autour de 0 % de ce capital.
@@ -1668,8 +1671,8 @@
           },
         },
         scales: {
-          y: { min: yMin, max: yMax, grid: { color: grid }, ticks: { color: tick, callback: (v) => unit === 'percent' ? v.toFixed(1) + '%' : '$' + Math.round(v) } },
-          x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8 } }
+          y: { min: yMin, max: yMax, border: { display: false }, grid: { color: grid }, ticks: { color: tick, padding: 8, callback: (v) => unit === 'percent' ? v.toFixed(1) + '%' : '$' + Math.round(v) } },
+          x: { border: { display: false }, grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8, maxRotation: 0 } }
         }
       },
       plugins: [neonGlowPlugin],
