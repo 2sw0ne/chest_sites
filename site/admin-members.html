@@ -64,6 +64,10 @@
   .member-row__status.blocked{ background:rgba(255,77,94,.14); color:var(--chest-red); }
   .member-row__actions{ display:flex; gap:8px; flex-shrink:0; justify-self:end; }
   .member-row__actions .btn{ padding:7px 14px; font-size:12.5px; }
+  /* Suppression définitive : rouge, discrète tant qu'on ne la vise pas */
+  .member-row__actions .btn-delete{ color:var(--chest-red, #ff4d5e); border-color:rgba(255,77,94,.35); background:transparent; }
+  @media (hover:hover) and (pointer:fine){ .member-row__actions .btn-delete:hover{ background:rgba(255,77,94,.12); border-color:rgba(255,77,94,.6); } }
+  .member-row__actions .btn-delete:focus-visible{ outline:2px solid rgba(255,77,94,.8); outline-offset:2px; }
   .member-empty{ padding:40px 20px; text-align:center; color:var(--chest-ink-2); font-size:14px; }
   .member-error{ padding:16px 0; color:var(--chest-red); font-size:13.5px; }
   @media (max-width:700px){ .member-row{ grid-template-columns:42px minmax(0,1fr); row-gap:10px; } .member-row__status{ grid-column:2; justify-self:start; } .member-row__actions{ grid-column:1/-1; justify-self:start; } }
@@ -71,8 +75,8 @@
 <script src="js/theme.js?v=2"></script>
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=3"></script>
-<script src="js/sync-store.js?v=8"></script>
+<script src="js/accounts-auth.js?v=4"></script>
+<script src="js/sync-store.js?v=7"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=11">
 </head>
@@ -127,7 +131,7 @@
     <div style="min-width:0">
       <div class="chest-step" style="margin-bottom:16px">01 — Accès</div>
       <h1 class="chest-h1" style="font-size:48px">Gestion des membres</h1>
-      <p class="chest-body" style="max-width:480px;margin-top:14px">Toute inscription demande le mot de passe d'inscription ci-dessous ; le compte est ensuite actif tout de suite. Retrouve ici tous les membres et bloque un compte si besoin.</p>
+      <p class="chest-body" style="max-width:480px;margin-top:14px">Toute inscription demande le mot de passe d'inscription ci-dessous ; le compte est ensuite actif tout de suite. Retrouve ici tous les membres et bloque ou supprime un compte si besoin.</p>
     </div>
     <div class="chest-kpis" id="memberCounts" style="flex-shrink:0;width:auto"></div>
   </section>
@@ -166,7 +170,7 @@
   </div>
 </footer>
 
-<script src="js/nav.js?v=2"></script>
+<script src="js/nav.js?v=6"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
 <script src="js/page-tour.js"></script>
@@ -178,6 +182,8 @@ CHESTTour.init([
 <script>
 (() => {
   const card = document.getElementById('membersCard');
+
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function initials(m) {
     return `${(m.firstName || '?')[0]}${(m.lastName || '?')[0]}`.toUpperCase();
@@ -194,15 +200,18 @@ CHESTTour.init([
       : m.status === 'rejected' || m.status === 'blocked'
         ? `<button class="btn btn-primary" data-approve="${m.id}">${m.status === 'blocked' ? 'Débloquer' : 'Accepter quand même'}</button>`
         : `<button class="btn btn-ghost" data-block="${m.id}">Bloquer le compte</button>`;
+    // Suppression définitive : jamais sur son propre compte (le serveur le refuse aussi)
+    const me = CHESTAccounts.getUser();
+    const del = me && me.id === m.id ? '' : `<button class="btn btn-ghost btn-delete" data-delete="${m.id}" data-name="${esc(`${m.firstName} ${m.lastName}`)}">Supprimer</button>`;
     return `
       <div class="member-row" data-member-row="${m.id}">
-        <div class="member-row__avatar">${initials(m)}</div>
+        <div class="member-row__avatar">${esc(initials(m))}</div>
         <div class="member-row__info">
-          <div class="member-row__name">${m.firstName} ${m.lastName}${m.isAdmin ? '<span class="badge-admin">Admin</span>' : ''}</div>
-          <div class="member-row__email">${m.email}</div>
+          <div class="member-row__name">${esc(m.firstName)} ${esc(m.lastName)}${m.isAdmin ? '<span class="badge-admin">Admin</span>' : ''}</div>
+          <div class="member-row__email">${esc(m.email)}</div>
         </div>
         <span class="member-row__status ${m.status}">${statusLabel(m.status)}</span>
-        <div class="member-row__actions">${actions}</div>
+        <div class="member-row__actions">${actions}${del}</div>
       </div>`;
   }
 
@@ -235,6 +244,21 @@ CHESTTour.init([
     const approveId = e.target.dataset.approve;
     const rejectId = e.target.dataset.reject;
     const blockId = e.target.dataset.block;
+    const deleteId = e.target.dataset.delete;
+    if (deleteId) {
+      const typed = await CHESTPrompt(`Supprimer définitivement ${e.target.dataset.name} ? Son compte et TOUTES ses données (comptes de trading, Myfxbook, VPS, journal, backtests, alertes, notifications) seront effacés. C'est irréversible. Tape SUPPRIMER pour confirmer.`, { confirmLabel: 'Supprimer' });
+      if (typed == null) return;
+      if (typed.trim().toUpperCase() !== 'SUPPRIMER') { await CHESTAlert('Suppression annulée : il fallait taper SUPPRIMER.'); return; }
+      e.target.disabled = true;
+      try {
+        await CHESTAccounts.deleteMember(deleteId);
+        await render();
+      } catch (err) {
+        await CHESTAlert(err.message);
+        e.target.disabled = false;
+      }
+      return;
+    }
     if (!approveId && !rejectId && !blockId) return;
     if (blockId && !(await CHESTConfirm('Bloquer ce compte ? Son accès sera coupé immédiatement (déconnexion forcée) — tu pourras le réapprouver plus tard.'))) return;
     e.target.disabled = true;

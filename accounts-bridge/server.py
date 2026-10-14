@@ -669,6 +669,40 @@ def block_member(member_id):
     return jsonify({"ok": True})
 
 
+# Suppression definitive d'un membre (2026-10-14, demande utilisateur : "mets une option de suppression
+# d'utilisateur"). Efface le compte ET tout ce qui lui appartient cote serveur : sessions (deconnecte a
+# l'instant), donnees synchronisees (comptes, journal, backtests, identifiants Myfxbook...), comptes VPS et
+# leur historique, alertes scanner, abonnements aux notifications, backtests partages en attente (envoyes
+# ou recus). Irreversible. Jamais son propre compte (pour ne pas s'enfermer dehors), jamais le dernier admin.
+@app.route("/members/<int:member_id>/delete", methods=["POST"])
+def delete_member(member_id):
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if member_id == admin["id"]:
+        return jsonify({"error": "Tu ne peux pas supprimer ton propre compte."}), 400
+    db = get_db()
+    target = db.execute("SELECT id, is_admin FROM users WHERE id = ?", (member_id,)).fetchone()
+    if not target:
+        return jsonify({"error": "Compte introuvable."}), 404
+    if target["is_admin"] and db.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin = 1").fetchone()["n"] <= 1:
+        return jsonify({"error": "Impossible de supprimer le dernier administrateur."}), 400
+    with db_lock:
+        vps_ids = [r["id"] for r in db.execute("SELECT id FROM vps_accounts WHERE user_id = ?", (member_id,)).fetchall()]
+        for vid in vps_ids:
+            db.execute("DELETE FROM vps_deals WHERE vps_id = ?", (vid,))
+            db.execute("DELETE FROM vps_equity WHERE vps_id = ?", (vid,))
+        db.execute("DELETE FROM vps_accounts WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
+        db.execute("DELETE FROM users WHERE id = ?", (member_id,))
+        db.commit()
+    return jsonify({"ok": True, "vpsDeleted": len(vps_ids)})
+
+
 # Reinitialisation de mot de passe - AJOUTE (2026-09-14, retour direct
 # utilisateur : "un processus de reinitialisation si tu peux"). Pas d'envoi
 # d'email (aucune infrastructure mail dans ce projet, usage familial/proches
@@ -1384,7 +1418,7 @@ def push_subscribe():
         db = get_db()
         db.execute(
             "INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, created_at) VALUES (?, ?, ?, ?, ?) "
-            "ON CONFLICT(endpoint) DO UPDATE SET p256dh = excluded.p256dh, auth = excluded.auth",
+            "ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth",
             (user["id"], endpoint, p256dh, auth, now),
         )
         db.commit()

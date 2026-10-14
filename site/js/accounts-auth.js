@@ -82,8 +82,13 @@ window.CHESTAccounts = (() => {
       // nouveau compte. On compare AVANT d'écraser USER_KEY : même compte qui se reconnecte (jeton
       // expiré) -> on garde tout, rien à perdre ; compte différent -> données locales purgées
       // (jamais celles du serveur, voir CHESTSync.clearLocalData).
+      // 2026-10-14 : on compare aussi au propriétaire des données du navigateur (chest_data_owner, posé par
+      // sync-store.js), plus fiable que le membre en cache (effacé à la déconnexion ou rangé en session).
       const prevUser = getUser();
-      if (!prevUser || prevUser.id !== data.user.id) {
+      let owner = null;
+      try { owner = localStorage.getItem('chest_data_owner'); } catch (e) { /* tant pis */ }
+      const sameUser = owner ? owner === String(data.user.id) : !!(prevUser && prevUser.id === data.user.id);
+      if (!sameUser) {
         try { window.CHESTSync && window.CHESTSync.clearLocalData && window.CHESTSync.clearLocalData(); } catch (e) { /* tant pis */ }
       }
       // remember !== false -> comportement historique (persistant) par
@@ -91,12 +96,33 @@ window.CHESTAccounts = (() => {
       const store = remember === false ? sessionStorage : localStorage;
       store.setItem(TOKEN_KEY, data.token);
       store.setItem(USER_KEY, JSON.stringify(data.user));
+      if (window.CHESTSync && window.CHESTSync.setOwner) window.CHESTSync.setOwner(data.user.id);
+      else localStorage.setItem('chest_data_owner', String(data.user.id));
     } catch (e) { /* stockage indisponible */ }
     return data.user;
   }
 
+  // Notifications push : l'appareil est désabonné à la déconnexion (serveur + navigateur). Sans ça, le
+  // téléphone d'un membre continuait de recevoir SES notifications (noms de comptes, gains) après qu'un autre
+  // membre s'y était connecté (2026-10-14). keepalive : la requête part même si la page change juste après.
+  function unsubscribePush(headers) {
+    try {
+      if (!('serviceWorker' in navigator) || !headers.Authorization) return;
+      navigator.serviceWorker.getRegistration().then((reg) => reg && reg.pushManager && reg.pushManager.getSubscription()).then((sub) => {
+        if (!sub) return;
+        fetch(`${apiBase()}/push/unsubscribe`, {
+          method: 'POST', keepalive: true,
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        }).catch(() => {});
+        sub.unsubscribe().catch(() => {});
+      }).catch(() => {});
+    } catch (e) { /* tant pis */ }
+  }
+
   function logout() {
     const headers = authHeaders();
+    unsubscribePush(headers);
     try {
       localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY);
       sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(USER_KEY);
@@ -123,6 +149,10 @@ window.CHESTAccounts = (() => {
   }
   async function blockMember(id) {
     await jsonFetch(`/members/${id}/block`, { method: 'POST', headers: authHeaders() });
+  }
+  // Suppression définitive d'un membre et de toutes ses données serveur (admin).
+  async function deleteMember(id) {
+    return jsonFetch(`/members/${id}/delete`, { method: 'POST', headers: authHeaders() });
   }
 
   // Protege une page reservee aux comptes connectes/approuves - a appeler en
@@ -182,5 +212,5 @@ window.CHESTAccounts = (() => {
   verifySessionAlive();
   setInterval(verifySessionAlive, 120000);
 
-  return { getToken, getUser, isLoggedIn, isAdmin, signup, markTutoSeen, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, guard };
+  return { getToken, getUser, isLoggedIn, isAdmin, signup, markTutoSeen, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, deleteMember, guard };
 })();

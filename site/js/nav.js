@@ -88,7 +88,11 @@
     // l'ancien code d'accès partage (CHESTAuth) si jamais encore actif sur
     // cette page, pour ne rien laisser d'entrouvert.
     document.querySelectorAll('[data-logout]').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
+        // Les dernières modifications partent vers le serveur AVANT que la déconnexion efface les données
+        // de ce navigateur (sinon elles seraient perdues) - au plus 10 s, voir CHESTSync.flushNow.
+        btn.disabled = true;
+        try { if (window.CHESTSync && CHESTSync.flushNow) await CHESTSync.flushNow(); } catch (e) { /* tant pis */ }
         if (window.CHESTAccounts) CHESTAccounts.logout();
         if (window.CHESTAuth) CHESTAuth.lock();
         window.location.href = 'login.html';

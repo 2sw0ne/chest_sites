@@ -605,8 +605,8 @@
   // une fois dailyHistory construit, que le compte soit individuel ou membre
   // d'une famille - plus deux pipelines paralleles qui pouvaient diverger.
   async function fetchMyfxbookAccount(mfx, localAccountId) {
-    const session = await CHESTMyfxbook.login(mfx.email, mfx.password);
-    try {
+    // Session Myfxbook gardée et réutilisée (myfxbook-store.js, withSession) : plus une connexion par relecture.
+    return CHESTMyfxbook.withSession(mfx.email, mfx.password, async (session) => {
       const accounts = await CHESTMyfxbook.getMyAccounts(session);
       const acc = accounts.find((a) => String(a.id) === String(mfx.accountId));
       if (!acc) throw new Error("Ce compte n'existe plus sur ton profil Myfxbook.");
@@ -638,9 +638,7 @@
         dailyGainAsc, // garde pour l'historique persiste (mergeMyfxbookHistory/extendWithPersistedHistory)
         history, // garde pour le RR reel et la courbe intra-journee (voir unifiedTradesList/intradayCurveFromTrades)
       };
-    } finally {
-      CHESTMyfxbook.logout(session);
-    }
+    });
   }
 
   // "Live Swann" (voir account.html) reste toujours a jour - jamais servi

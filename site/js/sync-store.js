@@ -37,6 +37,9 @@
     'chest_sentiment_pair', 'chest_timezone', 'chest_profile',
     'chest_scanner_drawings', 'chest_theme', 'chest_admin_preview_mode', 'chest_ui_scale',
     'chest_notif_prefs',
+    // 2026-10-14 : propres à chaque membre, désormais rattachées à son compte (plus perdues au changement de compte)
+    'chest_bt_spot', 'chest_notifications', 'chest_school_vvs_check', 'chest_news_seen',
+    'chest_berich_invalidated', 'chest_cal_importance',
   ];
 
   // BUG REEL (2026-10-01, retour utilisateur : "les backtests que j'ajoute ne s'enregistrent pas") :
@@ -59,6 +62,13 @@
   const BASE_KEY = 'chest_sync_base';
   const origSetItem = Storage.prototype.setItem;
   const rawSet = (k, v) => origSetItem.call(localStorage, k, v);
+  let flushTimer = null;
+  const OWNER_KEY = 'chest_data_owner';
+  const DEVICE_KEYS = [
+    'chest_account_token', 'chest_account_user', 'chest_data_owner',
+    'chest_nav_collapsed', 'chest_theme', 'chest_code_hash', 'chest_unlocked',
+    'chest_cal_realmove_cache', 'chest_currency_strength_fxblue', 'chest_weekly_forecast_lock',
+  ];
 
   function loadMap(key) {
     try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; }
@@ -149,9 +159,20 @@
     } catch (e) { /* hors-ligne / serveur injoignable : on garde ce qu'il y a deja en local */ }
     pushChanged();
   }
+  function currentUserId() {
+    try { const u = JSON.parse(localStorage.getItem('chest_account_user') || sessionStorage.getItem('chest_account_user') || 'null'); return u && u.id != null ? String(u.id) : null; } catch (e) { return null; }
+  }
+  (function checkOwner() {
+    const uid = currentUserId();
+    if (!getToken() || !uid) return;
+    const owner = localStorage.getItem(OWNER_KEY);
+    if (owner && owner !== uid) clearLocalData();
+    // Pas encore de marque (navigateur d'avant cette mise à jour) : les données présentes sont celles du
+    // membre connecté, comme jusqu'ici.
+    setOwner(uid);
+  })();
   pullSync();
 
-  let flushTimer = null;
   function flush() {
     flushTimer = null;
     return pushChanged();
@@ -175,14 +196,25 @@
   // envoyer", voir Storage.prototype.setItem plus bas). Appelée par accounts-auth.js à la
   // déconnexion, et à la connexion si le compte qui se connecte diffère de celui déjà en cache -
   // un removeItem() direct (jamais setItem) donc jamais repoussé vers le serveur par erreur.
+  //
+  // 2026-10-14 (demande utilisateur : « séparer vraiment les données de chaque compte ») : on efface TOUTES
+  // les clés chest_* du navigateur, pas seulement les synchronisées - certaines ne le sont pas mais restent
+  // propres au membre (backtest à la une, cloche de notifications, checklist School, signaux BERICH écartés,
+  // Newsletter vue, cache School qui peut contenir les emplacements réservés à l'admin…). Ne restent que
+  // la session elle-même, quelques préférences d'appareil et des caches de données publiques.
   function clearLocalData() {
     if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
     try {
-      SYNCED_KEYS.forEach((k) => localStorage.removeItem(k));
-      localStorage.removeItem(DIRTY_KEY);
-      localStorage.removeItem(BASE_KEY);
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+      keys.forEach((k) => { if (k && k.indexOf('chest_') === 0 && DEVICE_KEYS.indexOf(k) === -1) localStorage.removeItem(k); });
+      localStorage.removeItem(OWNER_KEY);
     } catch (e) { /* tant pis */ }
   }
+  // Propriétaire des données du navigateur (id du membre). Filet de sécurité indépendant de login()/logout() :
+  // si une page s'ouvre avec la session d'un membre alors que les données appartiennent à un autre (session
+  // posée autrement, onglet resté ouvert…), elles sont effacées AVANT le moindre pull ou push.
+  function setOwner(id) { try { rawSet(OWNER_KEY, String(id)); } catch (e) { /* tant pis */ } }
 
   // API publique minimale : force l'envoi immediat de ce qui a change et ATTEND (au plus 10 s, pour ne jamais
   // bloquer l'utilisateur si le serveur est lent - ce qui n'a pas pu partir reste protege et repartira au
@@ -193,5 +225,6 @@
       await Promise.race([flush(), new Promise((r) => setTimeout(r, 10000))]);
     },
     clearLocalData,
+    setOwner,
   };
 })();

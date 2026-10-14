@@ -575,8 +575,8 @@
     const live = liveAccounts(acc).find((l) => l.id === liveId);
     if (!live) throw new Error('Compte live introuvable.');
     if (!window.CHESTMyfxbook) throw new Error('Client Myfxbook non chargé.');
-    const session = await window.CHESTMyfxbook.login(live.email, live.password);
-    try {
+    // Session Myfxbook gardée et réutilisée (myfxbook-store.js, withSession)
+    return window.CHESTMyfxbook.withSession(live.email, live.password, async (session) => {
       const accounts = await window.CHESTMyfxbook.getMyAccounts(session);
       const info = accounts.find((a) => String(a.id) === String(live.accountId));
       if (!info) throw new Error("Ce compte n'existe plus sur ton profil Myfxbook.");
@@ -590,9 +590,7 @@
       });
       updateActiveStageBalance(accountId, numOf(info.balance), liveId);
       return res;
-    } finally {
-      window.CHESTMyfxbook.logout(session);
-    }
+    });
   }
 
   // Lit l'instantané poussé par CHESTAccountPush.mq5 depuis le VPS personnel du membre (voir

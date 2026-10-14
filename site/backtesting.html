@@ -143,8 +143,8 @@
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
-<script src="js/accounts-auth.js?v=3"></script>
-<script src="js/sync-store.js?v=8"></script>
+<script src="js/accounts-auth.js?v=4"></script>
+<script src="js/sync-store.js?v=7"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=11">
 </head>
@@ -262,7 +262,7 @@
   </div>
 </footer>
 
-<script src="js/nav.js?v=2"></script>
+<script src="js/nav.js?v=6"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
 <script src="js/backtest-store.js?v=2"></script>
@@ -270,7 +270,7 @@
 <script src="js/backtest-engine.js?v=21"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
-<script src="js/journal-store.js?v=11"></script>
+<script src="js/journal-store.js?v=12"></script>
 <script>
 (() => {
   'use strict';
@@ -464,7 +464,7 @@
       <div class="bt-card bt-card--custom chest-glass--mini${b.sharedBy ? ' bt-card--shared' : ''}${spotId === b.id ? ' is-spot' : ''}">
         <a class="bt-card__hit" href="backtest-view.html?id=${encodeURIComponent(b.id)}" aria-label="Ouvrir ${b.title}"></a>
         <div class="bt-card__top">
-          <div class="bt-card__title">${b.title}${b.sharedBy ? `<span class="bt-card__by">by ${String(b.sharedBy.name || '').split(' ')[0].replace(/[<>&"]/g, '')}</span>` : ''}</div>
+          <div class="bt-card__title">${esc(b.title)}${b.sharedBy ? `<span class="bt-card__by">by ${String(b.sharedBy.name || '').split(' ')[0].replace(/[<>&"]/g, '')}</span>` : ''}</div>
           <div class="bt-card__menu">
             <button type="button" class="bt-card__menu-btn" data-menu-toggle aria-label="Options du backtest">⋮</button>
             <div class="bt-card__menu-list" data-menu-list hidden>

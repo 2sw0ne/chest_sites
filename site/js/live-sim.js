@@ -8,11 +8,9 @@
 
   const POLL_MS = 30000;
   const HISTORY_TTL_MS = 10 * 60 * 1000;
-  const SESSION_TTL_MS = 20 * 60 * 1000;
   const MAX_SYMBOLS = 4;          // plan gratuit Twelve Data : ~8 requêtes/minute
   const MAX_OFFSET_RATIO = 0.005; // au-delà de 0,5 % d'écart, on suppose une erreur de fuseau : pas de recalage
 
-  const sessions = {};
   const histories = {};
   const offsets = {};
   let timer = null;
@@ -34,14 +32,6 @@
     const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
     const qs = new URLSearchParams(params).toString();
     return fetch(`${base}/twelvedata/${endpoint}?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
-  }
-
-  async function sessionFor(mfx) {
-    const c = sessions[mfx.email];
-    if (c && Date.now() - c.at < SESSION_TTL_MS) return c.session;
-    const session = await CHESTMyfxbook.login(mfx.email, mfx.password);
-    sessions[mfx.email] = { session, at: Date.now() };
-    return session;
   }
 
   async function historyFor(mfx, session) {
@@ -130,8 +120,11 @@
     };
   }
 
-  async function compute(mfx) {
-    const session = await sessionFor(mfx);
+  // Même session Myfxbook que le Dashboard (myfxbook-store.js, withSession) : pas de connexion en plus.
+  function compute(mfx) {
+    return CHESTMyfxbook.withSession(mfx.email, mfx.password, (session) => computeWith(mfx, session));
+  }
+  async function computeWith(mfx, session) {
     const [open, trades] = await Promise.all([CHESTMyfxbook.getOpenTrades(session, mfx.accountId), historyFor(mfx, session)]);
     const positions = open.filter((t) => dirOf(t.action) && lotsOf(t));
     const symbols = [...new Set(positions.map((t) => t.symbol))].filter((s) => srcSymbol(s)).slice(0, MAX_SYMBOLS);
