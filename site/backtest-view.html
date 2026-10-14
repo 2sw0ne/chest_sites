@@ -186,6 +186,21 @@
   .result-badge.be{ background:var(--line2); color:var(--muted); }
 
   .empty-note{ border:1px dashed var(--line2); border-radius:var(--radius); padding:40px 24px; text-align:center; color:var(--muted); }
+
+  /* ═════════════ v2 — courbe en toile de fond du héros, note lumineuse ═════════════ */
+  .bt-hero-curve{ position:absolute; left:0; right:0; bottom:0; height:46%; pointer-events:none; opacity:.42;
+    -webkit-mask-image:linear-gradient(180deg, transparent, #000 35%, #000 70%, transparent), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    -webkit-mask-composite:source-in; mask-image:linear-gradient(180deg, transparent, #000 35%, #000 70%, transparent), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-composite:intersect; }
+  .bt-hero-curve svg{ width:100%; height:100%; display:block; }
+  .bt-hero-curve__line{ stroke-dasharray:1; stroke-dashoffset:1; animation:hcDraw 2.2s cubic-bezier(.65,0,.35,1) .3s forwards; filter:drop-shadow(0 0 6px rgba(51,230,166,.4)); }
+  .bt-hero-curve__area{ opacity:0; animation:hcFade 1.2s ease 1.6s forwards; }
+  @keyframes hcDraw{ to{ stroke-dashoffset:0; } }
+  @keyframes hcFade{ to{ opacity:1; } }
+  @media (prefers-reduced-motion:reduce){ .bt-hero-curve__line{ animation:none; stroke-dasharray:none; stroke-dashoffset:0; } .bt-hero-curve__area{ animation:none; opacity:1; } }
+  .bt-hero-glow__stats{ border-top:1px solid transparent !important; border-image:linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent) 1; }
+  .bt-grade{ font-size:28px !important; line-height:1; background:linear-gradient(180deg,#fff,#f9a45e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 16px rgba(249,164,94,.55)); }
+  .bt-grade--s, .bt-grade--a{ background:linear-gradient(180deg,#fff,#33e6a6); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 18px rgba(51,230,166,.6)); }
+  .bt-grade--d, .bt-grade--e{ background:linear-gradient(180deg,#fff,#ff4d5e); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 16px rgba(255,77,94,.5)); }
 </style>
 <script src="js/theme.js?v=2"></script>
 <script src="js/config.js?v=3"></script>
@@ -194,7 +209,7 @@
 <script src="js/accounts-auth.js?v=2"></script>
 <script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=7">
+<link rel="stylesheet" href="css/v2.css?v=8">
 </head>
 <body data-page="backtesting" class="chest-root">
 
@@ -265,6 +280,7 @@
           <button type="button" id="btShare">Partager à un membre</button>
         </div>
       </div>
+      <div class="bt-hero-curve" id="heroCurve" aria-hidden="true"></div>
       <div class="bt-hero-glow__inner">
         <span class="bt-hero-glow__badge" id="heroBadge"></span>
         <h1 class="bt-hero-glow__title" id="heroTitle"></h1>
@@ -587,6 +603,24 @@ CHESTTour.init([
     ? window.CHESTBacktestEngine.computeReport(record.trades, pfCapital, riskCfg(record.pf))
     : window.CHESTBacktestEngine.computeReport(record.trades, record.capital, riskCfg(record.cp));
   document.getElementById('heroGrade').textContent = computeGrade(heroReport);
+  // v2 : la courbe complète en toile de fond du héros (échelle log si rendement composé), tracée à l'arrivée.
+  (function drawHeroCurve(rep, cap0) {
+    const el = document.getElementById('heroCurve');
+    if (!el || !rep || !rep.curve || rep.curve.length < 2) return;
+    const caps = [cap0].concat(rep.curve.map((p) => p.capital)).filter((v) => v > 0);
+    const hi = Math.max(...caps), lo = Math.min(...caps);
+    const lg = hi / lo > 5, f = (v) => (lg ? Math.log(v) : v);
+    const fHi = f(hi), fLo = f(lo), span = (fHi - fLo) || 1, W = 1000, H = 300, n = caps.length;
+    const pts = caps.map((v, i) => `${(i / (n - 1) * W).toFixed(1)} ${(10 + (1 - (f(v) - fLo) / span) * (H - 20)).toFixed(1)}`);
+    const line = 'M' + pts.join(' L');
+    const up = caps[caps.length - 1] >= cap0, col = up ? '51,230,166' : '255,77,94';
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <defs><linearGradient id="hcA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(${col},.22)"/><stop offset="1" stop-color="rgba(${col},0)"/></linearGradient></defs>
+      <path d="${line} L${W} ${H} L0 ${H} Z" fill="url(#hcA)" class="bt-hero-curve__area"/>
+      <path d="${line}" fill="none" stroke="rgba(${col},.75)" stroke-width="2" pathLength="1" class="bt-hero-curve__line"/></svg>`;
+  })(heroReport, hasPf ? pfCapital : record.capital);
+  const gradeEl = document.getElementById('heroGrade');
+  gradeEl.className = 'bt-grade bt-grade--' + String(gradeEl.textContent || '').trim().charAt(0).toLowerCase();
   document.getElementById('heroGrade').parentElement.title = 'Note = 50 % expansion du compte (croissance mensuelle moyenne) + 50 % cohérence (mois positifs, régularité de la courbe, drawdown). Heuristique, pas une certification.';
 
   let mmDetailAccount = 'cp';
