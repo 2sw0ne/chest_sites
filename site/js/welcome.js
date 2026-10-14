@@ -209,7 +209,12 @@
   // (décalage px + zoom), null = pas de photo (Menu/School, contenu généré).
   const BENTO_PREVIEW_KIND = { hero: 'media', scanner: 'media', founder: 'phone', menu: null, school: null };
   const BENTO_ORIG_IMAGES = { hero: '/assets/wel-chest-here.webp', scanner: '/assets/wel-scanner.webp', founder: '/assets/wel-founder-phone.webp' };
-  function applyMediaPosition(el, pos) { el.style.backgroundPosition = pos.x + '% ' + pos.y + '%'; }
+  function applyMediaPosition(el, pos) {
+    el.style.backgroundPosition = (pos.x == null ? 50 : pos.x) + '% ' + (pos.y == null ? 50 : pos.y) + '%';
+    el.style.setProperty('--tx', (pos.tx || 0) + '%');
+    el.style.setProperty('--ty', (pos.ty || 0) + '%');
+    el.style.setProperty('--z', pos.z || 1);
+  }
   function applyPhonePosition(el, pos) {
     el.style.setProperty('--dx', pos.dx + 'px');
     el.style.setProperty('--dy', pos.dy + 'px');
@@ -296,7 +301,7 @@
         <label class="wel-edit__field">Titre<input type="text" id="welBentoEditTitleInput" maxlength="40"></label>
         <label class="wel-edit__field" id="welBentoEditImageField">Photo<input type="file" id="welBentoEditImageInput" accept="image/*"></label>
         <div class="wel-edit__field" id="welBentoEditPosField">
-          Position <span class="wel-edit__hint">— glisse pour recadrer${''/* le zoom (molette) n'est proposé que pour Founder, voir renderEditPreview */}</span>
+          Cadrage <span class="wel-edit__hint">— glisse pour déplacer, molette ou curseur pour zoomer. Le cadre montre exactement la case.</span>
           <div class="wel-edit__preview" id="welBentoEditPreview"></div>
         </div>
         <label class="wel-edit__check" id="welBentoEditBadgeField" hidden><input type="checkbox" id="welBentoEditBadgeInput">Badge « +1 » visible</label>
@@ -322,54 +327,164 @@
   }
   function defaultPosition(id) {
     const d = BENTO_MEDIA_DEFAULTS[id];
-    return id === 'founder' ? { dx: d.dx, dy: d.dy, s: d.s } : { x: d.x, y: d.y };
+    if (!d) return {};
+    return id === 'founder' ? { dx: d.dx, dy: d.dy, s: d.s } : { x: d.x, y: d.y, tx: 0, ty: 0, z: 1 };
   }
   function currentImageUrl(id) {
     const o = bentoOverrides[id];
     return (o && o.image && o.image.key) ? `${bentoApi()}/school/files/${o.image.key}` : BENTO_ORIG_IMAGES[id];
   }
-  // État du glisser tenu au niveau du module (pas dans renderEditPreview, qui tourne à chaque ouverture
-  // ET à chaque nouvelle photo choisie) : les écouteurs mousemove/mouseup sur `window` ne sont posés
-  // qu'UNE fois plus bas, sinon ils s'accumuleraient indéfiniment à chaque rendu de l'aperçu.
-  let editDrag = null; // { kind, box, img, start, sx, sy }
-  window.addEventListener('mousemove', (mv) => {
-    if (!editDrag) return;
-    const { kind, box, img, start, sx, sy } = editDrag;
-    if (kind === 'media') {
-      const rect = box.getBoundingClientRect();
-      const dxPct = ((mv.clientX - sx) / rect.width) * 100;
-      const dyPct = ((mv.clientY - sy) / rect.height) * 100;
-      editPos = { x: Math.max(0, Math.min(100, start.x - dxPct)), y: Math.max(0, Math.min(100, start.y - dyPct)) };
-      applyMediaPosition(box, editPos);
+  // ---------- Recadrage (fenêtre « Modifier ») ----------
+  // L'aperçu est une COPIE de la vraie case (mêmes dimensions, titre et dégradés compris), réduite à l'échelle de
+  // la fenêtre : ce qu'on cadre ici est exactement ce qui s'affiche. Photos (Chest Is Here, Scanner) : déplacement
+  // libre en % de la case (--tx/--ty) + zoom/dézoom (--z, 30 % à 400 %). Founder : décalage en px (--dx/--dy, mêmes
+  // unités que la vraie case puisque la copie a sa taille réelle) + zoom (--zs, 30 % à 350 %).
+  const CROP_LIMITS = { media: [0.3, 4], phone: [0.3, 3.5] };
+  const CROP_FALLBACK_SIZE = { hero: [738, 300], scanner: [488, 300], founder: [488, 614] };
+  let crop = null; // { id, kind, W, H, k, target, frame, pct, range }
+  function cropZoomKey() { return crop.kind === 'phone' ? 's' : 'z'; }
+  function cropApply() {
+    if (!crop) return;
+    if (crop.kind === 'media') applyMediaPosition(crop.target, editPos); else applyPhonePosition(crop.target, editPos);
+    const z = editPos[cropZoomKey()];
+    crop.pct.textContent = Math.round(z * 100) + ' %';
+    const [lo, hi] = CROP_LIMITS[crop.kind];
+    crop.range.value = String(Math.round(Math.log(z / lo) / Math.log(hi / lo) * 1000));
+  }
+  // Zoom en gardant fixe le point « ancre » (coordonnées de la case réelle, en px) : le pointeur pour la molette,
+  // le centre de la case pour le curseur et les boutons.
+  function cropZoomTo(next, ax, ay) {
+    if (!crop) return;
+    const [lo, hi] = CROP_LIMITS[crop.kind];
+    const key = cropZoomKey();
+    const z = editPos[key];
+    const z2 = Math.max(lo, Math.min(hi, next));
+    if (Math.abs(z2 - z) < 1e-4) return;
+    const r = z2 / z;
+    if (crop.kind === 'media') {
+      // transform: translate(t) scale(z) autour du centre de la case
+      const cx = crop.W / 2 + (editPos.tx || 0) / 100 * crop.W, cy = crop.H / 2 + (editPos.ty || 0) / 100 * crop.H;
+      const ncx = ax - r * (ax - cx), ncy = ay - r * (ay - cy);
+      editPos = Object.assign({}, editPos, { tx: (ncx - crop.W / 2) / crop.W * 100, ty: (ncy - crop.H / 2) / crop.H * 100, z: z2 });
     } else {
-      editPos = Object.assign({}, editPos, { dx: start.dx + (mv.clientX - sx), dy: start.dy + (mv.clientY - sy) });
-      applyPhonePosition(img, editPos);
+      // téléphone : origine du zoom = haut-centre de l'image (left 50 % + dx, top 6 % + dy)
+      const ox = crop.W / 2 + editPos.dx, oy = crop.H * 0.06 + editPos.dy;
+      const nox = ax - r * (ax - ox), noy = ay - r * (ay - oy);
+      editPos = Object.assign({}, editPos, { dx: nox - crop.W / 2, dy: noy - crop.H * 0.06, s: z2 });
     }
-  });
-  window.addEventListener('mouseup', () => { editDrag = null; });
+    roundEditPos();
+    cropApply();
+  }
+  function cropPan(dxPx, dyPx, start) {
+    const s0 = start || editPos;
+    if (crop.kind === 'media') {
+      editPos = Object.assign({}, editPos, {
+        tx: Math.max(-200, Math.min(200, (s0.tx || 0) + dxPx / crop.W * 100)),
+        ty: Math.max(-200, Math.min(200, (s0.ty || 0) + dyPx / crop.H * 100)),
+      });
+    } else {
+      editPos = Object.assign({}, editPos, {
+        dx: Math.max(-crop.W * 1.5, Math.min(crop.W * 1.5, s0.dx + dxPx)),
+        dy: Math.max(-crop.H * 1.5, Math.min(crop.H * 1.5, s0.dy + dyPx)),
+      });
+    }
+    roundEditPos();
+    cropApply();
+  }
+  function roundEditPos() {
+    const out = {};
+    Object.keys(editPos).forEach((k) => { out[k] = Math.round(editPos[k] * 1000) / 1000; });
+    editPos = out;
+  }
   function renderEditPreview(id, imgUrl) {
     const kind = BENTO_PREVIEW_KIND[id];
     const box = document.getElementById('welBentoEditPreview');
     const posField = document.getElementById('welBentoEditPosField');
-    editDrag = null;
-    if (!kind) { posField.hidden = true; box.innerHTML = ''; box.onmousedown = null; box.onwheel = null; return; }
+    crop = null;
+    if (!kind) { posField.hidden = true; box.innerHTML = ''; return; }
     posField.hidden = false;
-    box.className = 'wel-edit__preview' + (kind === 'phone' ? ' wel-edit__preview--phone' : '');
-    box.innerHTML = kind === 'phone' ? `<img alt="" draggable="false">` : '';
-    box.style.backgroundImage = kind === 'media' ? `url(${imgUrl})` : '';
-    const img = kind === 'phone' ? box.querySelector('img') : null;
-    if (img) img.src = imgUrl;
-    if (kind === 'media') applyMediaPosition(box, editPos); else applyPhonePosition(img, editPos);
-    box.onmousedown = (ev) => {
+    const real = root.querySelector(`[data-bento-id="${id}"]`);
+    const fb = CROP_FALLBACK_SIZE[id] || [600, 300];
+    const W = (real && real.offsetWidth) || fb[0], H = (real && real.offsetHeight) || fb[1];
+    const avail = box.getBoundingClientRect().width || 460;
+    const k = Math.min(avail / W, 340 / H);
+    box.className = 'wel-crop';
+    box.innerHTML = `
+      <div class="wel-crop__frame" style="width:${Math.round(W * k)}px;height:${Math.round(H * k)}px">
+        <div class="wel-crop__stage" style="width:${W}px;height:${H}px;transform:scale(${k})"></div>
+        <div class="wel-crop__grid" aria-hidden="true"></div>
+        <div class="wel-crop__hit" tabindex="0" role="application" aria-label="Zone de cadrage : glisse pour déplacer, molette pour zoomer, flèches pour ajuster"></div>
+      </div>
+      <div class="wel-crop__bar">
+        <button type="button" class="wel-crop__btn" data-crop="out" aria-label="Dézoomer">−</button>
+        <input type="range" class="wel-crop__range" min="0" max="1000" step="1" aria-label="Zoom">
+        <button type="button" class="wel-crop__btn" data-crop="in" aria-label="Zoomer">+</button>
+        <span class="wel-crop__pct">100 %</span>
+      </div>
+      <div class="wel-crop__acts">
+        <button type="button" class="wel-crop__chip" data-crop="center">Recentrer</button>
+        <button type="button" class="wel-crop__chip" data-crop="origin">Cadrage d'origine</button>
+      </div>`;
+    const stage = box.querySelector('.wel-crop__stage');
+    const frame = box.querySelector('.wel-crop__frame');
+    const hit = box.querySelector('.wel-crop__hit');
+    // Copie de la vraie case (sans le menu ⋮, sans identifiants)
+    let target = null;
+    if (real) {
+      const clone = real.cloneNode(true);
+      clone.querySelectorAll('.wel-tools').forEach((n) => n.remove());
+      clone.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+      clone.removeAttribute('data-bento-id');
+      clone.classList.add('is-crop-clone');
+      clone.style.width = W + 'px'; clone.style.height = H + 'px';
+      stage.appendChild(clone);
+      target = clone.querySelector('[data-cms-media]');
+    }
+    if (!target) { posField.hidden = true; return; }
+    if (kind === 'media') target.style.setProperty('--img', `url(${imgUrl})`); else target.src = imgUrl;
+    crop = { id, kind, W, H, k, target, frame, pct: box.querySelector('.wel-crop__pct'), range: box.querySelector('.wel-crop__range') };
+    cropApply();
+
+    const toStage = (ev) => { const r = frame.getBoundingClientRect(); return [(ev.clientX - r.left) / k, (ev.clientY - r.top) / k]; };
+    let drag = null;
+    hit.addEventListener('pointerdown', (ev) => {
       ev.preventDefault();
-      editDrag = { kind, box, img, start: Object.assign({}, editPos), sx: ev.clientX, sy: ev.clientY };
-    };
-    box.onwheel = kind === 'phone' ? (ev) => {
+      hit.setPointerCapture(ev.pointerId);
+      drag = { sx: ev.clientX, sy: ev.clientY, start: Object.assign({}, editPos) };
+      frame.classList.add('is-dragging');
+    });
+    hit.addEventListener('pointermove', (ev) => {
+      if (!drag) return;
+      cropPan((ev.clientX - drag.sx) / k, (ev.clientY - drag.sy) / k, drag.start);
+    });
+    const end = () => { drag = null; frame.classList.remove('is-dragging'); };
+    hit.addEventListener('pointerup', end);
+    hit.addEventListener('pointercancel', end);
+    hit.addEventListener('wheel', (ev) => {
       ev.preventDefault();
-      const next = Math.max(0.5, Math.min(2.2, editPos.s - ev.deltaY * 0.0015));
-      editPos = Object.assign({}, editPos, { s: Math.round(next * 1000) / 1000 });
-      applyPhonePosition(img, editPos);
-    } : null;
+      const [ax, ay] = toStage(ev);
+      cropZoomTo(editPos[cropZoomKey()] * Math.exp(-ev.deltaY * 0.0015), ax, ay);
+    }, { passive: false });
+    hit.addEventListener('keydown', (ev) => {
+      const big = ev.shiftKey;
+      const step = crop.kind === 'media' ? (big ? 10 : 2) : (big ? 12 : 3); // px de la case réelle
+      const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+      if (moves[ev.key]) { ev.preventDefault(); cropPan(moves[ev.key][0] * (crop.kind === 'media' ? 1 : 1), moves[ev.key][1]); return; }
+      if (ev.key === '+' || ev.key === '=') { ev.preventDefault(); cropZoomTo(editPos[cropZoomKey()] * 1.1, W / 2, H / 2); }
+      if (ev.key === '-' || ev.key === '_') { ev.preventDefault(); cropZoomTo(editPos[cropZoomKey()] / 1.1, W / 2, H / 2); }
+    });
+    crop.range.addEventListener('input', () => {
+      const [lo, hi] = CROP_LIMITS[kind];
+      cropZoomTo(lo * Math.pow(hi / lo, Number(crop.range.value) / 1000), W / 2, H / 2);
+    });
+    box.querySelector('[data-crop="in"]').addEventListener('click', () => cropZoomTo(editPos[cropZoomKey()] * 1.15, W / 2, H / 2));
+    box.querySelector('[data-crop="out"]').addEventListener('click', () => cropZoomTo(editPos[cropZoomKey()] / 1.15, W / 2, H / 2));
+    box.querySelector('[data-crop="center"]').addEventListener('click', () => {
+      const d = defaultPosition(id);
+      editPos = kind === 'media' ? Object.assign({}, editPos, { tx: 0, ty: 0 }) : Object.assign({}, editPos, { dx: d.dx, dy: d.dy });
+      cropApply();
+    });
+    box.querySelector('[data-crop="origin"]').addEventListener('click', () => { editPos = defaultPosition(id); cropApply(); });
   }
   function closeBentoEdit() {
     const m = document.getElementById('welBentoEdit');
@@ -388,8 +503,8 @@
     badgeField.hidden = id !== 'scanner';
     modal.querySelector('#welBentoEditBadgeInput').checked = o.badgeEnabled !== false;
     editPos = BENTO_PREVIEW_KIND[id] ? Object.assign({}, defaultPosition(id), o.position) : null;
-    renderEditPreview(id, currentImageUrl(id));
     modal.classList.add('is-open');
+    renderEditPreview(id, currentImageUrl(id));
   }
   async function saveBentoEdit() {
     const modal = document.getElementById('welBentoEdit');

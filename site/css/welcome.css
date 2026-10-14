@@ -428,7 +428,7 @@ html.is-welcome.is-sheet{ overflow:hidden; }
 }
 .wel-edit.is-open{ display:flex; }
 .wel-edit__win{
-  position:relative; width:100%; max-width:400px; padding:32px 28px 28px;
+  position:relative; width:100%; max-width:520px; padding:32px 28px 28px;
   background:linear-gradient(165deg, rgba(20,20,24,.97), rgba(8,8,10,.97));
   border:1px solid rgba(255,255,255,.12); border-radius:20px;
   box-shadow:0 40px 100px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.06);
@@ -669,3 +669,55 @@ html.is-loggedout .wel__stage *{ animation-play-state:paused !important; }
 .auth-footnote a{ color:#fc1283; text-decoration:none; font-weight:600; }
 .auth-footnote a:hover{ text-decoration:underline; }
 @media (max-width:760px){ .auth-card{ max-width:380px; padding:36px 24px 28px; } }
+
+/* ─── Recadrage des photos de la Newsletter (fenêtre « Modifier », 2026-10-14 : « permets quelque chose de plus
+   important avec des zoom / dézoom ») ───
+   Les photos se déplacent librement (--tx/--ty, en % de la case) et se zooment (--z) ; l'effet de survol de la case
+   se multiplie au zoom choisi au lieu de l'écraser. */
+.wel__card--v2 .wel__card-media{
+  transform-origin:center;
+  transform:translate(var(--tx,0%), var(--ty,0%)) scale(var(--z,1));
+}
+.wel__card--v2:hover .wel__card-media{ transform:translate(var(--tx,0%), var(--ty,0%)) scale(calc(var(--z,1) * 1.035)); }
+
+.wel-crop{ margin-top:10px; }
+.wel-crop__frame{
+  position:relative; margin:0 auto; border-radius:14px; overflow:hidden; background:#050505;
+  box-shadow:0 0 0 1px rgba(255,255,255,.14), 0 18px 40px rgba(0,0,0,.45);
+}
+.wel-crop__stage{ position:absolute; left:0; top:0; transform-origin:top left;
+  /* la copie ne doit rien hériter du libellé « Cadrage » (majuscules, graisse, couleur) */
+  text-transform:none; letter-spacing:normal; font-weight:400; font-size:16px; line-height:normal; color:#f6f6f7; text-align:left; }
+.wel-crop__stage .is-crop-clone{ position:relative; pointer-events:none; margin:0; grid-column:auto; grid-row:auto; }
+.wel-crop__stage .is-crop-clone, .wel-crop__stage .is-crop-clone *{ transition:none !important; }
+.wel-crop__hit{ position:absolute; inset:0; z-index:5; cursor:grab; touch-action:none; border-radius:inherit; }
+.wel-crop__hit:active{ cursor:grabbing; }
+.wel-crop__hit:focus-visible{ outline:2px solid rgba(249,164,94,.85); outline-offset:-2px; }
+/* Grille des tiers, seulement pendant qu'on déplace */
+.wel-crop__grid{
+  position:absolute; inset:0; z-index:4; pointer-events:none; opacity:0; transition:opacity .2s;
+  background:
+    linear-gradient(90deg, transparent calc(33.333% - .5px), rgba(255,255,255,.35) calc(33.333% - .5px), rgba(255,255,255,.35) calc(33.333% + .5px), transparent calc(33.333% + .5px), transparent calc(66.666% - .5px), rgba(255,255,255,.35) calc(66.666% - .5px), rgba(255,255,255,.35) calc(66.666% + .5px), transparent calc(66.666% + .5px)),
+    linear-gradient(180deg, transparent calc(33.333% - .5px), rgba(255,255,255,.35) calc(33.333% - .5px), rgba(255,255,255,.35) calc(33.333% + .5px), transparent calc(33.333% + .5px), transparent calc(66.666% - .5px), rgba(255,255,255,.35) calc(66.666% - .5px), rgba(255,255,255,.35) calc(66.666% + .5px), transparent calc(66.666% + .5px));
+}
+.wel-crop__frame.is-dragging .wel-crop__grid{ opacity:1; }
+.wel-crop__bar{ display:flex; align-items:center; gap:10px; margin-top:14px; }
+.wel-crop__btn{
+  width:30px; height:30px; flex-shrink:0; border-radius:50%; display:grid; place-items:center; cursor:pointer;
+  font:inherit; font-size:16px; line-height:1; color:#fff; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14);
+  transition:background .16s, transform .16s cubic-bezier(.23,1,.32,1);
+}
+.wel-crop__btn:active{ transform:scale(.94); }
+@media (hover:hover) and (pointer:fine){ .wel-crop__btn:hover{ background:rgba(255,255,255,.12); } }
+.wel-crop__range{ flex:1; min-width:0; accent-color:#fc1283; cursor:pointer; }
+.wel-crop__pct{ min-width:52px; text-align:right; font-size:12px; font-weight:600; color:rgba(255,255,255,.75); font-variant-numeric:tabular-nums; text-transform:none; letter-spacing:normal; }
+.wel-crop__acts{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.wel-crop__chip{
+  font:inherit; font-size:12px; font-weight:600; text-transform:none; letter-spacing:normal; cursor:pointer;
+  padding:7px 13px; border-radius:999px; color:rgba(255,255,255,.8); background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12);
+  transition:color .16s, border-color .16s, transform .16s cubic-bezier(.23,1,.32,1);
+}
+.wel-crop__chip:active{ transform:scale(.97); }
+@media (hover:hover) and (pointer:fine){ .wel-crop__chip:hover{ color:#fff; border-color:rgba(249,164,94,.5); } }
+/* La fenêtre défile si l'aperçu (Founder, plus haut) dépasse l'écran */
+.wel-edit__win{ max-height:calc(100dvh - 40px); overflow-y:auto; overscroll-behavior:contain; }
