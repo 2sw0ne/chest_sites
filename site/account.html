@@ -193,6 +193,15 @@
   .mfx-account-row strong{ display:block; font-size:13px; }
   .mfx-account-row span{ display:block; font-size:11px; color:var(--muted); }
   .mfx-account-row b{ font-size:13px; font-variant-numeric:tabular-nums; }
+
+  /* v2 — réglages groupés par thème, sans trait plein au-dessus */
+  .settings-group{ padding:28px 0 4px; font-size:10px; font-weight:600; letter-spacing:.22em; text-transform:uppercase;
+    background:var(--chest-grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; width:max-content; }
+  .settings-group[hidden]{ display:none; }
+  .settings-list > .settings-group:first-child{ padding-top:14px; }
+  .settings-row{ border-bottom:1px solid rgba(255,255,255,.055) !important; }
+  .settings-row:has(+ .settings-group), .settings-row:last-child{ border-bottom:none !important; }
+  .settings-row__swatch{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16), 0 6px 18px rgba(0,0,0,.4); border-radius:50% !important; }
 </style>
 <script src="js/theme.js?v=2"></script>
 <script src="js/config.js?v=3"></script>
@@ -202,7 +211,7 @@
 <script src="js/sync-store.js?v=8"></script>
 <script src="js/pwa.js?v=3"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=4">
+<link rel="stylesheet" href="css/v2.css?v=5">
 </head>
 <body data-page="account" class="chest-root">
 
@@ -271,7 +280,8 @@
   </section>
 
   <div class="chest-step" style="padding:34px 34px 0">02 — Réglages</div>
-  <div class="settings-list" style="border-top:1px solid var(--chest-rule);margin-top:16px">
+  <div class="settings-list" style="margin-top:4px">
+    <div class="settings-group">Affichage</div>
     <div class="settings-row">
       <div class="settings-row__info">
         <span class="settings-row__swatch" id="themeRowSwatch"></span>
@@ -297,6 +307,7 @@
       </div>
     </div>
 
+    <div class="settings-group">Alertes</div>
     <div class="settings-row">
       <div class="settings-row__info">
         <div class="settings-row__text">
@@ -310,6 +321,7 @@
       </div>
     </div>
 
+    <div class="settings-group">Marché et exécution</div>
     <div class="settings-row">
       <div class="settings-row__info">
         <div class="settings-row__text">
@@ -340,14 +352,15 @@
       <button type="button" class="chest-btn-2" data-open-drawer="berich" data-drawer-title="BERICH : broker et risque">Changer</button>
     </div>
 
+    <div class="settings-group" data-admin-only hidden>Administration</div>
     <div class="settings-row" id="liveAccountRow" data-admin-only hidden>
       <div class="settings-row__info">
         <div class="settings-row__text">
-          <p class="settings-row__title">Compte Live (Dashboard)</p>
-          <p class="settings-row__value" id="liveAccountRowValue">Désactivé.</p>
+          <p class="settings-row__title">Compte MyFxBook prioritaire</p>
+          <p class="settings-row__value" id="liveAccountRowValue">Désactivé — aucun compte relu en priorité.</p>
         </div>
       </div>
-      <button type="button" class="chest-btn-2" data-open-drawer="live" data-drawer-title="Compte Live (Dashboard)">Changer</button>
+      <button type="button" class="chest-btn-2" data-open-drawer="live" data-drawer-title="Compte MyFxBook prioritaire">Changer</button>
     </div>
 
     <div class="settings-row" id="previewRow" data-admin-only hidden>
@@ -360,6 +373,7 @@
       <button type="button" class="chest-btn-2" data-open-drawer="preview" data-drawer-title="Vue du site">Changer</button>
     </div>
 
+    <div class="settings-group">Toi</div>
     <div class="settings-row">
       <div class="settings-row__info">
         <div class="settings-row__text">
@@ -458,7 +472,7 @@
     </div>
 
     <div class="drawer-panel" data-panel-name="live" hidden>
-      <p class="hint">Un compte spécial, visible uniquement sur ton Dashboard (admin seulement), toujours synchronisé avec Myfxbook — pas besoin de le rouvrir/relancer, contrairement au compte MT5 local. Le broker doit déjà être relié sur myfxbook.com (Portfolio → Add Account → Auto Update).</p>
+      <p class="hint">Un compte MyFxBook relu en priorité sur ton Dashboard (admin seulement) : ses chiffres sont rafraîchis plus souvent que les autres comptes. Le broker doit déjà être relié sur MyFxBook. Pour un vrai temps réel, la formule Live ou Pro · VPS reste la voie normale (<a href="connect.html" style="color:var(--acc)">Connecter un compte</a>).</p>
       <div class="pill-group" id="liveToggle" style="margin-bottom:18px">
         <button type="button" data-value="off">Désactivé</button>
         <button type="button" data-value="on">Activé</button>
@@ -1264,7 +1278,7 @@ CHESTTour.init([
     } else if (live && live.myfxbook) {
       el.textContent = `Désactivé — ${live.myfxbook.name} configuré`;
     } else {
-      el.textContent = 'Désactivé.';
+      el.textContent = 'Désactivé — aucun compte relu en priorité.';
     }
   }
   updateLiveAccountRow();
@@ -1305,7 +1319,7 @@ CHESTTour.init([
       saveLiveAccount(live);
       setLiveToggle(on);
       updateLiveAccountRow();
-      showToast(on ? 'Compte Live activé ✓' : 'Compte Live désactivé');
+      showToast(on ? 'Compte prioritaire activé ✓' : 'Compte prioritaire désactivé');
     });
   });
 
@@ -1346,7 +1360,7 @@ CHESTTour.init([
             myfxbook: { email, password, accountId: picked.id, name: picked.name, demo: !!picked.demo },
           });
           updateLiveAccountRow();
-          showToast('Compte Live configuré et activé ✓');
+          showToast('Compte prioritaire configuré et activé ✓');
           closeDrawer();
         });
       });

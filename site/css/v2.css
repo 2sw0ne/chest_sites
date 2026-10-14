@@ -230,3 +230,32 @@ body[data-page] .chest-glass.chest-glass--chart{
 }
 body[data-page] .chest-glass.chest-glass--chart::before,
 body[data-page] .chest-glass.chest-glass--chart::after{ display:none !important; }
+
+/* ---------- 14. Guides et assistants : une frise d'étapes, pas une pile de cartes ----------
+   Guide VPS (.vg-step) et assistant d'ajout de backtest (.wz-card) : le numéro
+   lumineux à gauche, un fil dégradé qui relie les étapes, le contenu à droite. */
+body[data-page] :is(.vg-step.card, .card.wz-card){
+  position:relative; border:0 !important; border-radius:0 !important; background:none !important; box-shadow:none !important;
+  padding:2px 0 42px 54px !important; margin:0 !important;
+}
+body[data-page] :is(.vg-step.card, .card.wz-card)::before{
+  content:''; position:absolute; left:15px; top:38px; bottom:6px; width:1px; pointer-events:none;
+  background:linear-gradient(180deg, rgba(252,18,131,.55), rgba(249,164,94,.2) 70%, rgba(249,164,94,.04));
+}
+body[data-page] :is(.vg-step.card, .card.wz-card):not(:has(~ :is(.vg-step, .wz-card)))::before{ display:none; }
+body[data-page] .vg-step__head{ margin-left:-54px; gap:24px; }
+body[data-page] .wz-card h2{ margin-left:-54px; gap:24px; }
+body[data-page] :is(.vg-step__num, .wz-card h2 .step){
+  width:30px; height:30px; flex-shrink:0; background:var(--chest-grad) !important; color:#fff;
+  box-shadow:0 0 0 5px rgba(252,18,131,.1), 0 8px 22px rgba(252,18,131,.38);
+}
+body[data-page] :is(.vg-step__title, .wz-card h2){ font-size:17px; letter-spacing:-.02em; }
+/* Les encarts internes (offre, ligne de VPS) perdent leur fond plein */
+body[data-page] :is(.vg-plan, .vg-vps-row){
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.012)) !important;
+  border-color:rgba(255,255,255,.08) !important; border-radius:14px !important;
+}
+@media (max-width:640px){
+  body[data-page] :is(.vg-step.card, .card.wz-card){ padding-left:44px !important; }
+  body[data-page] :is(.vg-step__head, .wz-card h2){ margin-left:-44px; gap:14px; }
+}
