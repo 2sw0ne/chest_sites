@@ -164,23 +164,42 @@ body[data-page] ::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,.22
   outline:2px solid rgba(249,164,94,.85); outline-offset:3px;
 }
 
-/* ---------- 10. Arrivée sur une page : les blocs montent en cascade ----------
-   Une seule fois, au chargement. Translation courte, aucune échelle. */
-@keyframes v2Rise{ from{ opacity:0; transform:translateY(10px); } }
-html.is-embedded body[data-page] .chest-main > main > :is(section, div, header, article, nav):not([hidden]):not([class*="overlay"]):not([class*="modal"]):not([role="dialog"]):not([aria-modal]){
-  animation:v2Rise .5s var(--v2-ease) both;
+/* ---------- 10. Mouvement (js/v2.js) ----------
+   Blocs qui apparaissent (cascade au chargement, puis au défilement), lumière
+   qui suit le pointeur, fond qui dérive. Sans JS, tout reste visible. */
+html.v2-js body[data-page] .v2-r{
+  opacity:0; transform:translateY(18px);
+  transition:opacity .7s var(--v2-ease), transform .8s var(--v2-ease);
 }
-html.is-embedded body[data-page] .chest-main > main > *:nth-child(2){ animation-delay:.05s; }
-html.is-embedded body[data-page] .chest-main > main > *:nth-child(3){ animation-delay:.1s; }
-html.is-embedded body[data-page] .chest-main > main > *:nth-child(4){ animation-delay:.15s; }
-html.is-embedded body[data-page] .chest-main > main > *:nth-child(5){ animation-delay:.2s; }
-html.is-embedded body[data-page] .chest-main > main > *:nth-child(n+6){ animation-delay:.24s; }
+html.v2-js body[data-page] .v2-r.v2-r--fade{ transform:none; }
+html.v2-js body[data-page] .v2-r.is-in{ opacity:1; transform:none; }
+
+body[data-page] .v2-cursor{
+  position:fixed; left:0; top:0; z-index:-1; width:720px; height:720px; margin:-360px 0 0 -360px;
+  border-radius:50%; pointer-events:none; opacity:0; transition:opacity .6s var(--v2-ease);
+  background:radial-gradient(closest-side, var(--v2-cursor, rgba(252,18,131,.085)), transparent 72%);
+  will-change:transform;
+}
+body[data-page] .v2-cursor.is-on{ opacity:1; }
+body[data-page="berich"] { --v2-cursor: rgba(51,230,166,.07); }
+body[data-page="strategies"]{ --v2-cursor: rgba(249,164,94,.07); }
+body[data-page="calendar"]  { --v2-cursor: rgba(232,179,57,.06); }
+
+/* Le fond dérive très lentement : la lumière n'est jamais figée */
+body.chest-root[data-page]:not([data-page="berich"])::before{
+  inset:-12%; animation:v2Drift 38s ease-in-out infinite alternate;
+}
+@keyframes v2Drift{
+  0%  { transform:translate3d(0,0,0) scale(1); }
+  50% { transform:translate3d(3%,2%,0) scale(1.06); }
+  100%{ transform:translate3d(-2%,4%,0) scale(1.02); }
+}
 
 /* ---------- 11. Titres de section numérotés : le numéro prend la couleur ---------- */
 body[data-page] .chest-step{ color:var(--chest-ink-3); }
 
 @media (prefers-reduced-motion:reduce){
-  html.is-embedded body[data-page] .chest-main > main > *{ animation:none !important; }
+  body.chest-root[data-page]::before{ animation:none !important; }
   .chest-shell .chest-nav__item::before{ transition:none; }
   :is(body[data-page], .chest-shell) *:active{ transform:none !important; }
 }
@@ -191,7 +210,9 @@ body[data-page] .chest-step{ color:var(--chest-ink-3); }
 body[data-page] .bt-grid{ gap:18px; }
 body[data-page] .bt-card{
   border:1px solid rgba(255,255,255,.075) !important; border-radius:20px !important; overflow:hidden;
-  background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012) 50%, rgba(255,255,255,.004)) !important;
+  background:
+    radial-gradient(420px circle at var(--px,50%) var(--py,-20%), rgba(255,255,255,.07), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012) 50%, rgba(255,255,255,.004)) !important;
   backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 34px 60px -38px rgba(0,0,0,.85) !important;
   transition:transform .28s var(--v2-ease), border-color .28s var(--v2-ease), box-shadow .28s var(--v2-ease);
@@ -258,4 +279,21 @@ body[data-page] :is(.vg-plan, .vg-vps-row){
 @media (max-width:640px){
   body[data-page] :is(.vg-step.card, .card.wz-card){ padding-left:44px !important; }
   body[data-page] :is(.vg-step__head, .wz-card h2){ margin-left:-44px; gap:14px; }
+}
+
+/* ---------- 15. Briques partagées des héros v2 ----------
+   Ligne de chiffres séparés par des filets verticaux estompés, en-tête de section. */
+body[data-page] .dv2-facts{ margin:28px 0 0; display:flex; justify-content:center; flex-wrap:wrap; row-gap:16px; }
+body[data-page] .dv2-facts > div{ padding:0 28px; border-left:1px solid transparent; border-image:linear-gradient(180deg, transparent, rgba(255,255,255,.13), transparent) 1; }
+body[data-page] .dv2-facts > div:first-child{ border-left:0; }
+body[data-page] .dv2-facts dt{ font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--chest-ink-3); }
+body[data-page] .dv2-facts dd{ margin:7px 0 0; font-size:18px; font-weight:700; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }
+body[data-page] .dv2-facts dd.pos{ color:var(--chest-green); text-shadow:0 0 16px rgba(51,230,166,.3); }
+body[data-page] .dv2-facts dd.neg{ color:var(--chest-red); text-shadow:0 0 16px rgba(255,77,94,.28); }
+body[data-page] .dv2-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin-bottom:20px; }
+body[data-page] .dv2-head__hint{ font-size:11.5px; color:var(--chest-ink-3); }
+@media (max-width:640px){
+  body[data-page] .dv2-facts{ display:grid; grid-template-columns:1fr 1fr; }
+  body[data-page] .dv2-facts > div{ padding:0 10px; }
+  body[data-page] .dv2-facts > div:nth-child(odd){ border-left:0; }
 }

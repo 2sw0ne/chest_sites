@@ -92,6 +92,48 @@
   .mfx-account-row.is-selected{ border-color:var(--acc,#fc1283); background:rgba(252,18,131,.06); }
   .mfx-account-row strong{ display:block; font-size:13px; }
   .mfx-account-row span{ display:block; font-size:11px; color:var(--muted,#8a8a92); }
+
+  /* ═════════════ v2 — héros « À la une » ═════════════ */
+  .chest-root .bth{ position:relative; padding:40px clamp(18px,4vw,34px) 0; text-align:center; overflow:hidden; isolation:isolate; }
+  .chest-root .bth__ghost{
+    position:absolute; left:50%; top:18px; transform:translateX(-50%); z-index:-1; pointer-events:none; white-space:nowrap;
+    font-size:clamp(90px,15vw,220px); font-weight:700; letter-spacing:-.06em; line-height:1;
+    background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,0) 78%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .chest-root .bth__top{ display:flex; align-items:center; justify-content:center; gap:8px 16px; flex-wrap:wrap; font-size:11.5px; color:var(--chest-ink-3); }
+  .chest-root .bth__pick{ margin:18px auto 0; display:flex; gap:22px; flex-wrap:wrap; justify-content:center; }
+  .chest-root .bth__pick[hidden]{ display:none; }
+  .chest-root .bth__pick button{ position:relative; font:inherit; font-size:12.5px; font-weight:600; color:var(--chest-ink-3); background:none; border:0; padding:8px 0; cursor:pointer; transition:color .2s; }
+  .chest-root .bth__pick button::after{ content:''; position:absolute; left:0; right:0; bottom:0; height:2px; border-radius:2px; background:var(--chest-grad); box-shadow:0 0 10px rgba(252,18,131,.55); transform:scaleX(0); transition:transform .26s var(--v2-ease); }
+  .chest-root .bth__pick button[aria-selected="true"]{ color:var(--chest-ink); }
+  .chest-root .bth__pick button[aria-selected="true"]::after{ transform:scaleX(1); }
+  .chest-root .bth__name{ margin:26px 0 0; font-size:clamp(44px,6vw,76px); font-weight:700; letter-spacing:-.05em; line-height:1; display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .chest-root .bth__badge{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; padding:5px 11px; border-radius:999px; color:#f9a45e; border:1px solid rgba(249,164,94,.4); background:rgba(249,164,94,.08); }
+  .chest-root .bth__desc{ max-width:560px; margin:14px auto 0; font-size:13.5px; line-height:1.6; color:var(--chest-ink-2); }
+  .chest-root .bth__num{ margin-top:26px; font-size:clamp(56px,8vw,104px); font-weight:700; letter-spacing:-.055em; line-height:.95; font-variant-numeric:tabular-nums; }
+  .chest-root .bth__num.is-pos{ background:linear-gradient(180deg,#fff 8%,#c9fbe9 45%,var(--chest-green)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 36px rgba(51,230,166,.32)); }
+  .chest-root .bth__num.is-neg{ background:linear-gradient(180deg,#fff 8%,#ffc2c9 45%,var(--chest-red)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 36px rgba(255,77,94,.3)); }
+  .chest-root .bth__sub{ margin-top:10px; font-size:13px; color:var(--chest-ink-2); }
+  .chest-root .bth__sub b{ color:var(--chest-ink); font-weight:600; }
+  .chest-root .bth__facts{ margin-top:26px; }
+  .chest-root .bth__actions{ margin-top:28px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .chest-root .bth__actions a{ text-decoration:none; }
+  .chest-root .bth__curve{ position:relative; height:clamp(200px,30vh,300px); margin:34px calc(-1 * clamp(18px,4vw,34px)) 0;
+    -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+  .chest-root .bth__curve svg{ width:100%; height:100%; display:block; overflow:visible; }
+  .chest-root .bth__line{ stroke-dasharray:1; stroke-dashoffset:1; animation:bthDraw 1.8s cubic-bezier(.65,0,.35,1) .2s forwards; filter:drop-shadow(0 0 8px rgba(51,230,166,.45)); }
+  .chest-root .bth__area{ opacity:0; animation:bthFade 1s ease 1.2s forwards; }
+  .chest-root .bth__dot{ position:absolute; right:6%; width:12px; height:12px; margin:-6px -6px 0 0; border-radius:50%; background:#fff;
+    box-shadow:0 0 0 4px rgba(var(--c),.25), 0 0 22px rgba(var(--c),.9); opacity:0; animation:bthFade .4s ease 1.9s forwards, bthPulse 2.4s ease-in-out 2.3s infinite; }
+  .chest-root .bth__scale{ position:absolute; left:clamp(18px,4vw,34px); bottom:10px; font-size:10.5px; color:var(--chest-ink-3); letter-spacing:.04em; }
+  @keyframes bthDraw{ to{ stroke-dashoffset:0; } }
+  @keyframes bthFade{ to{ opacity:1; } }
+  @keyframes bthPulse{ 50%{ box-shadow:0 0 0 10px rgba(var(--c),0), 0 0 22px rgba(var(--c),.9); } }
+  @media (prefers-reduced-motion:reduce){ .chest-root .bth__line{ animation:none; stroke-dasharray:none; stroke-dashoffset:0; } .chest-root .bth__area, .chest-root .bth__dot{ animation:none; opacity:1; } }
+  .chest-root .dv2-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin-bottom:20px; }
+  .chest-root .dv2-head__hint{ font-size:11.5px; color:var(--chest-ink-3); }
+  .chest-root #btKpis .chest-label{ margin-bottom:9px; }
 </style>
 <script src="js/theme.js?v=2"></script>
 <script src="js/config.js?v=3"></script>
@@ -100,7 +142,7 @@
 <script src="js/accounts-auth.js?v=2"></script>
 <script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=5">
+<link rel="stylesheet" href="css/v2.css?v=7">
 </head>
 <body data-page="backtesting" class="chest-root">
 
@@ -149,22 +191,30 @@
     </header>
 
     <main>
-  <section class="chest-titleglow" style="padding:40px 34px 0">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:40px;flex-wrap:wrap">
-      <div style="min-width:0">
-        <div class="chest-step" style="margin-bottom:16px">01 — Bibliothèque</div>
-        <h1 class="chest-h1" style="font-size:56px">Backtesting</h1>
-        <p class="chest-body" style="max-width:520px;margin-top:14px">Choisis l'algorithme à explorer. La liste s'agrandit à mesure que de nouveaux backtests sont ajoutés.</p>
-      </div>
-      <a href="backtest-add.html" class="chest-btn" style="white-space:nowrap;text-decoration:none">+ Nouveau backtesting</a>
+  <!-- v2 : héros « À la une » — un algorithme mis en avant avec sa courbe en grand (au niveau du
+       Calendrier), onglets pour passer d'un algo à l'autre, puis la bibliothèque en chiffres. -->
+  <section class="bth" id="btHero">
+    <div class="bth__ghost" aria-hidden="true">Backtesting</div>
+    <div class="bth__top">
+      <span class="chest-step">01 — À la une</span>
+      <span class="bth__meta" id="bthMeta"></span>
     </div>
+    <div class="bth__pick" id="bthPick" role="tablist" aria-label="Algorithme mis en avant"></div>
+    <div class="bth__body" id="bthBody"></div>
+    <div class="bth__curve" id="bthCurve"></div>
   </section>
 
-  <section class="chest-kpis" id="btKpis" style="padding:26px 34px 34px"></section>
+  <section class="chest-section">
+    <div class="dv2-head">
+      <span class="chest-step">02 — La bibliothèque en chiffres</span>
+      <span class="dv2-head__hint">Le meilleur de chaque mesure, tous backtests confondus.</span>
+    </div>
+    <div class="chest-kpis" id="btKpis"></div>
+  </section>
 
   <section class="chest-section" style="border-top:1px solid var(--chest-rule)">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px">
-      <span class="chest-step">02 — Algorithmes</span>
+      <span class="chest-step">03 — Algorithmes</span>
       <span style="font-size:11.5px;color:var(--chest-ink-3)">Trié par date d'import</span>
     </div>
     <div class="bt-grid">
@@ -309,10 +359,90 @@
     `;
   }
 
+  // ---------- v2 : héros « À la une » ----------
+  const SPOT_KEY = 'chest_bt_spot';
+  const esc = (v) => String(v == null ? '' : v).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+  const money0 = (v) => '$' + Math.round(v).toLocaleString('fr-FR');
+  const fmtMonth = (d) => (d ? new Date(d).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : '');
+  function renderSpot(items) {
+    const body = document.getElementById('bthBody'), curveEl = document.getElementById('bthCurve');
+    const pickEl = document.getElementById('bthPick'), meta = document.getElementById('bthMeta');
+    const totalTrades = items.reduce((s, b) => s + (b.trades || []).length, 0);
+    meta.textContent = items.length ? `${items.length} algorithme${items.length > 1 ? 's' : ''} · ${totalTrades.toLocaleString('fr-FR')} positions simulées` : '';
+    if (!items.length) {
+      pickEl.innerHTML = ''; pickEl.hidden = true; curveEl.innerHTML = '';
+      body.innerHTML = `<h1 class="bth__name">Ton premier backtest</h1>
+        <p class="bth__desc">Un fichier Excel de positions suffit : CHEST calcule la courbe, le drawdown, les mois, et la propfirm qui te conviendrait.</p>
+        <div class="bth__actions"><a href="backtest-add.html" class="chest-btn">+ Nouveau backtest</a></div>`;
+      return;
+    }
+    const reports = items.map((b) => ({ b, r: reportFor(b) }));
+    let chosen = null;
+    try { chosen = localStorage.getItem(SPOT_KEY); } catch (e) { /* stockage indisponible */ }
+    let cur = reports.find((x) => x.b.id === chosen);
+    if (!cur) cur = reports.reduce((a, x) => ((x.r.stats.profitFactor || 0) > (a.r.stats.profitFactor || 0) ? x : a), reports[0]);
+    pickEl.hidden = reports.length < 2;
+    pickEl.innerHTML = reports.map((x) => `<button type="button" role="tab" aria-selected="${x === cur}" data-spot="${esc(x.b.id)}">${esc(x.b.title)}</button>`).join('');
+    pickEl.querySelectorAll('[data-spot]').forEach((btn) => btn.addEventListener('click', () => {
+      try { localStorage.setItem(SPOT_KEY, btn.dataset.spot); } catch (e) { /* stockage indisponible */ }
+      renderSpot(window.CHESTBacktests.list());
+    }));
+    const { b, r } = cur, st = r.stats;
+    const pct = st.performancePct, cap0 = capitalFor(b);
+    const dates = r.curve.map((p) => p.date).filter(Boolean);
+    const first = dates[0], last = dates[dates.length - 1];
+    const sign = pct >= 0 ? 'pos' : 'neg';
+    const fmtPct = (v) => (v >= 0 ? '+' : '') + v.toLocaleString('fr-FR', { maximumFractionDigits: Math.abs(v) >= 1000 ? 0 : 1 }) + ' %';
+    body.innerHTML = `
+      <h1 class="bth__name">${esc(b.title)}${hasPfConfig(b) ? '<span class="bth__badge">Propfirm</span>' : ''}${b.sharedBy ? `<span class="bth__badge">by ${esc(String(b.sharedBy.name || '').split(' ')[0])}</span>` : ''}</h1>
+      <p class="bth__desc">${esc(b.description || 'Backtest importé depuis un fichier Excel personnel.')}</p>
+      <div class="bth__num is-${sign}" data-v2-count>${fmtPct(pct)}</div>
+      <div class="bth__sub">de <b>${money0(cap0)}</b> à <b>${money0(st.finalCapital)}</b>${first ? ` · ${fmtMonth(first)} → ${fmtMonth(last)}` : ''}</div>
+      <dl class="dv2-facts bth__facts">
+        <div><dt>Profit factor</dt><dd class="${st.profitFactor >= 1 ? 'pos' : 'neg'}">${st.profitFactor != null ? st.profitFactor.toFixed(2).replace('.', ',') : '—'}</dd></div>
+        <div><dt>Taux de réussite</dt><dd>${st.winRatePct.toFixed(1).replace('.', ',')} %</dd></div>
+        <div><dt>Drawdown max</dt><dd class="neg">−${Math.abs(st.maxDrawdownPct).toFixed(1).replace('.', ',')} %</dd></div>
+        <div><dt>Positions</dt><dd>${st.totalTrades.toLocaleString('fr-FR')}</dd></div>
+      </dl>
+      <div class="bth__actions">
+        <a href="backtest-view.html?id=${encodeURIComponent(b.id)}" class="chest-btn">Ouvrir le rapport</a>
+        <a href="backtest-add.html" class="chest-btn-2">+ Nouveau backtest</a>
+      </div>`;
+    // Courbe : échelle logarithmique dès que le capital est multiplié par plus de 5 (rendement composé),
+    // sinon un gros rendement final écrase tout le début de l'historique.
+    const caps = [cap0].concat(r.curve.map((p) => p.capital)).filter((v) => v > 0);
+    const hi = Math.max(...caps), lo = Math.min(...caps);
+    const logScale = hi / lo > 5;
+    const f = (v) => (logScale ? Math.log(v) : v);
+    const fHi = f(hi), fLo = f(lo), span = (fHi - fLo) || 1;
+    const W = 1000, H = 260, n = caps.length;
+    const END = W * .94; // la courbe s'arrête sous le point lumineux (le bord droit est fondu)
+    const X = (i) => (n > 1 ? i / (n - 1) * END : 0);
+    const Y = (v) => 12 + (1 - (f(v) - fLo) / span) * (H - 24);
+    const line = caps.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' ');
+    const area = line + ` L${END} ${H} L0 ${H} Z`;
+    const base = Y(cap0);
+    const endY = Y(caps[caps.length - 1]);
+    const col = pct >= 0 ? '51,230,166' : '255,77,94';
+    curveEl.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="Courbe de ${esc(b.title)}">
+        <defs>
+          <linearGradient id="bthA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(${col},.34)"/><stop offset="1" stop-color="rgba(${col},0)"/></linearGradient>
+          <linearGradient id="bthL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(${col},.35)"/><stop offset=".55" stop-color="rgb(${col})"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+        </defs>
+        <line x1="0" x2="${W}" y1="${base.toFixed(1)}" y2="${base.toFixed(1)}" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 7" vector-effect="non-scaling-stroke"/>
+        <path d="${area}" fill="url(#bthA)" class="bth__area"/>
+        <path d="${line}" fill="none" stroke="url(#bthL)" stroke-width="2.4" stroke-linejoin="round" pathLength="1" class="bth__line"/>
+      </svg>
+      <span class="bth__dot" style="top:${(endY / H * 100).toFixed(2)}%;--c:${col}"></span>
+      <span class="bth__scale">${logScale ? 'Échelle logarithmique · capital de départ en pointillés' : 'Capital de départ en pointillés'}</span>`;
+  }
+
   function renderCards() {
     grid.querySelectorAll('.bt-card--custom').forEach((el) => el.remove());
     const items = window.CHESTBacktests.list();
     renderKpis(items);
+    renderSpot(items);
     const wrap = document.createElement('div');
     wrap.innerHTML = items.map((b) => {
       const report = reportFor(b);
@@ -457,11 +587,12 @@
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '.chest-titleglow', title: 'Bibliothèque de backtests', text: 'Tous tes algorithmes testés au même endroit. Le bouton « + Nouveau backtesting » lance l\'assistant d\'import : un fichier Excel de positions suffit, CHEST calcule le reste.' },
+  { selector: '#btHero', title: 'À la une', text: 'Un algorithme mis en avant avec sa courbe complète (échelle logarithmique quand le rendement est composé). Les onglets au-dessus passent d\'un algo à l\'autre ; « + Nouveau backtest » lance l\'assistant d\'import.' },
   { selector: '#btKpis', title: 'Vue d\'ensemble', text: 'Le résumé de ta bibliothèque, en indicateurs comparables d\'un backtest à l\'autre : profit factor, taux de réussite et drawdown le plus faible.' },
   { selector: '.bt-grid', title: 'Un backtest = une carte', text: 'La mini-courbe montre l\'évolution du capital simulé. Clique la carte pour ouvrir son rapport complet ; le menu ⋮ permet de modifier ou supprimer un backtest.' },
   { selector: '.bt-card__add', title: 'Ajouter un backtest', text: 'Importe un nouveau fichier : l\'assistant te guide en 4 étapes (fichier, infos, import, gestion du risque).' },
 ]);
 </script>
+<script src="js/v2.js?v=2"></script>
 </body>
 </html>
