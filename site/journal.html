@@ -423,7 +423,7 @@
   .chest-root .jrh__actions{ margin-top:24px; }
   .chest-root .jrh__legend{ margin:30px auto 0; display:flex; justify-content:center; flex-wrap:wrap; gap:10px 26px; }
   .chest-root .jrh__leg{ display:inline-flex; align-items:center; gap:9px; font-size:12.5px; color:var(--chest-ink-2); text-decoration:none; padding:4px 0; transition:color .2s; }
-  .chest-root .jrh__leg i{ width:18px; height:3px; border-radius:2px; background:var(--c); box-shadow:0 0 10px var(--c); }
+  .chest-root .jrh__leg i{ width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.35); }
   .chest-root .jrh__leg b{ font-weight:700; color:var(--chest-ink); font-variant-numeric:tabular-nums; }
   .chest-root .jrh__leg b.pos{ color:var(--chest-green); } .chest-root .jrh__leg b.neg{ color:var(--chest-red); }
   @media (hover:hover) and (pointer:fine){ .chest-root .jrh__leg:hover{ color:var(--chest-ink); } }
@@ -432,7 +432,7 @@
   .chest-root .jrh__curve:empty{ height:40px; }
   .chest-root .jrh__curve svg{ width:100%; height:100%; display:block; overflow:visible; }
   .chest-root .jrh__line{ stroke-dasharray:1; stroke-dashoffset:1; animation:jrhDraw 1.6s cubic-bezier(.65,0,.35,1) .2s forwards; }
-  .chest-root .jrh__line--sum{ filter:drop-shadow(0 0 8px rgba(255,255,255,.45)); animation-delay:.5s; }
+  .chest-root .jrh__line--sum{ filter:drop-shadow(0 0 10px rgba(255,255,255,.45)) drop-shadow(0 0 2px rgba(255,255,255,.6)); }
   .chest-root .jrh__area{ opacity:0; animation:jrhFade 1s ease 1.4s forwards; }
   .chest-root .jrh__dot{ position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:50%; background:#fff;
     box-shadow:0 0 0 4px rgba(255,255,255,.18), 0 0 20px rgba(255,255,255,.8); opacity:0; animation:jrhFade .4s ease 2s forwards; }
@@ -934,7 +934,7 @@
 <script>
 CHESTTour.init([
   { selector: '#jrHubNewBtn', title: 'Crée un journal', text: 'Un journal suit un compte (propre ou propfirm). Pour une propfirm, choisis la firme, le challenge et l\'étape : les règles se remplissent toutes seules.' },
-  { selector: '#jrHubHero', title: 'Tous tes journaux', text: 'Le résultat cumulé de tous tes comptes, avec une courbe par journal (chacun sa couleur) et leur somme en blanc. Clique un nom pour ouvrir le journal.' },
+  { selector: '#jrHubHero', title: 'Tous tes journaux', text: 'Le résultat cumulé de tous tes comptes et sa courbe. Clique un nom pour ouvrir le journal.' },
   { selector: '#jrHubKpis', title: 'Vue d\'ensemble', text: 'Le résumé de tous tes journaux, en R (comparable d\'un compte à l\'autre) : taux de réussite, espérance par trade et résultat du dernier trade.' },
   { selector: '#jrGrid', title: 'Un journal = une carte', text: 'Clique une carte pour ouvrir son suivi. Le menu ⋮ permet d\'ouvrir, modifier ou supprimer le journal.' },
   { selector: '#jrAccSwitcher', title: 'Ta famille de comptes', text: 'Un journal est une famille : le journal principal (saisi à la main) et ses comptes live Myfxbook. Survole la flèche → pour ajouter un compte live.' },
@@ -1066,7 +1066,8 @@ CHESTTour.init([
         withData.forEach((s, k) => { while (idx[k] + 1 < s.pts.length && s.pts[idx[k] + 1].t <= t) idx[k]++; if (idx[k] >= 0) v += s.pts[idx[k]].c; });
         return { t, c: v };
       });
-      const vals = all.map((p) => p.c).concat(sum.map((p) => p.c), [0]);
+      // Une seule courbe : la somme de tous les journaux (l'échelle ne suit qu'elle)
+      const vals = sum.map((p) => p.c).concat([0]);
       const hi = Math.max(...vals), lo = Math.min(...vals), span = (hi - lo) || 1;
       const W = 1000, H = 240, END = W * .94;
       const X = (t) => (t1 > t0 ? (t - t0) / (t1 - t0) * END : END / 2);
@@ -1074,13 +1075,17 @@ CHESTTour.init([
       const path = (pts) => 'M0 ' + Y(0).toFixed(1) + ' ' + pts.map((p) => 'L' + X(p.t).toFixed(1) + ' ' + Y(p.c).toFixed(1)).join(' ');
       const sumPath = path(sum);
       const last = sum[sum.length - 1];
+      const grid = [.25, .5, .75].map((k) => `<line x1="0" x2="${W}" y1="${(14 + k * (H - 28)).toFixed(1)}" y2="${(14 + k * (H - 28)).toFixed(1)}" stroke="rgba(255,255,255,.045)" vector-effect="non-scaling-stroke"/>`).join('');
       chart = `
-        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="P&L cumulé de chaque journal">
-          <defs><linearGradient id="jrhA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(255,255,255,.12)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
-          <line x1="0" x2="${W}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 7" vector-effect="non-scaling-stroke"/>
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="P&L cumulé de tous les journaux">
+          <defs>
+            <linearGradient id="jrhA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(255,255,255,.17)"/><stop offset=".7" stop-color="rgba(255,255,255,.03)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/></linearGradient>
+            <linearGradient id="jrhL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(255,255,255,.3)"/><stop offset=".6" stop-color="rgba(255,255,255,.85)"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+          </defs>
+          ${grid}
+          <line x1="0" x2="${W}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 7" vector-effect="non-scaling-stroke"/>
           <path d="${sumPath} L${X(last.t).toFixed(1)} ${H} L0 ${H} Z" fill="url(#jrhA)" class="jrh__area"/>
-          ${withData.map((s) => `<path d="${path(s.pts)}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-opacity=".8" pathLength="1" class="jrh__line"/>`).join('')}
-          ${withData.length > 1 ? `<path d="${sumPath}" fill="none" stroke="#fff" stroke-width="2.4" pathLength="1" class="jrh__line jrh__line--sum"/>` : ''}
+          <path d="${sumPath}" fill="none" stroke="url(#jrhL)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" pathLength="1" class="jrh__line jrh__line--sum"/>
         </svg>
         <span class="jrh__dot" style="left:${(X(last.t) / W * 100).toFixed(2)}%;top:${(Y(last.c) / H * 100).toFixed(2)}%"></span>
 `;
