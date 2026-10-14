@@ -1055,15 +1055,35 @@
       return;
     }
     const list = (a && a.objectives) || SAMPLE_OBJECTIVES;
-    document.getElementById('objectivesList').innerHTML = list.map((o) => `
-      <div class="objective-row">
-        <div class="label"><b>${o.label}</b>Limite : ${o.target}</div>
+    // v2 : chaque objectif devient une jauge. Une limite de perte (cible négative) montre la part du
+    // budget de perte déjà consommée ; un objectif (jours, profit) montre la part déjà atteinte.
+    const OBJ_FR = { 'Minimum Trading Days': 'Jours de trading minimum', 'Max Daily Loss': 'Perte max du jour', 'Max Loss': 'Perte max totale', 'Profit Target': 'Objectif de profit' };
+    const num = (v) => { const m = String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.').match(/[-+−]?\d+(\.\d+)?/); return m ? parseFloat(m[0].replace('−', '-')) : null; };
+    document.getElementById('objectivesList').innerHTML = list.map((o) => {
+      const cur = num(o.current), tgt = num(o.target);
+      let bar = '', note = '';
+      if (cur != null && tgt) {
+        if (tgt < 0) {
+          const used = Math.max(0, -cur) / Math.abs(tgt);
+          const cls = used >= 1 ? 'is-bad' : used >= .7 ? 'is-warn' : 'is-safe';
+          bar = `<div class="v2obj__bar ${cls}"><i style="--p:${Math.min(1, used).toFixed(3)}"></i></div>`;
+          note = used <= 0 ? 'Aucune perte sur cette limite' : `${Math.round(used * 100)} % du budget de perte utilisé`;
+        } else {
+          const done = Math.max(0, cur) / tgt;
+          bar = `<div class="v2obj__bar ${done >= 1 ? 'is-done' : 'is-progress'}"><i style="--p:${Math.min(1, done).toFixed(3)}"></i></div>`;
+          note = done >= 1 ? 'Objectif atteint' : `${Math.round(done * 100)} % de l'objectif`;
+        }
+      }
+      return `
+      <div class="objective-row v2obj">
+        <div class="label"><b>${OBJ_FR[o.label] || o.label}</b>Limite : ${o.target}</div>
         <div class="objective-row__wrap">
           <div class="value ${o.ok ? 'pos' : 'neg'}">${o.current}</div>
           <span class="check ${o.ok ? 'ok' : 'ko'}">${o.ok ? '✓' : '✕'}</span>
         </div>
-      </div>
-    `).join('');
+        ${bar}${note ? `<div class="v2obj__note">${note}</div>` : ''}
+      </div>`;
+    }).join('');
   }
 
   // Navigateur de jours : `calOffsetDays` decale la fenetre de CAL_WINDOW

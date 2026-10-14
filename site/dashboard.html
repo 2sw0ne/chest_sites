@@ -537,6 +537,19 @@
   .chest-root #toolsToggle{ background:none !important; border:0 !important; box-shadow:none !important; padding:4px 0 !important; border-radius:0 !important; }
   .chest-root #toolsToggle:active{ transform:none !important; }
   @media (hover:hover) and (pointer:fine){ .chest-root #toolsToggle:hover .chest-step{ color:var(--chest-ink-2); } }
+
+  /* v2 — objectifs en jauges */
+  .chest-root .v2obj{ flex-wrap:wrap; row-gap:10px; padding:16px 4px; }
+  .chest-root .v2obj__bar{ flex-basis:100%; height:5px; border-radius:5px; background:rgba(255,255,255,.06); overflow:hidden; }
+  .chest-root .v2obj__bar i{ display:block; height:100%; border-radius:inherit; transform-origin:left; transform:scaleX(var(--p)); animation:v2objIn 1s cubic-bezier(.23,1,.32,1) both; }
+  @keyframes v2objIn{ from{ transform:scaleX(0); } }
+  .chest-root .v2obj__bar.is-progress i{ background:linear-gradient(90deg, rgba(252,18,131,.7), #f9a45e); box-shadow:0 0 12px rgba(249,164,94,.5); }
+  .chest-root .v2obj__bar.is-done i{ background:linear-gradient(90deg, #1fbd88, #33e6a6); box-shadow:0 0 12px rgba(51,230,166,.55); }
+  .chest-root .v2obj__bar.is-safe i{ background:linear-gradient(90deg, rgba(51,230,166,.5), #33e6a6); }
+  .chest-root .v2obj__bar.is-warn i{ background:linear-gradient(90deg, #e8b339, #f4d07a); box-shadow:0 0 12px rgba(232,179,57,.5); }
+  .chest-root .v2obj__bar.is-bad i{ background:linear-gradient(90deg, #ff4d5e, #ff94a0); box-shadow:0 0 12px rgba(255,77,94,.55); }
+  .chest-root .v2obj__note{ flex-basis:100%; margin-top:-4px; font-size:11px; color:var(--chest-ink-3); }
+  @media (prefers-reduced-motion:reduce){ .chest-root .v2obj__bar i{ animation:none; } }
 </style>
 <script src="js/theme.js?v=2"></script>
 <script src="js/config.js?v=3"></script>
@@ -840,7 +853,7 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=10"></script>
-<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=53"></script>
+<script src="js/live-sim.js?v=2"></script><script src="js/dashboard.js?v=54"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>
