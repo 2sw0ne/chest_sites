@@ -156,13 +156,19 @@
     let state;
     try {
       const { rows, at } = await compute(mfx);
-      const pnls = rows.map((r) => r.est.pnl).filter((p) => p != null);
+      // Sans estimation (prix de la source indisponible, symbole non suivi…), le latent de la position
+      // est celui de Myfxbook lui-même (champ profit de get-open-trades, à jour en Live Update).
+      const pnlOf = (r) => (r.est.pnl != null ? r.est.pnl : num(r.t.profit));
+      const pnls = rows.map(pnlOf);
       // Positions ouvertes une à une (formule Live : affichées sur le Dashboard, résultat latent estimé)
       const positions = rows.map((r) => ({
         symbol: r.sym, side: r.est.side === 'Vente' ? 'sell' : 'buy', volume: r.est.lots,
-        priceOpen: r.est.entry, sl: r.est.sl, tp: r.est.tp, profit: r.est.pnl,
+        priceOpen: r.est.entry, sl: r.est.sl, tp: r.est.tp, profit: pnlOf(r),
       }));
-      state = { floating: pnls.length ? pnls.reduce((a, b) => a + b, 0) : 0, count: rows.length, positions, at };
+      // Une position sans aucune valeur : flottant inconnu (null), le Dashboard garde l'équité Myfxbook.
+      // Avant (2026-10-14) : 0 $, ce qui remplaçait l'équité réelle par le solde dès que la source tombait.
+      const floating = pnls.some((p) => p == null) ? null : pnls.reduce((a, b) => a + b, 0);
+      state = { floating, count: rows.length, positions, at };
     } catch (e) {
       state = { floating: null, count: 0, at: new Date(), error: true };
     }

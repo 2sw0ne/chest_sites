@@ -11,7 +11,7 @@
 //|   Installation : CHEST -> Connecter un compte -> Pro · VPS.       |
 //+------------------------------------------------------------------+
 #property copyright "CHEST"
-#property version   "1.10"
+#property version   "1.11"
 #property strict
 
 // Identifiant généré par CHEST (Connecter un compte -> Pro · VPS). Il joue le rôle de mot de passe
@@ -30,7 +30,7 @@ input int HistoryDays = 365;
 input int MaxPositions = 50;
 input int MaxDeals = 1500;
 
-#define EA_VERSION "1.10"
+#define EA_VERSION "1.11"
 #define FULL_SYNC_SECONDS 1800
 #define RECENT_DAYS 2
 
@@ -135,9 +135,10 @@ string DealsJson(datetime fromTime, bool withCash, double &deposits, double &wit
         }
      }
 
-   // 2e passage : transactions de sortie = positions (ou parties de position) clôturées.
+   // 2e passage : transactions de sortie = positions (ou parties de position) clôturées, de la plus
+   // récente à la plus ancienne : si MaxDeals est atteint, ce sont les plus anciennes qui sautent.
    string out = "";
-   for(int i = 0; i < total && count < MaxDeals; i++)
+   for(int i = total - 1; i >= 0 && count < MaxDeals; i--)
      {
       ulong t = HistoryDealGetTicket(i);
       if(t == 0) continue;

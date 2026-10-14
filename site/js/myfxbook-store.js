@@ -12,43 +12,42 @@ window.CHESTMyfxbook = (() => {
 
   function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-  // 1 reessai apres un court delai sur un echec RESEAU/CORS uniquement
-  // (jamais sur une vraie erreur applicative Myfxbook, ex. mauvais mot de
-  // passe) - constate en direct le 2026-09-17 : des appels strictement
-  // identiques (memes identifiants, quelques secondes d'ecart) echouent
-  // parfois en CORS puis reussissent juste apres, cote serveur Myfxbook -
-  // un vrai flottement intermittent de leur infra, pas un bug cote CHEST.
-  // Sans ce reessai, un simple hoquet reseau se traduisait par un Dashboard
-  // vide pendant 5 minutes entieres (voir MYFXBOOK_CACHE_MS/enrichWithMyfxbook
-  // dans dashboard.js) - retour direct utilisateur ("la connexion semble
-  // erroner et donc n'affiche toujours rien").
-  async function rawFetch(url) {
-    try {
-      return await fetch(url);
-    } catch (e) {
-      await sleep(700);
-      return fetch(url);
-    }
-  }
+  // 2026-10-14 : mesure en direct, Myfxbook OUBLIE l'en-tete CORS sur ~20 a 40 % de ses reponses
+  // (8/10, 6/10, 8/10 sur trois series de 10 appels identiques, Chrome, Safari et curl confondus) - le
+  // navigateur bloque alors la reponse comme une erreur reseau. Un seul reessai laissait echouer
+  // environ une connexion sur trois (une connexion enchaine 4 a 5 appels). Jusqu'a 5 essais
+  // espaces (0,4 s, 0,8 s, 1,2 s, 1,6 s) : la probabilite qu'un appel echoue tombe sous 1 %. Une page
+  // Cloudflare (HTML au lieu de JSON) est traitee pareil. Pas de relais serveur possible : depuis
+  // l'API v1.38 une session Myfxbook n'est valable que depuis l'IP qui l'a ouverte.
+  const TRIES = 5;
 
   async function call(path, params) {
-    const qs = new URLSearchParams(params).toString();
-    let res;
-    try {
-      res = await rawFetch(`${BASE}/${path}?${qs}`);
-    } catch (e) {
-      // fetch() rejette avec un TypeError "Failed to fetch" (anglais, brut du
-      // navigateur) en cas de CORS/reseau - meme piege deja corrige sur
-      // accounts-auth.js (retour direct utilisateur du 2026-09-16 :
-      // "la connexion au compte myfxbook ne marche pas non plus"). Traduit
-      // ici plutot que de laisser ce message technique remonter tel quel -
-      // et sans jargon technique (2026-09-24, demande utilisateur : jamais
-      // le mot "API" ou un detail d'implementation cote visiteur).
-      throw new Error('Connexion échouée, veuillez réessayer dans un instant.');
+    const url = `${BASE}/${path}?${new URLSearchParams(params).toString()}`;
+    for (let i = 0; i < TRIES; i++) {
+      if (i) await sleep(400 * i);
+      let data;
+      try {
+        const res = await fetch(url);
+        data = await res.json();
+      } catch (e) {
+        continue; // CORS absent, reseau ou page non JSON : on reessaie
+      }
+      // Vraie reponse Myfxbook (ex. mauvais mot de passe) : jamais reessayee
+      if (data && data.error) throw new Error(frMessage(data.message));
+      return data;
     }
-    const data = await res.json();
-    if (data.error) throw new Error(data.message || 'Erreur Myfxbook.');
-    return data;
+    // Sans jargon technique cote visiteur (2026-09-24, demande utilisateur : jamais le mot "API")
+    throw new Error('Connexion échouée, veuillez réessayer dans un instant.');
+  }
+
+  // Messages d'erreur Myfxbook (anglais) traduits pour l'ecran
+  function frMessage(m) {
+    const t = String(m || '').toLowerCase();
+    if (t.includes('wrong email') || t.includes('password')) return 'Email ou mot de passe Myfxbook incorrect.';
+    if (t.includes('invalid session')) return 'Session Myfxbook expirée, reconnecte-toi.';
+    if (t.includes('invalid account')) return 'Compte Myfxbook introuvable.';
+    if (t.includes('required')) return 'Email et mot de passe Myfxbook requis.';
+    return m || 'Erreur Myfxbook.';
   }
 
   async function login(email, password) {

@@ -1010,9 +1010,12 @@
     } else if (a.myfxbook && !a.isLiveSwann) {
       const cached = myfxbookCache[a.id];
       const live = a.myfxbook.plan === 'live';
+      // Synchro en échec : on date la dernière synchro réussie (lastKnownGood), jamais un « relu » vide
+      const t = (cached && cached.at) || (a.syncedAt ? Date.parse(a.syncedAt) : null);
+      const fresh = t ? `relu ${since(t)}` : 'en attente de synchro';
       html = live
-        ? `<i class="is-live"></i><b>Live</b> — Myfxbook en temps réel · relu ${since(cached && cached.at)} · <a href="connect.html?plan=pro">positions ouvertes : Pro →</a>`
-        : `<i></i><b>Essentiel</b> — Myfxbook toutes les 2 à 4 h · relu ${since(cached && cached.at)} · <a href="connect.html?plan=live">passer en temps réel →</a>`;
+        ? `<i class="is-live"></i><b>Live</b> — Myfxbook en temps réel · ${fresh} · <a href="connect.html?plan=pro">positions ouvertes : Pro →</a>`
+        : `<i></i><b>Essentiel</b> — Myfxbook toutes les 2 à 4 h · ${fresh} · <a href="connect.html?plan=live">passer en temps réel →</a>`;
     } else if (!a.isLiveSwann) {
       html = '<i></i><b>Saisie manuelle</b> · <a href="connect.html">connecter ce compte →</a>';
     }

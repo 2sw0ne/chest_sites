@@ -502,6 +502,13 @@
   // Myfxbook, -513,19 $ ici quand on y re-soustrayait la commission de 3,65 $). Les notes reprennent la
   // ligne du tableau Myfxbook (pips, lots, prix, SL/TP, duree, gain).
   function fmtNum(n, d) { return n == null ? '—' : Number(n).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  // Prix : précision selon l'ordre de grandeur (EURUSD 1,08500 · USDJPY 151,234 · XAUUSD 2 410,15) ;
+  // un SL/TP à 0 = absent.
+  function fmtPrice(n) {
+    if (n == null || !Number(n)) return '—';
+    const a = Math.abs(Number(n));
+    return fmtNum(n, a < 10 ? 5 : a < 1000 ? 3 : 2);
+  }
   function fmtDuration(ms) {
     if (!(ms >= 0)) return null;
     const m = Math.round(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
@@ -512,8 +519,8 @@
     const parts = [
       x.pips != null ? `Pips ${sign(x.pips)}${fmtNum(x.pips, 1)}` : null,
       x.lots != null ? `Lots ${fmtNum(x.lots, 2)}` : null,
-      `Ouverture ${fmtNum(x.open, 2)} → Clôture ${fmtNum(x.close, 2)}`,
-      `SL ${fmtNum(x.sl, 2)} · TP ${fmtNum(x.tp, 2)}`,
+      `Ouverture ${fmtPrice(x.open)} → Clôture ${fmtPrice(x.close)}`,
+      `SL ${fmtPrice(x.sl)} · TP ${fmtPrice(x.tp)}`,
       `Net ${sign(x.pnl)}${fmtNum(x.pnl, 2)} $`,
       x.gain != null ? `Gain ${sign(x.gain)}${fmtNum(x.gain, 2)} %` : null,
       x.duration ? `Durée ${x.duration}` : null,
