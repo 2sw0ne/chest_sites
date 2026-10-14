@@ -348,6 +348,17 @@ Retour utilisateur sur une première version (sections empilées, sélecteurs pa
 
 **Dashboard** : formule de connexion + fraîcheur sous le nom du compte (`#accConnTag`, lien vers la formule supérieure), section « Positions ouvertes · en direct » pour les comptes VPS, rafraîchissement auto toutes les 30 s pour VPS et Myfxbook Live. **Compte (`account.html`)** : section « 01 — Comptes de trading » (formule, broker, journal, compte suivi par BERICH, action) ; la ligne floue « Connexion trading » devient « BERICH : broker et risque ».
 
+## Version 2.0 locale (branche `v2`, worktree `projects/chesting-v2`, 2026-10-14) — PAS ENCORE POUSSÉE
+
+Demande utilisateur : « une version 2.0 en local, sans toucher le repo GitHub », même fonctionnalités et même logique visuelle que BERICH v2 (pas de cases, profondeur, filets estompés), connexion et Welcome inchangés. Tout est commité sur la branche locale `v2` uniquement ; rien n'est poussé sur `chest_sites` ni `STASH`.
+
+- **`css/v2.css`** (chargé en DERNIER, juste avant `</head>`, sur toutes les pages de l'app + `app.html`) : profondeur par page (`body[data-page]::before`, teintes `--v2-d1/2/3` par espace, grain), filets estompés (`border-image` dégradé) sur `.chest-section`, `hr`, `thead`, barre du haut ; cartes `.card`/`.chest-glass` adoucies ; menu latéral : entrée active éclairée par un dégradé + barre lumineuse à gauche (plus de contour rose) ; retour d'appui `scale(.97)` sur tous les boutons ; survol réservé aux vraies souris ; cartes des hubs Backtesting/Journal (`.bt-card`) en matière (reflet, chiffres en colonnes) ; graphiques `.chest-glass--chart` sans cadre ; frise d'étapes pour le guide VPS (`.vg-step`) et l'assistant de backtest (`.wz-card`) ; arrivée en cascade des blocs de `main` (jamais sur une modale : `[class*="overlay"]`, `[role="dialog"]` exclus). Portée : `body[data-page]` (pages) ou `.chest-shell` (menu) — jamais le Welcome ni la connexion. Incrémenter `?v=` à chaque modification.
+- **Dashboard** : héros centré (`.dv2-hero`) — compte, résultat, Equity/Balance/PnL/Profit du jour en ligne, puis la courbe juste dessous avec onglets soulignés ; KPI déplacés en section 02 « La période en chiffres ». La lueur du héros suit le signe (`#heroSpot[data-sign]`, posé dans `dashboard.js`). Remplissage de la courbe plus léger (0,3), axes sans bordure.
+- **BERICH** : la marque devient l'en-tête (`.br-logo` 62 px avec halo menthe tournant, `.br-wordmark` « BERICH » en grand avec reflet).
+- **Journal** : courbe du P&L cumulé en haut d'un journal (`renderCurve`, SVG sans Chart.js) ; « RR moyen » renommé « R moyen par trade » (c'est la moyenne des R, pertes comprises) ; source des positions corrigée (VPS / MyFxBook / BERICH / Backtest, les positions VPS s'affichaient « Manuel ») ; tableau sans cadre.
+- **Compte** : réglages groupés (Affichage, Alertes, Marché et exécution, Administration, Toi) ; « Compte Live (Dashboard) » renommé « Compte MyFxBook prioritaire » avec une explication claire.
+- **Test local** : serveur `chesting-v2` (port 8936, `.claude/launch.json`) + `accounts-bridge` local sur base jetable (`.localdata/`), compte de test admin (identifiants dans `.localdata/test-account.txt`), données d'exemple injectées en localStorage. Les 503 en console viennent des relais absents en local (prix, scanners), pas du code.
+
 ## Plan du site (`site/*.html`)
 
 | Page | Rôle |
