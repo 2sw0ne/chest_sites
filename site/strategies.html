@@ -308,6 +308,7 @@
   .alr-dd__menu .alr__chip.is-on{ color:var(--ink); background:rgba(249,164,94,.08); }
   .alr-dd__menu .alr__chip.is-on::after{ content:'✓'; color:#f9a45e; font-weight:800; }
 </style>
+<link rel="stylesheet" href="css/scanner-guide.css?v=4">
 <link rel="stylesheet" href="css/v2.css?v=11">
 </head>
 <body data-page="strategies" class="chest-root">
@@ -447,10 +448,8 @@
 
   <div class="card scnr-media" id="scnrMediaCard">
     <div class="scnr-panel is-active" id="scnrPanelChart"><div id="scnrChart"></div></div>
-    <div class="scnr-panel" id="scnrPanelAbout">
-      <p class="scnr-desc" id="scnrAboutDesc"></p>
-      <div class="scnr-tags" id="scnrAboutTags"></div>
-    </div>
+    <!-- À propos : titre fantôme, vidéo, étapes illustrées (js/scanner-guides.js, 2026-10-15) -->
+    <div class="scnr-panel" id="scnrPanelAbout"><div id="scnrGuide"></div></div>
   </div>
   </main>
   </div>
@@ -470,6 +469,7 @@
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
 <script src="js/scanner-store.js?v=27"></script>
+<script src="js/scanner-guides.js?v=5"></script>
 <script src="js/scanner-chart.js?v=24"></script>
 <script src="js/page-tour.js"></script>
 <script>
@@ -565,8 +565,7 @@ CHESTTour.init([
     populateSymbolSelect(document.getElementById('scnrSymbol'), currentMarket, currentSymbol);
     document.querySelectorAll('#scnrTimeframe button').forEach((b) => b.classList.toggle('is-active', b.dataset.tf === currentTimeframe));
 
-    document.getElementById('scnrAboutDesc').textContent = scanner.description || 'Pas de description.';
-    document.getElementById('scnrAboutTags').innerHTML = (scanner.tags || []).map((t) => `<span>${t}</span>`).join('');
+    if (window.CHESTScannerGuide) CHESTScannerGuide.render(document.getElementById('scnrGuide'), scanner);
 
     renderScannerHero(scanner);
     renderScannerMenu();
@@ -638,6 +637,8 @@ CHESTTour.init([
       ['chart', 'about'].forEach((tab) => {
         document.getElementById('scnrPanel' + tab[0].toUpperCase() + tab.slice(1)).classList.toggle('is-active', tab === btn.dataset.tab);
       });
+      // La vidéo explicative ne continue pas en fond quand on revient au graphique
+      if (btn.dataset.tab !== 'about' && window.CHESTScannerGuide) CHESTScannerGuide.pause(document.getElementById('scnrGuide'));
     });
   });
 
