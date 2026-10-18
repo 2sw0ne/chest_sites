@@ -222,26 +222,125 @@
   // Règles par scanner : chaque élément du modèle Vela est reconnu par son identifiant (dérivé du
   // titre du plot Pine) ou par sa forme (ligne prolongée, texte d'une étiquette).
   const VISUALS_KEY = 'chest_chart_visuals';
-  const idHas = (re) => (el) => re.test(el.id || '');
+  // Petits outils de reconnaissance. Un plot Pine devient « :<type>:<titre-en-minuscules>#n » dans
+  // le modèle Vela ; label.new/line.new/box.new ont un id numéroté, on les reconnaît par leur texte
+  // ou leur forme (prolongement, ligne horizontale…).
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const plotIs = (...names) => { const re = new RegExp(':[a-z]+:(' + names.map(esc).join('|') + ')#'); return (el) => re.test(el.id || ''); };
+  const textIs = (re) => (el) => re.test(el.text || '');
+  const either = (...fns) => (el) => fns.some((f) => f(el));
+  const everything = () => true;
+  const extIs = (...ext) => (el) => ext.includes(el.extend || 'none');
+  const flat = (el) => el.y1 === el.y2;
+  const PRICE_TAG = /\(\s*-?[\d\s.,]+\)$/; // « SL (4 176,28) »
   const VISUAL_RULES = {
     pulse: [
-      { key: 'arrows', label: 'Flèches', hint: 'Micro-flèches ↑ ↓', def: true, labels: idHas(/:label:(buy|sell)-arrow#/) },
-      { key: 'pullback', label: 'Triangles de pullback', def: true, labels: idHas(/:label:micropullback-(buy|sell)#/) },
-      { key: 'clouds', label: 'Nuages', hint: 'Bandes de volatilité', def: true, series: idHas(/:line:bb[12]-(upper|lower)#/), fills: idHas(/:fill:(upper|lower)-band-gap-fill#/) },
-      { key: 'ribbon', label: 'Ruban EMA 8 / 13', def: true, series: idHas(/:line:ema-(8|13)#/), fills: idHas(/:fill:fill-ema8-ema13#/) },
-      { key: 'ema', label: 'EMA principale', hint: 'Moyenne longue', def: true, series: idHas(/:line:main-ma(-glow)?#/) },
-      { key: 'dots', label: 'Ronds', hint: 'Points de retournement', def: false, labels: idHas(/:label:(blue|red)-flip-dot#/) },
-      { key: 'hl', label: 'Repères H / L', def: true, labels: (el) => /:label:(h|l)-marker#/.test(el.id || '') || (/:label:\d+#/.test(el.id || '') && /^[HL]$/.test(el.text || '')) },
+      { key: 'arrows', label: 'Flèches', hint: 'Micro-flèches ↑ ↓', def: true, labels: plotIs('buy-arrow', 'sell-arrow') },
+      { key: 'pullback', label: 'Triangles de pullback', def: true, labels: plotIs('micropullback-buy', 'micropullback-sell') },
+      { key: 'clouds', label: 'Nuages', hint: 'Bandes de volatilité', def: true, series: plotIs('bb1-upper', 'bb1-lower', 'bb2-upper', 'bb2-lower'), fills: plotIs('upper-band-gap-fill', 'lower-band-gap-fill') },
+      { key: 'ribbon', label: 'Ruban EMA 8 / 13', def: true, series: plotIs('ema-8', 'ema-13'), fills: plotIs('fill-ema8-ema13') },
+      { key: 'ema', label: 'EMA principale', hint: 'Moyenne longue', def: true, series: plotIs('main-ma', 'main-ma-glow') },
+      { key: 'dots', label: 'Ronds', hint: 'Points de retournement', def: false, labels: plotIs('blue-flip-dot', 'red-flip-dot') },
+      { key: 'hl', label: 'Repères H / L', def: true, labels: either(plotIs('h-marker', 'l-marker'), (el) => /:label:\d+#/.test(el.id || '') && /^[HL]$/.test(el.text || '')) },
       { key: 'trend', label: 'Trendlines', def: false, lines: (el) => !!el.extend && el.extend !== 'none' },
-      { key: 'sessions', label: 'Sessions', hint: 'Hauts et bas New York, Londres, Asie', def: false, lines: (el) => !el.extend || el.extend === 'none', labels: (el) => /^(NY|LDN|Asia)\. /.test(el.text || '') },
+      { key: 'sessions', label: 'Sessions', hint: 'Hauts et bas New York, Londres, Asie', def: false, lines: extIs('none'), labels: textIs(/^(NY|LDN|Asia)\. /) },
+    ],
+    algomni: [
+      { key: 'signals', label: 'Étiquettes BUY / SELL', def: true, labels: textIs(/^(BUY|SELL)\+?$|^[▲▼]$/) },
+      { key: 'stars', label: 'Étoiles', hint: 'Sommets et creux ✵', def: true, labels: textIs(/^✵$/) },
+      { key: 'sweeps', label: 'Zones de balayage', hint: 'SweepZone', def: true, boxes: extIs('none') },
+      { key: 'rounds', label: 'Niveaux ronds', hint: 'Zones 5 / 10 / 25', def: true, boxes: extIs('both'), lines: extIs('both') },
+      { key: 'ema', label: 'EMA 200', def: true, series: plotIs('ema200-mtf') },
+      { key: 'stop', label: 'Stop suiveur', hint: 'Ligne ATR', def: true, series: plotIs('volume-des-bougies') },
+    ],
+    'swyper-v6': [
+      { key: 'arrows', label: 'Flèches d’entrée', def: true, labels: either(textIs(/^[▲▼△▽↑↓]$/), (el) => el.style === 'arrowup' || el.style === 'arrowdown') },
+      { key: 'star', label: 'Étoile', hint: 'Setup armé ✦', def: true, labels: textIs(/^✦$/) },
+      { key: 'pb', label: 'Pullbacks', hint: 'Étiquettes PB', def: true, labels: textIs(/^PB$/) },
+      { key: 'levels', label: 'Niveaux', hint: 'Entrée, SL, TP, Fibonacci', def: true, labels: textIs(PRICE_TAG), lines: extIs('right') },
+      { key: 'zone', label: 'Zone de pullback', def: true, boxes: everything },
+      { key: 'exits', label: 'Marqueurs de sortie', hint: '◆ ✕ ■', def: true, labels: textIs(/^[◆✕■]$/) },
+      { key: 'ut', label: 'UT Bot', def: true, series: plotIs('ut-bot-(matr)') },
+      { key: 'mcg', label: 'McGinley 10', def: true, series: plotIs('mcginley-10') },
+      { key: 'table', label: 'Panneau', def: true, tables: everything },
+    ],
+    wolfx: [
+      { key: 'arrow', label: 'Flèche de signal', def: true, labels: (el) => el.style === 'arrowup' || el.style === 'arrowdown' },
+      { key: 'levels', label: 'Entrée / invalidation / TP', def: true, labels: textIs(/^(Entry Zone|Invalid Level|TP\d)/), lines: extIs('right') },
+      { key: 'waves', label: 'Vagues', hint: 'Nuages EMA', def: true, series: plotIs('ema(5)', 'ema(13)', 'ema(34)', 'ema(50)', 'ema(72)', 'ema(89)', 'ema(8)', 'ema(9)'), fills: plotIs('wave1', 'wave2', 'wave3', 'smartline') },
+      { key: 'smma', label: 'Ligne SMMA', def: true, series: plotIs('plot-smma') },
+      { key: 'curls', label: 'Cercles TSI', def: true, labels: plotIs('curl-up', 'curl-down') },
+      { key: 'vol', label: 'Pics de volume', def: true, labels: plotIs('volume-spike') },
+      { key: 'table', label: 'Tableau', def: true, tables: everything },
+    ],
+    nexus: [
+      { key: 'signals', label: 'Signaux d’entrée', hint: 'Étoiles et fantômes', def: true, labels: plotIs('nexus-long', 'nexus-short', 'ghost-long', 'ghost-short') },
+      { key: 'levels', label: 'Zones de trade', hint: 'Opportunité, invalidation, cibles', def: true, labels: textIs(/Zone|HIT|Break even/), lines: everything },
+      { key: 'trend', label: 'Fond de tendance', def: true, backgrounds: everything },
+      { key: 'sma', label: 'SMA lente', def: true, series: plotIs('slow-sma') },
+      { key: 'table', label: 'Tableau', def: true, tables: everything },
+    ],
+    pivot: [
+      { key: 'signal', label: 'Signal BUY / SELL', def: true, labels: textIs(/^(BUY|SELL)$/) },
+      { key: 'lines', label: 'Lignes des niveaux', hint: 'Pivots, extensions, S0 / R8', def: true, lines: everything },
+      { key: 'tags', label: 'Étiquettes des niveaux', def: true, labels: textIs(/^(R|S|P|\+|-)\S*( \(Weekly\))?$/) },
+      { key: 'zones', label: 'Zones R8 / S0', def: true, boxes: everything },
+    ],
+    harmonics: [
+      { key: 'pattern', label: 'Figure X A B C D', def: true, polylines: everything, lines: (el) => !flat(el), labels: textIs(/^[XABCD]$/) },
+      { key: 'ratios', label: 'Ratios', def: true, labels: textIs(/^-?\d*\.?\d+$/) },
+      { key: 'name', label: 'Nom et score', def: true, labels: textIs(/^(Gartley|Bat|Butterfly|Crab)/) },
+      { key: 'levels', label: 'Entry / Exit / Invalidation', def: true, lines: flat, labels: textIs(/^(Entry|Exit \d|Invalidation)$/) },
+    ],
+    stars: [
+      { key: 'stars', label: 'Étoiles', def: true, labels: textIs(/^★$/) },
+      { key: 'zones', label: 'Zones', def: true, boxes: everything },
+      { key: 'positions', label: 'Entrée / SL / TP', def: true, lines: (el) => extIs('none')(el) && el.style !== 'dotted', labels: textIs(PRICE_TAG) },
+      { key: 'checks', label: 'Validations ✓', def: true, labels: plotIs('long-entry', 'short-entry') },
+      { key: 'grid', label: 'Grille de niveaux', def: true, lines: (el) => el.extend === 'right' || el.style === 'dotted' },
+    ],
+    blood: [
+      { key: 'signals', label: 'Signaux LONG / SHORT', def: true, labels: plotIs('long', 'short') },
+      { key: 'icons', label: 'Icônes', hint: '💎 🩸 ⚡', def: true, labels: plotIs('diamond', 'blood', 'lightning') },
+      { key: 'diamonds', label: 'Losanges ◆', def: true, labels: plotIs('diamond-long', 'diamond-short') },
+      { key: 'poc', label: 'Signaux PoC', def: true, labels: plotIs('strong-poc-long', 'weak-poc-long', 'strong-poc-short', 'weak-poc-short', 'keep-long', 'keep-short') },
+      { key: 'levels', label: 'Entrée / sorties / invalidation', def: true, labels: textIs(/^(Entry|Exit|Invalidation)/), lines: everything, boxes: everything },
+      { key: 'ribbon', label: 'Ruban EMA 5 / 34', def: true, series: plotIs('ema-1', 'ema-8'), fills: plotIs('ribbon') },
+      { key: 'ema', label: 'EMA 20', def: true, series: plotIs('ema-(20)') },
+      { key: 'sma', label: 'SMA 120', def: true, series: plotIs('sma-(120)') },
+    ],
+    wave: [
+      { key: 'arrows', label: 'Flèches de tendance', def: true, labels: plotIs('arrow-up', 'arrow-dn') },
+      { key: 'signals', label: 'Signaux', hint: 'Score, entrée, SL / TP', def: true, labels: either(textIs(/^(PE|SL|TP\d*)\s*\(/), textIs(/^\+\d+$/)), boxes: extIs('none'), lines: extIs('none') },
+      { key: 'keylvl', label: 'Niveaux clés', hint: 'Nombres ronds', def: true, lines: extIs('both'), boxes: extIs('both') },
+      { key: 'pivots', label: 'Pivots Camarilla', def: true, lines: extIs('right'), labels: textIs(/^[RS]\d$/) },
+      { key: 'vol', label: 'Étiquettes de volume', def: true, labels: textIs(/^[▲▼]\n/) },
+      { key: 'bands', label: 'Bandes', def: true, series: plotIs('lower-bb', 'upper-bb', 'midline-bb', 'lower-bb2', 'upper-bb2', 'lower-bb3', 'upper-bb3'), fills: plotIs('fill-lower-bb2-bb3', 'fill-upper-bb2-bb3') },
+      { key: 'cloud', label: 'Cloud Kalman', def: true, series: plotIs('short-kalman', 'long-kalman'), fills: plotIs('fill-kalman') },
+      { key: 'vidya', label: 'VIDYA 987', def: true, series: plotIs('trend-line-(vidya-987)') },
+      { key: 'vidya2', label: 'VIDYA 55 / 233', def: true, series: plotIs('vidya-55', 'vidya-233') },
+      { key: 'sar', label: 'Parabolic SAR', def: true, series: plotIs('parabolic-sar') },
+      { key: 'table', label: 'Panneau de tendance', def: true, tables: everything },
+    ],
+    supernova: [
+      { key: 'signals', label: 'Étiquettes Buy / Sell', def: true, labels: textIs(/^(Buy|Sell)$/) },
+      { key: 'stars', label: 'Étoiles ✸', def: true, labels: textIs(/^✸$/) },
+      { key: 'levels', label: 'Niveaux', hint: 'Entrée, SL, TP', def: true, labels: textIs(PRICE_TAG), lines: everything },
+      { key: 'emas', label: 'EMA rapide / lente', def: true, series: plotIs('fast-ema', 'slow-ema') },
+      { key: 'long', label: 'EMA longue', def: true, series: plotIs('long-ema') },
+      { key: 'clock', label: 'Horloge de trading', def: true, tables: everything },
     ],
   };
+  const MODEL_KINDS = ['series', 'fills', 'labels', 'lines', 'boxes', 'polylines', 'backgrounds', 'tables'];
   // Indicateurs ajoutables : proposés seulement s'ils ne font pas déjà partie du script du scanner.
   const ADDONS = [
     { key: 'ichimoku', label: 'Nuage Ichimoku', hint: 'Leading Span A / B', def: false },
-    { key: 'stoch', label: 'Stochastique', hint: '14 · 1 · 3', def: false },
+    { key: 'rsi', label: 'RSI', hint: '14', def: false, native: 'rsi' },
+    { key: 'macd', label: 'MACD', hint: '12 · 26 · 9', def: false, native: 'macd' },
+    { key: 'stoch', label: 'Stochastique', hint: '14 · 1 · 3', def: false, native: 'stochastic' },
   ];
-  const NATIVE_ADDONS = {}; // ex. { blood: ['stoch'] } si un script contient déjà l'indicateur
+  // Déjà présents dans le script : RSI (Pulse, Pivot), MACD (panneau « MACD BLOOD », Wolf Attack de Wolfx).
+  const NATIVE_ADDONS = { pulse: ['rsi'], pivot: ['rsi'], blood: ['macd'], wolfx: ['macd'] };
 
   function readVisuals() {
     try { return JSON.parse(localStorage.getItem(VISUALS_KEY) || '{}') || {}; } catch (e) { return {}; }
@@ -251,10 +350,12 @@
     return typeof v === 'boolean' ? v : item.def;
   }
   function filterModel(model, scannerId) {
+    // Les règles ne visent que le graphique des prix : les panneaux du bas (RSI, QQE…) restent entiers.
+    if (!model || !model.overlay) return model;
     const hidden = (VISUAL_RULES[scannerId] || []).filter((r) => !visualOn(scannerId, r));
-    if (!hidden.length || !model) return model;
+    if (!hidden.length) return model;
     const out = Object.assign({}, model);
-    ['series', 'fills', 'labels', 'lines'].forEach((kind) => {
+    MODEL_KINDS.forEach((kind) => {
       const tests = hidden.map((r) => r[kind]).filter(Boolean);
       if (tests.length && Array.isArray(model[kind])) out[kind] = model[kind].filter((el) => !tests.some((t) => t(el)));
     });
@@ -302,18 +403,30 @@
   // Graphique distant affiché : de quoi le redessiner sans recharger.
   let live = null; // { chart, scannerId, bars, models, handles: [], addons: {} }
   function rerun(h) { try { h.setVisible(false); h.setVisible(true); } catch (e) { console.warn('Scanner: affichage non appliqué', e); } }
+  // Plusieurs interrupteurs touchés d'affilée : un seul redessin par calque, une fois les clics
+  // terminés (des relances trop rapprochées sur le même calque perdaient la dernière).
+  const pendingReruns = new Set();
+  let rerunTimer = null;
+  function queueRerun(h) {
+    pendingReruns.add(h);
+    clearTimeout(rerunTimer);
+    rerunTimer = setTimeout(() => { const hs = [...pendingReruns]; pendingReruns.clear(); hs.forEach(rerun); }, 150);
+  }
   function touches(model, rule) {
-    return !!model && ['series', 'fills', 'labels', 'lines'].some((k) => rule[k] && Array.isArray(model[k]) && model[k].some(rule[k]));
+    return !!model && !!model.overlay && MODEL_KINDS.some((k) => rule[k] && Array.isArray(model[k]) && model[k].some(rule[k]));
   }
   function addonsFor(scannerId) { return ADDONS.filter((a) => !(NATIVE_ADDONS[scannerId] || []).includes(a.key)); }
-  async function applyAddons() {
+  // Ajouts/retraits enchaînés l'un après l'autre : deux clics rapides n'ajoutent jamais deux fois.
+  let addonChain = Promise.resolve();
+  function applyAddons() { addonChain = addonChain.then(applyAddonsNow, applyAddonsNow); return addonChain; }
+  async function applyAddonsNow() {
     if (!live) return;
     const cur = live;
     for (const a of addonsFor(cur.scannerId)) {
       const want = visualOn(cur.scannerId, a), has = cur.addons[a.key];
       if (want && !has) {
-        cur.addons[a.key] = a.key === 'stoch'
-          ? cur.chart.addNativeIndicator('stochastic')
+        cur.addons[a.key] = a.native
+          ? cur.chart.addNativeIndicator(a.native)
           : await cur.chart.addIndicator('//@version=5\n//addon:' + a.key + '\nindicator("' + a.label + '", overlay=true)');
       } else if (!want && has) {
         try { has.remove(); } catch (e) { /* déjà retiré */ }
@@ -337,7 +450,7 @@
       if (!live || live.scannerId !== scannerId) return;
       const rule = (VISUAL_RULES[scannerId] || []).find((r) => r.key === key);
       // Seul le calque qui contient l'élément est redessiné (les autres panneaux ne clignotent pas).
-      if (rule) live.handles.forEach((h, i) => { if (touches(live.models[i], rule)) rerun(h); });
+      if (rule) live.handles.forEach((h, i) => { if (touches(live.models[i], rule)) queueRerun(h); });
       else applyAddons();
     },
     reset(scannerId) {
@@ -345,7 +458,7 @@
       delete all[scannerId];
       try { localStorage.setItem(VISUALS_KEY, JSON.stringify(all)); } catch (e) { /* sans stockage */ }
       if (live && live.scannerId === scannerId) {
-        live.handles.forEach((h, i) => { if ((VISUAL_RULES[scannerId] || []).some((r) => touches(live.models[i], r))) rerun(h); });
+        live.handles.forEach((h, i) => { if ((VISUAL_RULES[scannerId] || []).some((r) => touches(live.models[i], r))) queueRerun(h); });
         applyAddons();
       }
     },

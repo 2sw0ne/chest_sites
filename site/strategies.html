@@ -480,7 +480,7 @@
 <script src="js/scanner-store.js?v=27"></script>
 <script src="js/scanner-guides.js?v=5"></script>
 <script src="js/strength-board.js?v=2"></script>
-<script src="js/scanner-chart.js?v=32"></script>
+<script src="js/scanner-chart.js?v=35"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -635,7 +635,7 @@ CHESTTour.init([
     let n = 0;
     vizPop.innerHTML = `
       <div class="viz-pop__top"><h3>Affichage</h3><button type="button" class="viz-pop__reset" data-viz-reset>Réinitialiser</button></div>
-      ${o.elements.length ? `<p class="viz-pop__k">0${++n} — Éléments de ${scanner.name}</p><ul class="viz-pop__list">${o.elements.map(vizRow).join('')}</ul>` : ''}
+      ${o.elements.length ? `<p class="viz-pop__k">0${++n} — Éléments du scanner</p><ul class="viz-pop__list">${o.elements.map(vizRow).join('')}</ul>` : ''}
       ${o.addons.length ? `<p class="viz-pop__k">0${++n} — Ajouter au graphique</p><ul class="viz-pop__list">${o.addons.map(vizRow).join('')}</ul>` : ''}
       <div class="viz-pop__foot"></div>`;
   }
