@@ -216,20 +216,159 @@
     }
   }
 
+  // ---- Affichage du graphique (2026-10-18, demande utilisateur) : masquer des éléments du script
+  // et ajouter des indicateurs absents du script (Ichimoku, stochastique). Tout se fait ICI, sur le
+  // modèle déjà reçu : aucun recalcul serveur, aucun crédit Twelve Data, le zoom est conservé.
+  // Règles par scanner : chaque élément du modèle Vela est reconnu par son identifiant (dérivé du
+  // titre du plot Pine) ou par sa forme (ligne prolongée, texte d'une étiquette).
+  const VISUALS_KEY = 'chest_chart_visuals';
+  const idHas = (re) => (el) => re.test(el.id || '');
+  const VISUAL_RULES = {
+    pulse: [
+      { key: 'arrows', label: 'Flèches', hint: 'Micro-flèches ↑ ↓', def: true, labels: idHas(/:label:(buy|sell)-arrow#/) },
+      { key: 'pullback', label: 'Triangles de pullback', def: true, labels: idHas(/:label:micropullback-(buy|sell)#/) },
+      { key: 'clouds', label: 'Nuages', hint: 'Bandes de volatilité', def: true, series: idHas(/:line:bb[12]-(upper|lower)#/), fills: idHas(/:fill:(upper|lower)-band-gap-fill#/) },
+      { key: 'ribbon', label: 'Ruban EMA 8 / 13', def: true, series: idHas(/:line:ema-(8|13)#/), fills: idHas(/:fill:fill-ema8-ema13#/) },
+      { key: 'ema', label: 'EMA principale', hint: 'Moyenne longue', def: true, series: idHas(/:line:main-ma(-glow)?#/) },
+      { key: 'dots', label: 'Ronds', hint: 'Points de retournement', def: false, labels: idHas(/:label:(blue|red)-flip-dot#/) },
+      { key: 'hl', label: 'Repères H / L', def: true, labels: (el) => /:label:(h|l)-marker#/.test(el.id || '') || (/:label:\d+#/.test(el.id || '') && /^[HL]$/.test(el.text || '')) },
+      { key: 'trend', label: 'Trendlines', def: false, lines: (el) => !!el.extend && el.extend !== 'none' },
+      { key: 'sessions', label: 'Sessions', hint: 'Hauts et bas New York, Londres, Asie', def: false, lines: (el) => !el.extend || el.extend === 'none', labels: (el) => /^(NY|LDN|Asia)\. /.test(el.text || '') },
+    ],
+  };
+  // Indicateurs ajoutables : proposés seulement s'ils ne font pas déjà partie du script du scanner.
+  const ADDONS = [
+    { key: 'ichimoku', label: 'Nuage Ichimoku', hint: 'Leading Span A / B', def: false },
+    { key: 'stoch', label: 'Stochastique', hint: '14 · 1 · 3', def: false },
+  ];
+  const NATIVE_ADDONS = {}; // ex. { blood: ['stoch'] } si un script contient déjà l'indicateur
+
+  function readVisuals() {
+    try { return JSON.parse(localStorage.getItem(VISUALS_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function visualOn(scannerId, item) {
+    const v = (readVisuals()[scannerId] || {})[item.key];
+    return typeof v === 'boolean' ? v : item.def;
+  }
+  function filterModel(model, scannerId) {
+    const hidden = (VISUAL_RULES[scannerId] || []).filter((r) => !visualOn(scannerId, r));
+    if (!hidden.length || !model) return model;
+    const out = Object.assign({}, model);
+    ['series', 'fills', 'labels', 'lines'].forEach((kind) => {
+      const tests = hidden.map((r) => r[kind]).filter(Boolean);
+      if (tests.length && Array.isArray(model[kind])) out[kind] = model[kind].filter((el) => !tests.some((t) => t(el)));
+    });
+    return out;
+  }
+
+  // Ichimoku (9, 26, 52, décalage 26) : seulement les Leading Span A / B et le nuage, comme le
+  // réglage « Style » demandé (ligne de conversion, ligne de base et délai de retournement masqués).
+  function ichimokuModel(bars) {
+    const n = bars.length, D = 26;
+    const mid = (len, i) => {
+      if (i < len - 1) return null;
+      let hi = -Infinity, lo = Infinity;
+      for (let k = i - len + 1; k <= i; k++) { if (bars[k].high > hi) hi = bars[k].high; if (bars[k].low < lo) lo = bars[k].low; }
+      return (hi + lo) / 2;
+    };
+    const steps = [];
+    for (let i = Math.max(1, n - 50); i < n; i++) steps.push(bars[i].time - bars[i - 1].time);
+    const step = steps.sort((a, b) => a - b)[Math.floor(steps.length / 2)] || 300000;
+    const timeAt = (j) => (j < n ? bars[j].time : bars[n - 1].time + (j - n + 1) * step);
+    const A = [], B = [], colors = [];
+    for (let j = 0; j < n + D - 1; j++) {
+      const i = j - (D - 1);
+      const conv = i >= 0 ? mid(9, i) : null, base = i >= 0 ? mid(26, i) : null;
+      const a = conv !== null && base !== null ? (conv + base) / 2 : null;
+      const b = i >= 0 ? mid(52, i) : null;
+      const t = timeAt(j);
+      A.push({ time: t, value: a, color: '#A5D6A7' });
+      B.push({ time: t, value: b, color: '#EF9A9A' });
+      colors.push(a !== null && b !== null && a < b ? '#F4433622' : '#43A04722');
+    }
+    const id = 'addon-ichimoku';
+    return {
+      id, title: 'Ichimoku', overlay: true, paneHint: 'price',
+      series: [
+        { id: id + ':line:span-a#0', title: 'Leading Span A', paneId: 'unrouted', kind: 'line', points: A, style: { color: '#A5D6A7', width: 1, lineStyle: 'solid' }, visible: true },
+        { id: id + ':line:span-b#0', title: 'Leading Span B', paneId: 'unrouted', kind: 'line', points: B, style: { color: '#EF9A9A', width: 1, lineStyle: 'solid' }, visible: true },
+      ],
+      fills: [{ id: id + ':fill:cloud#0', paneId: 'unrouted', fromSeriesId: id + ':line:span-a#0', toSeriesId: id + ':line:span-b#0', colors }],
+      backgrounds: [], priceLines: [], lines: [], boxes: [], labels: [], polylines: [], linefills: [], tables: [],
+      inputs: [], inputValues: {}, props: [], propValues: {}, anchorTime: bars[0] ? bars[0].time : 0,
+    };
+  }
+
+  // Graphique distant affiché : de quoi le redessiner sans recharger.
+  let live = null; // { chart, scannerId, bars, models, handles: [], addons: {} }
+  function rerun(h) { try { h.setVisible(false); h.setVisible(true); } catch (e) { console.warn('Scanner: affichage non appliqué', e); } }
+  function touches(model, rule) {
+    return !!model && ['series', 'fills', 'labels', 'lines'].some((k) => rule[k] && Array.isArray(model[k]) && model[k].some(rule[k]));
+  }
+  function addonsFor(scannerId) { return ADDONS.filter((a) => !(NATIVE_ADDONS[scannerId] || []).includes(a.key)); }
+  async function applyAddons() {
+    if (!live) return;
+    const cur = live;
+    for (const a of addonsFor(cur.scannerId)) {
+      const want = visualOn(cur.scannerId, a), has = cur.addons[a.key];
+      if (want && !has) {
+        cur.addons[a.key] = a.key === 'stoch'
+          ? cur.chart.addNativeIndicator('stochastic')
+          : await cur.chart.addIndicator('//@version=5\n//addon:' + a.key + '\nindicator("' + a.label + '", overlay=true)');
+      } else if (!want && has) {
+        try { has.remove(); } catch (e) { /* déjà retiré */ }
+        delete cur.addons[a.key];
+      }
+    }
+  }
+
+  const visuals = {
+    // Liste pour le menu : éléments du script (si le scanner en a) puis ajouts possibles.
+    options(scannerId) {
+      return {
+        elements: (VISUAL_RULES[scannerId] || []).map((r) => ({ key: r.key, label: r.label, hint: r.hint || '', on: visualOn(scannerId, r) })),
+        addons: addonsFor(scannerId).map((a) => ({ key: a.key, label: a.label, hint: a.hint || '', on: visualOn(scannerId, a) })),
+      };
+    },
+    set(scannerId, key, on) {
+      const all = readVisuals();
+      all[scannerId] = Object.assign({}, all[scannerId], { [key]: !!on });
+      try { localStorage.setItem(VISUALS_KEY, JSON.stringify(all)); } catch (e) { /* sans stockage */ }
+      if (!live || live.scannerId !== scannerId) return;
+      const rule = (VISUAL_RULES[scannerId] || []).find((r) => r.key === key);
+      // Seul le calque qui contient l'élément est redessiné (les autres panneaux ne clignotent pas).
+      if (rule) live.handles.forEach((h, i) => { if (touches(live.models[i], rule)) rerun(h); });
+      else applyAddons();
+    },
+    reset(scannerId) {
+      const all = readVisuals();
+      delete all[scannerId];
+      try { localStorage.setItem(VISUALS_KEY, JSON.stringify(all)); } catch (e) { /* sans stockage */ }
+      if (live && live.scannerId === scannerId) {
+        live.handles.forEach((h, i) => { if ((VISUAL_RULES[scannerId] || []).some((r) => touches(live.models[i], r))) rerun(h); });
+        applyAddons();
+      }
+    },
+  };
+
   // ---- Mode distant (2026-10-06) : le script Pine ne vit pas dans le navigateur. Le serveur de
   // comptes relaie le modèle calculé par le service de calcul (bougies + sorties de chaque script).
   // Vela affiche ces sorties à l'identique via un moteur qui lit le modèle au lieu d'exécuter le code.
-  function remoteEngine(models) {
+  function remoteEngine(models, scannerId, bars) {
     return class {
       language = 'pine';
       capabilities = { streaming: false, visibleRange: false, inputs: false, props: false };
       async prepare(source, instanceId) {
+        const addon = (source.match(/\/\/addon:(\w+)/) || [])[1];
+        if (addon) return { language: 'pine', inputs: [], props: undefined, meta: { title: 'Ichimoku', overlay: true }, reactsToViewport: false, token: { instanceId, addon } };
         const idx = Number((source.match(/\/\/idx:(\d+)/) || [])[1] || 0);
         const model = models[idx];
         return { language: 'pine', inputs: [], props: undefined, meta: { title: model.title, overlay: model.overlay }, reactsToViewport: false, token: { instanceId, idx } };
       }
       execute(req, handlers) {
-        const model = models[req.prepared.token.idx];
+        const tok = req.prepared.token;
+        // Le filtre est relu à chaque exécution : masquer/afficher un élément = relancer l'indicateur.
+        const model = tok.addon === 'ichimoku' ? ichimokuModel(bars) : filterModel(models[tok.idx], scannerId);
         setTimeout(() => { handlers.onModel(model); handlers.onDone && handlers.onDone(); }, 0);
         return { stop() {}, update() {}, setVisibleRange() {}, notifyBars() {} };
       }
@@ -272,10 +411,13 @@
       drawings: true,
       volume: false, // légende "Volume 0.00" jamais utile ici (pas de vraie donnée de volume)
     });
-    chart.registerEngine('pine', new (remoteEngine(body.models))());
+    chart.registerEngine('pine', new (remoteEngine(body.models, scannerId, bars))());
+    const handles = [];
     for (let i = 0; i < body.models.length; i++) {
-      await chart.addIndicator(`//@version=5\n//idx:${i}\nindicator("remote-${i}")`);
+      handles.push(await chart.addIndicator(`//@version=5\n//idx:${i}\nindicator("remote-${i}")`));
     }
+    live = { chart, scannerId, bars, models: body.models, handles, addons: {} };
+    await applyAddons();
     // heure de Paris (DST géré automatiquement) : s'applique via applyConfig, pas via les options du constructeur
     try { chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES, timeScale: { timezone: 'Europe/Paris' } }); } catch (e) { console.warn('Scanner: couleurs de bougies non appliquees', e); }
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -376,5 +518,5 @@
     return chart;
   }
 
-  window.CHESTScannerChart = { render };
+  window.CHESTScannerChart = { render, visuals };
 })();

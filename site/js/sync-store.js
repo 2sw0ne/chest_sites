@@ -30,7 +30,7 @@
     'chest_accounts', 'chest_active_account', 'chest_account_families', 'chest_live_account',
     'chest_dashboard_simple_mode', 'chest_mfx_last_login', 'chest_myfxbook_daily_history',
     'chest_minical_range', 'chest_payout_sim_settings', 'chest_payout_view_mode',
-    'chest_backtests',
+    'chest_backtests', 'chest_chart_visuals',
     'chest_journal', 'chest_journal_tags', 'chest_journal_fav_pairs', 'chest_journal_accounts',
     'chest_journal_active_account', 'chest_journal_ext',
     'chest_berich_connection', 'chest_berich_taken', 'chest_berich_last_risk_choice', 'chest_berich_linked_account',

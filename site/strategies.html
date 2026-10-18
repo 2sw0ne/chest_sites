@@ -217,7 +217,7 @@
 <script src="js/theme.js?v=2"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=4"></script>
-<script src="js/sync-store.js?v=8"></script>
+<script src="js/sync-store.js?v=9"></script>
 <script>CHESTAccounts.guard();</script>
 <style>
   /* Opportunités : compartiments séparés par des barres, comme les autres champs de la barre (2026-10-06) */
@@ -310,6 +310,7 @@
 </style>
 <link rel="stylesheet" href="css/scanner-guide.css?v=4">
 <link rel="stylesheet" href="css/strength-board.css?v=3">
+<link rel="stylesheet" href="css/chart-visuals.css?v=4">
 <link rel="stylesheet" href="css/v2.css?v=11">
 </head>
 <body data-page="strategies" class="chest-root">
@@ -441,9 +442,16 @@
     </div>
         <section class="alr" id="alrPanel">
       <div class="alr-last" id="alrLast"></div>
+      <div class="alr-side">
       <button type="button" class="alr-bell" id="alrToggle" aria-label="Notifications" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
       </button>
+      <!-- Affichage du graphique (2026-10-18) : masquer des éléments du script, ajouter Ichimoku / stochastique -->
+      <button type="button" class="viz-tab" id="vizToggle" aria-expanded="false" aria-controls="vizPop" title="Affichage du graphique" aria-label="Affichage du graphique">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>
+      </button>
+      <div class="viz-pop" id="vizPop" role="dialog" aria-label="Affichage du graphique" hidden></div>
+      </div>
     </section>
   </div>
 
@@ -472,7 +480,7 @@
 <script src="js/scanner-store.js?v=27"></script>
 <script src="js/scanner-guides.js?v=5"></script>
 <script src="js/strength-board.js?v=2"></script>
-<script src="js/scanner-chart.js?v=26"></script>
+<script src="js/scanner-chart.js?v=32"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -604,9 +612,53 @@ CHESTTour.init([
       candles: scanner.candles,
       scannerId: scanner.id,
     });
+    if (!vizPop.hidden) renderViz();
     if (window.CHESTStrengthBoard) CHESTStrengthBoard.update({ scannerId: scanner.id, symbol: currentSymbol, tf: currentTimeframe });
     loadOpportunities();
   }
+
+  // ================= Affichage du graphique (2026-10-18) =================
+  // Interrupteurs lus et écrits par CHESTScannerChart.visuals : masquer un élément ne relance
+  // aucun calcul serveur, le graphique se redessine sur place.
+  const vizToggle = document.getElementById('vizToggle');
+  const vizPop = document.getElementById('vizPop');
+  function vizRow(item) {
+    return `<li><button type="button" class="viz-row" role="switch" aria-checked="${item.on}" data-viz="${item.key}">
+      <span class="viz-row__txt"><b>${item.label}</b>${item.hint ? `<small>${item.hint}</small>` : ''}</span>
+      <span class="viz-sw" aria-hidden="true"></span>
+    </button></li>`;
+  }
+  function renderViz() {
+    const scanner = activeScanner();
+    if (!scanner || !window.CHESTScannerChart || !CHESTScannerChart.visuals) return;
+    const o = CHESTScannerChart.visuals.options(scanner.id);
+    let n = 0;
+    vizPop.innerHTML = `
+      <div class="viz-pop__top"><h3>Affichage</h3><button type="button" class="viz-pop__reset" data-viz-reset>Réinitialiser</button></div>
+      ${o.elements.length ? `<p class="viz-pop__k">0${++n} — Éléments de ${scanner.name}</p><ul class="viz-pop__list">${o.elements.map(vizRow).join('')}</ul>` : ''}
+      ${o.addons.length ? `<p class="viz-pop__k">0${++n} — Ajouter au graphique</p><ul class="viz-pop__list">${o.addons.map(vizRow).join('')}</ul>` : ''}
+      <div class="viz-pop__foot"></div>`;
+  }
+  function setVizOpen(open) {
+    vizPop.hidden = !open;
+    vizToggle.setAttribute('aria-expanded', String(open));
+    document.documentElement.classList.toggle('viz-open', open);
+    if (open) renderViz();
+  }
+  vizToggle.addEventListener('click', (e) => { e.stopPropagation(); setVizOpen(vizPop.hidden); });
+  vizPop.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const scanner = activeScanner();
+    if (!scanner) return;
+    if (e.target.closest('[data-viz-reset]')) { CHESTScannerChart.visuals.reset(scanner.id); renderViz(); return; }
+    const row = e.target.closest('[data-viz]');
+    if (!row) return;
+    const on = row.getAttribute('aria-checked') !== 'true';
+    row.setAttribute('aria-checked', String(on));
+    CHESTScannerChart.visuals.set(scanner.id, row.dataset.viz, on);
+  });
+  document.addEventListener('click', () => { if (!vizPop.hidden) setVizOpen(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !vizPop.hidden) { setVizOpen(false); vizToggle.focus(); } });
 
   // Volet « Force du marché » du scanner Pulse (js/strength-board.js) : clic sur une paire = on l'ouvre
   if (window.CHESTStrengthBoard) {
