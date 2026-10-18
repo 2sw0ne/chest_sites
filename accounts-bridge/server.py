@@ -1060,7 +1060,7 @@ def _scanner_call(path, method="GET", body=None):
 
 @app.route("/scanners/board")
 def scanners_board():
-    # Tableau de force Wolfx (2026-10-18) : tendance EMA 500 et score Pulse par marché, calculés en
+    # Volet « Force du marché » de Pulse (2026-10-18) : tendance EMA 500 et score Pulse par marché, calculés en
     # fond par scanner-server avec son propre compte Twelve Data. Aucune bougie, seulement des scores.
     if not approved_user():
         return jsonify({"error": "Non connecté."}), 401

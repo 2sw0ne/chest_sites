@@ -166,7 +166,7 @@ async function getCandles(code, tf, source) {
   return out;
 }
 
-// ---------------- Tableau de force Wolfx (board.mjs) : 3e compte Twelve Data, budget à part ----------------
+// ---------------- Volet « Force du marché » de Pulse (board.mjs) : 3e compte Twelve Data, budget à part ----------------
 const BOARD = createBoard({
   file: join(dirname(SIGNALS_FILE), "board.json"),
   key: process.env.TWELVE_DATA_API_KEY_BOARD || "", // jamais de repli sur les autres clés : il ne doit rien leur prendre
@@ -395,7 +395,7 @@ createServer(async (req, res) => {
       });
     }
 
-    // Tableau de force Wolfx : tendance EMA 500 et score Pulse par marché et unité de temps
+    // Volet « Force du marché » de Pulse : tendance EMA 500 et score Pulse par marché et unité de temps
     if (url.pathname === "/board" && req.method === "GET") {
       if (!isInternal(req)) return send(401, { error: "non autorisé" });
       return send(200, BOARD.snapshot());

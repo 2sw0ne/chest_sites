@@ -217,7 +217,7 @@
 <script src="js/theme.js?v=2"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=4"></script>
-<script src="js/sync-store.js?v=7"></script>
+<script src="js/sync-store.js?v=8"></script>
 <script>CHESTAccounts.guard();</script>
 <style>
   /* Opportunités : compartiments séparés par des barres, comme les autres champs de la barre (2026-10-06) */
@@ -309,7 +309,7 @@
   .alr-dd__menu .alr__chip.is-on::after{ content:'✓'; color:#f9a45e; font-weight:800; }
 </style>
 <link rel="stylesheet" href="css/scanner-guide.css?v=4">
-<link rel="stylesheet" href="css/wolfx-board.css?v=2">
+<link rel="stylesheet" href="css/strength-board.css?v=3">
 <link rel="stylesheet" href="css/v2.css?v=11">
 </head>
 <body data-page="strategies" class="chest-root">
@@ -471,8 +471,8 @@
 <script src="js/config.local.js"></script>
 <script src="js/scanner-store.js?v=27"></script>
 <script src="js/scanner-guides.js?v=5"></script>
-<script src="js/wolfx-board.js?v=2"></script>
-<script src="js/scanner-chart.js?v=25"></script>
+<script src="js/strength-board.js?v=2"></script>
+<script src="js/scanner-chart.js?v=26"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -604,13 +604,13 @@ CHESTTour.init([
       candles: scanner.candles,
       scannerId: scanner.id,
     });
-    if (window.CHESTWolfxBoard) CHESTWolfxBoard.update({ scannerId: scanner.id, symbol: currentSymbol, tf: currentTimeframe });
+    if (window.CHESTStrengthBoard) CHESTStrengthBoard.update({ scannerId: scanner.id, symbol: currentSymbol, tf: currentTimeframe });
     loadOpportunities();
   }
 
-  // Tableau de force Wolfx (js/wolfx-board.js) : clic sur une paire = on l'ouvre sur le graphique
-  if (window.CHESTWolfxBoard) {
-    CHESTWolfxBoard.mount(document.getElementById('scnrPanelChart'), {
+  // Volet « Force du marché » du scanner Pulse (js/strength-board.js) : clic sur une paire = on l'ouvre
+  if (window.CHESTStrengthBoard) {
+    CHESTStrengthBoard.mount({
       api: () => scannersApi(),
       headers: () => authHeaders(),
       onPick(code) {

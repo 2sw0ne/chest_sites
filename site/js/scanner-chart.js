@@ -182,14 +182,13 @@
 
   // Vue par défaut : les dernières bougies (et non une plage de temps fixe). Sinon le week-end,
   // sans bougies, occupe une bonne partie de la fenêtre et le graphique paraît vide.
-  // room : part de l'écran laissée vide à droite des bougies (Wolfx : son tableau de force s'y pose).
-  function showLastBars(chart, bars, count, room) {
+  function showLastBars(chart, bars, count) {
     try {
       const core = chart.renderer && chart.renderer.renderer;
       if (!core || !core.setVisibleRange || bars.length === 0) return;
       const first = bars[Math.max(0, bars.length - count)];
       const last = bars[bars.length - 1];
-      const pad = Math.max(5 * 60 * 1000, room ? (last.time - first.time) * room / (1 - room) : 0);
+      const pad = 5 * 60 * 1000;
       core.setVisibleRange({ from: first.time, to: last.time + pad });
     } catch (e) {
       console.warn('Scanner: vue par défaut non appliquée', e);
@@ -280,7 +279,7 @@
     // heure de Paris (DST géré automatiquement) : s'applique via applyConfig, pas via les options du constructeur
     try { chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES, timeScale: { timezone: 'Europe/Paris' } }); } catch (e) { console.warn('Scanner: couleurs de bougies non appliquees', e); }
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    showLastBars(chart, bars, 150, scannerId === 'wolfx' ? 0.3 : 0);
+    showLastBars(chart, bars, 150);
     if (fixedScale) freezeScaleToCandles(chart, bars.slice(-150));
     return chart;
   }

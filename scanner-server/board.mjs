@@ -1,4 +1,4 @@
-// Tableau de force Wolfx (2026-10-18, demande utilisateur) : pour chaque marché suivi par Wolfx,
+// Volet « Force du marché » du scanner Pulse (2026-10-18, demande utilisateur) : pour chaque marché suivi,
 // la TENDANCE (côté de l'EMA 500 sur M5, M15, M30, H1, H4, D1) et la FORCE (le score de tendance du
 // scanner Pulse/QUANTUM : ±10 par EMA 3, 9, 21, 30, 45, 90, 135, 180, 360, 720 au-dessus/au-dessous
 // du prix, donc -100..100). Calculé ici en JS pur, pas en Pine : la formule est publique (dix EMA)

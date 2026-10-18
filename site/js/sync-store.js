@@ -68,6 +68,7 @@
     'chest_account_token', 'chest_account_user', 'chest_data_owner',
     'chest_nav_collapsed', 'chest_theme', 'chest_code_hash', 'chest_unlocked',
     'chest_cal_realmove_cache', 'chest_currency_strength_fxblue', 'chest_weekly_forecast_lock',
+    'chest_strength_board_open',
   ];
 
   function loadMap(key) {
