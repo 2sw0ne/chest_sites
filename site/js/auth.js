@@ -26,7 +26,7 @@
   /** Call at the top of every protected page. Redirects to the gate if not unlocked. */
   function guard() {
     if (!hasCode() || !isUnlocked()) {
-      window.location.replace('index.html');
+      window.location.replace('/connexion');
     }
   }
 

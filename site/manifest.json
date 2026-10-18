@@ -2,7 +2,7 @@
   "name": "CHEST",
   "short_name": "CHEST",
   "description": "Plateforme de trading personnelle — dashboard, backtesting, calendrier, stratégies.",
-  "start_url": "/app.html",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

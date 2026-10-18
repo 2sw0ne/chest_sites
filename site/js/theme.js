@@ -19,7 +19,8 @@
     if (AUTH_PAGES.includes(file)) {
       // Connexion/deconnexion/session expiree : jamais affichees DANS le shell,
       // on sort de l'iframe pour que la page occupe tout l'ecran.
-      try { window.top.location.replace(file + '.html' + location.search); } catch (e) { /* tant pis */ }
+      const route = { login: '/connexion', signup: '/inscription', index: '/connexion' }[file];
+      try { window.top.location.replace(route + location.search); } catch (e) { /* tant pis */ }
     } else {
       root.classList.add('is-embedded');
       // Prévient le shell dès qu'on quitte la page (lien, redirection...) :
@@ -28,10 +29,11 @@
         try { window.parent.postMessage({ type: 'chest:nav-start' }, '*'); } catch (e) { /* tant pis */ }
       });
     }
-  } else if (APP_PAGES.includes(file)) {
+  } else if (APP_PAGES.includes(file) && !document.documentElement.classList.contains('is-shell')) {
     // Page ouverte "a nu" (favori, ancien lien, rechargement) : on la remet
-    // dans le shell, en conservant ses parametres (?id=...).
-    window.location.replace('app.html#/' + file + location.search);
+    // dans le shell, en conservant ses parametres (?id=...). /dashboard sert app.html
+    // (vercel.json) : sans le test is-shell, le shell se redirigerait sur lui-même.
+    window.location.replace('/' + file + location.search);
   }
 
   function apply(theme) {

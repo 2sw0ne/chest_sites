@@ -7,13 +7,13 @@
 <link rel="icon" type="image/png" href="assets/logo-chest.png">
 <script src="js/config.js?v=3"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=4"></script>
+<script src="js/accounts-auth.js?v=5"></script>
 <script>
 // Porte d'entree du site - redirige selon l'etat de connexion reel
 // (CHESTAccounts), plus jamais vers l'ancien code d'acces partage : la
 // connexion par compte est desormais la porte d'entree par defaut (retour
 // direct utilisateur du 2026-09-14).
-window.location.replace(CHESTAccounts.isLoggedIn() ? 'app.html' : 'login.html');
+window.location.replace(CHESTAccounts.isLoggedIn() ? '/dashboard' : '/connexion');
 </script>
 </head>
 <body></body>

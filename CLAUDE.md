@@ -31,6 +31,15 @@ Le site se comporte comme **un seul produit** : `app.html` est le shell (sidebar
 - Volet rabattable : bosse SVG ouverte (sans `Z`) dont le trait ne suit que la courbe ; règles dans `chest-da.css` avec sélecteurs plus spécifiques que le patch. Ne pas re-fixer la taille du fond en 13×13 (la règle générique `.chest-sidebar__toggle svg` l'écrasait).
 - Logo BERICH : `assets/logo-berich.png` est un PNG détouré (vrai canal alpha), sans `mix-blend-mode`.
 
+## Adresses propres (2026-10-18, demande utilisateur : plus de « app.html# » ni de « .html » visibles)
+
+Domaine de production : **ch3st.app**. Adresses affichées : `/connexion` (pas connecté), `/welcome` (Welcome ouvert), `/dashboard`, `/journal?acc=…`, `/strategies?scanner=…` (une par page du shell), `/inscription` (signup.html).
+- **`site/vercel.json`** : redirections `/`, `/index.html`, `/login.html`, `/app.html` → `/connexion` et `/signup.html` → `/inscription` (307, la requête est conservée, le `#` aussi) ; réécritures `/connexion`, `/welcome` et `/<page du shell>` → `app.html`, `/inscription` → `signup.html`. **Pas de `cleanUrls`** : l'iframe continue de charger `dashboard.html` etc. (chemin réel, jamais réécrit). Une nouvelle page du shell s'ajoute AUSSI à la liste `:page(...)` de `vercel.json`.
+- **`_dev_server.py`** relit `vercel.json` au démarrage et applique les mêmes redirections/réécritures : redémarrer le serveur local après une modification de `vercel.json`.
+- **`js/shell.js`** : `routeFromUrl()` lit la page dans le chemin (`/journal`), sinon un ancien lien `app.html#/journal` (toujours accepté : favoris, anciennes notifications) ; `syncUrl()` écrit l'adresse et le titre d'onglet selon l'état : classe `is-loggedout` → `/connexion` (« Connexion — CHEST »), `is-welcome` → `/welcome` (« Welcome — CHEST »), sinon la page de l'iframe ; un `MutationObserver` sur les classes de `<html>` la recalcule à la connexion et à l'ouverture/fermeture du Welcome. `CHESTShell.go(page)` remplace les anciens `location.hash = '#/dashboard'` de `welcome.js`.
+- **`js/theme.js`** : une page ouverte à nu (`/dashboard.html`) part vers `/dashboard` ; le test `html.is-shell` évite qu'app.html, servi sur `/dashboard`, se redirige sur lui-même (boucle). Les pages d'auth ouvertes dans l'iframe sortent vers `/connexion` / `/inscription`.
+- Liens mis à jour : déconnexion et session expirée (`nav.js`, `accounts-auth.js`, `auth.js`) → `/connexion` ; `signup.html` ↔ `app.html` ; `manifest.json` `start_url` = `/dashboard` ; notifications (`sw.js`, `accounts-bridge`, `calendar-bridge`) → `/dashboard`, `/strategies?…`, `/journal`, `/calendar`, `/admin-members`.
+
 ## DA CHEST — référence pour TOUTE nouvelle fenêtre, modale, page ou composant
 
 Validée par l'utilisateur le 2026-09-20 (« vraiment super »). Tout ce qui est créé pour CHEST doit être fait dans ce style, sans qu'on ait à le redemander. Sources de vérité : `site/css/chest-da.css` (jetons `--chest-*` et composants), `site/css/patch-chest-da.css`, `site/css/calendar-da.css` (patron « sections numérotées »), `CHEST DESIGN/CHEST-DA.md`, maquette `CHEST App.dc.html`.

@@ -50,7 +50,7 @@ def notify(ntype: str, text: str) -> None:
     try:
         req = urllib.request.Request(
             ACCOUNTS_BRIDGE_URL.rstrip("/") + "/push/broadcast",
-            data=json.dumps({"type": ntype, "title": text, "body": "", "url": "calendar.html"}).encode("utf-8"),
+            data=json.dumps({"type": ntype, "title": text, "body": "", "url": "/calendar"}).encode("utf-8"),
             headers={"Content-Type": "application/json", "X-Internal-Secret": INTERNAL_PUSH_SECRET},
             method="POST",
         )

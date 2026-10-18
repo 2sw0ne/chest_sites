@@ -65,14 +65,14 @@ self.addEventListener('push', (event) => {
     body: info,
     icon: data.icon || 'assets/icon-192.png',
     badge: 'assets/icon-192.png',
-    data: { url: data.url || 'app.html' },
+    data: { url: data.url || '/dashboard' },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || 'app.html';
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/dashboard';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
       const existing = clientsArr.find((c) => c.url.includes(new URL(targetUrl, self.location.origin).pathname));

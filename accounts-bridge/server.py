@@ -440,7 +440,7 @@ def signup():
         # place : l'un ne remplace pas l'autre, l'admin peut ne pas avoir active les notifications.
         try:
             new_member_text = f"Nouveau membre : {first_name} {last_name} ({email})"
-            send_typed_push("new_member", "admin-members.html", lambda db, uid, p: new_member_text, admins_only=True)
+            send_typed_push("new_member", "/admin-members", lambda db, uid, p: new_member_text, admins_only=True)
         except Exception:
             pass  # jamais bloquer l'inscription pour un souci de notification
 
@@ -1168,7 +1168,7 @@ def alerts_dispatch():
         if not subs:
             continue
         res = _send_push_to_subscriptions(subs, name, body_text,
-                                          url=f"app.html#/strategies?scanner={scanner}&symbol={symbol}&tf={tf}&alert=1&side={side}",
+                                          url=f"/strategies?scanner={scanner}&symbol={symbol}&tf={tf}&alert=1&side={side}",
                                           icon=f"{SITE_URL}/{logo}")
         sent += res.get("sent", 0)
     return jsonify({"sent": sent})
@@ -1459,7 +1459,7 @@ def _send_push_to_subscriptions(subs, title, body_text, url=None, icon=None):
     que de re-essayer indefiniment dessus."""
     if not VAPID_PRIVATE_KEY:
         return {"sent": 0, "error": "VAPID_PRIVATE_KEY non configurée côté serveur."}
-    payload = json.dumps({"title": title, "body": body_text, "url": url or "app.html", "icon": icon})
+    payload = json.dumps({"title": title, "body": body_text, "url": url or "/dashboard", "icon": icon})
     sent, dead, last_error = 0, [], None
     for sub in subs:
         try:
@@ -1701,7 +1701,7 @@ def push_broadcast():
         return jsonify({"error": "Non autorisé."}), 401
     body = request.get_json(silent=True) or {}
     ntype = body.get("type")
-    url = body.get("url") or "app.html"
+    url = body.get("url") or "/dashboard"
     event = body.get("event") if isinstance(body.get("event"), dict) else None
     if ntype == "position_open" and event:
         return jsonify(send_typed_push(ntype, url, lambda db, uid, p: _render_position_open(db, uid, p, event)))
@@ -1817,7 +1817,7 @@ def _send_digest(ntype, period_key, label, start_iso, end_iso):
             continue
         for line in _render_digest(db, user_id, prefs, label, start_iso, end_iso, signals):
             subs = db.execute("SELECT * FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchall()
-            _send_push_to_subscriptions(subs, line, "", "journal.html")
+            _send_push_to_subscriptions(subs, line, "", "/journal")
     print(f"Compte rendu {period_key} envoyé.")
 
 
@@ -1857,7 +1857,7 @@ def push_send():
     body = request.get_json(silent=True) or {}
     title = (body.get("title") or "CHEST").strip()
     text = (body.get("body") or "").strip()
-    url = body.get("url") or "app.html"
+    url = body.get("url") or "/dashboard"
     target_user_id = body.get("userId") or admin["id"]
     result = send_push_to_user(target_user_id, title, text, url)
     return jsonify(result)

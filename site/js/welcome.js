@@ -1149,7 +1149,7 @@
     const brand = e.target.closest && e.target.closest('.chest-topbar .brand');
     if (!brand) return;
     e.preventDefault();
-    if (location.hash !== '#/dashboard') location.hash = '#/dashboard';
+    if (window.CHESTShell) CHESTShell.go('dashboard');
     show();
   });
 
@@ -1157,7 +1157,7 @@
   try { wanted = sessionStorage.getItem(FLAG) === '1'; } catch (e) {}
   const loggedOutAtBoot = html.classList.contains('is-loggedout');
   if (wanted) {
-    if (location.hash && location.hash !== '#/dashboard' && location.hash !== '#/') location.hash = '#/dashboard';
+    if (window.CHESTShell) CHESTShell.go('dashboard');
     show();
   } else if (loggedOutAtBoot) {
     // Connexion intégrée à app.html (2026-09-23, branche experiment/merge-login-welcome, demande

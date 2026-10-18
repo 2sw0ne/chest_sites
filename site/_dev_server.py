@@ -37,6 +37,50 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
         self.send_header("Expires", "0")
         super().end_headers()
 
+    # Adresses propres (2026-10-18) : mêmes redirections et réécritures que vercel.json, relues
+    # depuis ce fichier, pour que /connexion, /welcome, /dashboard... marchent aussi en local.
+    def _route(self):
+        path, _, query = self.path.partition("?")
+        for r in ROUTES["redirects"]:
+            if r[0].match(path):
+                self.send_response(307)
+                self.send_header("Location", r[1] + ("?" + query if query else ""))
+                self.end_headers()
+                return True
+        for r in ROUTES["rewrites"]:
+            if r[0].match(path):
+                self.path = r[1] + ("?" + query if query else "")
+                break
+        return False
+
+    def do_GET(self):
+        if not self._route():
+            super().do_GET()
+
+    def do_HEAD(self):
+        if not self._route():
+            super().do_HEAD()
+
+
+def load_routes(directory):
+    import json, os, re
+    out = {"redirects": [], "rewrites": []}
+    try:
+        with open(os.path.join(directory or ".", "vercel.json"), encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (OSError, ValueError):
+        return out
+    def pattern(src):
+        # "/:page(a|b)" -> ^/(a|b)$ ; le reste est littéral
+        return re.compile("^" + re.sub(r":\w+\(([^)]*)\)", r"(\1)", src) + "$")
+    for kind in ("redirects", "rewrites"):
+        for r in cfg.get(kind, []):
+            out[kind].append((pattern(r["source"]), r["destination"]))
+    return out
+
+
+ROUTES = {"redirects": [], "rewrites": []}
+
 
 if __name__ == "__main__":
     args = sys.argv[1:]
@@ -47,6 +91,7 @@ if __name__ == "__main__":
         del args[i:i + 2]
     port = int(args[0]) if args else 8934
 
+    ROUTES.update(load_routes(directory))
     handler = functools.partial(NoCacheHandler, directory=directory) if directory else NoCacheHandler
     server = ThreadingHTTPServer(("0.0.0.0", port), handler)
     print(f"Serveur sans cache sur http://localhost:{port} (Ctrl+C pour arreter)")

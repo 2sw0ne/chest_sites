@@ -161,7 +161,7 @@ window.CHESTAccounts = (() => {
   // depuis le 2026-09-14 - retour direct utilisateur.
   function guard() {
     if (!isLoggedIn()) {
-      window.location.replace('login.html');
+      window.location.replace('/connexion');
     }
   }
 
@@ -206,7 +206,7 @@ window.CHESTAccounts = (() => {
     const second = await checkMe(tokenNow);
     if (second === 401 || second === 403) {
       logout();
-      (window.top || window).location.href = 'login.html';
+      (window.top || window).location.href = '/connexion';
     }
   }
   verifySessionAlive();

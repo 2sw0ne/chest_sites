@@ -29,12 +29,18 @@
   };
   const DEFAULT_PAGE = 'dashboard';
   const AUTH_PAGES = ['login', 'signup', 'index'];
+  // Adresses propres (2026-10-18, demande utilisateur : « app.html# » remplacé par des noms lisibles,
+  // sans .html) : /connexion, /welcome, /dashboard, /journal?acc=… ; /inscription pour signup.html.
+  // Toutes servent app.html (vercel.json, et _dev_server.py en local). Les anciens liens
+  // app.html#/page restent acceptés au démarrage.
+  const AUTH_ROUTES = { login: '/connexion', signup: '/inscription', index: '/connexion' };
 
   const shell = document.getElementById('chestShell');
   const frame = document.getElementById('chestView');
   const crumbCat = document.getElementById('crumbCat');
   const crumbPage = document.getElementById('crumbPage');
   let currentKey = null; // "page?query" actuellement affiché
+  let requestedKey = null; // "page?query" demandé à l'iframe, pas encore chargé
 
   // "#/backtest-view?id=x" -> { name:'backtest-view', search:'?id=x', file:'backtest-view.html?id=x' }
   function parseHash() {
@@ -48,7 +54,33 @@
 
   function keyOf(name, search) { return name + (search || ''); }
 
+  // Page demandée par l'adresse : /journal?acc=x, sinon un ancien lien app.html#/journal?acc=x.
+  function routeFromUrl() {
+    const seg = decodeURIComponent(location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+    if (PAGES[seg]) return { name: seg, search: location.search, file: seg + '.html' + location.search };
+    if (location.hash.length > 2) return parseHash();
+    return { name: DEFAULT_PAGE, search: '', file: DEFAULT_PAGE + '.html' };
+  }
+
+  // L'adresse affichée suit l'état du shell : pas connecté = /connexion, Welcome ouvert = /welcome,
+  // sinon la page de l'iframe. Recalculée à chaque changement de classe de <html> (connexion,
+  // ouverture/fermeture du Welcome) et à chaque page chargée.
+  const STATE_ROUTES = [['is-loggedout', '/connexion', 'Connexion'], ['is-welcome', '/welcome', 'Welcome']];
+  function syncUrl() {
+    const cls = document.documentElement.classList;
+    const st = STATE_ROUTES.find(([c]) => cls.contains(c));
+    let url, title;
+    if (st) { url = st[1]; title = st[2] + ' — CHEST'; }
+    else if (currentKey) { url = '/' + currentKey; title = currentTitle; }
+    else return;
+    if (location.pathname + location.search + location.hash !== url) history.replaceState(null, '', url);
+    if (title) document.title = title;
+  }
+  let currentTitle = '';
+  new MutationObserver(syncUrl).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
   function navigate(file) {
+    requestedKey = file.replace(/\.html/, '');
     shell.classList.remove('is-done');
     shell.classList.add('is-navigating');
     try { frame.contentWindow.location.href = file; } catch (e) { frame.src = file; }
@@ -93,13 +125,14 @@
       return;
     }
 
-    if (AUTH_PAGES.includes(path)) { window.location.replace(path + '.html' + search); return; }
+    if (AUTH_PAGES.includes(path)) { window.location.replace(AUTH_ROUTES[path] + search); return; }
 
     const meta = Object.assign({}, PAGES[path] || { cat: 'CHEST', label: title || path });
     if (path === 'backtest-add' && /[?&]edit=/.test(search)) meta.label = 'Modifier le backtest';
     currentKey = keyOf(path, search);
-    history.replaceState(null, '', location.pathname + location.search + '#/' + path + search);
-    document.title = meta.label + ' — CHEST';
+    requestedKey = null;
+    currentTitle = meta.label + ' — CHEST';
+    syncUrl();
     crumbCat.textContent = meta.cat;
     crumbPage.textContent = meta.label;
 
@@ -139,10 +172,18 @@
   // vers le haut (theme.js, AUTH_PAGES) et écraserait toute la page — exactement ce qu'on veut éviter en
   // gardant la connexion intégrée à app.html. `window.CHESTShell.boot()` est appelé une fois connecté.
   function boot() {
-    const first = parseHash();
+    const first = routeFromUrl();
+    requestedKey = keyOf(first.name, first.search);
     shell.classList.add('is-navigating');
     frame.src = first.file;
   }
+  // Ouvre une page du shell si elle n'est pas déjà affichée ou demandée (ex. Welcome → dashboard).
+  function go(name, search) {
+    const k = keyOf(name, search || '');
+    if (k === currentKey || k === requestedKey || !PAGES[name]) return;
+    navigate(name + '.html' + (search || ''));
+  }
+  syncUrl();
   if (!window.CHESTAccounts || CHESTAccounts.isLoggedIn()) boot();
-  window.CHESTShell = { boot };
+  window.CHESTShell = { boot, go, routes: AUTH_ROUTES };
 })();

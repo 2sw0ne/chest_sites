@@ -95,7 +95,7 @@
         try { if (window.CHESTSync && CHESTSync.flushNow) await CHESTSync.flushNow(); } catch (e) { /* tant pis */ }
         if (window.CHESTAccounts) CHESTAccounts.logout();
         if (window.CHESTAuth) CHESTAuth.lock();
-        window.location.href = 'login.html';
+        window.location.href = '/connexion';
       });
     });
   });
