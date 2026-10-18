@@ -6,6 +6,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, dirname, normalize, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
+import { createBoard } from "./board.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8787);
@@ -164,6 +165,14 @@ async function getCandles(code, tf, source) {
   candleCache.set(key, out);
   return out;
 }
+
+// ---------------- Tableau de force Wolfx (board.mjs) : 3e compte Twelve Data, budget à part ----------------
+const BOARD = createBoard({
+  file: join(dirname(SIGNALS_FILE), "board.json"),
+  key: process.env.TWELVE_DATA_API_KEY_BOARD || "", // jamais de repli sur les autres clés : il ne doit rien leur prendre
+  budget: Number(process.env.SCANNER_DAILY_CREDIT_BUDGET_BOARD || 780),
+  isTradableBar,
+});
 
 // ---------------- Scripts ----------------
 function safePath(rel) {
@@ -382,7 +391,14 @@ createServer(async (req, res) => {
           view: { budget: DEFAULT_BUDGET.view, used: credits.used.view, remaining: creditsRemaining("view") },
           alarm: { budget: DEFAULT_BUDGET.alarm, used: credits.used.alarm, remaining: creditsRemaining("alarm") },
         },
+        board: BOARD.health(),
       });
+    }
+
+    // Tableau de force Wolfx : tendance EMA 500 et score Pulse par marché et unité de temps
+    if (url.pathname === "/board" && req.method === "GET") {
+      if (!isInternal(req)) return send(401, { error: "non autorisé" });
+      return send(200, BOARD.snapshot());
     }
 
     if (url.pathname === "/data" && req.method === "GET") {
