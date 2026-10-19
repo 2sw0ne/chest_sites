@@ -69,7 +69,7 @@
 <script src="js/accounts-auth.js?v=7"></script>
 <script src="js/sync-store.js?v=10"></script>
 <script src="js/pwa.js?v=3"></script>
-<link rel="stylesheet" href="css/v2.css?v=11">
+<link rel="stylesheet" href="css/v2.css?v=12">
 <!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
 <style>
   html.plan-no-school .chest-nav__item[data-page="school"]::after,
@@ -282,6 +282,8 @@
       <a href="#/calendar" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
       <a href="#/berich" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
       <a href="#/school" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
+      <div class="chest-nav__sep" data-admin-only hidden aria-hidden="true"></div>
+      <a href="#/admin-members" data-page="admin-members" class="chest-nav__item chest-nav__item--admin" data-admin-only hidden><span class="chest-nav__ic chest-ic-admin"></span><span class="chest-nav__item-label">Admin</span><span class="chest-nav__mark"></span></a>
     </nav>
     <div class="chest-sidebar__account">
       <div class="chest-sidebar__account-label">Compte</div>
@@ -309,7 +311,6 @@
         <b id="crumbPage">Dashboard</b>
       </div>
       <div class="chest-topbar__actions">
-        <a href="#/admin-members" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)" title="Gestion des membres">A</a>
         <!-- Cloche de notifications retiree (2026-10-11, retour utilisateur : "la cloche en haut...
              elle sert a rien") - window.CHESTNotifications (js/notifications-store.js) continue
              d'enregistrer les evenements (phase validee, retrait detecte...) pour qui voudrait les
@@ -317,6 +318,13 @@
         <a href="#/account" class="chest-topbar__btn" data-page="account" aria-label="Compte" title="Compte">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
         </a>
+        <!-- Case HQ : reservee a l'admin (data-admin-only), aurore pixelisee dessinee par js/hq.js.
+             Lien a brancher plus tard : renseigner data-url. -->
+        <button type="button" class="chest-hq" id="chestHq" data-admin-only hidden data-url="" aria-label="CHEST HQ" title="CHEST HQ">
+          <canvas class="chest-hq__sky" width="24" height="9" aria-hidden="true"></canvas>
+          <img class="chest-hq__logo" src="assets/logo-chest.png" alt="">
+          <svg class="chest-hq__txt" viewBox="0 0 11 7" aria-hidden="true"><path d="M0 0h1v7h-1zM4 0h1v7h-1zM1 3h3v1h-3zM7 0h3v1h-3zM6 1h1v5h-1zM10 1h1v4h-1zM8 4h1v1h-1zM9 5h1v1h-1zM7 6h2v1h-2zM10 6h1v1h-1z"/></svg>
+        </button>
       </div>
       <div class="chest-progress" id="viewProgress"></div>
     </header>
@@ -401,5 +409,6 @@
 })();
 </script>
 <script src="js/v2-shell.js?v=1"></script>
+<script src="js/hq.js?v=1"></script>
 </body>
 </html>
