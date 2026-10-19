@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="css/connect-da.css?v=1">
 <link rel="stylesheet" href="css/offres-da.css?v=1">
 <script src="js/theme.js?v=4"></script>
-<script src="js/config.js?v=4"></script>
+<script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=6"></script>
 <script>if (!CHESTAccounts.isLoggedIn()) window.location.replace('/connexion');</script>
@@ -125,6 +125,12 @@
   // ---------------- Offres ----------------
   // Prix TTC. En annuel, on affiche le prix ramené au mois, avec le prix mensuel barré.
   const PLANS = {
+    gratuit: {
+      name: 'Essai gratuit', free: true, monthOnly: true,
+      who: 'Pour découvrir CHEST sans engagement',
+      desc: '7 jours sur tout CHEST Essentiel, sans carte bancaire.',
+      feats: [[1, 'Tout CHEST Essentiel pendant 7 jours'], [1, 'Sans carte bancaire'], [1, 'Tes données restent sur ton appareil'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions']],
+    },
     essentiel: {
       name: 'CHEST Essentiel', month: 99.98, year: 1000,
       who: 'Pour trader en autonomie avec tous les outils',
@@ -156,7 +162,10 @@
   const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
 
   function priceHtml(p) {
-    const period = p.yearOnly ? 'year' : billing;
+    if (p.free) return '<div class="of-price"><span class="of-was" aria-hidden="true"></span><div class="cx-plan__price"><b>0</b><span>€</span></div><span class="of-bill">pendant 7 jours, puis tu choisis ton offre</span></div>';
+    // Allstar : annuel seulement, affiché à son vrai prix annuel.
+    if (p.yearOnly) return `<div class="of-price"><span class="of-was" aria-hidden="true"></span><div class="cx-plan__price"><b>${eur(p.year)}</b><span>€/an</span></div><span class="of-bill">engagement annuel</span></div>`;
+    const period = billing;
     const perMonth = period === 'year' ? p.year / 12 : p.month;
     const was = period === 'year' && p.month ? `<span class="of-was">${eur(p.month)} €</span>` : '<span class="of-was" aria-hidden="true"></span>';
     const bill = p.yearOnly ? 'par mois, engagement annuel' : period === 'year' ? 'par mois, facturé annuellement' : 'par mois, sans engagement';
@@ -165,12 +174,20 @@
 
   function renderPlans() {
     const paid = currentPaid();
-    $('#ofPlans').innerHTML = Object.entries(PLANS).map(([key, p]) => {
+    const a = acc();
+    // Mensuel : Essai gratuit, Essentiel, Premium. Annuel : Essentiel, Premium, Allstar.
+    const shown = Object.entries(PLANS).filter(([, p]) => (billing === 'month' ? !p.yearOnly : !p.monthOnly) && !(p.free && (paid || user().isAdmin)));
+    $('#ofPlans').innerHTML = shown.map(([key, p]) => {
       const isCur = paid === key;
       const isReco = !paid && reco === key;
       const period = p.yearOnly ? 'year' : billing;
       let cta, disabled = false;
-      if (p.soon) { cta = 'Bientôt disponible'; disabled = true; }
+      if (p.free) {
+        if (a.trial && a.active) cta = 'Continuer l\u2019essai';
+        else if (a.trialUsed) { cta = 'Essai déjà utilisé'; disabled = true; }
+        else cta = 'Commencer l\u2019essai';
+      }
+      else if (p.soon) { cta = 'Bientôt disponible'; disabled = true; }
       else if (isCur) cta = 'Aller sur CHEST';
       else if (paid) cta = 'Changer d’offre';
       else cta = 'Choisir ' + p.name.replace('CHEST ', '');
@@ -193,7 +210,8 @@
     const a = acc();
     const btn = $('#ofTrialBtn');
     const box = $('#ofTrial');
-    box.hidden = !!currentPaid() || !!user().isAdmin;
+    // En mensuel, l'essai est la carte de gauche : le bandeau ne sert qu'en annuel.
+    box.hidden = !!currentPaid() || !!user().isAdmin || billing === 'month';
     if (a.trial && a.active) {
       $('#ofTrialTitle').textContent = 'Ton essai gratuit est en cours';
       $('#ofTrialText').textContent = `Il se termine le ${fmtDate(a.endsAt)}. Tes données restent sur ton appareil jusqu'à ce que tu choisisses une offre ; elles te suivront ensuite.`;
@@ -228,6 +246,7 @@
     const b = e.target.closest('[data-plan]');
     if (!b || b.disabled) return;
     const plan = b.dataset.plan, period = b.dataset.period;
+    if (plan === 'gratuit') { trialFlow(b); return; }
     if (currentPaid() === plan) { goToApp(); return; }
     if (currentPaid()) {
       // Déjà abonné : changer d'offre passe par le portail Stripe (sinon deux abonnements en parallèle).
@@ -247,13 +266,15 @@
     billing = b.dataset.billing;
     renderPlans();
   });
-  $('#ofTrialBtn').addEventListener('click', async () => {
-    const btn = $('#ofTrialBtn');
-    if (btn.dataset.mode === 'go') { goToApp(); return; }
-    if (btn.dataset.mode !== 'start') return;
+  // Essai : carte de gauche (mensuel) ou bandeau (annuel), même logique.
+  async function trialFlow(btn) {
+    const a = acc();
+    if (a.trial && a.active) { goToApp(); return; }
+    if (a.trialUsed) return;
     btn.disabled = true; btn.textContent = 'Ouverture…';
-    try { await A.startTrial(); goToApp(); } catch (err) { notice(err.message); renderTrial(); }
-  });
+    try { await A.startTrial(); goToApp(); } catch (err) { notice(err.message); renderPlans(); }
+  }
+  $('#ofTrialBtn').addEventListener('click', () => trialFlow($('#ofTrialBtn')));
   $('#ofRedo').addEventListener('click', () => showQuiz(0));
 
   function notice(text, kind) {

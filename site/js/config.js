@@ -65,10 +65,10 @@ window.CHEST_CONFIG = {
   // Dans Stripe, chaque lien doit rediriger après paiement vers https://www.ch3st.app/offres?paiement=ok
   // Vide = bouton « Bientôt disponible ».
   stripeLinks: {
-    essentiel_month: '',
-    essentiel_year: '',
-    premium_month: '',
-    premium_year: '',
+    essentiel_month: 'https://buy.stripe.com/3cI3cu3N97kj07i42T2B200',
+    essentiel_year: 'https://buy.stripe.com/9B6dR8bfBdIH7zK9nd2B201',
+    premium_month: 'https://buy.stripe.com/7sY6oG4Rd0VV5rCgPF2B202',
+    premium_year: 'https://buy.stripe.com/00w9ASabx1ZZ2fq42T2B203',
     allstar_year: '',
   },
   // Portail client Stripe (changer de carte, d'offre, résilier) — lien « Customer portal » de Stripe.
