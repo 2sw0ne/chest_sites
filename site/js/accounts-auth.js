@@ -47,12 +47,50 @@ window.CHESTAccounts = (() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  async function signup({ firstName, lastName, email, password, inviteCode }) {
+  async function signup({ firstName, lastName, email, password }) {
     return jsonFetch('/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, email, password, inviteCode }),
+      body: JSON.stringify({ firstName, lastName, email, password }),
     });
+  }
+
+  // Membre stocké mis à jour là où il est rangé (localStorage ou sessionStorage).
+  function storeUser(user) {
+    try {
+      if (localStorage.getItem(USER_KEY)) localStorage.setItem(USER_KEY, JSON.stringify(user));
+      if (sessionStorage.getItem(USER_KEY)) sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+    } catch (e) { /* stockage indisponible */ }
+  }
+
+  // ---- Offres et accès (2026-10-18) : user.access = { plan, label, period, status, startedAt, endsAt,
+  // active, trial, trialUsed, school, berich, sync, paid } (calculé par le serveur, voir access_of). ----
+  function access() { const u = getUser(); return (u && u.access) || null; }
+  function hasAccess() { const u = getUser(); if (!u) return false; if (u.isAdmin) return true; const a = u.access; return !a || !!a.active; }
+  function hasFeature(f) { const u = getUser(); if (!u) return false; if (u.isAdmin) return true; const a = u.access; return !a || !!a[f]; }
+  async function refreshMe() {
+    const token = getToken();
+    if (!token) return null;
+    const user = await jsonFetch('/me', { headers: { Authorization: 'Bearer ' + token } });
+    storeUser(user);
+    return user;
+  }
+  async function startTrial() {
+    const user = await jsonFetch('/billing/trial', { method: 'POST', headers: authHeaders() });
+    storeUser(user);
+    return user;
+  }
+  async function saveOnboarding(answers, recommended) {
+    return jsonFetch('/me/onboarding', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify({ answers, recommended }) });
+  }
+  // Activité : une ligne « page vue » par chargement de page du shell (jamais de contenu).
+  function logActivity(page) {
+    const token = getToken();
+    if (!token || !/^[a-z-]{2,40}$/.test(page || '')) return;
+    fetch(`${apiBase()}/me/activity`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ page }) }).catch(() => {});
+  }
+  async function setMemberAccess(id, plan, days) {
+    return jsonFetch(`/members/${id}/access`, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify({ plan, days }) });
   }
 
   // Vidéo de présentation vue en entier (js/tuto.js) : le serveur le retient, et le membre stocké est mis à jour
@@ -61,10 +99,7 @@ window.CHESTAccounts = (() => {
     const token = getToken();
     if (!token) return null;
     const user = await jsonFetch('/me/tuto-seen', { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
-    try {
-      if (localStorage.getItem(USER_KEY)) localStorage.setItem(USER_KEY, JSON.stringify(user));
-      if (sessionStorage.getItem(USER_KEY)) sessionStorage.setItem(USER_KEY, JSON.stringify(user));
-    } catch (e) { /* stockage indisponible */ }
+    storeUser(user);
     return user;
   }
 
@@ -190,14 +225,26 @@ window.CHESTAccounts = (() => {
   async function checkMe(token) {
     try {
       const res = await fetch(`${apiBase()}/me`, { headers: { Authorization: 'Bearer ' + token } });
+      // Réponse valide : on garde le membre à jour (offre, fin d'accès…) au passage.
+      if (res.ok) { try { storeUser(await res.json()); } catch (e) { /* tant pis */ } }
       return res.status;
     } catch (e) { return null; } // serveur injoignable - jamais traite comme un 401
+  }
+  // Accès terminé (fin d'essai, résiliation, impayé) pendant qu'on utilise le site : direction les offres.
+  // Jamais depuis les pages qui servent justement à se connecter ou à choisir une offre.
+  function enforceAccess() {
+    let top = window;
+    try { top = window.top; } catch (e) { /* tant pis */ }
+    let path = '';
+    try { path = top.location.pathname; } catch (e) { return; }
+    if (/^\/(offres|inscription|connexion)?$/.test(path) || /(offres|signup|login|index)\.html$/.test(path)) return;
+    if (isLoggedIn() && !hasAccess()) top.location.href = '/offres?raison=fin';
   }
   async function verifySessionAlive() {
     const token = getToken();
     if (!token) return;
     const first = await checkMe(token);
-    if (first !== 401 && first !== 403) return;
+    if (first !== 401 && first !== 403) { enforceAccess(); return; }
     await wait(3000);
     // Le jeton a pu changer entre-temps (reconnexion manuelle pendant les 3s) - on revérifie avec
     // le jeton ACTUEL, pas celui capturé au premier essai.
@@ -212,5 +259,6 @@ window.CHESTAccounts = (() => {
   verifySessionAlive();
   setInterval(verifySessionAlive, 120000);
 
-  return { getToken, getUser, isLoggedIn, isAdmin, signup, markTutoSeen, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, deleteMember, guard };
+  return { getToken, getUser, isLoggedIn, isAdmin, signup, markTutoSeen, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, deleteMember, guard,
+    access, hasAccess, hasFeature, refreshMe, startTrial, saveOnboarding, logActivity, setMemberAccess, apiBase };
 })();

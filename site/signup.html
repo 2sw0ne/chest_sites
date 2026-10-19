@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"></noscript>
 <link rel="stylesheet" href="css/tokens.css?v=2">
-<script src="js/theme.js?v=3"></script>
+<script src="js/theme.js?v=4"></script>
 <style>
   /* ============================================================
      Création de compte — même traitement que login.html (2026-09-23) : fond = shader animé du hero
@@ -123,7 +123,7 @@
   <div class="auth-card">
     <img class="auth-card__logo" src="assets/logo-chest-hero.webp" alt="CHEST">
     <h1>Créer un compte</h1>
-    <p class="auth-card__lead">Ton compte est créé et actif immédiatement.</p>
+    <p class="auth-card__lead">Ensuite, 5 questions pour te conseiller la bonne offre. Essai gratuit de 7 jours.</p>
 
     <p class="signup-status" id="statusMsg"></p>
 
@@ -154,11 +154,6 @@
       </div>
       <p class="auth-hint">8 caractères minimum.</p>
 
-      <div class="auth-field">
-        <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="14" r="4"/><path d="M11 11.5 20 3M16.5 6.5 19 9M14.5 8.5 16.5 10.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <input id="inviteCode" type="text" placeholder="Mot de passe d'inscription" required autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="inviteHint">
-      </div>
-      <p class="auth-hint" id="inviteHint">Donné par l'administrateur de CHEST : sans lui, l'inscription n'est pas possible.</p>
 
       <p class="auth-error" id="formError"></p>
 
@@ -172,9 +167,9 @@
   </div>
 </div>
 
-<script src="js/config.js?v=3"></script>
+<script src="js/config.js?v=4"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=5"></script>
+<script src="js/accounts-auth.js?v=6"></script>
 <script src="js/hero-bg.js"></script>
 <script>
 (() => {
@@ -212,21 +207,21 @@
     const lastName = cap(document.getElementById('lastName').value);
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const inviteCode = document.getElementById('inviteCode').value.trim();
 
     submitBtn.disabled = true;
     submitLabel.textContent = 'Envoi…';
     try {
-      const result = await CHESTAccounts.signup({ firstName, lastName, email, password, inviteCode });
+      await CHESTAccounts.signup({ firstName, lastName, email, password });
+      // Compte créé : connexion directe, puis le questionnaire et les offres (/offres).
+      await CHESTAccounts.login({ email, password, remember: true });
+      try { sessionStorage.setItem('chest_welcome', '1'); } catch (err) { /* tant pis */ }
       form.hidden = true;
-      statusEl.textContent = result.message;
-      statusEl.classList.add('is-visible', result.status === 'approved' ? 'is-approved' : 'is-pending');
-      if (result.status === 'approved') {
-        setTimeout(() => {
-          stage.classList.add('is-leaving');
-          setTimeout(() => { window.location.href = '/connexion'; }, 1250);
-        }, 1400);
-      }
+      statusEl.textContent = 'Compte créé. Encore 5 questions pour te conseiller la bonne offre.';
+      statusEl.classList.add('is-visible', 'is-approved');
+      setTimeout(() => {
+        stage.classList.add('is-leaving');
+        setTimeout(() => { window.location.href = '/offres'; }, 900);
+      }, 900);
     } catch (err) {
       errEl.textContent = err.message;
       submitBtn.disabled = false;

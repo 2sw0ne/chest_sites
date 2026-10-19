@@ -307,8 +307,28 @@
     if (cr) { try { go(JSON.parse(cr.dataset.st)); } catch (err) { /* ignore */ } }
   });
 
+  // Offre Essentiel / essai (2026-10-18) : 2 cours écrits offerts, le reste de School est réservé à
+  // CHEST Premium. L'accueil mène directement aux cours écrits ; le reste s'affiche flouté sous un verrou.
+  const FREE_COURSES = ['base', 'psy'];
+  const schoolLimited = () => !!(window.CHESTPlan && !CHESTPlan.allowed('school'));
+  const freeState = (st) => st.v === 'written' || (st.v === 'course' && FREE_COURSES.includes(st.c));
   function render(st, opts) {
     opts = opts || {};
+    if (schoolLimited() && st.v === 'home') { st = { v: 'written' }; history.replaceState(st, '', stateUrl(st)); }
+    const zone = document.querySelector('main');
+    if (schoolLimited() && !freeState(st)) {
+      renderView(st, opts);
+      CHESTPlan.lock(zone, {
+        title: 'School complet fait partie de CHEST Premium',
+        text: 'Ton offre inclut 2 cours : Ressources Trading et Psychologie & Money Management. Premium ouvre tous les cours écrits, les vidéos et l’accompagnement.',
+        cta: 'Passer à Premium',
+      });
+      return;
+    }
+    if (window.CHESTPlan) CHESTPlan.unlock(zone);
+    renderView(st, opts);
+  }
+  function renderView(st, opts) {
     Object.keys(views).forEach((k) => { views[k].hidden = k !== st.v; });
     const home = { label: 'School', st: { v: 'home' } };
     if (st.v === 'home') { setCrumbs([]); renderHome(); }

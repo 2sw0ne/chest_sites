@@ -29,6 +29,8 @@ Sur Railway, c'est le CMD du Dockerfile qui lance cette commande.
 """
 
 import base64
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -307,6 +309,38 @@ def init_db():
                 PRIMARY KEY (vps_id, ts)
             )
         """)
+        # Offres et accès payant (2026-10-18). Les membres déjà inscrits au moment de la migration gardent
+        # un accès offert, sans date de fin (l'admin peut le changer membre par membre).
+        user_cols = [r[1] for r in db.execute("PRAGMA table_info(users)").fetchall()]
+        new_cols = [("plan", "TEXT"), ("plan_period", "TEXT"), ("plan_status", "TEXT"), ("plan_started_at", "TEXT"),
+                    ("plan_ends_at", "TEXT"), ("plan_amount", "INTEGER"), ("trial_used", "INTEGER NOT NULL DEFAULT 0"),
+                    ("stripe_customer_id", "TEXT"), ("stripe_subscription_id", "TEXT"), ("onboarding", "TEXT"),
+                    ("last_login_at", "TEXT"), ("last_seen_at", "TEXT")]
+        first_billing_migration = "plan" not in user_cols
+        for name, kind in new_cols:
+            if name not in user_cols:
+                db.execute(f"ALTER TABLE users ADD COLUMN {name} {kind}")
+        if first_billing_migration:
+            db.execute("UPDATE users SET plan = 'offert', plan_status = 'manual', plan_started_at = created_at")
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_activity (
+                user_id INTEGER NOT NULL,
+                day TEXT NOT NULL,
+                page TEXT NOT NULL,
+                views INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (user_id, day, page)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS billing_events (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER,
+                type TEXT NOT NULL,
+                amount INTEGER,
+                summary TEXT,
+                created_at TEXT NOT NULL
+            )
+        """)
         db.commit()
 
 
@@ -344,6 +378,7 @@ def user_public(row):
         "isAdmin": bool(row["is_admin"]),
         "createdAt": row["created_at"],
         "tutoSeen": bool(row["tuto_seen_at"]) if "tuto_seen_at" in row.keys() else True,
+        "access": access_of(row),
     }
 
 
@@ -406,11 +441,8 @@ def signup():
         return jsonify({"error": "Le mot de passe doit faire au moins 4 caractères."}), 400
 
     db = get_db()
-    has_users = db.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"] > 0
-    # Le tout premier compte (propriétaire du site) n'a pas besoin du mot de passe d'inscription.
-    invite = (body.get("inviteCode") or "").strip()
-    if has_users and invite.lower() != (signup_code() or "").strip().lower():
-        return jsonify({"error": "Mot de passe d'inscription incorrect. Demande-le à l'administrateur."}), 403
+    # Plus de mot de passe d'inscription (2026-10-18) : tout le monde peut créer un compte, l'accès à
+    # la plateforme passe ensuite par l'essai gratuit ou une offre (page /offres).
     with db_lock:
         existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         if existing:
@@ -426,10 +458,10 @@ def signup():
         is_admin = 1 if is_first_user else 0
 
         db.execute(
-            "INSERT INTO users (first_name, last_name, email, password_hash, status, is_admin, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users (first_name, last_name, email, password_hash, status, is_admin, created_at, plan) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (first_name, last_name, email, generate_password_hash(password), status, is_admin,
-             datetime.now(timezone.utc).isoformat()),
+             datetime.now(timezone.utc).isoformat(), "offert" if is_first_user else "none"),
         )
         db.commit()
 
@@ -477,6 +509,7 @@ def login():
             "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
             (token, row["id"], now.isoformat(), (now + timedelta(days=SESSION_LIFETIME_DAYS)).isoformat()),
         )
+        db.execute("UPDATE users SET last_login_at = ?, last_seen_at = ? WHERE id = ?", (now.isoformat(), now.isoformat(), row["id"]))
         db.commit()
 
     return jsonify({"token": token, "user": user_public(row)})
@@ -536,7 +569,7 @@ def list_members():
         return jsonify({"error": "Réservé aux administrateurs."}), 403
     db = get_db()
     rows = db.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
-    return jsonify({"members": [user_public(r) for r in rows]})
+    return jsonify({"members": [_admin_member(db, r) for r in rows]})
 
 
 # ---------------------------------------------------------------- Partage de backtests entre membres
@@ -698,6 +731,8 @@ def delete_member(member_id):
         db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
+        db.execute("DELETE FROM user_activity WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM billing_events WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM users WHERE id = ?", (member_id,))
         db.commit()
     return jsonify({"ok": True, "vpsDeleted": len(vps_ids)})
@@ -730,10 +765,334 @@ def reset_member_password(member_id):
     return jsonify({"newPassword": new_password})
 
 
+# ---------------------------------------------------------------- Offres, accès et paiements (2026-10-18)
+# Accès payant : chaque membre a une offre (plan) et une date de fin d'accès. Les paiements passent par
+# les liens de paiement Stripe (un par offre et par période, voir site/js/config.js : stripeLinks) ; le
+# lien porte « client_reference_id = u<id du membre> », et Stripe prévient ce serveur (POST
+# /billing/webhook, signé avec STRIPE_WEBHOOK_SECRET) à chaque paiement, renouvellement, échec ou
+# résiliation. Aucune clé secrète Stripe n'est nécessaire ici : seulement le secret de signature.
+# L'offre est déduite du MONTANT avant remise (amount_subtotal), jamais de ce que le navigateur annonce :
+# changer le lien à la main ne donne pas une offre plus chère.
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+PLANS = {
+    # features : school = School complet (sinon 2 cours), berich = BERICH, sync = données sur le serveur
+    "trial": {"label": "Essai gratuit (Essentiel)", "school": False, "berich": False, "sync": False},
+    "essentiel": {"label": "CHEST Essentiel", "school": False, "berich": False, "sync": True},
+    "premium": {"label": "CHEST Premium", "school": True, "berich": True, "sync": True},
+    "allstar": {"label": "CHEST Allstar", "school": True, "berich": True, "sync": True},
+    "offert": {"label": "Accès offert", "school": True, "berich": True, "sync": True},
+}
+PLAN_AMOUNTS = {  # centimes TTC avant remise -> (offre, période)
+    9998: ("essentiel", "month"), 100000: ("essentiel", "year"),
+    29998: ("premium", "month"), 300000: ("premium", "year"),
+    999998: ("allstar", "year"),
+}
+TRIAL_DAYS = 7
+
+
+def _iso(dt):
+    return dt.isoformat() if dt else None
+
+
+def _parse_iso(v):
+    try:
+        return datetime.fromisoformat(v) if v else None
+    except ValueError:
+        return None
+
+
+def _col(row, key, default=None):
+    return row[key] if key in row.keys() and row[key] is not None else default
+
+
+def access_of(row):
+    """Droits du membre : offre, période, dates, et ce qu'elle débloque. Un admin a toujours tout."""
+    plan = _col(row, "plan", "none")
+    ends = _parse_iso(_col(row, "plan_ends_at"))
+    now = datetime.now(timezone.utc)
+    if row["is_admin"]:
+        active, plan_key = True, "offert"
+    else:
+        plan_key = plan
+        active = plan in PLANS and (ends is None and plan == "offert" or (ends is not None and ends > now))
+    feats = PLANS.get(plan_key, {}) if active else {}
+    return {
+        "plan": plan,
+        "label": PLANS.get(plan, {}).get("label", "Aucune offre"),
+        "period": _col(row, "plan_period"),
+        "status": _col(row, "plan_status"),
+        "startedAt": _col(row, "plan_started_at"),
+        "endsAt": _col(row, "plan_ends_at"),
+        "active": bool(active),
+        "trial": plan == "trial",
+        "trialUsed": bool(_col(row, "trial_used", 0)),
+        "school": bool(feats.get("school")),
+        "berich": bool(feats.get("berich")),
+        "sync": bool(feats.get("sync")) if active else True,
+        "paid": bool(_col(row, "stripe_subscription_id")),
+    }
+
+
+def _set_plan(db, user_id, plan, period, status, started, ends, **extra):
+    fields = {"plan": plan, "plan_period": period, "plan_status": status,
+              "plan_started_at": _iso(started), "plan_ends_at": _iso(ends)}
+    fields.update(extra)
+    db.execute("UPDATE users SET " + ", ".join(f"{k} = ?" for k in fields) + " WHERE id = ?",
+               list(fields.values()) + [user_id])
+
+
+def _log_billing(db, event_id, user_id, etype, amount, summary):
+    db.execute("INSERT OR IGNORE INTO billing_events (id, user_id, type, amount, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+               (event_id, user_id, etype, amount, summary[:300], datetime.now(timezone.utc).isoformat()))
+
+
+@app.route("/billing/trial", methods=["POST"])
+def billing_trial():
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    acc = access_of(user)
+    if acc["active"] and not acc["trial"]:
+        return jsonify({"error": "Tu as déjà une offre active."}), 409
+    if acc["trialUsed"]:
+        return jsonify({"error": "L'essai gratuit a déjà été utilisé sur ce compte."}), 409
+    now = datetime.now(timezone.utc)
+    db = get_db()
+    with db_lock:
+        _set_plan(db, user["id"], "trial", None, "trialing", now, now + timedelta(days=TRIAL_DAYS), trial_used=1)
+        _log_billing(db, "trial-" + str(user["id"]), user["id"], "trial", 0, f"Essai gratuit de {TRIAL_DAYS} jours")
+        db.commit()
+    row = db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
+    return jsonify(user_public(row))
+
+
+@app.route("/me/onboarding", methods=["POST"])
+def me_onboarding():
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    answers = body.get("answers") if isinstance(body.get("answers"), dict) else {}
+    clean = {k: str(v)[:40] for k, v in answers.items() if isinstance(k, str) and len(k) <= 20}
+    clean["recommended"] = str(body.get("recommended") or "")[:20]
+    clean["at"] = datetime.now(timezone.utc).isoformat()
+    db = get_db()
+    with db_lock:
+        db.execute("UPDATE users SET onboarding = ? WHERE id = ?", (json.dumps(clean), user["id"]))
+        db.commit()
+    return jsonify({"ok": True})
+
+
+# Activité : seulement « quelle page, quel jour, combien de fois », pour savoir ce qui sert vraiment.
+# Rien sur le contenu (comptes, trades, montants) ni l'appareil.
+@app.route("/me/activity", methods=["POST"])
+def me_activity():
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    page = ((request.get_json(silent=True) or {}).get("page") or "").strip()
+    if not re.fullmatch(r"[a-z-]{2,40}", page):
+        return jsonify({"error": "Page invalide."}), 400
+    now = datetime.now(timezone.utc)
+    db = get_db()
+    with db_lock:
+        db.execute(
+            "INSERT INTO user_activity (user_id, day, page, views) VALUES (?, ?, ?, 1) "
+            "ON CONFLICT(user_id, day, page) DO UPDATE SET views = views + 1",
+            (user["id"], now.date().isoformat(), page))
+        db.execute("UPDATE users SET last_seen_at = ? WHERE id = ?", (now.isoformat(), user["id"]))
+        db.commit()
+    return jsonify({"ok": True})
+
+
+def _verify_stripe(payload, header):
+    if not STRIPE_WEBHOOK_SECRET or not header:
+        return False
+    parts = {}
+    for item in header.split(","):
+        k, _, v = item.partition("=")
+        parts.setdefault(k.strip(), []).append(v.strip())
+    ts = (parts.get("t") or [""])[0]
+    if not ts.isdigit() or abs(time.time() - int(ts)) > 600:
+        return False
+    expected = hmac.new(STRIPE_WEBHOOK_SECRET.encode(), (ts + ".").encode() + payload, hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected, sig) for sig in parts.get("v1", []))
+
+
+def _user_for_stripe(db, obj):
+    ref = str(obj.get("client_reference_id") or "")
+    m = re.fullmatch(r"u(\d+)", ref)
+    if m:
+        row = db.execute("SELECT * FROM users WHERE id = ?", (int(m.group(1)),)).fetchone()
+        if row:
+            return row
+    for key in ("subscription", "customer"):
+        val = obj.get(key)
+        if isinstance(val, dict):
+            val = val.get("id")
+        if val:
+            col = "stripe_subscription_id" if key == "subscription" else "stripe_customer_id"
+            row = db.execute(f"SELECT * FROM users WHERE {col} = ?", (val,)).fetchone()
+            if row:
+                return row
+    email = ((obj.get("customer_details") or {}).get("email") or obj.get("customer_email") or "").strip().lower()
+    if email:
+        return db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    return None
+
+
+def _ts(v):
+    try:
+        return datetime.fromtimestamp(int(v), timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def _sub_period_end(obj):
+    end = _ts(obj.get("current_period_end"))
+    if end:
+        return end
+    items = (obj.get("items") or {}).get("data") or []
+    ends = [_ts(i.get("current_period_end")) for i in items if i.get("current_period_end")]
+    return max(ends) if ends else None
+
+
+@app.route("/billing/webhook", methods=["POST"])
+def billing_webhook():
+    payload = request.get_data()
+    if not _verify_stripe(payload, request.headers.get("Stripe-Signature", "")):
+        return jsonify({"error": "Signature invalide."}), 400
+    try:
+        event = json.loads(payload.decode("utf-8"))
+    except ValueError:
+        return jsonify({"error": "JSON invalide."}), 400
+    etype = event.get("type", "")
+    obj = (event.get("data") or {}).get("object") or {}
+    db = get_db()
+    with db_lock:
+        if db.execute("SELECT 1 FROM billing_events WHERE id = ?", (event.get("id"),)).fetchone():
+            return jsonify({"ok": True, "duplicate": True})
+        user = _user_for_stripe(db, obj)
+        uid = user["id"] if user else None
+        now = datetime.now(timezone.utc)
+        summary = etype
+        if etype in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+            amount = obj.get("amount_subtotal") if obj.get("amount_subtotal") is not None else obj.get("amount_total")
+            plan = PLAN_AMOUNTS.get(int(amount or 0))
+            paid = obj.get("payment_status") in ("paid", "no_payment_required")
+            if user and plan and paid:
+                name, period = plan
+                ends = now + (timedelta(days=366) if period == "year" else timedelta(days=31))
+                sub = obj.get("subscription")
+                cust = obj.get("customer")
+                _set_plan(db, uid, name, period, "active", now, ends,
+                          stripe_subscription_id=(sub.get("id") if isinstance(sub, dict) else sub),
+                          stripe_customer_id=(cust.get("id") if isinstance(cust, dict) else cust),
+                          plan_amount=int(obj.get("amount_total") or 0))
+                summary = f"Paiement {PLANS[name]['label']} ({'annuel' if period == 'year' else 'mensuel'})"
+            elif user and not paid:
+                summary = "Paiement en attente de confirmation"
+            else:
+                summary = f"Paiement non rattaché (montant {amount}, membre {'trouvé' if user else 'inconnu'})"
+            _log_billing(db, event.get("id"), uid, etype, int(obj.get("amount_total") or 0), summary)
+        elif etype in ("invoice.paid", "invoice.payment_succeeded"):
+            lines = (obj.get("lines") or {}).get("data") or []
+            ends = [_ts((ln.get("period") or {}).get("end")) for ln in lines]
+            ends = [e for e in ends if e]
+            if user and ends:
+                db.execute("UPDATE users SET plan_ends_at = ?, plan_status = 'active' WHERE id = ?", (_iso(max(ends)), uid))
+            _log_billing(db, event.get("id"), uid, etype, int(obj.get("amount_paid") or 0), "Facture payée — accès prolongé")
+        elif etype == "invoice.payment_failed":
+            if user:
+                db.execute("UPDATE users SET plan_status = 'past_due' WHERE id = ?", (uid,))
+            _log_billing(db, event.get("id"), uid, etype, int(obj.get("amount_due") or 0), "Échec de paiement — Stripe va réessayer")
+        elif etype == "customer.subscription.updated":
+            if user:
+                end = _sub_period_end(obj)
+                status = "canceling" if obj.get("cancel_at_period_end") else ("active" if obj.get("status") in ("active", "trialing") else obj.get("status"))
+                if end:
+                    db.execute("UPDATE users SET plan_status = ?, plan_ends_at = ? WHERE id = ?", (status, _iso(end), uid))
+                else:
+                    db.execute("UPDATE users SET plan_status = ? WHERE id = ?", (status, uid))
+            _log_billing(db, event.get("id"), uid, etype, 0, "Résiliation programmée en fin de période" if obj.get("cancel_at_period_end") else "Abonnement mis à jour")
+        elif etype == "customer.subscription.deleted":
+            if user:
+                db.execute("UPDATE users SET plan_status = 'canceled', plan_ends_at = ? WHERE id = ?", (now.isoformat(), uid))
+            _log_billing(db, event.get("id"), uid, etype, 0, "Abonnement terminé — accès coupé")
+        else:
+            _log_billing(db, event.get("id"), uid, etype, 0, etype)
+        db.commit()
+    return jsonify({"ok": True})
+
+
+def _admin_member(db, row):
+    out = user_public(row)
+    since = (datetime.now(timezone.utc) - timedelta(days=30)).date().isoformat()
+    acts = db.execute("SELECT day, page, views FROM user_activity WHERE user_id = ? AND day >= ?", (row["id"], since)).fetchall()
+    pages = {}
+    for a in acts:
+        pages[a["page"]] = pages.get(a["page"], 0) + a["views"]
+    out["activity"] = {
+        "days30": len({a["day"] for a in acts}),
+        "views30": sum(a["views"] for a in acts),
+        "top": sorted(([p, v] for p, v in pages.items()), key=lambda x: -x[1])[:5],
+    }
+    out["lastLoginAt"] = _col(row, "last_login_at")
+    out["lastSeenAt"] = _col(row, "last_seen_at")
+    try:
+        out["onboarding"] = json.loads(_col(row, "onboarding") or "null")
+    except ValueError:
+        out["onboarding"] = None
+    out["billing"] = [dict(r) for r in db.execute(
+        "SELECT type, amount, summary, created_at AS at FROM billing_events WHERE user_id = ? ORDER BY created_at DESC LIMIT 6",
+        (row["id"],)).fetchall()]
+    out["amount"] = _col(row, "plan_amount")
+    return out
+
+
+@app.route("/members/<int:member_id>/access", methods=["POST"])
+def member_access(member_id):
+    """Offrir / changer l'accès d'un membre à la main (proches, geste commercial, correction)."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    body = request.get_json(silent=True) or {}
+    plan = body.get("plan")
+    days = body.get("days")
+    if plan not in ("offert", "essentiel", "premium", "none"):
+        return jsonify({"error": "Offre inconnue."}), 400
+    db = get_db()
+    if not db.execute("SELECT 1 FROM users WHERE id = ?", (member_id,)).fetchone():
+        return jsonify({"error": "Compte introuvable."}), 404
+    now = datetime.now(timezone.utc)
+    ends = None
+    if days not in (None, "", 0):
+        try:
+            ends = now + timedelta(days=max(1, min(3660, int(days))))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Durée invalide."}), 400
+    elif plan != "offert" and plan != "none":
+        return jsonify({"error": "Indique une durée pour cette offre."}), 400
+    with db_lock:
+        if plan == "none":
+            _set_plan(db, member_id, "none", None, "manual", None, None)
+        else:
+            _set_plan(db, member_id, plan, None, "manual", now, ends)
+        _log_billing(db, f"manual-{member_id}-{int(time.time())}", member_id, "manual", 0,
+                     f"Accès modifié par l'admin : {PLANS.get(plan, {}).get('label', 'aucun accès')}" + (f" jusqu'au {ends.date().isoformat()}" if ends else ""))
+        db.commit()
+    return jsonify(_admin_member(db, db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()))
+
+
 # ---------------------------------------------------------------- School
 def approved_user():
+    # Compte approuvé ET accès en cours (essai, offre payée ou offerte). Sans accès, les données de la
+    # plateforme (scanners, School, synchro, alertes…) sont refusées comme si on n'était pas connecté ;
+    # /me, /billing/* et /me/* passent par current_user() et restent ouverts pour choisir une offre.
     u = current_user()
-    return u if u and u["status"] == "approved" else None
+    if not u or u["status"] != "approved":
+        return None
+    return u if access_of(u)["active"] else None
 
 
 def entry_public(row):
@@ -766,8 +1125,11 @@ def delete_file(info):
 
 @app.route("/school")
 def school_list():
-    if not approved_user():
+    user = approved_user()
+    if not user:
         return jsonify({"error": "Non connecté."}), 401
+    if not access_of(user)["school"]:
+        return jsonify({"entries": [], "seeded": True, "locked": True})
     db = get_db()
     rows = db.execute("SELECT * FROM school_entries ORDER BY created_at DESC").fetchall()
     seeded = db.execute("SELECT value FROM school_meta WHERE key = 'seeded'").fetchone()
@@ -1384,6 +1746,8 @@ def sync_get():
     user = approved_user()
     if not user:
         return jsonify({"error": "Non connecté."}), 401
+    if not access_of(user)["sync"]:
+        return jsonify({"data": {}, "local": True})
     db = get_db()
     rows = db.execute("SELECT key, value FROM user_data WHERE user_id = ?", (user["id"],)).fetchall()
     return jsonify({"data": {r["key"]: r["value"] for r in rows}})
@@ -1394,6 +1758,8 @@ def sync_post():
     user = approved_user()
     if not user:
         return jsonify({"error": "Non connecté."}), 401
+    if not access_of(user)["sync"]:
+        return jsonify({"error": "Pendant l'essai, tes données restent sur ton appareil.", "local": True}), 403
     body = request.get_json(silent=True) or {}
     data = body.get("data")
     if not isinstance(data, dict):

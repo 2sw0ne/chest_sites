@@ -10,7 +10,7 @@
   const file = (location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '');
   const APP_PAGES = ['dashboard', 'backtesting', 'journal', 'strategies', 'calendar', 'berich', 'school', 'account',
     'admin-members', 'backtest-add', 'backtest-view', 'strategy-example', 'vps-guide', 'connect'];
-  const AUTH_PAGES = ['login', 'signup', 'index'];
+  const AUTH_PAGES = ['login', 'signup', 'index', 'offres'];
   let framed = false;
   try { framed = window.self !== window.top; } catch (e) { framed = true; }
 
@@ -19,7 +19,7 @@
     if (AUTH_PAGES.includes(file)) {
       // Connexion/deconnexion/session expiree : jamais affichees DANS le shell,
       // on sort de l'iframe pour que la page occupe tout l'ecran.
-      const route = { login: '/connexion', signup: '/inscription', index: '/connexion' }[file];
+      const route = { login: '/connexion', signup: '/inscription', index: '/connexion', offres: '/offres' }[file];
       try { window.top.location.replace(route + location.search); } catch (e) { /* tant pis */ }
     } else {
       root.classList.add('is-embedded');

@@ -28,12 +28,12 @@
     'connect':          { cat: 'Réglages',  label: 'Connecter un compte', nav: 'dashboard' },
   };
   const DEFAULT_PAGE = 'dashboard';
-  const AUTH_PAGES = ['login', 'signup', 'index'];
+  const AUTH_PAGES = ['login', 'signup', 'index', 'offres'];
   // Adresses propres (2026-10-18, demande utilisateur : « app.html# » remplacé par des noms lisibles,
   // sans .html) : /connexion, /welcome, /dashboard, /journal?acc=… ; /inscription pour signup.html.
   // Toutes servent app.html (vercel.json, et _dev_server.py en local). Les anciens liens
   // app.html#/page restent acceptés au démarrage.
-  const AUTH_ROUTES = { login: '/connexion', signup: '/inscription', index: '/connexion' };
+  const AUTH_ROUTES = { login: '/connexion', signup: '/inscription', index: '/connexion', offres: '/offres' };
 
   const shell = document.getElementById('chestShell');
   const frame = document.getElementById('chestView');
@@ -131,6 +131,8 @@
     if (path === 'backtest-add' && /[?&]edit=/.test(search)) meta.label = 'Modifier le backtest';
     currentKey = keyOf(path, search);
     requestedKey = null;
+    if (window.CHESTAccounts && CHESTAccounts.logActivity) CHESTAccounts.logActivity(path);
+    planClasses();
     currentTitle = meta.label + ' — CHEST';
     syncUrl();
     crumbCat.textContent = meta.cat;
@@ -171,7 +173,18 @@
   // avant la connexion ferait sa propre garde rediriger login.html DANS l'iframe, qui en sortirait alors
   // vers le haut (theme.js, AUTH_PAGES) et écraserait toute la page — exactement ce qu'on veut éviter en
   // gardant la connexion intégrée à app.html. `window.CHESTShell.boot()` est appelé une fois connecté.
+  // Offres (2026-10-18) : sans accès en cours (pas d'essai ni d'offre, ou accès terminé), le shell ne
+  // s'ouvre pas, on part choisir une offre. Les entrées School / BERICH portent un cadenas quand l'offre
+  // ne les inclut pas (classes plan-no-school / plan-no-berich sur <html>).
+  function planClasses() {
+    const A = window.CHESTAccounts;
+    if (!A || !A.hasFeature) return;
+    document.documentElement.classList.toggle('plan-no-school', !A.hasFeature('school'));
+    document.documentElement.classList.toggle('plan-no-berich', !A.hasFeature('berich'));
+  }
   function boot() {
+    if (window.CHESTAccounts && CHESTAccounts.hasAccess && !CHESTAccounts.hasAccess()) { window.location.replace('/offres'); return; }
+    planClasses();
     const first = routeFromUrl();
     requestedKey = keyOf(first.name, first.search);
     shell.classList.add('is-navigating');

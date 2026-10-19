@@ -198,6 +198,7 @@
   .settings-group{ padding:28px 0 4px; font-size:10px; font-weight:600; letter-spacing:.22em; text-transform:uppercase;
     background:var(--chest-grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; width:max-content; }
   .settings-group[hidden]{ display:none; }
+  #planManageBtn[hidden]{ display:none; }
   .settings-list > .settings-group:first-child{ padding-top:14px; }
   .settings-row{ border-bottom:1px solid rgba(255,255,255,.055) !important; }
   .settings-row:has(+ .settings-group), .settings-row:last-child{ border-bottom:none !important; }
@@ -223,12 +224,12 @@
   .chest-root .acch__facts{ margin-top:30px; }
   .chest-root .acch__sub{ max-width:520px; margin:26px auto 0; font-size:13px; line-height:1.6; color:var(--chest-ink-3); }
 </style>
-<script src="js/theme.js?v=3"></script>
-<script src="js/config.js?v=3"></script>
+<script src="js/theme.js?v=4"></script>
+<script src="js/config.js?v=4"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
-<script src="js/accounts-auth.js?v=5"></script>
-<script src="js/sync-store.js?v=9"></script>
+<script src="js/accounts-auth.js?v=6"></script>
+<script src="js/sync-store.js?v=10"></script>
 <script src="js/pwa.js?v=3"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=11">
@@ -335,6 +336,21 @@
 
   <div class="chest-step" style="padding:34px 34px 0">02 — Réglages</div>
   <div class="settings-list" style="margin-top:4px">
+    <!-- Offre et abonnement (2026-10-18) -->
+    <div class="settings-group">Abonnement</div>
+    <div class="settings-row">
+      <div class="settings-row__info">
+        <div class="settings-row__text">
+          <p class="settings-row__title" id="planRowTitle">Ton offre</p>
+          <p class="settings-row__value" id="planRowValue">—</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap">
+        <a class="chest-btn-2" id="planManageBtn" href="#" target="_top" style="text-decoration:none" hidden>Gérer mon abonnement</a>
+        <a class="chest-btn-2" id="planOffersBtn" href="/offres" target="_top" style="text-decoration:none">Voir les offres</a>
+      </div>
+    </div>
+
     <div class="settings-group">Affichage</div>
     <div class="settings-row">
       <div class="settings-row__info">
@@ -1433,5 +1449,33 @@ CHESTTour.init([
 })();
 </script>
 <script src="js/v2.js?v=3"></script>
+<script>
+// Offre et abonnement (2026-10-18) : rappel de l'offre, de sa fin, et accès au portail Stripe.
+(() => {
+  const A = window.CHESTAccounts;
+  const u = A && A.getUser && A.getUser();
+  if (!u) return;
+  const a = u.access || {};
+  const date = (iso) => { try { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
+  const title = document.getElementById('planRowTitle');
+  const value = document.getElementById('planRowValue');
+  const manage = document.getElementById('planManageBtn');
+  const offers = document.getElementById('planOffersBtn');
+  if (u.isAdmin) { title.textContent = 'Accès administrateur'; value.innerHTML = 'Tout CHEST, sans abonnement.'; offers.textContent = 'Voir la page des offres'; return; }
+  title.textContent = a.label || 'Aucune offre';
+  if (a.trial) value.innerHTML = `Essai gratuit jusqu'au <b>${date(a.endsAt)}</b>. Tes données restent sur cet appareil jusqu'à ce que tu choisisses une offre.`;
+  else if (a.plan === 'offert') value.innerHTML = a.endsAt ? `Accès offert jusqu'au <b>${date(a.endsAt)}</b>.` : 'Accès offert, sans limite de durée.';
+  else if (a.active) {
+    const per = a.period === 'year' ? 'annuel' : a.period === 'month' ? 'mensuel' : '';
+    value.innerHTML = a.status === 'canceling'
+      ? `Abonnement ${per} résilié : il reste actif jusqu'au <b>${date(a.endsAt)}</b>.`
+      : `Abonnement ${per}, prochain renouvellement le <b>${date(a.endsAt)}</b>.`;
+  } else value.textContent = 'Pas d’accès en cours.';
+  const portal = (window.CHEST_CONFIG || {}).stripePortal;
+  if (a.paid && portal) { manage.href = portal; manage.hidden = false; offers.textContent = 'Comparer les offres'; }
+  else if (a.active && !a.trial) offers.textContent = 'Comparer les offres';
+  else offers.textContent = 'Choisir une offre';
+})();
+</script>
 </body>
 </html>

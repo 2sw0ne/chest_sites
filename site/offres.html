@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offres — CHEST</title>
+<link rel="icon" type="image/png" href="assets/logo-chest.png">
+<style>html,body{background:#050505}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"></noscript>
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/chest-da.css?v=18">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
+<link rel="stylesheet" href="css/connect-da.css?v=1">
+<link rel="stylesheet" href="css/offres-da.css?v=1">
+<script src="js/theme.js?v=4"></script>
+<script src="js/config.js?v=4"></script>
+<script src="js/config.local.js"></script>
+<script src="js/accounts-auth.js?v=6"></script>
+<script>if (!CHESTAccounts.isLoggedIn()) window.location.replace('/connexion');</script>
+</head>
+<!--
+  Offres (2026-10-18) : après l'inscription (ou quand l'accès est terminé), on arrive ici.
+  01 questionnaire de 5 questions → 02 offre conseillée + toutes les offres (mensuel / annuel, prix
+  annuel affiché par mois avec le prix mensuel barré) + essai gratuit de 7 jours → paiement par lien
+  Stripe → 03 attente de la validation (le serveur est prévenu par Stripe) → Welcome.
+-->
+<body class="chest-root of-body">
+
+<header class="of-top">
+  <a class="of-brand" href="/connexion"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+  <div class="of-top__right">
+    <span class="of-top__who">Connecté en tant que <b id="ofWho">—</b></span>
+    <button type="button" class="of-logout" id="ofLogout">Se déconnecter</button>
+  </div>
+</header>
+
+<main class="cx" id="ofMain">
+  <div class="cx-callout of-notice" id="ofNotice" role="status" hidden></div>
+
+  <!-- 01 — Questionnaire -->
+  <section class="of-section" id="ofQuiz" hidden>
+    <div class="cx-stage">
+      <div class="cx-ghost" aria-hidden="true">Profil</div>
+      <div class="cx-glow" aria-hidden="true"></div>
+      <span class="cx-kicker">Bienvenue sur CHEST</span>
+      <h1 class="cx-h1"><span>Trouvons l'offre qui te correspond.</span></h1>
+      <p class="cx-sub">Cinq questions, trente secondes. On te conseille une offre selon ton niveau et ce que tu cherches ; tu restes libre de choisir.</p>
+    </div>
+    <section class="cx-flow" aria-live="polite">
+      <aside class="cx-rail">
+        <div class="cx-rail__plan"><div><b>Ton profil</b><small>5 questions</small></div></div>
+        <ol class="cx-steps" id="ofSteps"></ol>
+      </aside>
+      <div class="cx-panel">
+        <span class="cx-panel__num" id="ofQNum"></span>
+        <h2 id="ofQTitle"></h2>
+        <p class="cx-panel__lead" id="ofQLead"></p>
+        <div class="cx-panel__body" id="ofQBody"></div>
+        <div class="cx-actions">
+          <button type="button" class="cx-btn-2" id="ofBack">← Retour</button>
+          <div class="cx-actions__right"><button type="button" class="cx-btn-2" id="ofSkip">Voir directement les offres</button></div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- 02 — Offres -->
+  <section class="of-section" id="ofOffers" hidden>
+    <div class="cx-stage">
+      <div class="cx-ghost" aria-hidden="true">Offres</div>
+      <div class="cx-glow" aria-hidden="true"></div>
+      <span class="cx-kicker">Ton accès CHEST</span>
+      <h1 class="cx-h1"><span>Choisis comment tu veux avancer.</span></h1>
+      <p class="cx-sub">Une offre, tout l'outil. Tu peux changer ou arrêter quand tu veux depuis ton compte.</p>
+      <div class="of-billing">
+        <div class="cx-seg" role="group" aria-label="Facturation" id="ofBilling">
+          <button type="button" data-billing="month" aria-pressed="false">Mensuel</button>
+          <button type="button" data-billing="year" aria-pressed="true">Annuel<span class="of-save">2 mois offerts</span></button>
+        </div>
+      </div>
+    </div>
+    <p class="of-reco" id="ofReco" hidden></p>
+    <div class="cx-plans" id="ofPlans"></div>
+
+    <div class="of-trial" id="ofTrial">
+      <span class="of-trial__ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>
+      <div class="of-trial__txt"><b id="ofTrialTitle">Essai gratuit · 7 jours</b><span id="ofTrialText">Tout CHEST Essentiel, sans carte bancaire. Pendant l'essai, tes données restent sur ton appareil (dans ton navigateur), elles ne passent pas par nos serveurs.</span></div>
+      <button type="button" class="cx-btn" id="ofTrialBtn">Commencer l'essai</button>
+    </div>
+    <p class="of-fine" id="ofFine">Prix TTC. Paiement sécurisé par Stripe : carte, Apple Pay, Google Pay. Abonnement sans engagement au-delà de la période choisie, résiliable depuis ton compte.</p>
+    <div class="of-redo"><button type="button" class="cx-link" id="ofRedo">Refaire le questionnaire</button></div>
+  </section>
+
+  <!-- 03 — Validation du paiement -->
+  <section class="of-section of-wait" id="ofWait" hidden>
+    <div class="cx-live" id="ofLive">
+      <div class="cx-live__orb"><i></i></div>
+      <div>
+        <h3 id="ofWaitTitle">On valide ton paiement…</h3>
+        <p id="ofWaitText">Stripe confirme la transaction. Ça prend en général quelques secondes, garde cette page ouverte.</p>
+      </div>
+    </div>
+    <div class="of-wait__actions" id="ofWaitActions" hidden>
+      <button type="button" class="cx-btn" id="ofWaitRetry">Vérifier à nouveau</button>
+      <button type="button" class="cx-btn-2" id="ofWaitBack">Retour aux offres</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const A = window.CHESTAccounts;
+  const cfg = window.CHEST_CONFIG || {};
+  const $ = (id) => document.getElementById(id.replace(/^#/, ''));
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const eur = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const CHECK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"/></svg>';
+  const DASH = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h6"/></svg>';
+  const ONB_KEY = 'chest_onboarding';
+  const query = new URLSearchParams(location.search);
+
+  // ---------------- Offres ----------------
+  // Prix TTC. En annuel, on affiche le prix ramené au mois, avec le prix mensuel barré.
+  const PLANS = {
+    essentiel: {
+      name: 'CHEST Essentiel', month: 99.98, year: 1000,
+      who: 'Pour trader en autonomie avec tous les outils',
+      desc: 'Toute la plateforme pour analyser, tester et suivre tes trades.',
+      feats: [[1, 'Tous les scanners et leurs alertes'], [1, 'Backtesting et rapports complets'], [1, 'Journal de trading'], [1, 'Dashboard et comptes reliés'], [1, 'Calendrier économique'], [1, '2 cours School offerts'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions'], [0, 'Accompagnement personnalisé']],
+    },
+    premium: {
+      name: 'CHEST Premium', month: 299.98, year: 3000,
+      who: 'Pour progresser vite, accompagné',
+      desc: 'Tout CHEST, la formation complète et un suivi pour atteindre tes objectifs.',
+      feats: [[1, 'Tout CHEST Essentiel'], [1, 'School complet : cours écrits et vidéo'], [1, 'BERICH et suivi des positions'], [1, 'Accompagnement personnalisé vers tes objectifs']],
+    },
+    allstar: {
+      name: 'CHEST Allstar', month: null, year: 9999.98, yearOnly: true, soon: true,
+      who: 'Pour déléguer et automatiser',
+      desc: 'Tout CHEST Premium, avec l’automatisation complète de ton trading.',
+      feats: [[1, 'Tout CHEST Premium'], [1, 'Automatisation complète'], [1, '×2 garanti en 1 an sur ton capital de départ']],
+    },
+  };
+  let billing = 'year';
+  let reco = null;
+  let answers = null;
+  try { const saved = JSON.parse(localStorage.getItem(ONB_KEY) || 'null'); if (saved && saved.answers) { answers = saved.answers; reco = saved.reco; } } catch (e) { /* rien */ }
+
+  const user = () => A.getUser() || {};
+  const acc = () => user().access || {};
+  const currentPaid = () => { const a = acc(); return a.active && ['essentiel', 'premium', 'allstar'].includes(a.plan) ? a.plan : null; };
+  const linkFor = (plan, period) => ((cfg.stripeLinks || {})[plan + '_' + period] || '').trim();
+  const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
+
+  function priceHtml(p) {
+    const period = p.yearOnly ? 'year' : billing;
+    const perMonth = period === 'year' ? p.year / 12 : p.month;
+    const was = period === 'year' && p.month ? `<span class="of-was">${eur(p.month)} €</span>` : '<span class="of-was" aria-hidden="true"></span>';
+    const bill = p.yearOnly ? 'par mois, engagement annuel' : period === 'year' ? 'par mois, facturé annuellement' : 'par mois, sans engagement';
+    return `<div class="of-price">${was}<div class="cx-plan__price"><b>${eur(perMonth)}</b><span>€/mois</span></div><span class="of-bill">${bill}</span></div>`;
+  }
+
+  function renderPlans() {
+    const paid = currentPaid();
+    $('#ofPlans').innerHTML = Object.entries(PLANS).map(([key, p]) => {
+      const isCur = paid === key;
+      const isReco = !paid && reco === key;
+      const period = p.yearOnly ? 'year' : billing;
+      let cta, disabled = false;
+      if (p.soon) { cta = 'Bientôt disponible'; disabled = true; }
+      else if (isCur) cta = 'Aller sur CHEST';
+      else if (paid) cta = 'Changer d’offre';
+      else cta = 'Choisir ' + p.name.replace('CHEST ', '');
+      const tag = p.soon ? '<span class="of-tag of-tag--soon">Bientôt</span>' : isCur ? '<span class="of-tag of-tag--current">Ton offre</span>' : '';
+      return `<article class="cx-plan ${isReco ? 'is-reco' : ''} ${p.soon ? 'is-soon' : ''} ${isCur ? 'is-current' : ''}" aria-label="Offre ${esc(p.name)}">
+        <span class="cx-plan__badge">Recommandé pour toi</span>${tag}
+        <div class="cx-plan__name">${esc(p.name)}</div>
+        ${priceHtml(p)}
+        <div class="cx-plan__who">${esc(p.who)}</div>
+        <p class="cx-plan__desc">${esc(p.desc)}</p>
+        <ul class="cx-feats">${p.feats.map(([on, t]) => `<li class="${on ? '' : 'is-off'}"><span class="cx-check" aria-hidden="true">${on ? CHECK : DASH}</span><span><span class="cx-sr">${on ? 'Inclus : ' : 'Non inclus : '}</span>${esc(t)}</span></li>`).join('')}</ul>
+        <div class="cx-plan__cta"><button type="button" class="cx-pill" data-plan="${key}" data-period="${period}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${esc(cta)}</button></div>
+      </article>`;
+    }).join('');
+    document.querySelectorAll('#ofBilling button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.billing === billing)));
+    renderTrial();
+  }
+
+  function renderTrial() {
+    const a = acc();
+    const btn = $('#ofTrialBtn');
+    const box = $('#ofTrial');
+    box.hidden = !!currentPaid() || !!user().isAdmin;
+    if (a.trial && a.active) {
+      $('#ofTrialTitle').textContent = 'Ton essai gratuit est en cours';
+      $('#ofTrialText').textContent = `Il se termine le ${fmtDate(a.endsAt)}. Tes données restent sur ton appareil jusqu'à ce que tu choisisses une offre ; elles te suivront ensuite.`;
+      btn.textContent = 'Continuer l’essai'; btn.disabled = false; btn.dataset.mode = 'go';
+    } else if (a.trialUsed) {
+      $('#ofTrialTitle').textContent = 'Essai gratuit déjà utilisé';
+      $('#ofTrialText').textContent = 'Ton essai de 7 jours est terminé. Choisis une offre pour continuer : tes données restées sur cet appareil seront conservées.';
+      btn.textContent = 'Essai terminé'; btn.disabled = true; btn.dataset.mode = '';
+    } else {
+      btn.textContent = 'Commencer l’essai'; btn.disabled = false; btn.dataset.mode = 'start';
+    }
+  }
+
+  function recoSentence() {
+    const el = $('#ofReco');
+    if (!reco || currentPaid()) { el.hidden = true; return; }
+    const why = {
+      essentiel: 'Tu as déjà des bases solides : les outils de CHEST suffisent pour structurer et faire progresser ton trading.',
+      premium: 'Avec la formation complète, BERICH et un accompagnement personnalisé, tu progresses plus vite et tu évites les erreurs classiques.',
+      allstar: 'Tu veux automatiser ton trading : Allstar est fait pour toi. Il ouvre bientôt ; en attendant, Premium te donne tout le reste.',
+    }[reco];
+    el.innerHTML = `D'après tes réponses, on te conseille <b>${esc(PLANS[reco].name)}</b>. ${esc(why)}`;
+    el.hidden = false;
+  }
+
+  function goToApp() {
+    try { sessionStorage.setItem('chest_welcome', '1'); } catch (e) { /* tant pis */ }
+    window.location.href = '/welcome';
+  }
+
+  $('#ofPlans').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-plan]');
+    if (!b || b.disabled) return;
+    const plan = b.dataset.plan, period = b.dataset.period;
+    if (currentPaid() === plan) { goToApp(); return; }
+    if (currentPaid()) {
+      // Déjà abonné : changer d'offre passe par le portail Stripe (sinon deux abonnements en parallèle).
+      if (cfg.stripePortal) { window.location.href = cfg.stripePortal; return; }
+      notice('Pour changer d’offre, écris-nous : le changement se fait sans double paiement.');
+      return;
+    }
+    const link = linkFor(plan, period);
+    if (!link) { notice('Le paiement en ligne de cette offre ouvre très bientôt.'); return; }
+    const u = user();
+    const sep = link.includes('?') ? '&' : '?';
+    window.location.href = `${link}${sep}client_reference_id=u${encodeURIComponent(u.id)}&prefilled_email=${encodeURIComponent(u.email || '')}&locale=fr`;
+  });
+  $('#ofBilling').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-billing]');
+    if (!b) return;
+    billing = b.dataset.billing;
+    renderPlans();
+  });
+  $('#ofTrialBtn').addEventListener('click', async () => {
+    const btn = $('#ofTrialBtn');
+    if (btn.dataset.mode === 'go') { goToApp(); return; }
+    if (btn.dataset.mode !== 'start') return;
+    btn.disabled = true; btn.textContent = 'Ouverture…';
+    try { await A.startTrial(); goToApp(); } catch (err) { notice(err.message); renderTrial(); }
+  });
+  $('#ofRedo').addEventListener('click', () => showQuiz(0));
+
+  function notice(text, kind) {
+    const n = $('#ofNotice');
+    n.textContent = text;
+    n.hidden = !text;
+    n.style.borderColor = kind === 'ok' ? 'rgba(51,230,166,.3)' : '';
+  }
+
+  // ---------------- Questionnaire ----------------
+  const Q = [
+    { key: 'level', title: 'Ton niveau en trading', lead: 'De 1 (je découvre) à 10 (je vis du trading). Réponds honnêtement, c’est seulement pour te conseiller.', type: 'scale' },
+    { key: 'made', title: 'As-tu déjà gagné de l’argent en trading ?', lead: 'Au total, depuis que tu trades.', choices: [['yes', 'Oui', 'J’ai déjà retiré des gains'], ['no', 'Non', 'Pas encore']] },
+    { key: 'amount', title: 'Combien, à peu près ?', lead: 'Un ordre de grandeur suffit.', when: (a) => a.made !== 'no', choices: [['lt1k', 'Moins de 1 000 €', ''], ['1k-10k', '1 000 à 10 000 €', ''], ['10k-50k', '10 000 à 50 000 €', ''], ['gt50k', 'Plus de 50 000 €', '']] },
+    { key: 'goal', title: 'Ce que tu cherches', lead: 'Ce qui compte le plus pour toi aujourd’hui.', choices: [['learn', 'Apprendre de zéro', 'Comprendre les bases et démarrer sereinement'], ['improve', 'M’améliorer', 'J’ai des bases, je veux de meilleurs résultats'], ['structure', 'Structurer mon trading', 'Un cadre, des règles, un suivi précis'], ['automate', 'Automatiser', 'Que le trading tourne sans moi']] },
+    { key: 'budget', title: 'Combien es-tu prêt à investir pour ta liberté ?', lead: 'Par mois, pour ta formation et tes outils.', choices: [['lt100', 'Moins de 100 €', 'par mois'], ['100-300', '100 à 300 €', 'par mois'], ['300-1000', '300 à 1 000 €', 'par mois'], ['gt1000', 'Plus de 1 000 €', 'par mois']] },
+  ];
+  let step = 0;
+  let draft = {};
+  const visible = () => Q.filter((q) => !q.when || q.when(draft));
+
+  function recommend(a) {
+    if (a.goal === 'automate' && a.budget === 'gt1000') return 'allstar';
+    if (a.budget === 'lt100') return 'essentiel';
+    let p = 0;
+    if (a.goal === 'learn') p += 3; else if (a.goal === 'improve') p += 2; else if (a.goal === 'automate') p += 1;
+    const lvl = Number(a.level) || 5;
+    if (lvl <= 4) p += 2; else if (lvl <= 7) p += 1;
+    if (a.made === 'no') p += 1;
+    if (a.budget === '300-1000' || a.budget === 'gt1000') p += 2;
+    return p >= 3 ? 'premium' : 'essentiel';
+  }
+
+  function renderQuiz() {
+    const list = visible();
+    const q = list[step];
+    $('#ofSteps').innerHTML = list.map((it, i) => `<li class="${i < step ? 'is-done' : i === step ? 'is-current' : ''}"><i>${i + 1}</i>${esc(it.title)}</li>`).join('');
+    $('#ofQNum').textContent = `Question ${step + 1} sur ${list.length}`;
+    $('#ofQTitle').textContent = q.title;
+    $('#ofQLead').textContent = q.lead;
+    const body = $('#ofQBody');
+    if (q.type === 'scale') {
+      body.innerHTML = `<div class="of-scale" role="group" aria-label="${esc(q.title)}">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-v="${i + 1}" aria-pressed="${String(draft.level) === String(i + 1)}">${i + 1}</button>`).join('')}</div>
+        <div class="of-scale-legend"><span>Je découvre</span><span>Je vis du trading</span></div>`;
+    } else {
+      body.innerHTML = `<div class="cx-big-choices ${q.choices.length === 4 ? 'cx-big-choices--4' : ''}">${q.choices.map(([v, label, hint]) => `<button type="button" class="cx-tile" data-v="${v}" aria-pressed="${draft[q.key] === v}"><b>${esc(label)}</b>${hint ? `<span>${esc(hint)}</span>` : ''}</button>`).join('')}</div>`;
+    }
+    body.style.animation = 'none'; void body.offsetWidth; body.style.animation = '';
+    $('#ofBack').style.visibility = step === 0 ? 'hidden' : 'visible';
+    const first = body.querySelector('[aria-pressed="true"]') || body.querySelector('button');
+    if (first && document.activeElement && document.activeElement.closest && document.activeElement.closest('#ofQuiz')) first.focus({ preventScroll: true });
+  }
+
+  $('#ofQBody').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-v]');
+    if (!b) return;
+    const list = visible();
+    const q = list[step];
+    draft[q.key] = b.dataset.v;
+    if (q.key === 'made' && b.dataset.v === 'no') delete draft.amount;
+    b.parentElement.querySelectorAll('[data-v]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    setTimeout(() => {
+      const now = visible();
+      if (step < now.length - 1) { step += 1; renderQuiz(); }
+      else finishQuiz();
+    }, 220);
+  });
+  $('#ofBack').addEventListener('click', () => { if (step > 0) { step -= 1; renderQuiz(); } });
+  $('#ofSkip').addEventListener('click', () => show('offers'));
+
+  async function finishQuiz() {
+    answers = Object.assign({}, draft);
+    reco = recommend(answers);
+    try { localStorage.setItem(ONB_KEY, JSON.stringify({ answers, reco })); } catch (e) { /* tant pis */ }
+    A.saveOnboarding(answers, reco).catch(() => { /* les réponses restent sur l'appareil */ });
+    if (reco === 'essentiel' || reco === 'allstar') billing = 'year';
+    show('offers');
+  }
+
+  function showQuiz(at) {
+    draft = Object.assign({}, answers || {});
+    step = at || 0;
+    show('quiz');
+  }
+
+  // ---------------- Validation du paiement ----------------
+  let waitTimer = null;
+  function startWait() {
+    show('wait');
+    const started = Date.now();
+    const tick = async () => {
+      let u = null;
+      try { u = await A.refreshMe(); } catch (e) { /* on réessaie */ }
+      const a = (u && u.access) || {};
+      if (a.active && ['essentiel', 'premium', 'allstar'].includes(a.plan)) {
+        $('#ofLive').classList.add('is-ok');
+        $('#ofLive').querySelector('.cx-live__orb i').innerHTML = CHECK;
+        $('#ofWaitTitle').textContent = 'Paiement validé';
+        $('#ofWaitText').textContent = `Bienvenue dans ${a.label}. On t’ouvre CHEST…`;
+        setTimeout(goToApp, 1600);
+        return;
+      }
+      if (Date.now() - started > 180000) {
+        $('#ofWaitTitle').textContent = 'La validation prend plus de temps que prévu';
+        $('#ofWaitText').textContent = 'Ton paiement est enregistré par Stripe, mais on n’a pas encore reçu sa confirmation. Réessaie dans un instant ; si ça dure, écris-nous avec l’e-mail de ton paiement.';
+        $('#ofWaitActions').hidden = false;
+        return;
+      }
+      waitTimer = setTimeout(tick, 2500);
+    };
+    tick();
+  }
+  $('#ofWaitRetry').addEventListener('click', () => { $('#ofWaitActions').hidden = true; $('#ofWaitTitle').textContent = 'On valide ton paiement…'; startWait(); });
+  $('#ofWaitBack').addEventListener('click', () => { clearTimeout(waitTimer); history.replaceState(null, '', '/offres'); show('offers'); });
+
+  // ---------------- Vues ----------------
+  function show(view) {
+    $('#ofQuiz').hidden = view !== 'quiz';
+    $('#ofOffers').hidden = view !== 'offers';
+    $('#ofWait').hidden = view !== 'wait';
+    if (view === 'quiz') renderQuiz();
+    if (view === 'offers') { renderPlans(); recoSentence(); }
+    window.scrollTo(0, 0);
+  }
+
+  $('#ofLogout').addEventListener('click', () => { A.logout(); window.location.href = '/connexion'; });
+  $('#ofWho').textContent = user().firstName || user().email || '—';
+
+  async function start() {
+    try { await A.refreshMe(); } catch (e) { /* hors-ligne : on garde le membre en mémoire */ }
+    $('#ofWho').textContent = user().firstName || user().email || '—';
+    const a = acc();
+    if (query.get('paiement') === 'ok') { startWait(); return; }
+    if (query.get('paiement') === 'annule') notice('Paiement annulé : rien n’a été débité. Tu peux choisir une autre offre ou réessayer.');
+    else if (query.get('raison') === 'fin' && !a.active && (a.trialUsed || (a.plan && a.plan !== 'none'))) notice(a.trial || a.trialUsed ? 'Ton essai gratuit est terminé. Choisis une offre pour continuer, tes données sont conservées.' : 'Ton accès a pris fin. Choisis une offre pour retrouver CHEST.');
+    if (!answers && !currentPaid() && !user().isAdmin) showQuiz(0); else show('offers');
+  }
+  start();
+})();
+</script>
+</body>
+</html>

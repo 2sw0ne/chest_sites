@@ -1,15 +1,56 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/connexion", "permanent": false },
-    { "source": "/index.html", "destination": "/connexion", "permanent": false },
-    { "source": "/login.html", "destination": "/connexion", "permanent": false },
-    { "source": "/signup.html", "destination": "/inscription", "permanent": false },
-    { "source": "/app.html", "destination": "/connexion", "permanent": false }
+    {
+      "source": "/",
+      "destination": "/connexion",
+      "permanent": false
+    },
+    {
+      "source": "/index.html",
+      "destination": "/connexion",
+      "permanent": false
+    },
+    {
+      "source": "/login.html",
+      "destination": "/connexion",
+      "permanent": false
+    },
+    {
+      "source": "/signup.html",
+      "destination": "/inscription",
+      "permanent": false
+    },
+    {
+      "source": "/app.html",
+      "destination": "/connexion",
+      "permanent": false
+    },
+    {
+      "source": "/offres.html",
+      "destination": "/offres",
+      "permanent": false
+    }
   ],
   "rewrites": [
-    { "source": "/connexion", "destination": "/app.html" },
-    { "source": "/welcome", "destination": "/app.html" },
-    { "source": "/inscription", "destination": "/signup.html" },
-    { "source": "/:page(dashboard|backtesting|journal|strategies|calendar|berich|school|account|admin-members|backtest-add|backtest-view|strategy-example|vps-guide|connect)", "destination": "/app.html" }
+    {
+      "source": "/connexion",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/welcome",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/inscription",
+      "destination": "/signup.html"
+    },
+    {
+      "source": "/offres",
+      "destination": "/offres.html"
+    },
+    {
+      "source": "/:page(dashboard|backtesting|journal|strategies|calendar|berich|school|account|admin-members|backtest-add|backtest-view|strategy-example|vps-guide|connect)",
+      "destination": "/app.html"
+    }
   ]
 }

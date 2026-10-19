@@ -107,6 +107,11 @@
   function getToken() {
     try { return localStorage.getItem('chest_account_token') || sessionStorage.getItem('chest_account_token'); } catch (e) { return null; }
   }
+  // Essai gratuit (2026-10-18) : les données restent sur l'appareil, rien ne part sur le serveur. Les
+  // modifications restent marquées « à envoyer » : elles partiront d'elles-mêmes dès qu'une offre est prise.
+  function localOnly() {
+    try { const u = JSON.parse(localStorage.getItem('chest_account_user') || sessionStorage.getItem('chest_account_user') || 'null'); return !!(u && u.access && u.access.sync === false && !u.isAdmin); } catch (e) { return false; }
+  }
   function hadAnyLocalData() {
     try { return SYNCED_KEYS.some((k) => localStorage.getItem(k) !== null); } catch (e) { return true; }
   }
@@ -127,7 +132,7 @@
 
   // Envoie ce qui a change localement (voir collectChanged) - et seulement cela.
   function pushChanged() {
-    if (!getToken()) return Promise.resolve();
+    if (!getToken() || localOnly()) return Promise.resolve();
     const data = collectChanged();
     if (!Object.keys(data).length) return Promise.resolve();
     return postSync(data);
@@ -135,7 +140,7 @@
 
   async function pullSync() {
     const token = getToken();
-    if (!token) return;
+    if (!token || localOnly()) return;
     const wasEmpty = !hadAnyLocalData();
     try {
       const res = await fetch(apiBase() + '/sync', { headers: { Authorization: 'Bearer ' + token } });

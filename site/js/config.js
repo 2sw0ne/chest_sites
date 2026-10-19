@@ -57,5 +57,20 @@ window.CHEST_CONFIG = {
   // doit rester secrète, elle vit dans la variable d'environnement Railway VAPID_PRIVATE_KEY).
   // Générée une fois avec py-vapid ; à régénérer (et remplacer aussi côté serveur) seulement si
   // elle devait un jour être révoquée.
-  vapidPublicKey: 'BI2lWzimVJKfvk_uQxuWaROIdDniJrYaEkLsBpj8PdDl9sdiTgJEHFnYPD8LaOGAGdRiFP79vPnVY7Osvg-qxdM'
+  vapidPublicKey: 'BI2lWzimVJKfvk_uQxuWaROIdDniJrYaEkLsBpj8PdDl9sdiTgJEHFnYPD8LaOGAGdRiFP79vPnVY7Osvg-qxdM',
+
+  // Liens de paiement Stripe (2026-10-18), un par offre et par période — publics par nature (ce sont
+  // des pages de paiement Stripe). La page /offres y ajoute client_reference_id = u<id du membre> pour
+  // rattacher le paiement au bon compte ; l'offre est ensuite déduite du montant par le serveur.
+  // Dans Stripe, chaque lien doit rediriger après paiement vers https://www.ch3st.app/offres?paiement=ok
+  // Vide = bouton « Bientôt disponible ».
+  stripeLinks: {
+    essentiel_month: '',
+    essentiel_year: '',
+    premium_month: '',
+    premium_year: '',
+    allstar_year: '',
+  },
+  // Portail client Stripe (changer de carte, d'offre, résilier) — lien « Customer portal » de Stripe.
+  stripePortal: '',
 };

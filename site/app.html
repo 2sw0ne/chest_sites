@@ -63,13 +63,23 @@
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=20">
 <link rel="stylesheet" href="css/welcome.css?v=39">
-<script src="js/theme.js?v=3"></script>
-<script src="js/config.js?v=3"></script>
+<script src="js/theme.js?v=4"></script>
+<script src="js/config.js?v=4"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=5"></script>
-<script src="js/sync-store.js?v=9"></script>
+<script src="js/accounts-auth.js?v=6"></script>
+<script src="js/sync-store.js?v=10"></script>
 <script src="js/pwa.js?v=3"></script>
 <link rel="stylesheet" href="css/v2.css?v=11">
+<!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
+<style>
+  html.plan-no-school .chest-nav__item[data-page="school"]::after,
+  html.plan-no-berich .chest-nav__item[data-page="berich"]::after{
+    content:''; flex-shrink:0; width:12px; height:12px; margin-left:auto; background:currentColor; opacity:.5;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+  .chest-shell.is-collapsed .chest-nav__item::after{ display:none; }
+</style>
 </head>
 <body class="chest-root">
 
@@ -318,7 +328,7 @@
 </div>
 
 <script src="js/nav.js?v=7"></script>
-<script src="js/shell.js?v=5"></script>
+<script src="js/shell.js?v=6"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/welcome.js?v=60"></script>
 <script src="js/tuto.js?v=2"></script>
@@ -362,6 +372,13 @@
     try {
       await CHESTAccounts.login({ email, password, remember });
       try { sessionStorage.setItem('chest_welcome', '1'); } catch (e) { /* tant pis */ }
+      // Pas d'accès en cours (pas encore d'offre, essai ou abonnement terminé) : direction les offres ;
+      // le Welcome s'ouvrira une fois l'offre choisie (le drapeau chest_welcome reste posé).
+      if (CHESTAccounts.hasAccess && !CHESTAccounts.hasAccess()) {
+        stage.classList.add('is-leaving');
+        setTimeout(() => { window.location.href = '/offres?raison=fin'; }, 900);
+        return;
+      }
       // Fondu de la carte (1,2 s) PUIS bascule vers Welcome — toujours le MEME document ET le MEME
       // fond (voir welcome.js/welcome.css, plus de shader separe a arreter ici), donc ni gel de
       // chargement ni saut visuel entre les deux.
