@@ -1038,7 +1038,8 @@ def _admin_member(db, row):
     per_day = {}
     for a in acts:
         per_day[a["day"]] = per_day.get(a["day"], 0) + a["views"]
-    last14 = [per_day.get((today - timedelta(days=i)).isoformat(), 0) for i in range(13, -1, -1)]
+    last30 = [per_day.get((today - timedelta(days=i)).isoformat(), 0) for i in range(29, -1, -1)]
+    last14 = last30[-14:]
     week = {(today - timedelta(days=i)).isoformat() for i in range(7)}
     out["activity"] = {
         "days30": len({a["day"] for a in acts}),
@@ -1046,6 +1047,7 @@ def _admin_member(db, row):
         "days7": len({a["day"] for a in acts if a["day"] in week}),
         "views7": sum(a["views"] for a in acts if a["day"] in week),
         "last14": last14,
+        "last30": last30,
         "top": sorted(([p, v] for p, v in pages.items()), key=lambda x: -x[1])[:5],
     }
     out["lastLoginAt"] = _col(row, "last_login_at")
@@ -1176,13 +1178,18 @@ def admin_stats():
         elif d >= prev_start:
             prev_signups += 1
     series = []
+    revenue = {}
+    for r in db.execute("SELECT created_at, amount FROM billing_events WHERE type = 'invoice.paid' AND created_at >= ?", (start.isoformat(),)).fetchall():
+        k = (_parse_iso(r["created_at"]) or now).date().isoformat()
+        revenue[k] = revenue.get(k, 0) + (r["amount"] or 0) / 100
     act_rows = {r["day"]: r for r in db.execute(
         "SELECT day, COUNT(DISTINCT user_id) AS users, SUM(views) AS views FROM user_activity WHERE day >= ? GROUP BY day",
         (start.isoformat(),)).fetchall()}
     for i in range(days):
         d = (start + timedelta(days=i)).isoformat()
         a = act_rows.get(d)
-        series.append({"day": d, "signups": signups.get(d, 0), "users": a["users"] if a else 0, "views": a["views"] if a else 0})
+        series.append({"day": d, "signups": signups.get(d, 0), "users": a["users"] if a else 0, "views": a["views"] if a else 0,
+                       "revenue": round(revenue.get(d, 0), 2)})
     pages = [[r["page"], r["v"]] for r in db.execute(
         "SELECT page, SUM(views) AS v FROM user_activity WHERE day >= ? GROUP BY page ORDER BY v DESC LIMIT 8",
         (start.isoformat(),)).fetchall()]

@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<link rel="stylesheet" href="css/admin-members.css?v=1">
+<link rel="stylesheet" href="css/admin-members.css?v=2">
 <script src="js/theme.js?v=4"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -70,15 +70,14 @@
     </header>
 
     <main class="am">
-      <!-- Héros : titre, effectif, période des statistiques -->
-      <section class="am-hero">
-        <div class="am-hero__txt">
+      <!-- En-tête : titre + période -->
+      <header class="am-head">
+        <div>
           <div class="chest-step">Administration</div>
-          <h1 class="am-hero__title">Membres</h1>
-          <p class="am-hero__lead">Qui est là, ce qu'ils paient, ce qu'ils utilisent — et qui a besoin d'un coup de main.</p>
+          <h1 class="am-head__title">Membres</h1>
         </div>
-        <div class="am-hero__side">
-          <div class="am-hero__count"><b id="amTotal" class="chest-num">—</b><span>membres</span></div>
+        <div class="am-head__side">
+          <div class="am-head__live" id="amLive" aria-live="polite"></div>
           <div class="chest-seg am-period" id="amPeriod" role="group" aria-label="Période des statistiques">
             <button type="button" data-days="7">7 j</button>
             <button type="button" data-days="30" class="is-active">30 j</button>
@@ -86,95 +85,142 @@
             <button type="button" data-days="365">1 an</button>
           </div>
         </div>
-      </section>
+      </header>
 
-      <!-- 01 — Performance -->
-      <section class="am-sec" id="amPerf" aria-labelledby="amPerfT">
-        <header class="am-sec__head"><div class="chest-step" id="amPerfT">01 — Performance</div><span class="am-sec__aside" id="amPerfAside"></span></header>
-        <div class="am-kpis" id="amKpis"></div>
-        <div class="am-charts">
-          <figure class="am-chart am-chart--main">
-            <figcaption><span>Arrivées et membres actifs</span><span class="am-legend"><i class="is-bar"></i>Nouveaux <i class="is-line"></i>Actifs du jour</span></figcaption>
-            <div class="am-chart__plot" id="amFlow"></div>
-          </figure>
-          <figure class="am-chart am-chart--donut">
-            <figcaption><span>Répartition</span></figcaption>
-            <div class="am-donut" id="amDonut"></div>
-          </figure>
+      <!-- Navigation entre les vues de l'espace admin -->
+      <nav class="am-nav" id="amNav" aria-label="Vues de l'espace membres">
+        <div class="am-nav__tabs" role="tablist">
+          <button type="button" role="tab" data-view="overview">Vue d'ensemble</button>
+          <button type="button" role="tab" data-view="members">Membres <small id="amNavCount"></small></button>
+          <button type="button" role="tab" data-view="ranks">Rangs</button>
+          <button type="button" role="tab" data-view="engagement">Engagement</button>
         </div>
-        <figure class="am-chart am-chart--pages">
-          <figcaption><span>Ce qu'ils utilisent</span><span class="am-legend">pages vues sur la période</span></figcaption>
-          <ol class="am-pages" id="amPages"></ol>
-        </figure>
-      </section>
-
-      <!-- 02 — Hiérarchie -->
-      <section class="am-sec" id="amTiers" aria-labelledby="amTiersT">
-        <header class="am-sec__head">
-          <div class="chest-step" id="amTiersT">02 — Hiérarchie</div>
+        <div class="am-nav__act">
+          <button type="button" class="am-nav__search" id="amQuick" aria-label="Rechercher un membre">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+            <span>Rechercher</span><kbd>/</kbd>
+          </button>
           <button type="button" class="chest-btn am-gift-btn" id="amGiftBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5v7.5h14v-7.5M12 8.5V20M12 8.5c-1.6 0-4.5-.6-4.5-2.6 0-1.4 1.2-2.1 2.3-1.7C11.3 4.8 12 6.5 12 8.5zM12 8.5c1.6 0 4.5-.6 4.5-2.6 0-1.4-1.2-2.1-2.3-1.7-1.5.6-2.2 2.3-2.2 4.3z"/></svg>
-            Offrir un Privilège
+            <span>Offrir un Privilège</span>
           </button>
-        </header>
-        <p class="am-sec__lead">Du sommet à la base : l'équipe, les abonnés, puis ceux qui n'ont pas (ou plus) d'accès. Clique un rang pour voir ses membres.</p>
-        <div class="am-pyramid" id="amPyramid"></div>
+        </div>
+      </nav>
+
+      <!-- Vue d'ensemble -->
+      <section class="am-view" data-panel="overview" aria-label="Vue d'ensemble">
+        <div class="am-grid">
+          <div class="am-kpis" id="amKpis"></div>
+          <article class="am-panel am-panel--chart">
+            <header class="am-panel__head">
+              <div class="am-metric" id="amMetricHead"></div>
+              <div class="am-metrics" id="amMetrics" role="tablist" aria-label="Indicateur du graphique">
+                <button type="button" data-metric="revenue">Encaissé</button>
+                <button type="button" data-metric="signups">Arrivées</button>
+                <button type="button" data-metric="users">Actifs</button>
+                <button type="button" data-metric="views">Pages vues</button>
+              </div>
+            </header>
+            <div class="am-chart" id="amChart"></div>
+          </article>
+          <article class="am-panel am-panel--watch">
+            <header class="am-panel__head"><h2 class="am-panel__t">À surveiller</h2><span class="am-panel__meta">mis à jour à l'instant</span></header>
+            <ul class="am-watch" id="amWatch"></ul>
+          </article>
+          <article class="am-panel am-panel--mix">
+            <header class="am-panel__head"><h2 class="am-panel__t">Composition</h2><button type="button" class="am-link" data-goto="ranks">Voir les rangs</button></header>
+            <div id="amMix"></div>
+          </article>
+          <article class="am-panel am-panel--funnel">
+            <header class="am-panel__head"><h2 class="am-panel__t">Parcours des arrivées</h2><span class="am-panel__meta" id="amFunnelMeta"></span></header>
+            <div id="amFunnel"></div>
+          </article>
+          <article class="am-panel am-panel--pages">
+            <header class="am-panel__head"><h2 class="am-panel__t">Ce qu'ils utilisent</h2><span class="am-panel__meta">pages vues</span></header>
+            <ol class="am-pages" id="amPages"></ol>
+          </article>
+        </div>
       </section>
 
-      <!-- 03 — Membres -->
-      <section class="am-sec" id="amList" aria-labelledby="amListT">
-        <header class="am-sec__head"><div class="chest-step" id="amListT">03 — Membres</div><span class="am-sec__aside" id="amListAside"></span></header>
-        <div class="am-tools">
+      <!-- Membres -->
+      <section class="am-view" data-panel="members" aria-label="Membres" hidden>
+        <div class="am-toolbar">
           <label class="am-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-            <input type="search" id="amSearch" placeholder="Rechercher un nom ou un e-mail" autocomplete="off" aria-label="Rechercher un membre">
-            <kbd aria-hidden="true">/</kbd>
+            <input type="search" id="amSearch" placeholder="Nom ou e-mail" autocomplete="off" aria-label="Rechercher un membre">
           </label>
           <label class="am-sort">
-            <span>Trier</span>
+            <span>Trier par</span>
             <select id="amSort" aria-label="Trier les membres">
-              <option value="seen">Dernière activité</option>
-              <option value="new">Arrivée la plus récente</option>
+              <option value="seen">Dernière visite</option>
+              <option value="new">Arrivée récente</option>
               <option value="active">Les plus actifs</option>
-              <option value="ends">Fin de contrat la plus proche</option>
+              <option value="ends">Échéance proche</option>
               <option value="rank">Rang</option>
               <option value="name">Nom</option>
             </select>
           </label>
         </div>
-        <div class="am-tabs" id="amTabs" role="tablist" aria-label="Catégories de membres"></div>
+        <div class="am-chips" id="amChips" role="tablist" aria-label="Catégories"></div>
         <div class="am-filter" id="amFilter" hidden></div>
-        <div class="am-rows" id="amRows"><div class="am-empty">Chargement…</div></div>
-      </section>
-
-      <!-- 04 — Nouveaux membres -->
-      <section class="am-sec" id="amNew" aria-labelledby="amNewT">
-        <header class="am-sec__head"><div class="chest-step" id="amNewT">04 — Nouveaux membres</div><span class="am-sec__aside" id="amNewAside"></span></header>
-        <div class="am-funnel" id="amFunnel"></div>
-        <ol class="am-arrivals" id="amArrivals"></ol>
-      </section>
-
-      <!-- 05 — Activité des élèves -->
-      <section class="am-sec" id="amAct" aria-labelledby="amActT">
-        <header class="am-sec__head"><div class="chest-step" id="amActT">05 — Activité des élèves</div><span class="am-sec__aside">pages vues seulement, jamais le contenu</span></header>
-        <div class="am-act">
-          <div class="am-act__col"><h3>Les plus assidus <small>30 jours</small></h3><ol id="amTop"></ol></div>
-          <div class="am-act__col"><h3>À relancer <small>accès actif, rien depuis 7 jours</small></h3><ol id="amNudge"></ol></div>
-          <div class="am-act__col"><h3>Jamais revenus <small>inscrits, aucune visite</small></h3><ol id="amGhost"></ol></div>
+        <div class="am-table" role="table" aria-label="Liste des membres">
+          <div class="am-tr am-tr--head" role="row">
+            <span role="columnheader">Membre</span><span role="columnheader">Rang</span><span role="columnheader">Offre et échéance</span><span role="columnheader">Activité · 30 j</span><span role="columnheader">Dernière visite</span><span></span>
+          </div>
+          <div id="amRows" role="rowgroup"><div class="am-empty">Chargement…</div></div>
         </div>
+      </section>
+
+      <!-- Rangs -->
+      <section class="am-view" data-panel="ranks" aria-label="Rangs" hidden>
+        <div class="am-spectrum" id="amSpectrum"></div>
+        <div id="amRanks"></div>
+      </section>
+
+      <!-- Engagement -->
+      <section class="am-view" data-panel="engagement" aria-label="Engagement" hidden>
+        <div class="am-grid am-grid--eng">
+          <article class="am-panel am-panel--arrivals">
+            <header class="am-panel__head"><h2 class="am-panel__t">Nouveaux membres</h2><span class="am-panel__meta" id="amArrMeta"></span></header>
+            <div class="am-steps" id="amSteps"></div>
+            <ol class="am-arrivals" id="amArrivals"></ol>
+          </article>
+          <div class="am-stack">
+            <article class="am-panel"><header class="am-panel__head"><h2 class="am-panel__t">Les plus assidus</h2><span class="am-panel__meta">30 jours</span></header><ol class="am-people" id="amTop"></ol></article>
+            <article class="am-panel"><header class="am-panel__head"><h2 class="am-panel__t">À relancer</h2><span class="am-panel__meta">accès actif, aucune visite depuis 7 j</span></header><ol class="am-people" id="amNudge"></ol></article>
+            <article class="am-panel"><header class="am-panel__head"><h2 class="am-panel__t">Jamais revenus</h2><span class="am-panel__meta">inscrits, aucune visite</span></header><ol class="am-people" id="amGhost"></ol></article>
+          </div>
+        </div>
+        <p class="am-note">Activité = page ouverte, jour et nombre de vues. Jamais ce que le membre y fait.</p>
       </section>
     </main>
   </div>
+</div>
+
+<!-- Volet latéral : fiche d'un membre -->
+<div class="am-drawer" id="amDrawer" hidden>
+  <div class="am-drawer__veil" data-close-drawer></div>
+  <aside class="am-drawer__win" role="dialog" aria-modal="true" aria-labelledby="amDrawerName" tabindex="-1">
+    <header class="am-drawer__bar">
+      <div class="am-drawer__nav">
+        <button type="button" data-step="-1" aria-label="Membre précédent"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 6 4.5l3 3"/></svg></button>
+        <button type="button" data-step="1" aria-label="Membre suivant"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5 6 7.5l3-3"/></svg></button>
+        <span id="amDrawerPos"></span>
+      </div>
+      <button type="button" class="am-x" data-close-drawer aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="am-drawer__body" id="amDrawerBody"></div>
+  </aside>
 </div>
 
 <!-- Fenêtre : offrir un Privilège -->
 <div class="am-modal" id="amGift" hidden>
   <div class="am-modal__veil" data-close></div>
   <div class="am-modal__win chest-glass" role="dialog" aria-modal="true" aria-labelledby="amGiftT">
-    <button type="button" class="am-modal__x" data-close aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    <div class="chest-step">Privilège</div>
-    <h2 id="amGiftT">Offrir un accès complet</h2>
-    <p class="am-modal__lead">Tout CHEST, School et BERICH compris, sans paiement. Tu choisis jusqu'à quand — ou sans limite.</p>
+    <button type="button" class="am-x am-modal__x" data-close aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="am-modal__badge" id="amGiftBadge"></div>
+    <h2 id="amGiftT">Offrir un Privilège</h2>
+    <p class="am-modal__lead">Tout CHEST, School et BERICH compris, sans paiement. Jusqu'à la date que tu choisis, ou sans limite.</p>
     <form id="amGiftForm" autocomplete="off">
       <label class="am-field"><span>Membre</span>
         <input type="search" id="amGiftQ" placeholder="Nom ou e-mail">
@@ -214,16 +260,13 @@
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '#amPeriod', title: 'La période', text: 'Les statistiques du haut (revenus, arrivées, activité) se recalculent sur 7 jours, 30 jours, 90 jours ou 1 an.' },
-  { selector: '#amKpis', title: 'Performance', text: 'Revenu mensuel récurrent, encaissé, nouveaux membres, actifs, conversion des essais et résiliations, comparés à la période précédente.' },
-  { selector: '#amPyramid', title: 'La hiérarchie', text: 'Chaque rang avec son badge et ses droits. Clique un rang pour filtrer la liste. « Offrir un Privilège » donne tout CHEST à un membre, avec ou sans date de fin.' },
-  { selector: '#amSearch', title: 'Trouver quelqu’un', text: 'Nom ou e-mail. Raccourci : la touche /.' },
-  { selector: '#amRows', title: 'Chaque membre', text: '« Gérer » ouvre sa fiche : abonnement, activité, questionnaire, historique, puis son rôle (Membre, Éducateur, Admin) et son accès.' },
-  { selector: '#amNew', title: 'Les arrivées', text: 'Le parcours des nouveaux : inscrit, questionnaire, essai, abonné.' },
-  { selector: '#amAct', title: 'Les élèves', text: 'Les plus assidus, ceux à relancer et ceux qui ne sont jamais revenus.' },
+  { selector: '#amNav', title: 'Quatre vues', text: 'Vue d’ensemble (chiffres et alertes), Membres (la liste), Rangs (la hiérarchie) et Engagement (arrivées et activité des élèves).' },
+  { selector: '#amPeriod', title: 'La période', text: 'Les chiffres de la Vue d’ensemble et de l’Engagement se recalculent sur 7 jours, 30 jours, 90 jours ou 1 an.' },
+  { selector: '#amQuick', title: 'Trouver quelqu’un', text: 'Touche / depuis n’importe quelle vue : la recherche s’ouvre dans la liste des membres.' },
+  { selector: '#amGiftBtn', title: 'Privilège', text: 'Offre tout CHEST à un membre, jusqu’à la date de ton choix ou sans limite.' },
 ]);
 </script>
-<script src="js/admin-members.js?v=1"></script>
+<script src="js/admin-members.js?v=2"></script>
 <script src="js/v2.js?v=3"></script>
 </body>
 </html>
