@@ -89,8 +89,16 @@ window.CHESTAccounts = (() => {
     if (!token || !/^[a-z-]{2,40}$/.test(page || '')) return;
     fetch(`${apiBase()}/me/activity`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ page }) }).catch(() => {});
   }
-  async function setMemberAccess(id, plan, days) {
-    return jsonFetch(`/members/${id}/access`, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify({ plan, days }) });
+  // Accès donné à la main : `days` (durée) OU `until` (AAAA-MM-JJ, fin de journée) ; ni l'un ni l'autre = sans limite (Privilège).
+  async function setMemberAccess(id, plan, days, until) {
+    return jsonFetch(`/members/${id}/access`, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify({ plan, days, until: until || '' }) });
+  }
+  // Hiérarchie : member | educator | admin.
+  async function setMemberRole(id, role) {
+    return jsonFetch(`/members/${id}/role`, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify({ role }) });
+  }
+  async function fetchAdminStats(days) {
+    return jsonFetch(`/admin/stats?days=${encodeURIComponent(days || 30)}`, { headers: authHeaders() });
   }
 
   // Vidéo de présentation vue en entier (js/tuto.js) : le serveur le retient, et le membre stocké est mis à jour
@@ -260,5 +268,5 @@ window.CHESTAccounts = (() => {
   setInterval(verifySessionAlive, 120000);
 
   return { getToken, getUser, isLoggedIn, isAdmin, signup, markTutoSeen, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, deleteMember, guard,
-    access, hasAccess, hasFeature, refreshMe, startTrial, saveOnboarding, logActivity, setMemberAccess, apiBase };
+    access, hasAccess, hasFeature, refreshMe, startTrial, saveOnboarding, logActivity, setMemberAccess, setMemberRole, fetchAdminStats, apiBase };
 })();

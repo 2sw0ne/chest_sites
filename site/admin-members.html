@@ -3,13 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gestion des membres — CHEST</title>
+<title>Membres — CHEST</title>
 <link rel="icon" type="image/png" href="assets/logo-chest.png">
-<!-- Fond sombre IMMEDIAT (2026-09-23, meme motif que app.html/login.html) : cette page est chargee
-     dans l'iframe du shell (voir js/shell.js) - sans ca, un flash blanc est visible le temps que les
-     polices/CSS externes chargent, surtout juste apres la connexion (branche
-     experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
-     charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
+<!-- Fond sombre immédiat (même motif que app.html) : pas de flash blanc dans l'iframe du shell. -->
 <style>html,body{background:#050505}</style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,86 +14,11 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<style>
-  .member-row{
-    display:grid; grid-template-columns:42px minmax(0,1fr) minmax(150px,auto) minmax(110px,auto) auto; align-items:center; gap:16px;
-    padding:16px 0; border-bottom:1px solid var(--chest-rule);
-  }
-  .member-item:last-child .member-row, .member-item:last-child .md{ border-bottom:none; }
-  .member-row__avatar{
-    width:42px; height:42px; border-radius:50%; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(135deg,var(--chest-acc),var(--chest-acc-2)); color:#fff;
-    font-weight:700; font-size:15px;
-  }
-  .member-row__info{ min-width:0; }
-  .member-row__name{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; color:var(--chest-ink); flex-wrap:wrap; }
-  .member-row__name .badge-admin, .member-row__name .badge-blocked{
-    font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:3px 8px; border-radius:999px;
-  }
-  .badge-admin{ color:var(--chest-acc); border:1px solid rgba(252,18,131,.45); background:rgba(252,18,131,.1); }
-  .badge-blocked{ color:var(--chest-red); border:1px solid rgba(255,77,94,.4); background:rgba(255,77,94,.1); }
-  .member-row__email{ font-size:12px; color:var(--chest-ink-2); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .member-plan{ display:flex; flex-direction:column; gap:3px; }
-  .member-plan b{ display:inline-flex; align-self:flex-start; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:.02em; padding:4px 10px; border-radius:999px; }
-  .member-plan small{ font-size:11.5px; color:var(--chest-ink-3); font-variant-numeric:tabular-nums; }
-  .plan-paid b{ background:rgba(51,230,166,.14); color:var(--chest-green); }
-  .plan-trial b{ background:rgba(232,179,57,.14); color:var(--chest-amber); }
-  .plan-gift b{ background:rgba(77,141,255,.14); color:#9dbcff; }
-  .plan-none b{ background:rgba(255,255,255,.06); color:var(--chest-ink-3); }
-  .plan-late b{ background:rgba(255,77,94,.14); color:var(--chest-red); }
-  .member-seen{ font-size:12px; color:var(--chest-ink-2); line-height:1.45; }
-  .member-seen small{ display:block; font-size:11px; color:var(--chest-ink-3); }
-  .member-row__actions{ display:flex; gap:8px; flex-shrink:0; justify-self:end; }
-  .member-row__actions .btn{ padding:7px 14px; font-size:12.5px; }
-  .btn-more{ display:inline-flex; align-items:center; gap:6px; }
-  .btn-more svg{ width:11px; height:11px; transition:transform .25s var(--chest-ease); }
-  .btn-more[aria-expanded="true"] svg{ transform:rotate(180deg); }
-  .member-row__actions .btn-delete{ color:var(--chest-red, #ff4d5e); border-color:rgba(255,77,94,.35); background:transparent; }
-  @media (hover:hover) and (pointer:fine){ .member-row__actions .btn-delete:hover{ background:rgba(255,77,94,.12); border-color:rgba(255,77,94,.6); } }
-  .member-row__actions .btn-delete:focus-visible{ outline:2px solid rgba(255,77,94,.8); outline-offset:2px; }
-  .member-empty{ padding:40px 20px; text-align:center; color:var(--chest-ink-2); font-size:14px; }
-  .member-error{ padding:16px 0; color:var(--chest-red); font-size:13.5px; }
-
-  /* Fiche détaillée d'un membre */
-  .md{ padding:4px 0 24px 58px; border-bottom:1px solid var(--chest-rule); animation:mdIn .3s var(--chest-ease) both; }
-  .md[hidden]{ display:none; }
-  @keyframes mdIn{ from{ opacity:0; transform:translateY(-4px); } }
-  .md__grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
-  .md__box{ padding:16px 16px 14px; border-radius:16px; border:1px solid rgba(255,255,255,.1); background:linear-gradient(165deg, rgba(20,20,24,.55), rgba(9,9,11,.7)); min-width:0; }
-  .md__k{ font-size:10px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--chest-ink-3); margin-bottom:10px; }
-  .md__dl{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 12px; margin:0; font-size:12.5px; }
-  .md__dl dt{ color:var(--chest-ink-3); }
-  .md__dl dd{ margin:0; color:var(--chest-ink); text-align:right; font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; }
-  .md__nums{ display:flex; gap:18px; margin-bottom:12px; }
-  .md__nums b{ display:block; font-size:22px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
-  .md__nums span{ font-size:10.5px; color:var(--chest-ink-3); }
-  .md__bars{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
-  .md__bars li{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 10px; font-size:12px; color:var(--chest-ink-2); }
-  .md__bars li i{ grid-column:1/-1; height:4px; border-radius:4px; background:rgba(255,255,255,.06); overflow:hidden; }
-  .md__bars li i::before{ content:''; display:block; height:100%; width:var(--w); border-radius:4px; background:linear-gradient(90deg,#fc1283,#f9a45e); }
-  .md__log{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; font-size:12px; }
-  .md__log li{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 10px; color:var(--chest-ink-2); }
-  .md__log small{ grid-column:1/-1; color:var(--chest-ink-3); font-size:11px; }
-  .md__muted{ font-size:12.5px; color:var(--chest-ink-3); line-height:1.55; }
-  .md__access{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; font-size:12.5px; color:var(--chest-ink-2); }
-  .md__access select{ height:38px; padding:0 12px; border-radius:11px; font:inherit; font-size:12.5px; color:var(--chest-ink); background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.12); }
-  .md__access select:focus{ outline:none; border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.15); }
-  .md__msg{ font-size:12px; }
-  .md__msg.is-ok{ color:var(--chest-green); } .md__msg.is-err{ color:var(--chest-red); }
-  @media (max-width:1100px){ .md__grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  @media (max-width:860px){
-    .member-row{ grid-template-columns:42px minmax(0,1fr); row-gap:10px; }
-    .member-plan, .member-seen{ grid-column:2; }
-    .member-row__actions{ grid-column:1/-1; justify-self:start; flex-wrap:wrap; }
-    .md{ padding-left:0; }
-  }
-  @media (max-width:560px){ .md__grid{ grid-template-columns:1fr; } }
-</style>
+<link rel="stylesheet" href="css/admin-members.css?v=1">
 <script src="js/theme.js?v=4"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=6"></script>
+<script src="js/accounts-auth.js?v=7"></script>
 <script src="js/sync-store.js?v=10"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=11">
@@ -148,22 +69,135 @@
       </div>
     </header>
 
-    <main>
-  <section class="chest-titleglow" style="padding:40px 34px 30px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap">
-    <div style="min-width:0">
-      <div class="chest-step" style="margin-bottom:16px">01 — Accès</div>
-      <h1 class="chest-h1" style="font-size:48px">Gestion des membres</h1>
-      <p class="chest-body" style="max-width:520px;margin-top:14px">Chaque membre, son offre et ses dates de contrat, sa dernière connexion et ce qu'il utilise sur CHEST. Tu peux offrir ou modifier un accès, bloquer ou supprimer un compte.</p>
-    </div>
-    <div class="chest-kpis" id="memberCounts" style="flex-shrink:0;width:auto"></div>
-  </section>
+    <main class="am">
+      <!-- Héros : titre, effectif, période des statistiques -->
+      <section class="am-hero">
+        <div class="am-hero__txt">
+          <div class="chest-step">Administration</div>
+          <h1 class="am-hero__title">Membres</h1>
+          <p class="am-hero__lead">Qui est là, ce qu'ils paient, ce qu'ils utilisent — et qui a besoin d'un coup de main.</p>
+        </div>
+        <div class="am-hero__side">
+          <div class="am-hero__count"><b id="amTotal" class="chest-num">—</b><span>membres</span></div>
+          <div class="chest-seg am-period" id="amPeriod" role="group" aria-label="Période des statistiques">
+            <button type="button" data-days="7">7 j</button>
+            <button type="button" data-days="30" class="is-active">30 j</button>
+            <button type="button" data-days="90">90 j</button>
+            <button type="button" data-days="365">1 an</button>
+          </div>
+        </div>
+      </section>
 
-  <section class="chest-section" style="border-top:1px solid var(--chest-rule)">
-    <div class="chest-step" style="margin-bottom:6px">02 — Membres</div>
-    <div id="membersCard"><div class="member-empty" id="membersLoading">Chargement…</div></div>
-  </section>
-</main>
+      <!-- 01 — Performance -->
+      <section class="am-sec" id="amPerf" aria-labelledby="amPerfT">
+        <header class="am-sec__head"><div class="chest-step" id="amPerfT">01 — Performance</div><span class="am-sec__aside" id="amPerfAside"></span></header>
+        <div class="am-kpis" id="amKpis"></div>
+        <div class="am-charts">
+          <figure class="am-chart am-chart--main">
+            <figcaption><span>Arrivées et membres actifs</span><span class="am-legend"><i class="is-bar"></i>Nouveaux <i class="is-line"></i>Actifs du jour</span></figcaption>
+            <div class="am-chart__plot" id="amFlow"></div>
+          </figure>
+          <figure class="am-chart am-chart--donut">
+            <figcaption><span>Répartition</span></figcaption>
+            <div class="am-donut" id="amDonut"></div>
+          </figure>
+        </div>
+        <figure class="am-chart am-chart--pages">
+          <figcaption><span>Ce qu'ils utilisent</span><span class="am-legend">pages vues sur la période</span></figcaption>
+          <ol class="am-pages" id="amPages"></ol>
+        </figure>
+      </section>
+
+      <!-- 02 — Hiérarchie -->
+      <section class="am-sec" id="amTiers" aria-labelledby="amTiersT">
+        <header class="am-sec__head">
+          <div class="chest-step" id="amTiersT">02 — Hiérarchie</div>
+          <button type="button" class="chest-btn am-gift-btn" id="amGiftBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5v7.5h14v-7.5M12 8.5V20M12 8.5c-1.6 0-4.5-.6-4.5-2.6 0-1.4 1.2-2.1 2.3-1.7C11.3 4.8 12 6.5 12 8.5zM12 8.5c1.6 0 4.5-.6 4.5-2.6 0-1.4-1.2-2.1-2.3-1.7-1.5.6-2.2 2.3-2.2 4.3z"/></svg>
+            Offrir un Privilège
+          </button>
+        </header>
+        <p class="am-sec__lead">Du sommet à la base : l'équipe, les abonnés, puis ceux qui n'ont pas (ou plus) d'accès. Clique un rang pour voir ses membres.</p>
+        <div class="am-pyramid" id="amPyramid"></div>
+      </section>
+
+      <!-- 03 — Membres -->
+      <section class="am-sec" id="amList" aria-labelledby="amListT">
+        <header class="am-sec__head"><div class="chest-step" id="amListT">03 — Membres</div><span class="am-sec__aside" id="amListAside"></span></header>
+        <div class="am-tools">
+          <label class="am-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+            <input type="search" id="amSearch" placeholder="Rechercher un nom ou un e-mail" autocomplete="off" aria-label="Rechercher un membre">
+            <kbd aria-hidden="true">/</kbd>
+          </label>
+          <label class="am-sort">
+            <span>Trier</span>
+            <select id="amSort" aria-label="Trier les membres">
+              <option value="seen">Dernière activité</option>
+              <option value="new">Arrivée la plus récente</option>
+              <option value="active">Les plus actifs</option>
+              <option value="ends">Fin de contrat la plus proche</option>
+              <option value="rank">Rang</option>
+              <option value="name">Nom</option>
+            </select>
+          </label>
+        </div>
+        <div class="am-tabs" id="amTabs" role="tablist" aria-label="Catégories de membres"></div>
+        <div class="am-filter" id="amFilter" hidden></div>
+        <div class="am-rows" id="amRows"><div class="am-empty">Chargement…</div></div>
+      </section>
+
+      <!-- 04 — Nouveaux membres -->
+      <section class="am-sec" id="amNew" aria-labelledby="amNewT">
+        <header class="am-sec__head"><div class="chest-step" id="amNewT">04 — Nouveaux membres</div><span class="am-sec__aside" id="amNewAside"></span></header>
+        <div class="am-funnel" id="amFunnel"></div>
+        <ol class="am-arrivals" id="amArrivals"></ol>
+      </section>
+
+      <!-- 05 — Activité des élèves -->
+      <section class="am-sec" id="amAct" aria-labelledby="amActT">
+        <header class="am-sec__head"><div class="chest-step" id="amActT">05 — Activité des élèves</div><span class="am-sec__aside">pages vues seulement, jamais le contenu</span></header>
+        <div class="am-act">
+          <div class="am-act__col"><h3>Les plus assidus <small>30 jours</small></h3><ol id="amTop"></ol></div>
+          <div class="am-act__col"><h3>À relancer <small>accès actif, rien depuis 7 jours</small></h3><ol id="amNudge"></ol></div>
+          <div class="am-act__col"><h3>Jamais revenus <small>inscrits, aucune visite</small></h3><ol id="amGhost"></ol></div>
+        </div>
+      </section>
+    </main>
+  </div>
 </div>
+
+<!-- Fenêtre : offrir un Privilège -->
+<div class="am-modal" id="amGift" hidden>
+  <div class="am-modal__veil" data-close></div>
+  <div class="am-modal__win chest-glass" role="dialog" aria-modal="true" aria-labelledby="amGiftT">
+    <button type="button" class="am-modal__x" data-close aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="chest-step">Privilège</div>
+    <h2 id="amGiftT">Offrir un accès complet</h2>
+    <p class="am-modal__lead">Tout CHEST, School et BERICH compris, sans paiement. Tu choisis jusqu'à quand — ou sans limite.</p>
+    <form id="amGiftForm" autocomplete="off">
+      <label class="am-field"><span>Membre</span>
+        <input type="search" id="amGiftQ" placeholder="Nom ou e-mail">
+      </label>
+      <ul class="am-pick" id="amGiftList" role="listbox" aria-label="Membres"></ul>
+      <div class="am-picked" id="amGiftPick" hidden></div>
+      <div class="am-field"><span>Durée</span>
+        <div class="am-dur" data-dur-group>
+          <button type="button" data-dur="30">30 jours</button>
+          <button type="button" data-dur="90">3 mois</button>
+          <button type="button" data-dur="365">1 an</button>
+          <button type="button" data-dur="date">Jusqu'au…</button>
+          <button type="button" data-dur="" class="is-active">Sans limite</button>
+        </div>
+        <input type="date" class="am-date" data-dur-date hidden aria-label="Date de fin">
+      </div>
+      <p class="am-msg" role="status"></p>
+      <div class="am-modal__foot">
+        <button type="button" class="chest-btn-2" data-close>Annuler</button>
+        <button type="submit" class="chest-btn">Offrir le Privilège</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <footer class="site-footer v2-foot">
@@ -180,193 +214,16 @@
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '#memberCounts', title: 'Les accès en un coup d’œil', text: 'Membres payants, en essai, accès offerts et comptes sans accès.' },
-  { selector: '#membersCard', title: 'Chaque membre', text: 'Son offre et sa date de fin, sa dernière activité. « Détails » ouvre son abonnement, son activité sur 30 jours, ses réponses au questionnaire et l’historique de paiement.' },
+  { selector: '#amPeriod', title: 'La période', text: 'Les statistiques du haut (revenus, arrivées, activité) se recalculent sur 7 jours, 30 jours, 90 jours ou 1 an.' },
+  { selector: '#amKpis', title: 'Performance', text: 'Revenu mensuel récurrent, encaissé, nouveaux membres, actifs, conversion des essais et résiliations, comparés à la période précédente.' },
+  { selector: '#amPyramid', title: 'La hiérarchie', text: 'Chaque rang avec son badge et ses droits. Clique un rang pour filtrer la liste. « Offrir un Privilège » donne tout CHEST à un membre, avec ou sans date de fin.' },
+  { selector: '#amSearch', title: 'Trouver quelqu’un', text: 'Nom ou e-mail. Raccourci : la touche /.' },
+  { selector: '#amRows', title: 'Chaque membre', text: '« Gérer » ouvre sa fiche : abonnement, activité, questionnaire, historique, puis son rôle (Membre, Éducateur, Admin) et son accès.' },
+  { selector: '#amNew', title: 'Les arrivées', text: 'Le parcours des nouveaux : inscrit, questionnaire, essai, abonné.' },
+  { selector: '#amAct', title: 'Les élèves', text: 'Les plus assidus, ceux à relancer et ceux qui ne sont jamais revenus.' },
 ]);
 </script>
-<script>
-(() => {
-  const card = document.getElementById('membersCard');
-  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const CHEV = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>';
-  const PAGE_LABELS = { dashboard: 'Dashboard', backtesting: 'Backtesting', 'backtest-view': 'Rapports de backtest', 'backtest-add': 'Ajout de backtest', journal: 'Journal', strategies: 'Stratégies', calendar: 'Calendrier', berich: 'BERICH', school: 'School', account: 'Compte', connect: 'Connexion de compte', 'vps-guide': 'Guide VPS', 'admin-members': 'Admin' };
-  const ANSWERS = {
-    made: { yes: 'Oui', no: 'Non' },
-    amount: { lt1k: 'Moins de 1 000 €', '1k-10k': '1 000 à 10 000 €', '10k-50k': '10 000 à 50 000 €', gt50k: 'Plus de 50 000 €' },
-    goal: { learn: 'Apprendre de zéro', improve: 'S’améliorer', structure: 'Structurer', automate: 'Automatiser' },
-    budget: { lt100: '< 100 €/mois', '100-300': '100 à 300 €/mois', '300-1000': '300 à 1 000 €/mois', gt1000: '> 1 000 €/mois' },
-    reco: { essentiel: 'Essentiel', premium: 'Premium', allstar: 'Allstar' },
-  };
-  const STATUS = { active: 'Actif', trialing: 'Essai en cours', canceling: 'Résiliation programmée', past_due: 'Paiement en retard', canceled: 'Terminé', manual: 'Réglé à la main' };
-  const initials = (m) => `${(m.firstName || '?')[0]}${(m.lastName || '?')[0]}`.toUpperCase();
-  const dt = (iso, withTime) => { if (!iso) return '—'; const d = new Date(iso); if (isNaN(d)) return '—'; return d.toLocaleDateString('fr-FR', withTime ? { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'short', year: 'numeric' }); };
-  const ago = (iso) => {
-    if (!iso) return 'jamais';
-    const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
-    if (m < 2) return 'à l’instant';
-    if (m < 60) return `il y a ${m} min`;
-    const h = Math.round(m / 60); if (h < 24) return `il y a ${h} h`;
-    const d = Math.round(h / 24); return d < 30 ? `il y a ${d} j` : dt(iso);
-  };
-  const eur = (cents) => cents ? (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : '—';
-  function planInfo(m) {
-    const a = m.access || {};
-    if (m.isAdmin) return { cls: 'plan-gift', label: 'Admin', sub: 'accès complet' };
-    if (!a.active) return { cls: a.trialUsed || a.plan !== 'none' ? 'plan-late' : 'plan-none', label: a.plan === 'none' ? 'Sans accès' : (a.label || '') + ' · terminé', sub: a.endsAt ? 'depuis le ' + dt(a.endsAt) : (a.trialUsed ? 'essai utilisé' : 'pas encore choisi') };
-    if (a.trial) return { cls: 'plan-trial', label: 'Essai gratuit', sub: 'jusqu’au ' + dt(a.endsAt) };
-    if (a.plan === 'offert') return { cls: 'plan-gift', label: 'Accès offert', sub: a.endsAt ? 'jusqu’au ' + dt(a.endsAt) : 'sans limite' };
-    const late = a.status === 'past_due' || a.status === 'canceling';
-    return { cls: late ? 'plan-late' : 'plan-paid', label: (a.label || '').replace('CHEST ', '') + (a.period === 'year' ? ' · annuel' : a.period === 'month' ? ' · mensuel' : ''), sub: (a.status === 'canceling' ? 'se termine le ' : a.paid ? 'renouvellement le ' : 'jusqu’au ') + dt(a.endsAt) };
-  }
-
-  function details(m) {
-    const a = m.access || {};
-    const act = m.activity || { days30: 0, views30: 0, top: [] };
-    const maxV = Math.max(1, ...act.top.map((t) => t[1]));
-    const ob = m.onboarding;
-    const me = CHESTAccounts.getUser();
-    const isMe = me && me.id === m.id;
-    return `<div class="md" id="md-${m.id}" hidden>
-      <div class="md__grid">
-        <div class="md__box"><div class="md__k">Abonnement</div><dl class="md__dl">
-          <dt>Offre</dt><dd>${esc(m.isAdmin ? 'Admin' : a.label || 'Aucune')}</dd>
-          <dt>Période</dt><dd>${a.period === 'year' ? 'Annuelle' : a.period === 'month' ? 'Mensuelle' : '—'}</dd>
-          <dt>Statut</dt><dd>${esc(STATUS[a.status] || (a.active ? 'Actif' : 'Sans accès'))}</dd>
-          <dt>Début</dt><dd>${dt(a.startedAt)}</dd>
-          <dt>Fin</dt><dd>${a.plan === 'offert' && !a.endsAt ? 'Sans limite' : dt(a.endsAt)}</dd>
-          <dt>Dernier paiement</dt><dd>${eur(m.amount)}</dd>
-        </dl></div>
-        <div class="md__box"><div class="md__k">Activité · 30 jours</div>
-          <div class="md__nums"><div><b>${act.days30}</b><span>jours actifs</span></div><div><b>${act.views30}</b><span>pages vues</span></div></div>
-          ${act.top.length ? `<ul class="md__bars">${act.top.map(([p, v]) => `<li><span>${esc(PAGE_LABELS[p] || p)}</span><span>${v}</span><i style="--w:${Math.round(v / maxV * 100)}%"></i></li>`).join('')}</ul>` : '<p class="md__muted">Aucune activité enregistrée pour l’instant.</p>'}
-          <dl class="md__dl" style="margin-top:12px"><dt>Connexion</dt><dd>${esc(ago(m.lastLoginAt))}</dd><dt>Inscrit le</dt><dd>${dt(m.createdAt)}</dd></dl>
-        </div>
-        <div class="md__box"><div class="md__k">Questionnaire</div>
-          ${ob ? `<dl class="md__dl">
-            <dt>Niveau</dt><dd>${esc(ob.level || '—')} / 10</dd>
-            <dt>Déjà gagné</dt><dd>${esc(ANSWERS.made[ob.made] || '—')}${ob.amount ? ' · ' + esc(ANSWERS.amount[ob.amount] || '') : ''}</dd>
-            <dt>Objectif</dt><dd>${esc(ANSWERS.goal[ob.goal] || '—')}</dd>
-            <dt>Budget</dt><dd>${esc(ANSWERS.budget[ob.budget] || '—')}</dd>
-            <dt>Conseillé</dt><dd>${esc(ANSWERS.reco[ob.recommended] || '—')}</dd>
-          </dl>` : '<p class="md__muted">Pas encore répondu.</p>'}
-        </div>
-        <div class="md__box"><div class="md__k">Historique</div>
-          ${(m.billing || []).length ? `<ul class="md__log">${m.billing.map((b) => `<li><span>${esc(b.summary)}</span><span>${b.amount ? eur(b.amount) : ''}</span><small>${dt(b.at, true)}</small></li>`).join('')}</ul>` : '<p class="md__muted">Aucun paiement pour l’instant.</p>'}
-        </div>
-      </div>
-      ${isMe ? '' : `<form class="md__access" data-access="${m.id}">
-        <span>Modifier l’accès :</span>
-        <select name="plan" aria-label="Offre"><option value="offert">Accès offert (tout CHEST)</option><option value="premium">Premium</option><option value="essentiel">Essentiel</option><option value="none">Aucun accès</option></select>
-        <select name="days" aria-label="Durée"><option value="30">30 jours</option><option value="7">7 jours</option><option value="90">3 mois</option><option value="365">1 an</option><option value="">Sans limite</option></select>
-        <button type="submit" class="btn btn-ghost">Appliquer</button>
-        <span class="md__msg" role="status"></span>
-      </form>`}
-    </div>`;
-  }
-
-  function rowHtml(m) {
-    const me = CHESTAccounts.getUser();
-    const isMe = me && me.id === m.id;
-    const p = planInfo(m);
-    const block = m.status === 'blocked'
-      ? `<button class="btn btn-primary" data-approve="${m.id}">Débloquer</button>`
-      : isMe ? '' : `<button class="btn btn-ghost" data-block="${m.id}">Bloquer</button>`;
-    const del = isMe ? '' : `<button class="btn btn-ghost btn-delete" data-delete="${m.id}" data-name="${esc(`${m.firstName} ${m.lastName}`)}">Supprimer</button>`;
-    return `<div class="member-item">
-      <div class="member-row" data-member-row="${m.id}">
-        <div class="member-row__avatar">${esc(initials(m))}</div>
-        <div class="member-row__info">
-          <div class="member-row__name">${esc(m.firstName)} ${esc(m.lastName)}${m.isAdmin ? '<span class="badge-admin">Admin</span>' : ''}${m.status === 'blocked' ? '<span class="badge-blocked">Bloqué</span>' : ''}</div>
-          <div class="member-row__email">${esc(m.email)}</div>
-        </div>
-        <div class="member-plan ${p.cls}"><b>${esc(p.label)}</b><small>${esc(p.sub)}</small></div>
-        <div class="member-seen">${esc(ago(m.lastSeenAt || m.lastLoginAt))}<small>dernière activité</small></div>
-        <div class="member-row__actions">
-          <button type="button" class="btn btn-ghost btn-more" data-more="${m.id}" aria-expanded="false" aria-controls="md-${m.id}">Détails ${CHEV}</button>${block}${del}
-        </div>
-      </div>
-      ${details(m)}
-    </div>`;
-  }
-
-  function renderCounts(members) {
-    const zone = document.getElementById('memberCounts');
-    const others = members.filter((m) => !m.isAdmin);
-    const n = (f) => others.filter(f).length;
-    const k = (label, val, color) => `<div style="text-align:right"><div class="chest-label" style="margin-bottom:8px">${label}</div><div class="chest-kpi__val" style="color:${color};text-shadow:0 0 18px ${color}55">${val}</div></div>`;
-    zone.innerHTML =
-      k('Payants', n((m) => m.access && m.access.active && ['essentiel', 'premium', 'allstar'].includes(m.access.plan)), 'var(--chest-green)') +
-      k('En essai', n((m) => m.access && m.access.active && m.access.trial), 'var(--chest-amber)') +
-      k('Offerts', n((m) => m.access && m.access.active && m.access.plan === 'offert'), '#9dbcff') +
-      k('Sans accès', n((m) => !m.access || !m.access.active), 'var(--chest-ink-2)');
-  }
-
-  let openId = null;
-  async function render() {
-    if (!CHESTAccounts.isAdmin()) { card.innerHTML = '<div class="member-error">Cette page est réservée aux administrateurs.</div>'; return; }
-    try {
-      const members = await CHESTAccounts.fetchMembers();
-      renderCounts(members);
-      card.innerHTML = members.length ? members.map(rowHtml).join('') : '<div class="member-empty">Aucun membre pour l’instant.</div>';
-      if (openId != null) toggle(openId, true);
-    } catch (err) {
-      card.innerHTML = `<div class="member-error">Impossible de charger les membres : ${esc(err.message)}</div>`;
-    }
-  }
-  function toggle(id, force) {
-    const panel = document.getElementById('md-' + id);
-    const btn = card.querySelector(`[data-more="${id}"]`);
-    if (!panel || !btn) return;
-    const open = force != null ? force : panel.hidden;
-    panel.hidden = !open;
-    btn.setAttribute('aria-expanded', String(open));
-    openId = open ? id : null;
-  }
-
-  card.addEventListener('submit', async (e) => {
-    const form = e.target.closest('[data-access]');
-    if (!form) return;
-    e.preventDefault();
-    const msg = form.querySelector('.md__msg');
-    const plan = form.plan.value;
-    const days = form.days.value;
-    if (plan !== 'offert' && plan !== 'none' && !days) { msg.textContent = 'Choisis une durée pour cette offre.'; msg.className = 'md__msg is-err'; return; }
-    msg.textContent = 'Enregistrement…'; msg.className = 'md__msg';
-    try {
-      await CHESTAccounts.setMemberAccess(form.dataset.access, plan, days ? Number(days) : null);
-      openId = Number(form.dataset.access);
-      await render();
-      const again = card.querySelector(`[data-access="${openId}"] .md__msg`);
-      if (again) { again.textContent = 'Accès mis à jour.'; again.className = 'md__msg is-ok'; }
-    } catch (err) { msg.textContent = err.message; msg.className = 'md__msg is-err'; }
-  });
-
-  card.addEventListener('click', async (e) => {
-    const more = e.target.closest('[data-more]');
-    if (more) { toggle(Number(more.dataset.more)); return; }
-    const t = e.target.closest('[data-approve],[data-block],[data-delete]');
-    if (!t) return;
-    const { approve: approveId, block: blockId, delete: deleteId } = t.dataset;
-    if (deleteId) {
-      const typed = await CHESTPrompt(`Supprimer définitivement ${t.dataset.name} ? Son compte et TOUTES ses données (comptes de trading, Myfxbook, VPS, journal, backtests, alertes, notifications, activité, historique de paiement) seront effacés. C'est irréversible. Tape SUPPRIMER pour confirmer.`, { confirmLabel: 'Supprimer' });
-      if (typed == null) return;
-      if (typed.trim().toUpperCase() !== 'SUPPRIMER') { await CHESTAlert('Suppression annulée : il fallait taper SUPPRIMER.'); return; }
-      t.disabled = true;
-      try { await CHESTAccounts.deleteMember(deleteId); await render(); } catch (err) { await CHESTAlert(err.message); t.disabled = false; }
-      return;
-    }
-    if (blockId && !(await CHESTConfirm('Bloquer ce compte ? Son accès est coupé immédiatement (déconnexion forcée) — tu pourras le débloquer plus tard.'))) return;
-    t.disabled = true;
-    try {
-      if (approveId) await CHESTAccounts.approveMember(approveId);
-      if (blockId) await CHESTAccounts.blockMember(blockId);
-      await render();
-    } catch (err) { await CHESTAlert(err.message); t.disabled = false; }
-  });
-
-  render();
-})();
-</script>
+<script src="js/admin-members.js?v=1"></script>
 <script src="js/v2.js?v=3"></script>
 </body>
 </html>

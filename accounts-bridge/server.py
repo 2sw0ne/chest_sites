@@ -315,7 +315,7 @@ def init_db():
         new_cols = [("plan", "TEXT"), ("plan_period", "TEXT"), ("plan_status", "TEXT"), ("plan_started_at", "TEXT"),
                     ("plan_ends_at", "TEXT"), ("plan_amount", "INTEGER"), ("trial_used", "INTEGER NOT NULL DEFAULT 0"),
                     ("stripe_customer_id", "TEXT"), ("stripe_subscription_id", "TEXT"), ("onboarding", "TEXT"),
-                    ("last_login_at", "TEXT"), ("last_seen_at", "TEXT")]
+                    ("last_login_at", "TEXT"), ("last_seen_at", "TEXT"), ("role", "TEXT")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -379,6 +379,7 @@ def user_public(row):
         "createdAt": row["created_at"],
         "tutoSeen": bool(row["tuto_seen_at"]) if "tuto_seen_at" in row.keys() else True,
         "access": access_of(row),
+        "role": "admin" if row["is_admin"] else (_col(row, "role") or "member"),
     }
 
 
@@ -780,7 +781,7 @@ PLANS = {
     "essentiel": {"label": "CHEST Essentiel", "school": False, "berich": False, "sync": True},
     "premium": {"label": "CHEST Premium", "school": True, "berich": True, "sync": True},
     "allstar": {"label": "CHEST Allstar", "school": True, "berich": True, "sync": True},
-    "offert": {"label": "Accès offert", "school": True, "berich": True, "sync": True},
+    "offert": {"label": "Privilège", "school": True, "berich": True, "sync": True},
 }
 PLAN_AMOUNTS = {  # centimes TTC avant remise -> (offre, période)
     9998: ("essentiel", "month"), 100000: ("essentiel", "year"),
@@ -810,7 +811,8 @@ def access_of(row):
     plan = _col(row, "plan", "none")
     ends = _parse_iso(_col(row, "plan_ends_at"))
     now = datetime.now(timezone.utc)
-    if row["is_admin"]:
+    if row["is_admin"] or _col(row, "role") == "educator":
+        # Équipe (admin, éducateurs) : accès complet, sans abonnement.
         active, plan_key = True, "offert"
     else:
         plan_key = plan
@@ -1032,9 +1034,18 @@ def _admin_member(db, row):
     pages = {}
     for a in acts:
         pages[a["page"]] = pages.get(a["page"], 0) + a["views"]
+    today = datetime.now(timezone.utc).date()
+    per_day = {}
+    for a in acts:
+        per_day[a["day"]] = per_day.get(a["day"], 0) + a["views"]
+    last14 = [per_day.get((today - timedelta(days=i)).isoformat(), 0) for i in range(13, -1, -1)]
+    week = {(today - timedelta(days=i)).isoformat() for i in range(7)}
     out["activity"] = {
         "days30": len({a["day"] for a in acts}),
         "views30": sum(a["views"] for a in acts),
+        "days7": len({a["day"] for a in acts if a["day"] in week}),
+        "views7": sum(a["views"] for a in acts if a["day"] in week),
+        "last14": last14,
         "top": sorted(([p, v] for p, v in pages.items()), key=lambda x: -x[1])[:5],
     }
     out["lastLoginAt"] = _col(row, "last_login_at")
@@ -1047,6 +1058,7 @@ def _admin_member(db, row):
         "SELECT type, amount, summary, created_at AS at FROM billing_events WHERE user_id = ? ORDER BY created_at DESC LIMIT 6",
         (row["id"],)).fetchall()]
     out["amount"] = _col(row, "plan_amount")
+    out["category"] = member_category(row)
     return out
 
 
@@ -1059,6 +1071,7 @@ def member_access(member_id):
     body = request.get_json(silent=True) or {}
     plan = body.get("plan")
     days = body.get("days")
+    until = (body.get("until") or "").strip()
     if plan not in ("offert", "essentiel", "premium", "none"):
         return jsonify({"error": "Offre inconnue."}), 400
     db = get_db()
@@ -1066,7 +1079,15 @@ def member_access(member_id):
         return jsonify({"error": "Compte introuvable."}), 404
     now = datetime.now(timezone.utc)
     ends = None
-    if days not in (None, "", 0):
+    if until:
+        try:
+            # 21:59 UTC = fin de soirée en France (22:59 l'hiver, 23:59 l'été) : la date affichée reste celle choisie.
+            ends = datetime.fromisoformat(until[:10]).replace(hour=21, minute=59, second=59, tzinfo=timezone.utc)
+        except ValueError:
+            return jsonify({"error": "Date invalide."}), 400
+        if ends <= now:
+            return jsonify({"error": "La date de fin doit être dans le futur."}), 400
+    elif days not in (None, "", 0):
         try:
             ends = now + timedelta(days=max(1, min(3660, int(days))))
         except (TypeError, ValueError):
@@ -1079,9 +1100,135 @@ def member_access(member_id):
         else:
             _set_plan(db, member_id, plan, None, "manual", now, ends)
         _log_billing(db, f"manual-{member_id}-{int(time.time())}", member_id, "manual", 0,
-                     f"Accès modifié par l'admin : {PLANS.get(plan, {}).get('label', 'aucun accès')}" + (f" jusqu'au {ends.date().isoformat()}" if ends else ""))
+                     f"Accès modifié par l'admin : {PLANS.get(plan, {}).get('label', 'aucun accès')}" + (f" jusqu'au {ends.strftime('%d/%m/%Y')}" if ends else (" sans limite" if plan == "offert" else "")))
         db.commit()
     return jsonify(_admin_member(db, db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()))
+
+
+@app.route("/members/<int:member_id>/role", methods=["POST"])
+def member_role(member_id):
+    """Hiérarchie : membre, éducateur (accès complet ; School plus tard) ou admin."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    role = (request.get_json(silent=True) or {}).get("role")
+    if role not in ("member", "educator", "admin"):
+        return jsonify({"error": "Rôle inconnu."}), 400
+    db = get_db()
+    target = db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()
+    if not target:
+        return jsonify({"error": "Compte introuvable."}), 404
+    if member_id == admin["id"] and role != "admin":
+        return jsonify({"error": "Tu ne peux pas retirer ton propre rôle d'admin."}), 400
+    if target["is_admin"] and role != "admin" and db.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin = 1").fetchone()["n"] <= 1:
+        return jsonify({"error": "Il faut garder au moins un administrateur."}), 400
+    labels = {"member": "Membre", "educator": "Éducateur", "admin": "Admin"}
+    with db_lock:
+        db.execute("UPDATE users SET is_admin = ?, role = ? WHERE id = ?",
+                   (1 if role == "admin" else 0, None if role == "admin" else role, member_id))
+        _log_billing(db, f"role-{member_id}-{int(time.time())}", member_id, "role", 0, f"Rôle : {labels[role]}")
+        db.commit()
+    return jsonify(_admin_member(db, db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()))
+
+
+MONTHLY_VALUE = {("essentiel", "month"): 99.98, ("essentiel", "year"): 1000 / 12,
+                 ("premium", "month"): 299.98, ("premium", "year"): 3000 / 12, ("allstar", "year"): 9999.98 / 12}
+
+
+def member_category(row):
+    """Catégorie d'un membre dans la hiérarchie (même découpage que la page admin)."""
+    if row["is_admin"]:
+        return "admin"
+    if _col(row, "role") == "educator":
+        return "educator"
+    a = access_of(row)
+    if a["active"]:
+        return "privilege" if a["plan"] == "offert" else a["plan"]  # trial | essentiel | premium | allstar
+    return "expired" if (a["trialUsed"] or a["plan"] not in ("none", None)) else "none"
+
+
+@app.route("/admin/stats")
+def admin_stats():
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    try:
+        days = max(7, min(365, int(request.args.get("days", 30))))
+    except ValueError:
+        days = 30
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    start = today - timedelta(days=days - 1)
+    prev_start = start - timedelta(days=days)
+    rows = db.execute("SELECT * FROM users").fetchall()
+    cats = {}
+    for r in rows:
+        c = member_category(r)
+        cats[c] = cats.get(c, 0) + 1
+    # Arrivées par jour (période) et sur la période précédente
+    signups = {}
+    prev_signups = 0
+    for r in rows:
+        d = (_parse_iso(r["created_at"]) or now).date()
+        if d >= start:
+            signups[d.isoformat()] = signups.get(d.isoformat(), 0) + 1
+        elif d >= prev_start:
+            prev_signups += 1
+    series = []
+    act_rows = {r["day"]: r for r in db.execute(
+        "SELECT day, COUNT(DISTINCT user_id) AS users, SUM(views) AS views FROM user_activity WHERE day >= ? GROUP BY day",
+        (start.isoformat(),)).fetchall()}
+    for i in range(days):
+        d = (start + timedelta(days=i)).isoformat()
+        a = act_rows.get(d)
+        series.append({"day": d, "signups": signups.get(d, 0), "users": a["users"] if a else 0, "views": a["views"] if a else 0})
+    pages = [[r["page"], r["v"]] for r in db.execute(
+        "SELECT page, SUM(views) AS v FROM user_activity WHERE day >= ? GROUP BY page ORDER BY v DESC LIMIT 8",
+        (start.isoformat(),)).fetchall()]
+
+    def distinct_since(n):
+        d = (today - timedelta(days=n - 1)).isoformat()
+        return db.execute("SELECT COUNT(DISTINCT user_id) AS n FROM user_activity WHERE day >= ?", (d,)).fetchone()["n"]
+
+    mrr = 0.0
+    paying = 0
+    for r in rows:
+        a = access_of(r)
+        if a["active"] and a["plan"] in ("essentiel", "premium", "allstar") and not r["is_admin"]:
+            paying += 1
+            amount = _col(r, "plan_amount")
+            if amount:
+                mrr += amount / 100 / (12 if a["period"] == "year" else 1)
+            else:
+                mrr += MONTHLY_VALUE.get((a["plan"], a["period"] or "month"), 0)
+
+    def collected(a, b):
+        return db.execute("SELECT COALESCE(SUM(amount), 0) AS s FROM billing_events WHERE type = 'invoice.paid' AND created_at >= ? AND created_at < ?",
+                          (a.isoformat(), b.isoformat())).fetchone()["s"] / 100
+
+    trial_started = db.execute("SELECT COUNT(*) AS n FROM users WHERE trial_used = 1").fetchone()["n"]
+    trial_paid = db.execute("SELECT COUNT(*) AS n FROM users WHERE trial_used = 1 AND stripe_subscription_id IS NOT NULL").fetchone()["n"]
+    churn = db.execute("SELECT COUNT(*) AS n FROM billing_events WHERE type = 'customer.subscription.deleted' AND created_at >= ?",
+                       (start.isoformat(),)).fetchone()["n"]
+    return jsonify({
+        "days": days,
+        "categories": cats,
+        "members": len(rows),
+        "paying": paying,
+        "mrr": round(mrr, 2),
+        "collected": round(collected(datetime.combine(start, datetime.min.time(), timezone.utc), now + timedelta(seconds=1)), 2),
+        "collectedPrev": round(collected(datetime.combine(prev_start, datetime.min.time(), timezone.utc), datetime.combine(start, datetime.min.time(), timezone.utc)), 2),
+        "signups": sum(signups.values()),
+        "signupsPrev": prev_signups,
+        "active1": distinct_since(1),
+        "active7": distinct_since(7),
+        "active30": distinct_since(30),
+        "trial": {"started": trial_started, "converted": trial_paid},
+        "churn": churn,
+        "series": series,
+        "pages": pages,
+    })
 
 
 # ---------------------------------------------------------------- School
