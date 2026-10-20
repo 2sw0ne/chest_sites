@@ -379,7 +379,7 @@ def user_public(row):
         "createdAt": row["created_at"],
         "tutoSeen": bool(row["tuto_seen_at"]) if "tuto_seen_at" in row.keys() else True,
         "access": access_of(row),
-        "role": "admin" if row["is_admin"] else (_col(row, "role") or "member"),
+        "role": ("manager" if _col(row, "role") == "manager" else "admin") if row["is_admin"] else (_col(row, "role") or "member"),
     }
 
 
@@ -677,6 +677,9 @@ def reject_member(member_id):
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
+    denied = guard_principal(admin, member_id)
+    if denied:
+        return denied
     db = get_db()
     with db_lock:
         db.execute("UPDATE users SET status = 'rejected' WHERE id = ?", (member_id,))
@@ -695,6 +698,9 @@ def block_member(member_id):
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
+    denied = guard_principal(admin, member_id)
+    if denied:
+        return denied
     db = get_db()
     with db_lock:
         db.execute("UPDATE users SET status = 'blocked' WHERE id = ?", (member_id,))
@@ -713,6 +719,9 @@ def delete_member(member_id):
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
+    denied = guard_principal(admin, member_id)
+    if denied:
+        return denied
     if member_id == admin["id"]:
         return jsonify({"error": "Tu ne peux pas supprimer ton propre compte."}), 400
     db = get_db()
@@ -753,6 +762,9 @@ def reset_member_password(member_id):
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
+    denied = guard_principal(admin, member_id)
+    if denied:
+        return denied
     db = get_db()
     target = db.execute("SELECT id FROM users WHERE id = ?", (member_id,)).fetchone()
     if not target:
@@ -1190,6 +1202,9 @@ def member_access(member_id):
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
+    denied = guard_principal(admin, member_id)
+    if denied:
+        return denied
     body = request.get_json(silent=True) or {}
     plan = body.get("plan")
     days = body.get("days")
@@ -1233,21 +1248,27 @@ def member_role(member_id):
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
+    denied = guard_principal(admin, member_id)
+    if denied:
+        return denied
     role = (request.get_json(silent=True) or {}).get("role")
-    if role not in ("member", "educator", "admin"):
+    if role not in ("member", "educator", "manager", "admin"):
         return jsonify({"error": "Rôle inconnu."}), 400
+    if role == "admin" and is_manager(admin):
+        return jsonify({"error": "Seul un administrateur principal peut nommer un administrateur."}), 403
     db = get_db()
     target = db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()
     if not target:
         return jsonify({"error": "Compte introuvable."}), 404
-    if member_id == admin["id"] and role != "admin":
-        return jsonify({"error": "Tu ne peux pas retirer ton propre rôle d'admin."}), 400
-    if target["is_admin"] and role != "admin" and db.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin = 1").fetchone()["n"] <= 1:
-        return jsonify({"error": "Il faut garder au moins un administrateur."}), 400
-    labels = {"member": "Membre", "educator": "Éducateur", "admin": "Admin"}
+    if member_id == admin["id"]:
+        return jsonify({"error": "Tu ne peux pas changer ton propre rôle."}), 400
+    principals = db.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin = 1 AND COALESCE(role, '') != 'manager'").fetchone()["n"]
+    if target["is_admin"] and not is_manager(target) and role != "admin" and principals <= 1:
+        return jsonify({"error": "Il faut garder au moins un administrateur principal."}), 400
+    labels = {"member": "Membre", "educator": "Éducateur", "manager": "Manageur", "admin": "Admin"}
     with db_lock:
         db.execute("UPDATE users SET is_admin = ?, role = ? WHERE id = ?",
-                   (1 if role == "admin" else 0, None if role == "admin" else role, member_id))
+                   (1 if role in ("admin", "manager") else 0, None if role == "admin" else role, member_id))
         _log_billing(db, f"role-{member_id}-{int(time.time())}", member_id, "role", 0, f"Rôle : {labels[role]}")
         db.commit()
     return jsonify(_admin_member(db, db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()))
@@ -1257,10 +1278,26 @@ MONTHLY_VALUE = {("essentiel", "month"): 99.98, ("essentiel", "year"): 1000 / 12
                  ("premium", "month"): 299.98, ("premium", "year"): 3000 / 12, ("allstar", "year"): 9999.98 / 12}
 
 
+def is_manager(row):
+    """Manageur (2026-10-21) : un admin (is_admin = 1) avec role = 'manager'. Mêmes pouvoirs, accès complet
+    illimité, mais pas d'accès à CHEST HQ et aucun pouvoir sur un admin principal."""
+    return bool(row and row["is_admin"] and _col(row, "role") == "manager")
+
+
+def guard_principal(admin, member_id):
+    """Réponse d'erreur si un manageur vise un admin principal, sinon None."""
+    if not is_manager(admin):
+        return None
+    t = get_db().execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()
+    if t and t["is_admin"] and not is_manager(t):
+        return jsonify({"error": "Un manageur ne peut pas modifier un administrateur principal."}), 403
+    return None
+
+
 def member_category(row):
     """Catégorie d'un membre dans la hiérarchie (même découpage que la page admin)."""
     if row["is_admin"]:
-        return "admin"
+        return "manager" if _col(row, "role") == "manager" else "admin"
     if _col(row, "role") == "educator":
         return "educator"
     a = access_of(row)

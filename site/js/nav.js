@@ -31,7 +31,9 @@
   // restait cache pour toujours apres une connexion admin reussie sans rechargement de page.
   function refreshAdminVisibility() {
     if (window.CHESTAccounts && CHESTAccounts.isAdmin()) {
-      document.querySelectorAll('[data-admin-only]').forEach((el) => { el.hidden = false; });
+      // Manageur (role = manager) : mêmes entrées admin, sauf celles réservées aux admins principaux (CHEST HQ).
+      const u = CHESTAccounts.getUser() || {};
+      document.querySelectorAll('[data-admin-only]').forEach((el) => { el.hidden = el.hasAttribute('data-owner-only') && u.role === 'manager'; });
     }
   }
   window.CHESTNav = { refreshAccount, refreshAdminVisibility };

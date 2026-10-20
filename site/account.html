@@ -307,7 +307,7 @@
       document.getElementById('acchAvatar').textContent = ((u.firstName || '?')[0] + ((u.lastName || '')[0] || '')).toUpperCase();
       document.getElementById('acchMail').textContent = u.email || '';
       const role = document.getElementById('acchRole');
-      role.hidden = !u.isAdmin; role.textContent = 'Admin';
+      role.hidden = !u.isAdmin; role.textContent = u.role === 'manager' ? 'Manageur' : 'Admin';
       const accs = read('chest_accounts', '[]').filter((a) => a.id !== 'live-swann');
       const jr = read('chest_journal_accounts', '[]');
       const bt = read('chest_backtests', '[]');
@@ -641,7 +641,7 @@
   </div>
 </aside>
 
-<script src="js/nav.js?v=7"></script>
+<script src="js/nav.js?v=8"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/berich-brokers.js"></script>
@@ -1461,7 +1461,7 @@ CHESTTour.init([
   const value = document.getElementById('planRowValue');
   const manage = document.getElementById('planManageBtn');
   const offers = document.getElementById('planOffersBtn');
-  if (u.isAdmin) { title.textContent = 'Accès administrateur'; value.innerHTML = 'Tout CHEST, sans abonnement.'; offers.textContent = 'Voir la page des offres'; return; }
+  if (u.isAdmin) { title.textContent = u.role === 'manager' ? 'Accès manageur' : 'Accès administrateur'; value.innerHTML = 'Tout CHEST, sans abonnement.'; offers.textContent = 'Voir la page des offres'; return; }
   if (u.role === 'educator') { title.textContent = 'Éducateur'; value.innerHTML = 'Tout CHEST par ton rôle, sans abonnement.'; offers.textContent = 'Voir la page des offres'; return; }
   title.textContent = a.label || 'Aucune offre';
   if (a.trial) value.innerHTML = `Essai gratuit jusqu'au <b>${date(a.endsAt)}</b>. Tes données restent sur cet appareil jusqu'à ce que tu choisisses une offre.`;

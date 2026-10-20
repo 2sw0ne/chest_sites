@@ -23,6 +23,7 @@
   // Badges provisoires : hexagone aux couleurs du rang + pictogramme. Les vrais badges remplaceront `badge()`.
   const TIERS = [
     { key: 'admin', name: 'Admin', group: 'team', rights: 'Tout CHEST et la gestion des membres.', c1: '#fc1283', c2: '#f9a45e', g: 'M6.5 15.5 5.6 9l3.6 2.6L12 7l2.8 4.6L18.4 9l-.9 6.5zM7 17.5h10' },
+    { key: 'manager', name: 'Manageur', group: 'team', rights: 'Mêmes pouvoirs que l’admin, accès illimité, sans CHEST HQ.', c1: '#ffd23f', c2: '#ff8a1f', g: 'M12 5.5l5.5 2v4c0 3.2-2.3 5.6-5.5 6.8-3.2-1.2-5.5-3.6-5.5-6.8v-4zM9.6 12l1.7 1.7 3.3-3.4' },
     { key: 'educator', name: 'Éducateur', group: 'team', rights: 'Accès complet sans abonnement. Publiera bientôt dans School.', c1: '#b79bff', c2: '#6b4dff', g: 'M4 10.5 12 7l8 3.5-8 3.5zM7.5 12v3.2c0 1 2 2.3 4.5 2.3s4.5-1.3 4.5-2.3V12' },
     { key: 'privilege', name: 'Privilège', group: 'access', rights: 'Tout CHEST, offert par toi, avec ou sans date de fin.', c1: '#9dbcff', c2: '#3f7bff', g: 'M12 6.2l1.5 4.3 4.3 1.5-4.3 1.5L12 17.8l-1.5-4.3L6.2 12l4.3-1.5z' },
     { key: 'allstar', name: 'Allstar', group: 'access', rights: 'Tout CHEST et l’automatisation complète. Bientôt disponible.', c1: '#ffe39a', c2: '#d99a1e', g: 'M12 6.3l1.7 3.6 3.9.5-2.9 2.7.7 3.9L12 15.1 8.6 17l.7-3.9-2.9-2.7 3.9-.5z' },
@@ -40,7 +41,7 @@
   ];
   const CHIPS = [
     { key: 'all', label: 'Tous', test: () => true },
-    { key: 'team', label: 'Équipe', test: (m) => ['admin', 'educator'].includes(cat(m)) },
+    { key: 'team', label: 'Équipe', test: (m) => ['admin', 'manager', 'educator'].includes(cat(m)) },
     { key: 'privilege', label: 'Privilège', test: (m) => cat(m) === 'privilege' },
     { key: 'subs', label: 'Abonnés', test: (m) => ['allstar', 'premium', 'essentiel'].includes(cat(m)) },
     { key: 'trial', label: 'Essai', test: (m) => cat(m) === 'trial' },
@@ -98,13 +99,14 @@
   // Catégorie : calculée par le serveur (member_category) ; repli local identique si absente.
   function cat(m) {
     if (m.category) return m.category;
-    if (m.isAdmin) return 'admin';
+    if (m.isAdmin) return m.role === 'manager' ? 'manager' : 'admin';
     if (m.role === 'educator') return 'educator';
     const a = m.access || {};
     if (a.active) return a.plan === 'offert' ? 'privilege' : a.plan;
     return a.trialUsed || (a.plan && a.plan !== 'none') ? 'expired' : 'none';
   }
-  const isTeam = (m) => ['admin', 'educator'].includes(cat(m));
+  const isTeam = (m) => ['admin', 'manager', 'educator'].includes(cat(m));
+  const roleOf = (m) => (m.isAdmin ? (m.role === 'manager' ? 'manager' : 'admin') : (m.role === 'educator' ? 'educator' : 'member'));
   const me = () => A.getUser() || {};
   const seenOf = (m) => ms(m.lastSeenAt || m.lastLoginAt);
   const isOnline = (m) => { const t = seenOf(m); return t && Date.now() - t < 15 * 60000; };
@@ -114,6 +116,7 @@
     const a = m.access || {};
     const c = cat(m);
     if (c === 'admin') return { label: 'Accès complet', sub: 'administrateur', cls: '' };
+    if (c === 'manager') return { label: 'Accès complet', sub: 'manageur, sans limite', cls: '' };
     if (c === 'educator') return { label: 'Accès complet', sub: 'par son rôle', cls: '' };
     const left = daysUntil(a.endsAt);
     const soon = left != null && left <= 7 ? 'is-warn' : '';
@@ -582,7 +585,7 @@
     if (!tabs.some((t) => t[0] === S.dtab)) S.dtab = 'overview';
     const left = daysUntil(a.endsAt);
     const ob = m.onboarding;
-    const role = m.isAdmin ? 'admin' : (m.role === 'educator' ? 'educator' : 'member');
+    const role = roleOf(m);
     const planNow = c === 'privilege' ? 'offert' : ['premium', 'essentiel'].includes(c) ? c : (c === 'none' || c === 'expired' ? 'none' : 'offert');
     const t = TIER[c] || TIER.none;
     const maxV = Math.max(1, ...(act.top || []).map((x) => x[1]));
@@ -614,7 +617,7 @@
     </div>`;
     const access = `<div class="am-dpane" data-dpane="access" ${S.dtab === 'access' ? '' : 'hidden'}>${isMe ? '<p class="am-muted">C’est ton compte : ton rôle et ton accès ne se modifient pas d’ici.</p>' : `
       <div class="am-block"><h3 class="am-sub">Rôle</h3>
-        <div class="am-opt">${[['member', 'Membre', 'Droits selon son offre'], ['educator', 'Éducateur', 'Accès complet, School bientôt'], ['admin', 'Admin', 'Tous les droits']].map(([k, l, s]) => `<button type="button" data-role="${k}" aria-pressed="${role === k}"><b>${badge(k === 'member' ? (c === 'admin' || c === 'educator' ? 'none' : c) : k, 18)}${l}</b><small>${s}</small></button>`).join('')}</div>
+        <div class="am-opt">${[['member', 'Membre', 'Droits selon son offre'], ['educator', 'Éducateur', 'Accès complet, School bientôt'], ['manager', 'Manageur', 'Pouvoirs admin, sans HQ'], ['admin', 'Admin', 'Tous les droits']].filter(([k]) => k !== 'admin' || me().role !== 'manager').map(([k, l, s]) => `<button type="button" data-role="${k}" aria-pressed="${role === k}"><b>${badge(k === 'member' ? (['admin', 'manager', 'educator'].includes(c) ? 'none' : c) : k, 18)}${l}</b><small>${s}</small></button>`).join('')}</div>
         <p class="am-msg" data-role-msg role="status" style="margin-top:10px"></p>
       </div>
       <form class="am-block" data-access-form><h3 class="am-sub">Accès</h3>
@@ -779,8 +782,9 @@
     const roleBtn = e.target.closest('[data-role]');
     if (roleBtn) {
       const role = roleBtn.dataset.role;
-      const cur = m.isAdmin ? 'admin' : (m.role === 'educator' ? 'educator' : 'member');
+      const cur = roleOf(m);
       if (role === cur) return;
+      if (role === 'manager' && !(await CHESTConfirm(`Faire de ${fullName(m)} un manageur ? Il aura les pouvoirs d’un admin (membres, Privilèges, prix) et un accès illimité, mais pas CHEST HQ.`))) return;
       if (role === 'admin' && !(await CHESTConfirm(`Faire de ${fullName(m)} un administrateur ? Il aura tous les droits, y compris gérer, bloquer et supprimer des membres.`))) return;
       const msg = body.querySelector('[data-role-msg]');
       say(msg, 'Enregistrement…');
