@@ -596,7 +596,7 @@
     </div>
 
     <div class="drawer-panel" data-panel-name="profile" hidden>
-      <p class="hint">Champs simples stockés en local sur cet appareil — pas encore de vrai compte serveur ni de vérification d'email.</p>
+      <p class="hint">Les informations de ton compte CHEST, les mêmes sur tous tes appareils. L'email sert aussi à te connecter.</p>
       <form id="profileForm" class="form-stack" autocomplete="off">
         <div>
           <label for="profileFirstName">Prénom</label>
@@ -610,6 +610,7 @@
           <label for="profileEmail">Email</label>
           <input id="profileEmail" class="field" type="email" placeholder="toi@exemple.com">
         </div>
+        <p class="gate__error" id="profileError" style="margin:0;"></p>
         <button type="submit" class="btn btn-secondary">Enregistrer le profil</button>
       </form>
 
@@ -704,7 +705,7 @@ CHESTTour.init([
   { selector: '.settings-row:has(#themeRowValue)', title: 'Apparence', text: 'Bascule entre thème sombre et clair pour tout le site.' },
   { selector: '.settings-row:has(#pairRowValue)', title: 'Paire suivie', text: 'La paire (forex, matière première ou crypto) dont le calendrier économique analyse le sentiment.' },
   { selector: '#connexion', title: 'Connexion trading', text: 'Ton broker ou ta propfirm et les réglages de risque, partagés par BERICH et Stratégies.' },
-  { selector: '.settings-row:has(#profileRowValue)', title: 'Profil', text: 'Ton prénom, ton nom, ton email et le mot de passe qui protège l\'accès à CHEST sur cet appareil.' },
+  { selector: '.settings-row:has(#profileRowValue)', title: 'Profil', text: 'Ton prénom, ton nom, ton email et le mot de passe de ton compte CHEST, les mêmes sur tous tes appareils.' },
 ]);
 </script>
 <script>
@@ -1104,11 +1105,27 @@ CHESTTour.init([
 
   // ---------- Profil (localStorage, pas de backend pour l'instant) ----------
   const PROFILE_KEY = 'chest_profile';
+  // 2026-10-21 : le profil est celui du compte (serveur, POST /me/profile), plus une copie locale à part.
+  // L'ancienne copie (chest_profile) ne sert plus que de repli si le compte n'a pas encore été chargé.
   function loadProfile() {
+    const u = (window.CHESTAccounts && CHESTAccounts.getUser()) || null;
+    if (u && u.email) return { firstName: u.firstName || '', lastName: u.lastName || '', email: u.email || '' };
     try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch (e) { return null; }
   }
-  function saveProfile(p) {
-    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) { /* tant pis */ }
+  async function saveProfile(p) {
+    const res = await fetch(CHESTAccounts.apiBase() + '/me/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + CHESTAccounts.getToken() },
+      body: JSON.stringify(p),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Enregistrement impossible pour le moment.');
+    try {
+      if (localStorage.getItem('chest_account_user')) localStorage.setItem('chest_account_user', JSON.stringify(data));
+      if (sessionStorage.getItem('chest_account_user')) sessionStorage.setItem('chest_account_user', JSON.stringify(data));
+    } catch (e) { /* stockage indisponible */ }
+    try { if (window.parent && window.parent.CHESTNav) window.parent.CHESTNav.refreshAccount(); } catch (e) { /* hors app */ }
+    return data;
   }
   function updateProfileRow() {
     const p = loadProfile();
@@ -1121,16 +1138,26 @@ CHESTTour.init([
     }
   }
   updateProfileRow();
-  document.getElementById('profileForm').addEventListener('submit', (e) => {
+  document.getElementById('profileForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    saveProfile({
-      firstName: document.getElementById('profileFirstName').value.trim(),
-      lastName: document.getElementById('profileLastName').value.trim(),
-      email: document.getElementById('profileEmail').value.trim(),
-    });
-    updateProfileRow();
-    showToast('Profil enregistré ✓');
-    closeDrawer();
+    const err = document.getElementById('profileError');
+    const btn = e.currentTarget.querySelector('[type="submit"]');
+    err.textContent = '';
+    btn.disabled = true;
+    try {
+      await saveProfile({
+        firstName: document.getElementById('profileFirstName').value.trim(),
+        lastName: document.getElementById('profileLastName').value.trim(),
+        email: document.getElementById('profileEmail').value.trim(),
+      });
+      updateProfileRow();
+      showToast('Profil enregistré ✓');
+      closeDrawer();
+    } catch (ex) {
+      err.textContent = ex.message;
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // ---------- Code d'accès ----------

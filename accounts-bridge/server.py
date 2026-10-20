@@ -542,6 +542,30 @@ def me():
     return jsonify(user_public(user))
 
 
+@app.route("/me/profile", methods=["POST"])
+def me_profile():
+    """Prénom, nom et e-mail du compte (2026-10-21) : enregistrés sur le compte, plus seulement sur l'appareil."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    first_name = (body.get("firstName") or "").strip()[:60]
+    last_name = (body.get("lastName") or "").strip()[:60]
+    email = (body.get("email") or "").strip().lower()
+    if not first_name or not last_name:
+        return jsonify({"error": "Prénom et nom requis."}), 400
+    if not EMAIL_RE.match(email):
+        return jsonify({"error": "Adresse email invalide."}), 400
+    db = get_db()
+    if db.execute("SELECT 1 FROM users WHERE lower(email) = ? AND id != ?", (email, user["id"])).fetchone():
+        return jsonify({"error": "Cette adresse email est déjà utilisée par un autre compte."}), 400
+    with db_lock:
+        db.execute("UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE id = ?",
+                   (first_name, last_name, email, user["id"]))
+        db.commit()
+    return jsonify(user_public(db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()))
+
+
 @app.route("/me/password", methods=["POST"])
 def me_password():
     """Changement du mot de passe du compte (2026-10-21) : vérifie l'actuel, enregistre le nouveau et
