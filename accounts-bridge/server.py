@@ -790,6 +790,108 @@ PLAN_AMOUNTS = {  # centimes TTC avant remise -> (offre, période)
 }
 TRIAL_DAYS = 7
 
+# ---------------------------------------------------------------- Prix modifiables (2026-10-21)
+# L'admin modifie les offres depuis /offres (mode édition) : nom, textes, éléments, prix, liens de paiement
+# Stripe, offres affichées (1 à 3). Trois emplacements fixes, un par niveau de droits (essentiel, premium,
+# allstar) : c'est la clé qui donne les droits (School, BERICH...), le reste n'est que de l'affichage.
+# Le webhook reconnaît l'offre au montant payé : les prix enregistrés ici sont lus en premier, puis les
+# anciens montants (PLAN_AMOUNTS) pour les abonnements pris avant un changement de prix.
+PRICING_KEYS = ("essentiel", "premium", "allstar")
+PRICING_DEFAULT = {"offers": [
+    {"key": "essentiel", "enabled": True, "soon": False, "name": "CHEST Essentiel", "month": 99.98, "year": 1000,
+     "who": "Pour trader en autonomie avec tous les outils",
+     "desc": "Toute la plateforme pour analyser, tester et suivre tes trades.",
+     "linkMonth": "https://buy.stripe.com/3cI3cu3N97kj07i42T2B200", "linkYear": "https://buy.stripe.com/9B6dR8bfBdIH7zK9nd2B201",
+     "feats": [[1, "Tous les scanners et leurs alertes"], [1, "Backtesting et rapports complets"], [1, "Journal de trading"],
+               [1, "Dashboard et comptes reliés"], [1, "Calendrier économique"], [1, "2 cours School offerts"],
+               [0, "School complet et cours vidéo"], [0, "BERICH et suivi des positions"], [0, "Accompagnement personnalisé"]]},
+    {"key": "premium", "enabled": True, "soon": False, "name": "CHEST Premium", "month": 299.98, "year": 3000,
+     "who": "Pour progresser vite, accompagné",
+     "desc": "Tout CHEST, la formation complète et un suivi pour atteindre tes objectifs.",
+     "linkMonth": "https://buy.stripe.com/7sY6oG4Rd0VV5rCgPF2B202", "linkYear": "https://buy.stripe.com/00w9ASabx1ZZ2fq42T2B203",
+     "feats": [[1, "Tout CHEST Essentiel"], [1, "School complet : cours écrits et vidéo"], [1, "BERICH et suivi des positions"],
+               [1, "Accompagnement personnalisé vers tes objectifs"]]},
+    {"key": "allstar", "enabled": True, "soon": True, "name": "CHEST Allstar", "month": None, "year": 9999.98,
+     "who": "Pour déléguer et automatiser",
+     "desc": "Tout CHEST Premium, avec l’automatisation complète de ton trading.",
+     "linkMonth": "", "linkYear": "",
+     "feats": [[1, "Tout CHEST Premium"], [1, "Automatisation complète"], [1, "×2 garanti en 1 an sur ton capital de départ"]]},
+]}
+
+
+def get_pricing():
+    try:
+        data = json.loads(get_setting("pricing") or "null")
+    except ValueError:
+        data = None
+    return data if isinstance(data, dict) and isinstance(data.get("offers"), list) else PRICING_DEFAULT
+
+
+def _clean_text(v, limit):
+    return re.sub(r"\s+", " ", str(v or "")).strip()[:limit]
+
+
+def _clean_price(v):
+    if v in (None, ""):
+        return None
+    try:
+        n = round(float(v), 2)
+    except (TypeError, ValueError):
+        raise ValueError("Prix invalide.")
+    if not (0 < n < 1000000):
+        raise ValueError("Un prix doit être compris entre 0,01 et 999 999,99 €.")
+    return n
+
+
+def _clean_link(v):
+    v = str(v or "").strip()
+    if v and not re.fullmatch(r"https://[^\s\"'<>]{8,500}", v):
+        raise ValueError("Un lien de paiement doit commencer par https://")
+    return v
+
+
+def validate_pricing(body):
+    offers = (body or {}).get("offers")
+    if not isinstance(offers, list):
+        raise ValueError("Format invalide.")
+    by_key = {o.get("key"): o for o in offers if isinstance(o, dict)}
+    out = []
+    for key in PRICING_KEYS:
+        o = by_key.get(key)
+        if o is None:
+            raise ValueError("Les trois emplacements d'offre sont attendus.")
+        feats = []
+        for f in (o.get("feats") or [])[:16]:
+            if isinstance(f, (list, tuple)) and len(f) == 2:
+                t = _clean_text(f[1], 140)
+                if t:
+                    feats.append([1 if f[0] else 0, t])
+        item = {"key": key, "enabled": bool(o.get("enabled")), "soon": bool(o.get("soon")),
+                "name": _clean_text(o.get("name"), 40), "who": _clean_text(o.get("who"), 90),
+                "desc": _clean_text(o.get("desc"), 220), "month": _clean_price(o.get("month")),
+                "year": _clean_price(o.get("year")), "linkMonth": _clean_link(o.get("linkMonth")),
+                "linkYear": _clean_link(o.get("linkYear")), "feats": feats}
+        if item["enabled"]:
+            if not item["name"]:
+                raise ValueError("Chaque offre affichée doit avoir un nom.")
+            if item["month"] is None and item["year"] is None:
+                raise ValueError(f"{item['name']} : indique au moins un prix (mensuel ou annuel).")
+        out.append(item)
+    if not any(o["enabled"] for o in out):
+        raise ValueError("Garde au moins une offre affichée.")
+    return {"offers": out}
+
+
+def plan_for_amount(amount):
+    """(offre, période) d'après le montant payé en centimes : prix actuels d'abord, puis les anciens."""
+    amount = int(amount or 0)
+    for o in get_pricing().get("offers", []):
+        for period, field in (("month", "month"), ("year", "year")):
+            price = o.get(field)
+            if price and o.get("key") in PLANS and int(round(float(price) * 100)) == amount:
+                return (o["key"], period)
+    return PLAN_AMOUNTS.get(amount)
+
 
 def _iso(dt):
     return dt.isoformat() if dt else None
@@ -959,6 +1061,24 @@ def _sub_period_end(obj):
     return max(ends) if ends else None
 
 
+@app.route("/pricing", methods=["GET", "PUT"])
+def pricing():
+    if request.method == "GET":
+        data = get_pricing()
+        return jsonify({"offers": data["offers"], "updatedAt": get_setting("pricing_updated_at")})
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    try:
+        data = validate_pricing(request.get_json(silent=True))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    set_setting("pricing", json.dumps(data, ensure_ascii=False))
+    now = datetime.now(timezone.utc).isoformat()
+    set_setting("pricing_updated_at", now)
+    return jsonify({"offers": data["offers"], "updatedAt": now})
+
+
 @app.route("/billing/webhook", methods=["POST"])
 def billing_webhook():
     payload = request.get_data()
@@ -980,7 +1100,7 @@ def billing_webhook():
         summary = etype
         if etype in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
             amount = obj.get("amount_subtotal") if obj.get("amount_subtotal") is not None else obj.get("amount_total")
-            plan = PLAN_AMOUNTS.get(int(amount or 0))
+            plan = plan_for_amount(amount)
             paid = obj.get("payment_status") in ("paid", "no_payment_required")
             if user and plan and paid:
                 name, period = plan

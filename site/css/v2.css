@@ -366,3 +366,17 @@ html[data-theme="light"] .chest-shell .chest-nav__item--admin .chest-nav__ic{ ba
 .chest-hq__logo, .chest-hq__txt{ transition:transform .16s cubic-bezier(.16,1,.3,1); }
 .chest-hq:focus-visible{ outline:2px solid #f9a45e; outline-offset:-4px; }
 @media (prefers-reduced-motion:reduce){ .chest-hq, .chest-hq__logo, .chest-hq__txt{ transition:none; } }
+
+/* ── Héros pleine largeur : fondu propre vers la page (2026-10-21, retour utilisateur « fracture nette »
+   sous le héros des Stratégies). Dans l'app, la page (iframe) est transparente et laisse voir le fond du
+   shell et ses lueurs ; le ::after historique fondait vers un noir PLEIN (var(--bg)), d'où une bande opaque
+   qui se coupait net sur les bords. On le retire et c'est la lueur elle-même qui s'efface vers le bas. */
+html.is-embedded .scnr-hero::after,
+html.is-embedded .sentiment-hero::after,
+html.is-embedded .bt-hero-glow::after{ display:none; }
+html.is-embedded .scnr-hero::before,
+html.is-embedded .sentiment-hero::before,
+html.is-embedded .bt-hero-glow::before{
+  -webkit-mask-image:linear-gradient(to bottom, #000 40%, transparent 100%);
+  mask-image:linear-gradient(to bottom, #000 40%, transparent 100%);
+}

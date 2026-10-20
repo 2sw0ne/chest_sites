@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/connect-da.css?v=1">
-<link rel="stylesheet" href="css/offres-da.css?v=1">
+<link rel="stylesheet" href="css/offres-da.css?v=2">
 <script src="js/theme.js?v=4"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -32,6 +32,8 @@
 <header class="of-top">
   <a class="of-brand" href="/connexion"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
   <div class="of-top__right">
+    <a class="of-logout" id="ofAdminLink" href="/admin-members" hidden>← Admin</a>
+    <button type="button" class="of-logout of-edit-btn" id="ofEditBtn" hidden>Modifier les offres</button>
     <span class="of-top__who">Connecté en tant que <b id="ofWho">—</b></span>
     <button type="button" class="of-logout" id="ofLogout">Se déconnecter</button>
   </div>
@@ -83,6 +85,11 @@
       </div>
     </div>
     <p class="of-reco" id="ofReco" hidden></p>
+    <!-- Mode édition (admin, 2026-10-21) : les cartes restent celles que voit un client, mais modifiables. -->
+    <div class="of-edbar" id="ofEdBar" role="region" aria-label="Édition des offres" hidden>
+      <div class="of-edbar__txt"><b>Mode édition</b><span id="ofEdState" aria-live="polite">Clique sur un texte pour le modifier. Rien ne change pour les clients avant « Enregistrer ».</span></div>
+      <div class="of-edbar__act"><button type="button" class="cx-btn-2" id="ofEdCancel">Quitter</button><button type="button" class="cx-btn" id="ofEdSave" disabled>Enregistrer</button></div>
+    </div>
     <div class="cx-plans" id="ofPlans"></div>
 
     <div class="of-trial" id="ofTrial">
@@ -124,32 +131,49 @@
 
   // ---------------- Offres ----------------
   // Prix TTC. En annuel, on affiche le prix ramené au mois, avec le prix mensuel barré.
-  const PLANS = {
-    gratuit: {
-      name: 'Essai gratuit', free: true, monthOnly: true,
-      who: 'Pour découvrir CHEST sans engagement',
-      desc: '7 jours sur tout CHEST Essentiel, sans carte bancaire.',
-      feats: [[1, 'Tout CHEST Essentiel pendant 7 jours'], [1, 'Sans carte bancaire'], [1, 'Tes données restent sur ton appareil'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions']],
-    },
-    essentiel: {
-      name: 'CHEST Essentiel', month: 99.98, year: 1000,
-      who: 'Pour trader en autonomie avec tous les outils',
-      desc: 'Toute la plateforme pour analyser, tester et suivre tes trades.',
-      feats: [[1, 'Tous les scanners et leurs alertes'], [1, 'Backtesting et rapports complets'], [1, 'Journal de trading'], [1, 'Dashboard et comptes reliés'], [1, 'Calendrier économique'], [1, '2 cours School offerts'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions'], [0, 'Accompagnement personnalisé']],
-    },
-    premium: {
-      name: 'CHEST Premium', month: 299.98, year: 3000,
-      who: 'Pour progresser vite, accompagné',
-      desc: 'Tout CHEST, la formation complète et un suivi pour atteindre tes objectifs.',
-      feats: [[1, 'Tout CHEST Essentiel'], [1, 'School complet : cours écrits et vidéo'], [1, 'BERICH et suivi des positions'], [1, 'Accompagnement personnalisé vers tes objectifs']],
-    },
-    allstar: {
-      name: 'CHEST Allstar', month: null, year: 9999.98, yearOnly: true, soon: true,
-      who: 'Pour déléguer et automatiser',
-      desc: 'Tout CHEST Premium, avec l’automatisation complète de ton trading.',
-      feats: [[1, 'Tout CHEST Premium'], [1, 'Automatisation complète'], [1, '×2 garanti en 1 an sur ton capital de départ']],
-    },
+  // Depuis le 2026-10-21, les offres payantes viennent du serveur (GET /pricing), modifiables par l'admin
+  // en mode édition sur cette page. OFFERS ci-dessous ne sert que de secours hors ligne (mêmes valeurs que
+  // PRICING_DEFAULT côté serveur). Trois emplacements fixes : la clé donne les droits, le reste s'affiche.
+  const GRATUIT = {
+    name: 'Essai gratuit', free: true, monthOnly: true,
+    who: 'Pour découvrir CHEST sans engagement',
+    desc: '7 jours sur tout CHEST Essentiel, sans carte bancaire.',
+    feats: [[1, 'Tout CHEST Essentiel pendant 7 jours'], [1, 'Sans carte bancaire'], [1, 'Tes données restent sur ton appareil'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions']],
   };
+  const RIGHTS = { essentiel: 'Essentiel', premium: 'Premium', allstar: 'Allstar' };
+  const sl = cfg.stripeLinks || {};
+  let OFFERS = [
+    { key: 'essentiel', enabled: true, soon: false, name: 'CHEST Essentiel', month: 99.98, year: 1000,
+      who: 'Pour trader en autonomie avec tous les outils', desc: 'Toute la plateforme pour analyser, tester et suivre tes trades.',
+      linkMonth: sl.essentiel_month || '', linkYear: sl.essentiel_year || '',
+      feats: [[1, 'Tous les scanners et leurs alertes'], [1, 'Backtesting et rapports complets'], [1, 'Journal de trading'], [1, 'Dashboard et comptes reliés'], [1, 'Calendrier économique'], [1, '2 cours School offerts'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions'], [0, 'Accompagnement personnalisé']] },
+    { key: 'premium', enabled: true, soon: false, name: 'CHEST Premium', month: 299.98, year: 3000,
+      who: 'Pour progresser vite, accompagné', desc: 'Tout CHEST, la formation complète et un suivi pour atteindre tes objectifs.',
+      linkMonth: sl.premium_month || '', linkYear: sl.premium_year || '',
+      feats: [[1, 'Tout CHEST Essentiel'], [1, 'School complet : cours écrits et vidéo'], [1, 'BERICH et suivi des positions'], [1, 'Accompagnement personnalisé vers tes objectifs']] },
+    { key: 'allstar', enabled: true, soon: true, name: 'CHEST Allstar', month: null, year: 9999.98,
+      who: 'Pour déléguer et automatiser', desc: 'Tout CHEST Premium, avec l’automatisation complète de ton trading.',
+      linkMonth: '', linkYear: sl.allstar_year || '',
+      feats: [[1, 'Tout CHEST Premium'], [1, 'Automatisation complète'], [1, '×2 garanti en 1 an sur ton capital de départ']] },
+  ];
+  let PLANS = {};
+  function buildPlans() {
+    PLANS = { gratuit: GRATUIT };
+    OFFERS.filter((o) => o.enabled).forEach((o) => {
+      PLANS[o.key] = { ...o, yearOnly: o.month == null, monthOnly: o.year == null };
+    });
+  }
+  buildPlans();
+  async function loadPricing() {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+      const res = await fetch(A.apiBase() + '/pricing', { signal: ctrl.signal });
+      clearTimeout(t);
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.offers) && data.offers.length) { OFFERS = data.offers; buildPlans(); }
+    } catch (e) { /* hors ligne : offres de secours ci-dessus */ }
+  }
   let billing = 'year';
   let reco = null;
   let answers = null;
@@ -158,7 +182,7 @@
   const user = () => A.getUser() || {};
   const acc = () => user().access || {};
   const currentPaid = () => { const a = acc(); return a.active && ['essentiel', 'premium', 'allstar'].includes(a.plan) ? a.plan : null; };
-  const linkFor = (plan, period) => ((cfg.stripeLinks || {})[plan + '_' + period] || '').trim();
+  const linkFor = (plan, period) => { const p = PLANS[plan] || {}; return String((period === 'year' ? p.linkYear : p.linkMonth) || '').trim(); };
   const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
 
   function priceHtml(p) {
@@ -176,10 +200,12 @@
     const paid = currentPaid();
     const a = acc();
     // Mensuel : Essai gratuit, Essentiel, Premium. Annuel : Essentiel, Premium, Allstar.
+    if (editing) { renderEditor(); return; }
     const shown = Object.entries(PLANS).filter(([, p]) => (billing === 'month' ? !p.yearOnly : !p.monthOnly) && !(p.free && (paid || user().isAdmin)));
+    $('#ofPlans').style.setProperty('--n', String(Math.max(1, shown.length)));
     $('#ofPlans').innerHTML = shown.map(([key, p]) => {
       const isCur = paid === key;
-      const isReco = !paid && reco === key;
+      const isReco = !paid && reco === key && !!PLANS[reco];
       const period = p.yearOnly ? 'year' : billing;
       let cta, disabled = false;
       if (p.free) {
@@ -211,7 +237,7 @@
     const btn = $('#ofTrialBtn');
     const box = $('#ofTrial');
     // En mensuel, l'essai est la carte de gauche : le bandeau ne sert qu'en annuel.
-    box.hidden = !!currentPaid() || !!user().isAdmin || billing === 'month';
+    box.hidden = !!currentPaid() || !!user().isAdmin || billing === 'month' || editing;
     if (a.trial && a.active) {
       $('#ofTrialTitle').textContent = 'Ton essai gratuit est en cours';
       $('#ofTrialText').textContent = `Il se termine le ${fmtDate(a.endsAt)}. Tes données restent sur ton appareil jusqu'à ce que tu choisisses une offre ; elles te suivront ensuite.`;
@@ -227,7 +253,7 @@
 
   function recoSentence() {
     const el = $('#ofReco');
-    if (!reco || currentPaid()) { el.hidden = true; return; }
+    if (!reco || currentPaid() || editing || !PLANS[reco]) { el.hidden = true; return; }
     const why = {
       essentiel: 'Tu as déjà des bases solides : les outils de CHEST suffisent pour structurer et faire progresser ton trading.',
       premium: 'Avec la formation complète, BERICH et un accompagnement personnalisé, tu progresses plus vite et tu évites les erreurs classiques.',
@@ -276,6 +302,137 @@
   }
   $('#ofTrialBtn').addEventListener('click', () => trialFlow($('#ofTrialBtn')));
   $('#ofRedo').addEventListener('click', () => showQuiz(0));
+
+  // ---------------- Édition des offres (admin) ----------------
+  // Les cartes restent celles d'un client ; textes modifiables en place, prix et liens Stripe dans des
+  // champs. Rien n'est envoyé avant « Enregistrer » (PUT /pricing, vérifié côté serveur : admin seulement).
+  let editing = false;
+  let edDraft = null;
+  let savedJson = '';
+  const fmtNum = (n) => (n == null ? '' : String(n).replace('.', ','));
+  const parseNum = (v) => { const t = String(v || '').replace(/\s/g, '').replace(',', '.'); if (!t) return null; const n = Number(t); return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN; };
+  const isDirty = () => !!edDraft && JSON.stringify(edDraft) !== savedJson;
+
+  function enterEdit() {
+    if (!user().isAdmin) return;
+    editing = true;
+    edDraft = JSON.parse(JSON.stringify(OFFERS));
+    savedJson = JSON.stringify(edDraft);
+    document.body.classList.add('is-editing');
+    $('#ofEdBar').hidden = false;
+    $('#ofEditBtn').hidden = true;
+    show('offers');
+    edState();
+  }
+  function leaveEdit() {
+    if (isDirty() && !confirm('Quitter sans enregistrer ? Tes modifications seront perdues.')) return;
+    editing = false; edDraft = null;
+    document.body.classList.remove('is-editing');
+    $('#ofEdBar').hidden = true;
+    $('#ofEditBtn').hidden = !user().isAdmin;
+    if (query.get('edit')) history.replaceState(null, '', '/offres');
+    show('offers');
+  }
+  function edState(text, kind) {
+    const el = $('#ofEdState');
+    el.textContent = text || (isDirty() ? 'Modifications non enregistrées.' : 'Clique sur un texte pour le modifier. Rien ne change pour les clients avant « Enregistrer ».');
+    el.dataset.kind = kind || (isDirty() ? 'dirty' : '');
+    $('#ofEdSave').disabled = !isDirty();
+  }
+
+  function renderEditor() {
+    const ed = (f, cls, ph, v) => `<div class="${cls} of-ed__txt" contenteditable="plaintext-only" spellcheck="true" data-f="${f}" data-ph="${esc(ph)}">${esc(v)}</div>`;
+    $('#ofPlans').style.setProperty('--n', '3');
+    $('#ofPlans').innerHTML = edDraft.map((o, i) => `<article class="cx-plan of-ed ${o.enabled ? '' : 'is-off'}" data-i="${i}" aria-label="Édition de l'offre ${esc(o.name)}">
+      <div class="of-ed__bar">
+        <span class="of-ed__slot">Droits ${esc(RIGHTS[o.key] || o.key)}</span>
+        <label class="of-ed__sw"><input type="checkbox" data-f="enabled" ${o.enabled ? 'checked' : ''}><span aria-hidden="true"></span>Affichée</label>
+        <label class="of-ed__sw"><input type="checkbox" data-f="soon" ${o.soon ? 'checked' : ''}><span aria-hidden="true"></span>Bientôt</label>
+      </div>
+      ${ed('name', 'cx-plan__name', 'Nom de l’offre', o.name)}
+      <div class="of-ed__prices">
+        <label class="of-ed__field"><span>Mensuel</span><input type="text" inputmode="decimal" data-f="month" value="${esc(fmtNum(o.month))}" placeholder="—" aria-label="Prix mensuel en euros"><i>€/mois</i></label>
+        <label class="of-ed__field"><span>Annuel</span><input type="text" inputmode="decimal" data-f="year" value="${esc(fmtNum(o.year))}" placeholder="—" aria-label="Prix annuel en euros"><i>€/an</i></label>
+      </div>
+      ${ed('who', 'cx-plan__who', 'Pour qui', o.who)}
+      ${ed('desc', 'cx-plan__desc', 'Description courte', o.desc)}
+      <ul class="cx-feats of-ed__feats">${o.feats.map(([on, t], k) => `<li class="${on ? '' : 'is-off'}" data-k="${k}">
+        <button type="button" class="cx-check of-ed__chk" data-act="toggle" aria-pressed="${on ? 'true' : 'false'}" aria-label="${on ? 'Inclus' : 'Non inclus'} : cliquer pour changer">${on ? CHECK : DASH}</button>
+        <span class="of-ed__txt" contenteditable="plaintext-only" data-feat="${k}" data-ph="Élément de l’offre">${esc(t)}</span>
+        <button type="button" class="of-ed__del" data-act="del" aria-label="Retirer cet élément"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
+      </li>`).join('')}</ul>
+      <button type="button" class="of-ed__add" data-act="add" ${o.feats.length >= 16 ? 'disabled' : ''}>+ Ajouter un élément</button>
+      <div class="of-ed__links">
+        <label class="of-ed__field of-ed__field--link"><span>Lien Stripe mensuel</span><input type="url" data-f="linkMonth" value="${esc(o.linkMonth || '')}" placeholder="https://buy.stripe.com/…" spellcheck="false"></label>
+        <label class="of-ed__field of-ed__field--link"><span>Lien Stripe annuel</span><input type="url" data-f="linkYear" value="${esc(o.linkYear || '')}" placeholder="https://buy.stripe.com/…" spellcheck="false"></label>
+      </div>
+    </article>`).join('');
+  }
+
+  const plansEl = $('#ofPlans');
+  plansEl.addEventListener('input', (e) => {
+    if (!editing) return;
+    const card = e.target.closest('[data-i]'); if (!card) return;
+    const o = edDraft[+card.dataset.i];
+    const t = e.target;
+    const f = t.dataset.f;
+    if (t.dataset.feat != null) o.feats[+t.dataset.feat][1] = t.textContent.replace(/\s+/g, ' ').trim();
+    else if (f === 'month' || f === 'year') { const n = parseNum(t.value); t.classList.toggle('is-bad', Number.isNaN(n)); if (!Number.isNaN(n)) o[f] = n; }
+    else if (f === 'linkMonth' || f === 'linkYear') o[f] = t.value.trim();
+    else if (f && t.isContentEditable) o[f] = t.textContent.replace(/\s+/g, ' ').trim();
+    edState();
+  });
+  plansEl.addEventListener('change', (e) => {
+    if (!editing || e.target.type !== 'checkbox') return;
+    const card = e.target.closest('[data-i]');
+    edDraft[+card.dataset.i][e.target.dataset.f] = e.target.checked;
+    renderEditor(); edState();
+  });
+  plansEl.addEventListener('keydown', (e) => {
+    if (editing && e.key === 'Enter' && e.target.isContentEditable) { e.preventDefault(); e.target.blur(); }
+  });
+  plansEl.addEventListener('click', (e) => {
+    if (!editing) return;
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const i = +b.closest('[data-i]').dataset.i;
+    const o = edDraft[i];
+    const li = b.closest('[data-k]');
+    if (b.dataset.act === 'toggle') o.feats[+li.dataset.k][0] = o.feats[+li.dataset.k][0] ? 0 : 1;
+    if (b.dataset.act === 'del') o.feats.splice(+li.dataset.k, 1);
+    if (b.dataset.act === 'add') o.feats.push([1, '']);
+    renderEditor(); edState();
+    if (b.dataset.act === 'add') {
+      const last = plansEl.querySelector(`[data-i="${i}"] .of-ed__feats li:last-child .of-ed__txt`);
+      if (last) last.focus();
+    }
+  });
+
+  $('#ofEditBtn').addEventListener('click', enterEdit);
+  $('#ofEdCancel').addEventListener('click', leaveEdit);
+  $('#ofEdSave').addEventListener('click', async () => {
+    const btn = $('#ofEdSave');
+    if (plansEl.querySelector('.is-bad')) { edState('Un prix n’est pas un nombre valide.', 'err'); return; }
+    // Prix changé mais même lien Stripe : le client paierait l'ancien montant.
+    const before = JSON.parse(savedJson);
+    const stale = edDraft.filter((o, i) => o.enabled && !o.soon && [['month', 'linkMonth'], ['year', 'linkYear']].some(([f, l]) => o[f] != null && before[i][f] !== o[f] && o[l] && o[l] === before[i][l]));
+    if (stale.length && !confirm(`Prix modifié pour ${stale.map((o) => o.name).join(', ')}, avec le même lien Stripe.\n\nCrée dans Stripe un lien de paiement au nouveau montant et colle-le dans la carte, sinon le client paiera l'ancien prix.\n\nEnregistrer quand même ?`)) return;
+    btn.disabled = true; btn.textContent = 'Enregistrement…';
+    try {
+      const res = await fetch(A.apiBase() + '/pricing', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ offers: edDraft }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Enregistrement impossible.');
+      OFFERS = data.offers; buildPlans();
+      edDraft = JSON.parse(JSON.stringify(OFFERS)); savedJson = JSON.stringify(edDraft);
+      renderEditor();
+      edState('Enregistré : les offres sont à jour pour tout le monde.', 'ok');
+    } catch (err) {
+      edState(err.message, 'err');
+    } finally {
+      btn.textContent = 'Enregistrer';
+      btn.disabled = !isDirty();
+    }
+  });
+  window.addEventListener('beforeunload', (e) => { if (editing && isDirty()) { e.preventDefault(); e.returnValue = ''; } });
 
   function notice(text, kind) {
     const n = $('#ofNotice');
@@ -397,6 +554,7 @@
     $('#ofWait').hidden = view !== 'wait';
     if (view === 'quiz') renderQuiz();
     if (view === 'offers') { renderPlans(); recoSentence(); }
+    $('#ofBilling').parentElement.hidden = editing;
     window.scrollTo(0, 0);
   }
 
@@ -404,7 +562,11 @@
   $('#ofWho').textContent = user().firstName || user().email || '—';
 
   async function start() {
-    try { await A.refreshMe(); } catch (e) { /* hors-ligne : on garde le membre en mémoire */ }
+    await Promise.all([A.refreshMe().catch(() => { /* hors-ligne : on garde le membre en mémoire */ }), loadPricing()]);
+    const admin = !!user().isAdmin;
+    $('#ofAdminLink').hidden = !admin;
+    $('#ofEditBtn').hidden = !admin;
+    if (admin && query.get('edit') === '1') { enterEdit(); return; }
     $('#ofWho').textContent = user().firstName || user().email || '—';
     const a = acc();
     if (query.get('paiement') === 'ok') { startWait(); return; }

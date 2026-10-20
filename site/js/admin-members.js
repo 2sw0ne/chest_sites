@@ -672,6 +672,11 @@
   }
 
   // ------------------------------------------------------------ Événements
+  // Voile de la barre des vues seulement quand elle colle en haut (voir .am-nav.is-stuck).
+  const stuckNav = $('amNav');
+  const syncStuck = () => stuckNav.classList.toggle('is-stuck', stuckNav.getBoundingClientRect().top <= 1 && window.scrollY > 0);
+  window.addEventListener('scroll', syncStuck, { passive: true });
+  syncStuck();
   $('amNav').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
   $('amPeriod').addEventListener('click', (e) => { const b = e.target.closest('[data-days]'); if (b) setPeriod(Number(b.dataset.days)); });
   $('amMetrics').addEventListener('click', (e) => { const b = e.target.closest('[data-metric]'); if (!b) return; S.metric = b.dataset.metric; store('chest_admin_metric', S.metric); renderChart(); });

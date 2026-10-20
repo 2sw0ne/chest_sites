@@ -14,14 +14,14 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<link rel="stylesheet" href="css/admin-members.css?v=2">
+<link rel="stylesheet" href="css/admin-members.css?v=3">
 <script src="js/theme.js?v=4"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=7"></script>
 <script src="js/sync-store.js?v=11"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=11">
+<link rel="stylesheet" href="css/v2.css?v=14">
 </head>
 <body data-page="admin-members" class="chest-root">
 
@@ -100,6 +100,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
             <span>Rechercher</span><kbd>/</kbd>
           </button>
+          <a class="am-nav__search am-price-link" href="/offres?edit=1" target="_top" title="Modifier les offres et les prix">Prix<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
           <button type="button" class="chest-btn am-gift-btn" id="amGiftBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5v7.5h14v-7.5M12 8.5V20M12 8.5c-1.6 0-4.5-.6-4.5-2.6 0-1.4 1.2-2.1 2.3-1.7C11.3 4.8 12 6.5 12 8.5zM12 8.5c1.6 0 4.5-.6 4.5-2.6 0-1.4-1.2-2.1-2.3-1.7-1.5.6-2.2 2.3-2.2 4.3z"/></svg>
             <span>Offrir un Privilège</span>
@@ -266,7 +267,7 @@ CHESTTour.init([
   { selector: '#amGiftBtn', title: 'Privilège', text: 'Offre tout CHEST à un membre, jusqu’à la date de ton choix ou sans limite.' },
 ]);
 </script>
-<script src="js/admin-members.js?v=2"></script>
+<script src="js/admin-members.js?v=3"></script>
 <script src="js/v2.js?v=3"></script>
 </body>
 </html>
