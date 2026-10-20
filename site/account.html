@@ -633,7 +633,7 @@
         </form>
         <div class="email-note">
           <span>✉️</span>
-          <span><b>Confirmation par email — à venir.</b> Pour l'instant le changement de mot de passe est appliqué directement sur cet appareil, sans email de confirmation réel (nécessite de brancher un service d'envoi plus tard).</span>
+          <span>Le nouveau mot de passe vaut pour ton compte sur tous tes appareils. Les autres appareils connectés sont déconnectés et te le demanderont.</span>
         </div>
       </div>
     </div>
@@ -1143,14 +1143,29 @@ CHESTTour.init([
     const next = document.getElementById('newCode').value;
     const confirmVal = document.getElementById('confirmCode').value;
 
-    if (!(await CHESTAuth.checkCode(current))) { codeErrEl.textContent = 'Code actuel incorrect.'; return; }
-    if (next.length < 4) { codeErrEl.textContent = 'Le nouveau code doit faire au moins 4 caractères.'; return; }
+    // BUG RÉEL (2026-10-21, « il me dit incorrect alors que c'est le bon mot de passe ») : ce formulaire
+    // vérifiait encore l'ancien code d'accès local de l'appareil (CHESTAuth), jamais le mot de passe du
+    // compte. Il passe maintenant par le serveur (POST /me/password).
+    if (next.length < 4) { codeErrEl.textContent = 'Le nouveau mot de passe doit faire au moins 4 caractères.'; return; }
     if (next !== confirmVal) { codeErrEl.textContent = 'La confirmation ne correspond pas.'; return; }
-
-    await CHESTAuth.setCode(next);
-    codeForm.reset();
-    showToast('Code d\'accès mis à jour ✓');
-    closeDrawer();
+    const btn = codeForm.querySelector('[type="submit"]');
+    btn.disabled = true;
+    try {
+      const res = await fetch(CHESTAccounts.apiBase() + '/me/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + CHESTAccounts.getToken() },
+        body: JSON.stringify({ current, new: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { codeErrEl.textContent = data.error || 'Changement impossible pour le moment.'; return; }
+      codeForm.reset();
+      showToast('Mot de passe mis à jour ✓');
+      closeDrawer();
+    } catch (err) {
+      codeErrEl.textContent = 'Serveur injoignable, réessaie dans un instant.';
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // ---------- Connexion trading (BERICH) ----------

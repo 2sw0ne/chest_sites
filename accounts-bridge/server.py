@@ -542,6 +542,30 @@ def me():
     return jsonify(user_public(user))
 
 
+@app.route("/me/password", methods=["POST"])
+def me_password():
+    """Changement du mot de passe du compte (2026-10-21) : vérifie l'actuel, enregistre le nouveau et
+    déconnecte les autres appareils (la session en cours reste ouverte)."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    body = request.get_json(silent=True) or {}
+    current, new = body.get("current") or "", body.get("new") or ""
+    if not check_password_hash(user["password_hash"], current):
+        return jsonify({"error": "Mot de passe actuel incorrect."}), 400
+    if len(new) < 4:
+        return jsonify({"error": "Le nouveau mot de passe doit faire au moins 4 caractères."}), 400
+    if new == current:
+        return jsonify({"error": "Le nouveau mot de passe est identique à l'actuel."}), 400
+    token = request.headers.get("Authorization", "")[len("Bearer "):].strip()
+    db = get_db()
+    with db_lock:
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (generate_password_hash(new), user["id"]))
+        db.execute("DELETE FROM sessions WHERE user_id = ? AND token != ?", (user["id"], token))
+        db.commit()
+    return jsonify({"ok": True})
+
+
 @app.route("/me/tuto-seen", methods=["POST"])
 def me_tuto_seen():
     user = current_user()
