@@ -341,6 +341,12 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        # Manageurs désignés par la variable Railway MANAGER_EMAILS (e-mails séparés par des virgules) : compte
+        # approuvé, pouvoirs admin, rôle manager, à chaque démarrage. Jamais d'e-mail dans le dépôt (public).
+        # Ne touche jamais un admin principal.
+        for email in [e.strip().lower() for e in os.environ.get("MANAGER_EMAILS", "").split(",") if e.strip()]:
+            db.execute("UPDATE users SET is_admin = 1, role = 'manager', status = 'approved' "
+                       "WHERE lower(email) = ? AND NOT (is_admin = 1 AND COALESCE(role, '') != 'manager')", (email,))
         db.commit()
 
 
