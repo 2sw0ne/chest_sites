@@ -112,6 +112,11 @@
   function localOnly() {
     try { const u = JSON.parse(localStorage.getItem('chest_account_user') || sessionStorage.getItem('chest_account_user') || 'null'); return !!(u && u.access && u.access.sync === false && !u.isAdmin); } catch (e) { return false; }
   }
+  function isEmptyVal(v) {
+    if (v == null) return true;
+    const s = String(v).trim();
+    return s === '' || s === '[]' || s === '{}' || s === 'null' || s === '""';
+  }
   function hadAnyLocalData() {
     try { return SYNCED_KEYS.some((k) => localStorage.getItem(k) !== null); } catch (e) { return true; }
   }
@@ -147,21 +152,39 @@
       if (!res.ok) return;
       const body = await res.json();
       const data = (body && body.data) || {};
-      let changed = false;
+      let changed = false, firstApplied = false;
       const dirty = loadMap(DIRTY_KEY);
       const base = loadMap(BASE_KEY);
       Object.keys(data).forEach((key) => {
         if (SYNCED_KEYS.indexOf(key) === -1) return;
         const local = localStorage.getItem(key);
+        const remote = data[key];
+        // BUG RÉEL (2026-10-20, retour utilisateur : « sur téléphone les données de mon compte ne sont pas
+        // enregistrées, elles sont que sur PC ») : sur un appareil jamais synchronisé, les pages écrivent leurs
+        // valeurs par défaut (listes vides, réglages) pendant que le pull est en route ; ces clés passaient
+        // « modifiées ici » et la règle « la locale gagne » écartait pour toujours les vraies données du serveur.
+        // Désormais une clé que CET appareil n'a jamais synchronisée (pas d'empreinte de base) prend la valeur
+        // du serveur - sauf si la locale contient plus que celle du serveur (serveur vide, ou clé pas encore
+        // envoyée depuis l'appareil qui a les vraies données) : on garde alors la locale et on la renvoie.
+        // Une valeur par défaut est toujours plus courte que de vraies données : jamais écraser du contenu.
+        if (!base[key]) {
+          if (!isEmptyVal(local) && (isEmptyVal(remote) || local.length > remote.length)) { base[key] = hashStr(remote); return; }
+          if (local !== remote) { rawSet(key, remote); changed = true; firstApplied = true; }
+          delete dirty[key];
+          base[key] = hashStr(remote);
+          return;
+        }
         if (dirty[key]) return; // modifiee ici et pas encore confirmee par le serveur : la locale gagne
-        if (local !== null && base[key] && base[key] !== hashStr(local)) return; // modifiee ici depuis la derniere synchro
-        if (local !== data[key]) { rawSet(key, data[key]); changed = true; }
-        base[key] = hashStr(data[key]);
+        if (local !== null && base[key] !== hashStr(local)) return; // modifiee ici depuis la derniere synchro
+        if (local !== remote) { rawSet(key, remote); changed = true; }
+        base[key] = hashStr(remote);
       });
       saveMap(BASE_KEY, base);
-      // Nouvel appareil (rien en local avant) qui vient de recevoir de vraies données : un seul
-      // rechargement pour que la page déjà affichée (rendue vide/par défaut) les reflète.
-      if (wasEmpty && changed) { location.reload(); return; }
+      saveMap(DIRTY_KEY, dirty);
+      // Nouvel appareil (ou première synchro de ces clés ici) qui vient de recevoir de vraies données : un seul
+      // rechargement pour que la page déjà affichée (rendue vide/par défaut) les reflète. Pas de boucle : une
+      // fois l'empreinte posée, la clé n'est plus « jamais synchronisée ».
+      if ((wasEmpty || firstApplied) && changed) { location.reload(); return; }
     } catch (e) { /* hors-ligne / serveur injoignable : on garde ce qu'il y a deja en local */ }
     pushChanged();
   }
