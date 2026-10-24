@@ -268,6 +268,7 @@
 <script src="js/backtest-store.js?v=2"></script>
 <script src="js/backtest-share.js?v=3"></script>
 <script src="js/backtest-engine.js?v=21"></script>
+<script src="js/backtest-compare.js?v=1"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/journal-store.js?v=12"></script>
@@ -470,6 +471,7 @@
             <div class="bt-card__menu-list" data-menu-list hidden>
               <button type="button" data-spot-id="${b.id}">${spotId === b.id ? '★ À la une' : 'Mettre à la une'}</button>
               <a href="backtest-view.html?id=${encodeURIComponent(b.id)}">Voir le rapport</a>
+              <button type="button" data-compare-id="${b.id}">Comparer…</button>
               <a href="backtest-add.html?edit=${encodeURIComponent(b.id)}">Modifier</a>
               <button type="button" data-attach-journal-id="${b.id}">Rattacher à un journal</button>
               <button type="button" data-share-id="${b.id}">Partager à un membre</button>
@@ -530,6 +532,12 @@
     });
     grid.querySelectorAll('.bt-card--custom .bt-card__menu-list a').forEach((a) => {
       a.addEventListener('click', (e) => e.stopPropagation());
+    });
+    grid.querySelectorAll('.bt-card--custom [data-compare-id]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation(); closeAllMenus();
+        window.CHESTCompare.open(btn.dataset.compareId);
+      });
     });
     grid.querySelectorAll('.bt-card--custom [data-share-id]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
