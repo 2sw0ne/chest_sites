@@ -68,8 +68,52 @@
     'chest_account_token', 'chest_account_user', 'chest_data_owner',
     'chest_nav_collapsed', 'chest_theme', 'chest_code_hash', 'chest_unlocked',
     'chest_cal_realmove_cache', 'chest_currency_strength_fxblue', 'chest_weekly_forecast_lock',
-    'chest_strength_board_open', 'chest_ops_cache',
+    'chest_strength_board_open', 'chest_ops_cache', 'chest_vault',
   ];
+
+  // SÉCURITÉ (2026-10-24, audit) : les mots de passe de comptes externes (Myfxbook dans chest_accounts /
+  // chest_journal_accounts / chest_live_account, broker BERICH dans chest_berich_connection) partaient avec
+  // la synchro et finissaient EN CLAIR sur le serveur. Ils ne quittent plus l'appareil : toute propriété
+  // « password » est retirée de ce qui est envoyé (et de ce qui sert à comparer avec le serveur), gardée
+  // dans un coffre local (chest_vault, jamais synchronisé) et remise en place quand une version arrive du
+  // serveur. Sur un nouvel appareil, le mot de passe est redemandé une fois.
+  const VAULT_KEY = 'chest_vault';
+  const idOf = (o) => String(o.email || o.login || o.username || o.user || '').trim().toLowerCase();
+  function stripSecrets(raw) {
+    if (raw == null || raw.indexOf('"password"') === -1) return raw;
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { return raw; }
+    const vault = loadMap(VAULT_KEY);
+    let found = false;
+    (function walk(o) {
+      if (!o || typeof o !== 'object') return;
+      if (Array.isArray(o)) { o.forEach(walk); return; }
+      if (Object.prototype.hasOwnProperty.call(o, 'password')) {
+        if (o.password && idOf(o)) vault[idOf(o)] = o.password;
+        delete o.password; found = true;
+      }
+      Object.keys(o).forEach((k) => walk(o[k]));
+    })(data);
+    if (found) saveMap(VAULT_KEY, vault);
+    return JSON.stringify(data);
+  }
+  function restoreSecrets(raw) {
+    if (raw == null) return raw;
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { return raw; }
+    const vault = loadMap(VAULT_KEY);
+    let touched = false;
+    (function walk(o) {
+      if (!o || typeof o !== 'object') return;
+      if (Array.isArray(o)) { o.forEach(walk); return; }
+      const id = idOf(o);
+      if (id && !o.password && vault[id] && ('email' in o || 'login' in o)) { o.password = vault[id]; touched = true; }
+      Object.keys(o).forEach((k) => walk(o[k]));
+    })(data);
+    return touched ? JSON.stringify(data) : raw;
+  }
+  // Valeur telle qu'elle part au serveur (et telle qu'on la compare à celle du serveur).
+  const syncVal = (raw) => stripSecrets(raw);
 
   function loadMap(key) {
     try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; }
@@ -89,7 +133,7 @@
   function markSynced(sent) {
     const d = loadMap(DIRTY_KEY), b = loadMap(BASE_KEY);
     Object.keys(sent).forEach((key) => {
-      if (localStorage.getItem(key) === sent[key]) { delete d[key]; b[key] = hashStr(sent[key]); }
+      if (syncVal(localStorage.getItem(key)) === sent[key]) { delete d[key]; b[key] = hashStr(sent[key]); }
     });
     saveMap(DIRTY_KEY, d); saveMap(BASE_KEY, b);
   }
@@ -97,7 +141,7 @@
   function collectChanged() {
     const b = loadMap(BASE_KEY), out = {};
     SYNCED_KEYS.forEach((key) => {
-      const v = localStorage.getItem(key);
+      const v = syncVal(localStorage.getItem(key));
       if (v !== null && b[key] !== hashStr(v)) out[key] = v;
     });
     return out;
@@ -157,7 +201,7 @@
       const base = loadMap(BASE_KEY);
       Object.keys(data).forEach((key) => {
         if (SYNCED_KEYS.indexOf(key) === -1) return;
-        const local = localStorage.getItem(key);
+        const local = syncVal(localStorage.getItem(key));
         const remote = data[key];
         // BUG RÉEL (2026-10-20, retour utilisateur : « sur téléphone les données de mon compte ne sont pas
         // enregistrées, elles sont que sur PC ») : sur un appareil jamais synchronisé, les pages écrivent leurs
@@ -169,14 +213,14 @@
         // Une valeur par défaut est toujours plus courte que de vraies données : jamais écraser du contenu.
         if (!base[key]) {
           if (!isEmptyVal(local) && (isEmptyVal(remote) || local.length > remote.length)) { base[key] = hashStr(remote); return; }
-          if (local !== remote) { rawSet(key, remote); changed = true; firstApplied = true; }
+          if (local !== remote) { rawSet(key, restoreSecrets(remote)); changed = true; firstApplied = true; }
           delete dirty[key];
           base[key] = hashStr(remote);
           return;
         }
         if (dirty[key]) return; // modifiee ici et pas encore confirmee par le serveur : la locale gagne
         if (local !== null && base[key] !== hashStr(local)) return; // modifiee ici depuis la derniere synchro
-        if (local !== remote) { rawSet(key, remote); changed = true; }
+        if (local !== remote) { rawSet(key, restoreSecrets(remote)); changed = true; }
         base[key] = hashStr(remote);
       });
       saveMap(BASE_KEY, base);

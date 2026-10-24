@@ -144,7 +144,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=7"></script>
-<script src="js/sync-store.js?v=12"></script>
+<script src="js/sync-store.js?v=13"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=15">
 </head>
@@ -479,7 +479,7 @@
             </div>
           </div>
         </div>
-        <p class="bt-card__desc">${b.description || 'Backtest ajouté depuis un fichier Excel personnel.'}</p>
+        <p class="bt-card__desc">${esc(b.description || 'Backtest ajouté depuis un fichier Excel personnel.')}</p>
         <div class="bt-card__spark">
           <svg viewBox="0 0 400 86" preserveAspectRatio="none" style="width:100%;height:86px;display:block;overflow:visible">
             <defs>

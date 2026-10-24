@@ -399,8 +399,12 @@ def health():
     return jsonify({"ok": ok}), (200 if ok else 503)
 
 
+# SÉCURITÉ (2026-10-24, audit) : pages de débogage fermées par défaut (traces d'erreur, page scrapée).
+# Les rouvrir le temps d'un diagnostic avec la variable Railway CALENDAR_DEBUG=1.
 @app.route("/debug/screenshot.png")
 def debug_screenshot():
+    if os.environ.get("CALENDAR_DEBUG") != "1":
+        return jsonify({"error": "Introuvable"}), 404
     """Capture prise au dernier echec du clic 'Cette Semaine' investing.com -
     voir _save_debug_snapshot() dans fetch_calendar.py. Sert a diagnostiquer
     a distance ce que Railway voit reellement (bandeau different, etc.)."""
@@ -412,6 +416,8 @@ def debug_screenshot():
 
 @app.route("/debug/page.html")
 def debug_html():
+    if os.environ.get("CALENDAR_DEBUG") != "1":
+        return jsonify({"error": "Introuvable"}), 404
     path = os.path.join(fetch_calendar.DEBUG_DIR, "last_failure.html")
     if not os.path.exists(path):
         return jsonify({"error": "Aucun echec capture pour l'instant"}), 404
@@ -420,6 +426,8 @@ def debug_html():
 
 @app.route("/debug/error.txt")
 def debug_error():
+    if os.environ.get("CALENDAR_DEBUG") != "1":
+        return jsonify({"error": "Introuvable"}), 404
     path = os.path.join(fetch_calendar.DEBUG_DIR, "last_failure.txt")
     if not os.path.exists(path):
         return jsonify({"error": "Aucun echec capture pour l'instant"}), 404

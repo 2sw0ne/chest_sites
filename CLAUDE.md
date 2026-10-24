@@ -18,6 +18,7 @@ Plateforme de trading CHEST (ch3st.app), accès privé payant. Site statique HTM
 - Ne jamais commiter de secret (`scanners_secret.json`, clés Twelve Data, clé VAPID privée, `config.local.js`, `STRIPE_WEBHOOK_SECRET`). `chest_sites` est public.
 - Ne jamais répéter d'identifiants de test dans le chat ; l'utilisateur ne colle pas de jeton admin dans le chat.
 - Ne jamais toucher `projects/chesting` (autre checkout) pour les vidéos chest-motion.
+- Audit 2026-10-24 : mots de passe externes (Myfxbook, broker BERICH) jamais synchronisés (`sync-store.js` : retirés à l'envoi, coffre local `chest_vault`, purge serveur au démarrage) ; limite d'essais sur `/login`, `/signup`, `/me/password` ; en-têtes de sécurité dans `site/vercel.json` ; `/debug/*` du calendrier fermés (variable `CALENDAR_DEBUG=1`) ; toujours `esc()` sur une donnée venant d'un autre membre.
 - Ne jamais réécrire `site/support.js`, `site/allin-engine.js`, `backtesting-swyper.html`, `backtesting-allin.html`.
 
 ## Architecture du site (l'essentiel)

@@ -347,7 +347,61 @@ def init_db():
         for email in [e.strip().lower() for e in os.environ.get("MANAGER_EMAILS", "").split(",") if e.strip()]:
             db.execute("UPDATE users SET is_admin = 1, role = 'manager', status = 'approved' "
                        "WHERE lower(email) = ? AND NOT (is_admin = 1 AND COALESCE(role, '') != 'manager')", (email,))
+        # SÉCURITÉ (2026-10-24, audit) : la synchro envoyait les mots de passe Myfxbook / broker BERICH. Le
+        # site ne les envoie plus (sync-store.js, coffre local) ; on efface ceux déjà enregistrés ici.
+        for row in db.execute("SELECT user_id, key, value FROM user_data WHERE value LIKE '%\"password\"%'").fetchall():
+            try:
+                data = json.loads(row[2])
+            except (TypeError, ValueError):
+                continue
+            if _strip_passwords(data):
+                db.execute("UPDATE user_data SET value = ? WHERE user_id = ? AND key = ?",
+                           (json.dumps(data, ensure_ascii=False, separators=(",", ":")), row[0], row[1]))
         db.commit()
+
+
+def _strip_passwords(o):
+    """Retire récursivement toute clé « password » ; True si quelque chose a été retiré."""
+    found = False
+    if isinstance(o, dict):
+        if "password" in o:
+            del o["password"]
+            found = True
+        for v in o.values():
+            found = _strip_passwords(v) or found
+    elif isinstance(o, list):
+        for v in o:
+            found = _strip_passwords(v) or found
+    return found
+
+
+# Limite d'essais (2026-10-24, audit) : contre les essais de mots de passe en rafale. En mémoire, par
+# processus (un seul conteneur) ; remis à zéro au redémarrage, ce qui suffit à casser une attaque.
+_rl_lock = threading.Lock()
+_rl_hits = {}
+
+
+def _client_ip():
+    fwd = request.headers.get("X-Forwarded-For", "")
+    return (fwd.split(",")[0].strip() if fwd else "") or request.remote_addr or "?"
+
+
+def too_many(key, limit, window):
+    now = time.time()
+    with _rl_lock:
+        hits = [t for t in _rl_hits.get(key, []) if now - t < window]
+        _rl_hits[key] = hits
+        return len(hits) >= limit
+
+
+def hit(key):
+    with _rl_lock:
+        _rl_hits.setdefault(key, []).append(time.time())
+        if len(_rl_hits) > 20000:
+            _rl_hits.clear()
+
+
+TOO_MANY = "Trop de tentatives. Réessaie dans quelques minutes."
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -430,6 +484,9 @@ def current_user():
 
 @app.route("/signup", methods=["POST"])
 def signup():
+    if too_many("signup-ip:" + _client_ip(), 20, 3600):
+        return jsonify({"error": TOO_MANY}), 429
+    hit("signup-ip:" + _client_ip())
     body = request.get_json(silent=True) or {}
     first_name = (body.get("firstName") or "").strip()
     last_name = (body.get("lastName") or "").strip()
@@ -500,9 +557,14 @@ def login():
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
 
+    ip_key, mail_key = "login-ip:" + _client_ip(), "login-mail:" + email
+    if too_many(ip_key, 40, 900) or too_many(mail_key, 10, 900):
+        return jsonify({"error": TOO_MANY}), 429
+    hit(ip_key)
     db = get_db()
     row = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
     if not row or not check_password_hash(row["password_hash"], password):
+        hit(mail_key)
         return jsonify({"error": "Email ou mot de passe incorrect."}), 401
     if row["status"] == "blocked":
         return jsonify({"error": "Ce compte a été bloqué par un administrateur."}), 403
@@ -575,7 +637,11 @@ def me_password():
         return jsonify({"error": "Non connecté."}), 401
     body = request.get_json(silent=True) or {}
     current, new = body.get("current") or "", body.get("new") or ""
+    pw_key = f"pw-change:{user['id']}"
+    if too_many(pw_key, 8, 900):
+        return jsonify({"error": TOO_MANY}), 429
     if not check_password_hash(user["password_hash"], current):
+        hit(pw_key)
         return jsonify({"error": "Mot de passe actuel incorrect."}), 400
     if len(new) < 4:
         return jsonify({"error": "Le nouveau mot de passe doit faire au moins 4 caractères."}), 400
