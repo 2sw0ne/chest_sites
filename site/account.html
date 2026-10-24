@@ -223,13 +223,22 @@
   .chest-root .acch__role[hidden]{ display:none; }
   .chest-root .acch__facts{ margin-top:30px; }
   .chest-root .acch__sub{ max-width:520px; margin:26px auto 0; font-size:13px; line-height:1.6; color:var(--chest-ink-3); }
+  /* Sauvegardes (2026-10-24) */
+  .bk-group{ padding:14px 0; border-bottom:1px solid var(--line, rgba(255,255,255,.08)); }
+  .bk-group:last-child{ border-bottom:0; }
+  .bk-group h4{ margin:0 0 2px; font-size:14px; font-weight:650; color:var(--chest-ink, #f6f6f7); }
+  .bk-cur, .bk-none{ margin:0 0 8px; font-size:12px; color:var(--chest-ink-3, #5c5c63); }
+  .bk-group ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .bk-group li{ display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13px; color:var(--chest-ink-2, #9b9ba1); font-variant-numeric:tabular-nums; }
+  .bk-group li em{ font-style:normal; margin-left:10px; color:var(--chest-ink-3, #5c5c63); }
+  .bk-restore{ padding:6px 12px; font-size:12px; }
 </style>
 <script src="js/theme.js?v=4"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=7"></script>
-<script src="js/sync-store.js?v=13"></script>
+<script src="js/sync-store.js?v=14"></script>
 <script src="js/pwa.js?v=3"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=15">
@@ -453,6 +462,15 @@
       </div>
       <button type="button" class="chest-btn-2" data-open-drawer="profile" data-drawer-title="Profil">Changer</button>
     </div>
+    <div class="settings-row">
+      <div class="settings-row__info">
+        <div class="settings-row__text">
+          <p class="settings-row__title">Sauvegardes</p>
+          <p class="settings-row__value">Chaque version de tes comptes, journaux et backtests est gardée sur ton compte. Tu peux revenir en arrière à tout moment.</p>
+        </div>
+      </div>
+      <button type="button" class="chest-btn-2" data-open-drawer="backups" data-drawer-title="Sauvegardes">Voir</button>
+    </div>
 
     <div class="settings-row">
       <div class="settings-row__info">
@@ -595,6 +613,10 @@
       </div>
     </div>
 
+    <div class="drawer-panel" data-panel-name="backups" hidden>
+      <p class="hint">Avant chaque modification, la version précédente est gardée sur ton compte (30 dernières par catégorie). Restaurer remet cette version sur tous tes appareils.</p>
+      <div class="bk-list" id="bkList"><p class="hint">Chargement…</p></div>
+    </div>
     <div class="drawer-panel" data-panel-name="profile" hidden>
       <p class="hint">Les informations de ton compte CHEST, les mêmes sur tous tes appareils. L'email sert aussi à te connecter.</p>
       <form id="profileForm" class="form-stack" autocomplete="off">
@@ -644,6 +666,7 @@
 
 <script src="js/nav.js?v=8"></script>
 <script src="js/chest-ui.js?v=2"></script>
+<script src="js/confirm-dialog.js"></script>
 <script src="js/lot-calculator.js?v=5"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
@@ -739,6 +762,7 @@ CHESTTour.init([
       renderTzList('');
       requestAnimationFrame(() => tzSearch.focus());
     }
+    if (name === 'backups') renderBackups();
     if (name === 'profile') {
       const p = loadProfile() || {};
       document.getElementById('profileFirstName').value = p.firstName || '';
@@ -1158,6 +1182,40 @@ CHESTTour.init([
     } finally {
       btn.disabled = false;
     }
+  });
+
+  // ---------- Sauvegardes (2026-10-24 : GET /sync/history, POST /sync/restore) ----------
+  const BK_KEYS = [['chest_accounts', 'Comptes du Dashboard'], ['chest_journal_accounts', 'Journaux'], ['chest_journal', 'Trades du journal'], ['chest_backtests', 'Backtests'], ['chest_account_families', 'Familles de comptes']];
+  const bkWhen = (iso) => { try { return new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  const bkCount = (n) => (n == null ? '' : n === 0 ? 'vide' : n + (n > 1 ? ' éléments' : ' élément'));
+  async function renderBackups() {
+    const box = document.getElementById('bkList');
+    box.innerHTML = '<p class="hint">Chargement…</p>';
+    const auth = { Authorization: 'Bearer ' + CHESTAccounts.getToken() };
+    try {
+      const all = await Promise.all(BK_KEYS.map(([k]) => fetch(CHESTAccounts.apiBase() + '/sync/history?key=' + encodeURIComponent(k), { headers: auth }).then((r) => (r.ok ? r.json() : null))));
+      box.innerHTML = BK_KEYS.map(([k, label], i) => {
+        const h = all[i] || { versions: [] };
+        const cur = h.current ? `Actuellement : ${bkCount(h.current.items) || 'enregistré'}` : 'Rien d’enregistré pour l’instant';
+        const rows = (h.versions || []).slice(0, 8).map((v) => `<li><span>${escapeHtml(bkWhen(v.savedAt))}<em>${escapeHtml(bkCount(v.items))}</em></span><button type="button" class="chest-btn-2 bk-restore" data-bk-id="${v.id}" data-bk-label="${escapeHtml(label)}">Restaurer</button></li>`).join('');
+        return `<section class="bk-group"><h4>${escapeHtml(label)}</h4><p class="bk-cur">${escapeHtml(cur)}</p>${rows ? `<ul>${rows}</ul>` : '<p class="bk-none">Aucune version précédente.</p>'}</section>`;
+      }).join('');
+    } catch (e) {
+      box.innerHTML = '<p class="hint">Sauvegardes injoignables pour le moment, réessaie dans un instant.</p>';
+    }
+  }
+  document.getElementById('bkList').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-bk-id]'); if (!b) return;
+    if (!(await CHESTConfirm(`Restaurer « ${b.dataset.bkLabel} » dans la version du ${b.closest('li').querySelector('span').firstChild.textContent} ? La version actuelle reste gardée dans les sauvegardes.`))) return;
+    b.disabled = true;
+    try {
+      const res = await fetch(CHESTAccounts.apiBase() + '/sync/restore', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + CHESTAccounts.getToken() }, body: JSON.stringify({ id: Number(b.dataset.bkId) }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Restauration impossible.');
+      if (window.CHESTSync && CHESTSync.applyServerValue) CHESTSync.applyServerValue(data.key, data.value);
+      showToast('Version restaurée ✓');
+      renderBackups();
+    } catch (err) { b.disabled = false; showToast(err.message); }
   });
 
   // ---------- Code d'accès ----------

@@ -180,8 +180,15 @@
   }
 
   // Envoie ce qui a change localement (voir collectChanged) - et seulement cela.
+  // BUG RÉEL (2026-10-24, retour utilisateur : « sur ce PC mon dashboard est enlevé, sur mon MacBook et mon
+  // téléphone je l'ai ») : après une déconnexion, le Dashboard réécrit une liste de comptes VIDE au chargement ;
+  // la synchro l'envoyait 600 ms plus tard, AVANT que la lecture du serveur soit revenue, et la liste vide
+  // remplaçait les vrais comptes sur le serveur (puis sur chaque appareil rechargé). Désormais rien ne part
+  // tant que la lecture du serveur de cette page n'a pas abouti ; ce qui a changé entre-temps reste marqué
+  // « à envoyer » et part juste après.
+  let pulled = false;
   function pushChanged() {
-    if (!getToken() || localOnly()) return Promise.resolve();
+    if (!pulled || !getToken() || localOnly()) return Promise.resolve();
     const data = collectChanged();
     if (!Object.keys(data).length) return Promise.resolve();
     return postSync(data);
@@ -211,8 +218,11 @@
         // du serveur - sauf si la locale contient plus que celle du serveur (serveur vide, ou clé pas encore
         // envoyée depuis l'appareil qui a les vraies données) : on garde alors la locale et on la renvoie.
         // Une valeur par défaut est toujours plus courte que de vraies données : jamais écraser du contenu.
+        // Jamais remplacer du contenu par du vide : si le serveur n'a qu'une valeur vide et que l'appareil a de
+        // vraies données, on garde la locale et on la renvoie (le serveur est « réparé »). Une suppression de
+        // TOUT le contenu ne se propage donc pas d'un appareil à l'autre - prix accepté pour ne rien perdre.
+        if (isEmptyVal(remote) && !isEmptyVal(local)) { base[key] = hashStr(remote); return; }
         if (!base[key]) {
-          if (!isEmptyVal(local) && (isEmptyVal(remote) || local.length > remote.length)) { base[key] = hashStr(remote); return; }
           if (local !== remote) { rawSet(key, restoreSecrets(remote)); changed = true; firstApplied = true; }
           delete dirty[key];
           base[key] = hashStr(remote);
@@ -229,7 +239,8 @@
       // rechargement pour que la page déjà affichée (rendue vide/par défaut) les reflète. Pas de boucle : une
       // fois l'empreinte posée, la clé n'est plus « jamais synchronisée ».
       if ((wasEmpty || firstApplied) && changed) { location.reload(); return; }
-    } catch (e) { /* hors-ligne / serveur injoignable : on garde ce qu'il y a deja en local */ }
+      pulled = true;
+    } catch (e) { /* hors-ligne / serveur injoignable : on garde ce qu'il y a deja en local, rien n'est envoyé */ }
     pushChanged();
   }
   function currentUserId() {
@@ -299,5 +310,12 @@
     },
     clearLocalData,
     setOwner,
+    // Valeur restaurée depuis une sauvegarde serveur (Compte → Sauvegardes) : posée telle quelle ici,
+    // mots de passe locaux remis en place, et marquée comme déjà synchronisée.
+    applyServerValue: (key, value) => {
+      rawSet(key, restoreSecrets(value));
+      const b = loadMap(BASE_KEY); b[key] = hashStr(value); saveMap(BASE_KEY, b);
+      const d = loadMap(DIRTY_KEY); delete d[key]; saveMap(DIRTY_KEY, d);
+    },
   };
 })();

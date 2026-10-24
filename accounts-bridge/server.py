@@ -237,6 +237,18 @@ def init_db():
         """)
         # Comptes rendus semaine/mois deja envoyes (2026-10-01, voir check_digests) - une ligne par
         # periode, pour ne jamais renvoyer le meme compte rendu apres un redemarrage.
+        # Sauvegardes (2026-10-24, demande utilisateur : « une fois configuré il ne doit pas pouvoir partir ») :
+        # chaque valeur synchronisée remplacée est gardée ici (30 dernières par donnée), restaurable depuis Compte.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_data_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                key TEXT NOT NULL,
+                value TEXT NOT NULL,
+                saved_at TEXT NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_udh_user_key ON user_data_history (user_id, key, id)")
         db.execute("CREATE TABLE IF NOT EXISTS push_digest_log (period_key TEXT PRIMARY KEY, sent_at TEXT)")
         # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
         # plusieurs appareils abonnés (PC + téléphone), chacun avec son propre "endpoint".
@@ -858,6 +870,7 @@ def delete_member(member_id):
         db.execute("DELETE FROM vps_accounts WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
@@ -2228,6 +2241,66 @@ def sync_get():
     return jsonify({"data": {r["key"]: r["value"] for r in rows}})
 
 
+HISTORY_KEEP = 30
+_EMPTY_VALUES = ("", "[]", "{}", "null", '""')
+
+
+def _keep_history(db, user_id, key, new_value, now):
+    """Garde la valeur actuelle avant qu'elle soit remplacée (si elle a du contenu et qu'elle change)."""
+    old = db.execute("SELECT value FROM user_data WHERE user_id = ? AND key = ?", (user_id, key)).fetchone()
+    if not old or old["value"] == new_value or (old["value"] or "").strip() in _EMPTY_VALUES:
+        return
+    db.execute("INSERT INTO user_data_history (user_id, key, value, saved_at) VALUES (?, ?, ?, ?)",
+               (user_id, key, old["value"], now))
+    db.execute("DELETE FROM user_data_history WHERE user_id = ? AND key = ? AND id NOT IN "
+               "(SELECT id FROM user_data_history WHERE user_id = ? AND key = ? ORDER BY id DESC LIMIT ?)",
+               (user_id, key, user_id, key, HISTORY_KEEP))
+
+
+def _items_of(value):
+    try:
+        v = json.loads(value)
+    except (TypeError, ValueError):
+        return None
+    return len(v) if isinstance(v, (list, dict)) else None
+
+
+@app.route("/sync/history")
+def sync_history():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    key = request.args.get("key", "")
+    db = get_db()
+    rows = db.execute("SELECT id, value, saved_at FROM user_data_history WHERE user_id = ? AND key = ? ORDER BY id DESC",
+                      (user["id"], key)).fetchall()
+    cur = db.execute("SELECT value, updated_at FROM user_data WHERE user_id = ? AND key = ?", (user["id"], key)).fetchone()
+    return jsonify({
+        "current": {"items": _items_of(cur["value"]), "updatedAt": cur["updated_at"]} if cur else None,
+        "versions": [{"id": r["id"], "savedAt": r["saved_at"], "items": _items_of(r["value"]), "size": len(r["value"])} for r in rows],
+    })
+
+
+@app.route("/sync/restore", methods=["POST"])
+def sync_restore():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    vid = (request.get_json(silent=True) or {}).get("id")
+    db = get_db()
+    row = db.execute("SELECT key, value FROM user_data_history WHERE id = ? AND user_id = ?", (vid, user["id"])).fetchone()
+    if not row:
+        return jsonify({"error": "Sauvegarde introuvable."}), 404
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        _keep_history(db, user["id"], row["key"], row["value"], now)
+        db.execute("INSERT INTO user_data (user_id, key, value, updated_at) VALUES (?, ?, ?, ?) "
+                   "ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+                   (user["id"], row["key"], row["value"], now))
+        db.commit()
+    return jsonify({"key": row["key"], "value": row["value"]})
+
+
 @app.route("/sync", methods=["POST"])
 def sync_post():
     user = approved_user()
@@ -2245,6 +2318,7 @@ def sync_post():
         for key, value in data.items():
             if not isinstance(key, str) or not isinstance(value, str) or len(key) > 128:
                 continue
+            _keep_history(db, user["id"], key, value, now)
             db.execute(
                 "INSERT INTO user_data (user_id, key, value, updated_at) VALUES (?, ?, ?, ?) "
                 "ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
