@@ -1127,6 +1127,50 @@ def _sub_period_end(obj):
     return max(ends) if ends else None
 
 
+# ---------------------------------------------------------------- Mode de fonctionnement (2026-10-24)
+# Réglé par l'admin (admin-members.html, onglet Système) pour limiter la consommation Railway :
+#   normal = tout tourne ; eco = le calendrier ne se met à jour qu'une fois par jour (pas de relecture
+#   après chaque annonce) ; off = les tâches de fond des services s'arrêtent (calendrier, alarmes des
+#   scanners, Force du marché). « maintenance » = pages qui affichent la maintenance aux membres (les
+#   admins les voient toujours). Lu sans connexion par le site et par les autres services (GET /ops).
+OPS_MODES = ("normal", "eco", "off")
+
+
+def get_ops():
+    try:
+        data = json.loads(get_setting("ops") or "null")
+    except ValueError:
+        data = None
+    if not isinstance(data, dict):
+        data = {}
+    return {"mode": data.get("mode") if data.get("mode") in OPS_MODES else "normal",
+            "maintenance": [p for p in (data.get("maintenance") or []) if isinstance(p, str)],
+            "message": str(data.get("message") or "")}
+
+
+@app.route("/ops", methods=["GET", "PUT"])
+def ops():
+    if request.method == "GET":
+        resp = jsonify({**get_ops(), "updatedAt": get_setting("ops_updated_at")})
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    body = request.get_json(silent=True) or {}
+    mode = body.get("mode")
+    if mode not in OPS_MODES:
+        return jsonify({"error": "Mode inconnu."}), 400
+    pages = body.get("maintenance") or []
+    if not isinstance(pages, list) or len(pages) > 40 or not all(isinstance(x, str) and re.fullmatch(r"[a-z-]{1,40}", x) for x in pages):
+        return jsonify({"error": "Liste de pages invalide."}), 400
+    data = {"mode": mode, "maintenance": sorted(set(pages)), "message": re.sub(r"\s+", " ", str(body.get("message") or "")).strip()[:240]}
+    set_setting("ops", json.dumps(data, ensure_ascii=False))
+    now = datetime.now(timezone.utc).isoformat()
+    set_setting("ops_updated_at", now)
+    return jsonify({**data, "updatedAt": now})
+
+
 @app.route("/pricing", methods=["GET", "PUT"])
 def pricing():
     if request.method == "GET":

@@ -136,7 +136,7 @@
   const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* tant pis */ } };
   const read = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   { const d = Number(read('chest_admin_days')); if ([7, 30, 90, 365].includes(d)) S.days = d; }
-  { const v = read('chest_admin_view'); if (['overview', 'members', 'ranks', 'engagement'].includes(v)) S.view = v; }
+  { const v = read('chest_admin_view'); if (['overview', 'members', 'ranks', 'engagement', 'system'].includes(v)) S.view = v; }
   { const m = read('chest_admin_metric'); if (['revenue', 'signups', 'users', 'views'].includes(m)) S.metric = m; }
   const periodWord = () => ({ 7: 'sur 7 jours', 30: 'sur 30 jours', 90: 'sur 90 jours', 365: 'sur 12 mois' }[S.days]);
 
@@ -502,7 +502,70 @@
   }
 
   // ------------------------------------------------------------ Vues
-  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement };
+  // ---------------- Système : mode Éco / Arrêt et pages en maintenance (GET/PUT /ops) ----------------
+  const OPS_MODES = [
+    ['normal', 'Normal', 'Tout tourne : calendrier toutes les 2 h et après chaque annonce, alarmes des scanners, Force du marché.'],
+    ['eco', 'Éco', 'Calendrier mis à jour une fois par jour, sans relecture après les annonces. Le reste ne change pas.'],
+    ['off', 'Arrêt', 'Plus aucune tâche de fond : calendrier, alarmes des scanners et Force du marché s’arrêtent.'],
+  ];
+  const OPS_PAGES = [['dashboard', 'Dashboard'], ['backtesting', 'Backtesting'], ['journal', 'Journal'], ['strategies', 'Stratégies'], ['calendar', 'Calendrier'], ['berich', 'BERICH'], ['school', 'School'], ['account', 'Compte']];
+  const OPS_ALL = OPS_PAGES.map(([k]) => k);
+  let opsSaved = null, opsDraft = null;
+  const opsJson = (o) => JSON.stringify({ mode: o.mode, maintenance: [...o.maintenance].sort(), message: (o.message || '').trim() });
+  async function loadOps() {
+    const res = await fetch(A.apiBase() + '/ops', { cache: 'no-store' });
+    const d = await res.json();
+    opsSaved = { mode: d.mode || 'normal', maintenance: d.maintenance || [], message: d.message || '', updatedAt: d.updatedAt };
+    opsDraft = JSON.parse(JSON.stringify(opsSaved));
+    opsBadge();
+  }
+  function opsBadge() { $('amOpsBadge').textContent = opsSaved && opsSaved.mode !== 'normal' ? (opsSaved.mode === 'eco' ? 'Éco' : 'Arrêt') : ''; }
+  async function renderSystem() {
+    if (!opsDraft) {
+      $('amOpsMode').innerHTML = '<p class="am-empty">Chargement…</p>';
+      try { await loadOps(); } catch (e) { $('amOpsMode').innerHTML = '<p class="am-empty">Réglage illisible pour le moment, réessaie.</p>'; return; }
+    }
+    $('amOpsMeta').textContent = opsSaved.updatedAt ? 'modifié ' + ago(opsSaved.updatedAt) : 'jamais modifié';
+    $('amOpsMode').innerHTML = OPS_MODES.map(([k, l, s]) => `<button type="button" data-ops-mode="${k}" aria-pressed="${opsDraft.mode === k}"><b><i class="am-sys__dot am-sys__dot--${k}" aria-hidden="true"></i>${l}</b><small>${esc(s)}</small></button>`).join('');
+    $('amOpsPages').innerHTML = OPS_PAGES.map(([k, l]) => {
+      const on = opsDraft.maintenance.includes(k);
+      return `<li><span>${esc(l)}</span><label class="am-sw"><input type="checkbox" data-ops-page="${k}" ${on ? 'checked' : ''}><span aria-hidden="true"></span><em>${on ? 'Maintenance' : 'En service'}</em></label></li>`;
+    }).join('');
+    if (document.activeElement !== $('amOpsMsg')) $('amOpsMsg').value = opsDraft.message || '';
+    const dirty = opsJson(opsDraft) !== opsJson(opsSaved);
+    $('amOpsSave').disabled = !dirty;
+    if (dirty) say($('amOpsState'), 'Modifications non enregistrées.', 'warn');
+  }
+  $('amOpsMode').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ops-mode]'); if (!b) return;
+    const was = opsDraft.mode; opsDraft.mode = b.dataset.opsMode;
+    // Arrêt : toutes les pages passent en maintenance par défaut (tu peux en rouvrir) ; en le quittant, on les rouvre.
+    if (opsDraft.mode === 'off' && was !== 'off' && !opsDraft.maintenance.length) opsDraft.maintenance = OPS_ALL.slice();
+    if (was === 'off' && opsDraft.mode !== 'off' && opsDraft.maintenance.length === OPS_ALL.length) opsDraft.maintenance = [];
+    renderSystem();
+  });
+  $('amOpsPages').addEventListener('change', (e) => {
+    const k = e.target.dataset.opsPage; if (!k) return;
+    opsDraft.maintenance = e.target.checked ? [...new Set([...opsDraft.maintenance, k])] : opsDraft.maintenance.filter((x) => x !== k);
+    renderSystem();
+  });
+  $('amOpsMsg').addEventListener('input', (e) => { opsDraft.message = e.target.value; renderSystem(); });
+  $('amOpsSave').addEventListener('click', async () => {
+    const btn = $('amOpsSave');
+    if (opsDraft.mode === 'off' && !(await CHESTConfirm('Passer en mode Arrêt ? Le calendrier, les alarmes des scanners et la Force du marché s’arrêtent, et les pages cochées affichent la maintenance aux membres.'))) return;
+    btn.disabled = true; say($('amOpsState'), 'Enregistrement…');
+    try {
+      const res = await fetch(A.apiBase() + '/ops', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ mode: opsDraft.mode, maintenance: opsDraft.maintenance, message: (opsDraft.message || '').trim() }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || 'Enregistrement impossible.');
+      opsSaved = { mode: d.mode, maintenance: d.maintenance, message: d.message, updatedAt: d.updatedAt };
+      opsDraft = JSON.parse(JSON.stringify(opsSaved));
+      opsBadge(); renderSystem();
+      say($('amOpsState'), 'Enregistré. Les services appliquent le changement sous 5 minutes.', 'ok');
+    } catch (err) { say($('amOpsState'), err.message, 'err'); btn.disabled = false; }
+  });
+
+  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, system: renderSystem };
   function placeIndicator() {
     const tabs = document.querySelector('.am-nav__tabs');
     let ind = tabs.querySelector('.am-nav__ind');
@@ -896,5 +959,6 @@
   document.querySelectorAll('#amPeriod [data-days]').forEach((b) => b.classList.toggle('is-active', Number(b.dataset.days) === S.days));
   if (!A.isAdmin()) { document.querySelector('.am').innerHTML = '<div class="am-error" style="padding:40px 0">Cette page est réservée aux administrateurs.</div>'; return; }
   setView(S.view, { keepScroll: true });
+  loadOps().catch(() => { /* pastille Système : au premier passage sur l'onglet */ });
   reload().catch((err) => { $('amRows').innerHTML = `<div class="am-error">Impossible de charger les membres : ${esc(err.message)}</div>`; $('amKpis').innerHTML = `<div class="am-error">Impossible de charger : ${esc(err.message)}</div>`; });
 })();

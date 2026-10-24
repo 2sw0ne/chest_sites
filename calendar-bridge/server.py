@@ -184,10 +184,55 @@ def _refresh_once_locked():
         print(f"Echec du rafraichissement :\n{err}")
 
 
+# Mode de fonctionnement (2026-10-24, réglé par l'admin, lu sur accounts-bridge GET /ops toutes les 5 min) :
+#   normal = un scraping toutes les REFRESH_SECONDS + relectures ciblées après chaque annonce ;
+#   eco    = un seul scraping par jour, aucune relecture ciblée ;
+#   off    = plus aucun scraping (Chrome ne se lance plus), on sert le dernier historique enregistré.
+OPS = {"mode": "normal"}
+ECO_REFRESH_SECONDS = 24 * 3600
+last_refresh = {"at": 0.0}
+
+
+def fetch_ops_once():
+    if not ACCOUNTS_BRIDGE_URL:
+        return
+    try:
+        with urllib.request.urlopen(ACCOUNTS_BRIDGE_URL.rstrip("/") + "/ops", timeout=10) as resp:
+            mode = json.loads(resp.read().decode("utf-8")).get("mode")
+        if mode in ("normal", "eco", "off") and mode != OPS["mode"]:
+            print(f"Mode de fonctionnement : {mode}")
+            OPS["mode"] = mode
+    except Exception as exc:
+        print(f"Mode de fonctionnement illisible ({exc}) : on garde {OPS['mode']}.")
+
+
+def ops_loop():
+    while True:
+        time.sleep(300)
+        fetch_ops_once()
+
+
+def serve_history_only():
+    """Sans scraping (mode arrêt ou éco au démarrage) : le dernier historique enregistré suffit au site."""
+    with state_lock:
+        if state["data"] is not None:
+            return
+        events = load_persisted_events()
+        if events:
+            state["data"] = {"generated_at": None, "source": "historique enregistré", "events": events, "ticker": []}
+
+
 def refresh_loop():
     while True:
-        refresh_once()
-        time.sleep(REFRESH_SECONDS)
+        mode = OPS["mode"]
+        if mode == "off":
+            serve_history_only()
+        else:
+            interval = ECO_REFRESH_SECONDS if mode == "eco" else REFRESH_SECONDS
+            if time.time() - last_refresh["at"] >= interval:
+                last_refresh["at"] = time.time()
+                refresh_once()
+        time.sleep(60)
 
 
 # Boucle RAPIDE separee de refresh_loop() (2026-09-26) : refresh_loop() re-scrape
@@ -306,7 +351,7 @@ def check_released_events():
             notified_result_ids.add(e["id"])
         flag, title = _event_label(e)
         notify("calendar_result", f"{flag} - {title} : {actual}{_expected_detail(e)}".strip())
-    if not RESULT_REFRESH:
+    if not RESULT_REFRESH or OPS["mode"] != "normal":
         return
     for slot, age in slots_waiting:
         with notified_lock:
@@ -321,6 +366,9 @@ def check_released_events():
 
 def notify_loop():
     while True:
+        if OPS["mode"] == "off":
+            time.sleep(NOTIFY_CHECK_SECONDS)
+            continue
         try:
             check_upcoming_high_impact_events()
             check_released_events()
@@ -379,6 +427,8 @@ def debug_error():
 
 
 if __name__ == "__main__":
+    fetch_ops_once()
+    threading.Thread(target=ops_loop, daemon=True).start()
     threading.Thread(target=refresh_loop, daemon=True).start()
     threading.Thread(target=notify_loop, daemon=True).start()
     # threaded=False explicite (2026-09-12) : les logs Railway montrent le

@@ -350,7 +350,25 @@ async function scanCombo(code, tf, source) {
 // tournent ici avec la clé "alarm" - un combo juste consulté reste dans WATCH (pour que les
 // prochaines secondes/minutes profitent du cache) mais n'est plus jamais rescanné tout seul ; il ne
 // se rafraîchit qu'à la prochaine vraie requête /data ou /signals (clé "view").
+// Mode de fonctionnement (2026-10-24, réglé par l'admin, GET /ops d'accounts-bridge toutes les 5 min) :
+// en mode « off », plus aucun scan de fond (alarmes) ni Force du marché - les pages restées en service
+// continuent de calculer à la demande. Partagé avec board.mjs via globalThis.CHEST_OPS_MODE.
+globalThis.CHEST_OPS_MODE = "normal";
+async function fetchOps() {
+  try {
+    const res = await fetch(ACCOUNTS_URL + "/ops", { signal: AbortSignal.timeout(10000) });
+    const mode = (await res.json()).mode;
+    if (["normal", "eco", "off"].includes(mode) && mode !== globalThis.CHEST_OPS_MODE) {
+      console.log("Mode de fonctionnement :", mode);
+      globalThis.CHEST_OPS_MODE = mode;
+    }
+  } catch (e) { /* illisible : on garde le mode connu */ }
+}
+fetchOps();
+setInterval(fetchOps, 5 * 60 * 1000);
+
 setInterval(async () => {
+  if (globalThis.CHEST_OPS_MODE === "off") return;
   const now = Date.now();
   for (const [k, w] of WATCH) {
     if (!w.keep) { if (now - w.touched > WATCH_TTL) WATCH.delete(k); continue; }

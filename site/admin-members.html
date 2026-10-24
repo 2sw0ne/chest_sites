@@ -14,14 +14,14 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<link rel="stylesheet" href="css/admin-members.css?v=3">
+<link rel="stylesheet" href="css/admin-members.css?v=4">
 <script src="js/theme.js?v=4"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=7"></script>
-<script src="js/sync-store.js?v=11"></script>
+<script src="js/sync-store.js?v=12"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=14">
+<link rel="stylesheet" href="css/v2.css?v=15">
 </head>
 <body data-page="admin-members" class="chest-root">
 
@@ -94,6 +94,7 @@
           <button type="button" role="tab" data-view="members">Membres <small id="amNavCount"></small></button>
           <button type="button" role="tab" data-view="ranks">Rangs</button>
           <button type="button" role="tab" data-view="engagement">Engagement</button>
+          <button type="button" role="tab" data-view="system">Système <small id="amOpsBadge"></small></button>
         </div>
         <div class="am-nav__act">
           <button type="button" class="am-nav__search" id="amQuick" aria-label="Rechercher un membre">
@@ -194,6 +195,24 @@
         </div>
         <p class="am-note">Activité = page ouverte, jour et nombre de vues. Jamais ce que le membre y fait.</p>
       </section>
+
+      <!-- Système (2026-10-24) : mode Éco / Arrêt des services Railway et pages en maintenance (GET/PUT /ops). -->
+      <section class="am-view" data-panel="system" aria-label="Système" hidden>
+        <div class="am-grid am-grid--sys">
+          <article class="am-panel">
+            <header class="am-panel__head"><h2 class="am-panel__t">Mode de fonctionnement</h2><span class="am-panel__meta" id="amOpsMeta"></span></header>
+            <div class="am-opt am-opt--mode" id="amOpsMode"></div>
+            <p class="am-note am-sys__note">Les services relisent ce réglage toutes les 5 minutes. Le site, les comptes, les paiements et l'admin restent toujours en marche.</p>
+          </article>
+          <article class="am-panel">
+            <header class="am-panel__head"><h2 class="am-panel__t">Pages en maintenance</h2><span class="am-panel__meta">toi et les manageurs les voyez toujours</span></header>
+            <ul class="am-sys__pages" id="amOpsPages"></ul>
+            <label class="am-sub am-sys__lbl" for="amOpsMsg">Message affiché aux membres</label>
+            <textarea class="am-sys__msg" id="amOpsMsg" maxlength="240" rows="2" placeholder="Elle revient très vite. Tes données sont en sécurité."></textarea>
+          </article>
+        </div>
+        <div class="am-sys__save"><span class="am-msg" id="amOpsState" aria-live="polite"></span><button type="button" class="chest-btn" id="amOpsSave" disabled>Enregistrer</button></div>
+      </section>
     </main>
   </div>
 </div>
@@ -267,7 +286,7 @@ CHESTTour.init([
   { selector: '#amGiftBtn', title: 'Privilège', text: 'Offre tout CHEST à un membre, jusqu’à la date de ton choix ou sans limite.' },
 ]);
 </script>
-<script src="js/admin-members.js?v=4"></script>
+<script src="js/admin-members.js?v=5"></script>
 <script src="js/v2.js?v=3"></script>
 </body>
 </html>

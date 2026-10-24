@@ -79,7 +79,71 @@
   let currentTitle = '';
   new MutationObserver(syncUrl).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
+  // ---------------- Maintenance (2026-10-24) ----------------
+  // L'admin met des pages en maintenance (admin-members.html, onglet Système ; GET /ops). Pour un membre,
+  // la page n'est même pas chargée (aucun appel aux services) : l'écran de maintenance la remplace. Les
+  // admins la voient normalement, avec une pastille. Relu au démarrage puis toutes les 5 minutes.
+  const OPS_KEY = 'chest_ops_cache';
+  let OPS = { mode: 'normal', maintenance: [], message: '' };
+  try { OPS = Object.assign(OPS, JSON.parse(localStorage.getItem(OPS_KEY) || '{}')); } catch (e) { /* défaut */ }
+  const maintEl = document.getElementById('chestMaint');
+  const maintPill = document.getElementById('chestMaintPill');
+  const isAdminUser = () => !!(window.CHESTAccounts && CHESTAccounts.isAdmin && CHESTAccounts.isAdmin());
+  const navOf = (name) => (PAGES[name] && PAGES[name].nav) || name;
+  const inMaint = (name) => (OPS.maintenance || []).includes(navOf(name)) || (OPS.maintenance || []).includes(name);
+  const blocked = (name) => !!PAGES[name] && inMaint(name) && !isAdminUser();
+  function splitFile(file) {
+    const i = file.indexOf('.html');
+    return { name: i === -1 ? file : file.slice(0, i), search: i === -1 ? '' : file.slice(i + 5) };
+  }
+  function markActive(name, search) {
+    const meta = PAGES[name] || { cat: 'CHEST', label: name };
+    currentKey = keyOf(name, search);
+    requestedKey = null;
+    currentTitle = meta.label + ' — CHEST';
+    syncUrl();
+    crumbCat.textContent = meta.cat;
+    crumbPage.textContent = meta.label;
+    const active = meta.nav || name;
+    document.querySelectorAll('.chest-nav__item[data-page]').forEach((el) => el.classList.toggle('is-active', el.dataset.page === active));
+    document.querySelectorAll('.chest-topbar__btn[data-page]').forEach((el) => el.classList.toggle('is-active', el.dataset.page === name));
+  }
+  function showMaint(name, search) {
+    markActive(name, search);
+    try { if (frame.contentWindow.location.href !== 'about:blank') frame.contentWindow.location.replace('about:blank'); } catch (e) { frame.src = 'about:blank'; }
+    document.getElementById('chestMaintTitle').textContent = OPS.mode === 'off' ? 'CHEST est en maintenance.' : 'On améliore cette partie de CHEST.';
+    document.getElementById('chestMaintText').textContent = OPS.message || 'Elle revient très vite. Tes données sont en sécurité.';
+    const back = document.getElementById('chestMaintBack');
+    const alt = ['dashboard', 'journal', 'backtesting', 'strategies', 'calendar'].find((p) => p !== navOf(name) && !blocked(p));
+    back.hidden = !alt;
+    if (alt) { back.setAttribute('href', '#/' + alt); back.textContent = 'Aller sur ' + PAGES[alt].label; }
+    maintEl.hidden = false;
+    maintPill.hidden = true;
+    shell.classList.remove('is-navigating');
+  }
+  function hideMaint() { maintEl.hidden = true; }
+  async function refreshOps() {
+    try {
+      const base = (window.CHESTAccounts && CHESTAccounts.apiBase) ? CHESTAccounts.apiBase() : '';
+      if (!base) return;
+      const res = await fetch(base + '/ops', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      OPS = { mode: data.mode || 'normal', maintenance: data.maintenance || [], message: data.message || '' };
+      try { localStorage.setItem(OPS_KEY, JSON.stringify(OPS)); } catch (e) { /* tant pis */ }
+    } catch (e) { return; }
+    if (!currentKey) return;
+    const cur = splitFile(currentKey.replace(/^([^?]*)/, '$1.html'));
+    if (blocked(cur.name)) { if (maintEl.hidden) showMaint(cur.name, cur.search); }
+    else if (!maintEl.hidden) { hideMaint(); navigate(cur.name + '.html' + cur.search); }
+    else maintPill.hidden = !inMaint(cur.name);
+  }
+  setInterval(refreshOps, 5 * 60 * 1000);
+
   function navigate(file) {
+    const target = splitFile(file);
+    if (blocked(target.name)) { showMaint(target.name, target.search); return; }
+    hideMaint();
     requestedKey = file.replace(/\.html/, '');
     shell.classList.remove('is-done');
     shell.classList.add('is-navigating');
@@ -126,6 +190,9 @@
     }
 
     if (AUTH_PAGES.includes(path)) { window.location.replace(AUTH_ROUTES[path] + search); return; }
+    if (blocked(path)) { showMaint(path, search); return; }
+    hideMaint();
+    maintPill.hidden = !(PAGES[path] && inMaint(path));
 
     const meta = Object.assign({}, PAGES[path] || { cat: 'CHEST', label: title || path });
     if (path === 'backtest-add' && /[?&]edit=/.test(search)) meta.label = 'Modifier le backtest';
@@ -186,6 +253,8 @@
     if (window.CHESTAccounts && CHESTAccounts.hasAccess && !CHESTAccounts.hasAccess()) { window.location.replace('/offres'); return; }
     planClasses();
     const first = routeFromUrl();
+    refreshOps();
+    if (blocked(first.name)) { showMaint(first.name, first.search); return; }
     requestedKey = keyOf(first.name, first.search);
     shell.classList.add('is-navigating');
     frame.src = first.file;

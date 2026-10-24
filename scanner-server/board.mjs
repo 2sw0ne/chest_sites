@@ -122,6 +122,7 @@ export function createBoard({ file, key, budget, isTradableBar }) {
     save();
   }
   async function tick() {
+    if (globalThis.CHEST_OPS_MODE === "off") return; // mode arrêt réglé par l'admin (server.mjs, fetchOps)
     if (busy || !key) return;
     const now = Date.now();
     if (remaining() <= 0) return;

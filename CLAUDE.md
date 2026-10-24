@@ -26,6 +26,7 @@ Plateforme de trading CHEST (ch3st.app), accès privé payant. Site statique HTM
 - Adresses propres : `/connexion`, `/welcome`, `/inscription`, `/offres`, `/<page>` (réécritures `vercel.json`, relues par `_dev_server.py`).
 - Connexion intégrée à `app.html` (un seul document du login au dashboard). Tout script d'`app.html` qui lit l'état connecté doit pouvoir être rappelé après la connexion.
 - Synchro (`sync-store.js`) : une clé jamais synchronisée sur l'appareil prend la valeur du serveur, sauf si la locale contient plus (alors renvoyée) ; rechargement unique à la première réception.
+- **Mode de fonctionnement** (admin → onglet Système, `GET/PUT /ops`) : normal / eco (calendrier 1×/jour, sans relecture après annonce) / off (plus de tâches de fond : calendrier, alarmes scanners, Force du marché) ; pages en maintenance = écran `#chestMaint` du shell pour les membres (admins : pastille). Services relisent `/ops` toutes les 5 min (`ACCOUNTS_BRIDGE_URL` / `ACCOUNTS_INTERNAL_URL`).
 - Toute nouvelle table liée à un membre → l'ajouter à `POST /members/<id>/delete`. Toute route PUT/PATCH/DELETE passe le CORS.
 
 ## Accès payant

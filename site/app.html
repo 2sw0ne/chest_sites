@@ -67,9 +67,9 @@
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=7"></script>
-<script src="js/sync-store.js?v=11"></script>
+<script src="js/sync-store.js?v=12"></script>
 <script src="js/pwa.js?v=3"></script>
-<link rel="stylesheet" href="css/v2.css?v=14">
+<link rel="stylesheet" href="css/v2.css?v=15">
 <!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
 <style>
   html.plan-no-school .chest-nav__item[data-page="school"]::after,
@@ -331,12 +331,23 @@
 
     <div class="chest-view">
       <iframe id="chestView" title="Contenu" src="about:blank"></iframe>
+      <!-- Maintenance (2026-10-24) : page mise en maintenance par l'admin (admin-members.html, Système). -->
+      <section class="chest-maint" id="chestMaint" role="status" aria-live="polite" hidden>
+        <div class="chest-maint__card">
+          <span class="chest-maint__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L4 16.7 7.3 20l5.3-5.3a4 4 0 0 0 5.1-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></span>
+          <span class="chest-maint__k">01 — Maintenance</span>
+          <h2 class="chest-maint__t" id="chestMaintTitle">On améliore cette partie de CHEST.</h2>
+          <p class="chest-maint__p" id="chestMaintText">Elle revient très vite. Tes données sont en sécurité.</p>
+          <a class="chest-btn-2 chest-maint__back" id="chestMaintBack" href="#/dashboard" hidden>Retour au Dashboard</a>
+        </div>
+      </section>
+      <span class="chest-maint-pill" id="chestMaintPill" hidden>En maintenance pour les membres</span>
     </div>
   </div>
 </div>
 
 <script src="js/nav.js?v=8"></script>
-<script src="js/shell.js?v=6"></script>
+<script src="js/shell.js?v=7"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/welcome.js?v=60"></script>
 <script src="js/tuto.js?v=2"></script>
