@@ -47,12 +47,23 @@ window.CHESTAccounts = (() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
+  // Lien d'un éducateur (2026-10-25) : /inscription?ref=CODE. Le code est gardé le temps de l'inscription
+  // (même si la personne navigue avant de s'inscrire) et envoyé avec le formulaire.
+  const REF_KEY = 'chest_ref_code';
+  try {
+    const ref = new URLSearchParams(location.search).get('ref');
+    if (ref && /^[a-z0-9-]{3,40}$/i.test(ref)) localStorage.setItem(REF_KEY, ref);
+  } catch (e) { /* stockage indisponible */ }
+  function referralCode() { try { return localStorage.getItem(REF_KEY) || ''; } catch (e) { return ''; } }
   async function signup({ firstName, lastName, email, password }) {
-    return jsonFetch('/signup', {
+    const ref = referralCode();
+    const out = await jsonFetch('/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, email, password }),
+      body: JSON.stringify({ firstName, lastName, email, password, ref: ref || undefined }),
     });
+    try { localStorage.removeItem(REF_KEY); } catch (e) { /* tant pis */ }
+    return out;
   }
 
   // Membre stocké mis à jour là où il est rangé (localStorage ou sessionStorage).
@@ -268,5 +279,5 @@ window.CHESTAccounts = (() => {
   setInterval(verifySessionAlive, 120000);
 
   return { getToken, getUser, isLoggedIn, isAdmin, signup, markTutoSeen, login, logout, fetchMembers, approveMember, rejectMember, resetMemberPassword, blockMember, deleteMember, guard,
-    access, hasAccess, hasFeature, refreshMe, startTrial, saveOnboarding, logActivity, setMemberAccess, setMemberRole, fetchAdminStats, apiBase };
+    access, hasAccess, hasFeature, refreshMe, startTrial, saveOnboarding, logActivity, setMemberAccess, setMemberRole, fetchAdminStats, apiBase, referralCode };
 })();

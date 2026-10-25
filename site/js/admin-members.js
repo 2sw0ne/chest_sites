@@ -136,7 +136,7 @@
   const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* tant pis */ } };
   const read = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   { const d = Number(read('chest_admin_days')); if ([7, 30, 90, 365].includes(d)) S.days = d; }
-  { const v = read('chest_admin_view'); if (['overview', 'members', 'ranks', 'engagement', 'system'].includes(v)) S.view = v; }
+  { const v = read('chest_admin_view'); if (['overview', 'members', 'ranks', 'engagement', 'educators', 'system'].includes(v)) S.view = v; }
   { const m = read('chest_admin_metric'); if (['revenue', 'signups', 'users', 'views'].includes(m)) S.metric = m; }
   const periodWord = () => ({ 7: 'sur 7 jours', 30: 'sur 30 jours', 90: 'sur 90 jours', 365: 'sur 12 mois' }[S.days]);
 
@@ -565,7 +565,84 @@
     } catch (err) { say($('amOpsState'), err.message, 'err'); btn.disabled = false; }
   });
 
-  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, system: renderSystem };
+  // ---------------- Éducateurs : taux, lien d'invitation, demandes de retrait ----------------
+  const euro = (c, d = 2) => ((c || 0) / 100).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' €';
+  const pctOf = (r) => (Math.abs(r - Math.round(r)) < 0.05 ? String(Math.round(r)) : r.toFixed(2).replace('.', ','));
+  async function eduApi(path, opts) {
+    const res = await fetch(A.apiBase() + path, Object.assign({}, opts, { headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() } }));
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error || 'Service indisponible.');
+    return d;
+  }
+  let EDU = null, PAY = null;
+  async function loadEdu() {
+    [EDU, PAY] = await Promise.all([eduApi('/admin/educators'), eduApi('/admin/payouts')]);
+    const pending = PAY.payouts.filter((p) => p.status === 'pending').length;
+    $('amEduBadge').textContent = pending ? String(pending) : '';
+  }
+  async function renderEducators() {
+    if (!EDU) {
+      $('amEdu').innerHTML = '<p class="am-empty">Chargement…</p>';
+      try { await loadEdu(); } catch (e) { $('amEdu').innerHTML = `<p class="am-empty">${esc(e.message)}</p>`; return; }
+    }
+    const origin = location.origin;
+    $('amEdu').innerHTML = EDU.educators.length ? EDU.educators.map((e) => {
+      const link = e.invite ? `${origin}/inscription?ref=${e.invite}` : '';
+      return `<div class="am-edu" data-edu="${e.id}">
+        <div class="am-edu__who"><b>${esc(e.name)}</b><small>${esc(e.email)}</small></div>
+        <div class="am-edu__link">${link ? `<code>${esc(link)}</code><button type="button" class="am-mini" data-edu-copy="${esc(link)}">Copier</button>` : '<span class="am-edu__none">Pas encore de lien</span>'}<button type="button" class="am-mini" data-edu-invite="${e.id}">${link ? 'Nouveau lien' : 'Générer le lien'}</button></div>
+        <label class="am-edu__rate">Taux<input type="text" inputmode="decimal" value="${pctOf(e.rate)}" data-edu-rate="${e.id}" aria-label="Taux de commission de ${esc(e.name)}"><em>%</em></label>
+        <div class="am-edu__stats"><span><b>${e.totals.members}</b> membres</span><span><b>${esc(euro(e.totals.sales, 0))}</b> ventes</span><span><b>${esc(euro(e.wallet.earned))}</b> commissions</span><span><b>${esc(euro(e.wallet.available))}</b> dispo</span></div>
+        <a class="am-mini" href="#/educator?educator=${e.id}" target="_top" data-edu-open="${e.id}">Voir son espace</a>
+      </div>`;
+    }).join('') : '<p class="am-empty">Aucun éducateur pour l’instant. Ouvre la fiche d’un membre, onglet Accès, et choisis le rôle « Éducateur ».</p>';
+    const lbl = { pending: 'à traiter', paid: 'versé', refused: 'refusé' };
+    const pend = PAY.payouts.filter((p) => p.status === 'pending');
+    $('amPayMeta').textContent = pend.length ? `${pend.length} à traiter` : 'rien à traiter';
+    $('amPayouts').innerHTML = PAY.payouts.length ? PAY.payouts.slice(0, 40).map((p) => {
+      const d = p.details || {};
+      const to = p.method === 'iban' ? `IBAN ${esc(d.iban || '')}${d.bic ? ' · BIC ' + esc(d.bic) : ''}` : `${esc(d.network || '')} · ${esc(d.address || '')}`;
+      return `<div class="am-pay ${p.status === 'pending' ? 'is-pending' : ''}">
+        <div class="am-pay__who"><b>${esc(p.educator)}</b><small>${esc(dt(p.createdAt, true))}${p.processedAt ? ' · traité ' + esc(dt(p.processedAt, true)) : ''}</small></div>
+        <div class="am-pay__amt">${esc(euro(p.amount))}</div>
+        <div class="am-pay__to"><span>${esc(d.holder || '')}</span><code>${to}</code></div>
+        <div class="am-pay__act">${p.status === 'pending'
+          ? `<button type="button" class="chest-btn am-mini-btn" data-pay-done="${p.id}">Marquer comme versé</button><button type="button" class="chest-btn-2 am-mini-btn" data-pay-refuse="${p.id}">Refuser</button>`
+          : `<span class="am-pay__st is-${p.status}">${lbl[p.status]}</span>${p.note ? `<small>${esc(p.note)}</small>` : ''}`}</div>
+      </div>`;
+    }).join('') : '<p class="am-empty">Aucune demande de retrait.</p>';
+  }
+  $('amEdu').addEventListener('click', async (ev) => {
+    const cp = ev.target.closest('[data-edu-copy]');
+    if (cp) { try { await navigator.clipboard.writeText(cp.dataset.eduCopy); cp.textContent = 'Copié ✓'; setTimeout(() => { cp.textContent = 'Copier'; }, 1500); } catch (e) { /* tant pis */ } return; }
+    const inv = ev.target.closest('[data-edu-invite]');
+    if (inv) {
+      const had = inv.textContent.includes('Nouveau');
+      if (had && !(await CHESTConfirm('Créer un nouveau lien ? L’ancien ne fonctionnera plus pour les nouvelles inscriptions (les membres déjà inscrits restent rattachés).'))) return;
+      inv.disabled = true;
+      try { await eduApi(`/admin/educators/${inv.dataset.eduInvite}/invite`, { method: 'POST' }); EDU = null; renderEducators(); } catch (e) { inv.disabled = false; CHESTAlert(e.message); }
+      return;
+    }
+    const open = ev.target.closest('[data-edu-open]');
+    if (open && window.parent && window.parent.CHESTShell) { ev.preventDefault(); window.parent.CHESTShell.go('educator', '?educator=' + open.dataset.eduOpen); }
+  });
+  $('amEdu').addEventListener('change', async (ev) => {
+    const inp = ev.target.closest('[data-edu-rate]'); if (!inp) return;
+    const rate = Number(String(inp.value).replace(',', '.'));
+    try { await eduApi(`/admin/educators/${inp.dataset.eduRate}/rate`, { method: 'POST', body: JSON.stringify({ rate }) }); inp.classList.add('is-saved'); setTimeout(() => inp.classList.remove('is-saved'), 1200); EDU = null; renderEducators(); }
+    catch (e) { CHESTAlert(e.message); }
+  });
+  $('amPayouts').addEventListener('click', async (ev) => {
+    const done = ev.target.closest('[data-pay-done]'), ref = ev.target.closest('[data-pay-refuse]');
+    if (!done && !ref) return;
+    const id = (done || ref).dataset.payDone || (done || ref).dataset.payRefuse;
+    const note = await CHESTPrompt(done ? 'Virement effectué ? Ajoute une référence (facultatif), par exemple la date ou le numéro du virement.' : 'Refuser cette demande ? Indique la raison, elle sera visible par l’éducateur.', { confirmLabel: done ? 'Marquer comme versé' : 'Refuser' });
+    if (note === null || note === undefined || note === false) return;
+    try { await eduApi(`/admin/payouts/${id}`, { method: 'POST', body: JSON.stringify({ status: done ? 'paid' : 'refused', note: typeof note === 'string' ? note : '' }) }); EDU = null; renderEducators(); }
+    catch (e) { CHESTAlert(e.message); }
+  });
+
+  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, educators: renderEducators, system: renderSystem };
   function placeIndicator() {
     const tabs = document.querySelector('.am-nav__tabs');
     let ind = tabs.querySelector('.am-nav__ind');
@@ -960,5 +1037,6 @@
   if (!A.isAdmin()) { document.querySelector('.am').innerHTML = '<div class="am-error" style="padding:40px 0">Cette page est réservée aux administrateurs.</div>'; return; }
   setView(S.view, { keepScroll: true });
   loadOps().catch(() => { /* pastille Système : au premier passage sur l'onglet */ });
+  loadEdu().catch(() => { /* pastille Éducateurs : au premier passage sur l'onglet */ });
   reload().catch((err) => { $('amRows').innerHTML = `<div class="am-error">Impossible de charger les membres : ${esc(err.message)}</div>`; $('amKpis').innerHTML = `<div class="am-error">Impossible de charger : ${esc(err.message)}</div>`; });
 })();

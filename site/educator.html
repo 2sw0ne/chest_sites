@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Espace éducateur — CHEST</title>
+<link rel="icon" type="image/png" href="assets/logo-chest.png">
+<!-- Fond sombre immédiat (même motif que app.html) : pas de flash blanc dans l'iframe du shell. -->
+<style>html,body{background:#050505}</style>
+<script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css?v=2">
+<link rel="stylesheet" href="css/layout.css?v=3">
+<link rel="stylesheet" href="css/chest-da.css?v=18">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
+<link rel="stylesheet" href="css/admin-members.css?v=4">
+<link rel="stylesheet" href="css/educator.css?v=1">
+<script src="js/theme.js?v=4"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/config.local.js"></script>
+<script src="js/accounts-auth.js?v=8"></script>
+<script src="js/sync-store.js?v=15"></script>
+<script>CHESTAccounts.guard();</script>
+<link rel="stylesheet" href="css/v2.css?v=16">
+</head>
+<body data-page="educator" class="chest-root">
+
+<div class="chest-shell" id="chestShell">
+  <aside class="chest-sidebar">
+    <button type="button" class="chest-sidebar__toggle" id="sidebarToggle" title="Ouvrir ou fermer le menu" aria-label="Ouvrir ou fermer le menu">
+      <svg class="chest-sidebar__toggle-bg" viewBox="0 0 22 112" preserveAspectRatio="none"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
+      <a href="dashboard.html" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="backtesting.html" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
+      <a href="journal.html" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
+      <a href="strategies.html" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
+      <a href="calendar.html" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
+      <a href="berich.html" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
+      <a href="school.html" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
+    </nav>
+    <div class="chest-sidebar__account">
+      <div class="chest-sidebar__account-label">Compte</div>
+      <div class="chest-sidebar__account-row">
+        <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
+        <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
+      </div>
+      <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="chest-sidebar__logout-text">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="chest-main">
+    <header class="chest-topbar">
+      <button type="button" class="chest-topbar__menu" id="topbarMenuBtn" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <a href="dashboard.html" class="brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+      <div class="chest-topbar__actions">
+        <a href="admin-members.html" class="chest-topbar__btn chest-topbar__btn--round" data-page="admin-members" data-admin-only hidden aria-label="Membres (admin)">A</a>
+        <a href="account.html" class="chest-topbar__btn" data-page="account" aria-label="Compte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </header>
+
+
+    <main class="am ed">
+      <!-- Espace éducateur (2026-10-25) : membres inscrits par son lien, commissions, portefeuille CHEST, retraits.
+           Données : GET /edu/overview (accounts-bridge). Un admin peut l'ouvrir pour un éducateur (?educator=ID). -->
+      <header class="am-head">
+        <div>
+          <div class="chest-step">Programme éducateur</div>
+          <h1 class="am-head__title">Espace éducateur</h1>
+        </div>
+        <div class="am-head__side">
+          <div class="ed-rate" id="edRate" aria-live="polite"></div>
+        </div>
+      </header>
+
+      <p class="ed-preview" id="edPreview" hidden></p>
+
+      <nav class="am-nav" id="edNav" aria-label="Vues de l'espace éducateur">
+        <div class="am-nav__tabs" role="tablist">
+          <button type="button" role="tab" data-view="overview" aria-selected="true">Vue d'ensemble</button>
+          <button type="button" role="tab" data-view="members" aria-selected="false">Mes membres <small id="edCount"></small></button>
+          <button type="button" role="tab" data-view="wallet" aria-selected="false">Portefeuille</button>
+        </div>
+      </nav>
+
+      <div class="ed-error" id="edError" hidden></div>
+
+      <!-- 01 — Vue d'ensemble -->
+      <section class="am-view" data-panel="overview" aria-label="Vue d'ensemble">
+        <div class="am-grid">
+          <div class="am-kpis" id="edKpis"></div>
+          <article class="am-panel ed-span-5 ed-invite">
+            <header class="am-panel__head"><h2 class="am-panel__t">Ton lien d'invitation</h2><span class="am-panel__meta">à partager</span></header>
+            <div id="edInvite"></div>
+          </article>
+          <article class="am-panel ed-span-7">
+            <header class="am-panel__head"><h2 class="am-panel__t">Tes 12 derniers mois</h2>
+              <span class="ed-legend"><i class="ed-dot ed-dot--a"></i>Inscriptions<i class="ed-dot ed-dot--b"></i>Commissions</span></header>
+            <div class="ed-months" id="edMonths"></div>
+          </article>
+          <article class="am-panel ed-span-12">
+            <header class="am-panel__head"><h2 class="am-panel__t">Derniers inscrits</h2><button type="button" class="am-link" data-goto="members">Voir tous mes membres</button></header>
+            <div id="edRecent"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- 02 — Mes membres -->
+      <section class="am-view" data-panel="members" aria-label="Mes membres" hidden>
+        <div class="am-panel">
+          <div class="ed-table" id="edMembers"></div>
+        </div>
+        <p class="am-note">Seuls le prénom et l'initiale du nom s'affichent. Les ventes comptent les paiements réellement encaissés par CHEST.</p>
+      </section>
+
+      <!-- 03 — Portefeuille -->
+      <section class="am-view" data-panel="wallet" aria-label="Portefeuille" hidden>
+        <div class="am-grid">
+          <div class="ed-span-7"><div class="ed-card" id="edCard"></div></div>
+          <article class="am-panel ed-span-5">
+            <header class="am-panel__head"><h2 class="am-panel__t">Demander un retrait</h2><span class="am-panel__meta" id="edMin"></span></header>
+            <form class="ed-form" id="edWithdraw" novalidate>
+              <label class="ed-field"><span>Montant</span>
+                <span class="ed-amount"><input type="text" inputmode="decimal" id="edAmount" placeholder="0,00" autocomplete="off"><em>€</em><button type="button" class="ed-max" id="edMax">Tout</button></span>
+              </label>
+              <p class="ed-to" id="edTo"></p>
+              <button type="submit" class="chest-btn ed-submit" id="edAsk">Demander le retrait</button>
+              <p class="am-msg" id="edAskMsg" role="status"></p>
+            </form>
+          </article>
+          <article class="am-panel ed-span-12">
+            <header class="am-panel__head"><h2 class="am-panel__t">Où recevoir tes paiements</h2><span class="am-panel__meta" id="edPayMeta"></span></header>
+            <form class="ed-form ed-pay" id="edPay" novalidate>
+              <div class="chest-seg ed-seg" role="group" aria-label="Moyen de paiement">
+                <button type="button" data-method="iban" class="is-active">Virement bancaire (IBAN)</button>
+                <button type="button" data-method="crypto">Portefeuille crypto</button>
+              </div>
+              <div class="ed-pay__grid" data-pay="iban">
+                <label class="ed-field"><span>Titulaire du compte</span><input type="text" id="edHolder" autocomplete="name" maxlength="80"></label>
+                <label class="ed-field"><span>IBAN</span><input type="text" id="edIban" autocomplete="off" spellcheck="false" placeholder="FR76 …"></label>
+                <label class="ed-field"><span>BIC <i>(facultatif)</i></span><input type="text" id="edBic" autocomplete="off" spellcheck="false" maxlength="11"></label>
+              </div>
+              <div class="ed-pay__grid" data-pay="crypto" hidden>
+                <label class="ed-field"><span>Réseau</span>
+                  <select id="edNetwork"><option>USDT (TRC-20)</option><option>USDT (ERC-20)</option><option>USDC (ERC-20)</option><option>USDC (Solana)</option><option>Bitcoin</option></select></label>
+                <label class="ed-field ed-field--wide"><span>Adresse du portefeuille</span><input type="text" id="edAddress" autocomplete="off" spellcheck="false"></label>
+              </div>
+              <div class="ed-pay__foot"><p class="am-msg" id="edPayMsg" role="status"></p><button type="submit" class="chest-btn-2" id="edPaySave">Enregistrer</button></div>
+            </form>
+          </article>
+          <article class="am-panel ed-span-12">
+            <header class="am-panel__head"><h2 class="am-panel__t">Mouvements</h2><span class="am-panel__meta">commissions et retraits</span></header>
+            <div id="edTx"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Documents (toujours visibles en bas de l'espace) -->
+      <section class="ed-docs" aria-labelledby="edDocsT">
+        <div class="ed-docs__head">
+          <span class="chest-step">Documents</span>
+          <h2 id="edDocsT">Cadre du programme éducateur</h2>
+          <p>À lire avant de partager ton lien. Version du 25 octobre 2026.</p>
+        </div>
+        <details class="ed-doc" open>
+          <summary>1. Nature du portefeuille CHEST : un affichage indicatif</summary>
+          <div>
+            <p>Le portefeuille CHEST n'est <b>ni un compte bancaire, ni un compte de paiement, ni de la monnaie électronique</b>. Aucune somme n'y est déposée ni conservée pour toi. Les montants affichés sont une <b>estimation</b> des commissions que tu pourrais percevoir, calculée à partir des paiements encaissés par CHEST auprès des membres inscrits avec ton lien.</p>
+            <p>Comme le compte de démonstration d'une propfirm, ce solde a une valeur d'information : il ne constitue pas une créance tant que la demande de retrait n'a pas été vérifiée et acceptée. Seul le versement effectif sur ton compte bancaire ou ton portefeuille crypto fait foi.</p>
+          </div>
+        </details>
+        <details class="ed-doc">
+          <summary>2. Conditions du programme</summary>
+          <div>
+            <p>Le programme éducateur est un partenariat d'apport d'affaires entre toi et CHEST. Tu recommandes CHEST avec ton lien personnel ; chaque personne qui crée son compte avec ce lien est rattachée à ton espace.</p>
+            <p>Ta commission est un pourcentage des sommes <b>effectivement encaissées</b> par CHEST pour les abonnements de tes membres (hors essais gratuits, remboursements, impayés et litiges). Le taux affiché en haut de cette page est celui qui s'applique ; CHEST peut le faire évoluer et t'en informe avant tout changement.</p>
+            <p>Sont interdits : l'auto-parrainage, les faux comptes, la publicité trompeuse (notamment toute promesse de gains en trading) et le spam. En cas de manquement, CHEST peut suspendre le programme et annuler les commissions concernées.</p>
+          </div>
+        </details>
+        <details class="ed-doc">
+          <summary>3. Demandes de retrait et versements</summary>
+          <div>
+            <p>Tu peux demander un retrait à partir de <b>50 €</b> disponibles, après avoir enregistré tes coordonnées (IBAN ou adresse crypto). Chaque demande est vérifiée par CHEST : paiements bien encaissés, absence de remboursement ou de litige, cohérence des coordonnées.</p>
+            <p>Une fois acceptée, la somme est versée par la société CHEST par virement bancaire (SEPA) ou sur le portefeuille crypto indiqué, dans un délai indicatif de quelques jours ouvrés. Une demande peut être refusée ou ajustée en cas d'erreur, de fraude ou de remboursement d'un membre. Vérifie tes coordonnées : un versement envoyé à une adresse crypto erronée ne peut pas être récupéré.</p>
+          </div>
+        </details>
+        <details class="ed-doc">
+          <summary>4. Ton statut et tes impôts</summary>
+          <div>
+            <p>Tu agis en indépendant : il n'existe aucun lien de subordination entre toi et CHEST. Les commissions perçues sont des revenus que tu dois déclarer selon ta situation (par exemple en micro-entreprise en France). CHEST peut te demander un numéro SIRET ou une facture avant un versement.</p>
+          </div>
+        </details>
+        <details class="ed-doc">
+          <summary>5. Tes données personnelles</summary>
+          <div>
+            <p>Ton IBAN ou ton adresse crypto servent uniquement à te verser tes commissions. Ils ne sont visibles que par toi (en partie masqués) et par la société CHEST, et sont conservés le temps du programme puis la durée légale de conservation des pièces comptables. Tu peux demander à les consulter, les corriger ou les supprimer en écrivant à CHEST.</p>
+            <p>Tes membres n'apparaissent ici qu'avec leur prénom et l'initiale de leur nom ; leur adresse e-mail et leur activité sur CHEST ne te sont pas communiquées.</p>
+          </div>
+        </details>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="site-footer v2-foot">
+  <div class="v2-foot__inner">
+    <a href="dashboard.html" class="v2-foot__brand"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a>
+    <p class="v2-foot__txt">Ton espace de trading : comptes, journal, backtests et scanners au même endroit.</p>
+    <p class="v2-foot__copy">© 2026 CHEST</p>
+  </div>
+</footer>
+
+<script src="js/nav.js?v=9"></script>
+<script src="js/chest-ui.js?v=2"></script>
+<script src="js/confirm-dialog.js"></script>
+<script src="js/educator.js?v=1"></script>
+<script src="js/v2.js?v=3"></script>
+</body>
+</html>

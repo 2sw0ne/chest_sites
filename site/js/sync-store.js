@@ -68,7 +68,7 @@
     'chest_account_token', 'chest_account_user', 'chest_data_owner',
     'chest_nav_collapsed', 'chest_theme', 'chest_code_hash', 'chest_unlocked',
     'chest_cal_realmove_cache', 'chest_currency_strength_fxblue', 'chest_weekly_forecast_lock',
-    'chest_strength_board_open', 'chest_ops_cache', 'chest_vault',
+    'chest_strength_board_open', 'chest_ops_cache', 'chest_vault', 'chest_ref_code',
   ];
 
   // SÉCURITÉ (2026-10-24, audit) : les mots de passe de comptes externes (Myfxbook dans chest_accounts /

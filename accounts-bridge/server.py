@@ -249,6 +249,36 @@ def init_db():
             )
         """)
         db.execute("CREATE INDEX IF NOT EXISTS idx_udh_user_key ON user_data_history (user_id, key, id)")
+        # Programme éducateur (2026-10-25) : lien d'invitation, coordonnées de paiement, demandes de retrait.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS edu_invites (
+                code TEXT PRIMARY KEY,
+                educator_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS edu_payout_info (
+                educator_id INTEGER PRIMARY KEY,
+                method TEXT NOT NULL,
+                holder TEXT, iban TEXT, bic TEXT, network TEXT, address TEXT,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS edu_payouts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                educator_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                method TEXT NOT NULL,
+                details TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL,
+                processed_at TEXT,
+                admin_note TEXT
+            )
+        """)
         db.execute("CREATE TABLE IF NOT EXISTS push_digest_log (period_key TEXT PRIMARY KEY, sent_at TEXT)")
         # Abonnements aux notifications push (Web Push standard) - un utilisateur peut avoir
         # plusieurs appareils abonnés (PC + téléphone), chacun avec son propre "endpoint".
@@ -327,7 +357,9 @@ def init_db():
         new_cols = [("plan", "TEXT"), ("plan_period", "TEXT"), ("plan_status", "TEXT"), ("plan_started_at", "TEXT"),
                     ("plan_ends_at", "TEXT"), ("plan_amount", "INTEGER"), ("trial_used", "INTEGER NOT NULL DEFAULT 0"),
                     ("stripe_customer_id", "TEXT"), ("stripe_subscription_id", "TEXT"), ("onboarding", "TEXT"),
-                    ("last_login_at", "TEXT"), ("last_seen_at", "TEXT"), ("role", "TEXT")]
+                    ("last_login_at", "TEXT"), ("last_seen_at", "TEXT"), ("role", "TEXT"),
+                    # Programme éducateur (2026-10-25) : qui a parrainé ce membre, et le taux d'un éducateur
+                    ("referred_by", "INTEGER"), ("commission_rate", "REAL")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -504,6 +536,7 @@ def signup():
     last_name = (body.get("lastName") or "").strip()
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
+    ref_code = str(body.get("ref") or "").strip()[:40]
 
     if not first_name or not last_name:
         return jsonify({"error": "Prénom et nom requis."}), 400
@@ -539,6 +572,11 @@ def signup():
             (first_name, last_name, email, generate_password_hash(password), status, is_admin,
              datetime.now(timezone.utc).isoformat(), "offert" if is_first_user else "none"),
         )
+        # Inscrit par le lien d'un éducateur (?ref=CODE) : rattaché à son compte
+        if ref_code:
+            inv = db.execute("SELECT educator_id FROM edu_invites WHERE code = ? AND active = 1", (ref_code,)).fetchone()
+            if inv:
+                db.execute("UPDATE users SET referred_by = ? WHERE email = ?", (inv["educator_id"], email))
         db.commit()
 
     if not is_first_user:
@@ -871,6 +909,10 @@ def delete_member(member_id):
         db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
+        db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
+        db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
+        db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
         db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
@@ -1248,6 +1290,290 @@ def ops():
     now = datetime.now(timezone.utc).isoformat()
     set_setting("ops_updated_at", now)
     return jsonify({**data, "updatedAt": now})
+
+
+# ---------------------------------------------------------------- Programme éducateur (2026-10-25)
+# Un éducateur invite des membres avec son lien (/inscription?ref=CODE). Chaque paiement d'un membre rattaché lui
+# rapporte une commission (son taux, 33 % par défaut, réglable par l'admin). Le portefeuille est un AFFICHAGE
+# indicatif : les retraits demandés sont vérifiés puis payés par la société (CHEST HQ / admin), par virement.
+EDU_DEFAULT_RATE = 100 / 3
+EDU_MIN_PAYOUT = 5000  # centimes : 50 €
+SALE_TYPES = ("invoice.paid", "checkout.session.completed", "checkout.session.async_payment_succeeded")
+
+
+def is_educator(row):
+    return bool(row) and _col(row, "role") == "educator"
+
+
+def edu_rate(row):
+    r = _col(row, "commission_rate")
+    try:
+        return float(r) if r is not None else EDU_DEFAULT_RATE
+    except (TypeError, ValueError):
+        return EDU_DEFAULT_RATE
+
+
+def member_sales(db, user_id):
+    """Paiements encaissés d'un membre (centimes). Une facture Stripe payée = une vente ; sans facture
+    (paiement unique), le paiement validé du checkout."""
+    rows = db.execute("SELECT id, type, amount, summary, created_at FROM billing_events WHERE user_id = ? AND amount > 0 "
+                      "AND type IN (?, ?, ?) ORDER BY created_at", (user_id, *SALE_TYPES)).fetchall()
+    inv = [r for r in rows if r["type"] == "invoice.paid"]
+    if inv:
+        return inv
+    return [r for r in rows if r["type"] != "invoice.paid" and (r["summary"] or "").startswith("Paiement ")
+            and not (r["summary"] or "").startswith(("Paiement en attente", "Paiement non rattaché"))]
+
+
+def _mask(v, keep=4):
+    v = str(v or "")
+    return ("•••• " + v[-keep:]) if len(v) > keep else v
+
+
+def iban_ok(iban):
+    v = re.sub(r"\s+", "", iban or "").upper()
+    if not re.fullmatch(r"[A-Z]{2}\d{2}[A-Z0-9]{10,30}", v):
+        return None
+    n = "".join(str(int(ch, 36)) for ch in v[4:] + v[:4])
+    return v if int(n) % 97 == 1 else None
+
+
+def edu_report(db, educator, full=False):
+    rate = edu_rate(educator)
+    members = db.execute("SELECT * FROM users WHERE referred_by = ? ORDER BY created_at DESC", (educator["id"],)).fetchall()
+    out_members, tx, monthly = [], [], {}
+    earned = 0.0
+    for m in members:
+        sales = member_sales(db, m["id"])
+        total = sum(r["amount"] for r in sales)
+        comm = total * rate / 100
+        earned += comm
+        a = access_of(m)
+        out_members.append({
+            "id": m["id"], "name": f"{m['first_name']} {(m['last_name'] or '')[:1]}.".strip(),
+            "joinedAt": m["created_at"], "plan": a["label"] if a["active"] else ("Essai terminé" if a["trialUsed"] else "Sans offre"),
+            "active": bool(a["active"]) and a["plan"] not in ("trial", "none"), "trial": a["trial"] and a["active"],
+            "sales": total, "commission": round(comm), "payments": len(sales), "lastSeenAt": _col(m, "last_seen_at"),
+        })
+        mk = (m["created_at"] or "")[:7]
+        monthly.setdefault(mk, {"month": mk, "signups": 0, "commission": 0.0})["signups"] += 1
+        for r in sales:
+            c = r["amount"] * rate / 100
+            tx.append({"kind": "commission", "at": r["created_at"], "amount": round(c), "sale": r["amount"],
+                       "member": f"{m['first_name']} {(m['last_name'] or '')[:1]}.".strip()})
+            k = (r["created_at"] or "")[:7]
+            monthly.setdefault(k, {"month": k, "signups": 0, "commission": 0.0})["commission"] += c
+    payouts = db.execute("SELECT * FROM edu_payouts WHERE educator_id = ? ORDER BY id DESC", (educator["id"],)).fetchall()
+    paid = sum(p["amount"] for p in payouts if p["status"] == "paid")
+    pending = sum(p["amount"] for p in payouts if p["status"] == "pending")
+    for p in payouts:
+        tx.append({"kind": "payout", "at": p["created_at"], "amount": -p["amount"], "status": p["status"],
+                   "processedAt": p["processed_at"], "method": p["method"], "note": p["admin_note"] or ""})
+    tx.sort(key=lambda t: t["at"] or "", reverse=True)
+    info = db.execute("SELECT * FROM edu_payout_info WHERE educator_id = ?", (educator["id"],)).fetchone()
+    pinfo = None
+    if info:
+        pinfo = {"method": info["method"], "holder": info["holder"] or "", "network": info["network"] or "",
+                 "bic": info["bic"] or "", "updatedAt": info["updated_at"]}
+        if full:
+            pinfo.update({"iban": info["iban"] or "", "address": info["address"] or ""})
+        else:
+            pinfo.update({"iban": _mask(info["iban"]), "address": _mask(info["address"], 6)})
+    inv = db.execute("SELECT code FROM edu_invites WHERE educator_id = ? AND active = 1 ORDER BY created_at DESC", (educator["id"],)).fetchone()
+    earned_c = round(earned)
+    return {
+        "educator": {"id": educator["id"], "name": f"{educator['first_name']} {educator['last_name']}"},
+        "rate": rate, "invite": inv["code"] if inv else None, "minPayout": EDU_MIN_PAYOUT,
+        "members": out_members,
+        "totals": {"members": len(out_members), "active": sum(1 for m in out_members if m["active"]),
+                   "trials": sum(1 for m in out_members if m["trial"]), "sales": sum(m["sales"] for m in out_members)},
+        "wallet": {"earned": earned_c, "paid": paid, "pending": pending, "available": max(0, earned_c - paid - pending)},
+        "transactions": tx[:200], "payoutInfo": pinfo,
+        "monthly": sorted(({**v, "commission": round(v["commission"])} for v in monthly.values() if v["month"]), key=lambda x: x["month"])[-12:],
+    }
+
+
+def _edu_subject():
+    """L'éducateur concerné : soi-même, ou (admin) celui de ?educator=ID."""
+    user = current_user()
+    if not user:
+        return None, (jsonify({"error": "Non connecté."}), 401)
+    target_id = request.args.get("educator")
+    if target_id and user["is_admin"]:
+        row = get_db().execute("SELECT * FROM users WHERE id = ?", (target_id,)).fetchone()
+        if not row:
+            return None, (jsonify({"error": "Éducateur introuvable."}), 404)
+        return row, None
+    if not is_educator(user):
+        return None, (jsonify({"error": "Réservé aux éducateurs."}), 403)
+    return user, None
+
+
+@app.route("/edu/overview")
+def edu_overview():
+    who, err = _edu_subject()
+    if err:
+        return err
+    return jsonify(edu_report(get_db(), who))
+
+
+@app.route("/edu/payout-info", methods=["PUT"])
+def edu_payout_info():
+    user = current_user()
+    if not user or not is_educator(user):
+        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    b = request.get_json(silent=True) or {}
+    method = b.get("method")
+    holder = re.sub(r"\s+", " ", str(b.get("holder") or "")).strip()[:80]
+    if method == "iban":
+        iban = iban_ok(b.get("iban"))
+        if not holder:
+            return jsonify({"error": "Indique le titulaire du compte."}), 400
+        if not iban:
+            return jsonify({"error": "IBAN invalide : vérifie-le (lettres et chiffres, sans erreur de saisie)."}), 400
+        bic = re.sub(r"\s+", "", str(b.get("bic") or "")).upper()[:11]
+        if bic and not re.fullmatch(r"[A-Z0-9]{8}([A-Z0-9]{3})?", bic):
+            return jsonify({"error": "BIC invalide (8 ou 11 caractères)."}), 400
+        vals = ("iban", holder, iban, bic, None, None)
+    elif method == "crypto":
+        network = str(b.get("network") or "").strip()[:30]
+        address = str(b.get("address") or "").strip()
+        if network not in ("USDT (TRC-20)", "USDT (ERC-20)", "USDC (ERC-20)", "USDC (Solana)", "Bitcoin"):
+            return jsonify({"error": "Choisis un réseau dans la liste."}), 400
+        if not re.fullmatch(r"[A-Za-z0-9]{26,64}", address):
+            return jsonify({"error": "Adresse de portefeuille invalide."}), 400
+        vals = ("crypto", holder, None, None, network, address)
+    else:
+        return jsonify({"error": "Moyen de paiement inconnu."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    db = get_db()
+    with db_lock:
+        db.execute("INSERT INTO edu_payout_info (educator_id, method, holder, iban, bic, network, address, updated_at) "
+                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(educator_id) DO UPDATE SET method = excluded.method, "
+                   "holder = excluded.holder, iban = excluded.iban, bic = excluded.bic, network = excluded.network, "
+                   "address = excluded.address, updated_at = excluded.updated_at", (user["id"], *vals, now))
+        db.commit()
+    return jsonify(edu_report(db, user))
+
+
+@app.route("/edu/payouts", methods=["POST"])
+def edu_payout_request():
+    user = current_user()
+    if not user or not is_educator(user):
+        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    try:
+        amount = int(round(float((request.get_json(silent=True) or {}).get("amount")) * 100))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Montant invalide."}), 400
+    db = get_db()
+    with db_lock:
+        rep_ = edu_report(db, user, full=True)
+        if not rep_["payoutInfo"]:
+            return jsonify({"error": "Enregistre d'abord ton moyen de paiement (IBAN ou portefeuille crypto)."}), 400
+        if amount < EDU_MIN_PAYOUT:
+            return jsonify({"error": f"Le retrait minimum est de {EDU_MIN_PAYOUT // 100} €."}), 400
+        if amount > rep_["wallet"]["available"]:
+            return jsonify({"error": "Montant supérieur à ton solde disponible."}), 400
+        info = rep_["payoutInfo"]
+        db.execute("INSERT INTO edu_payouts (educator_id, amount, method, details, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)",
+                   (user["id"], amount, info["method"], json.dumps(info, ensure_ascii=False), datetime.now(timezone.utc).isoformat()))
+        db.commit()
+    notify_admin_text = f"Demande de retrait éducateur : {user['first_name']} {user['last_name']} — {amount / 100:.2f} €"
+    try:
+        print(notify_admin_text)
+    except Exception:
+        pass
+    return jsonify(edu_report(db, user))
+
+
+@app.route("/admin/educators")
+def admin_educators():
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    db = get_db()
+    out = []
+    for e in db.execute("SELECT * FROM users WHERE role = 'educator' ORDER BY first_name").fetchall():
+        r = edu_report(db, e)
+        out.append({"id": e["id"], "name": f"{e['first_name']} {e['last_name']}", "email": e["email"], "rate": r["rate"],
+                    "invite": r["invite"], "totals": r["totals"], "wallet": r["wallet"],
+                    "pendingPayouts": sum(1 for t in r["transactions"] if t["kind"] == "payout" and t.get("status") == "pending")})
+    return jsonify({"educators": out, "defaultRate": EDU_DEFAULT_RATE})
+
+
+@app.route("/admin/educators/<int:eid>/rate", methods=["POST"])
+def admin_educator_rate(eid):
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    try:
+        rate = round(float((request.get_json(silent=True) or {}).get("rate")), 4)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Taux invalide."}), 400
+    if not (0 <= rate <= 100):
+        return jsonify({"error": "Le taux doit être entre 0 et 100 %."}), 400
+    db = get_db()
+    with db_lock:
+        db.execute("UPDATE users SET commission_rate = ? WHERE id = ? AND role = 'educator'", (rate, eid))
+        db.commit()
+    return jsonify({"ok": True, "rate": rate})
+
+
+@app.route("/admin/educators/<int:eid>/invite", methods=["POST"])
+def admin_educator_invite(eid):
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    db = get_db()
+    e = db.execute("SELECT * FROM users WHERE id = ?", (eid,)).fetchone()
+    if not is_educator(e):
+        return jsonify({"error": "Ce compte n'est pas éducateur."}), 400
+    base = re.sub(r"[^a-z0-9]", "", (e["first_name"] or "").lower().translate(str.maketrans("àâäéèêëîïôöùûüç", "aaaeeeeiioouuuc")))[:10] or "edu"
+    code = f"{base}-{secrets.token_hex(3)}"
+    with db_lock:
+        db.execute("UPDATE edu_invites SET active = 0 WHERE educator_id = ?", (eid,))
+        db.execute("INSERT INTO edu_invites (code, educator_id, created_at, active) VALUES (?, ?, ?, 1)",
+                   (code, eid, datetime.now(timezone.utc).isoformat()))
+        db.commit()
+    return jsonify({"code": code})
+
+
+@app.route("/admin/payouts")
+def admin_payouts():
+    """Demandes de retrait des éducateurs (pour l'admin et CHEST HQ) ; ?status=pending|paid|refused."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    status = request.args.get("status")
+    db = get_db()
+    q = "SELECT p.*, u.first_name, u.last_name, u.email FROM edu_payouts p JOIN users u ON u.id = p.educator_id"
+    rows = db.execute(q + (" WHERE p.status = ?" if status else "") + " ORDER BY p.id DESC", ((status,) if status else ())).fetchall()
+    return jsonify({"payouts": [{"id": r["id"], "educator": f"{r['first_name']} {r['last_name']}", "email": r["email"],
+                                 "educatorId": r["educator_id"], "amount": r["amount"], "method": r["method"],
+                                 "details": json.loads(r["details"] or "{}"), "status": r["status"],
+                                 "createdAt": r["created_at"], "processedAt": r["processed_at"], "note": r["admin_note"] or ""} for r in rows]})
+
+
+@app.route("/admin/payouts/<int:pid>", methods=["POST"])
+def admin_payout_update(pid):
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    b = request.get_json(silent=True) or {}
+    status = b.get("status")
+    if status not in ("paid", "refused"):
+        return jsonify({"error": "Statut inconnu."}), 400
+    db = get_db()
+    with db_lock:
+        cur = db.execute("SELECT status FROM edu_payouts WHERE id = ?", (pid,)).fetchone()
+        if not cur:
+            return jsonify({"error": "Demande introuvable."}), 404
+        if cur["status"] != "pending":
+            return jsonify({"error": "Cette demande a déjà été traitée."}), 400
+        db.execute("UPDATE edu_payouts SET status = ?, processed_at = ?, admin_note = ? WHERE id = ?",
+                   (status, datetime.now(timezone.utc).isoformat(), str(b.get("note") or "")[:240], pid))
+        db.commit()
+    return jsonify({"ok": True})
 
 
 @app.route("/pricing", methods=["GET", "PUT"])

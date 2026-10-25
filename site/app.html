@@ -66,8 +66,8 @@
 <script src="js/theme.js?v=4"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=7"></script>
-<script src="js/sync-store.js?v=14"></script>
+<script src="js/accounts-auth.js?v=8"></script>
+<script src="js/sync-store.js?v=15"></script>
 <script src="js/pwa.js?v=3"></script>
 <link rel="stylesheet" href="css/v2.css?v=16">
 <!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
@@ -315,6 +315,10 @@
              elle sert a rien") - window.CHESTNotifications (js/notifications-store.js) continue
              d'enregistrer les evenements (phase validee, retrait detecte...) pour qui voudrait les
              relire plus tard, seule cette presentation topbar/panneau disparait. -->
+        <!-- Espace éducateur (2026-10-25) : visible pour les comptes au rôle « éducateur » (nav.js). -->
+        <a href="#/educator" class="chest-topbar__btn chest-topbar__btn--edu" data-page="educator" data-educator-only hidden aria-label="Espace éducateur" title="Espace éducateur">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.6v4.2c0 1 2.2 2.4 5 2.4s5-1.4 5-2.4v-4.2"/><path d="M21 9.5v4.5"/></svg>
+        </a>
         <a href="#/account" class="chest-topbar__btn" data-page="account" aria-label="Compte" title="Compte">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
         </a>
@@ -346,8 +350,8 @@
   </div>
 </div>
 
-<script src="js/nav.js?v=8"></script>
-<script src="js/shell.js?v=7"></script>
+<script src="js/nav.js?v=9"></script>
+<script src="js/shell.js?v=8"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/welcome.js?v=60"></script>
 <script src="js/tuto.js?v=2"></script>

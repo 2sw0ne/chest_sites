@@ -35,6 +35,11 @@
       const u = CHESTAccounts.getUser() || {};
       document.querySelectorAll('[data-admin-only]').forEach((el) => { el.hidden = el.hasAttribute('data-owner-only') && u.role === 'manager'; });
     }
+    // Espace éducateur : seulement pour le rôle éducateur.
+    if (window.CHESTAccounts) {
+      const me = CHESTAccounts.getUser() || {};
+      document.querySelectorAll('[data-educator-only]').forEach((el) => { el.hidden = me.role !== 'educator'; });
+    }
   }
   window.CHESTNav = { refreshAccount, refreshAdminVisibility };
 

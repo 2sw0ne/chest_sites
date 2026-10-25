@@ -21,6 +21,7 @@
     'school':           { cat: 'Formation', label: 'School' },
     'account':          { cat: 'Réglages',  label: 'Compte' },
     'admin-members':    { cat: 'Admin',     label: 'Gestion des membres' },
+    'educator':         { cat: 'Éducateur', label: 'Espace éducateur' },
     'backtest-add':     { cat: 'Recherche', label: 'Nouveau backtest',    nav: 'backtesting' },
     'backtest-view':    { cat: 'Recherche', label: 'Rapport de backtest', nav: 'backtesting' },
     'strategy-example': { cat: 'Scanners',  label: 'Fiche stratégie',     nav: 'strategies' },
