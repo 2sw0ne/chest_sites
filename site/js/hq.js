@@ -51,8 +51,41 @@
     }, 125);
   }
 
+  // Ouverture (2026-10-25, retour : « à chaque fois que j'ouvre HQ il ne trouve pas mon Claude ») : la page en ligne
+  // (chest-hq.vercel.app) ne peut pas joindre le QG du PC, le navigateur bloque une page internet qui parle à
+  // l'ordinateur (127.0.0.1) ; elle tombait en démo, « Claude introuvable ». On ouvre donc le QG LOCAL par le lien
+  // chesthq://ouvrir (installé par « Installer le lien CHEST HQ ») : il lance le QG si besoin et ouvre sa page sur
+  // le PC. Si rien ne se passe (lien pas installé sur cet appareil), une bulle propose la marche à suivre.
+  let hintTimer = null;
+  function hint() {
+    let el = document.getElementById('chestHqHint');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'chestHqHint';
+      el.className = 'chest-hq-hint';
+      el.setAttribute('role', 'status');
+      document.body.appendChild(el);
+    }
+    const online = btn.dataset.url;
+    el.innerHTML = '<b>Le QG ne s’est pas ouvert ?</b><span>Sur ce PC, lance une fois « Installer le lien CHEST HQ » (dossier chest-hq), puis réessaie.</span>'
+      + (online ? `<a href="${online}" target="_blank" rel="noopener">Ouvrir la version en ligne</a>` : '');
+    const r = btn.getBoundingClientRect();
+    el.style.top = (r.bottom + 10) + 'px';
+    el.style.right = Math.max(12, window.innerWidth - r.right) + 'px';
+    el.hidden = false;
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => { el.hidden = true; }, 9000);
+  }
   btn.addEventListener('click', () => {
-    const url = btn.dataset.url;
-    if (url) window.open(url, '_blank', 'noopener');
+    let left = false;
+    const onLeave = () => { left = true; };
+    window.addEventListener('blur', onLeave, { once: true });
+    document.addEventListener('visibilitychange', onLeave, { once: true });
+    window.location.href = 'chesthq://ouvrir';
+    setTimeout(() => { if (!left && document.hasFocus()) hint(); }, 2500);
+  });
+  document.addEventListener('click', (e) => {
+    const el = document.getElementById('chestHqHint');
+    if (el && !el.hidden && !el.contains(e.target) && !btn.contains(e.target)) el.hidden = true;
   });
 })();
