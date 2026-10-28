@@ -46,6 +46,8 @@ Plateforme de trading CHEST (ch3st.app), accès privé payant. Site statique HTM
 - **Admin `admin-members.html`** : 4 vues (Vue d'ensemble, Membres + volet latéral, Rangs, Engagement), `/admin/stats?days=`, `POST /members/<id>/role|access` (`until` = date précise, 21:59 UTC). Badges provisoires dans `TIERS` (`js/admin-members.js`).
 - Reste côté utilisateur : alerte TradingView de BERICH II vers le webhook berich-bridge avec `"algo":"berich2"` (sinon BERICH II n'a que son historique, pas de signal en direct) ; redirection des liens Stripe vers `/offres?paiement=ok`, webhook + `STRIPE_WEBHOOK_SECRET` sur Railway, lien du portail client, CGV ; promesse « ×2 garanti » (Allstar) à faire valider.
 
+- **Relief au survol** (2026-10-29, `js/tilt.js`) : tout élément `[data-tilt="N"]` s'incline vers la souris (N degrés max) et reçoit `--rx/--ry/--px/--py/--mx/--my` pour reflet et parallaxe en CSS (souris seulement, rien en reduced-motion). Utilisé sur la carte CHEST Wallet (11°) et les tuiles chiffrées de l'espace éducateur (5°) ; règles dans `css/educator.css`.
+
 ## DA CHEST (obligatoire pour toute nouvelle fenêtre/page)
 Fond `#050505`, encres `#f6f6f7`/`#9b9ba1`/`#5c5c63`, accent `#fc1283 → #f9a45e`, vert `#33e6a6`, rouge `#ff4d5e`, ambre `#e8b339`, Instrument Sans, chiffres tabulaires. Fenêtres en verre (bordure blanche 12-14 %, rayon 16-20, flou), étiquettes « 01 — Titre » 10px/.24em, champs 42px rayon 12 avec anneau rose au focus, `.chest-btn` / `.chest-btn-2` / `.chest-seg`. Mouvement court (.2s, `cubic-bezier(.16,1,.3,1)`), `prefers-reduced-motion`. Pas d'emoji comme icône ni drapeau (SVG / flag-icons). Sources : `site/css/chest-da.css`, `patch-chest-da.css`, `v2.css`.
 

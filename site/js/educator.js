@@ -45,7 +45,7 @@
       ['Ventes générées', eur(t.sales, 0), 'paiements encaissés par CHEST', ''],
       ['Commissions gagnées', eur(w.earned), `${pctTxt(D.rate)} des ventes`, 'am-kpi--hero'],
       ['Disponible', eur(w.available), w.pending ? `${eur(w.pending)} en cours de versement` : 'à retirer dès 50 €', ''],
-    ].map(([k, v, n, cls]) => `<div class="am-kpi ${cls}"><div class="am-kpi__k">${k}</div><div class="am-kpi__v"><b>${esc(v)}</b></div><div class="am-kpi__n">${esc(n)}</div></div>`).join('');
+    ].map(([k, v, n, cls]) => `<div class="am-kpi ${cls}" data-tilt="5"><div class="am-kpi__k">${k}</div><div class="am-kpi__v"><b>${esc(v)}</b></div><div class="am-kpi__n">${esc(n)}</div></div>`).join('');
 
     // Code de référent (2026-10-28) : l'éducateur le choisit UNE fois (3 à 8 lettres ou chiffres), puis il est définitif.
     const link = D.invite ? `${location.origin}/inscription?ref=${encodeURIComponent(D.invite)}` : '';
@@ -105,7 +105,7 @@
       : '<p class="ed-empty">Aucun membre inscrit avec ton lien pour l’instant.</p>';
 
     // carte portefeuille
-    $('edCard').innerHTML = `<div class="ed-wallet">
+    $('edCard').innerHTML = `<div class="ed-wallet" data-tilt="11">
         <div class="ed-wallet__top"><span class="ed-wallet__brand"><img src="assets/logo-chest.png" alt="">CHEST Wallet</span><span class="ed-wallet__demo">Affichage indicatif</span></div>
         <div class="ed-wallet__k">Solde disponible</div>
         <div class="ed-wallet__v">${esc(eur(w.available))}</div>
