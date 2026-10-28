@@ -169,11 +169,25 @@
       ${o.foot ? `<div class="bq-foot">${o.foot}</div>` : ''}</div>`;
   }
 
+  // Changement d'écran sans reconstruire la fenêtre (retour utilisateur : « ça bug puis passe ») : la boîte reste en
+  // place, seuls son contenu, son pied et la barre de progression changent ; la barre glisse de l'ancienne valeur à la nouvelle.
+  function paint(html) {
+    const r = root(), box = r.querySelector('.bq-box');
+    if (!box) { r.innerHTML = html; return; }
+    const oldBar = box.querySelector('.bq-bar i'), from = oldBar ? oldBar.style.transform : null;
+    const t = document.createElement('template'); t.innerHTML = html.trim();
+    box.replaceChildren(...t.content.firstElementChild.childNodes);
+    const bar = box.querySelector('.bq-bar i');
+    if (bar && from) { const to = bar.style.transform; bar.style.transform = from; requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transform = to; })); }
+  }
+  const view = { set html(v) { paint(v); } };
+
   function renderStep() {
+    S.busy = false;
     const q = question(), k = STEPS[S.step];
     const canNext = k === 'algo' ? !!(S.a.algo && S.byAlgo && S.byAlgo[S.a.algo] && S.byAlgo[S.a.algo].best) : S.a[k] != null || !!q.input;
     const label = k === 'algo' ? (S.a.algo && prepOf(S.a.algo) ? `Voir les possibilités de ${esc(nameOf(S.a.algo))}` : 'Choisis un algorithme') : 'Continuer';
-    root().innerHTML = frame(`<div class="bq-q" data-k="${k}"><h2 id="bqH">${q.h}</h2><p class="bq-lead">${q.p}</p>${q.body}<p class="bq-err" id="bqErr" role="alert"></p></div>`,
+    view.html = frame(`<div class="bq-q" data-k="${k}"><h2 id="bqH">${q.h}</h2><p class="bq-lead">${q.p}</p>${q.body}<p class="bq-err" id="bqErr" role="alert"></p></div>`,
       { progress: S.step, foot: `${S.step ? `<button type="button" class="bq-back" data-bq="back">${BACK}Retour</button>` : '<span></span>'}<button type="button" class="br-btn" data-bq="next" ${canNext ? '' : 'disabled'}>${label}${ARROW}</button>` });
     const inp = document.getElementById('bqIn');
     if (inp) {
@@ -199,6 +213,7 @@
     return true;
   }
   function next() {
+    S.busy = false;
     if (!commitInput()) return;
     const k = STEPS[S.step];
     if (k === 'account' && S.a.tolerance != null && !(S.a.account === 'propfirm' ? PROP : FEEL).some(([v]) => v === S.a.tolerance)) S.a.tolerance = null;
@@ -210,7 +225,7 @@
 
   // ---------- Possibilités de l'algorithme choisi
   function calcScreen(text) {
-    root().innerHTML = frame(`<div class="bq-calc"><div class="bq-calc__orb" aria-hidden="true"><i></i><i></i></div><h2 id="bqH">On calcule ton plan</h2>
+    view.html = frame(`<div class="bq-calc"><div class="bq-calc__orb" aria-hidden="true"><i></i><i></i></div><h2 id="bqH">On calcule ton plan</h2>
       <ul class="bq-calc__steps"><li>${text}</li><li>On essaie 84 réglages de risque par algorithme</li><li>On tire 700 futurs possibles pour chacun</li></ul></div>`);
   }
   function showResult(algo) {
@@ -237,7 +252,7 @@
   function renderResult() {
     const R = S.result, goal = R.goal, c = S.pick;
     if (!c) {
-      root().innerHTML = frame(`<div class="bq-q"><h2 id="bqH">Aucun réglage ne tient avec ces réponses</h2><p class="bq-lead">Même au risque le plus bas, les creux passés de ${esc(nameOf(S.a.algo))} dépassent ce que tu acceptes. Choisis l’autre algorithme, ou accepte des pertes passagères un peu plus marquées.</p></div>`,
+      view.html = frame(`<div class="bq-q"><h2 id="bqH">Aucun réglage ne tient avec ces réponses</h2><p class="bq-lead">Même au risque le plus bas, les creux passés de ${esc(nameOf(S.a.algo))} dépassent ce que tu acceptes. Choisis l’autre algorithme, ou accepte des pertes passagères un peu plus marquées.</p></div>`,
         { foot: `<button type="button" class="bq-back" data-bq="edit">${BACK}Modifier mes réponses</button><span></span>` });
       return;
     }
@@ -245,7 +260,7 @@
     const alts = [['best', R.best], ['prudent', R.prudent], ['bold', R.bold]].filter(([, x], i, arr) => x && arr.findIndex(([, y]) => y === x) === i);
     const other = S.preps.find((x) => x.key !== l.algo && S.byAlgo && S.byAlgo[x.key] && S.byAlgo[x.key].best);
     const verdict = c.pReach >= 0.65 ? 'Ton objectif est à portée.' : c.pReach >= 0.4 ? 'Ton objectif est jouable, sans garantie.' : c.pReach >= 0.1 ? 'Ton objectif est ambitieux pour ce délai.' : 'Ton objectif est hors de portée dans ce délai.';
-    root().innerHTML = frame(`<div class="bq-res">
+    view.html = frame(`<div class="bq-res">
       <span class="br-label">Les possibilités de ${esc(p.name)}</span>
       <h2 id="bqH">${esc(p.name)}, ${rk(l.cfg.risk)} % par position.</h2>
       <p class="bq-lead">${l.cfg.afterSl ? `${rk(l.cfg.newRisk)} % après ${l.cfg.afterSl} stops d’affilée, retour à ${rk(l.cfg.risk)} % au premier gain. ` : ''}${verdict}</p>
@@ -307,12 +322,22 @@
     const h = e.target.closest('[data-hint]');
     if (h) { const g = S.result.hints[Number(h.dataset.hint)].goal; Object.assign(S.a, { months: g.months, tolerance: g.tolerance, target: g.target }); S.byAlgo = null; showResult(S.a.algo); return; }
     const v = e.target.closest('.bq-opt, .bq-chip, .bq-mult, .bq-algo');
-    if (v) {
-      const k = STEPS[S.step], raw = v.dataset.v;
-      if (k === 'algo') { S.a.algo = raw; renderStep(); return; }
+    if (v && !S.busy) {
+      // Sélection mise à jour sur place (pas de nouveau rendu), puis passage à la question suivante.
+      const k = STEPS[S.step], raw = v.dataset.v, nb = root().querySelector('[data-bq="next"]');
+      root().querySelectorAll('.bq-opt, .bq-chip, .bq-mult, .bq-algo').forEach((b) => { const on = b === v; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on)); });
+      if (k === 'algo') {
+        S.a.algo = raw;
+        if (nb) { nb.disabled = !(S.byAlgo && S.byAlgo[raw] && S.byAlgo[raw].best); nb.innerHTML = `Voir les possibilités de ${esc(nameOf(raw))}${ARROW}`; }
+        return;
+      }
       S.a[k] = k === 'account' ? raw : Number(raw);
-      renderStep();
-      if (k !== 'capital') setTimeout(next, 170);
+      const inp = document.getElementById('bqIn');
+      if (k === 'capital') { if (inp) inp.value = Number(raw).toLocaleString('fr-FR'); if (nb) nb.disabled = false; return; }
+      if (k === 'target' && inp) inp.value = '';
+      if (nb) nb.disabled = false;
+      S.busy = true;
+      setTimeout(next, 220);
     }
   });
   document.addEventListener('keydown', (e) => {

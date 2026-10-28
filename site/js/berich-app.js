@@ -152,21 +152,21 @@
   }
 
   // ================= Compte relié =================
-  // Plus de menu « compte suivi » : le compte relié est celui du Journal branché en direct (VPS ou Myfxbook), choisi
-  // automatiquement ; le petit check permet d'en changer s'il y en a plusieurs.
+  // Plus de menu « compte suivi » : le petit check permet de changer de VPS s'il y en a plusieurs.
   const LINKED_KEY = 'chest_berich_linked_account';
-  function liveOf(acc) { return CHESTJournal.liveAccounts(acc).find((l) => l.info && l.info.balance != null) || CHESTJournal.liveAccounts(acc)[0] || null; }
+  // Compte relié = UN COMPTE VPS uniquement (2026-10-29) : BERICH exécute sur le VPS. Un compte du Journal suivi par
+  // Myfxbook ou saisi à la main n'est jamais proposé, même s'il était choisi avant.
+  const vpsOf = (acc) => CHESTJournal.liveAccounts(acc).find((l) => l.kind === 'vps') || null;
+  const vpsAccounts = () => CHESTJournal.listAccounts().filter(vpsOf);
   function linkedAccount() {
     let id = null;
     try { id = localStorage.getItem(LINKED_KEY); } catch (e) { /* tant pis */ }
-    const list = CHESTJournal.listAccounts();
-    let acc = id === 'none' ? null : list.find((a) => a.id === id) || null;
-    if (!acc && id !== 'none') acc = list.find((a) => (liveOf(a) || {}).kind === 'vps') || list.find((a) => liveOf(a)) || null;
+    const list = vpsAccounts();
+    const acc = id === 'none' ? null : list.find((a) => a.id === id) || list[0] || null;
     if (!acc) return null;
-    const live = liveOf(acc);
-    const bal = live && live.info && live.info.balance != null ? live.info.balance : null;
-    return { acc, live, balance: bal != null ? bal : acc.balance, equity: live && live.info ? live.info.equity : null,
-      source: live ? (live.kind === 'vps' ? 'VPS en direct' : 'Myfxbook') : 'saisie manuelle' };
+    const live = vpsOf(acc);
+    const bal = live.info && live.info.balance != null ? live.info.balance : null;
+    return { acc, live, balance: bal != null ? bal : acc.balance, equity: live.info ? live.info.equity : null, source: 'VPS en direct' };
   }
   let p3Req = null;
   function connState() {
@@ -174,8 +174,6 @@
     if (la && la.live) return { ok: true, name: la.acc.name, la };
     if (p3Req && p3Req.status === 'done') return { ok: true, name: `${p3Req.broker} · ${p3Req.login}` };
     if (p3Req && p3Req.status === 'pending') return { pending: true };
-    const c = CHESTBerich.loadConnection();
-    if (CHESTBerich.isConnected()) return { ok: true, name: c.broker };
     return { ok: false, la };
   }
   function connection() {
@@ -184,12 +182,12 @@
   function connControl() {
     const c = connState();
     if (c.pending) return `<span class="br-conn is-wait"><i></i>Connexion en préparation · ton éducateur s’en occupe sous 24 à 48 h</span>`;
-    if (!c.ok) return `<a class="br-btn br-btn--sm" href="connect.html?plan=pro&from=berich" data-br-connect>Connecter mon compte${ARROW}</a>`;
-    const list = CHESTJournal.listAccounts();
+    if (!c.ok) return `<a class="br-btn br-btn--sm" href="connect.html?plan=pro&from=berich" data-br-connect>Connecter mon VPS${ARROW}</a>`;
+    const list = vpsAccounts();
     return `<span class="br-conn-wrap"><button type="button" class="br-conn is-ok" id="brConnBtn" aria-expanded="false" aria-haspopup="true" title="${esc(c.name)}"><span class="br-conn__check">${CHECK}</span>Compte relié</button>
       <span class="br-conn-menu" id="brConnMenu" hidden role="menu"><span class="br-conn-menu__h">${esc(c.name)}${c.la && c.la.balance != null ? ` · <b>${money(c.la.balance)}</b>` : ''}</span>
-        ${list.length > 1 ? list.map((a) => `<button type="button" role="menuitemradio" aria-checked="${c.la && c.la.acc.id === a.id}" data-acc="${esc(a.id)}">${esc(a.name)}<small>${liveOf(a) ? (liveOf(a).kind === 'vps' ? 'VPS' : 'Myfxbook') : 'manuel'}</small></button>`).join('') : ''}
-        <a href="connect.html?plan=pro&from=berich" data-br-connect role="menuitem">Connecter un autre compte →</a></span></span>`;
+        ${list.length > 1 ? list.map((a) => `<button type="button" role="menuitemradio" aria-checked="${c.la && c.la.acc.id === a.id}" data-acc="${esc(a.id)}">${esc(a.name)}<small>VPS</small></button>`).join('') : ''}
+        <a href="connect.html?plan=pro&from=berich" data-br-connect role="menuitem">Connecter un autre VPS →</a></span></span>`;
   }
 
   // ================= Plan =================
@@ -525,10 +523,10 @@
       ${node(1, 'Signal BERICH', S.feedOk === false ? 'Flux injoignable pour le moment' : last ? `Or, 5 min · dernier signal il y a ${ago(Date.now() - last.time)}` : 'Or, 5 min · en veille', S.feedOk === false ? 'off' : 'ok')}
       ${node(2, 'Ton plan', pl ? esc(planLabel()) : 'Pas encore de plan', pl ? 'ok' : 'todo', pl ? '' : '<button type="button" class="br-link" data-br="quiz">Construire mon plan →</button>')}
       ${node(3, 'Ton compte', c.ok ? `${esc(c.name)}${bal != null ? ` · ${money(bal)}` : ''}${pl ? `<br>${attached ? `rattaché à ${esc(planName())}` : `rattachement à ${esc(planName())} en cours par l’équipe CHEST`}` : ''}`
-        : c.pending ? 'En préparation par ton éducateur, sous 24 à 48 h' : 'Pas encore relié', c.ok ? (pl && !attached ? 'wait' : 'ok') : c.pending ? 'wait' : 'todo',
-        c.ok || c.pending ? '' : '<a class="br-link" href="connect.html?plan=pro&from=berich" data-br-connect>Connecter mon compte →</a>')}
+        : c.pending ? 'En préparation par ton éducateur, sous 24 à 48 h' : 'Aucun VPS relié', c.ok ? (pl && !attached ? 'wait' : 'ok') : c.pending ? 'wait' : 'todo',
+        c.ok || c.pending ? '' : '<a class="br-link" href="connect.html?plan=pro&from=berich" data-br-connect>Connecter mon VPS →</a>')}
     </ol>
-    <p class="br-flow__note">${pl ? `Chaque signal ${L.length > 1 ? 'part avec le risque de son algorithme : ' + L.map((l) => `<b>${rk(l.cfg.risk)} %</b> pour ${esc(nameOf(l.algo))}`).join(', ') : `part à <b>${rk(L[0].cfg.risk)} %</b> du compte${bal != null ? `, soit <b>${money(bal * L[0].cfg.risk / 100)}</b> sur le prochain` : ''}`}${L.some((l) => l.cfg.afterSl) ? ', réduit après une série de stops' : ''}.${c.ok ? '' : ' Relie ton compte : l’équipe le rattachera à ton plan.'}`
+    <p class="br-flow__note">${pl ? `Chaque signal ${L.length > 1 ? 'part avec le risque de son algorithme : ' + L.map((l) => `<b>${rk(l.cfg.risk)} %</b> pour ${esc(nameOf(l.algo))}`).join(', ') : `part à <b>${rk(L[0].cfg.risk)} %</b> du compte${bal != null ? `, soit <b>${money(bal * L[0].cfg.risk / 100)}</b> sur le prochain` : ''}`}${L.some((l) => l.cfg.afterSl) ? ', réduit après une série de stops' : ''}.${c.ok ? '' : ' Relie ton VPS : l’équipe le rattachera à ton plan.'}`
       : 'Le plan fixe le risque de chaque position ; le compte relié l’applique automatiquement.'}</p>`;
   }
 
