@@ -294,6 +294,10 @@ def init_db():
         # dépôt public), et plan de chaque membre (quiz → algorithme + money management).
         db.execute("CREATE TABLE IF NOT EXISTS berich_algos (key TEXT PRIMARY KEY, name TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS berich_plans (user_id INTEGER PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL)")
+        # Rattachement (2026-10-28) : l'équipe branche le compte du membre sur le ou les algorithmes de son plan.
+        for name in ("attached_at", "attached_algos"):
+            if name not in [c[1] for c in db.execute("PRAGMA table_info(berich_plans)").fetchall()]:
+                db.execute(f"ALTER TABLE berich_plans ADD COLUMN {name} TEXT")
         db.execute("""
             CREATE TABLE IF NOT EXISTS berich_requests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2029,6 +2033,19 @@ def berich_algo_delete(key):
     return berich_algos()
 
 
+def _plan_algos(data):
+    legs = data.get("legs") if isinstance(data.get("legs"), list) else [{"algo": data.get("algo")}]
+    return sorted({str(l.get("algo")) for l in legs if isinstance(l, dict) and l.get("algo")})
+
+
+def _plan_public(r):
+    if not r:
+        return None
+    d = json.loads(r["data"])
+    attached = r["attached_at"] if r["attached_at"] and json.loads(r["attached_algos"] or "[]") == _plan_algos(d) else None
+    return {**d, "savedAt": r["updated_at"], "attachedAt": attached}
+
+
 @app.route("/berich/plan", methods=["GET", "PUT"])
 def berich_plan():
     user, err = _berich_member()
@@ -2041,11 +2058,41 @@ def berich_plan():
         if not raw or len(raw) > 12000:
             return jsonify({"error": "Plan invalide."}), 400
         with db_lock:
+            # Un plan qui change d'algorithmes redevient « à rattacher » (attached_algos ne correspond plus).
             db.execute("INSERT INTO berich_plans (user_id, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at",
                        (user["id"], raw, datetime.now(timezone.utc).isoformat()))
             db.commit()
-    r = db.execute("SELECT * FROM berich_plans WHERE user_id = ?", (user["id"],)).fetchone()
-    return jsonify({"plan": {**json.loads(r["data"]), "savedAt": r["updated_at"]} if r else None})
+    return jsonify({"plan": _plan_public(db.execute("SELECT * FROM berich_plans WHERE user_id = ?", (user["id"],)).fetchone())})
+
+
+@app.route("/berich/plans")
+def berich_plans_admin():
+    """Admin : tous les plans, les plus récents d'abord, avec leur état de rattachement."""
+    user, err = _admin_only()
+    if err:
+        return err
+    db = get_db()
+    out = []
+    for r in db.execute("SELECT berich_plans.*, users.first_name, users.last_name, users.email FROM berich_plans JOIN users ON users.id = berich_plans.user_id ORDER BY berich_plans.updated_at DESC").fetchall():
+        out.append({"userId": r["user_id"], "name": f"{r['first_name']} {r['last_name']}".strip(), "email": r["email"], "plan": _plan_public(r)})
+    return jsonify({"plans": out})
+
+
+@app.route("/berich/plans/<int:uid>/attach", methods=["POST"])
+def berich_plan_attach(uid):
+    user, err = _admin_only()
+    if err:
+        return err
+    db = get_db()
+    r = db.execute("SELECT * FROM berich_plans WHERE user_id = ?", (uid,)).fetchone()
+    if not r:
+        return jsonify({"error": "Ce membre n'a pas de plan."}), 404
+    on = (request.get_json(silent=True) or {}).get("attached", True)
+    with db_lock:
+        db.execute("UPDATE berich_plans SET attached_at = ?, attached_algos = ? WHERE user_id = ?",
+                   (datetime.now(timezone.utc).isoformat() if on else None, json.dumps(_plan_algos(json.loads(r["data"]))) if on else None, uid))
+        db.commit()
+    return berich_plans_admin()
 
 
 @app.route("/mentor/notes", methods=["POST"])
@@ -2188,7 +2235,7 @@ def edu_member(mid):
         "sales": [{"at": r["created_at"], "amount": r["amount"]} for r in sales],
         "salesTotal": sum(r["amount"] for r in sales), "commission": round(sum(r["amount"] for r in sales) * rate / 100), "rate": rate,
         "berich": _req_public(breq, reveal=True) if breq else None,
-        "berichPlan": (lambda r: {**json.loads(r["data"]), "savedAt": r["updated_at"]} if r else None)(db.execute("SELECT * FROM berich_plans WHERE user_id = ?", (mid,)).fetchone()),
+        "berichPlan": _plan_public(db.execute("SELECT * FROM berich_plans WHERE user_id = ?", (mid,)).fetchone()),
         "mentor": {"next": dict(nxt) if nxt else None,
                    "held": db.execute("SELECT COUNT(*) FROM mentor_events WHERE member_id = ? AND status IN ('confirmed', 'done') AND starts_at < ?", (mid, now)).fetchone()[0],
                    "notes": count("SELECT COUNT(*) FROM mentor_notes WHERE member_id = ?"),

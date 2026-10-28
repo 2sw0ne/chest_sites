@@ -187,19 +187,28 @@
   }
 
   // ================= Plan =================
-  const planPrep = () => (S.plan ? prepOf(S.plan.algo) : null);
+  // Plan v2 (diversifié) : une ou plusieurs « jambes » { algo, cfg } sur le même compte ; un plan v1 n'en a qu'une.
+  const legsOf = (pl) => (pl ? (pl.legs && pl.legs.length ? pl.legs : [{ algo: pl.algo, cfg: pl.cfg }]) : []);
+  const planLegs = () => legsOf(S.plan).filter((l) => prepOf(l.algo));
+  const planName = () => legsOf(S.plan).map((l) => nameOf(l.algo)).join(' + ');
+  const planTotal = () => legsOf(S.plan).reduce((s, l) => s + l.cfg.risk, 0);
+  // « BERICH II · 1,5 % par position, … » ou « BERICH II 1,5 % + BERICH I 0,25 %, … »
+  const planLabel = () => { const L = legsOf(S.plan); return L.length > 1 ? P.describe(L, nameOf) : `${nameOf(L[0].algo)} · ${P.describeCfg(L[0].cfg)}`; };
   function planReplay(periodOnly) {
-    const p = planPrep();
-    if (!p) return null;
-    const list = periodOnly ? p.list.filter((x) => inPeriod({ time: x.t })) : p.list;
-    if (!list.length) return { curve: [], final: S.plan.answers.capital, mult: 1, maxDd: 0, list };
-    const sub = periodOnly ? P.prep(p.key, p.name, list) : p;
-    return Object.assign(P.replay(sub, S.plan.cfg, S.plan.answers.capital), { list, prep: sub });
+    const legs = planLegs();
+    if (!legs.length) return null;
+    const ps = legs.map((l) => { const p = prepOf(l.algo); return periodOnly ? P.prep(p.key, p.name, p.list.filter((x) => inPeriod({ time: x.t }))) : p; });
+    const on = ps.map((p, i) => i).filter((i) => ps[i].n);
+    if (!on.length) return { curve: [], final: S.plan.answers.capital, mult: 1, maxDd: 0, n: 0, from: null, worst: 0 };
+    const r = P.replay(on.map((i) => ps[i]), on.map((i) => legs[i].cfg), S.plan.answers.capital);
+    return Object.assign(r, { from: Math.min(...on.map((i) => ps[i].from)), worst: Math.max(...on.map((i) => ps[i].worstStreak)) });
   }
+  // « Prendre le trade » suit le réglage de BERICH I (le flux en direct) s'il fait partie du plan.
   function applyPlanToConnection(plan) {
+    const L = legsOf(plan), cfg = (L.find((l) => l.algo === 'berich1') || L[0]).cfg;
     const c = connection();
-    const presets = (c.presets && c.presets.length ? c.presets : CHESTBerich.defaultPresets()).filter((p) => p.id !== 'plan');
-    presets.unshift({ id: 'plan', name: 'Mon plan', risk: plan.cfg.risk, tiers: plan.cfg.afterSl ? [{ afterSl: plan.cfg.afterSl, newRisk: plan.cfg.newRisk }] : [] });
+    const presets = (c.presets && c.presets.length ? c.presets : CHESTBerich.defaultPresets()).filter((x) => x.id !== 'plan');
+    presets.unshift({ id: 'plan', name: 'Mon plan', risk: cfg.risk, tiers: cfg.afterSl ? [{ afterSl: cfg.afterSl, newRisk: cfg.newRisk }] : [] });
     CHESTBerich.saveConnection(Object.assign({}, c, { presets, activePresetId: 'plan', riskMode: 'preset' }));
     CHESTBerich.saveLastRiskChoice({ mode: 'preset', presetId: 'plan' });
   }
@@ -207,6 +216,7 @@
     const d = await api('/berich/plan', { method: 'PUT', body: plan });
     S.plan = d.plan; S.algo = plan.algo; S.scope = 'plan'; S.alts = null; riskChoiceIdx = null;
     applyPlanToConnection(plan);
+    await loadPlans();
     if (window.showToast) showToast('Plan enregistré');
     renderAll();
   }
@@ -341,7 +351,7 @@
     const goal = pl && pl.answers;
     const prog = pl && la && la.live && la.balance != null && goal.target > goal.capital
       ? Math.max(0, Math.min(1, (la.balance - goal.capital) / (goal.target - goal.capital))) : null;
-    el.innerHTML = `${pl ? `<button type="button" class="br-planchip" data-br="adjust" title="Ajuster mon plan"><span class="br-planchip__a">${esc(nameOf(pl.algo))}</span><span>${esc(P.describe(pl.cfg))}</span><span class="br-planchip__e">Ajuster</span></button>` : ''}
+    el.innerHTML = `${pl ? `<button type="button" class="br-planchip" data-br="adjust" title="Ajuster mon plan"><span class="br-planchip__a">${legsOf(pl).length > 1 ? 'Diversifié' : esc(nameOf(pl.algo))}</span><span>${esc(legsOf(pl).length > 1 ? P.describe(legsOf(pl), nameOf) : P.describeCfg(pl.cfg))}</span><span class="br-planchip__e">Ajuster</span></button>` : ''}
       ${connControl()}
       ${prog != null ? `<span class="br-goal" title="De ${eur(goal.capital)} à ${eur(goal.target)}"><span class="br-goal__bar"><i style="transform:scaleX(${prog.toFixed(3)})"></i></span><span><b>${money(la.balance)}</b> / objectif ${eur(goal.target)}</span></span>` : ''}`;
   }
@@ -355,7 +365,7 @@
       const r = planReplay(true);
       const pts = r.curve;
       return { kind: 'plan', r, labels: pts.map((x, i) => (i ? dateShort(x.t) : 'Départ')), series: pts.map((x) => Math.round(x.v * 100) / 100),
-        fmt: eur, unit: '€', base: S.plan.answers.capital, target: S.plan.answers.target, n: r.list.length };
+        fmt: eur, unit: '€', base: S.plan.answers.capital, target: S.plan.answers.target, n: r.n };
     }
     const since = unlockAt();
     const all = positions().filter((p) => p.closed && p.rr != null && inPeriod(p) && !(S.scope === 'algo' && S.algo === 'berich1' && since && p.time < since)).sort((a, b) => a.time - b.time);
@@ -459,16 +469,16 @@
     const sc = scopeSeries();
     const num = $('brHeroNum');
     if (sc.kind === 'plan') {
-      const r = sc.r, cap = S.plan.answers.capital, perf = (r.mult - 1) * 100, p = r.prep || planPrep();
+      const r = sc.r, cap = S.plan.answers.capital, perf = (r.mult - 1) * 100, L = legsOf(S.plan);
       num.textContent = eur(r.final); num.classList.toggle('is-neg', r.final < cap);
       $('brHeroSub').innerHTML = sc.n
-        ? `Ton plan rejoué sur <b>${sc.n}</b> positions ${esc(nameOf(S.plan.algo))} · <b>${eur(cap)}</b> au départ, le <b>${dateLong(r.list[0].t)}</b>`
+        ? `Ton plan rejoué sur <b>${sc.n}</b> positions ${esc(planName())} · <b>${eur(cap)}</b> au départ, le <b>${dateLong(r.from)}</b>`
         : 'Aucune position sur cette période.';
       renderCurve(sc);
       $('brKpis').innerHTML = kpi('Performance', signedPct(perf), `${eur(cap)} → ${eur(r.final)}`, tone(perf))
         + kpi('Recul max', r.maxDd ? '−' + pctTxt(r.maxDd, 1) : '0 %', 'depuis un plus haut', r.maxDd ? 'is-neg-txt' : '')
-        + kpi('Pire série', p ? `${p.worstStreak} stops` : '—', 'd’affilée')
-        + kpi('Risque', rk(S.plan.cfg.risk) + ' %', S.plan.cfg.afterSl ? `${rk(S.plan.cfg.newRisk)} % après ${S.plan.cfg.afterSl} stops` : 'par position')
+        + kpi('Pire série', r.worst ? `${r.worst} stops` : '—', L.length > 1 ? 'd’un algorithme' : 'd’affilée')
+        + kpi('Risque', rk(planTotal()) + ' %', L.length > 1 ? L.map((l) => `${nameOf(l.algo)} ${rk(l.cfg.risk)} %`).join(' · ') : S.plan.cfg.afterSl ? `${rk(S.plan.cfg.newRisk)} % après ${S.plan.cfg.afterSl} stops` : 'par position')
         + kpi('Positions', String(sc.n), 'rejouées');
     } else {
       const st = stats(sc.list, sc.val);
@@ -503,26 +513,27 @@
     const c = connState(), pl = S.plan, la = linkedAccount();
     const last = livePositions()[0];
     const bal = la && la.balance != null ? la.balance : null;
-    const nextRisk = pl && bal != null ? bal * pl.cfg.risk / 100 : null;
+    const L = legsOf(pl), attached = pl && pl.attachedAt;
     const node = (n, title, sub, state, extra) => `<li class="br-node is-${state}"><span class="br-node__i">${state === 'ok' ? CHECK : `<b>${n}</b>`}</span><span class="br-node__t">${title}</span><span class="br-node__s">${sub}</span>${extra || ''}</li>`;
     el.innerHTML = `<ol class="br-flow${c.ok && pl ? ' is-live' : ''}">
       ${node(1, 'Signal BERICH', S.feedOk === false ? 'Flux injoignable pour le moment' : last ? `Or, 5 min · dernier signal il y a ${ago(Date.now() - last.time)}` : 'Or, 5 min · en veille', S.feedOk === false ? 'off' : 'ok')}
-      ${node(2, 'Ton plan', pl ? `${esc(nameOf(pl.algo))} · ${esc(P.describe(pl.cfg))}` : 'Pas encore de plan', pl ? 'ok' : 'todo', pl ? '' : '<button type="button" class="br-link" data-br="quiz">Construire mon plan →</button>')}
-      ${node(3, 'Ton compte', c.ok ? `${esc(c.name)}${bal != null ? ` · ${money(bal)}` : ''}` : c.pending ? 'En préparation par ton éducateur, sous 24 à 48 h' : 'Pas encore relié', c.ok ? 'ok' : c.pending ? 'wait' : 'todo',
+      ${node(2, 'Ton plan', pl ? esc(planLabel()) : 'Pas encore de plan', pl ? 'ok' : 'todo', pl ? '' : '<button type="button" class="br-link" data-br="quiz">Construire mon plan →</button>')}
+      ${node(3, 'Ton compte', c.ok ? `${esc(c.name)}${bal != null ? ` · ${money(bal)}` : ''}${pl ? `<br>${attached ? `rattaché à ${esc(planName())}` : `rattachement à ${esc(planName())} en cours par l’équipe CHEST`}` : ''}`
+        : c.pending ? 'En préparation par ton éducateur, sous 24 à 48 h' : 'Pas encore relié', c.ok ? (pl && !attached ? 'wait' : 'ok') : c.pending ? 'wait' : 'todo',
         c.ok || c.pending ? '' : '<a class="br-link" href="connect.html?plan=pro&from=berich" data-br-connect>Connecter mon compte →</a>')}
     </ol>
-    <p class="br-flow__note">${c.ok && pl ? `Chaque signal part avec ton plan : <b>${rk(pl.cfg.risk)} %</b> du compte${nextRisk != null ? `, soit <b>${money(nextRisk)}</b> sur le prochain` : ''}${pl.cfg.afterSl ? `, puis ${rk(pl.cfg.newRisk)} % après ${pl.cfg.afterSl} stops d’affilée` : ''}.`
-      : pl ? 'Relie ton compte : chaque signal partira avec le risque de ton plan, sans que tu aies à le régler.' : 'Le plan fixe le risque de chaque position ; le compte relié l’applique automatiquement.'}</p>`;
+    <p class="br-flow__note">${pl ? `Chaque signal ${L.length > 1 ? 'part avec le risque de son algorithme : ' + L.map((l) => `<b>${rk(l.cfg.risk)} %</b> pour ${esc(nameOf(l.algo))}`).join(', ') : `part à <b>${rk(L[0].cfg.risk)} %</b> du compte${bal != null ? `, soit <b>${money(bal * L[0].cfg.risk / 100)}</b> sur le prochain` : ''}`}${L.some((l) => l.cfg.afterSl) ? ', réduit après une série de stops' : ''}.${c.ok ? '' : ' Relie ton compte : l’équipe le rattachera à ton plan.'}`
+      : 'Le plan fixe le risque de chaque position ; le compte relié l’applique automatiquement.'}</p>`;
   }
 
   // ================= 02 — Projection =================
   function renderProj() {
     const sec = $('brProj');
-    sec.hidden = !S.plan || !planPrep();
+    sec.hidden = !S.plan || !planLegs().length;
     if (sec.hidden) return;
-    const pl = S.plan, p = planPrep(), goal = Object.assign({ algo: pl.algo }, pl.goal || pl.answers);
-    const ev = P.evaluate(p, pl.cfg, goal);
-    const f = P.fan(p, pl.cfg, goal);
+    const pl = S.plan, legs = planLegs(), goal = Object.assign({}, pl.goal || pl.answers);
+    const ev = P.evaluate(legs.map((l) => prepOf(l.algo)), legs.map((l) => l.cfg), goal, true);
+    const f = ev.fan;
     $('brProjBody').innerHTML = `<div class="br-proj">
       <div class="br-proj__fan">${Q.fanSvg(f, goal, { h: 270 })}</div>
       <div class="br-proj__side">
@@ -534,14 +545,14 @@
         </dl>
         <div class="br-proj__acts"><button type="button" class="br-btn br-btn--ghost br-btn--sm" data-br="adjust">Comparer d’autres réglages</button><button type="button" class="br-link" data-br="redo">Refaire le quiz</button></div>
       </div></div>
-      <p class="br-note">Capital de départ ${eur(goal.capital)}, ${goal.account === 'propfirm' ? 'compte de propfirm' : 'compte perso'}, plan du ${dateLong(new Date(pl.createdAt || pl.savedAt).getTime())}. Zone verte : 8 futurs sur 10, tirés de l’historique de ${esc(p.name)} par blocs de 8 positions. Les performances passées ne préjugent pas des performances futures.</p>`;
+      <p class="br-note">Capital de départ ${eur(goal.capital)}, ${goal.account === 'propfirm' ? 'compte de propfirm' : 'compte perso'}, plan du ${dateLong(new Date(pl.createdAt || pl.savedAt).getTime())}. Zone verte : 8 futurs sur 10, tirés de l’historique de ${esc(planName())} par blocs de 2 semaines. Les performances passées ne préjugent pas des performances futures.</p>`;
   }
 
   // ================= 03 — Performances =================
   function renderAlgoTabs() {
     const list = algos();
     $('brAlgoTabs').hidden = list.length < 2;
-    $('brAlgoTabs').innerHTML = list.map((a) => `<button type="button" data-algo="${esc(a.key)}" aria-pressed="${a.key === S.algo}">${esc(a.name)}${S.plan && S.plan.algo === a.key ? '<i class="br-mine" title="L’algorithme de ton plan"></i>' : ''}</button>`).join('');
+    $('brAlgoTabs').innerHTML = list.map((a) => `<button type="button" data-algo="${esc(a.key)}" aria-pressed="${a.key === S.algo}">${esc(a.name)}${legsOf(S.plan).some((l) => l.algo === a.key) ? '<i class="br-mine" title="L’algorithme de ton plan"></i>' : ''}</button>`).join('');
     $('brPerfTitle').textContent = nameOf(S.algo);
   }
   function renderPerf() {
@@ -556,7 +567,7 @@
       [`L’année dernière · ${y - 1}`, closed.filter(inYear(y - 1)), `du 1er janvier au 31 décembre ${y - 1}`],
       [`Cette année · ${y}`, closed.filter(inYear(y)), `depuis le 1er janvier ${y}`],
     ];
-    const risk = S.plan && S.plan.algo === S.algo ? S.plan.cfg : null;
+    const leg = legsOf(S.plan).find((l) => l.algo === S.algo), risk = leg ? leg.cfg : null;
     const cap = risk ? S.plan.answers.capital : 1000;
     const months = (list) => {
       const m = new Map();
@@ -590,7 +601,7 @@
         <div class="br-perf__sub">${esc(sub)}</div>
       </article>`;
     }).join('')}</div>
-    <p class="br-note">${risk ? `Le calcul en euros suit ton plan (${esc(P.describe(risk))}) en partant de ${eur(cap)}, gains réinvestis` : 'Le calcul en euros suppose 1 000 € de départ et 1 % du capital risqué par position, gains réinvestis'} ; frais et glissements non compris. Les performances passées ne préjugent pas des performances futures.</p>`;
+    <p class="br-note">${risk ? `Le calcul en euros suit le réglage de ton plan pour cet algorithme (${esc(P.describeCfg(risk))}) en partant de ${eur(cap)}, gains réinvestis` : 'Le calcul en euros suppose 1 000 € de départ et 1 % du capital risqué par position, gains réinvestis'} ; frais et glissements non compris. Les performances passées ne préjugent pas des performances futures.</p>`;
   }
 
   // ================= 04 — Registre =================
@@ -659,7 +670,17 @@
     sec.hidden = !meUser().isAdmin;
     if (sec.hidden) return;
     const rows = ['berich1', 'berich2'].concat(S.uploaded.map((a) => a.key)).filter((k, i, arr) => arr.indexOf(k) === i);
-    $('brAdminBody').innerHTML = `<ul class="br-adm">${rows.map((k) => {
+    const plans = S.plans || [];
+    const todo = plans.filter((x) => !x.plan.attachedAt).length;
+    const planRow = (x) => { const L = legsOf(x.plan), at = x.plan.attachedAt;
+      return `<li><b>${esc(x.name)}</b><span>${esc(L.length > 1 ? P.describe(L, nameOf) : `${nameOf(L[0].algo)} · ${P.describeCfg(L[0].cfg)}`)} · ${x.plan.answers ? `${eur(x.plan.answers.capital)} → ${eur(x.plan.answers.target)}${x.plan.answers.account === 'propfirm' ? ' · propfirm' : ''}` : ''}
+        <br><small>${at ? `rattaché le ${dateLong(new Date(at).getTime())}` : `plan du ${dateLong(new Date(x.plan.savedAt).getTime())} · à rattacher`}</small></span>
+        <button type="button" class="br-btn ${at ? 'br-btn--ghost ' : ''}br-btn--sm" data-attach="${x.userId}" data-on="${at ? '0' : '1'}">${at ? 'Détacher' : 'Marquer rattaché'}</button></li>`; };
+    $('brAdminBody').innerHTML = `<h4 class="br-adm__h">Plans des membres${todo ? ` · <em>${todo} à rattacher</em>` : ''}</h4>
+    ${plans.length ? `<ul class="br-adm">${plans.map(planRow).join('')}</ul>` : '<p class="br-note">Aucun membre n’a encore validé de plan.</p>'}
+    <p class="br-note">Branche le compte du membre (VPS) sur le ou les algorithmes de son plan avec ces risques, puis marque-le rattaché : sa page BERICH passe au vert.</p>
+    <h4 class="br-adm__h">Backtests des algorithmes</h4>
+    <ul class="br-adm">${rows.map((k) => {
       const u = S.uploaded.find((a) => a.key === k);
       const live = k === 'berich1' && (algos().find((a) => a.key === 'berich1') || {}).live;
       return `<li><b>${esc(nameOf(k))}</b><span>${u ? `${u.trades.length} positions importées · ${dateLong(new Date(u.updatedAt).getTime())}` : 'aucun backtest importé'}${live ? ' · la page utilise le flux en direct' : ''}</span>
@@ -726,6 +747,7 @@
     const changed = fp !== lastFingerprint; lastFingerprint = fp; return changed;
   }
   async function loadAlgos() { try { S.uploaded = (await api('/berich/algos')).algos || []; } catch (e) { S.uploaded = []; } }
+  async function loadPlans() { if (!meUser().isAdmin) return; try { S.plans = (await api('/berich/plans')).plans; } catch (e) { S.plans = []; } }
   async function loadPlan() { try { S.plan = (await api('/berich/plan')).plan; } catch (e) { S.plan = null; } }
   async function loadPrice() {
     if (document.hidden) return;
@@ -767,7 +789,7 @@
       <button type="button" class="br-p3__x" data-p3-close aria-label="Fermer"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
       <span class="br-label">Premium III · connexion clé en main</span>
       <h3 id="brP3T">Ton broker et tes règles</h3>
-      <p class="br-p3__lead">Ton éducateur installe ton VPS lui-même${S.plan ? `, avec ton plan (${esc(P.describe(S.plan.cfg))})` : ''}. Donne-lui ton compte : la connexion sera faite sous <b>24 à 48 h</b>.</p>
+      <p class="br-p3__lead">Ton éducateur installe ton VPS lui-même${S.plan ? `, avec ton plan (${esc(planLabel())})` : ''}. Donne-lui ton compte : la connexion sera faite sous <b>24 à 48 h</b>.</p>
       <div class="br-p3__grid">${firms.map((f) => `<button type="button" class="br-p3__firm ${sel && sel.id === f.id ? 'is-on' : ''}" data-p3-firm="${esc(f.id)}"><img src="${esc(CHESTJournal.propfirmLogo(f.domain))}" alt="" loading="lazy"><span><b>${esc(f.name)}</b><small>${f.kind === 'propfirm' ? 'Propfirm' : 'Broker'}</small></span></button>`).join('')}</div>
       ${sel ? `
       ${sel.kind === 'propfirm' ? `<div class="br-p3__row"><span class="br-p3__k">Phase actuelle</span><div class="br-tabs">${['Phase 1', 'Phase 2', 'Financé'].map((ph) => `<button type="button" data-p3-phase="${ph}" aria-pressed="${P3.phase === ph}">${ph}</button>`).join('')}</div></div>
@@ -811,6 +833,13 @@
     if (al) { S.algo = al.dataset.algo; S.shown = 10; renderHero(); renderPerf(); renderLedger(); renderInsights(); return; }
     const sc = e.target.closest('#brScope button');
     if (sc) { S.scope = sc.dataset.v; renderHero(); return; }
+    const att = e.target.closest('[data-attach]');
+    if (att) {
+      att.disabled = true;
+      try { S.plans = (await api(`/berich/plans/${att.dataset.attach}/attach`, { method: 'POST', body: { attached: att.dataset.on === '1' } })).plans; if (S.plan && Number(att.dataset.attach) === meUser().id) await loadPlan(); renderAll(); }
+      catch (err) { $('brAdmErr').textContent = err.message; att.disabled = false; }
+      return;
+    }
     const drop = e.target.closest('[data-drop]');
     if (drop && confirm(`Retirer le backtest ${nameOf(drop.dataset.drop)} ?`)) {
       try { S.uploaded = (await api(`/berich/algos/${drop.dataset.drop}/delete`, { method: 'POST' })).algos; prepCache.clear(); renderAll(); } catch (err) { $('brAdmErr').textContent = err.message; }
@@ -856,7 +885,7 @@
 
   (async () => {
     renderAll();
-    await Promise.all([loadSeed(), loadSignals(), loadAlgos(), loadPlan()]);
+    await Promise.all([loadSeed(), loadSignals(), loadAlgos(), loadPlan(), loadPlans()]);
     S.loaded = true;
     const keys = algos().map((a) => a.key);
     S.algo = S.plan && keys.includes(S.plan.algo) ? S.plan.algo : keys[0] || 'berich1';

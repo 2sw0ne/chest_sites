@@ -82,9 +82,9 @@
       body: `<div class="bq-opts bq-opts--4">${[[3, '3 mois'], [6, '6 mois'], [12, '1 an'], [24, '2 ans']].map(([v, t]) => opt(v, t, '', a.months === v)).join('')}</div>` };
     if (k === 'tolerance') return { h: acc === 'propfirm' ? 'Quelle perte maximum impose ta propfirm ?' : 'Quel recul tu acceptes de voir ?', p: acc === 'propfirm' ? 'On garde de la marge en dessous, et la perte du jour reste sous 4 %.' : 'Depuis ton plus haut. Au-delà, le plan est considéré comme raté.',
       body: `<div class="bq-opts bq-opts--2">${TOL[acc].map(([v, t, d]) => opt(v, t, d, a.tolerance === v)).join('')}</div>` };
-    return { h: 'Quel algorithme ?', p: 'Deux façons de trader l’or, rejouées sur tout leur historique. Ou laisse le calcul choisir.',
+    return { h: 'Quel algorithme ?', p: S.preps.length > 1 ? 'Deux façons de trader l’or, rejouées sur tout leur historique. Choisis-en un, ou diversifie sur les deux.' : 'Rejoué sur tout son historique.',
       body: `<div class="bq-algos">${S.preps.map((p) => algoCard(p, a.algo === p.key)).join('')}</div>
-        <button type="button" class="bq-auto${a.algo === 'auto' || !a.algo ? ' is-on' : ''}" data-v="auto" aria-pressed="${a.algo === 'auto' || !a.algo}"><span class="bq-auto__i" aria-hidden="true"></span><span><b>Choisis pour moi</b><small>On compare ${S.preps.length > 1 ? 'les deux' : 'les réglages'} et on garde ce qui atteint le plus souvent ton objectif.</small></span></button>` };
+        <button type="button" class="bq-auto${a.algo === 'auto' || !a.algo ? ' is-on' : ''}" data-v="auto" aria-pressed="${a.algo === 'auto' || !a.algo}"><span class="bq-auto__i" aria-hidden="true"></span><span><b>${S.preps.length > 1 ? 'Diversifier sur les deux (recommandé)' : 'Choisis pour moi'}</b><small>${S.preps.length > 1 ? 'Les deux algorithmes sur ton compte, chacun avec son risque. On calcule la répartition, ou un seul s’il fait mieux pour ton objectif.' : 'On compare les réglages et on garde ce qui atteint le plus souvent ton objectif.'}</small></span></button>` };
   }
 
   function frame(inner, opts) {
@@ -132,36 +132,48 @@
   // ---------- Calcul puis plan proposé
   function compute() {
     S.calc = true;
-    const p = S.preps, n = p.reduce((s, x) => s + x.n, 0);
+    const p = S.preps, n = p.reduce((s, x) => s + x.n, 0), mix = p.length > 1 && (S.a.algo || 'auto') === 'auto';
     root().innerHTML = frame(`<div class="bq-calc"><div class="bq-calc__orb" aria-hidden="true"><i></i><i></i></div>
       <h2 id="bqH">On calcule ton plan</h2>
       <ul class="bq-calc__steps"><li>On rejoue ${n.toLocaleString('fr-FR')} positions réelles de ${p.length > 1 ? p.map((x) => esc(x.name)).join(' et ') : esc(p[0].name)}</li>
-        <li>On essaie 84 réglages de risque par algorithme</li><li>On tire 800 futurs possibles pour chacun</li></ul></div>`);
+        <li>On essaie 84 réglages par algorithme${mix ? ' et 121 répartitions entre les deux' : ''}</li><li>On tire 700 futurs possibles pour chacun</li></ul></div>`);
     const goal = goalOf(S.a);
     setTimeout(() => {
       S.result = P.recommend(S.preps, goal);
       S.pick = S.result.best;
-      setTimeout(renderResult, 450);
+      setTimeout(renderResult, 300);
     }, 380);
   }
   const goalOf = (a) => ({ capital: a.capital, target: a.target, months: a.months, tolerance: a.tolerance, account: a.account, algo: a.algo || 'auto' });
   const prepOf = (k) => S.preps.find((p) => p.key === k);
+  const nameOf = (k) => (prepOf(k) || { name: k }).name;
+  const legsName = (legs) => legs.map((l) => nameOf(l.algo)).join(' + ');
+  const streakCost = (p, cfg) => 1 - Array.from({ length: p.worstStreak }, (_, i) => (cfg.afterSl && i >= cfg.afterSl ? cfg.newRisk : cfg.risk)).reduce((m, r) => m * (1 - r / 100), 1);
 
   function whyLines(c, goal) {
-    const p = prepOf(c.algo), out = [];
-    const streakCost = 1 - (c.cfg.afterSl ? Array.from({ length: p.worstStreak }, (_, i) => (i < c.cfg.afterSl ? c.cfg.risk : c.cfg.newRisk)) : Array(p.worstStreak).fill(c.cfg.risk)).reduce((m, r) => m * (1 - r / 100), 1);
-    out.push(`${esc(p.name)} a déjà enchaîné <b>${p.worstStreak} stops</b> : avec ce réglage, cette série coûterait <b>−${nf(streakCost * 100, 1)} %</b>.`);
-    if (c.cfg.afterSl) out.push(`Après ${c.cfg.afterSl} stops d’affilée, le risque passe à ${rk(c.cfg.newRisk)} % et revient à ${rk(c.cfg.risk)} % au premier gain : les creux se creusent moins vite.`);
-    out.push(`Rejoué sur l’historique (${nf(p.months, 0)} mois), ${eur(goal.capital)} seraient devenus <b>${eur(goal.capital * c.hist.mult)}</b>, avec un recul maximum de <b>−${nf(c.hist.maxDd * 100, 1)} %</b>.`);
+    const out = [];
+    c.legs.forEach((l) => { const p = prepOf(l.algo); out.push(`${esc(p.name)} a déjà enchaîné <b>${p.worstStreak} stops</b> : à ${rk(l.cfg.risk)} %${l.cfg.afterSl ? ` puis ${rk(l.cfg.newRisk)} % après ${l.cfg.afterSl} stops` : ''}, cette série coûterait <b>−${nf(streakCost(p, l.cfg) * 100, 1)} %</b>.`); });
+    if (c.legs.length > 1 && S.result.solo && S.result.best === c) {
+      const so = S.result.solo;
+      out.push(`Diversifier amortit les creux : ${esc(nameOf(so.algo))} seul au même risque total (${rk(c.total)} %) aurait reculé de <b>−${nf(so.hist.maxDd * 100, 1)} %</b>, les deux ensemble de <b>−${nf(c.hist.maxDd * 100, 1)} %</b>.`);
+    } else if (c.legs.length === 1 && c.legs[0].cfg.afterSl) out.push('Après une série de stops, le risque baisse et revient au premier gain : les creux se creusent moins vite.');
+    out.push(`Rejoué sur l’historique, ${eur(goal.capital)} seraient devenus <b>${eur(goal.capital * c.hist.mult)}</b>, avec un recul maximum de <b>−${nf(c.hist.maxDd * 100, 1)} %</b>.`);
     if (goal.account === 'propfirm') out.push(`Pire journée passée : −${nf(c.hist.worstDay * 100, 1)} %, sous la limite de perte du jour.`);
     return out;
   }
-  function altRow(c, tag, goal) {
+  function altRow(c, tag) {
     if (!c) return '';
     const on = S.pick === c;
-    return `<button type="button" class="bq-alt${on ? ' is-on' : ''}" data-alt="${tag}" aria-pressed="${on}"><span class="bq-alt__tag">${{ best: 'Recommandé', prudent: 'Prudent', bold: 'Ambitieux', other: 'Autre algorithme' }[tag.split(':')[0]]}</span>
-      <span class="bq-alt__cfg"><b>${esc(prepOf(c.algo).name)}</b> · ${esc(P.describe(c.cfg))}</span>
+    const t = tag.split(':')[0];
+    const label = t === 'other' ? (c.tag === 'mix' ? 'Diversifié' : `${esc(nameOf(c.legs[0].algo))} seul`) : { best: 'Recommandé', prudent: 'Prudent', bold: 'Ambitieux' }[t];
+    return `<button type="button" class="bq-alt${on ? ' is-on' : ''}" data-alt="${tag}" aria-pressed="${on}"><span class="bq-alt__tag">${label}</span>
+      <span class="bq-alt__cfg">${c.legs.length > 1 ? c.legs.map((l) => `<b>${esc(nameOf(l.algo))}</b> ${rk(l.cfg.risk)} %`).join(' + ') : `<b>${esc(nameOf(c.legs[0].algo))}</b> · ${esc(P.describeCfg(c.legs[0].cfg))}`}</span>
       <span class="bq-alt__n"><b>${pc(c.pReach)}</b>objectif</span><span class="bq-alt__n"><b>${eur(c.p50)}</b>médiane</span><span class="bq-alt__n"><b>−${Math.round(c.dd90 * 100)} %</b>recul 1 fois / 10</span></button>`;
+  }
+  // Répartition du risque entre les algorithmes du plan.
+  function split(c) {
+    if (c.legs.length < 2) return '';
+    return `<div class="bq-split" role="img" aria-label="Répartition du risque">${c.legs.map((l, i) => `<span class="bq-split__leg${i ? ' is-b' : ''}" style="flex:${l.cfg.risk}"><b>${esc(nameOf(l.algo))}</b>${rk(l.cfg.risk)} % par position${l.cfg.afterSl ? `, ${rk(l.cfg.newRisk)} % après ${l.cfg.afterSl} stops` : ''}</span>`).join('')}</div>`;
   }
   function renderResult() {
     const R = S.result, goal = R.goal, c = S.pick;
@@ -170,13 +182,15 @@
         <div class="bq-foot"><button type="button" class="bq-back" data-bq="edit">${BACK}Modifier mes réponses</button></div></div>`);
       return;
     }
-    const p = prepOf(c.algo), f = P.fan(p, c.cfg, goal);
-    const alts = [['best', R.best], ['prudent', R.prudent], ['bold', R.bold]].concat((R.others || []).map((o, i) => ['other:' + i, o])).filter(([, x]) => x);
+    const ps = c.legs.map((l) => prepOf(l.algo)), f = P.evaluate(ps, c.legs.map((l) => l.cfg), goal, true).fan;
+    const alts = [['best', R.best], ['prudent', R.prudent], ['bold', R.bold]].concat((R.others || []).map((o, i) => ['other:' + i, o])).filter(([, x], i, arr) => x && arr.findIndex(([, y]) => y === x) === i);
     const verdict = c.pReach >= 0.65 ? 'Ton objectif est à portée.' : c.pReach >= 0.4 ? 'Ton objectif est jouable, sans garantie.' : c.pReach >= 0.1 ? 'Ton objectif est ambitieux pour ce délai.' : 'Ton objectif est hors de portée dans ce délai.';
+    const mix = c.legs.length > 1, l0 = c.legs[0];
     root().innerHTML = frame(`<div class="bq-res">
-      <span class="br-label">Ton plan BERICH</span>
-      <h2 id="bqH">${esc(p.name)}, ${rk(c.cfg.risk)} % par position.</h2>
-      <p class="bq-lead">${c.cfg.afterSl ? `${rk(c.cfg.newRisk)} % après ${c.cfg.afterSl} stops d’affilée, retour à ${rk(c.cfg.risk)} % au premier gain. ` : ''}${verdict}</p>
+      <span class="br-label">Ton plan BERICH${mix ? ' · diversifié' : ''}</span>
+      <h2 id="bqH">${mix ? `${esc(legsName(c.legs))}, sur le même compte.` : `${esc(nameOf(l0.algo))}, ${rk(l0.cfg.risk)} % par position.`}</h2>
+      <p class="bq-lead">${mix ? 'Chaque algorithme trade avec son propre risque : quand l’un enchaîne les stops, l’autre continue. ' : l0.cfg.afterSl ? `${rk(l0.cfg.newRisk)} % après ${l0.cfg.afterSl} stops d’affilée, retour à ${rk(l0.cfg.risk)} % au premier gain. ` : ''}${verdict}</p>
+      ${split(c)}
       <div class="bq-res__top">
         <div class="bq-res__ring">${ring(c.pReach, 'des futurs atteignent l’objectif')}<span>des futurs simulés touchent <b>${eur(goal.target)}</b> en ${dur(goal.months)} sans reculer de plus de ${Math.round(goal.tolerance * 100)} %${c.monthsToGoal ? ` · en ${nf(c.monthsToGoal, 1)} mois en moyenne` : ''}</span></div>
         <dl class="bq-res__facts">
@@ -186,10 +200,11 @@
           <div><dt>Recul probable</dt><dd>−${Math.round(c.dd50 * 100)} % <small>· 1 fois sur 10 : −${Math.round(c.dd90 * 100)} %</small></dd></div>
         </dl>
       </div>
-      <div class="bq-res__fan">${fanSvg(f, goal)}<p class="bq-note">Zone verte : 8 futurs sur 10. Trait : le futur médian. Tirés de l’historique de ${esc(p.name)}, pas une prévision.</p></div>
+      <div class="bq-res__fan">${fanSvg(f, goal)}<p class="bq-note">Zone verte : 8 futurs sur 10. Trait : le futur médian. Tirés de l’historique de ${esc(legsName(c.legs))} par blocs de 2 semaines, pas une prévision.</p></div>
       <ul class="bq-why">${whyLines(c, goal).map((l) => `<li>${l}</li>`).join('')}</ul>
-      ${R.hints && R.hints.length ? `<div class="bq-hints"><span class="br-label">Pour mieux viser</span>${R.hints.map((h, i) => `<button type="button" class="bq-hint" data-hint="${i}">${esc(h.label)}${h.realistic ? '' : ` <b>${pc(h.pReach)}</b>`}<i>→</i></button>`).join('')}</div>` : ''}
-      <div class="bq-alts"><span class="br-label">Autres réglages</span>${alts.map(([t, x]) => altRow(x, t, goal)).join('')}</div>
+      ${R.hints && R.hints.length ? `<div class="bq-hints"><span class="br-label">Pour mieux viser</span>${R.hints.map((h, i) => `<button type="button" class="bq-hint" data-hint="${i}">${esc(h.label)}<i>→</i></button>`).join('')}</div>` : ''}
+      <div class="bq-alts"><span class="br-label">Autres plans</span>${alts.map(([t, x]) => altRow(x, t)).join('')}</div>
+      <p class="bq-note">Une fois validé, l’équipe CHEST rattache ton compte ${mix ? 'aux deux algorithmes' : `à ${esc(nameOf(l0.algo))}`}, avec ces réglages.</p>
       <div class="bq-foot bq-foot--res"><button type="button" class="bq-back" data-bq="edit">${BACK}Modifier mes réponses</button><button type="button" class="br-btn" data-bq="save">Valider ce plan${ARROW}</button></div>
     </div>`);
     root().querySelector('.bq-body').scrollTop = 0;
@@ -197,7 +212,8 @@
 
   async function save() {
     const c = S.pick, goal = S.result.goal;
-    const plan = { v: 1, answers: Object.assign({}, S.a), algo: c.algo, cfg: c.cfg,
+    const main = c.legs.slice().sort((x, y) => y.cfg.risk - x.cfg.risk)[0];
+    const plan = { v: 2, answers: Object.assign({}, S.a), legs: c.legs.map((l) => ({ algo: l.algo, cfg: l.cfg })), algo: main.algo, cfg: main.cfg,
       metrics: { pReach: c.pReach, p10: c.p10, p50: c.p50, p90: c.p90, dd50: c.dd50, dd90: c.dd90, histMult: c.hist.mult, histDd: c.hist.maxDd }, goal, createdAt: new Date().toISOString() };
     const btn = root().querySelector('[data-bq="save"]');
     if (btn) btn.disabled = true;

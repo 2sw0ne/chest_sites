@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="css/school-da.css?v=17">
 <link rel="stylesheet" href="css/school-v2.css?v=16">
 <link rel="stylesheet" href="css/school-v3.css?v=4">
-<link rel="stylesheet" href="css/school-v4.css?v=4">
+<link rel="stylesheet" href="css/school-v4.css?v=5">
 <link rel="stylesheet" href="css/mentor-hub.css?v=2">
 <style>
   [hidden]{ display:none !important; }
@@ -197,9 +197,16 @@
 <script src="js/rank-badge.js?v=3"></script>
 <script src="js/mentor-hub.js?v=2"></script>
 <script src="js/school-admin.js?v=1"></script>
-<script src="js/school-suivi.js?v=3"></script>
+<script src="js/school-suivi.js?v=4"></script>
 <script src="js/page-tour.js"></script>
 <script>
+(function () {
+// Équipe (éducateur, admin) : School n'est plus que le suivi des élèves, le tour n'en montre que cela.
+var u = (window.CHESTAccounts && CHESTAccounts.getUser()) || {};
+if (u.isAdmin || u.role === 'educator') {
+  CHESTTour.init([{ selector: '#scEdu', title: 'School', text: u.isAdmin ? 'Chaque éducateur, ses élèves, et le planning commun que tu poses chez tous.' : 'Tes élèves : leurs appels, leurs missions et leurs notes. Ouvre un élève pour préparer votre prochain appel.' }]);
+  return;
+}
 CHESTTour.init([
   { selector: '.sc-hero', title: 'School', text: "Ton école. Cherche un cours, un document ou une vidéo dans la barre, ou choisis un parcours juste en dessous." },
   { selector: '.sc-doors', title: 'Lire ou regarder', text: "« Cours écrits » rassemble Trading, UGC, Psychologie et Autres ressources. « Cours vidéo » rassemble Mindset et Business." },
@@ -210,6 +217,7 @@ CHESTTour.init([
   { selector: '.sc-panel.is-active .sc-toc', title: 'Sommaire du cours', text: "Le sommaire suit ta lecture. Les liens « Ressources trading » des cours te renvoient à la notion expliquée." },
   { selector: '#vvsStatus', title: 'Checklist VVS', text: "Coche chaque case avant un trade : tant qu'elles ne sont pas toutes cochées, pas de trade. Tes cases sont mémorisées sur cet appareil." },
 ]);
+})();
 </script>
 <script src="js/v2.js?v=3"></script>
 </body>

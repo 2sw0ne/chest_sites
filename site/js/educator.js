@@ -208,7 +208,10 @@
     // Plan BERICH du membre (quiz, 2026-10-28) : le risque à régler sur son VPS.
     const bp = M.berichPlan && M.berichPlan.cfg ? M.berichPlan : null;
     const fr = (v) => Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
-    const planTxt = bp ? `${{ berich1: 'BERICH I', berich2: 'BERICH II' }[bp.algo] || esc(bp.algo)} · ${fr(bp.cfg.risk)} % par position${bp.cfg.afterSl ? `, ${fr(bp.cfg.newRisk)} % après ${bp.cfg.afterSl} stops d’affilée` : ''}` : '';
+    const legs = bp ? (bp.legs && bp.legs.length ? bp.legs : [{ algo: bp.algo, cfg: bp.cfg }]) : [];
+    const algoName = (k) => ({ berich1: 'BERICH I', berich2: 'BERICH II' }[k] || esc(k));
+    const planTxt = bp ? legs.map((l) => `${algoName(l.algo)} · ${fr(l.cfg.risk)} % par position${l.cfg.afterSl ? `, ${fr(l.cfg.newRisk)} % après ${l.cfg.afterSl} stops d’affilée` : ''}`).join(' + ')
+      + (bp.attachedAt ? ' · rattaché' : ' · à rattacher par l’équipe') : '';
     const maxV = Math.max(1, ...act.last30);
     $('edSheetBody').innerHTML = `
       <header class="ed-sh__head">
