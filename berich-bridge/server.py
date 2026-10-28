@@ -65,6 +65,9 @@ DATA_DIR = Path("/data") if Path("/data").is_dir() else Path(__file__).resolve()
 DATA_FILE = DATA_DIR / "berich-signal.json"
 MAX_SIGNALS = 50
 RR = 3.0  # verrouillé dans le script Pine — voir "Money management verrouillé"
+# Plusieurs algorithmes sur le même flux (2026-10-28) : champ "algo" de l'alerte, BERICH I par défaut.
+# Objectif en R propre à chacun (BERICH II vise 5 R et peut sortir à break-even) ; "rr" dans l'alerte le remplace.
+ALGOS = {"berich1": {"name": "BERICH I", "rr": 3.0}, "berich2": {"name": "BERICH II", "rr": 5.0}}
 
 
 def _load() -> dict:
@@ -81,9 +84,9 @@ def _save(data: dict) -> None:
     DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def _compute_tp(signal: str, entry: float, sl: float) -> float:
+def _compute_tp(signal: str, entry: float, sl: float, rr: float = RR) -> float:
     risk = abs(entry - sl)
-    tp = entry + RR * risk if signal == "BUY" else entry - RR * risk
+    tp = entry + rr * risk if signal == "BUY" else entry - rr * risk
     return round(tp, 5)
 
 
@@ -96,11 +99,15 @@ def webhook():
     data = _load()
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
-    # ---- Message de clôture : {"id","result":"TP"|"SL"} ----
+    algo = payload.get("algo") or "berich1"
+    if algo not in ALGOS:
+        return jsonify({"error": f"algo inconnu: {algo}"}), 400
+
+    # ---- Message de clôture : {"id","result":"TP"|"SL"|"BE","algo"?} ----
     if "result" in payload:
-        if payload["result"] not in ("TP", "SL"):
-            return jsonify({"error": "result doit être 'TP' ou 'SL'"}), 400
-        match = next((s for s in data.get("signals", []) if s["id"] == payload["id"]), None)
+        if payload["result"] not in ("TP", "SL", "BE"):
+            return jsonify({"error": "result doit être 'TP', 'SL' ou 'BE'"}), 400
+        match = next((s for s in data.get("signals", []) if s["id"] == payload["id"] and s.get("algo", "berich1") == algo), None)
         if match is None:
             return jsonify({"error": f"aucun signal ouvert avec id={payload['id']}"}), 404
         match["status"] = "closed"
@@ -109,8 +116,8 @@ def webhook():
         data["example"] = False
         data["updatedAt"] = now
         _save(data)
-        mark = "TP✔️" if payload["result"] == "TP" else "SL❌"
-        notify("position_close", match, f"BERICH - {mark} {match['symbol']}")
+        mark = {"TP": "TP✔️", "SL": "SL❌", "BE": "BE ➖"}[payload["result"]]
+        notify("position_close", match, f"{ALGOS[algo]['name']} - {mark} {match['symbol']}")
         return jsonify({"ok": True, "id": payload["id"], "closed": True})
 
     # ---- Message d'ouverture : {"id","pair","signal","entry","sl"} ----
@@ -123,12 +130,13 @@ def webhook():
 
     signal = {
         "id": payload["id"],
-        "scanner": "BE FR€E",
+        "scanner": ALGOS[algo]["name"],
+        "algo": algo,
         "symbol": payload["pair"],
         "side": payload["signal"].lower(),
         "entry": payload["entry"],
         "sl": payload["sl"],
-        "tp": _compute_tp(payload["signal"], payload["entry"], payload["sl"]),
+        "tp": _compute_tp(payload["signal"], payload["entry"], payload["sl"], float(payload.get("rr") or ALGOS[algo]["rr"])),
         "time": now,
         "status": "open",
     }
@@ -137,7 +145,7 @@ def webhook():
     data["signals"] = [signal] + data.get("signals", [])[: MAX_SIGNALS - 1]
     _save(data)
     arrow = "📈" if signal["side"] == "buy" else "📉"
-    notify("position_open", signal, f"BERICH - Vous avez pris un {signal['side'].upper()} {arrow}")
+    notify("position_open", signal, f"{ALGOS[algo]['name']} - Vous avez pris un {signal['side'].upper()} {arrow}")
     return jsonify({"ok": True, "id": signal["id"]})
 
 

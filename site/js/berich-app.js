@@ -52,10 +52,13 @@
   const meUser = () => (A && A.getUser()) || {};
 
   // ================= État =================
-  const S = { loaded: false, seed: [], live: [], updatedAt: null, feedOk: null, price: null, scope: 'plan', period: 'all', filter: 'all', shown: 10,
+  const S = { loaded: false, seeds: { berich1: [], berich2: [] }, live: [], updatedAt: null, feedOk: null, price: null, scope: 'plan', period: 'all', filter: 'all', shown: 10,
     uploaded: [], algo: 'berich1', plan: null, alts: null };
 
-  // ================= Flux BERICH I : webhook + historique TradingView =================
+  // ================= Flux en direct (berich-bridge) + historiques =================
+  // BERICH I : historique TradingView (data/berich-history-seed.json) ; BERICH II : son backtest
+  // (data/berich2-history-seed.json). Les signaux du webhook portent `algo` (absent = BERICH I).
+  const BUILTIN = { berich1: 'data/berich-history-seed.json', berich2: 'data/berich2-history-seed.json' };
   function rrFromLevels(s) {
     const risk = Math.abs(s.entry - s.sl);
     return risk ? Math.round((Math.abs(s.tp - s.entry) / risk) * 100) / 100 : null;
@@ -64,16 +67,17 @@
     const closed = s.status === 'closed';
     return { id: String(s.id), time: new Date(s.time).getTime(), closeTime: s.closedAt ? new Date(s.closedAt).getTime() : null,
       side: s.side, closed, result: s.result || null, detail: s.result || null,
-      rr: closed ? (s.result === 'TP' ? rrFromLevels(s) : s.result === 'SL' ? -1 : 0) : null, entry: s.entry, sl: s.sl, tp: s.tp };
+      rr: closed ? (s.result === 'TP' ? rrFromLevels(s) : s.result === 'SL' ? -1 : 0) : null, entry: s.entry, sl: s.sl, tp: s.tp, algo: s.algo || 'berich1' };
   }
   function fromSeed(s) {
-    return { id: s.id, time: s.time, closeTime: s.closeTime || null, side: s.side, closed: s.status === 'closed', result: s.result, detail: s.detail || s.result, rr: s.rr, origin: s.origin || 'tradingview' };
+    return { id: s.id, time: s.time, closeTime: s.closeTime || null, side: s.side, closed: s.status === 'closed', result: s.result, detail: s.detail || s.result, rr: s.rr, origin: s.origin || 'tradingview', algo: s.algo || 'berich1' };
   }
-  function livePositions() {
-    const live = S.live.map(fromLive);
+  function livePositions(key) {
+    const k = key || 'berich1';
+    const live = S.live.map(fromLive).filter((l) => l.algo === k);
     const used = new Set();
-    const merged = S.seed.map(fromSeed).map((p) => {
-      const twin = live.find((l) => !used.has(l.id) && l.side === p.side && Math.abs(l.time - p.time) <= 15 * 60000);
+    const merged = (S.seeds[k] || []).map(fromSeed).map((p) => {
+      const twin = live.find((l) => !used.has(l.id) && (!p.side || l.side === p.side) && Math.abs(l.time - p.time) <= 15 * 60000);
       if (!twin) return p;
       used.add(twin.id);
       return Object.assign({}, p, { id: twin.id, entry: twin.entry, sl: twin.sl, tp: twin.tp, closeTime: p.closeTime || twin.closeTime, rr: p.rr != null ? p.rr : twin.rr });
@@ -81,6 +85,7 @@
     live.forEach((l) => { if (!used.has(l.id)) merged.push(l); });
     return merged.sort((a, b) => b.time - a.time);
   }
+  const allLive = () => [].concat(...Object.keys(BUILTIN).map(livePositions)).sort((a, b) => b.time - a.time);
 
   // ================= Algorithmes =================
   const ROMAN_NAME = { berich1: 'BERICH I', berich2: 'BERICH II', berich3: 'BERICH III' };
@@ -89,14 +94,15 @@
     return a.trades.map((t, i) => ({ id: `${a.key}-${i}`, time: t[0], closeTime: t[1], side: t[2] > 0 ? 'buy' : t[2] < 0 ? 'sell' : null, closed: true,
       rr: t[3], result: t[3] > 0 ? 'TP' : t[3] < 0 ? 'SL' : 'BE', detail: null, origin: 'backtest' })).sort((x, y) => y.time - x.time);
   }
-  // BERICH I : le flux en direct dès qu'il a assez d'historique, sinon son backtest importé.
+  // BERICH I et II : historique du site + flux en direct ; un backtest importé par l'admin ne sert que de repli.
   function algos() {
     const out = [];
-    const live = livePositions().filter((p) => p.closed && p.rr != null);
-    const up1 = S.uploaded.find((a) => a.key === 'berich1');
-    if (live.length >= 20) out.push({ key: 'berich1', live: true, positions: () => livePositions() });
-    else if (up1) out.push({ key: 'berich1', positions: () => backtestPositions(up1) });
-    S.uploaded.filter((a) => a.key !== 'berich1').forEach((a) => out.push({ key: a.key, positions: () => backtestPositions(a) }));
+    Object.keys(BUILTIN).forEach((k) => {
+      const up = S.uploaded.find((a) => a.key === k);
+      if (livePositions(k).filter((p) => p.closed && p.rr != null).length >= 20) out.push({ key: k, live: true, positions: () => livePositions(k) });
+      else if (up) out.push({ key: k, positions: () => backtestPositions(up) });
+    });
+    S.uploaded.filter((a) => !BUILTIN[a.key]).forEach((a) => out.push({ key: a.key, positions: () => backtestPositions(a) }));
     return out.map((a) => Object.assign(a, { name: nameOf(a.key) }));
   }
   const prepCache = new Map();
@@ -229,7 +235,7 @@
 
   // ================= Ligne d'état =================
   function renderTop() {
-    const last = livePositions()[0];
+    const last = allLive()[0];
     $('brStatus').innerHTML = S.feedOk === false
       ? '<span class="br-dot is-neg"></span><span>Flux injoignable</span>'
       : S.feedOk == null ? '<span class="br-dot"></span><span>Connexion au flux…</span>'
@@ -245,7 +251,7 @@
   function saveInvalidated() { try { localStorage.setItem(INVALIDATED_KEY, JSON.stringify([...invalidated])); } catch (e) { /* tant pis */ } }
   function activePosition() {
     const taken = takenMap();
-    const open = livePositions().filter((p) => !p.closed && p.entry != null);
+    const open = allLive().filter((p) => !p.closed && p.entry != null);
     const pick = open.find((p) => taken.has(p.id)) || open.find((p) => !invalidated.has(p.id)) || null;
     // Signal non pris dont le prix s'est éloigné de plus de 5 $ de l'entrée : il ne correspond plus au setup.
     if (pick && !taken.has(pick.id) && S.price != null && Math.abs(S.price - pick.entry) > PRICE_INVALIDATE) {
@@ -286,7 +292,7 @@
       const i = choices.findIndex((c) => last && c.mode === last.mode && c.presetId === last.presetId);
       riskChoiceIdx = i >= 0 ? i : 0;
     }
-    const history = livePositions().filter((q) => q.closed).map((q) => ({ status: 'closed', result: q.rr > 0 ? 'TP' : q.rr < 0 ? 'SL' : 'BE' }));
+    const history = livePositions(p.algo).filter((q) => q.closed).map((q) => ({ status: 'closed', result: q.rr > 0 ? 'TP' : q.rr < 0 ? 'SL' : 'BE' }));
     const la = linkedAccount();
     const balance = la ? la.balance : null;
     const info = taken ? { risk: taken.riskPercent, source: taken.riskSource } : CHESTBerich.effectiveRisk(conn, history, choices[riskChoiceIdx]);
@@ -295,7 +301,7 @@
     el.innerHTML = `
       <div class="br-signal__row">
         <div>
-          <span class="br-signal__kicker"><span class="br-dot is-live"></span>${taken ? 'Position prise' : 'Signal à confirmer'} · BERICH I</span>
+          <span class="br-signal__kicker"><span class="br-dot is-live"></span>${taken ? 'Position prise' : 'Signal à confirmer'} · ${esc(nameOf(p.algo))}</span>
           <h2>${isSell ? 'Vente' : 'Achat'} XAU/USD</h2>
           <div class="br-signal__meta">Ouvert il y a ${ago(Date.now() - p.time)} · session ${sessionOf(p.time)} · objectif ${rrTarget != null ? '+' + nf(rrTarget, rrTarget % 1 ? 1 : 0) + ' R' : '—'}</div>
         </div>
@@ -340,7 +346,7 @@
   function renderWatch() {
     const el = $('brWatch');
     if (activePosition()) { el.innerHTML = ''; return; }
-    const times = livePositions().map((p) => p.time).sort((a, b) => a - b);
+    const times = livePositions('berich1').map((p) => p.time).sort((a, b) => a - b);
     const gap = times.length > 1 ? (times[times.length - 1] - times[0]) / (times.length - 1) : null;
     el.innerHTML = `<span class="br-dot is-live"></span><span><b>BERICH surveille l'or</b> — aucun signal ouvert${gap ? ` · un signal tous les ${nf(gap / DAY, 1)} j en moyenne` : ''}</span>`;
   }
@@ -371,7 +377,7 @@
     const all = positions().filter((p) => p.closed && p.rr != null && inPeriod(p) && !(S.scope === 'algo' && S.algo === 'berich1' && since && p.time < since)).sort((a, b) => a.time - b.time);
     if (S.scope === 'algo') return { kind: 'algo', list: all, val: (p) => p.rr, fmt: signedR, unit: 'R' };
     const taken = takenMap();
-    const mine = livePositions().filter((p) => p.closed && p.rr != null && inPeriod(p) && taken.has(p.id) && taken.get(p.id).riskAmount != null).sort((a, b) => a.time - b.time);
+    const mine = allLive().filter((p) => p.closed && p.rr != null && inPeriod(p) && taken.has(p.id) && taken.get(p.id).riskAmount != null).sort((a, b) => a.time - b.time);
     return { kind: 'me', list: mine, val: (p) => taken.get(p.id).riskAmount * p.rr, fmt: signedMoney, unit: '$' };
   }
 
@@ -511,7 +517,7 @@
   function renderAuto() {
     const el = $('brAutoBody');
     const c = connState(), pl = S.plan, la = linkedAccount();
-    const last = livePositions()[0];
+    const last = allLive()[0];
     const bal = la && la.balance != null ? la.balance : null;
     const L = legsOf(pl), attached = pl && pl.attachedAt;
     const node = (n, title, sub, state, extra) => `<li class="br-node is-${state}"><span class="br-node__i">${state === 'ok' ? CHECK : `<b>${n}</b>`}</span><span class="br-node__t">${title}</span><span class="br-node__s">${sub}</span>${extra || ''}</li>`;
@@ -607,7 +613,7 @@
   // ================= 04 — Registre =================
   function renderLedger() {
     const taken = takenMap();
-    const isLive = S.algo === 'berich1' && (algos().find((a) => a.key === 'berich1') || {}).live;
+    const isLive = (algos().find((a) => a.key === S.algo) || {}).live;
     $('brFilter').querySelector('[data-v="me"]').hidden = !isLive;
     if (!isLive && S.filter === 'me') S.filter = 'all';
     let list = positions();
@@ -682,8 +688,8 @@
     <h4 class="br-adm__h">Backtests des algorithmes</h4>
     <ul class="br-adm">${rows.map((k) => {
       const u = S.uploaded.find((a) => a.key === k);
-      const live = k === 'berich1' && (algos().find((a) => a.key === 'berich1') || {}).live;
-      return `<li><b>${esc(nameOf(k))}</b><span>${u ? `${u.trades.length} positions importées · ${dateLong(new Date(u.updatedAt).getTime())}` : 'aucun backtest importé'}${live ? ' · la page utilise le flux en direct' : ''}</span>
+      const live = BUILTIN[k] && (algos().find((a) => a.key === k) || {}).live;
+      return `<li><b>${esc(nameOf(k))}</b><span>${live ? `historique du site + flux en direct · ${livePositions(k).filter((x) => x.closed).length} positions${u ? ' · import inutilisé' : ''}` : u ? `${u.trades.length} positions importées · ${dateLong(new Date(u.updatedAt).getTime())}` : 'aucune donnée'}</span>
         <label class="br-btn br-btn--ghost br-btn--sm">${u ? 'Remplacer' : 'Importer'}<input type="file" accept=".html,text/html" data-import="${esc(k)}" hidden></label>
         ${u ? `<button type="button" class="br-link" data-drop="${esc(k)}">Retirer</button>` : ''}</li>`;
     }).join('')}</ul>
@@ -738,7 +744,9 @@
 
   // ================= Chargements =================
   async function loadSeed() {
-    try { const res = await fetch(`data/berich-history-seed.json?nocache=${Date.now()}`); const json = res.ok ? await res.json() : []; S.seed = Array.isArray(json) ? json : []; } catch (e) { S.seed = []; }
+    await Promise.all(Object.entries(BUILTIN).map(async ([k, url]) => {
+      try { const res = await fetch(`${url}?nocache=${Date.now()}`); const json = res.ok ? await res.json() : []; S.seeds[k] = Array.isArray(json) ? json : []; } catch (e) { S.seeds[k] = []; }
+    }));
   }
   let lastFingerprint = '';
   async function loadSignals() {

@@ -35,6 +35,17 @@ Le script envoie **deux messages distincts sur le même endpoint**, liés par un
   ```
   `server.py` retrouve le signal ouvert correspondant par `id` et le marque `status:"closed"` avec son `result` — la page BERICH l'affiche alors comme clôturé au lieu de proposer "Prendre le trade".
 
+### BERICH II (2026-10-28)
+
+Même endpoint, même format, avec un champ `"algo":"berich2"` dans **les deux** messages (sans ce champ, le signal est compté pour BERICH I) :
+
+```json
+{"id":"1234567890","algo":"berich2","pair":"XAUUSD","signal":"BUY","entry":2650.5,"sl":2645.0}
+{"id":"1234567890","algo":"berich2","result":"BE"}
+```
+
+Objectif recalculé à **5 R** (`"rr":…` dans l'alerte pour un autre ratio). La clôture accepte aussi `"BE"` (sortie à break-even). Son historique de backtest est dans `site/data/berich2-history-seed.json`, comme `berich-history-seed.json` pour BERICH I : la page fusionne les deux sources.
+
 **Important** : les alertes avec webhook nécessitent un [plan TradingView payant](https://www.tradingview.com/pricing/).
 
 ## Lancer en local
