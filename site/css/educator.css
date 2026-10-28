@@ -126,3 +126,14 @@
 .ed-doc p{ margin:0 0 10px; font-size:13px; line-height:1.65; color:var(--chest-ink-2); max-width:78ch; }
 .ed-doc p b{ color:var(--chest-ink); }
 @media (prefers-reduced-motion:reduce){ .ed-bar, .ed-doc summary::after{ transition:none; } }
+
+/* Code de référent (2026-10-28) */
+.ed-code{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+.ed-code .ed-field{ flex:1 1 180px; }
+.ed-code input{ text-transform:uppercase; letter-spacing:.16em; font-weight:700; }
+.ed-code .chest-btn{ height:42px; }
+.ed-codebox{ display:flex; align-items:baseline; gap:10px; margin-bottom:12px; }
+.ed-codebox span{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--chest-ink-3); }
+.ed-codebox b{ font-size:26px; letter-spacing:.14em; background:var(--chest-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.ed-codebox i{ font-style:normal; font-size:11px; color:var(--chest-ink-3); padding:2px 8px; border:1px solid rgba(255,255,255,.12); border-radius:999px; }
+.ed-hint code{ font-size:11.5px; color:var(--chest-ink-2); word-break:break-all; }

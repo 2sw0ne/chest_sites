@@ -590,7 +590,7 @@
       const link = e.invite ? `${origin}/inscription?ref=${e.invite}` : '';
       return `<div class="am-edu" data-edu="${e.id}">
         <div class="am-edu__who"><b>${esc(e.name)}</b><small>${esc(e.email)}</small></div>
-        <div class="am-edu__link">${link ? `<code>${esc(link)}</code><button type="button" class="am-mini" data-edu-copy="${esc(link)}">Copier</button>` : '<span class="am-edu__none">Pas encore de lien</span>'}<button type="button" class="am-mini" data-edu-invite="${e.id}">${link ? 'Nouveau lien' : 'Générer le lien'}</button></div>
+        <div class="am-edu__link">${link ? `<span class="am-edu__code">${esc(e.invite)}</span><code>${esc(link)}</code><button type="button" class="am-mini" data-edu-copy="${esc(link)}">Copier</button>` : '<span class="am-edu__none">Code pas encore choisi par l’éducateur</span>'}</div>
         <label class="am-edu__rate">Taux<input type="text" inputmode="decimal" value="${pctOf(e.rate)}" data-edu-rate="${e.id}" aria-label="Taux de commission de ${esc(e.name)}"><em>%</em></label>
         <div class="am-edu__stats"><span><b>${e.totals.members}</b> membres</span><span><b>${esc(euro(e.totals.sales, 0))}</b> ventes</span><span><b>${esc(euro(e.wallet.earned))}</b> commissions</span><span><b>${esc(euro(e.wallet.available))}</b> dispo</span></div>
         <a class="am-mini" href="#/educator?educator=${e.id}" target="_top" data-edu-open="${e.id}">Voir son espace</a>

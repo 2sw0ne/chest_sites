@@ -361,7 +361,9 @@ def init_db():
                     # Programme éducateur (2026-10-25) : qui a parrainé ce membre, et le taux d'un éducateur
                     ("referred_by", "INTEGER"), ("commission_rate", "REAL"),
                     # Rangs (2026-10-28) : Essentiel / Premium 1, 2, 3 = accès de 3, 6, 12 mois
-                    ("plan_level", "INTEGER")]
+                    ("plan_level", "INTEGER"),
+                    # Code de référent choisi par l'éducateur (2026-10-28) : une seule fois, 8 caractères max
+                    ("edu_code", "TEXT")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -542,6 +544,8 @@ def signup():
 
     if not first_name or not last_name:
         return jsonify({"error": "Prénom et nom requis."}), 400
+    if ref_code and not get_db().execute("SELECT 1 FROM edu_invites WHERE upper(code) = upper(?) AND active = 1", (ref_code,)).fetchone():
+        return jsonify({"error": "Code de référent inconnu : vérifie-le auprès de ton éducateur, ou laisse le champ vide."}), 400
     if not EMAIL_RE.match(email):
         return jsonify({"error": "Adresse email invalide."}), 400
     # Minimum court (4) plutot que le standard 8+ : usage familial/proches de
@@ -576,7 +580,7 @@ def signup():
         )
         # Inscrit par le lien d'un éducateur (?ref=CODE) : rattaché à son compte
         if ref_code:
-            inv = db.execute("SELECT educator_id FROM edu_invites WHERE code = ? AND active = 1", (ref_code,)).fetchone()
+            inv = db.execute("SELECT educator_id FROM edu_invites WHERE upper(code) = upper(?) AND active = 1", (ref_code,)).fetchone()
             if inv:
                 db.execute("UPDATE users SET referred_by = ? WHERE email = ?", (inv["educator_id"], email))
         db.commit()
@@ -1398,11 +1402,12 @@ def edu_report(db, educator, full=False):
             pinfo.update({"iban": info["iban"] or "", "address": info["address"] or ""})
         else:
             pinfo.update({"iban": _mask(info["iban"]), "address": _mask(info["address"], 6)})
-    inv = db.execute("SELECT code FROM edu_invites WHERE educator_id = ? AND active = 1 ORDER BY created_at DESC", (educator["id"],)).fetchone()
+    chosen = _col(educator, "edu_code")
+    inv = {"code": chosen} if chosen else db.execute("SELECT code FROM edu_invites WHERE educator_id = ? AND active = 1 ORDER BY created_at DESC", (educator["id"],)).fetchone()
     earned_c = round(earned)
     return {
         "educator": {"id": educator["id"], "name": f"{educator['first_name']} {educator['last_name']}"},
-        "rate": rate, "invite": inv["code"] if inv else None, "minPayout": EDU_MIN_PAYOUT,
+        "rate": rate, "invite": inv["code"] if inv else None, "codeChosen": bool(chosen), "minPayout": EDU_MIN_PAYOUT,
         "members": out_members,
         "totals": {"members": len(out_members), "active": sum(1 for m in out_members if m["active"]),
                    "trials": sum(1 for m in out_members if m["trial"]), "sales": sum(m["sales"] for m in out_members)},
@@ -1434,6 +1439,41 @@ def edu_overview():
     if err:
         return err
     return jsonify(edu_report(get_db(), who))
+
+
+@app.route("/edu/code", methods=["POST"])
+def edu_choose_code():
+    """L'éducateur choisit SON code de référent, une seule fois (3 à 8 lettres ou chiffres), définitif."""
+    user = current_user()
+    if not user or not is_educator(user):
+        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    if _col(user, "edu_code"):
+        return jsonify({"error": "Ton code est déjà choisi : il ne peut plus changer."}), 400
+    code = str((request.get_json(silent=True) or {}).get("code") or "").strip().upper()
+    if not re.fullmatch(r"[A-Z0-9]{3,8}", code):
+        return jsonify({"error": "De 3 à 8 caractères, lettres et chiffres seulement."}), 400
+    db = get_db()
+    with db_lock:
+        if db.execute("SELECT 1 FROM edu_invites WHERE upper(code) = ?", (code,)).fetchone():
+            return jsonify({"error": "Ce code est déjà pris : choisis-en un autre."}), 400
+        db.execute("INSERT INTO edu_invites (code, educator_id, created_at, active) VALUES (?, ?, ?, 1)",
+                   (code, user["id"], datetime.now(timezone.utc).isoformat()))
+        db.execute("UPDATE users SET edu_code = ? WHERE id = ?", (code, user["id"]))
+        db.commit()
+    return jsonify(edu_report(db, db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()))
+
+
+@app.route("/ref/<code>")
+def ref_lookup(code):
+    """Vérifie un code de référent pour la page d'inscription (prénom + initiale de l'éducateur seulement)."""
+    if too_many("ref-ip:" + _client_ip(), 60, 600):
+        return jsonify({"error": TOO_MANY}), 429
+    hit("ref-ip:" + _client_ip())
+    row = get_db().execute("SELECT u.first_name, u.last_name FROM edu_invites i JOIN users u ON u.id = i.educator_id "
+                           "WHERE upper(i.code) = upper(?) AND i.active = 1", (str(code)[:40],)).fetchone()
+    if not row:
+        return jsonify({"error": "Code inconnu."}), 404
+    return jsonify({"ok": True, "educator": f"{row['first_name']} {(row['last_name'] or '')[:1]}.".strip()})
 
 
 @app.route("/edu/payout-info", methods=["PUT"])
@@ -1515,7 +1555,7 @@ def admin_educators():
     for e in db.execute("SELECT * FROM users WHERE role = 'educator' ORDER BY first_name").fetchall():
         r = edu_report(db, e)
         out.append({"id": e["id"], "name": f"{e['first_name']} {e['last_name']}", "email": e["email"], "rate": r["rate"],
-                    "invite": r["invite"], "totals": r["totals"], "wallet": r["wallet"],
+                    "invite": r["invite"], "codeChosen": r["codeChosen"], "totals": r["totals"], "wallet": r["wallet"],
                     "pendingPayouts": sum(1 for t in r["transactions"] if t["kind"] == "payout" and t.get("status") == "pending")})
     return jsonify({"educators": out, "defaultRate": EDU_DEFAULT_RATE})
 

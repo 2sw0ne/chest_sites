@@ -73,6 +73,12 @@
     border:none; background:none; color:var(--faint); cursor:pointer; padding:0;
   }
   .auth-field__toggle:hover{ color:var(--muted); }
+  .auth-field--ref input{ text-transform:uppercase; letter-spacing:.12em; }
+  .auth-field--ref input::placeholder{ text-transform:none; letter-spacing:0; }
+  .auth-field--ref input[readonly]{ color:#f9a45e; border-color:rgba(249,164,94,.45); background:rgba(249,164,94,.06); cursor:not-allowed; }
+  .auth-field__lock{ position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#f9a45e; display:grid; place-items:center; }
+  .auth-field__lock[hidden]{ display:none; }
+  .auth-field__lock svg{ width:16px; height:16px; }
   .auth-field__toggle svg{ width:17px; height:17px; }
 
   .auth-row2{ display:flex; gap:10px; }
@@ -154,6 +160,14 @@
       </div>
       <p class="auth-hint">8 caractères minimum.</p>
 
+      <!-- Code de référent (2026-10-28) : facultatif ; arrivé par le lien d'un éducateur, il est pré-rempli et verrouillé. -->
+      <div class="auth-field auth-field--ref" id="refField">
+        <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9.5 12 5l9 4.5-9 4.5z" stroke-linejoin="round"/><path d="M7 11.6v4.2c0 1 2.2 2.4 5 2.4s5-1.4 5-2.4v-4.2" stroke-linecap="round"/></svg>
+        <input id="refCode" type="text" placeholder="Code de référent (facultatif)" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <span class="auth-field__lock" id="refLock" hidden aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke-linecap="round"/></svg></span>
+      </div>
+      <p class="auth-hint" id="refHint">Donné par ton éducateur. Il te relie à son espace.</p>
+
 
       <p class="auth-error" id="formError"></p>
 
@@ -169,7 +183,7 @@
 
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=9"></script>
+<script src="js/accounts-auth.js?v=10"></script>
 <script src="js/hero-bg.js"></script>
 <script>
 (() => {
@@ -197,6 +211,22 @@
     if (e.persisted) { stage.classList.remove('is-leaving'); submitBtn.disabled = false; submitLabel.textContent = 'Créer mon compte'; }
   });
 
+  // Code de référent : arrivé par le lien d'un éducateur (?ref=CODE), il est pré-rempli et verrouillé ; on affiche
+  // le prénom de l'éducateur pour rassurer. Tapé à la main, il est vérifié à la création du compte.
+  (function initRef() {
+    const input = document.getElementById('refCode');
+    const hint = document.getElementById('refHint');
+    const fromLink = (new URLSearchParams(location.search).get('ref') || (CHESTAccounts.referralCode && CHESTAccounts.referralCode()) || '').trim();
+    if (!fromLink) return;
+    input.value = fromLink.toUpperCase();
+    input.readOnly = true;
+    document.getElementById('refLock').hidden = false;
+    fetch(CHESTAccounts.apiBase() + '/ref/' + encodeURIComponent(fromLink)).then((r) => r.json().then((d) => ({ ok: r.ok, d }))).then(({ ok, d }) => {
+      if (ok) hint.textContent = `Ton éducateur : ${d.educator}. Ton compte sera relié à son espace.`;
+      else { hint.textContent = 'Ce lien d’invitation n’est plus valable : demande un nouveau code à ton éducateur, ou laisse le champ vide.'; input.readOnly = false; input.value = ''; document.getElementById('refLock').hidden = true; }
+    }).catch(() => {});
+  })();
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errEl.textContent = '';
@@ -211,7 +241,7 @@
     submitBtn.disabled = true;
     submitLabel.textContent = 'Envoi…';
     try {
-      await CHESTAccounts.signup({ firstName, lastName, email, password });
+      await CHESTAccounts.signup({ firstName, lastName, email, password, ref: document.getElementById('refCode').value });
       // Compte créé : connexion directe, puis le questionnaire et les offres (/offres).
       await CHESTAccounts.login({ email, password, remember: true });
       try { sessionStorage.setItem('chest_welcome', '1'); } catch (err) { /* tant pis */ }

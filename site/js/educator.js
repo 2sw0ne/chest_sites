@@ -47,10 +47,30 @@
       ['Disponible', eur(w.available), w.pending ? `${eur(w.pending)} en cours de versement` : 'à retirer dès 50 €', ''],
     ].map(([k, v, n, cls]) => `<div class="am-kpi ${cls}"><div class="am-kpi__k">${k}</div><div class="am-kpi__v"><b>${esc(v)}</b></div><div class="am-kpi__n">${esc(n)}</div></div>`).join('');
 
-    // lien d'invitation
+    // Code de référent (2026-10-28) : l'éducateur le choisit UNE fois (3 à 8 lettres ou chiffres), puis il est définitif.
     const link = D.invite ? `${location.origin}/inscription?ref=${encodeURIComponent(D.invite)}` : '';
-    $('edInvite').innerHTML = link
-      ? `<div class="ed-link"><code id="edLink">${esc(link)}</code><button type="button" class="chest-btn-2" id="edCopy">Copier</button></div>
+    if (!D.codeChosen && !readOnly) {
+      $('edInvite').innerHTML = `<form class="ed-code" id="edCodeForm" novalidate>
+          <label class="ed-field"><span>Choisis ton code de référent</span><input type="text" id="edCodeInput" maxlength="8" autocomplete="off" spellcheck="false" placeholder="Ex. KARIM"></label>
+          <button type="submit" class="chest-btn">Valider mon code</button>
+        </form>
+        <p class="ed-hint">3 à 8 lettres ou chiffres. <b>Attention : il est définitif</b>, tes membres le taperont à l’inscription ou l’auront déjà rempli via ton lien.</p>
+        <p class="am-msg" id="edCodeMsg" role="status"></p>`
+        + (link ? `<p class="ed-hint">En attendant, ton ancien lien fonctionne toujours : <code>${esc(link)}</code></p>` : '');
+      $('edCodeInput').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+      $('edCodeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = $('edCodeInput').value.trim();
+        const msg = $('edCodeMsg');
+        if (!/^[A-Z0-9]{3,8}$/.test(code)) { msg.textContent = 'De 3 à 8 lettres ou chiffres.'; msg.className = 'am-msg is-err'; return; }
+        const ok = window.CHESTConfirm ? await CHESTConfirm(`Choisir « ${code} » comme code de référent ? Il ne pourra plus jamais être changé.`) : confirm('Code définitif ?');
+        if (!ok) return;
+        try { D = await api('/edu/code', { method: 'POST', body: JSON.stringify({ code }) }); render(); }
+        catch (err) { msg.textContent = err.message; msg.className = 'am-msg is-err'; }
+      });
+    } else $('edInvite').innerHTML = link
+      ? `<div class="ed-codebox"><span>Ton code</span><b>${esc(D.invite)}</b><i>définitif</i></div>
+         <div class="ed-link"><code id="edLink">${esc(link)}</code><button type="button" class="chest-btn-2" id="edCopy">Copier</button></div>
          <p class="ed-hint">Chaque personne qui crée son compte avec ce lien est rattachée à ton espace. Tu touches ta commission sur chacun de ses paiements.</p>`
       : '<p class="ed-hint">Ton lien n’est pas encore prêt : CHEST le crée pour toi. Il apparaîtra ici.</p>';
     const copy = $('edCopy');
