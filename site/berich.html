@@ -62,6 +62,7 @@
 <link rel="stylesheet" href="css/chest-da.css?v=19">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/berich-da.css?v=5">
+<link rel="stylesheet" href="css/berich-plan.css?v=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <script src="js/theme.js?v=5"></script>
 <script src="js/auth.js"></script>
@@ -121,11 +122,11 @@
 
     <div class="br-page">
 
-      <!-- Ligne d'état : marque, flux, prix, biais (texte, sans pastille). -->
+      <!-- Ligne d'état : marque, flux, prix, biais. -->
       <div class="br-top">
         <span class="br-top__brand">
           <span class="br-logo" aria-hidden="true"><img src="assets/logo-berich.png?v=2" alt=""></span>
-          <span class="br-wordmark"><b>BERICH</b><small>Scanner BE FR€E · XAU/USD · 5 min</small></span>
+          <span class="br-wordmark"><b>BERICH</b></span>
         </span>
         <div class="br-top__right">
           <span class="br-stat" id="brStatus"><span class="br-dot"></span><span>Connexion au flux…</span></span>
@@ -134,20 +135,20 @@
         </div>
       </div>
 
-      <!-- Signal en cours : n'apparaît que s'il y en a un — c'est l'action, elle passe avant tout. -->
+      <!-- Signal en cours : n'apparaît que s'il y en a un. -->
       <section class="br-signal" id="brSignal" hidden aria-live="polite"></section>
 
-      <!-- Hero : compte suivi + performance + courbe, centré. -->
+      <!-- Sans plan : l'invitation au quiz. -->
+      <section class="br-intro br-reveal" id="brIntro" hidden></section>
+
+      <!-- Hero : plan + connexion + résultat + courbe. -->
       <section class="br-hero br-reveal" id="brHero">
         <div class="br-watch" id="brWatch"></div>
-        <div class="br-acc-line" id="brAccLine"></div>
+        <div class="br-plan-line" id="brPlanLine"></div>
         <div><span class="br-hero__num" id="brHeroNum">—</span></div>
         <div class="br-hero__sub" id="brHeroSub"></div>
         <div class="br-hero__controls">
-          <div class="br-tabs" role="group" aria-label="Portée" id="brScope">
-            <button type="button" data-v="strategy" aria-pressed="true">BE FR€E · tous les signaux</button>
-            <button type="button" data-v="me" aria-pressed="false">Toi · positions prises</button>
-          </div>
+          <div class="br-tabs" role="group" aria-label="Vue" id="brScope"></div>
           <span class="br-sep" aria-hidden="true"></span>
           <div class="br-tabs" role="group" aria-label="Période" id="brPeriod">
             <button type="button" data-v="30" aria-pressed="false">30 j</button>
@@ -164,20 +165,39 @@
         <div class="br-kpis" id="brKpis"></div>
       </section>
 
-      <!-- Séries de gains / pertes. -->
+      <!-- 01 — Automatisation : signal → plan → compte. -->
+      <section class="br-section br-reveal" id="brAuto">
+        <hr class="br-rule">
+        <div class="br-section__head" style="margin-top:44px">
+          <div><span class="br-label">01 — Automatisation</span><h3>Du signal à ton compte</h3></div>
+        </div>
+        <div id="brAutoBody"></div>
+      </section>
+
+      <!-- 02 — Projection du plan. -->
+      <section class="br-section" id="brProj" hidden>
+        <hr class="br-rule">
+        <div class="br-section__head" style="margin-top:44px">
+          <div><span class="br-label">02 — Projection</span><h3>Où ton plan peut t’emmener</h3></div>
+        </div>
+        <div id="brProjBody"></div>
+      </section>
+
+      <!-- 03 — Performances de l'algorithme choisi. -->
       <section class="br-section br-reveal" id="brStreaks">
         <hr class="br-rule">
         <div class="br-section__head" style="margin-top:44px">
-          <div><span class="br-label">02 — Performances</span><h3>Depuis toujours, l'an dernier, cette année</h3><p>Tous les signaux BE FR€E, en R. Sous chaque résultat : ce qu'il aurait donné en partant de 1 000 € avec 1 % de risque par position, gains réinvestis.</p></div>
+          <div><span class="br-label">03 — Performances</span><h3><span id="brPerfTitle">BERICH</span> : depuis toujours, l’an dernier, cette année</h3></div>
+          <div class="br-tabs" role="group" aria-label="Algorithme" id="brAlgoTabs" hidden></div>
         </div>
         <div id="brStreaksBody"></div>
       </section>
 
-      <!-- Registre. -->
+      <!-- 04 — Registre. -->
       <section class="br-section br-reveal" id="brLedger">
         <hr class="br-rule">
         <div class="br-section__head" style="margin-top:44px">
-          <div><span class="br-label">03 — Registre</span><h3>Toutes les positions</h3></div>
+          <div><span class="br-label">04 — Registre</span><h3>Toutes les positions</h3></div>
           <div class="br-tabs" role="group" aria-label="Filtre" id="brFilter">
             <button type="button" data-v="all" aria-pressed="true">Toutes</button>
             <button type="button" data-v="win" aria-pressed="false">Gagnantes</button>
@@ -188,19 +208,28 @@
         <div id="brLedgerBody"></div>
       </section>
 
-      <!-- Sessions / sens & durée. -->
+      <!-- 05 — Sessions / 06 — Sens & durée. -->
       <section class="br-section br-reveal" id="brInsights">
         <hr class="br-rule">
         <div class="br-cols" style="margin-top:44px">
           <div>
-            <div class="br-section__head"><div><span class="br-label">04 — Sessions</span><h3>Quand BE FR€E performe</h3><p>Longueur de barre = winrate, chiffre = résultat cumulé. Heure d'ouverture, en UTC.</p></div></div>
+            <div class="br-section__head"><div><span class="br-label">05 — Sessions</span><h3>Quand l’algorithme performe</h3><p>Longueur de barre = winrate, chiffre = résultat cumulé. Heure d'ouverture, en UTC.</p></div></div>
             <div id="brSessionsBody"></div>
           </div>
           <div>
-            <div class="br-section__head"><div><span class="br-label">05 — Sens & durée</span><h3>Achats, ventes, temps en position</h3></div></div>
+            <div class="br-section__head"><div><span class="br-label">06 — Sens & durée</span><h3>Achats, ventes, temps en position</h3></div></div>
             <div id="brSidesBody"></div>
           </div>
         </div>
+      </section>
+
+      <!-- Admin : backtests des algorithmes (servis par le serveur, jamais publiés dans le dépôt). -->
+      <section class="br-section" id="brAdmin" hidden>
+        <hr class="br-rule">
+        <div class="br-section__head" style="margin-top:44px">
+          <div><span class="br-label">Admin — Algorithmes</span><h3>Backtests de BERICH I et II</h3></div>
+        </div>
+        <div id="brAdminBody"></div>
       </section>
     </div>
   </div>
@@ -226,643 +255,9 @@
 <script src="js/journal-store.js?v=13"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="js/page-tour.js"></script>
-<script>
-(() => {
-  'use strict';
-
-  // ================= Utilitaires =================
-  const $ = (id) => document.getElementById(id);
-  const DAY = 86400000;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const nf = (v, d) => Number(v).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
-  const money = (v) => (v < 0 ? '−' : '') + '$' + nf(Math.abs(v), 2);
-  const signedMoney = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + '$' + nf(Math.abs(v), 2);
-  const signedR = (v) => { const r = Math.round(v * 100) / 100; return (r > 0 ? '+' : r < 0 ? '−' : '') + nf(Math.abs(r), Math.abs(r) % 1 ? 2 : 0) + ' R'; };
-  const tone = (v) => (v > 0 ? 'is-pos-txt' : v < 0 ? 'is-neg-txt' : '');
-  const dateShort = (t) => { const d = new Date(t); return d.toLocaleDateString('fr-FR', d.getFullYear() === new Date().getFullYear() ? { day: '2-digit', month: 'short' } : { day: '2-digit', month: 'short', year: '2-digit' }); };
-  const dateLong = (t) => { const d = new Date(t); return d.toLocaleDateString('fr-FR', d.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' }); };
-  function ago(ms) {
-    const m = Math.max(0, Math.round(ms / 60000));
-    if (m < 1) return "à l'instant";
-    if (m < 60) return `${m} min`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h} h ${String(m % 60).padStart(2, '0')}`;
-    const d = Math.floor(h / 24);
-    return `${d} j${h % 24 ? ' ' + (h % 24) + ' h' : ''}`;
-  }
-  function dur(ms) {
-    if (ms == null || ms < 0) return '—';
-    const h = ms / 3600000;
-    if (h < 1) return `${Math.round(h * 60)} min`;
-    if (h < 48) return `${nf(h, h < 10 ? 1 : 0)} h`;
-    return `${nf(h / 24, 1)} j`;
-  }
-  function setPressed(groupId, value) {
-    $(groupId).querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === value)));
-  }
-
-  // ================= État =================
-  const S = { loaded: false, seed: [], live: [], updatedAt: null, feedOk: null, price: null, scope: 'strategy', period: 'all', filter: 'all', shown: 10 };
-
-  // ================= Données : flux webhook + historique repris de TradingView =================
-  // Webhook (berich-bridge) : entrée/SL/TP connus. Historique (data/berich-history-seed.json) : positions
-  // antérieures, résultat en R + détail (TP3, "SL (TP1)"), sans niveaux. Même position des deux côtés
-  // (8 oct.) : fusionnée si même sens à moins de 15 min d'écart.
-  function rrFromLevels(s) {
-    const risk = Math.abs(s.entry - s.sl);
-    return risk ? Math.round((Math.abs(s.tp - s.entry) / risk) * 100) / 100 : null;
-  }
-  function fromLive(s) {
-    const closed = s.status === 'closed';
-    return {
-      id: String(s.id), time: new Date(s.time).getTime(), closeTime: s.closedAt ? new Date(s.closedAt).getTime() : null,
-      side: s.side, closed, result: s.result || null, detail: s.result || null,
-      rr: closed ? (s.result === 'TP' ? rrFromLevels(s) : s.result === 'SL' ? -1 : 0) : null,
-      entry: s.entry, sl: s.sl, tp: s.tp,
-    };
-  }
-  function fromSeed(s) {
-    return { id: s.id, time: s.time, closeTime: s.closeTime || null, side: s.side, closed: s.status === 'closed', result: s.result, detail: s.detail || s.result, rr: s.rr, origin: s.origin || 'tradingview' };
-  }
-  function positions() {
-    const live = S.live.map(fromLive);
-    const used = new Set();
-    const merged = S.seed.map(fromSeed).map((p) => {
-      const twin = live.find((l) => !used.has(l.id) && l.side === p.side && Math.abs(l.time - p.time) <= 15 * 60000);
-      if (!twin) return p;
-      used.add(twin.id);
-      return Object.assign({}, p, { id: twin.id, entry: twin.entry, sl: twin.sl, tp: twin.tp, closeTime: p.closeTime || twin.closeTime, rr: p.rr != null ? p.rr : twin.rr });
-    });
-    live.forEach((l) => { if (!used.has(l.id)) merged.push(l); });
-    return merged.sort((a, b) => b.time - a.time);
-  }
-  function outcome(p) {
-    if (!p.closed) return { cls: 'open', label: 'En cours' };
-    const d = String(p.detail || p.result || '');
-    const partial = d.match(/SL\s*\((TP\d)\)/i);
-    if (p.rr > 0) return { cls: 'tp', label: /TP\d/i.test(d) ? d.toUpperCase() : 'Objectif' };
-    if (p.rr === 0) return { cls: 'part', label: 'Break-even' };
-    if (partial) return { cls: 'part', label: `Stop après ${partial[1].toUpperCase()}` };
-    return { cls: 'sl', label: 'Stop' };
-  }
-  function takenMap() { const m = new Map(); CHESTBerich.loadTaken().forEach((t) => m.set(String(t.id), t)); return m; }
-  function sessionOf(ts) {
-    const h = new Date(ts).getUTCHours();
-    if (h < 7) return 'Asie'; if (h < 12) return 'Londres'; if (h < 16) return 'Londres × NY'; if (h < 21) return 'New York'; return 'Soir';
-  }
-  // Compteur du haut (2026-10-28, demande utilisateur) : pour un membre, il démarre le jour où il a débloqué BERICH
-  // (début de son offre Premium) ; l'admin et les éducateurs gardent l'historique complet de l'algorithme.
-  function unlockAt() {
-    const u = (window.CHESTAccounts && CHESTAccounts.getUser()) || {};
-    if (u.isAdmin || u.role === 'educator') return null;
-    const a = u.access || {};
-    const t = a.startedAt ? new Date(a.startedAt).getTime() : NaN;
-    return Number.isFinite(t) ? t : null;
-  }
-  function inPeriod(p) {
-    const since = unlockAt();
-    if (since && p.time < since) return false;
-    return S.period === 'all' || p.time >= Date.now() - Number(S.period) * DAY;
-  }
-  function stats(list, valueOf) {
-    const vals = list.slice().sort((a, b) => a.time - b.time).map(valueOf).filter((v) => v != null);
-    const wins = vals.filter((v) => v > 0), losses = vals.filter((v) => v < 0);
-    const total = vals.reduce((s, v) => s + v, 0);
-    const gain = wins.reduce((s, v) => s + v, 0), loss = Math.abs(losses.reduce((s, v) => s + v, 0));
-    let cum = 0, peak = 0, dd = 0;
-    vals.forEach((v) => { cum += v; peak = Math.max(peak, cum); dd = Math.min(dd, cum - peak); });
-    return { n: vals.length, wins: wins.length, losses: losses.length, total,
-      winrate: wins.length + losses.length ? (wins.length / (wins.length + losses.length)) * 100 : null,
-      expectancy: vals.length ? total / vals.length : null, pf: loss ? gain / loss : (gain ? Infinity : null), dd };
-  }
-
-  // ================= Compte suivi / risque =================
-  const LINKED_KEY = 'chest_berich_linked_account';
-  function linkedAccount() {
-    let id = null;
-    try { id = localStorage.getItem(LINKED_KEY); } catch (e) { /* tant pis */ }
-    const acc = CHESTJournal.listAccounts().find((a) => a.id === id) || null;
-    if (!acc) return null;
-    const live = CHESTJournal.liveAccounts(acc).find((l) => l.info && l.info.balance != null);
-    return { acc, live, balance: live ? live.info.balance : acc.balance, equity: live ? live.info.equity : null,
-      source: live ? (live.kind === 'vps' ? 'VPS en direct' : 'MyFxBook') : 'saisie manuelle' };
-  }
-  function connection() {
-    return CHESTBerich.loadConnection() || { broker: '', riskPercent: 1, riskMode: 'manual', presets: CHESTBerich.defaultPresets(), activePresetId: null };
-  }
-
-  // ================= Ligne d'état =================
-  function renderTop() {
-    const last = positions()[0];
-    $('brStatus').innerHTML = S.feedOk === false
-      ? '<span class="br-dot is-neg"></span><span>Flux injoignable</span>'
-      : S.feedOk == null ? '<span class="br-dot"></span><span>Connexion au flux…</span>'
-        : `<span class="br-dot is-live"></span><span>Flux connecté · dernier signal <b>il y a ${last ? ago(Date.now() - last.time) : '—'}</b></span>`;
-    $('brPriceStat').hidden = S.price == null;
-    $('brPrice').textContent = S.price != null ? nf(S.price, 2) : '—';
-  }
-
-  // ================= Signal en cours =================
-  const PRICE_INVALIDATE = 5;
-  const INVALIDATED_KEY = 'chest_berich_invalidated';
-  const invalidated = (() => { try { return new Set(JSON.parse(localStorage.getItem(INVALIDATED_KEY) || '[]')); } catch (e) { return new Set(); } })();
-  function saveInvalidated() { try { localStorage.setItem(INVALIDATED_KEY, JSON.stringify([...invalidated])); } catch (e) { /* tant pis */ } }
-  function activePosition() {
-    const taken = takenMap();
-    const open = positions().filter((p) => !p.closed && p.entry != null);
-    const pick = open.find((p) => taken.has(p.id)) || open.find((p) => !invalidated.has(p.id)) || null;
-    // Signal non pris dont le prix s'est éloigné de plus de 5 $ de l'entrée : il ne correspond plus au setup.
-    if (pick && !taken.has(pick.id) && S.price != null && Math.abs(S.price - pick.entry) > PRICE_INVALIDATE) {
-      invalidated.add(pick.id); saveInvalidated(); return null;
-    }
-    return pick;
-  }
-  function railHtml(p, markerValue) {
-    const span = p.tp - p.sl;
-    const x = (v) => Math.min(1, Math.max(0, (v - p.sl) / span)) * 100;
-    const xe = x(p.entry);
-    const xm = markerValue != null ? x(markerValue) : null;
-    return `
-      <div class="br-rail" role="img" aria-label="Prix ${markerValue != null ? nf(markerValue, 2) : 'inconnu'} — stop ${nf(p.sl, 2)}, entrée ${nf(p.entry, 2)}, objectif ${nf(p.tp, 2)}">
-        <div class="br-rail__track"><div class="br-rail__loss" style="width:${xe}%"></div><div class="br-rail__win" style="left:${xe}%"></div></div>
-        <span class="br-rail__tick" style="left:0"></span><span class="br-rail__tick is-entry" style="left:${xe}%"></span><span class="br-rail__tick" style="left:100%"></span>
-        ${xm != null ? `<div class="br-rail__price ${xm > 82 ? 'is-end' : xm < 18 ? 'is-start' : ''}" style="left:${xm}%"><span>${nf(markerValue, 2)}</span><i></i></div>` : ''}
-        <span class="br-rail__lbl is-first" style="left:0">STOP<b>${nf(p.sl, 2)}</b></span>
-        <span class="br-rail__lbl" style="left:${xe}%">ENTRÉE<b>${nf(p.entry, 2)}</b></span>
-        <span class="br-rail__lbl is-last">OBJECTIF<b>${nf(p.tp, 2)}</b></span>
-      </div>`;
-  }
-  let riskChoiceIdx = null;
-  function renderSignal() {
-    const el = $('brSignal');
-    const p = activePosition();
-    if (!p) { el.hidden = true; el.innerHTML = ''; return; }
-    el.hidden = false;
-    const taken = takenMap().get(p.id);
-    const isSell = p.side === 'sell';
-    el.classList.toggle('is-sell', isSell);
-    const floatR = S.price != null && (p.entry - p.sl) ? (S.price - p.entry) / (p.entry - p.sl) : null;
-    const rrTarget = rrFromLevels(p);
-    const conn = connection();
-    const choices = CHESTBerich.riskChoices(conn);
-    if (riskChoiceIdx == null) {
-      const last = CHESTBerich.loadLastRiskChoice();
-      const i = choices.findIndex((c) => last && c.mode === last.mode && c.presetId === last.presetId);
-      riskChoiceIdx = i >= 0 ? i : 0;
-    }
-    const history = positions().filter((q) => q.closed).map((q) => ({ status: 'closed', result: q.rr > 0 ? 'TP' : q.rr < 0 ? 'SL' : 'BE' }));
-    const la = linkedAccount();
-    const balance = la ? la.balance : null;
-    const info = taken ? { risk: taken.riskPercent, source: taken.riskSource } : CHESTBerich.effectiveRisk(conn, history, choices[riskChoiceIdx]);
-    const amount = taken ? taken.riskAmount : (balance != null && info && info.risk != null ? balance * info.risk / 100 : null);
-    const floatMoney = taken && taken.riskAmount != null && floatR != null ? taken.riskAmount * floatR : null;
-    el.innerHTML = `
-      <div class="br-signal__row">
-        <div>
-          <span class="br-signal__kicker"><span class="br-dot is-live"></span>${taken ? 'Position prise' : 'Signal à confirmer'}</span>
-          <h2>${isSell ? 'Vente' : 'Achat'} XAU/USD</h2>
-          <div class="br-signal__meta">Ouvert il y a ${ago(Date.now() - p.time)} · session ${sessionOf(p.time)} · objectif ${rrTarget != null ? '+' + nf(rrTarget, rrTarget % 1 ? 1 : 0) + ' R' : '—'}</div>
-        </div>
-        <div class="br-signal__r"><b class="${tone(floatR)}">${floatR == null ? '—' : signedR(floatR)}</b><small>${floatMoney != null ? signedMoney(floatMoney) + ' latent' : 'résultat latent'}</small></div>
-      </div>
-      ${railHtml(p, S.price)}
-      <div class="br-signal__foot">
-        ${taken ? `
-          <span class="br-done"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Position confirmée</span>
-          <span class="br-signal__risk">Risque <b>${info.risk != null ? nf(info.risk, 2) + ' %' : '—'}</b>${amount != null ? ` → <b>${money(amount)}</b>` : ''} · enregistrée dans ton Journal.</span>`
-        : `
-          <div class="br-tabs" role="group" aria-label="Risque" id="brRiskTabs">${choices.map((c, i) => `<button type="button" data-i="${i}" aria-pressed="${i === riskChoiceIdx}">${esc(c.label)}</button>`).join('')}</div>
-          <span class="br-signal__risk">${info && info.risk != null ? `Risque <b>${nf(info.risk, 2)} %</b>${amount != null ? ` → <b>${money(amount)}</b> sur ce trade` : ' — <a class="br-link" href="connect.html?plan=pro&from=berich" data-br-connect>relie un compte</a> pour le montant en $'}` : ''}</span>
-          <button type="button" class="br-btn ${isSell ? 'is-sell' : ''}" id="brTakeBtn">Prendre le trade</button>`}
-      </div>`;
-    el.querySelectorAll('#brRiskTabs button').forEach((b) => b.addEventListener('click', () => {
-      riskChoiceIdx = Number(b.dataset.i); CHESTBerich.saveLastRiskChoice(choices[riskChoiceIdx]); renderSignal();
-    }));
-    const take = $('brTakeBtn');
-    if (take) take.addEventListener('click', () => {
-      CHESTBerich.saveLastRiskChoice(choices[riskChoiceIdx]);
-      CHESTBerich.markTaken(p.id, { riskPercent: info.risk, riskSource: info.source, riskAmount: amount, accountBalance: balance });
-      showToast('Position confirmée ✓');
-      renderAll();
-    });
-  }
-
-  // ================= Hero : compte + performance + courbe =================
-  function renderWatch() {
-    const el = $('brWatch');
-    if (activePosition()) { el.innerHTML = ''; return; }
-    const all = positions();
-    const times = all.map((p) => p.time).sort((a, b) => a - b);
-    const gap = times.length > 1 ? (times[times.length - 1] - times[0]) / (times.length - 1) : null;
-    el.innerHTML = `<span class="br-dot is-live"></span><span><b>BE FR€E surveille l'or</b> — aucun signal ouvert${gap ? ` · un signal tous les ${nf(gap / DAY, 1)} j en moyenne` : ''}</span>`;
-  }
-  function renderAccLine() {
-    const el = $('brAccLine');
-    const list = CHESTJournal.listAccounts();
-    const la = linkedAccount();
-    if (p3Req && p3Req.status === 'pending') { el.innerHTML = `<span class="br-p3-wait"><i></i>Connexion clé en main en préparation : <b>${esc(p3Req.broker)} · ${esc(p3Req.login)}</b>, demandée le ${dateShort(new Date(p3Req.createdAt).getTime())} · ton éducateur s’en occupe sous 24 à 48 h.</span>`; return; }
-    if (!list.length) { el.innerHTML = `<span>Aucun compte suivi</span><a class="br-link" href="connect.html?plan=pro&from=berich" data-br-connect>Connecter un compte →</a>`; return; }
-    el.innerHTML = `
-      <span>Compte suivi</span>
-      <select id="brAccSelect" aria-label="Compte du Journal qui suit BE FR€E">
-        <option value="" ${la ? '' : 'selected'}>aucun</option>
-        ${list.map((a) => `<option value="${a.id}" ${la && la.acc.id === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}
-      </select>
-      ${la ? `<span>· ${esc(la.source)} · solde <b style="color:var(--chest-ink)">${la.balance != null ? money(la.balance) : '—'}</b>${la.equity != null ? ` · équité <b class="${tone(la.equity - la.balance)} br-flat">${money(la.equity)}</b>` : ''}</span>` : ''}
-      <a class="br-link" href="connect.html?plan=pro&from=berich" data-br-connect>${la ? '+ Connecter' : 'Connecter un compte →'}</a>`;
-    $('brAccSelect').addEventListener('change', (e) => {
-      try { e.target.value ? localStorage.setItem(LINKED_KEY, e.target.value) : localStorage.removeItem(LINKED_KEY); } catch (err) { /* tant pis */ }
-      renderAll();
-    });
-  }
-  function scopeSeries() {
-    const all = positions().filter((p) => p.closed && p.rr != null && inPeriod(p)).sort((a, b) => a.time - b.time);
-    if (S.scope === 'strategy') return { list: all, val: (p) => p.rr, fmt: signedR, unit: 'R' };
-    const taken = takenMap();
-    const mine = all.filter((p) => taken.has(p.id) && taken.get(p.id).riskAmount != null);
-    return { list: mine, val: (p) => taken.get(p.id).riskAmount * p.rr, fmt: signedMoney, unit: '$' };
-  }
-
-  let chart = null;
-  const MINT = [51, 230, 166], RED = [255, 77, 94];
-  const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
-  // Même principe que la courbe du Dashboard : vert au-dessus du point de départ, rouge en dessous, lueur néon.
-  function heatGradient(ch, series, forLine) {
-    const { ctx, chartArea, scales } = ch;
-    if (!chartArea) return forLine ? rgba(MINT, 1) : rgba(MINT, .12);
-    const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-    const maxV = Math.max(...series, 0), minV = Math.min(...series, 0);
-    const zy = scales.y.getPixelForValue(0);
-    let t = (zy - chartArea.top) / ((chartArea.bottom - chartArea.top) || 1);
-    t = Math.max(0.001, Math.min(0.999, t));
-    if (forLine) {
-      if (minV >= 0) { g.addColorStop(0, rgba(MINT, 1)); g.addColorStop(1, rgba(MINT, 1)); return g; }
-      if (maxV <= 0) { g.addColorStop(0, rgba(RED, 1)); g.addColorStop(1, rgba(RED, 1)); return g; }
-      g.addColorStop(0, rgba(MINT, 1)); g.addColorStop(t, rgba(MINT, 1)); g.addColorStop(t, rgba(RED, 1)); g.addColorStop(1, rgba(RED, 1));
-      return g;
-    }
-    g.addColorStop(0, rgba(MINT, maxV > 0 ? .28 : 0)); g.addColorStop(t, rgba(MINT, 0)); g.addColorStop(t, rgba(RED, 0)); g.addColorStop(1, rgba(RED, minV < 0 ? .26 : 0));
-    return g;
-  }
-  const glowPlugin = {
-    id: 'brGlow',
-    beforeDatasetDraw(c, args) { if (args.index !== 0) return; c.ctx.save(); c.ctx.shadowColor = 'rgba(160,255,220,.55)'; c.ctx.shadowBlur = 14; },
-    afterDatasetDraw(c, args) { if (args.index === 0) c.ctx.restore(); },
-  };
-  function renderCurve(sc) {
-    const empty = $('brCurveEmpty');
-    const canvas = $('brCurveCanvas');
-    if (!sc.list.length) {
-      if (chart) { chart.destroy(); chart = null; }
-      canvas.hidden = true; empty.hidden = false;
-      empty.innerHTML = S.scope === 'me'
-        ? `<span>Aucune position prise via BERICH${S.period === 'all' ? '' : ' sur cette période'}.<br>Confirme un signal avec « Prendre le trade » : ta propre courbe, en dollars, se dessine ici.</span>`
-        : '<span>Aucune position clôturée sur cette période.</span>';
-      return;
-    }
-    canvas.hidden = false; empty.hidden = true;
-    let cum = 0;
-    const series = [0].concat(sc.list.map((p) => { cum += sc.val(p); return Math.round(cum * 100) / 100; }));
-    const labels = ['Départ'].concat(sc.list.map((p) => dateShort(p.time)));
-    if (!window.Chart) return;
-    if (chart) chart.destroy();
-    const lo = Math.min(...series, 0), hi = Math.max(...series, 0), pad = Math.max((hi - lo) * 0.14, sc.unit === 'R' ? 1 : 10);
-    chart = new Chart(canvas, {
-      type: 'line',
-      data: { labels, datasets: [
-        { data: series, borderWidth: 2.4, cubicInterpolationMode: 'monotone', pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBackgroundColor: '#03100c',
-          borderColor: (c) => heatGradient(c.chart, series, true), pointHoverBorderColor: (c) => heatGradient(c.chart, series, true),
-          fill: { value: 0 }, backgroundColor: (c) => heatGradient(c.chart, series, false), borderCapStyle: 'round', borderJoinStyle: 'round' },
-      ] },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 700, easing: 'easeOutQuart' },
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { display: false }, tooltip: { displayColors: false, backgroundColor: 'rgba(5,12,10,.92)', borderColor: 'rgba(127,245,214,.25)', borderWidth: 1, padding: 10,
-          callbacks: { label: (i) => sc.fmt(i.parsed.y) } } },
-        scales: {
-          y: { min: lo - pad, max: hi + pad, grid: { color: (c) => (c.tick.value === 0 ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.04)') }, border: { display: false },
-            ticks: { color: '#5c5c63', maxTicksLimit: 5, callback: (v) => (sc.unit === 'R' ? (v > 0 ? '+' : '') + Math.round(v) + ' R' : '$' + Math.round(v)) } },
-          x: { grid: { display: false }, border: { display: false }, ticks: { color: '#5c5c63', maxTicksLimit: 8, maxRotation: 0 } },
-        },
-      },
-      plugins: [glowPlugin],
-    });
-  }
-  function renderHero() {
-    renderWatch(); renderAccLine();
-    // Avant la première réponse du flux : rien d'affirmé (ni « — » ni « aucune position »), juste l'espace réservé.
-    $('brHeroNum').style.visibility = S.loaded ? '' : 'hidden';
-    if (!S.loaded) { $('brHeroSub').textContent = 'Chargement des positions…'; $('brCurveEmpty').hidden = true; $('brKpis').innerHTML = ''; return; }
-    const sc = scopeSeries();
-    const st = stats(sc.list, sc.val);
-    const num = $('brHeroNum');
-    num.textContent = st.n ? sc.fmt(st.total) : '—';
-    num.classList.toggle('is-neg', st.total < 0);
-    const first = sc.list[0];
-    const since = unlockAt();
-    $('brHeroSub').innerHTML = st.n
-      ? `<b>${st.n}</b> position${st.n > 1 ? 's' : ''} ${S.scope === 'me' ? 'prises par toi' : 'BE FR€E'} · ${since && S.period === 'all' ? `depuis ton accès à BERICH, le <b>${dateLong(since)}</b>` : `depuis le <b>${dateLong(first.time)}</b>`}`
-      : since ? `Ton compteur démarre le ${dateLong(since)}, jour où tu as débloqué BERICH. Les performances complètes de l’algorithme sont plus bas.`
-      : (S.scope === 'me' ? 'Tes positions prises via BERICH, en dollars' : 'Tous les signaux BE FR€E, en R');
-    renderCurve(sc);
-    // Compte VPS : positions ouvertes en direct, sous la courbe.
-    const la = linkedAccount();
-    const pos = la && la.live && la.live.kind === 'vps' && la.live.info && Array.isArray(la.live.info.positions) ? la.live.info.positions : null;
-    $('brOpenPos').hidden = !(pos && pos.length);
-    if (pos && pos.length) {
-      $('brOpenPos').innerHTML = pos.slice(0, 6).map((q) => `<span><span class="br-side-txt ${q.side === 'sell' ? 'sell' : 'buy'}">${q.side === 'sell' ? 'Vente' : 'Achat'}</span> ${esc(q.symbol)} · ${nf(q.volume || 0, 2)} lot · <b class="${tone(q.profit)} br-flat">${signedMoney(Number(q.profit) || 0)}</b></span>`).join('');
-    }
-    const pf = st.pf === Infinity ? '∞' : st.pf != null ? nf(st.pf, 2) : '—';
-    $('brKpis').innerHTML = `
-      <div class="br-kpi"><div class="br-label">Winrate</div><div class="br-kpi__v">${st.winrate != null ? nf(st.winrate, 1) + ' %' : '—'}</div><div class="br-kpi__n">${st.wins} gagnante${st.wins > 1 ? 's' : ''} · ${st.losses} perdante${st.losses > 1 ? 's' : ''}</div></div>
-      <div class="br-kpi"><div class="br-label">Espérance</div><div class="br-kpi__v ${tone(st.expectancy)}">${st.expectancy != null ? sc.fmt(st.expectancy) : '—'}</div><div class="br-kpi__n">par position</div></div>
-      <div class="br-kpi"><div class="br-label">Profit factor</div><div class="br-kpi__v">${pf}</div><div class="br-kpi__n">gains ÷ pertes</div></div>
-      <div class="br-kpi"><div class="br-label">Drawdown max</div><div class="br-kpi__v ${st.dd < 0 ? 'is-neg-txt' : ''}">${st.n ? (st.dd < 0 ? sc.fmt(st.dd) : '0') : '—'}</div><div class="br-kpi__n">pire recul cumulé</div></div>
-      <div class="br-kpi"><div class="br-label">Positions</div><div class="br-kpi__v">${st.n}</div><div class="br-kpi__n">clôturées</div></div>`;
-  }
-
-  // ================= Performances (2026-10-28 : remplace « Séries ») =================
-  // Trois colonnes sur TOUS les signaux de l'algorithme (aperçu global, quel que soit le jour d'accès du membre) :
-  // depuis toujours, l'année dernière, l'année en cours. R, puis l'équivalent en % et en € pour 1 000 € de départ à
-  // 1 % de risque par position, intérêts composés.
-  function renderPerf() {
-    const closed = positions().filter((p) => p.closed && p.rr != null).sort((a, b) => a.time - b.time);
-    const body = $('brStreaksBody');
-    if (!closed.length) { body.innerHTML = '<p class="br-note">Pas encore de position clôturée.</p>'; return; }
-    const y = new Date().getFullYear();
-    const inYear = (yy) => (p) => new Date(p.time).getFullYear() === yy;
-    const cols = [
-      ['Depuis toujours', closed, `depuis le ${dateShort(closed[0].time)}`],
-      [`L’année dernière · ${y - 1}`, closed.filter(inYear(y - 1)), `du 1er janvier au 31 décembre ${y - 1}`],
-      [`Cette année · ${y}`, closed.filter(inYear(y)), `depuis le 1er janvier ${y}`],
-    ];
-    const eur = (v) => Math.round(v).toLocaleString('fr-FR') + ' €';
-    const months = (list) => {
-      const m = new Map();
-      list.forEach((p) => { const d = new Date(p.time); const k = d.getFullYear() * 12 + d.getMonth(); m.set(k, (m.get(k) || 0) + p.rr); });
-      const vals = [...m.entries()];
-      if (!vals.length) return null;
-      const best = vals.reduce((a, b) => (b[1] > a[1] ? b : a));
-      const pos = vals.filter((v) => v[1] > 0).length;
-      const lbl = (k) => new Date(Math.floor(k / 12), k % 12, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-      return { best: `${signedR(best[1])} · ${lbl(best[0])}`, pos: `${pos} sur ${vals.length}` };
-    };
-    body.innerHTML = `<div class="br-perf">${cols.map(([title, list, sub]) => {
-      const st = stats(list, (p) => p.rr);
-      let eq = 1000;
-      list.forEach((p) => { eq *= 1 + 0.01 * p.rr; });
-      const pct = (eq / 1000 - 1) * 100;
-      const pf = st.pf === Infinity ? '∞' : st.pf != null ? nf(st.pf, 2) : '—';
-      const mo = months(list);
-      return `<article class="br-perf__card">
-        <div class="br-perf__t">${esc(title)}</div>
-        <div class="br-perf__r ${tone(st.total)}">${st.n ? signedR(st.total) : '—'}</div>
-        <div class="br-perf__money">${st.n ? `<b class="${tone(pct)}">${pct > 0 ? '+' : ''}${nf(pct, 1)} %</b><span>1 000 € → <b>${eur(eq)}</b></span>` : '<span>Aucune position</span>'}</div>
-        <dl class="br-perf__facts">
-          <div><dt>Positions</dt><dd>${st.n}</dd></div>
-          <div><dt>Winrate</dt><dd>${st.winrate != null ? nf(st.winrate, 1) + ' %' : '—'}</dd></div>
-          <div><dt>Profit factor</dt><dd>${pf}</dd></div>
-          <div><dt>Espérance</dt><dd>${st.expectancy != null ? signedR(st.expectancy) : '—'}</dd></div>
-          <div><dt>Drawdown max</dt><dd class="${st.dd < 0 ? 'is-neg-txt' : ''}">${st.n ? (st.dd < 0 ? signedR(st.dd) : '0 R') : '—'}</dd></div>
-          <div><dt>Mois positifs</dt><dd>${mo ? mo.pos : '—'}</dd></div>
-          <div class="br-perf__wide"><dt>Meilleur mois</dt><dd>${mo ? esc(mo.best) : '—'}</dd></div>
-        </dl>
-        <div class="br-perf__sub">${esc(sub)}</div>
-      </article>`;
-    }).join('')}</div>
-    <p class="br-note">Les performances passées ne préjugent pas des performances futures. Le calcul en euros suppose 1 % du capital risqué par position et les gains réinvestis ; frais et glissements non compris.</p>`;
-  }
-
-  // ================= Registre =================
-  function renderLedger() {
-    const taken = takenMap();
-    let list = positions();
-    if (S.filter === 'win') list = list.filter((p) => p.closed && p.rr > 0);
-    if (S.filter === 'loss') list = list.filter((p) => p.closed && p.rr < 0);
-    if (S.filter === 'me') list = list.filter((p) => taken.has(p.id));
-    const body = $('brLedgerBody');
-    if (!list.length) { body.innerHTML = `<p class="br-note">${S.filter === 'me' ? 'Aucune position prise via BERICH pour l\'instant.' : 'Aucune position dans ce filtre.'}</p>`; return; }
-    const shown = list.slice(0, S.shown);
-    body.innerHTML = `
-      <div class="br-ledger__scroll"><table class="br-ledger">
-        <thead><tr><th>Ouverture</th><th>Sens</th><th>Résultat</th><th class="num">R</th><th class="num br-hide-sm">Durée</th><th class="num br-hide-sm">Entrée → stop / objectif</th></tr></thead>
-        <tbody>${shown.map((p) => {
-          const o = outcome(p), t = taken.get(p.id), d = new Date(p.time);
-          return `<tr>
-            <td class="br-ledger__date"><b>${d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</b><span>${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · ${sessionOf(p.time)}</span></td>
-            <td><span class="br-side-txt ${p.side === 'sell' ? 'sell' : 'buy'}">${p.side === 'sell' ? 'Vente' : 'Achat'}</span></td>
-            <td><span class="br-out ${o.cls}">${esc(o.label)}</span>${t ? `<span class="br-you">· toi${t.riskAmount != null && p.rr != null ? ' ' + signedMoney(t.riskAmount * p.rr) : ''}</span>` : ''}</td>
-            <td class="num"><b class="${tone(p.rr)} br-flat">${p.rr != null ? signedR(p.rr) : '—'}</b></td>
-            <td class="num br-hide-sm" style="color:var(--chest-ink-2)">${p.closed ? dur(p.closeTime ? p.closeTime - p.time : null) : ago(Date.now() - p.time)}</td>
-            <td class="num br-hide-sm" style="color:var(--chest-ink-3)">${p.entry != null ? `${nf(p.entry, 2)} → ${nf(p.sl, 2)} / ${nf(p.tp, 2)}` : (p.origin === 'backtest' ? 'backtest TradingView' : 'historique TradingView')}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
-      <div class="br-ledger__more">${list.length > S.shown ? `<button type="button" class="br-link" id="brMore">Afficher ${Math.min(25, list.length - S.shown)} de plus ↓</button><span class="br-note" style="margin:0 0 0 14px">${S.shown} sur ${list.length}</span>` : list.length > 10 ? `<button type="button" class="br-link" id="brLess">Réduire ↑</button>` : ''}</div>`;
-    const more = $('brMore');
-    if (more) more.addEventListener('click', () => { S.shown += 25; renderLedger(); });
-    const less = $('brLess');
-    if (less) less.addEventListener('click', () => { S.shown = 10; renderLedger(); $('brLedger').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-  }
-
-  // ================= Sessions / sens & durée =================
-  function renderInsights() {
-    const closed = positions().filter((p) => p.closed && p.rr != null);
-    const groups = ['Asie', 'Londres', 'Londres × NY', 'New York', 'Soir'].map((name) => {
-      const g = closed.filter((p) => sessionOf(p.time) === name);
-      return { name, n: g.length, st: stats(g, (p) => p.rr) };
-    }).filter((g) => g.n);
-    $('brSessionsBody').innerHTML = groups.length ? `<div class="br-bars">${groups.map((g) => `
-      <div class="br-bar__row"><span>${g.name}</span>
-        <div class="br-bar__track" title="Winrate ${g.st.winrate != null ? nf(g.st.winrate, 0) + ' %' : '—'}"><div class="br-bar__fill ${g.st.total < 0 ? 'is-neg' : ''}" style="width:${Math.max(3, g.st.winrate || 0)}%"></div></div>
-        <b class="${tone(g.st.total)} br-flat">${signedR(g.st.total)}<small>${g.st.wins}/${g.n}</small></b></div>`).join('')}</div>`
-      : '<p class="br-note">Pas encore assez de positions.</p>';
-    const side = (s) => stats(closed.filter((p) => p.side === s), (p) => p.rr);
-    const b = side('buy'), s = side('sell');
-    const avg = (arr) => (arr.length ? arr.reduce((x, y) => x + y, 0) / arr.length : null);
-    const hold = (pred) => avg(closed.filter((p) => pred(p) && p.closeTime).map((p) => p.closeTime - p.time));
-    $('brSidesBody').innerHTML = `
-      <div class="br-duo">
-        <div class="br-fact"><b class="${tone(b.total)}">${b.n ? signedR(b.total) : '—'}</b><span>Achats</span><small>${b.n ? `${b.wins}/${b.wins + b.losses} gagnants · ${b.n} positions` : 'aucun'}</small></div>
-        <div class="br-fact"><b class="${tone(s.total)}">${s.n ? signedR(s.total) : '—'}</b><span>Ventes</span><small>${s.n ? `${s.wins}/${s.wins + s.losses} gagnantes · ${s.n} positions` : 'aucune'}</small></div>
-        <div class="br-fact"><b>${dur(hold((p) => p.rr > 0))}</b><span>Durée moyenne des gagnantes</span></div>
-        <div class="br-fact"><b>${dur(hold((p) => p.rr < 0))}</b><span>Durée moyenne des perdantes</span></div>
-      </div>`;
-  }
-
-  // ================= Biais (une ligne dans la barre d'état) =================
-  function forecastTone(ev) {
-    const a = parseFloat(String(ev.consensus).replace(',', '.')), b = parseFloat(String(ev.previous).replace(',', '.'));
-    if (!ev.consensus || isNaN(a) || isNaN(b) || !ev.directionBias || Math.abs(a - b) < 1e-9) return 'neutral';
-    return (ev.directionBias === 'up' ? a > b : a < b) ? 'pos' : 'neg';
-  }
-  async function loadBias() {
-    const chip = $('brBias');
-    try {
-      const url = (window.CHEST_CONFIG && window.CHEST_CONFIG.calendarApiUrl) || 'data/calendar.json';
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error('calendar');
-      const events = (await res.json()).events || [];
-      const now = new Date(); now.setHours(0, 0, 0, 0);
-      const monday = new Date(now); monday.setDate(now.getDate() + (now.getDay() === 0 ? -6 : 1 - now.getDay()));
-      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23, 59, 59);
-      const W = { high: 3, medium: 2 };
-      let score = 0;
-      const drivers = events.filter((ev) => ev.country === 'US' && W[ev.importance]).filter((ev) => { const d = new Date(ev.date + 'T00:00:00'); return d >= monday && d <= sunday; })
-        .map((ev) => { const raw = forecastTone(ev); const t = raw === 'neutral' ? 'neutral' : raw === 'pos' ? 'neg' : 'pos'; if (t !== 'neutral') score += (t === 'pos' ? 1 : -1) * W[ev.importance]; return { ev, t }; });
-      const bias = score >= 2 ? 'pos' : score <= -2 ? 'neg' : 'neutral';
-      $('brBiasText').innerHTML = `Or : <b>${bias === 'pos' ? 'biais haussier' : bias === 'neg' ? 'biais baissier' : 'biais neutre'}</b>`;
-      chip.querySelector('.br-dot').className = 'br-dot ' + (bias === 'pos' ? 'is-pos' : bias === 'neg' ? 'is-neg' : '');
-      const weighted = drivers.filter((d) => d.t !== 'neutral').slice(0, 5);
-      $('brBiasPop').innerHTML = `<p>Heuristique sur ${drivers.length} annonce${drivers.length > 1 ? 's' : ''} US de la semaine (prévision contre précédent) — le dollar pèse sur l'or en sens inverse. Jamais une prédiction.</p>
-        ${weighted.map((d) => `<div class="br-pop__row"><span>${esc(d.ev.event)}</span><b class="${d.t === 'pos' ? 'is-pos-txt' : 'is-neg-txt'} br-flat">${d.t === 'pos' ? '↑ or' : '↓ or'}</b></div>`).join('') || '<div class="br-pop__row"><span>Aucune annonce orientée pour l\'instant</span></div>'}
-        <div class="br-pop__row"><a class="br-link" href="calendar.html">Ouvrir le calendrier →</a></div>`;
-    } catch (e) {
-      $('brBiasText').textContent = 'Or : contexte indisponible';
-      $('brBiasPop').innerHTML = '<p>Calendrier en attente — réessaie dans un instant.</p>';
-    }
-  }
-
-  // ================= Chargements =================
-  async function loadSeed() {
-    try { const res = await fetch(`data/berich-history-seed.json?nocache=${Date.now()}`); const json = res.ok ? await res.json() : []; S.seed = Array.isArray(json) ? json : []; } catch (e) { S.seed = []; }
-  }
-  let lastFingerprint = '';
-  async function loadSignals() {
-    try { const data = await CHESTBerich.fetchSignals(); S.feedOk = true; S.live = data.example ? [] : (data.signals || []); S.updatedAt = data.updatedAt || null; } catch (e) { S.feedOk = false; }
-    const fp = JSON.stringify([S.live, S.feedOk]);
-    const changed = fp !== lastFingerprint; lastFingerprint = fp; return changed;
-  }
-  async function loadPrice() {
-    if (document.hidden) return;
-    try {
-      const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
-      const token = CHESTAccounts.getToken();
-      const res = await fetch(`${base}/twelvedata/price?symbol=${encodeURIComponent('XAU/USD')}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
-      const p = parseFloat((await res.json()).price);
-      if (!isNaN(p)) S.price = p;
-    } catch (e) { /* on garde le dernier prix connu */ }
-    renderTop(); renderSignal(); renderWatch();
-  }
-  // Chaque prix consomme un crédit Twelve Data : 1 min pendant un signal ouvert, 4 min sinon, jamais onglet caché.
-  let priceTimer = null;
-  function schedulePrice() { clearTimeout(priceTimer); priceTimer = setTimeout(async () => { await loadPrice(); schedulePrice(); }, activePosition() ? 60000 : 240000); }
-  async function refreshLinkedVps() {
-    const la = linkedAccount();
-    if (!la || !la.live || la.live.kind !== 'vps' || document.hidden) return;
-    try { await CHESTJournal.syncVpsLiveAccount(la.acc.id, la.live.id); renderAccLine(); renderHero(); } catch (e) { /* dernier instantané conservé */ }
-  }
-
-  // ================= Connexion clé en main (Premium 3, 2026-10-28) =================
-  // Premium 1 et 2 : le lien « Connecter » ouvre directement le parcours VPS (connect.html?plan=pro). Premium 3 : un
-  // volet sur la page ; le membre donne son broker, ses accès MT5 et ses règles, et son éducateur installe le VPS
-  // lui-même sous 24 à 48 h (POST /berich/requests ; la demande apparaît dans l'espace éducateur, fiche du membre).
-  const meUser = () => (window.CHESTAccounts && CHESTAccounts.getUser()) || {};
-  const isP3 = () => { const u = meUser(), a = u.access || {}; return !u.isAdmin && u.role !== 'educator' && a.plan === 'premium' && a.level === 3; };
-  let p3Req = null;
-  async function loadP3() {
-    if (!isP3()) return;
-    try {
-      const res = await fetch(CHESTAccounts.apiBase() + '/berich/requests', { headers: { Authorization: 'Bearer ' + CHESTAccounts.getToken() } });
-      if (res.ok) { p3Req = (await res.json()).request; renderAll(); }
-    } catch (e) { /* hors ligne */ }
-  }
-  document.addEventListener('click', (e) => {
-    const a = e.target.closest('[data-br-connect]');
-    if (a && isP3()) { e.preventDefault(); openP3(); }
-  });
-  const P3 = { firm: null, phase: 'Phase 1' };
-  function openP3() {
-    let root = $('brP3');
-    if (!root) { root = document.createElement('div'); root.id = 'brP3'; root.className = 'br-p3'; document.body.appendChild(root); }
-    const firms = CHESTJournal.propfirms();
-    const brokerOf = (f) => (window.CHEST_BROKERS || []).find((b) => b.id === f.id || 'br_' + b.id === f.id) || {};
-    const sel = P3.firm;
-    const servers = sel ? (brokerOf(sel).servers || []) : [];
-    root.hidden = false;
-    root.innerHTML = `<div class="br-p3__box" role="dialog" aria-modal="true" aria-labelledby="brP3T">
-      <button type="button" class="br-p3__x" data-p3-close aria-label="Fermer"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
-      <span class="br-label">Premium 3 · connexion clé en main</span>
-      <h3 id="brP3T">Ton broker et tes règles</h3>
-      <p class="br-p3__lead">Ton éducateur installe ton VPS lui-même. Donne-lui ton compte : la connexion sera faite sous <b>24 à 48 h</b>.</p>
-      <div class="br-p3__grid">${firms.map((f) => `<button type="button" class="br-p3__firm ${sel && sel.id === f.id ? 'is-on' : ''}" data-p3-firm="${esc(f.id)}"><img src="${esc(CHESTJournal.propfirmLogo(f.domain))}" alt="" loading="lazy"><span><b>${esc(f.name)}</b><small>${f.kind === 'propfirm' ? 'Propfirm' : 'Broker'}</small></span></button>`).join('')}</div>
-      ${sel ? `
-      ${sel.kind === 'propfirm' ? `<div class="br-p3__row"><span class="br-p3__k">Phase actuelle</span><div class="br-tabs">${['Phase 1', 'Phase 2', 'Financé'].map((ph) => `<button type="button" data-p3-phase="${ph}" aria-pressed="${P3.phase === ph}">${ph}</button>`).join('')}</div></div>
-      <div class="br-p3__fields">
-        <label><span>Jours min.</span><input type="text" inputmode="decimal" data-p3-rule="minDays"></label>
-        <label><span>Objectif (%)</span><input type="text" inputmode="decimal" data-p3-rule="target"></label>
-        <label><span>Perte jour max (%)</span><input type="text" inputmode="decimal" data-p3-rule="dailyLoss"></label>
-        <label><span>Perte max (%)</span><input type="text" inputmode="decimal" data-p3-rule="maxLoss"></label>
-      </div>` : ''}
-      <div class="br-p3__fields br-p3__fields--acc">
-        <label><span>Serveur MT5</span>${servers.length ? `<select data-p3="server">${servers.map((v) => `<option>${esc(v)}</option>`).join('')}<option value="">Autre…</option></select>` : '<input type="text" data-p3="server" placeholder="ex. FTMO-Server3" autocomplete="off">'}</label>
-        <label><span>Numéro de compte</span><input type="text" inputmode="numeric" data-p3="login" autocomplete="off"></label>
-        <label><span>Mot de passe MT5 (principal)</span><input type="password" data-p3="password" autocomplete="new-password"></label>
-      </div>
-      <p class="br-p3__safe">Chiffré sur nos serveurs, visible seulement par ton éducateur pour installer le VPS. Tu pourras changer ce mot de passe dans MT5 une fois la connexion faite.</p>` : '<p class="br-p3__safe">Choisis ton broker ou ta propfirm pour continuer.</p>'}
-      <p class="br-p3__err" id="brP3Err" role="alert"></p>
-      <div class="br-p3__foot"><button type="button" class="br-btn br-btn--ghost" data-p3-close>Annuler</button><button type="button" class="br-btn" id="brP3Send" ${sel ? '' : 'disabled'}>Envoyer à mon éducateur</button></div>
-    </div>`;
-    const srv = root.querySelector('select[data-p3="server"]');
-    if (srv) srv.addEventListener('change', () => { if (!srv.value) { const i = document.createElement('input'); i.type = 'text'; i.dataset.p3 = 'server'; i.placeholder = 'Nom du serveur'; srv.replaceWith(i); i.focus(); } });
-  }
-  function closeP3() { const r = $('brP3'); if (r) r.hidden = true; }
-  document.addEventListener('click', async (e) => {
-    const root = $('brP3'); if (!root || root.hidden) return;
-    if (e.target === root || e.target.closest('[data-p3-close]')) { closeP3(); return; }
-    const f = e.target.closest('[data-p3-firm]');
-    if (f) { P3.firm = CHESTJournal.propfirms().find((x) => x.id === f.dataset.p3Firm); openP3(); return; }
-    const ph = e.target.closest('[data-p3-phase]');
-    if (ph) { P3.phase = ph.dataset.p3Phase; root.querySelectorAll('[data-p3-phase]').forEach((b) => b.setAttribute('aria-pressed', String(b === ph))); return; }
-    if (e.target.closest('#brP3Send')) {
-      const v = (k) => { const el = root.querySelector(`[data-p3="${k}"]`); return el ? el.value.trim() : ''; };
-      const rules = {}; root.querySelectorAll('[data-p3-rule]').forEach((i) => { rules[i.dataset.p3Rule] = i.value.trim(); });
-      const btn = $('brP3Send'); btn.disabled = true; $('brP3Err').textContent = '';
-      try {
-        const res = await fetch(CHESTAccounts.apiBase() + '/berich/requests', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + CHESTAccounts.getToken() },
-          body: JSON.stringify({ broker: P3.firm.name, brokerId: P3.firm.id, kind: P3.firm.kind, server: v('server'), login: v('login'), password: v('password'), phase: P3.firm.kind === 'propfirm' ? P3.phase : '', rules }) });
-        const d = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(d.error || 'Envoi impossible pour le moment.');
-        p3Req = d.request;
-        root.querySelector('.br-p3__box').innerHTML = `<span class="br-label">Premium 3 · connexion clé en main</span>
-          <h3>C’est envoyé à ton éducateur</h3>
-          <p class="br-p3__lead">Ta connexion <b>${esc(p3Req.broker)} · ${esc(p3Req.login)}</b> sera faite sous <b>24 à 48 h</b>. Tu n’as rien d’autre à faire : BERICH suivra ce compte dès que ton VPS sera prêt.</p>
-          <div class="br-p3__foot"><button type="button" class="br-btn" data-p3-close>Compris</button></div>`;
-        renderAll();
-      } catch (err) { $('brP3Err').textContent = err.message; btn.disabled = false; }
-    }
-  });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeP3(); });
-
-  function renderAll() { renderTop(); renderSignal(); renderHero(); if (!S.loaded) return; renderPerf(); renderLedger(); renderInsights(); }
-
-  [['brScope', 'scope', renderHero], ['brPeriod', 'period', renderHero], ['brFilter', 'filter', renderLedger]].forEach(([id, key, fn]) => {
-    $(id).querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { S[key] = b.dataset.v; setPressed(id, b.dataset.v); if (key === 'filter') S.shown = 10; fn(); }));
-  });
-
-  (async () => {
-    renderAll();
-    await Promise.all([loadSeed(), loadSignals()]);
-    S.loaded = true;
-    renderAll();
-    loadPrice().then(schedulePrice);
-    loadBias();
-    refreshLinkedVps();
-    loadP3();
-    setInterval(refreshLinkedVps, 30000);
-    setInterval(async () => { if (document.hidden) return; if (await loadSignals()) renderAll(); else { renderTop(); renderSignal(); } }, 20000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) loadPrice(); });
-  })();
-
-  CHESTTour.init([
-    { selector: '.br-top', title: 'BERICH', text: 'Le scanner BE FR€E sur l\'or. Ici : état du flux de signaux, prix en direct et biais du calendrier (survole-le pour le détail).' },
-    { selector: '#brHero', title: 'Ta performance', text: 'Le compte qui suit BERICH, le résultat cumulé et sa courbe. « BE FR€E » = tous les signaux, en R ; « Toi » = les positions que tu as prises, en dollars.' },
-    { selector: '#brStreaks', title: 'Séries', text: 'Combien de gains ou de pertes s\'enchaînent : la pire série dit combien de stops d\'affilée ton capital doit encaisser.' },
-    { selector: '#brLedger', title: 'Registre', text: 'Chaque position : heure, session, sens, résultat (TP3, stop, stop après un TP partiel), R et durée.' },
-    { selector: '#brInsights', title: 'Sessions, sens et durée', text: 'Quand BE FR€E performe, achats contre ventes, et combien de temps durent gagnantes et perdantes.' },
-  ]);
-})();
-</script>
+<script src="js/berich-plan.js?v=1"></script>
+<script src="js/berich-quiz.js?v=1"></script>
+<script src="js/berich-app.js?v=1"></script>
 <script src="js/v2.js?v=3"></script>
 <!-- Offres (2026-10-18) : BERICH fait partie de CHEST Premium. -->
 <script src="js/plan-gate.js?v=1"></script>

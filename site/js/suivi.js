@@ -171,7 +171,7 @@
           <span class="chest-step">Prochain appel</span>
           <h2>${esc(n.topic)}</h2>
           <p class="sv-next__when">${esc(relDay(d))} · ${hm(d)} – ${hm(end(n))} · ${MODES[n.mode] || 'Visio'}</p>
-          <div class="sv-next__row"><span class="sv-chip sv-chip--${tone}">${lbl}</span><span class="sv-by">proposé par ${mine(n) ? 'toi' : esc(n.author)}</span></div>
+          <div class="sv-next__row"><span class="sv-chip sv-chip--${tone}">${lbl}</span><span class="sv-by">${n.common ? 'planning commun' : `proposé par ${mine(n) ? 'toi' : esc(n.author)}`}</span></div>
           <div class="sv-acts">${eventActions(n, true)}</div>
         </div>`;
     })() : `<div class="sv-next__main"><span class="chest-step">Prochain appel</span><h2>Rien de prévu pour l’instant</h2>

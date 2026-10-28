@@ -23,6 +23,13 @@
 
   (async () => {
     const u = A.getUser() || {};
+    // Admin (2026-10-28) : chaque éducateur et le planning commun (js/school-admin.js).
+    if (u.isAdmin && hub && window.CHESTSchoolAdmin) {
+      document.getElementById('scHome').classList.add('is-edu');
+      hub.hidden = false;
+      await CHESTSchoolAdmin.render(hub);
+      return;
+    }
     if (u.role === 'educator' && hub && window.CHESTMentorHub) {
       document.getElementById('scHome').classList.add('is-edu');
       hub.hidden = false;

@@ -205,6 +205,10 @@
     const pct = start && end && end > start ? Math.min(100, Math.max(0, (Date.now() - start) / (end - start) * 100)) : null;
     const left = end ? Math.ceil((end - Date.now()) / 86400000) : null;
     const isPremium = a.plan === 'premium';
+    // Plan BERICH du membre (quiz, 2026-10-28) : le risque à régler sur son VPS.
+    const bp = M.berichPlan && M.berichPlan.cfg ? M.berichPlan : null;
+    const fr = (v) => Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    const planTxt = bp ? `${{ berich1: 'BERICH I', berich2: 'BERICH II' }[bp.algo] || esc(bp.algo)} · ${fr(bp.cfg.risk)} % par position${bp.cfg.afterSl ? `, ${fr(bp.cfg.newRisk)} % après ${bp.cfg.afterSl} stops d’affilée` : ''}` : '';
     const maxV = Math.max(1, ...act.last30);
     $('edSheetBody').innerHTML = `
       <header class="ed-sh__head">
@@ -240,6 +244,7 @@
             <div><dt>Numéro de compte</dt><dd>${esc(br.login)} ${copyBtn(br.login, 'le numéro de compte')}</dd></div>
             <div><dt>Mot de passe</dt><dd>${br.password ? `<span class="ed-secret" data-secret="${esc(br.password)}">••••••••</span> <button type="button" class="ed-copy" data-reveal>Afficher</button> ${copyBtn(br.password, 'le mot de passe')}` : '<span class="ed-warn">Illisible : redemande-le au membre.</span>'}</dd></div>
             ${br.kind === 'propfirm' && br.rules ? `<div class="ed-br__wide"><dt>Règles</dt><dd>${[['minDays', 'jours min.', ''], ['target', 'objectif', ' %'], ['dailyLoss', 'perte jour', ' %'], ['maxLoss', 'perte max', ' %']].filter(([k]) => br.rules[k] != null).map(([k, l, u]) => `${l} ${esc(String(br.rules[k]).replace('.', ','))}${u}`).join(' · ') || '—'}</dd></div>` : ''}
+            ${bp ? `<div class="ed-br__wide"><dt>Son plan (à régler sur le VPS)</dt><dd>${planTxt}</dd></div>` : ''}
             ${br.note ? `<div class="ed-br__wide"><dt>Ton mot au membre</dt><dd>${esc(br.note)}</dd></div>` : ''}
           </dl>
           <div class="ed-br__acts">${br.status === 'done' ? `<button type="button" class="chest-btn-2" data-breq="pending" data-id="${br.id}">Rouvrir la demande</button>` : `<button type="button" class="chest-btn" data-breq="done" data-id="${br.id}">Marquer comme connecté</button><span class="ed-hint">Le membre est prévenu sur sa page BERICH.</span>`}</div>
@@ -254,6 +259,7 @@
           <div><span>Notes</span><b>${mt.notes}</b></div>
           <div><span>Bibliothèque</span><b>${mt.library}</b></div>
         </div>
+        ${bp && !br ? `<p class="ed-hint">Plan BERICH : ${planTxt} · objectif ${Number(bp.answers.target).toLocaleString('fr-FR')} € en partant de ${Number(bp.answers.capital).toLocaleString('fr-FR')} €.</p>` : ''}
         ${mt.pending ? `<p class="ed-warn">${mt.pending} demande${mt.pending > 1 ? 's' : ''} de rendez-vous à confirmer.</p>` : ''}
       </section>
 

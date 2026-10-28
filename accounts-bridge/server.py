@@ -278,6 +278,22 @@ def init_db():
                 kind TEXT NOT NULL, title TEXT, body TEXT, url TEXT, file TEXT, created_at TEXT NOT NULL
             )
         """)
+        # Planning commun (2026-10-28) : l'admin pose un appel collectif (éventuellement chaque semaine) ou une mission chez
+        # tous les élèves, ou chez ceux de certains éducateurs ; chaque copie garde common_id pour tout retirer d'un coup.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mentor_common (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, title TEXT NOT NULL, starts_at TEXT, minutes INTEGER,
+                mode TEXT, link TEXT, due_at TEXT, weeks INTEGER NOT NULL DEFAULT 1, scope TEXT, author_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        for t in ("mentor_events", "mentor_tasks"):
+            if "common_id" not in [c[1] for c in db.execute(f"PRAGMA table_info({t})").fetchall()]:
+                db.execute(f"ALTER TABLE {t} ADD COLUMN common_id INTEGER")
+        # BERICH v3 (2026-10-28) : backtests des algorithmes, importés par l'admin et gardés sur le volume (jamais dans le
+        # dépôt public), et plan de chaque membre (quiz → algorithme + money management).
+        db.execute("CREATE TABLE IF NOT EXISTS berich_algos (key TEXT PRIMARY KEY, name TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL)")
+        db.execute("CREATE TABLE IF NOT EXISTS berich_plans (user_id INTEGER PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL)")
         db.execute("""
             CREATE TABLE IF NOT EXISTS berich_requests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -956,6 +972,7 @@ def delete_member(member_id):
         db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM berich_plans WHERE user_id = ?", (member_id,))
         for row in db.execute("SELECT file FROM mentor_library WHERE member_id = ? AND file IS NOT NULL", (member_id,)).fetchall():
             delete_file(json.loads(row["file"]))
         for t in ("mentor_events", "mentor_notes", "mentor_library", "mentor_tasks"):
@@ -1642,14 +1659,15 @@ def _mentor_payload(db, user, member, edu):
     mid = member["id"]
     events = [{"id": r["id"], "startsAt": r["starts_at"], "minutes": r["minutes"], "topic": r["topic"] or "", "mode": r["mode"] or "",
                "link": r["link"] or "", "status": r["status"], "authorId": r["author_id"], "author": who(r["author_id"]),
-               "createdAt": r["created_at"]} for r in db.execute("SELECT * FROM mentor_events WHERE member_id = ? ORDER BY starts_at", (mid,)).fetchall()]
+               "common": bool(_col(r, "common_id")), "createdAt": r["created_at"]} for r in db.execute("SELECT * FROM mentor_events WHERE member_id = ? ORDER BY starts_at", (mid,)).fetchall()]
     notes = [{"id": r["id"], "eventId": r["event_id"], "title": r["title"] or "", "body": r["body"] or "", "authorId": r["author_id"],
               "author": who(r["author_id"]), "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
              for r in db.execute("SELECT * FROM mentor_notes WHERE member_id = ? ORDER BY created_at DESC", (mid,)).fetchall()]
     lib = [{"id": r["id"], "kind": r["kind"], "title": r["title"] or "", "body": r["body"] or "", "url": r["url"] or "",
             "file": json.loads(r["file"]) if r["file"] else None, "authorId": r["author_id"], "author": who(r["author_id"]), "createdAt": r["created_at"]}
            for r in db.execute("SELECT * FROM mentor_library WHERE member_id = ? ORDER BY created_at DESC", (mid,)).fetchall()]
-    tasks = [{"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "author": who(r["author_id"]), "createdAt": r["created_at"]}
+    tasks = [{"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "author": who(r["author_id"]),
+              "common": bool(_col(r, "common_id")), "createdAt": r["created_at"]}
              for r in db.execute("SELECT * FROM mentor_tasks WHERE member_id = ? ORDER BY done_at IS NOT NULL, due_at IS NULL, due_at, id", (mid,)).fetchall()]
     a = access_of(member)
     return {"tasks": tasks, "me": {"id": user["id"], "role": "member" if user["id"] == mid else ("educator" if is_educator(user) else "admin")},
@@ -1672,8 +1690,12 @@ def mentor_students():
     if not user or not (is_educator(user) or user["is_admin"]):
         return jsonify({"error": "Réservé aux éducateurs."}), 403
     db = get_db()
-    rows = db.execute("SELECT * FROM users WHERE referred_by = ? ORDER BY first_name", (user["id"],)).fetchall() if is_educator(user) \
-        else db.execute("SELECT * FROM users WHERE referred_by IS NOT NULL ORDER BY first_name").fetchall()
+    if is_educator(user):
+        rows = db.execute("SELECT * FROM users WHERE referred_by = ? ORDER BY first_name", (user["id"],)).fetchall()
+    elif request.args.get("educator", "").isdigit():
+        rows = db.execute("SELECT * FROM users WHERE referred_by = ? ORDER BY first_name", (int(request.args["educator"]),)).fetchall()
+    else:
+        rows = db.execute("SELECT * FROM users WHERE referred_by IS NOT NULL ORDER BY first_name").fetchall()
     now = datetime.now(timezone.utc).isoformat()
     out = []
     for m in rows:
@@ -1681,7 +1703,7 @@ def mentor_students():
         a = access_of(m)
         t = db.execute("SELECT COUNT(*) AS n, SUM(done_at IS NOT NULL) AS d, SUM(done_at IS NULL AND due_at < ?) AS late FROM mentor_tasks WHERE member_id = ?", (now, m["id"])).fetchone()
         last = db.execute("SELECT MAX(created_at) FROM mentor_notes WHERE member_id = ?", (m["id"],)).fetchone()[0]
-        out.append({**_person(m), "plan": a["label"], "level": a.get("level"), "planKey": a["plan"], "active": bool(a["active"]),
+        out.append({**_person(m), "educatorId": m["referred_by"], "plan": a["label"], "level": a.get("level"), "planKey": a["plan"], "active": bool(a["active"]),
                     "price": rank_price(a["plan"], a.get("level")), "endsAt": a["endsAt"], "next": dict(nxt) if nxt else None,
                     "tasks": {"total": t["n"] or 0, "done": t["d"] or 0, "late": t["late"] or 0}, "lastNoteAt": last,
                     "pending": db.execute("SELECT COUNT(*) AS n FROM mentor_events WHERE member_id = ? AND status = 'proposed' AND author_id = ?", (m["id"], m["id"])).fetchone()["n"]})
@@ -1813,6 +1835,217 @@ def mentor_task_action(tid, action):
             db.execute("DELETE FROM mentor_tasks WHERE id = ?", (tid,))
         db.commit()
     return jsonify(_mentor_payload(db, user, member, edu))
+
+
+# ---------------------------------------------------------------- School côté admin (2026-10-28)
+# L'admin voit chaque éducateur (ses élèves, ses appels, ses retards) et pose un planning commun : un appel collectif
+# (répété chaque semaine si besoin, déjà confirmé) ou une mission, copiés chez tous les élèves ou ceux de certains éducateurs.
+def _admin_only():
+    user = current_user()
+    if not user or not user["is_admin"]:
+        return None, (jsonify({"error": "Réservé aux administrateurs."}), 403)
+    return user, None
+
+
+def _common_public(db, r):
+    table = "mentor_events" if r["kind"] == "event" else "mentor_tasks"
+    return {"id": r["id"], "kind": r["kind"], "title": r["title"], "startsAt": r["starts_at"], "minutes": r["minutes"], "mode": r["mode"] or "",
+            "link": r["link"] or "", "dueAt": r["due_at"], "weeks": r["weeks"], "educators": json.loads(r["scope"] or "[]"), "createdAt": r["created_at"],
+            "members": db.execute(f"SELECT COUNT(DISTINCT member_id) FROM {table} WHERE common_id = ?", (r["id"],)).fetchone()[0],
+            "done": db.execute("SELECT COUNT(*) FROM mentor_tasks WHERE common_id = ? AND done_at IS NOT NULL", (r["id"],)).fetchone()[0] if r["kind"] == "task" else None}
+
+
+@app.route("/mentor/educators")
+def mentor_educators():
+    user, err = _admin_only()
+    if err:
+        return err
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    now_s, week_s, month_s = now.isoformat(), (now + timedelta(days=7)).isoformat(), (now - timedelta(days=30)).isoformat()
+    out = []
+    for e in db.execute("SELECT * FROM users WHERE role = 'educator' ORDER BY first_name").fetchall():
+        studs = db.execute("SELECT * FROM users WHERE referred_by = ?", (e["id"],)).fetchall()
+        ids = [r["id"] for r in studs]
+        q = ",".join("?" * len(ids))
+        def one(sql, *extra):
+            return db.execute(sql.replace("(IDS)", f"({q})"), (*ids, *extra)).fetchone()[0] if ids else 0
+        nxt = one("SELECT MIN(starts_at) FROM mentor_events WHERE member_id IN (IDS) AND starts_at >= ? AND status IN ('proposed', 'confirmed')", now_s)
+        out.append({**_person(e), "code": _col(e, "edu_code"), "students": len(ids), "active": sum(1 for r in studs if access_of(r)["active"]),
+                    "calls": one("SELECT COUNT(*) FROM mentor_events WHERE member_id IN (IDS) AND starts_at >= ? AND starts_at <= ? AND status IN ('proposed', 'confirmed')", now_s, week_s),
+                    "held30": one("SELECT COUNT(*) FROM mentor_events WHERE member_id IN (IDS) AND starts_at >= ? AND starts_at < ? AND status IN ('confirmed', 'done')", month_s, now_s),
+                    "late": one("SELECT COUNT(*) FROM mentor_tasks WHERE member_id IN (IDS) AND done_at IS NULL AND due_at < ?", now_s),
+                    "pending": one("SELECT COUNT(*) FROM mentor_events WHERE member_id IN (IDS) AND status = 'proposed' AND author_id = member_id AND starts_at >= ?", now_s),
+                    "notes30": one("SELECT COUNT(*) FROM mentor_notes WHERE member_id IN (IDS) AND created_at >= ?", month_s),
+                    "next": nxt or None})
+    common = [_common_public(db, r) for r in db.execute("SELECT * FROM mentor_common ORDER BY COALESCE(starts_at, due_at, created_at) DESC, id DESC").fetchall()]
+    return jsonify({"educators": out, "common": common,
+                    "students": db.execute("SELECT COUNT(*) FROM users WHERE referred_by IS NOT NULL").fetchone()[0]})
+
+
+@app.route("/mentor/common", methods=["POST"])
+def mentor_common_add():
+    user, err = _admin_only()
+    if err:
+        return err
+    b = request.get_json(silent=True) or {}
+    kind = "task" if b.get("kind") == "task" else "event"
+    title = re.sub(r"\s+", " ", str(b.get("title") or "")).strip()[:200 if kind == "task" else 140]
+    if not title:
+        return jsonify({"error": "Donne un titre."}), 400
+    def when(v):
+        d = datetime.fromisoformat(str(v or "").replace("Z", "+00:00"))
+        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+    try:
+        start = when(b.get("startsAt")) if kind == "event" else None
+        due = when(b.get("dueAt")) if kind == "task" and b.get("dueAt") else None
+    except ValueError:
+        return jsonify({"error": "Date invalide."}), 400
+    try:
+        minutes = max(10, min(240, int(b.get("minutes") or 60)))
+        weeks = max(1, min(12, int(b.get("weeks") or 1))) if kind == "event" else 1
+    except (TypeError, ValueError):
+        return jsonify({"error": "Durée invalide."}), 400
+    mode = b.get("mode") if b.get("mode") in ("visio", "telephone", "presentiel") else "visio"
+    link = str(b.get("link") or "").strip()[:300]
+    if link and not re.fullmatch(r"https://\S+", link):
+        return jsonify({"error": "Le lien de visio doit commencer par https://"}), 400
+    educators = sorted({int(x) for x in (b.get("educators") or []) if str(x).isdigit()})
+    db = get_db()
+    q = ",".join("?" * len(educators))
+    members = [r["id"] for r in (db.execute(f"SELECT id FROM users WHERE referred_by IN ({q})", educators).fetchall() if educators
+                                 else db.execute("SELECT id FROM users WHERE referred_by IS NOT NULL").fetchall())]
+    if not members:
+        return jsonify({"error": "Aucun élève dans cette sélection."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        cur = db.execute("INSERT INTO mentor_common (kind, title, starts_at, minutes, mode, link, due_at, weeks, scope, author_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                         (kind, title, start.isoformat() if start else None, minutes if kind == "event" else None, mode if kind == "event" else None,
+                          link if kind == "event" else None, due.isoformat() if due else None, weeks, json.dumps(educators), user["id"], now))
+        cid = cur.lastrowid
+        for mid in members:
+            if kind == "event":
+                for w in range(weeks):
+                    db.execute("INSERT INTO mentor_events (member_id, author_id, starts_at, minutes, topic, mode, link, status, created_at, updated_at, common_id) "
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)", (mid, user["id"], (start + timedelta(weeks=w)).isoformat(), minutes, title, mode, link, now, now, cid))
+            else:
+                db.execute("INSERT INTO mentor_tasks (member_id, author_id, title, due_at, created_at, common_id) VALUES (?, ?, ?, ?, ?, ?)",
+                           (mid, user["id"], title, due.isoformat() if due else None, now, cid))
+        db.commit()
+    return mentor_educators()
+
+
+@app.route("/mentor/common/<int:cid>/delete", methods=["POST"])
+def mentor_common_delete(cid):
+    user, err = _admin_only()
+    if err:
+        return err
+    db = get_db()
+    with db_lock:
+        db.execute("DELETE FROM mentor_events WHERE common_id = ?", (cid,))
+        db.execute("DELETE FROM mentor_tasks WHERE common_id = ?", (cid,))
+        db.execute("DELETE FROM mentor_common WHERE id = ?", (cid,))
+        db.commit()
+    return mentor_educators()
+
+
+# ---------------------------------------------------------------- BERICH v3 : algorithmes et plan (2026-10-28)
+# Les backtests de chaque algorithme (BERICH I, II…) sont importés par l'admin depuis l'export HTML d'un backtest CHEST
+# (le navigateur en extrait le JSON) et servis aux seuls membres qui ont BERICH : le dépôt est public, eux non.
+# Trade compact : [ouverture ms, clôture ms, sens 1/-1/0, R].
+def _berich_member():
+    user = approved_user()
+    if not user:
+        return None, (jsonify({"error": "Non connecté."}), 401)
+    if not (access_of(user)["berich"] or user["is_admin"] or is_educator(user)):
+        return None, (jsonify({"error": "BERICH fait partie de CHEST Premium."}), 403)
+    return user, None
+
+
+def _ms(v):
+    try:
+        d = datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+        return int((d if d.tzinfo else d.replace(tzinfo=timezone.utc)).timestamp() * 1000)
+    except (TypeError, ValueError):
+        return None
+
+
+@app.route("/berich/algos")
+def berich_algos():
+    user, err = _berich_member()
+    if err:
+        return err
+    rows = get_db().execute("SELECT * FROM berich_algos ORDER BY key").fetchall()
+    return jsonify({"algos": [{"key": r["key"], "name": r["name"], "updatedAt": r["updated_at"], **json.loads(r["data"])} for r in rows]})
+
+
+@app.route("/berich/algos/<key>", methods=["POST"])
+def berich_algo_save(key):
+    user, err = _admin_only()
+    if err:
+        return err
+    if not re.fullmatch(r"[a-z0-9]{2,20}", key or ""):
+        return jsonify({"error": "Identifiant d'algorithme invalide."}), 400
+    b = request.get_json(silent=True) or {}
+    rec = b.get("rec") if isinstance(b.get("rec"), dict) else {}
+    name = re.sub(r"\s+", " ", str(b.get("name") or rec.get("title") or "")).strip()[:40]
+    trades = []
+    for t in (rec.get("trades") if isinstance(rec.get("trades"), list) else [])[:6000]:
+        if not isinstance(t, dict):
+            continue
+        res = str(t.get("result") or "").upper()
+        try:
+            r = 0.0 if res == "BE" else float(t.get("rr"))
+        except (TypeError, ValueError):
+            continue
+        o = _ms(t.get("open") or t.get("date"))
+        if o is None or abs(r) > 50:
+            continue
+        side = str(t.get("order") or "").lower()
+        trades.append([o, _ms(t.get("close")) or o, 1 if side == "buy" else -1 if side == "sell" else 0, round(r, 3)])
+    if len(trades) < 20:
+        return jsonify({"error": "Ce fichier ne contient pas assez de trades (20 minimum) : exporte le backtest depuis CHEST."}), 400
+    trades.sort(key=lambda x: x[1])
+    wins = sorted(x[3] for x in trades if x[3] > 0)
+    data = {"source": str(rec.get("title") or "")[:60], "target": wins[len(wins) // 2] if wins else None,
+            "mm": {k: rec.get(k) for k in ("cp", "pf") if isinstance(rec.get(k), dict)}, "trades": trades}
+    db = get_db()
+    with db_lock:
+        db.execute("INSERT INTO berich_algos (key, name, data, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET name = excluded.name, data = excluded.data, updated_at = excluded.updated_at",
+                   (key, name or key.upper(), json.dumps(data, separators=(",", ":")), datetime.now(timezone.utc).isoformat()))
+        db.commit()
+    return berich_algos()
+
+
+@app.route("/berich/algos/<key>/delete", methods=["POST"])
+def berich_algo_delete(key):
+    user, err = _admin_only()
+    if err:
+        return err
+    db = get_db()
+    with db_lock:
+        db.execute("DELETE FROM berich_algos WHERE key = ?", (key,))
+        db.commit()
+    return berich_algos()
+
+
+@app.route("/berich/plan", methods=["GET", "PUT"])
+def berich_plan():
+    user, err = _berich_member()
+    if err:
+        return err
+    db = get_db()
+    if request.method == "PUT":
+        body = request.get_json(silent=True)
+        raw = json.dumps(body, separators=(",", ":")) if isinstance(body, dict) else ""
+        if not raw or len(raw) > 12000:
+            return jsonify({"error": "Plan invalide."}), 400
+        with db_lock:
+            db.execute("INSERT INTO berich_plans (user_id, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at",
+                       (user["id"], raw, datetime.now(timezone.utc).isoformat()))
+            db.commit()
+    r = db.execute("SELECT * FROM berich_plans WHERE user_id = ?", (user["id"],)).fetchone()
+    return jsonify({"plan": {**json.loads(r["data"]), "savedAt": r["updated_at"]} if r else None})
 
 
 @app.route("/mentor/notes", methods=["POST"])
@@ -1955,6 +2188,7 @@ def edu_member(mid):
         "sales": [{"at": r["created_at"], "amount": r["amount"]} for r in sales],
         "salesTotal": sum(r["amount"] for r in sales), "commission": round(sum(r["amount"] for r in sales) * rate / 100), "rate": rate,
         "berich": _req_public(breq, reveal=True) if breq else None,
+        "berichPlan": (lambda r: {**json.loads(r["data"]), "savedAt": r["updated_at"]} if r else None)(db.execute("SELECT * FROM berich_plans WHERE user_id = ?", (mid,)).fetchone()),
         "mentor": {"next": dict(nxt) if nxt else None,
                    "held": db.execute("SELECT COUNT(*) FROM mentor_events WHERE member_id = ? AND status IN ('confirmed', 'done') AND starts_at < ?", (mid, now)).fetchone()[0],
                    "notes": count("SELECT COUNT(*) FROM mentor_notes WHERE member_id = ?"),

@@ -1,5 +1,6 @@
 // CHEST — Élèves d'un éducateur (2026-10-28) : une carte par élève (rang + prix, prochain appel, missions, dernière
-// note). Page principale de School pour un éducateur, et suivi.html sans ?member=. Données : GET /mentor/students.
+// note). Page principale de School pour un éducateur, et suivi.html sans ?member=. Données : GET /mentor/students
+// (l'admin passe { educator: id } pour ne voir que les élèves d'un éducateur, js/school-admin.js).
 (() => {
   'use strict';
   const A = window.CHESTAccounts;
@@ -42,7 +43,7 @@
     const o = opts || {};
     let list;
     try {
-      const r = await fetch(A.apiBase() + '/mentor/students', { headers: { Authorization: 'Bearer ' + A.getToken() } });
+      const r = await fetch(A.apiBase() + '/mentor/students' + (o.educator ? `?educator=${o.educator}` : ''), { headers: { Authorization: 'Bearer ' + A.getToken() } });
       if (!r.ok) throw new Error();
       list = (await r.json()).students;
     } catch (e) { box.innerHTML = '<p class="mh-empty">Impossible de charger tes élèves pour le moment.</p>'; return null; }
