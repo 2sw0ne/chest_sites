@@ -349,7 +349,7 @@
       <label class="ed-field"><span>Sujet</span><input type="text" id="fTopic" maxlength="140" value="${esc(ev ? ev.topic : '')}" placeholder="Ex. Revue de mes trades de la semaine"></label>
       <div class="ed-field"><span>Format</span>${seg('mode', Object.entries(MODES), ev ? ev.mode || 'visio' : 'visio')}</div>
       <label class="ed-field"><span>Lien de la visio <i>(facultatif)</i></span><input type="url" id="fLink" maxlength="300" value="${esc(ev ? ev.link : '')}" placeholder="https://meet.google.com/…"></label>
-      <p class="ed-hint">${ev ? 'L’appel déplacé redevient une proposition' : 'Ta proposition apparaît'} chez ${other() ? esc(other().first) : 'l’autre'}, qui la confirme ou la refuse.</p>`, foot(ev ? 'Proposer ce créneau' : 'Envoyer la proposition'), async () => {
+      <p class="ed-hint">${S.D.me.role !== 'member' ? `L’appel est posé directement dans le planning de ${esc(S.D.member.first)}, déjà confirmé (il le voit aussi dans School).` : `${ev ? 'L’appel déplacé redevient une proposition' : 'Ta proposition apparaît'} chez ${other() ? esc(other().first) : 'l’autre'}, qui la confirme ou la refuse.`}</p>`, foot(S.D.me.role !== 'member' ? (ev ? 'Enregistrer' : 'Ajouter au planning') : ev ? 'Proposer ce créneau' : 'Envoyer la proposition'), async () => {
       const date = $('fDate').value, time = $('fTime').value;
       if (!date || !time) throw new Error('Choisis une date et une heure.');
       const at = new Date(`${date}T${time}`);
@@ -357,7 +357,7 @@
       S.D = await post('/mentor/events', { id: ev && ev.id, startsAt: at.toISOString(), minutes: +segVal('min'), topic: $('fTopic').value, mode: segVal('mode'), link: $('fLink').value.trim() });
       S.month = new Date(at.getFullYear(), at.getMonth(), 1);
       render();
-      toast(ev ? 'Nouveau créneau proposé.' : 'Proposition envoyée.');
+      toast(S.D.me.role !== 'member' ? 'Ajouté à son planning.' : ev ? 'Nouveau créneau proposé.' : 'Proposition envoyée.');
     });
   }
 

@@ -21,8 +21,9 @@
 <link rel="stylesheet" href="css/school-da.css?v=17">
 <link rel="stylesheet" href="css/school-v2.css?v=16">
 <link rel="stylesheet" href="css/school-v3.css?v=4">
-<link rel="stylesheet" href="css/school-v4.css?v=5">
+<link rel="stylesheet" href="css/school-v4.css?v=6">
 <link rel="stylesheet" href="css/mentor-hub.css?v=2">
+<link rel="stylesheet" href="css/school-hub.css?v=3">
 <style>
   [hidden]{ display:none !important; }
 </style>
@@ -87,12 +88,10 @@
 
   <!-- ============ ACCUEIL : l'école ============ -->
   <div class="sc-view" id="scHome">
-    <!-- Éducateur (2026-10-28) : ses élèves sont la page principale (js/mentor-hub.js) -->
-    <section class="sc-edu" id="scEdu" hidden aria-label="Tes élèves"></section>
     <section class="sc-hero chest-titleglow">
       <div class="chest-step" style="margin-bottom:16px">OMNI MASTER Trading</div>
       <h1 class="chest-h1">School</h1>
-      <p class="chest-body">Bienvenue à l'école. Deux façons d'apprendre : lire, ou regarder. Choisis ton parcours.</p>
+      <p class="chest-body">Ta semaine, les infos de l'équipe, ton suivi et tes cours, au même endroit.</p>
       <div class="sc-search" id="scSearchBox">
         <svg class="sc-ic " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
         <input id="scSearch" type="search" autocomplete="off" placeholder="Rechercher un cours, un document, une vidéo…" aria-label="Rechercher dans School">
@@ -100,8 +99,12 @@
       </div>
     </section>
 
-    <section class="chest-section" style="border-top:none;padding-top:26px">
-      <a href="suivi.html" class="sc-mentor" id="scMentor" hidden></a>
+    <!-- School à trois échelles (2026-10-28, js/school-hub.js) : membre = semaine, infos, suivi au-dessus de ses cours ;
+         éducateur et admin = toute la page (planning, élèves/membres, infos & missions). -->
+    <div class="sh" id="scHub" hidden></div>
+
+    <section class="chest-section">
+      <div class="sc-section-title"><span class="chest-step" data-sc-num="Cours">Cours</span></div>
       <div class="sc-doors">
         <button type="button" class="sc-door sc-door--written" data-go="written">
           <span class="sc-door__ic"><svg class="sc-ic " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5V5.5z"/><path d="M4 19V5M8 7h8M8 11h6"/></svg></span>
@@ -123,12 +126,12 @@
     </section>
 
     <section class="chest-section">
-      <div class="sc-section-title"><span class="chest-step">01 — Nouveautés</span></div>
+      <div class="sc-section-title"><span class="chest-step" data-sc-num="Nouveautés">Nouveautés</span></div>
       <div class="sc-news" id="scNews"></div>
     </section>
 
     <section class="chest-section">
-      <div class="sc-section-title"><span class="chest-step">02 — Explorer</span></div>
+      <div class="sc-section-title"><span class="chest-step" data-sc-num="Explorer">Explorer</span></div>
       <div class="sc-shelves" id="scShelfTiles"></div>
     </section>
   </div>
@@ -193,22 +196,27 @@
 <script src="js/confirm-dialog.js"></script>
 <script src="js/school-data.js?v=2"></script>
 <script src="js/plan-gate.js?v=1"></script>
-<script src="js/school.js?v=11"></script>
+<script src="js/school.js?v=12"></script>
 <script src="js/rank-badge.js?v=3"></script>
-<script src="js/mentor-hub.js?v=2"></script>
-<script src="js/school-admin.js?v=1"></script>
-<script src="js/school-suivi.js?v=4"></script>
+<script src="js/mentor-hub.js?v=3"></script>
+<script src="js/school-hub.js?v=2"></script>
 <script src="js/page-tour.js"></script>
 <script>
 (function () {
 // Équipe (éducateur, admin) : School n'est plus que le suivi des élèves, le tour n'en montre que cela.
 var u = (window.CHESTAccounts && CHESTAccounts.getUser()) || {};
 if (u.isAdmin || u.role === 'educator') {
-  CHESTTour.init([{ selector: '#scEdu', title: 'School', text: u.isAdmin ? 'Chaque éducateur, ses élèves, et le planning commun que tu poses chez tous.' : 'Tes élèves : leurs appels, leurs missions et leurs notes. Ouvre un élève pour préparer votre prochain appel.' }]);
+  CHESTTour.init([
+    { selector: '.sh-head__acts', title: 'Ajouter', text: u.isAdmin ? "Un appel, une mission ou une info : pour tout le monde, les membres, l'équipe, les élèves de certains éducateurs, ou un seul membre." : "Un appel, une mission ou une info, pour un élève ou pour tous tes élèves." },
+    { selector: '.sh-tabs', title: 'Les vues', text: u.isAdmin ? "Planning de chacun, membres, éducateurs, ce que tu as publié, et le contenu des cours." : "La semaine de tes élèves, leurs fiches, et ce que tu as publié." },
+    { selector: '.sh-week', title: 'La semaine', text: "Chaque rendez-vous avec son horaire et son flyer. Un clic l'ouvre ; filtre sur un seul élève en haut à droite." },
+  ]);
   return;
 }
 CHESTTour.init([
-  { selector: '.sc-hero', title: 'School', text: "Ton école. Cherche un cours, un document ou une vidéo dans la barre, ou choisis un parcours juste en dessous." },
+  { selector: '.sc-hero', title: 'School', text: "Ton école. Cherche un cours, un document ou une vidéo dans la barre, ou descends : ta semaine, les infos, ton suivi puis tes cours." },
+  { selector: '.sh-week', title: 'Ta semaine', text: "Les lives collectifs et tes appels personnels, avec leur flyer et leur horaire. Un clic ouvre le détail et le lien pour rejoindre." },
+  { selector: '.sh-suivi', title: 'Ton suivi', text: "Tes missions à cocher et les notes de ton éducateur. « Ouvrir » mène à ton espace complet." },
   { selector: '.sc-doors', title: 'Lire ou regarder', text: "« Cours écrits » rassemble Trading, UGC, Psychologie et Autres ressources. « Cours vidéo » rassemble Mindset et Business." },
   { selector: '#scNews', title: 'Nouveautés', text: "Les derniers cours, documents et vidéos ajoutés, les plus récents en premier. Un clic les ouvre." },
   { selector: '#scShelfTiles', title: 'Explorer', text: "Un raccourci vers chaque catégorie et chaque section vidéo." },

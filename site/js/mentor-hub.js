@@ -30,7 +30,7 @@
     const pending = s.pending ? `<span class="mh-tag mh-tag--ask">${s.pending} appel${s.pending > 1 ? 's' : ''} à confirmer</span>` : '';
     return `<button type="button" class="mh-card${s.active === false ? ' is-off' : ''}" data-mh-open="${s.id}" style="--c1:${info.c1};--c2:${info.c2}">
       <span class="mh-card__top"><span class="mh-av">${esc(initials(s.name))}</span>
-        <span class="mh-card__who"><b>${esc(s.name)}</b><small>${s.active === false ? 'Accès terminé' : s.endsAt ? `jusqu’au ${new Date(s.endsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : esc(s.plan)}</small></span></span>
+        <span class="mh-card__who"><b>${esc(s.name)}</b><small>${s.educator !== undefined && (A.getUser() || {}).isAdmin ? (s.educator ? `Avec ${esc(s.educator)} · ` : 'Sans éducateur · ') : ''}${s.active === false ? 'Accès terminé' : s.endsAt ? `jusqu’au ${new Date(s.endsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : esc(s.plan)}</small></span></span>
       <span class="mh-card__rank">${R ? R.chip(s.planKey, s.level, s.price, s.active !== false) : esc(s.plan)}</span>
       <span class="mh-card__next">${CAL}${s.next ? `<b>${esc(rel(s.next.starts_at))}</b>${s.next.status === 'proposed' ? '<span class="mh-tag mh-tag--ask">à confirmer</span>' : '<span class="mh-tag mh-tag--ok">confirmé</span>'}` : '<span class="mh-muted">Aucun appel prévu</span>'}</span>
       <span class="mh-card__tasks"><span class="mh-bar"><i style="transform:scaleX(${t.total ? (t.done / t.total).toFixed(3) : 0})"></i></span>
@@ -55,7 +55,7 @@
     const late = list.reduce((n, s) => n + ((s.tasks && s.tasks.late) || 0), 0);
     const facts = [[list.length, list.length > 1 ? 'élèves' : 'élève'], [calls, calls > 1 ? 'appels cette semaine' : 'appel cette semaine'], [pend, pend > 1 ? 'demandes à confirmer' : 'demande à confirmer', pend ? 'ask' : ''], [late, late > 1 ? 'missions en retard' : 'mission en retard', late ? 'late' : '']];
     box.innerHTML = `${o.head || ''}
-      <div class="mh-facts">${facts.map(([n, l, c]) => `<span class="${c ? 'is-' + c : ''}"><b>${n}</b>${l}</span>`).join('')}</div>
+      ${o.compact ? '' : `<div class="mh-facts">${facts.map(([n, l, c]) => `<span class="${c ? 'is-' + c : ''}"><b>${n}</b>${l}</span>`).join('')}</div>`}
       ${list.length ? `<div class="mh-grid">${list.map(card).join('')}</div>`
         : '<div class="mh-empty"><b>Aucun élève pour le moment</b>Ils apparaissent ici dès qu’ils s’inscrivent avec ton code de référent (Espace éducateur).</div>'}`;
     if (!box.dataset.mhWired) {
