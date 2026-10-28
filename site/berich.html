@@ -6,7 +6,21 @@
 <title>BERICH — CHEST</title>
 <link rel="icon" type="image/png" href="assets/logo-chest.png">
 <!-- Fond sombre immédiat : page chargée dans l'iframe du shell (voir js/shell.js), évite le flash blanc. -->
-<style>html,body{background:#050505}</style>
+<style>html,body{background:#050505}  /* Performances (2026-10-28) */
+  .br-perf{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+  @media (max-width:900px){ .br-perf{ grid-template-columns:1fr; } }
+  .br-perf__card{ position:relative; padding:20px 20px 16px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)); display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .br-perf__card:first-child{ border-color:rgba(8,153,129,.35); background:radial-gradient(120% 100% at 0% 0%, rgba(8,153,129,.14), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)); }
+  .br-perf__t{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--chest-ink-3); }
+  .br-perf__r{ font-size:clamp(30px,3.6vw,40px); font-weight:700; letter-spacing:-.03em; line-height:1.1; font-variant-numeric:tabular-nums; }
+  .br-perf__money{ display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; font-size:13.5px; color:var(--chest-ink-2); font-variant-numeric:tabular-nums; }
+  .br-perf__money b{ font-weight:700; }
+  .br-perf__facts{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin:12px 0 0; padding-top:12px; border-top:1px solid rgba(255,255,255,.07); }
+  .br-perf__facts div{ min-width:0; } .br-perf__wide{ grid-column:1 / -1; }
+  .br-perf__facts dt{ font-size:10.5px; color:var(--chest-ink-3); margin-bottom:2px; }
+  .br-perf__facts dd{ margin:0; font-size:14px; font-weight:600; color:var(--chest-ink); font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .br-perf__sub{ margin-top:8px; font-size:11px; color:var(--chest-ink-3); }
+</style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -121,7 +135,7 @@
       <section class="br-section br-reveal" id="brStreaks">
         <hr class="br-rule">
         <div class="br-section__head" style="margin-top:44px">
-          <div><span class="br-label">02 — Séries</span><h3>Gains et pertes d'affilée</h3><p>Combien de positions identiques s'enchaînent : utile pour savoir quelle série de stops ton capital doit pouvoir encaisser.</p></div>
+          <div><span class="br-label">02 — Performances</span><h3>Depuis toujours, l'an dernier, cette année</h3><p>Tous les signaux BE FR€E, en R. Sous chaque résultat : ce qu'il aurait donné en partant de 1 000 € avec 1 % de risque par position, gains réinvestis.</p></div>
         </div>
         <div id="brStreaksBody"></div>
       </section>
@@ -263,7 +277,20 @@
     const h = new Date(ts).getUTCHours();
     if (h < 7) return 'Asie'; if (h < 12) return 'Londres'; if (h < 16) return 'Londres × NY'; if (h < 21) return 'New York'; return 'Soir';
   }
-  function inPeriod(p) { return S.period === 'all' || p.time >= Date.now() - Number(S.period) * DAY; }
+  // Compteur du haut (2026-10-28, demande utilisateur) : pour un membre, il démarre le jour où il a débloqué BERICH
+  // (début de son offre Premium) ; l'admin et les éducateurs gardent l'historique complet de l'algorithme.
+  function unlockAt() {
+    const u = (window.CHESTAccounts && CHESTAccounts.getUser()) || {};
+    if (u.isAdmin || u.role === 'educator') return null;
+    const a = u.access || {};
+    const t = a.startedAt ? new Date(a.startedAt).getTime() : NaN;
+    return Number.isFinite(t) ? t : null;
+  }
+  function inPeriod(p) {
+    const since = unlockAt();
+    if (since && p.time < since) return false;
+    return S.period === 'all' || p.time >= Date.now() - Number(S.period) * DAY;
+  }
   function stats(list, valueOf) {
     const vals = list.slice().sort((a, b) => a.time - b.time).map(valueOf).filter((v) => v != null);
     const wins = vals.filter((v) => v > 0), losses = vals.filter((v) => v < 0);
@@ -498,8 +525,10 @@
     num.textContent = st.n ? sc.fmt(st.total) : '—';
     num.classList.toggle('is-neg', st.total < 0);
     const first = sc.list[0];
+    const since = unlockAt();
     $('brHeroSub').innerHTML = st.n
-      ? `<b>${st.n}</b> position${st.n > 1 ? 's' : ''} ${S.scope === 'me' ? 'prises par toi' : 'BE FR€E'} · depuis le <b>${dateLong(first.time)}</b>`
+      ? `<b>${st.n}</b> position${st.n > 1 ? 's' : ''} ${S.scope === 'me' ? 'prises par toi' : 'BE FR€E'} · ${since && S.period === 'all' ? `depuis ton accès à BERICH, le <b>${dateLong(since)}</b>` : `depuis le <b>${dateLong(first.time)}</b>`}`
+      : since ? `Ton compteur démarre le ${dateLong(since)}, jour où tu as débloqué BERICH. Les performances complètes de l’algorithme sont plus bas.`
       : (S.scope === 'me' ? 'Tes positions prises via BERICH, en dollars' : 'Tous les signaux BE FR€E, en R');
     renderCurve(sc);
     // Compte VPS : positions ouvertes en direct, sous la courbe.
@@ -518,34 +547,56 @@
       <div class="br-kpi"><div class="br-label">Positions</div><div class="br-kpi__v">${st.n}</div><div class="br-kpi__n">clôturées</div></div>`;
   }
 
-  // ================= Séries =================
-  function renderStreaks() {
-    const chrono = positions().filter((p) => p.closed && p.rr != null && p.rr !== 0).sort((a, b) => a.time - b.time);
+  // ================= Performances (2026-10-28 : remplace « Séries ») =================
+  // Trois colonnes sur TOUS les signaux de l'algorithme (aperçu global, quel que soit le jour d'accès du membre) :
+  // depuis toujours, l'année dernière, l'année en cours. R, puis l'équivalent en % et en € pour 1 000 € de départ à
+  // 1 % de risque par position, intérêts composés.
+  function renderPerf() {
+    const closed = positions().filter((p) => p.closed && p.rr != null).sort((a, b) => a.time - b.time);
     const body = $('brStreaksBody');
-    if (!chrono.length) { body.innerHTML = '<p class="br-note">Pas encore de position clôturée.</p>'; return; }
-    const runs = [];
-    chrono.forEach((p) => {
-      const w = p.rr > 0, last = runs[runs.length - 1];
-      if (last && last.w === w) { last.items.push(p); last.r += p.rr; } else runs.push({ w, items: [p], r: p.rr });
-    });
-    const cur = runs[runs.length - 1];
-    const worst = runs.filter((r) => !r.w).sort((a, b) => b.items.length - a.items.length)[0];
-    const best = runs.filter((r) => r.w).sort((a, b) => b.items.length - a.items.length)[0];
-    const lbl = (n, w) => `${n} ${w ? 'gain' : 'perte'}${n > 1 ? 's' : ''}`;
-    const maxLen = Math.max(...runs.map((r) => r.items.length));
-    body.innerHTML = `
-      <div class="br-streak-facts">
-        <div class="br-fact"><b class="${cur.w ? 'is-pos-txt' : 'is-neg-txt'}">${lbl(cur.items.length, cur.w)}</b><span>Série en cours</span><small>depuis le ${dateShort(cur.items[0].time)} · ${signedR(cur.r)}</small></div>
-        <div class="br-fact"><b class="is-neg-txt">${worst ? lbl(worst.items.length, false) : '—'}</b><span>Pire série de pertes</span><small>${worst ? `du ${dateShort(worst.items[0].time)} au ${dateShort(worst.items[worst.items.length - 1].time)} · ${signedR(worst.r)}` : ''}</small></div>
-        <div class="br-fact"><b class="is-pos-txt">${best ? lbl(best.items.length, true) : '—'}</b><span>Meilleure série de gains</span><small>${best ? `${dateShort(best.items[0].time)} · ${signedR(best.r)}` : ''}</small></div>
-      </div>
-      <div class="br-runs" role="img" aria-label="Séries successives, de la plus ancienne à la plus récente : la plus longue série de pertes compte ${worst ? worst.items.length : 0} positions, la plus longue série de gains ${best ? best.items.length : 0}.">
-        <div class="br-runs__half is-up">${runs.map((r, i) => `<i style="height:${r.w ? (r.items.length / maxLen) * 100 : 0}%;animation-delay:${Math.min(i * 8, 600)}ms" class="${r.w ? 'w' : ''} ${i === runs.length - 1 ? 'is-now' : ''}" title="${lbl(r.items.length, r.w)} · ${dateShort(r.items[0].time)}${r.items.length > 1 ? ' → ' + dateShort(r.items[r.items.length - 1].time) : ''} · ${signedR(r.r)}"></i>`).join('')}</div>
-        <div class="br-runs__mid"></div>
-        <div class="br-runs__half is-down">${runs.map((r, i) => `<i style="height:${r.w ? 0 : (r.items.length / maxLen) * 100}%;animation-delay:${Math.min(i * 8, 600)}ms" class="${r.w ? '' : 'l'} ${i === runs.length - 1 ? 'is-now' : ''}" title="${lbl(r.items.length, r.w)} · ${dateShort(r.items[0].time)}${r.items.length > 1 ? ' → ' + dateShort(r.items[r.items.length - 1].time) : ''} · ${signedR(r.r)}"></i>`).join('')}</div>
-      </div>
-      <div class="br-runs__axis"><span>${dateShort(chrono[0].time)}</span><span>${runs.length} séries · ${chrono.length} positions</span><span>${dateShort(chrono[chrono.length - 1].time)} · maintenant</span></div>
-      <p class="br-note">Chaque barre est une série de résultats identiques à la suite, de la plus ancienne (à gauche) à la plus récente (à droite). Au-dessus : séries de gains ; en dessous : séries de stops ; hauteur = nombre de positions d'affilée (survole une barre pour ses dates). Un stop touché après un TP partiel compte comme une perte de 1 R.</p>`;
+    if (!closed.length) { body.innerHTML = '<p class="br-note">Pas encore de position clôturée.</p>'; return; }
+    const y = new Date().getFullYear();
+    const inYear = (yy) => (p) => new Date(p.time).getFullYear() === yy;
+    const cols = [
+      ['Depuis toujours', closed, `depuis le ${dateShort(closed[0].time)}`],
+      [`L’année dernière · ${y - 1}`, closed.filter(inYear(y - 1)), `du 1er janvier au 31 décembre ${y - 1}`],
+      [`Cette année · ${y}`, closed.filter(inYear(y)), `depuis le 1er janvier ${y}`],
+    ];
+    const eur = (v) => Math.round(v).toLocaleString('fr-FR') + ' €';
+    const months = (list) => {
+      const m = new Map();
+      list.forEach((p) => { const d = new Date(p.time); const k = d.getFullYear() * 12 + d.getMonth(); m.set(k, (m.get(k) || 0) + p.rr); });
+      const vals = [...m.entries()];
+      if (!vals.length) return null;
+      const best = vals.reduce((a, b) => (b[1] > a[1] ? b : a));
+      const pos = vals.filter((v) => v[1] > 0).length;
+      const lbl = (k) => new Date(Math.floor(k / 12), k % 12, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      return { best: `${signedR(best[1])} · ${lbl(best[0])}`, pos: `${pos} sur ${vals.length}` };
+    };
+    body.innerHTML = `<div class="br-perf">${cols.map(([title, list, sub]) => {
+      const st = stats(list, (p) => p.rr);
+      let eq = 1000;
+      list.forEach((p) => { eq *= 1 + 0.01 * p.rr; });
+      const pct = (eq / 1000 - 1) * 100;
+      const pf = st.pf === Infinity ? '∞' : st.pf != null ? nf(st.pf, 2) : '—';
+      const mo = months(list);
+      return `<article class="br-perf__card">
+        <div class="br-perf__t">${esc(title)}</div>
+        <div class="br-perf__r ${tone(st.total)}">${st.n ? signedR(st.total) : '—'}</div>
+        <div class="br-perf__money">${st.n ? `<b class="${tone(pct)}">${pct > 0 ? '+' : ''}${nf(pct, 1)} %</b><span>1 000 € → <b>${eur(eq)}</b></span>` : '<span>Aucune position</span>'}</div>
+        <dl class="br-perf__facts">
+          <div><dt>Positions</dt><dd>${st.n}</dd></div>
+          <div><dt>Winrate</dt><dd>${st.winrate != null ? nf(st.winrate, 1) + ' %' : '—'}</dd></div>
+          <div><dt>Profit factor</dt><dd>${pf}</dd></div>
+          <div><dt>Espérance</dt><dd>${st.expectancy != null ? signedR(st.expectancy) : '—'}</dd></div>
+          <div><dt>Drawdown max</dt><dd class="${st.dd < 0 ? 'is-neg-txt' : ''}">${st.n ? (st.dd < 0 ? signedR(st.dd) : '0 R') : '—'}</dd></div>
+          <div><dt>Mois positifs</dt><dd>${mo ? mo.pos : '—'}</dd></div>
+          <div class="br-perf__wide"><dt>Meilleur mois</dt><dd>${mo ? esc(mo.best) : '—'}</dd></div>
+        </dl>
+        <div class="br-perf__sub">${esc(sub)}</div>
+      </article>`;
+    }).join('')}</div>
+    <p class="br-note">Les performances passées ne préjugent pas des performances futures. Le calcul en euros suppose 1 % du capital risqué par position et les gains réinvestis ; frais et glissements non compris.</p>`;
   }
 
   // ================= Registre =================
@@ -668,7 +719,7 @@
     try { await CHESTJournal.syncVpsLiveAccount(la.acc.id, la.live.id); renderAccLine(); renderHero(); } catch (e) { /* dernier instantané conservé */ }
   }
 
-  function renderAll() { renderTop(); renderSignal(); renderHero(); if (!S.loaded) return; renderStreaks(); renderLedger(); renderInsights(); }
+  function renderAll() { renderTop(); renderSignal(); renderHero(); if (!S.loaded) return; renderPerf(); renderLedger(); renderInsights(); }
 
   [['brScope', 'scope', renderHero], ['brPeriod', 'period', renderHero], ['brFilter', 'filter', renderLedger]].forEach(([id, key, fn]) => {
     $(id).querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { S[key] = b.dataset.v; setPressed(id, b.dataset.v); if (key === 'filter') S.shown = 10; fn(); }));
