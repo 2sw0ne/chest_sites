@@ -311,6 +311,9 @@ def init_db():
                 db.execute(f"ALTER TABLE mentor_events ADD COLUMN {name} TEXT")
         if "audience" not in [c[1] for c in db.execute("PRAGMA table_info(mentor_common)").fetchall()]:
             db.execute("ALTER TABLE mentor_common ADD COLUMN audience TEXT")
+        # Couleur de chaque membre de l'équipe dans le planning commun (2026-10-28) : un éducateur = une couleur.
+        if "staff_color" not in [c[1] for c in db.execute("PRAGMA table_info(users)").fetchall()]:
+            db.execute("ALTER TABLE users ADD COLUMN staff_color TEXT")
         # BERICH v3 (2026-10-28) : backtests des algorithmes, importés par l'admin et gardés sur le volume (jamais dans le
         # dépôt public), et plan de chaque membre (quiz → algorithme + money management).
         db.execute("CREATE TABLE IF NOT EXISTS berich_algos (key TEXT PRIMARY KEY, name TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL)")
@@ -2096,6 +2099,69 @@ def _event_public(db, r, who, start=None, occ=0):
             "author": who(r["author_id"]), "authorId": r["author_id"], "status": "confirmed"}
 
 
+STAFF_PALETTE = ("#a855f7", "#f5c451", "#38bdf8", "#33e6a6", "#fc1283", "#f9a45e", "#ff4d5e", "#2dd4bf", "#4d8dff", "#e8e8ee")
+
+
+def _staff_list(db):
+    """L'équipe (admins puis éducateurs) avec sa couleur de planning : choisie par l'admin, sinon une de la palette."""
+    rows = db.execute("SELECT id, first_name, last_name, is_admin, role, staff_color FROM users WHERE is_admin = 1 OR role = 'educator' ORDER BY is_admin DESC, id").fetchall()
+    out = []
+    for i, r in enumerate(rows):
+        out.append({"id": r["id"], "name": f"{r['first_name']} {r['last_name']}".strip(), "first": r["first_name"],
+                    "role": "admin" if r["is_admin"] else "educator", "color": r["staff_color"] or STAFF_PALETTE[i % len(STAFF_PALETTE)]})
+    return out
+
+
+@app.route("/school/staff")
+def school_staff():
+    user, err = _school_writer()
+    if err:
+        return err
+    return jsonify({"staff": _staff_list(get_db())})
+
+
+@app.route("/school/staff/<int:sid>/color", methods=["POST"])
+def school_staff_color(sid):
+    user, err = _school_writer()
+    if err:
+        return err
+    if not user["is_admin"] and sid != user["id"]:
+        return jsonify({"error": "Seul un administrateur choisit la couleur des autres."}), 403
+    color = str((request.get_json(silent=True) or {}).get("color") or "").strip().lower()
+    if not re.fullmatch(r"#[0-9a-f]{6}", color):
+        return jsonify({"error": "Couleur invalide."}), 400
+    db = get_db()
+    with db_lock:
+        db.execute("UPDATE users SET staff_color = ? WHERE id = ? AND (is_admin = 1 OR role = 'educator')", (color, sid))
+        db.commit()
+    return jsonify({"staff": _staff_list(db)})
+
+
+# Scanner de référence (2026-10-28) : choisi par l'admin, montré dans School à tous les membres avec ses derniers trades.
+SCANNER_IDS = ("algomni", "swyper-v6", "wolfx", "nexus", "pivot", "harmonics", "blood", "pulse", "wave", "stars", "supernova")
+
+
+@app.route("/school/scanner", methods=["GET", "POST"])
+def school_scanner():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    if request.method == "POST":
+        if not user["is_admin"]:
+            return jsonify({"error": "Réservé aux administrateurs."}), 403
+        sid = str((request.get_json(silent=True) or {}).get("scanner") or "")
+        if sid not in SCANNER_IDS:
+            return jsonify({"error": "Scanner inconnu."}), 400
+        set_setting("school_scanner", sid)
+    sid = get_setting("school_scanner", "pulse")
+    try:
+        trades = (_scanner_call("/recent?" + urllib.parse.urlencode({"scanner": sid, "limit": 8})) or {}).get("trades", [])
+        ok = True
+    except Exception:
+        trades, ok = [], False
+    return jsonify({"scanner": sid, "trades": trades, "available": ok})
+
+
 @app.route("/school/agenda")
 def school_agenda():
     """La semaine (ou toute fenêtre ≤ 62 j) de l'utilisateur : appels collectifs visibles, appels personnels et missions.
@@ -2130,27 +2196,40 @@ def school_agenda():
         if err:
             return err
         mids = [int(only)]
-    elif role == "educator":
-        mids = [r["id"] for r in db.execute("SELECT id FROM users WHERE referred_by = ?", (user["id"],)).fetchall()]
     else:
+        # Équipe (admin et éducateurs) : le planning de tout le monde, chaque éducateur dans sa couleur (2026-10-28).
         mids = [r["id"] for r in db.execute("SELECT id FROM users WHERE is_admin = 0 AND COALESCE(role, 'member') = 'member'").fetchall()]
+    staff = _staff_list(db)
+    color_of = {s["id"]: s["color"] for s in staff}
     tasks = []
     if mids:
         q = ",".join("?" * len(mids))
-        people = {r["id"]: f"{r['first_name']} {r['last_name']}".strip() for r in db.execute(f"SELECT id, first_name, last_name FROM users WHERE id IN ({q})", mids).fetchall()}
+        rows_p = db.execute(f"SELECT id, first_name, last_name, referred_by FROM users WHERE id IN ({q})", mids).fetchall()
+        people = {r["id"]: f"{r['first_name']} {r['last_name']}".strip() for r in rows_p}
+        coach = {r["id"]: r["referred_by"] for r in rows_p}
+        # missions : l'éducateur ne voit que celles de ses élèves (le planning des appels, lui, est commun)
+        task_mids = [m for m in mids if role != "educator" or coach.get(m) == user["id"]]
         lo, hi = (start - timedelta(hours=4)).isoformat(), end.isoformat()
         for r in db.execute(f"SELECT * FROM mentor_events WHERE member_id IN ({q}) AND starts_at >= ? AND starts_at < ? AND status NOT IN ('cancelled', 'declined')", (*mids, lo, hi)).fetchall():
-            events.append({"id": f"p{r['id']}", "eventId": r["id"], "type": "personal", "title": r["topic"] or "Appel", "body": _col(r, "body", ""),
+            # couleur : celle de l'éducateur qui a posé l'appel, sinon (proposé par l'élève) celle de son éducateur
+            owner = r["author_id"] if r["author_id"] in color_of else coach.get(r["member_id"])
+            events.append({"id": f"p{r['id']}", "eventId": r["id"], "type": "personal", "ownerId": owner, "color": color_of.get(owner), "title": r["topic"] or "Appel", "body": _col(r, "body", ""),
                            "startsAt": r["starts_at"], "minutes": r["minutes"], "mode": r["mode"] or "visio", "link": r["link"] or "",
                            "flyer": json.loads(r["flyer"]) if _col(r, "flyer") else None, "status": r["status"], "common": bool(_col(r, "common_id")),
                            "memberId": r["member_id"], "member": people.get(r["member_id"]), "author": who(r["author_id"]), "authorId": r["author_id"]})
         # missions : celles qui tombent dans la fenêtre, plus (membre) celles qui restent à faire sans date ou en retard
-        sql = f"SELECT * FROM mentor_tasks WHERE member_id IN ({q}) AND ((due_at >= ? AND due_at < ?)" + (" OR done_at IS NULL)" if role == "member" else ")")
-        for r in db.execute(sql + " ORDER BY due_at IS NULL, due_at", (*mids, start.isoformat(), hi)).fetchall():
+        tq = ",".join("?" * len(task_mids))
+        sql = f"SELECT * FROM mentor_tasks WHERE member_id IN ({tq}) AND ((due_at >= ? AND due_at < ?)" + (" OR done_at IS NULL)" if role == "member" else ")")
+        for r in (db.execute(sql + " ORDER BY due_at IS NULL, due_at", (*task_mids, start.isoformat(), hi)).fetchall() if task_mids else []):
             tasks.append({"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "memberId": r["member_id"],
                           "member": people.get(r["member_id"]), "author": who(r["author_id"]), "common": bool(_col(r, "common_id"))})
+    for e in events:
+        if e["type"] == "collective":
+            e["ownerId"], e["color"] = e["authorId"], color_of.get(e["authorId"])
     events.sort(key=lambda e: e["startsAt"])
-    return jsonify({"from": start.isoformat(), "to": end.isoformat(), "role": role, "events": events, "tasks": tasks})
+    used = {e.get("ownerId") for e in events}
+    legend = [s for s in staff if s["id"] in used] if role == "member" else staff
+    return jsonify({"from": start.isoformat(), "to": end.isoformat(), "role": role, "events": events, "tasks": tasks, "staff": legend})
 
 
 @app.route("/school/events", methods=["POST"])

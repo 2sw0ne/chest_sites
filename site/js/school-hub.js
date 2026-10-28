@@ -84,15 +84,21 @@
     return { k: 'group', label: 'Collectif' };
   }
 
+  // Couleur d'un rendez-vous = celle de l'éducateur (ou de l'admin) à qui il appartient (GET /school/agenda → staff).
+  const ownerOf = (e) => ((S.agenda && S.agenda.staff) || []).find((x) => x.id === e.ownerId) || null;
   function evCard(e) {
     const k = kindOf(e);
     const ended = Date.parse(e.startsAt) + e.minutes * 60000 < Date.now();
-    const who = ROLE !== 'member' && e.type === 'personal' && e.member ? `<span class="sh-ev__who">${ic('user')}${esc(e.member)}</span>` : '';
+    const o = ownerOf(e);
     const ask = e.status === 'proposed' ? '<span class="sh-ev__ask">à confirmer</span>' : '';
-    return `<button type="button" class="sh-ev sh-ev--${k.k}${ended ? ' is-past' : ''}" data-ev="${esc(e.id)}">
+    // équipe : « Call · nom du membre » ; membre : le sujet de son appel
+    const title = e.type === 'personal' && ROLE !== 'member' ? `Call · ${esc(e.member || '')}` : esc(e.title);
+    const sub = e.type === 'personal' && ROLE !== 'member' ? `<span class="sh-ev__topic">${esc(e.title)}</span>` : '';
+    const tag = o ? `<span class="sh-ev__who"><i></i>${esc(o.first)}</span>` : '';
+    return `<button type="button" class="sh-ev sh-ev--${k.k}${ended ? ' is-past' : ''}" data-ev="${esc(e.id)}"${e.color ? ` style="--c:${esc(e.color)}"` : ''}>
       ${e.flyer ? `<span class="sh-ev__fly"><img src="${esc(fileUrl(e.flyer))}" alt="" loading="lazy"></span>` : ''}
-      <span class="sh-ev__body"><span class="sh-ev__t"><b>${hm(e.startsAt)}</b><span>${dur(e.minutes)}</span><em>${k.label}</em></span>
-      <span class="sh-ev__title">${esc(e.title)}</span>${who}${ask}</span></button>`;
+      <span class="sh-ev__body"><span class="sh-ev__t"><b>${hm(e.startsAt)}</b><span>${dur(e.minutes)}</span><em>${e.type === 'personal' ? 'Call' : k.label}</em></span>
+      <span class="sh-ev__title">${title}</span>${sub}${tag}${ask}</span></button>`;
   }
   function taskChip(t) {
     const late = !t.doneAt && t.dueAt && Date.parse(t.dueAt) < Date.now();
@@ -125,7 +131,7 @@
     const range = `${fr(S.week, { day: 'numeric', month: S.week.getMonth() === end.getMonth() ? undefined : 'short' })} – ${fr(end, { day: 'numeric', month: 'long' })}`;
     const total = D.events.length;
     const cols = days.map((d) => {
-      const evs = D.events.filter((e) => sameDay(e.startsAt, d));
+      const evs = D.events.filter((e) => sameDay(e.startsAt, d) && (!S.owner || e.ownerId === S.owner));
       const due = groupTasks(D.tasks.filter((t) => t.dueAt && sameDay(t.dueAt, d)));
       const today = sameDay(d, new Date());
       const past = d < new Date(new Date().setHours(0, 0, 0, 0));
@@ -150,7 +156,7 @@
       </div>
       <div class="sh-days">${cols}</div>
       ${undated.length ? `<div class="sh-undated"><span class="chest-step">Toujours à faire</span>${undated.map(taskChip).join('')}</div>` : ''}
-      <div class="sh-legend"><span class="sh-lg sh-lg--group">Collectif</span><span class="sh-lg sh-lg--perso">Personnel</span>${ROLE !== 'member' ? '<span class="sh-lg sh-lg--team">Équipe</span>' : ''}<span class="sh-lg sh-lg--due">Mission à rendre</span></div>
+      <div class="sh-legend">${((D.staff) || []).map((x) => `<button type="button" class="sh-lg${S.owner === x.id ? ' is-on' : ''}${S.owner && S.owner !== x.id ? ' is-off' : ''}" style="--c:${esc(x.color)}" data-owner="${x.id}" ${ROLE === 'member' ? 'disabled' : `aria-pressed="${S.owner === x.id}"`}>${esc(x.first)}</button>`).join('')}<span class="sh-lg sh-lg--due">Mission à rendre</span>${S.owner ? '<button type="button" class="sh-link" data-owner="">Tout afficher</button>' : ''}</div>
     </div>`;
   }
 
@@ -202,6 +208,79 @@
     </div>`;
   }
 
+  // ---------------------------------------------------------------- scanner de référence (choisi par l'admin)
+  // Derniers trades (GET /school/scanner → scanner-server /recent), stratégie rédigée et checklist « avant de trader »
+  // tirées du guide du scanner (js/scanner-guides.js). Un clic sur un trade ouvre Stratégies sur son graphique.
+  const scannerList = () => (window.CHESTScanners ? CHESTScanners.list() : []);
+  const TF = { 1: 'M1', 5: 'M5', 15: 'M15', 30: 'M30', 60: 'H1', 240: 'H4', D: 'D1' };
+  const ago = (ms) => {
+    const m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`;
+  };
+  const price = (v) => (v == null ? '—' : Math.abs(v) >= 100 ? Number(v).toFixed(2) : Number(v).toFixed(5));
+  const CHECK_KEY = 'chest_school_check';
+  function checks(sid) {
+    try {
+      const c = JSON.parse(localStorage.getItem(CHECK_KEY) || 'null');
+      return c && c.day === ymd(new Date()) && c.scanner === sid ? c.done : [];
+    } catch (e) { return []; }
+  }
+  function setChecks(sid, done) { try { localStorage.setItem(CHECK_KEY, JSON.stringify({ day: ymd(new Date()), scanner: sid, done })); } catch (e) { /* tant pis */ } }
+  function openStrategies(q) {
+    const sh = window.parent && window.parent !== window && window.parent.CHESTShell;
+    if (sh && sh.go) sh.go('strategies', q); else location.href = 'strategies.html' + q;
+  }
+
+  function tradeRow(t) {
+    const buy = t.side === 'buy', lv = t.levels || {};
+    const tps = lv.tps || (lv.tp != null ? [lv.tp] : []);
+    const m = /^tp(\d+)$/.exec(t.status || '');
+    const st = !t.status || t.status === 'active' ? ['En cours', 'live'] : t.status === 'sl' ? ['Stop touché', 'sl'] : m ? [`TP${m[1]} atteint`, 'tp'] : null;
+    return `<li><button type="button" class="sh-trade" data-trade="${esc(t.symbol)}|${esc(t.tf)}">
+      <span class="sh-trade__side is-${buy ? 'buy' : 'sell'}">${buy ? 'Achat' : 'Vente'}</span>
+      <span class="sh-trade__main"><b>${esc(t.symbol)} <small>${TF[t.tf] || esc(t.tf)}</small></b><small>${ago(t.time)}</small></span>
+      <span class="sh-trade__lv"><span><i>Entrée</i>${price(lv.pe)}</span>${lv.sl != null ? `<span class="is-sl"><i>Stop</i>${price(lv.sl)}</span>` : ''}${tps.length ? `<span class="is-tp"><i>${tps.length > 1 ? 'TP' + tps.length : 'TP'}</i>${price(tps[tps.length - 1])}</span>` : ''}</span>
+      ${st ? `<span class="sh-trade__st is-${st[1]}">${st[0]}</span>` : ''}
+      ${ic('go', 'sh-trade__go')}</button></li>`;
+  }
+
+  function refHtml() {
+    const R = S.ref;
+    if (!R) return '';
+    const sc = window.CHESTScanners && CHESTScanners.get(R.scanner);
+    const g = window.CHESTScannerGuide && CHESTScannerGuide.data ? CHESTScannerGuide.data(R.scanner) : null;
+    if (!sc) return '';
+    const tab = S.refTab || 'trades';
+    let body = '';
+    if (tab === 'trades') {
+      body = R.trades.length ? `<ul class="sh-trades">${R.trades.map(tradeRow).join('')}</ul>`
+        : `<p class="sh-empty">${R.available === false ? 'Le scanner ne répond pas pour le moment.' : 'Pas de trade récent. Ouvre le graphique pour voir les signaux en direct.'}</p>`;
+    } else if (tab === 'strategy') {
+      let n = 0;
+      body = g ? `<div class="sh-strat"><p class="sh-strat__intro">${esc(g.intro)}</p>${g.steps.map((x) => {
+        if (x.group) { n = 0; return `<h4 class="sh-strat__group">${esc(x.group)}</h4>`; }
+        // texte du guide : HTML écrit par CHEST (gras et couleurs), jamais une donnée d'un membre
+        return `<div class="sh-strat__step"><span>${pad(++n)}</span><div><b>${esc(x.t)}</b><p>${x.txt}</p>${x.pts ? `<ul>${x.pts.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}</div></div>`;
+      }).join('')}<button type="button" class="sh-link" data-ref-about>Voir la vidéo et les schémas dans Stratégies</button></div>` : '<p class="sh-empty">La stratégie de ce scanner arrive bientôt.</p>';
+    } else {
+      const items = g ? g.recap : [];
+      const done = checks(R.scanner);
+      const all = items.length && items.every((_, i) => done.includes(i));
+      body = items.length ? `<div class="sh-check-list"><p class="sh-hint">À relire avant chaque trade. Coche chaque point : tant qu’ils ne sont pas tous cochés, pas de trade. Remis à zéro chaque jour.</p>
+        <ul>${items.map((it, i) => `<li class="${done.includes(i) ? 'is-done' : ''}"><button type="button" class="sh-check" data-ref-check="${i}" role="checkbox" aria-checked="${done.includes(i)}" aria-label="${esc(it)}">${ic('check')}</button><span>${esc(it)}</span></li>`).join('')}</ul>
+        <div class="sh-check-list__f${all ? ' is-ok' : ''}">${all ? `${ic('check')}Tout est vérifié : tu peux prendre le trade.` : `${done.length}/${items.length} vérifiés`}${done.length ? '<button type="button" class="sh-link" data-ref-reset>Recommencer</button>' : ''}</div></div>` : '<p class="sh-empty">La checklist de ce scanner arrive bientôt.</p>';
+    }
+    return `<div class="sh-ref" style="--c:${esc(sc.logoColor || '#fc1283')}">
+      <div class="sh-ref__head">
+        <span class="sh-ref__logo">${sc.logo ? `<img src="${esc(sc.logo)}" alt="">` : esc(sc.logoInitials || sc.name.slice(0, 2))}</span>
+        <span class="sh-ref__who"><span class="chest-step">Scanner de référence</span><b>${esc(sc.name)}</b>${g ? `<small>${esc(g.tagline)}</small>` : ''}</span>
+        <button type="button" class="chest-btn" data-ref-open>Ouvrir le graphique ${ic('go')}</button>
+      </div>
+      <nav class="sh-ref__tabs" role="tablist">${[['trades', 'Derniers trades'], ['strategy', 'Stratégie'], ['check', 'Avant de trader']].map(([k, l]) => `<button type="button" role="tab" data-ref-tab="${k}" aria-selected="${tab === k}">${l}</button>`).join('')}</nav>
+      <div class="sh-ref__body">${body}</div></div>`;
+  }
+  function paintRef() { const el = document.getElementById('shRef'); if (el) el.innerHTML = refHtml(); }
+
   // ---------------------------------------------------------------- rendus par rôle
   const section = (n, title, sub, body, id) => `<section class="sh-sec"${id ? ` id="${id}"` : ''}><div class="sh-sec__h"><span class="chest-step">${pad(n)} — ${title}</span>${sub ? `<p>${sub}</p>` : ''}</div>${body}</section>`;
 
@@ -209,6 +288,7 @@
     let n = 0;
     const posts = S.posts;
     const parts = [section(++n, 'Cette semaine', 'Les lives et les appels prévus, avec leur flyer et leur horaire.', weekHtml())];
+    if (refHtml()) parts.push(section(++n, 'Ton scanner', 'Ses derniers trades, sa stratégie et ce qu’il faut vérifier avant de trader.', `<div id="shRef">${refHtml()}</div>`));
     if (posts.length) parts.push(section(++n, 'Infos', '', postsHtml(posts.slice(0, 6), '')));
     const sv = memberSuiviHtml();
     if (sv) parts.push(section(++n, 'Ton suivi', '', sv));
@@ -263,15 +343,27 @@
     if (S.tab === 'content') {
       box.innerHTML = `<div class="sh-content">
         <button type="button" class="sh-door" data-go="written">${ic('book')}<span><b>Cours écrits</b><small>Trading, UGC, Psychologie, Autres ressources : ajoute, modifie ou retire un élément (menu ⋮ sur chaque carte).</small></span><span class="sh-go">Gérer ${ic('go')}</span></button>
-        <button type="button" class="sh-door" data-go="video">${ic('play')}<span><b>Cours vidéo</b><small>Mindset et Business : les vidéos, leurs miniatures et les rediffusions à compléter.</small></span><span class="sh-go">Gérer ${ic('go')}</span></button></div>`;
+        <button type="button" class="sh-door" data-go="video">${ic('play')}<span><b>Cours vidéo</b><small>Mindset et Business : les vidéos, leurs miniatures et les rediffusions à compléter.</small></span><span class="sh-go">Gérer ${ic('go')}</span></button></div>
+        <div class="sh-refpick"><div class="sh-sub sh-sub--top"><span class="chest-step">Scanner de référence</span><span class="sh-hint">Montré à tous les membres en haut de School, avec ses derniers trades, sa stratégie et sa checklist.</span></div>
+          <div class="sh-pills">${scannerList().map((x) => `<button type="button" class="sh-pill${S.ref && S.ref.scanner === x.id ? ' is-on' : ''}" data-ref-pick="${x.id}" aria-pressed="${!!(S.ref && S.ref.scanner === x.id)}">${x.logo ? `<img src="${esc(x.logo)}" alt="">` : ''}${esc(x.name)}</button>`).join('')}</div></div>`;
     }
+  }
+
+  const PALETTE = ['#a855f7', '#f5c451', '#38bdf8', '#33e6a6', '#fc1283', '#f9a45e', '#ff4d5e', '#2dd4bf', '#4d8dff', '#e8e8ee'];
+  function colorsHtml() {
+    const staff = (S.agenda && S.agenda.staff) || [];
+    if (!staff.length) return '';
+    return `<div class="sh-colors"><div class="sh-sub"><span class="chest-step">Couleurs du planning</span><span class="sh-hint">Chaque call prend la couleur de son éducateur.</span></div>
+      <ul>${staff.map((x) => `<li style="--c:${esc(x.color)}"><span class="sh-colors__who"><i></i><b>${esc(x.name)}</b><small>${x.role === 'admin' ? 'Admin' : 'Éducateur'}</small></span>
+        <span class="sh-swatches">${PALETTE.map((c) => `<button type="button" class="sh-sw${c === x.color ? ' is-on' : ''}" style="--s:${c}" data-color="${c}" data-staff="${x.id}" aria-label="${esc(x.first)} en ${c}" aria-pressed="${c === x.color}"></button>`).join('')}
+        <label class="sh-sw sh-sw--pick" title="Autre couleur"><input type="color" value="${esc(x.color)}" data-staff-pick="${x.id}" aria-label="Autre couleur pour ${esc(x.first)}"></label></span></li>`).join('')}</ul></div>`;
   }
 
   function educatorsHtml() {
     const E = S.educators;
     if (!E) return '<p class="sh-empty">Chargement…</p>';
-    if (!E.length) return '<p class="sh-empty">Aucun éducateur pour le moment. Donne le rôle Éducateur à un membre depuis Admin → Membres.</p>';
-    return `<div class="sh-edus">${E.map((e) => `<button type="button" class="sh-edu" data-edu="${e.id}">
+    if (!E.length) return colorsHtml() + '<p class="sh-empty">Aucun éducateur pour le moment. Donne le rôle Éducateur à un membre depuis Admin → Membres.</p>';
+    return `${colorsHtml()}<div class="sh-sub sh-sub--top"><span class="chest-step">Éducateurs</span></div><div class="sh-edus">${E.map((e) => `<button type="button" class="sh-edu" data-edu="${e.id}">
       <span class="sh-av">${esc(initials(e.name))}</span>
       <span class="sh-edu__who"><b>${esc(e.name)}</b><small>${e.code ? `Code ${esc(e.code)}` : 'Code pas encore choisi'}</small></span>
       <span class="sh-edu__n"><b>${e.students}</b>${e.students > 1 ? 'élèves' : 'élève'}</span>
@@ -541,6 +633,7 @@
   // ---------------------------------------------------------------- chargement
   async function refresh() {
     const jobs = [loadAgenda(), api('/school/posts').then((d) => { S.posts = d.posts; })];
+    jobs.push(api('/school/scanner').then((d) => { S.ref = d; }).catch(() => { S.ref = null; }));
     if (ROLE === 'member') jobs.push(api('/mentor').then((d) => { S.mentor = d; }).catch(() => { S.mentor = null; }));
     else {
       jobs.push(ensurePeople(), api('/school/missions').then((d) => { S.missions = d.missions; }).catch(() => { S.missions = []; }));
@@ -571,10 +664,31 @@
     const sv = t.closest('[data-suivi]'); if (sv) { e.preventDefault(); return goSuivi(''); }
     const tk = t.closest('[data-task]');
     if (tk) { try { S.mentor = await postJson(`/mentor/tasks/${tk.dataset.task}/toggle`, {}); await loadAgenda(); renderMember(); } catch (err) { toast(err.message); } return; }
+    const ow = t.closest('[data-owner]');
+    if (ow && ROLE !== 'member') { const id = Number(ow.dataset.owner) || null; S.owner = S.owner === id ? null : id; const box = ROLE === 'member' ? null : document.getElementById('shPanel'); if (box) box.innerHTML = weekHtml(); return; }
+    const sw = t.closest('[data-color]');
+    if (sw) return setColor(Number(sw.dataset.staff), sw.dataset.color);
+    const rt = t.closest('[data-ref-tab]'); if (rt) { S.refTab = rt.dataset.refTab; return paintRef(); }
+    const rc = t.closest('[data-ref-check]');
+    if (rc) { const i = Number(rc.dataset.refCheck), d = checks(S.ref.scanner); setChecks(S.ref.scanner, d.includes(i) ? d.filter((x) => x !== i) : d.concat(i)); return paintRef(); }
+    if (t.closest('[data-ref-reset]')) { setChecks(S.ref.scanner, []); return paintRef(); }
+    if (t.closest('[data-ref-open]')) return openStrategies(`?scanner=${encodeURIComponent(S.ref.scanner)}`);
+    if (t.closest('[data-ref-about]')) return openStrategies(`?scanner=${encodeURIComponent(S.ref.scanner)}&tab=about`);
+    const tr = t.closest('[data-trade]');
+    if (tr) { const [sym, tf] = tr.dataset.trade.split('|'); return openStrategies(`?scanner=${encodeURIComponent(S.ref.scanner)}&symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(tf)}`); }
+    const rp = t.closest('[data-ref-pick]');
+    if (rp) { try { S.ref = await postJson('/school/scanner', { scanner: rp.dataset.refPick }); toast('Scanner de référence enregistré.'); renderTab(); } catch (err) { toast(err.message); } return; }
     const dm = t.closest('[data-del-mission]');
     if (dm) { if (!(await ask('Retirer cette mission chez tous les membres qui l’ont ?', 'Retirer'))) return; return act(() => postJson(`/mentor/common/${dm.dataset.delMission}/delete`, {}), 'Mission retirée.'); }
   });
-  root.addEventListener('change', (e) => { if (e.target.id === 'shWho') { S.member = e.target.value || null; reloadWeek(); } });
+  root.addEventListener('change', (e) => {
+    if (e.target.id === 'shWho') { S.member = e.target.value || null; reloadWeek(); }
+    if (e.target.dataset.staffPick) setColor(Number(e.target.dataset.staffPick), e.target.value);
+  });
+  async function setColor(id, color) {
+    try { await postJson(`/school/staff/${id}/color`, { color }); await loadAgenda(); renderTab(); }
+    catch (err) { toast(err.message); }
+  }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.agenda && !(dlg && dlg.open)) refresh(); });
 
   if (ROLE !== 'member') {

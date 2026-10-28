@@ -794,5 +794,6 @@
   }
   function stopVideo(root) { const v = root && root.querySelector('.sg-video video'); if (v) { try { v.pause(); } catch (e) { /* rien */ } } }
 
-  window.CHESTScannerGuide = { render, pause: stopVideo, has: (id) => !!G[id] };
+  // data(id) : le texte du guide (intro, étapes, à retenir), aussi lu par le volet scanner de School (js/school-hub.js).
+  window.CHESTScannerGuide = { render, pause: stopVideo, has: (id) => !!G[id], data: (id) => G[id] || null };
 })();

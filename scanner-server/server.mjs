@@ -448,6 +448,17 @@ createServer(async (req, res) => {
       return send(200, { opportunities });
     }
 
+    // Derniers trades d'un scanner, toutes paires et unités de temps confondues (volet « scanner de référence »
+    // de School, 2026-10-28) : les plus récents d'abord.
+    if (url.pathname === "/recent" && req.method === "GET") {
+      if (!isInternal(req)) return send(401, { error: "non autorisé" });
+      const name = url.searchParams.get("scanner") || "";
+      const limit = Math.max(1, Math.min(30, Number(url.searchParams.get("limit")) || 10));
+      const trades = SIGNALS.filter((s) => s.scanner === name && s.levels).sort((a, b) => b.time - a.time).slice(0, limit)
+        .map(({ id, seenAt, ...rest }) => rest);
+      return send(200, { trades });
+    }
+
     // Combos à suivre en permanence (paires et unités de temps des règles de notification)
     if (url.pathname === "/watch" && req.method === "POST") {
       if (!isInternal(req)) return send(401, { error: "non autorisé" });

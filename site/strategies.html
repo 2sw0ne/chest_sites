@@ -478,7 +478,7 @@
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/scanner-store.js?v=27"></script>
-<script src="js/scanner-guides.js?v=5"></script>
+<script src="js/scanner-guides.js?v=6"></script>
 <script src="js/strength-board.js?v=2"></script>
 <script src="js/scanner-chart.js?v=35"></script>
 <script src="js/page-tour.js"></script>
@@ -972,6 +972,8 @@ CHESTTour.init([
     selectScanner(deepScanner, { market: mkt, symbol: sym || undefined, timeframe: deep.get('tf') || undefined });
     // Après l'analyse de la page : la fenêtre est déclarée en bas du document
     if (deep.get('alert') === '1') setTimeout(() => showAlertModal(deep), 0);
+    // depuis School (volet scanner de référence) : ouvrir directement l'onglet À propos
+    if (deep.get('tab') === 'about') { const b = document.querySelector('#scnrTabs [data-tab="about"]'); if (b) b.click(); }
   } else if (scanners.length) {
     selectScanner(scanners[0].id);
   }

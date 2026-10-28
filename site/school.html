@@ -23,7 +23,7 @@
 <link rel="stylesheet" href="css/school-v3.css?v=4">
 <link rel="stylesheet" href="css/school-v4.css?v=6">
 <link rel="stylesheet" href="css/mentor-hub.css?v=2">
-<link rel="stylesheet" href="css/school-hub.css?v=3">
+<link rel="stylesheet" href="css/school-hub.css?v=4">
 <style>
   [hidden]{ display:none !important; }
 </style>
@@ -199,7 +199,9 @@
 <script src="js/school.js?v=12"></script>
 <script src="js/rank-badge.js?v=3"></script>
 <script src="js/mentor-hub.js?v=3"></script>
-<script src="js/school-hub.js?v=2"></script>
+<script src="js/scanner-store.js?v=27"></script>
+<script src="js/scanner-guides.js?v=6"></script>
+<script src="js/school-hub.js?v=3"></script>
 <script src="js/page-tour.js"></script>
 <script>
 (function () {
@@ -216,6 +218,7 @@ if (u.isAdmin || u.role === 'educator') {
 CHESTTour.init([
   { selector: '.sc-hero', title: 'School', text: "Ton école. Cherche un cours, un document ou une vidéo dans la barre, ou descends : ta semaine, les infos, ton suivi puis tes cours." },
   { selector: '.sh-week', title: 'Ta semaine', text: "Les lives collectifs et tes appels personnels, avec leur flyer et leur horaire. Un clic ouvre le détail et le lien pour rejoindre." },
+  { selector: '.sh-ref', title: 'Ton scanner', text: "Le scanner de référence : ses derniers trades (un clic ouvre son graphique), sa stratégie rédigée et la checklist à relire avant chaque trade." },
   { selector: '.sh-suivi', title: 'Ton suivi', text: "Tes missions à cocher et les notes de ton éducateur. « Ouvrir » mène à ton espace complet." },
   { selector: '.sc-doors', title: 'Lire ou regarder', text: "« Cours écrits » rassemble Trading, UGC, Psychologie et Autres ressources. « Cours vidéo » rassemble Mindset et Business." },
   { selector: '#scNews', title: 'Nouveautés', text: "Les derniers cours, documents et vidéos ajoutés, les plus récents en premier. Un clic les ouvre." },
