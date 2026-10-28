@@ -119,7 +119,8 @@
     const c = goal.capital;
     const out = { pReach: reach / SIMS, pBreach: breach / SIMS, monthsToGoal: reach ? hitWeeks / reach / 4.345 : null,
       p10: pct(finals, 0.1) * c, p50: pct(finals, 0.5) * c, p90: pct(finals, 0.9) * c, dd50: pct(dds, 0.5), dd90: pct(dds, 0.9) };
-    if (grid) out.fan = { months: marks.map((_, i) => i + 1), p10: grid.map((g) => pct(g, 0.1) * c), p50: grid.map((g) => pct(g, 0.5) * c), p90: grid.map((g) => pct(g, 0.9) * c) };
+    if (grid) out.fan = { months: marks.map((_, i) => i + 1), p10: grid.map((g) => pct(g, 0.1) * c), p25: grid.map((g) => pct(g, 0.25) * c), p50: grid.map((g) => pct(g, 0.5) * c),
+      p75: grid.map((g) => pct(g, 0.75) * c), p90: grid.map((g) => pct(g, 0.9) * c) };
     return out;
   }
 
@@ -204,9 +205,11 @@
     if (best.pReach < 0.5) {
       const real = Math.round(best.p50 / 50) * 50;
       if (real > goal.capital && real < goal.target) hints.push({ label: `objectif réaliste : ${real.toLocaleString('fr-FR')} €`, goal: Object.assign({}, goal, { target: real }), realistic: true });
-      const longer = { 3: 6, 6: 12, 12: 24 }[goal.months];
+      const longer = { 3: 6, 6: 9, 9: 12 }[goal.months];
       if (longer) hints.push({ label: `en ${longer >= 12 ? longer / 12 + ' an' + (longer > 12 ? 's' : '') : longer + ' mois'}`, goal: Object.assign({}, goal, { months: longer }) });
-      if (goal.account !== 'propfirm' && goal.tolerance < 0.5) { const t = Math.min(0.5, goal.tolerance + 0.15); hints.push({ label: `en acceptant −${Math.round(t * 100)} %`, goal: Object.assign({}, goal, { tolerance: t }) }); }
+      // Niveaux du quiz (« une progression calme » … « seul le résultat compte ») : on propose le suivant, en mots.
+      const t = [0.15, 0.25, 0.35, 0.5].find((x) => x > goal.tolerance + 1e-9);
+      if (goal.account !== 'propfirm' && t) hints.push({ label: 'en acceptant des creux plus marqués', goal: Object.assign({}, goal, { tolerance: t }) });
     }
     return { best, prudent, bold, others, hints, solo, goal };
   }

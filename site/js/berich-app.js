@@ -535,17 +535,17 @@
     const ev = P.evaluate(legs.map((l) => prepOf(l.algo)), legs.map((l) => l.cfg), goal, true);
     const f = ev.fan;
     $('brProjBody').innerHTML = `<div class="br-proj">
-      <div class="br-proj__fan">${Q.fanSvg(f, goal, { h: 270 })}</div>
+      <figure class="br-proj__fan">${Q.fanSvg(f, goal)}<figcaption><span><i class="bq-key bq-key--a"></i>8 futurs sur 10</span><span><i class="bq-key bq-key--b"></i>1 sur 2</span><span><i class="bq-key bq-key--m"></i>futur médian</span></figcaption></figure>
       <div class="br-proj__side">
-        <div class="br-proj__ring">${Q.ring(ev.pReach, 'des futurs atteignent l’objectif')}<span>des futurs simulés touchent <b>${eur(goal.target)}</b> en ${durTxt(goal.months)} sans reculer de plus de ${Math.round(goal.tolerance * 100)} %</span></div>
+        <div class="br-proj__ring">${Q.ring(ev.pReach, 'de réussite')}<span>des futurs simulés touchent <b>${eur(goal.target)}</b> en ${durTxt(goal.months)}, ${goal.account === 'propfirm' ? 'sans toucher la perte maximum de ta propfirm' : 'en restant dans des creux que tu acceptes'}</span></div>
         <dl class="br-proj__facts">
           <div><dt>Médiane</dt><dd>${eur(ev.p50)}</dd></div>
           <div><dt>8 fois sur 10, entre</dt><dd>${eur(ev.p10)} <small>et</small> ${eur(ev.p90)}</dd></div>
-          <div><dt>Recul probable</dt><dd>−${Math.round(ev.dd50 * 100)} % <small>· au pire 1 fois / 10 : −${Math.round(ev.dd90 * 100)} %</small></dd></div>
+          <div><dt>Creux probable en route</dt><dd>−${Math.round(ev.dd50 * 100)} % <small>· au pire −${Math.round(ev.dd90 * 100)} %</small></dd></div>
         </dl>
         <div class="br-proj__acts"><button type="button" class="br-btn br-btn--ghost br-btn--sm" data-br="adjust">Comparer d’autres réglages</button><button type="button" class="br-link" data-br="redo">Refaire le quiz</button></div>
       </div></div>
-      <p class="br-note">Capital de départ ${eur(goal.capital)}, ${goal.account === 'propfirm' ? 'compte de propfirm' : 'compte perso'}, plan du ${dateLong(new Date(pl.createdAt || pl.savedAt).getTime())}. Zone verte : 8 futurs sur 10, tirés de l’historique de ${esc(planName())} par blocs de 2 semaines. Les performances passées ne préjugent pas des performances futures.</p>`;
+      <p class="br-note">Capital de départ ${eur(goal.capital)}, ${goal.account === 'propfirm' ? 'compte de propfirm' : 'compte perso'}, plan du ${dateLong(new Date(pl.createdAt || pl.savedAt).getTime())}. Futurs tirés de l’historique de ${esc(planName())} par blocs de 2 semaines. Les performances passées ne préjugent pas des performances futures.</p>`;
   }
 
   // ================= 03 — Performances =================
@@ -826,7 +826,7 @@
     if (act) {
       const a = act.dataset.br;
       if (a === 'quiz' || a === 'redo') openQuiz(a === 'redo' ? { answers: {} } : null);
-      else if (a === 'adjust') openQuiz({ answers: S.plan.answers, result: true });
+      else if (a === 'adjust') openQuiz({ answers: Object.assign({}, S.plan.answers, { algo: S.plan.algo }), result: true });
       return;
     }
     const al = e.target.closest('[data-algo]');

@@ -102,20 +102,52 @@
 .chest-root .br-proj__facts small, .bq-res__facts small{ font-size:11.5px; font-weight:500; color:var(--chest-ink-3); }
 .chest-root .br-proj__acts{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:24px; }
 
-/* Anneau de probabilité et éventail (communs page + quiz) */
-.bq-ring{ position:relative; width:96px; height:96px; flex-shrink:0; }
-.bq-ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
-.bq-ring__bg{ fill:none; stroke:rgba(255,255,255,.07); stroke-width:7; }
-.bq-ring__fg{ fill:none; stroke:#33e6a6; stroke-width:7; stroke-linecap:round; filter:drop-shadow(0 0 6px rgba(51,230,166,.6)); transition:stroke-dasharray .8s cubic-bezier(.16,1,.3,1); }
-.bq-ring b{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:1px; font-size:28px; font-weight:700; letter-spacing:-.04em; font-variant-numeric:tabular-nums; color:#f6f6f7; }
-.bq-ring b small{ font-size:13px; margin-left:1px; color:#9b9ba1; }
+/* Anneau de réussite (communs page + quiz) : piste graduée, arc en dégradé qui se dessine, point lumineux */
+.bq-ring{ --ring-a:#c8fff0; --ring-b:#14b8a6; --ring-glow:rgba(51,230,166,.55); position:relative; width:132px; height:132px; flex-shrink:0; }
+.bq-ring.is-mid{ --ring-a:#fff1c9; --ring-b:#e8b339; --ring-glow:rgba(232,179,57,.45); }
+.bq-ring.is-low{ --ring-a:#ffd0d6; --ring-b:#ff4d5e; --ring-glow:rgba(255,77,94,.4); }
+.bq-ring::before{ content:''; position:absolute; inset:16px; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, var(--ring-b) 16%, transparent), transparent 70%); }
+.bq-ring svg{ position:relative; width:100%; height:100%; overflow:visible; }
+.bq-ring__ticks{ fill:none; stroke:rgba(255,255,255,.12); stroke-width:9; stroke-dasharray:1 4.236; }
+.bq-ring__bg{ fill:none; stroke:rgba(255,255,255,.035); stroke-width:9; }
+.bq-ring__fg{ fill:none; stroke-width:9; stroke-linecap:round; filter:drop-shadow(0 0 8px var(--ring-glow)); animation:bqArc 1.2s cubic-bezier(.16,1,.3,1) both; }
+@keyframes bqArc{ from{ stroke-dashoffset:var(--c); } }
+.bq-ring__dot{ fill:#fff; filter:drop-shadow(0 0 6px var(--ring-glow)); animation:bqFadeIn .4s .9s both; }
+@keyframes bqFadeIn{ from{ opacity:0; } }
+.bq-ring__v{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+.bq-ring__v b{ display:flex; align-items:flex-start; font-size:36px; font-weight:700; letter-spacing:-.05em; line-height:1; font-variant-numeric:tabular-nums; color:#f6f6f7; }
+.bq-ring__v b small{ font-size:14px; font-weight:600; margin:4px 0 0 2px; letter-spacing:0; color:#9b9ba1; }
+.bq-ring__v em{ font-style:normal; font-size:9px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#5c5c63; }
+@media (prefers-reduced-motion:reduce){ .bq-ring__fg, .bq-ring__dot{ animation:none; } }
+
+/* Éventail des futurs */
 .bq-fan{ display:block; width:100%; height:auto; overflow:visible; }
-.bq-fan__grid{ stroke:rgba(255,255,255,.05); }
-.bq-fan__ax{ fill:#5c5c63; font:500 11px "Instrument Sans", system-ui, sans-serif; }
-.bq-fan__mid{ fill:none; stroke:#33e6a6; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 6px rgba(51,230,166,.55)); }
-.bq-fan__goal{ stroke:rgba(200,255,240,.5); stroke-dasharray:5 6; }
-.bq-fan__goal-t{ fill:rgba(200,255,240,.85); font:600 11px "Instrument Sans", system-ui, sans-serif; }
-.bq-fan__dot{ fill:#c8fff0; filter:drop-shadow(0 0 6px rgba(200,255,240,.8)); }
+.bq-fan__grid{ stroke:rgba(255,255,255,.055); stroke-dasharray:2 5; }
+.bq-fan__ax{ fill:#5c5c63; font:500 11px "Instrument Sans", system-ui, sans-serif; font-variant-numeric:tabular-nums; }
+.bq-fan__bands{ animation:bqFadeIn .9s cubic-bezier(.16,1,.3,1) both; }
+.bq-fan__edge{ fill:none; stroke:rgba(127,245,214,.22); stroke-width:1; }
+.bq-fan__glow{ fill:none; stroke-width:7; opacity:.45; stroke-linecap:round; }
+.bq-fan__mid{ fill:none; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1; animation:bqDraw 1.3s .15s cubic-bezier(.16,1,.3,1) both; }
+@keyframes bqDraw{ from{ stroke-dashoffset:1; } to{ stroke-dashoffset:0; } }
+.bq-fan__goal{ stroke:rgba(200,255,240,.45); stroke-dasharray:4 5; }
+.bq-fan__pill{ fill:rgba(5,14,12,.88); stroke:rgba(127,245,214,.35); stroke-width:1; }
+.bq-fan__pill--goal{ stroke:rgba(200,255,240,.25); }
+.bq-fan__goal-t{ fill:#c8fff0; font:600 10.5px "Instrument Sans", system-ui, sans-serif; letter-spacing:.02em; }
+.bq-fan__cross{ stroke:rgba(200,255,240,.22); stroke-dasharray:2 4; }
+.bq-fan__hit{ fill:#c8fff0; filter:drop-shadow(0 0 6px rgba(200,255,240,.9)); }
+.bq-fan__start{ fill:#06110e; stroke:#c8fff0; stroke-width:2; }
+.bq-fan__halo{ fill:rgba(51,230,166,.18); animation:bqPulse 2.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+@keyframes bqPulse{ 50%{ transform:scale(1.5); opacity:.35; } }
+.bq-fan__end{ fill:#c8fff0; filter:drop-shadow(0 0 8px rgba(200,255,240,.9)); }
+.bq-fan__end-t{ fill:#f6f6f7; font:700 12px "Instrument Sans", system-ui, sans-serif; font-variant-numeric:tabular-nums; }
+@media (prefers-reduced-motion:reduce){ .bq-fan__mid, .bq-fan__bands, .bq-fan__halo{ animation:none; } }
+.bq-res__fan{ margin:28px 0 0; }
+.bq-res__fan figcaption, .chest-root .br-proj__fan figcaption{ display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:12px; font-size:11.5px; color:#5c5c63; }
+.bq-res__fan figcaption span, .chest-root .br-proj__fan figcaption span{ display:inline-flex; align-items:center; gap:7px; }
+.bq-res__fan figcaption span:last-child{ margin-left:auto; }
+.bq-key{ width:14px; height:8px; border-radius:3px; display:inline-block; }
+.bq-key--a{ background:rgba(93,245,192,.16); } .bq-key--b{ background:rgba(93,245,192,.34); }
+.bq-key--m{ height:3px; background:#33e6a6; box-shadow:0 0 6px rgba(51,230,166,.8); }
 
 /* Onglets d'algorithme : point sur celui du plan */
 .chest-root .br-mine{ display:inline-block; width:5px; height:5px; margin-left:7px; border-radius:50%; background:var(--br-mint); vertical-align:middle; box-shadow:0 0 8px rgba(51,230,166,.8); }
@@ -155,7 +187,7 @@ html.bq-open, html.bq-open body{ overflow:hidden; }
 .bq-x:hover{ color:#f6f6f7; background:rgba(255,255,255,.09); }
 .bq-bar{ height:2px; margin:0 26px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; }
 .bq-bar i{ display:block; height:100%; background:linear-gradient(90deg,#9bf7dd,#33e6a6,#14b8a6); transform-origin:left; transition:transform .45s var(--bq-ease); box-shadow:0 0 10px rgba(51,230,166,.7); }
-.bq-body{ overflow-y:auto; padding:34px clamp(22px,5vw,52px) 30px; }
+.bq-body{ flex:1; min-height:0; overflow-y:auto; padding:34px clamp(22px,5vw,52px) 30px; }
 .bq-q{ animation:bqStep .35s var(--bq-ease); }
 @keyframes bqStep{ from{ opacity:0; transform:translateX(12px); } }
 @media (prefers-reduced-motion:reduce){ .bq, .bq-box, .bq-q{ animation:none; } }
@@ -191,14 +223,22 @@ html.bq-open, html.bq-open body{ overflow:hidden; }
 .bq-chip:hover{ border-color:rgba(127,245,214,.3); }
 .bq-chip.is-on{ border-color:rgba(51,230,166,.65); background:rgba(51,230,166,.12); }
 
-.bq-algos{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
-.bq-algo{ display:flex; flex-direction:column; gap:14px; padding:20px 22px; }
+.bq-algos{ display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:14px; padding-top:10px; }
+.bq-algo{ position:relative; display:flex; flex-direction:column; gap:14px; padding:22px; }
+.bq-algo.is-top{ border-color:rgba(51,230,166,.3); }
+.bq-algo__badge{ position:absolute; top:-10px; left:20px; height:20px; display:inline-flex; align-items:center; padding:0 10px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#03100c; background:linear-gradient(135deg,#9bf7dd,#33e6a6 50%,#14b8a6); box-shadow:0 6px 20px rgba(51,230,166,.35); }
 .bq-algo__top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .bq-algo__top b{ font-size:18px; letter-spacing:.06em; }
 .bq-algo__top svg{ width:110px; height:34px; }
-.bq-algo__top path{ fill:none; stroke:#33e6a6; stroke-width:1.8; stroke-linejoin:round; filter:drop-shadow(0 0 4px rgba(51,230,166,.6)); }
-.bq-algo__facts{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; font-size:11.5px; color:#5c5c63; }
-.bq-algo__facts b{ display:block; font-size:15px; color:#f6f6f7; font-variant-numeric:tabular-nums; }
+.bq-algo__top path{ fill:none; stroke:#33e6a6; stroke-width:1.8; stroke-linejoin:round; stroke-linecap:round; filter:drop-shadow(0 0 4px rgba(51,230,166,.6)); }
+.bq-algo__prop{ display:flex; align-items:center; gap:16px; min-height:96px; padding-top:14px; border-top:1px solid rgba(255,255,255,.07); }
+.bq-algo__prop .bq-ring{ width:88px; height:88px; }
+.bq-algo__prop .bq-ring__v b{ font-size:24px; } .bq-algo__prop .bq-ring__v b small{ font-size:11px; margin-top:2px; } .bq-algo__prop .bq-ring__v em{ display:none; }
+.bq-algo__prop > span{ display:flex; flex-direction:column; gap:3px; font-size:12.5px; color:#9b9ba1; }
+.bq-algo__prop small{ font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#5c5c63; }
+.bq-algo__prop b{ font-size:16px; color:#f6f6f7; letter-spacing:-.01em; }
+.bq-algo__calc, .bq-algo__none{ display:inline-flex; align-items:center; gap:10px; font-size:12.5px; color:#5c5c63; }
+.bq-algo__calc i{ width:14px; height:14px; border-radius:50%; border:2px solid rgba(51,230,166,.25); border-top-color:#33e6a6; animation:bqSpin .8s linear infinite; }
 .bq-algo__sum{ font-size:12.5px; color:#9b9ba1; line-height:1.5; }
 .bq-auto{ display:flex; align-items:center; gap:14px; width:100%; margin-top:12px; padding:16px 20px; }
 .bq-auto__i{ width:18px; height:18px; border-radius:50%; border:1.5px solid rgba(255,255,255,.25); flex-shrink:0; }
@@ -206,7 +246,7 @@ html.bq-open, html.bq-open body{ overflow:hidden; }
 .bq-auto b{ display:block; font-size:14.5px; }
 .bq-auto small{ font-size:12.5px; color:#9b9ba1; }
 
-.bq-foot{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-top:30px; }
+.bq-foot{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:14px clamp(22px,5vw,52px) 18px; border-top:1px solid rgba(255,255,255,.06); background:rgba(4,9,8,.6); }
 .bq-back{ font:inherit; display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#9b9ba1; background:none; border:none; cursor:pointer; padding:8px 0; }
 .bq-back svg{ width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .bq-back:hover{ color:#f6f6f7; }
@@ -231,7 +271,6 @@ html.bq-open, html.bq-open body{ overflow:hidden; }
 .bq-res__top{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:30px; align-items:center; margin-top:4px; }
 .bq-res__top .bq-res__facts{ margin:0; }
 @media (max-width:620px){ .bq-res__top{ grid-template-columns:1fr; } }
-.bq-res__fan{ margin-top:28px; }
 .bq-note{ margin:10px 0 0; font-size:11.5px; color:#5c5c63; line-height:1.55; }
 .bq-why{ list-style:none; margin:24px 0 0; padding:0; display:grid; gap:10px; }
 .bq-why li{ position:relative; padding-left:18px; font-size:13px; line-height:1.6; color:#9b9ba1; }
@@ -250,7 +289,6 @@ html.bq-open, html.bq-open body{ overflow:hidden; }
 .bq-alt__n{ text-align:right; font-size:10.5px; color:#5c5c63; white-space:nowrap; }
 .bq-alt__n b{ display:block; font-size:13.5px; color:#f6f6f7; font-variant-numeric:tabular-nums; }
 @media (max-width:620px){ .bq-alt{ grid-template-columns:1fr repeat(3,auto); } .bq-alt__tag{ grid-column:1 / -1; } .bq-alt__cfg{ grid-column:1 / -1; } }
-.bq-foot--res{ position:sticky; bottom:-30px; margin:30px -4px -30px; padding:18px 4px 30px; background:linear-gradient(180deg, transparent, rgba(5,9,8,.96) 30%); }
 
 /* Répartition du risque d'un plan diversifié */
 .bq-split{ display:flex; gap:4px; margin:0 0 26px; }
@@ -259,3 +297,27 @@ html.bq-open, html.bq-open body{ overflow:hidden; }
 .bq-split__leg.is-b{ background:linear-gradient(135deg, rgba(45,212,207,.12), rgba(45,212,207,.03)); border-color:rgba(45,212,207,.22); }
 .bq-split__leg b{ font-size:13.5px; letter-spacing:.06em; color:#f6f6f7; }
 @media (max-width:520px){ .bq-split{ flex-direction:column; } .bq-split__leg{ flex:none !important; } }
+
+/* Quiz v3 : multiplicateurs, montant précis, autre algorithme, anneau + texte */
+.bq-mults{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+@media (max-width:560px){ .bq-mults{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.bq-mult{ font:inherit; color:inherit; position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:16px 16px 14px; border-radius:16px; cursor:pointer; text-align:left;
+  background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.08); transition:border-color .2s var(--bq-ease), background .2s var(--bq-ease), transform .16s var(--bq-ease); }
+.bq-mult b{ font-size:26px; font-weight:700; letter-spacing:-.04em; line-height:1; }
+.bq-mult span{ font-size:13px; color:#9b9ba1; font-variant-numeric:tabular-nums; }
+.bq-mult small{ font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#5c5c63; }
+.bq-mult.is-reco small{ color:#33e6a6; }
+.bq-mult:hover{ border-color:rgba(127,245,214,.3); background:rgba(51,230,166,.05); }
+.bq-mult:active{ transform:scale(.98); }
+.bq-mult.is-on{ border-color:rgba(51,230,166,.65); background:rgba(51,230,166,.09); box-shadow:0 0 0 3px rgba(51,230,166,.1); }
+.bq-num--sm{ margin-top:22px; align-items:center; }
+.bq-num--sm input{ font-size:24px; letter-spacing:-.03em; }
+.bq-num--sm > span:last-child{ font-size:18px; }
+.bq-num__k{ font-size:12px; color:#5c5c63; white-space:nowrap; }
+.bq-res__ring p{ margin:0; font-size:13px; line-height:1.6; color:#9b9ba1; max-width:260px; }
+.bq-res__ring p span{ font-size:12px; color:#5c5c63; }
+.bq-switch{ font:inherit; display:flex; align-items:center; gap:10px; width:100%; margin-top:4px; padding:12px 16px; border-radius:18px; cursor:pointer; text-align:left; font-size:13px; color:#9b9ba1;
+  background:none; border:1px dashed rgba(127,245,214,.22); transition:border-color .2s var(--bq-ease), color .2s; }
+.bq-switch b{ color:#33e6a6; font-weight:600; }
+.bq-switch i{ margin-left:auto; font-style:normal; color:#33e6a6; }
+.bq-switch:hover{ border-color:rgba(127,245,214,.45); color:#f6f6f7; }
