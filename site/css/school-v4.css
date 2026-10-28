@@ -51,5 +51,5 @@
    l'ancien School (titre, recherche, portes, nouveautés, étagères). Les membres gardent leurs cours. */
 .sc-edu{ padding:44px 34px 8px; }
 .sc-edu[hidden]{ display:none; }
-#scHome.is-edu > :not(#scEdu){ display:none !important; }
+#scHome.is-staff > :not(#scHub){ display:none !important; }
 @media (max-width:640px){ .sc-edu{ padding:28px 18px 6px; } }

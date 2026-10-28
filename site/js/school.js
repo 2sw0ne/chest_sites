@@ -308,13 +308,13 @@
   });
 
   // Offre Essentiel / essai (2026-10-18) : 2 cours écrits offerts, le reste de School est réservé à
-  // CHEST Premium. L'accueil mène directement aux cours écrits ; le reste s'affiche flouté sous un verrou.
+  // CHEST Premium ; le reste s'affiche flouté sous un verrou. L'accueil (planning de la semaine, infos, suivi —
+  // js/school-hub.js) reste ouvert à tous les membres depuis 2026-10-28 : les lives collectifs sont pour tout le monde.
   const FREE_COURSES = ['base', 'psy'];
   const schoolLimited = () => !!(window.CHESTPlan && !CHESTPlan.allowed('school'));
-  const freeState = (st) => st.v === 'written' || (st.v === 'course' && FREE_COURSES.includes(st.c));
+  const freeState = (st) => st.v === 'home' || st.v === 'written' || (st.v === 'course' && FREE_COURSES.includes(st.c));
   function render(st, opts) {
     opts = opts || {};
-    if (schoolLimited() && st.v === 'home') { st = { v: 'written' }; history.replaceState(st, '', stateUrl(st)); }
     const zone = document.querySelector('main');
     if (schoolLimited() && !freeState(st)) {
       renderView(st, opts);
