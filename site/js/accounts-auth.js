@@ -101,8 +101,8 @@ window.CHESTAccounts = (() => {
     fetch(`${apiBase()}/me/activity`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ page }) }).catch(() => {});
   }
   // Accès donné à la main : `days` (durée) OU `until` (AAAA-MM-JJ, fin de journée) ; ni l'un ni l'autre = sans limite (Privilège).
-  async function setMemberAccess(id, plan, days, until) {
-    return jsonFetch(`/members/${id}/access`, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify({ plan, days, until: until || '' }) });
+  async function setMemberAccess(id, plan, days, until, level) {
+    return jsonFetch(`/members/${id}/access`, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify({ plan, days, until: until || '', level: level || undefined }) });
   }
   // Hiérarchie : member | educator | admin.
   async function setMemberRole(id, role) {

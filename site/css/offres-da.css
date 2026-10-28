@@ -134,3 +134,8 @@ html[data-theme="light"] .chest-root .of-save{ filter:invert(1) hue-rotate(180de
 .of-ed__add:hover{ color:var(--chest-ink); border-color:rgba(249,164,94,.5); }
 .of-ed__add:active, .of-edbar__act button:active{ transform:scale(.97); }
 .of-ed__links{ display:flex; flex-direction:column; gap:8px; margin-top:auto; padding-top:14px; border-top:1px solid var(--chest-border); }
+
+/* Rangs (2026-10-28) : durée de l'offre au-dessus du prix, et un seul prix dans l'éditeur */
+.chest-root .of-dur{ display:inline-flex; align-self:flex-start; font-size:10.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#f9a45e;
+  padding:4px 9px; border-radius:999px; border:1px solid rgba(249,164,94,.35); background:rgba(249,164,94,.07); margin-bottom:6px; }
+.of-ed__prices--one{ grid-template-columns:1fr; }

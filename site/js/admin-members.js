@@ -124,8 +124,8 @@
     if (c === 'trial') return { label: 'Essai gratuit', sub: left != null ? `encore ${plural(Math.max(0, left), 'jour', 'jours')}` : 'en cours', cls: soon };
     if (c === 'expired') return { label: a.plan === 'trial' ? 'Essai terminé' : `${(TIER[a.plan === 'offert' ? 'privilege' : a.plan] || { name: 'Offre' }).name} terminé`, sub: a.endsAt ? `depuis le ${dt(a.endsAt)}` : 'essai utilisé', cls: 'is-bad' };
     if (c === 'none') return { label: 'Aucune offre', sub: `inscrit ${ago(m.createdAt)}`, cls: '' };
-    const per = a.period === 'year' ? 'annuel' : a.period === 'month' ? 'mensuel' : '';
-    const label = `${TIER[c].name}${per ? ' ' + per : ''}`;
+    const per = a.level ? '' : a.period === 'year' ? 'annuel' : a.period === 'month' ? 'mensuel' : '';
+    const label = `${TIER[c].name}${a.level ? ' ' + a.level : ''}${per ? ' ' + per : ''}`;
     if (a.status === 'past_due') return { label, sub: 'paiement en retard', cls: 'is-bad' };
     if (a.status === 'canceling') return { label, sub: `se termine le ${dt(a.endsAt)}`, cls: 'is-warn' };
     return { label, sub: (a.paid ? 'renouvellement le ' : 'jusqu’au ') + dt(a.endsAt), cls: soon };
@@ -762,8 +762,11 @@
       </div>
       <form class="am-block" data-access-form><h3 class="am-sub">Accès</h3>
         <div class="am-opt am-opt--4">${[['offert', 'Privilège', 'Tout, offert'], ['premium', 'Premium', 'Tout CHEST'], ['essentiel', 'Essentiel', 'Sans School ni BERICH'], ['none', 'Aucun', 'Couper l’accès']].map(([k, l, s]) => `<button type="button" data-plan="${k}" aria-pressed="${planNow === k}"><b>${l}</b><small>${s}</small></button>`).join('')}</div>
+        <div data-level-row ${['premium', 'essentiel'].includes(planNow) ? '' : 'hidden'} style="margin-top:14px">
+          <div class="am-dur">${[[1, 'Rang 1 · 3 mois'], [2, 'Rang 2 · 6 mois'], [3, 'Rang 3 · 1 an']].map(([k, l]) => `<button type="button" data-level="${k}" class="${(m.access || {}).level === k ? 'is-active' : ''}">${l}</button>`).join('')}</div>
+        </div>
         <div data-dur-row ${planNow === 'none' ? 'hidden' : ''} style="margin-top:14px">
-          <div class="am-dur">${[['7', '7 jours'], ['30', '30 jours'], ['90', '3 mois'], ['365', '1 an'], ['date', 'Jusqu’au…'], ['', 'Sans limite']].map(([k, l]) => `<button type="button" data-dur="${k}" class="${(planNow === 'offert' ? k === '' : k === '30') ? 'is-active' : ''}" ${k === '' && planNow !== 'offert' ? 'hidden' : ''}>${l}</button>`).join('')}</div>
+          <div class="am-dur">${[['7', '7 jours'], ['30', '30 jours'], ['90', '3 mois'], ['180', '6 mois'], ['365', '1 an'], ['date', 'Jusqu’au…'], ['', 'Sans limite']].map(([k, l]) => `<button type="button" data-dur="${k}" class="${(planNow === 'offert' ? k === '' : k === '30') ? 'is-active' : ''}" ${k === '' && planNow !== 'offert' ? 'hidden' : ''}>${l}</button>`).join('')}</div>
           <input type="date" class="am-date" data-dur-date hidden aria-label="Date de fin" min="${isoDay(new Date(Date.now() + DAY))}">
         </div>
         <div class="am-row-ctl"><button type="submit" class="chest-btn">Appliquer</button><p class="am-msg" data-access-msg role="status"></p></div>
@@ -906,11 +909,19 @@
     const m = S.members.find((x) => x.id === id);
     if (!m) return;
 
+    // Rang 1, 2 ou 3 (2026-10-28) : choisir le rang règle aussi la durée (3 mois, 6 mois, 1 an).
+    const lvlBtn = e.target.closest('[data-level]');
+    if (lvlBtn) {
+      body.querySelectorAll('[data-level]').forEach((x) => x.classList.toggle('is-active', x === lvlBtn));
+      wireDur(body, body.querySelector(`[data-dur="${{ 1: '90', 2: '180', 3: '365' }[lvlBtn.dataset.level]}"]`));
+      return;
+    }
     const planBtn = e.target.closest('[data-plan]');
     if (planBtn) {
       body.querySelectorAll('[data-plan]').forEach((x) => x.setAttribute('aria-pressed', String(x === planBtn)));
       const plan = planBtn.dataset.plan;
       body.querySelector('[data-dur-row]').hidden = plan === 'none';
+      body.querySelector('[data-level-row]').hidden = !['premium', 'essentiel'].includes(plan);
       body.querySelector('[data-dur=""]').hidden = plan !== 'offert';
       // Privilège : « Sans limite » par défaut ; une offre payante garde la durée choisie, sinon 30 jours.
       const cur = body.querySelector('[data-dur].is-active');
@@ -959,7 +970,8 @@
     if (plan !== 'offert' && plan !== 'none' && !dur.days && !dur.until) { say(msg, 'Choisis une durée pour cette offre.', 'err'); return; }
     say(msg, 'Enregistrement…');
     try {
-      await A.setMemberAccess(id, plan, dur.days, dur.until);
+      const lv = form.querySelector('[data-level].is-active');
+      await A.setMemberAccess(id, plan, dur.days, dur.until, ['premium', 'essentiel'].includes(plan) && lv ? Number(lv.dataset.level) : null);
       await reload();
       say($('amDrawerBody').querySelector('[data-access-msg]'), 'Accès mis à jour.', 'ok');
     } catch (err) { say(msg, err.message, 'err'); }

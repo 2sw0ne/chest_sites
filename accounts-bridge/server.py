@@ -359,7 +359,9 @@ def init_db():
                     ("stripe_customer_id", "TEXT"), ("stripe_subscription_id", "TEXT"), ("onboarding", "TEXT"),
                     ("last_login_at", "TEXT"), ("last_seen_at", "TEXT"), ("role", "TEXT"),
                     # Programme éducateur (2026-10-25) : qui a parrainé ce membre, et le taux d'un éducateur
-                    ("referred_by", "INTEGER"), ("commission_rate", "REAL")]
+                    ("referred_by", "INTEGER"), ("commission_rate", "REAL"),
+                    # Rangs (2026-10-28) : Essentiel / Premium 1, 2, 3 = accès de 3, 6, 12 mois
+                    ("plan_level", "INTEGER")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -983,27 +985,29 @@ TRIAL_DAYS = 7
 # allstar) : c'est la clé qui donne les droits (School, BERICH...), le reste n'est que de l'affichage.
 # Le webhook reconnaît l'offre au montant payé : les prix enregistrés ici sont lus en premier, puis les
 # anciens montants (PLAN_AMOUNTS) pour les abonnements pris avant un changement de prix.
-PRICING_KEYS = ("essentiel", "premium", "allstar")
-PRICING_DEFAULT = {"offers": [
-    {"key": "essentiel", "enabled": True, "soon": False, "name": "CHEST Essentiel", "month": 99.98, "year": 1000,
-     "who": "Pour trader en autonomie avec tous les outils",
-     "desc": "Toute la plateforme pour analyser, tester et suivre tes trades.",
-     "linkMonth": "https://buy.stripe.com/3cI3cu3N97kj07i42T2B200", "linkYear": "https://buy.stripe.com/9B6dR8bfBdIH7zK9nd2B201",
-     "feats": [[1, "Tous les scanners et leurs alertes"], [1, "Backtesting et rapports complets"], [1, "Journal de trading"],
-               [1, "Dashboard et comptes reliés"], [1, "Calendrier économique"], [1, "2 cours School offerts"],
-               [0, "School complet et cours vidéo"], [0, "BERICH et suivi des positions"], [0, "Accompagnement personnalisé"]]},
-    {"key": "premium", "enabled": True, "soon": False, "name": "CHEST Premium", "month": 299.98, "year": 3000,
-     "who": "Pour progresser vite, accompagné",
-     "desc": "Tout CHEST, la formation complète et un suivi pour atteindre tes objectifs.",
-     "linkMonth": "https://buy.stripe.com/7sY6oG4Rd0VV5rCgPF2B202", "linkYear": "https://buy.stripe.com/00w9ASabx1ZZ2fq42T2B203",
-     "feats": [[1, "Tout CHEST Essentiel"], [1, "School complet : cours écrits et vidéo"], [1, "BERICH et suivi des positions"],
-               [1, "Accompagnement personnalisé vers tes objectifs"]]},
-    {"key": "allstar", "enabled": True, "soon": True, "name": "CHEST Allstar", "month": None, "year": 9999.98,
-     "who": "Pour déléguer et automatiser",
-     "desc": "Tout CHEST Premium, avec l’automatisation complète de ton trading.",
-     "linkMonth": "", "linkYear": "",
-     "feats": [[1, "Tout CHEST Premium"], [1, "Automatisation complète"], [1, "×2 garanti en 1 an sur ton capital de départ"]]},
-]}
+# v2 (2026-10-28, demande utilisateur) : 3 rangs par offre. Niveau 1 = 3 mois, 2 = 6 mois, 3 = 1 an, payés
+# en une fois. Six emplacements fixes (essentiel1…premium3) : la clé donne les droits et la durée.
+LEVEL_MONTHS = {1: 3, 2: 6, 3: 12}
+PRICING_KEYS = ("essentiel1", "essentiel2", "essentiel3", "premium1", "premium2", "premium3")
+_ESS_FEATS = [[1, "Tous les scanners et leurs alertes"], [1, "Backtesting et rapports complets"], [1, "Journal de trading"],
+              [1, "Dashboard et comptes reliés"], [1, "Calendrier économique"], [1, "2 cours School offerts"],
+              [0, "School complet et cours vidéo"], [0, "BERICH et suivi des positions"], [0, "Accompagnement personnalisé"]]
+_PRE_FEATS = [[1, "Tout CHEST Essentiel"], [1, "School complet : cours écrits et vidéo"], [1, "BERICH et suivi des positions"],
+              [1, "Accompagnement personnalisé par ton éducateur"]]
+
+
+def _default_offer(key):
+    group, level = key[:-1], int(key[-1])
+    ess = group == "essentiel"
+    price = {"essentiel": {1: 250, 2: 500, 3: 1000}, "premium": {1: 1000, 2: 1500, 3: 3000}}[group][level]
+    return {"key": key, "group": group, "level": level, "months": LEVEL_MONTHS[level], "enabled": True, "soon": False,
+            "featured": key == "premium3", "name": f"{'Essentiel' if ess else 'Premium'} {level}", "price": price, "link": "",
+            "who": ("Pour trader en autonomie avec tous les outils" if ess else "Pour progresser vite, accompagné"),
+            "desc": (f"{LEVEL_MONTHS[level]} mois sur toute la plateforme." if ess else f"{LEVEL_MONTHS[level]} mois de CHEST complet, formation et suivi."),
+            "feats": [list(f) for f in (_ESS_FEATS if ess else _PRE_FEATS)]}
+
+
+PRICING_DEFAULT = {"offers": [_default_offer(k) for k in PRICING_KEYS]}
 
 
 def get_pricing():
@@ -1011,7 +1015,9 @@ def get_pricing():
         data = json.loads(get_setting("pricing") or "null")
     except ValueError:
         data = None
-    return data if isinstance(data, dict) and isinstance(data.get("offers"), list) else PRICING_DEFAULT
+    ok = isinstance(data, dict) and isinstance(data.get("offers"), list) and \
+        [o.get("key") for o in data["offers"] if isinstance(o, dict)] == list(PRICING_KEYS)
+    return data if ok else PRICING_DEFAULT  # ancien format (mensuel / annuel) : on repart des nouvelles offres
 
 
 def _clean_text(v, limit):
@@ -1046,23 +1052,24 @@ def validate_pricing(body):
     for key in PRICING_KEYS:
         o = by_key.get(key)
         if o is None:
-            raise ValueError("Les trois emplacements d'offre sont attendus.")
+            raise ValueError("Les six emplacements d'offre sont attendus.")
         feats = []
         for f in (o.get("feats") or [])[:16]:
             if isinstance(f, (list, tuple)) and len(f) == 2:
                 t = _clean_text(f[1], 140)
                 if t:
                     feats.append([1 if f[0] else 0, t])
-        item = {"key": key, "enabled": bool(o.get("enabled")), "soon": bool(o.get("soon")),
+        level = int(key[-1])
+        item = {"key": key, "group": key[:-1], "level": level, "months": LEVEL_MONTHS[level],
+                "enabled": bool(o.get("enabled")), "soon": bool(o.get("soon")), "featured": bool(o.get("featured")),
                 "name": _clean_text(o.get("name"), 40), "who": _clean_text(o.get("who"), 90),
-                "desc": _clean_text(o.get("desc"), 220), "month": _clean_price(o.get("month")),
-                "year": _clean_price(o.get("year")), "linkMonth": _clean_link(o.get("linkMonth")),
-                "linkYear": _clean_link(o.get("linkYear")), "feats": feats}
+                "desc": _clean_text(o.get("desc"), 220), "price": _clean_price(o.get("price")),
+                "link": _clean_link(o.get("link")), "feats": feats}
         if item["enabled"]:
             if not item["name"]:
                 raise ValueError("Chaque offre affichée doit avoir un nom.")
-            if item["month"] is None and item["year"] is None:
-                raise ValueError(f"{item['name']} : indique au moins un prix (mensuel ou annuel).")
+            if item["price"] is None:
+                raise ValueError(f"{item['name']} : indique son prix.")
         out.append(item)
     if not any(o["enabled"] for o in out):
         raise ValueError("Garde au moins une offre affichée.")
@@ -1070,14 +1077,23 @@ def validate_pricing(body):
 
 
 def plan_for_amount(amount):
-    """(offre, période) d'après le montant payé en centimes : prix actuels d'abord, puis les anciens."""
+    """{plan, level, months} d'après le montant payé (centimes) : offres actuelles d'abord, puis les anciens tarifs."""
     amount = int(amount or 0)
     for o in get_pricing().get("offers", []):
-        for period, field in (("month", "month"), ("year", "year")):
-            price = o.get(field)
-            if price and o.get("key") in PLANS and int(round(float(price) * 100)) == amount:
-                return (o["key"], period)
-    return PLAN_AMOUNTS.get(amount)
+        price = o.get("price")
+        if price and o.get("group") in PLANS and int(round(float(price) * 100)) == amount:
+            return {"plan": o["group"], "level": o.get("level"), "months": o.get("months") or LEVEL_MONTHS.get(o.get("level"), 1)}
+    legacy = PLAN_AMOUNTS.get(amount)
+    if legacy:
+        return {"plan": legacy[0], "level": None, "months": 12 if legacy[1] == "year" else 1, "period": legacy[1]}
+    return None
+
+
+def _add_months(dt, n):
+    m = dt.month - 1 + n
+    y, m = dt.year + m // 12, m % 12 + 1
+    import calendar as _cal
+    return dt.replace(year=y, month=m, day=min(dt.day, _cal.monthrange(y, m)[1]))
 
 
 def _iso(dt):
@@ -1107,9 +1123,12 @@ def access_of(row):
         plan_key = plan
         active = plan in PLANS and (ends is None and plan == "offert" or (ends is not None and ends > now))
     feats = PLANS.get(plan_key, {}) if active else {}
+    level = _col(row, "plan_level") if plan in ("essentiel", "premium") else None
+    label = PLANS.get(plan, {}).get("label", "Aucune offre")
     return {
         "plan": plan,
-        "label": PLANS.get(plan, {}).get("label", "Aucune offre"),
+        "level": level,
+        "label": f"{label} {level}" if level else label,
         "period": _col(row, "plan_period"),
         "status": _col(row, "plan_status"),
         "startedAt": _col(row, "plan_started_at"),
@@ -1618,15 +1637,15 @@ def billing_webhook():
             plan = plan_for_amount(amount)
             paid = obj.get("payment_status") in ("paid", "no_payment_required")
             if user and plan and paid:
-                name, period = plan
-                ends = now + (timedelta(days=366) if period == "year" else timedelta(days=31))
+                name, level, months = plan["plan"], plan["level"], plan["months"]
+                ends = _add_months(now, months)
                 sub = obj.get("subscription")
                 cust = obj.get("customer")
-                _set_plan(db, uid, name, period, "active", now, ends,
+                _set_plan(db, uid, name, plan.get("period") or f"{months}m", "active", now, ends,
                           stripe_subscription_id=(sub.get("id") if isinstance(sub, dict) else sub),
                           stripe_customer_id=(cust.get("id") if isinstance(cust, dict) else cust),
-                          plan_amount=int(obj.get("amount_total") or 0))
-                summary = f"Paiement {PLANS[name]['label']} ({'annuel' if period == 'year' else 'mensuel'})"
+                          plan_amount=int(obj.get("amount_total") or 0), plan_level=level)
+                summary = f"Paiement {PLANS[name]['label']}{' ' + str(level) if level else ''} ({months} mois)"
             elif user and not paid:
                 summary = "Paiement en attente de confirmation"
             else:
@@ -1736,9 +1755,11 @@ def member_access(member_id):
         return jsonify({"error": "Indique une durée pour cette offre."}), 400
     with db_lock:
         if plan == "none":
-            _set_plan(db, member_id, "none", None, "manual", None, None)
+            _set_plan(db, member_id, "none", None, "manual", None, None, plan_level=None)
         else:
-            _set_plan(db, member_id, plan, None, "manual", now, ends)
+            lvl = (request.get_json(silent=True) or {}).get("level")
+            lvl = int(lvl) if str(lvl) in ("1", "2", "3") and plan in ("essentiel", "premium") else None
+            _set_plan(db, member_id, plan, f"{LEVEL_MONTHS[lvl]}m" if lvl else None, "manual", now, ends, plan_level=lvl)
         _log_billing(db, f"manual-{member_id}-{int(time.time())}", member_id, "manual", 0,
                      f"Accès modifié par l'admin : {PLANS.get(plan, {}).get('label', 'aucun accès')}" + (f" jusqu'au {ends.strftime('%d/%m/%Y')}" if ends else (" sans limite" if plan == "offert" else "")))
         db.commit()
@@ -1866,7 +1887,9 @@ def admin_stats():
             paying += 1
             amount = _col(r, "plan_amount")
             if amount:
-                mrr += amount / 100 / (12 if a["period"] == "year" else 1)
+                per = a["period"] or ""
+                months = 12 if per == "year" else (int(per[:-1]) if per.endswith("m") and per[:-1].isdigit() else 1)
+                mrr += amount / 100 / months
             else:
                 mrr += MONTHLY_VALUE.get((a["plan"], a["period"] or "month"), 0)
 

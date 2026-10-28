@@ -14,11 +14,11 @@
 <link rel="stylesheet" href="css/chest-da.css?v=18">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/connect-da.css?v=1">
-<link rel="stylesheet" href="css/offres-da.css?v=2">
+<link rel="stylesheet" href="css/offres-da.css?v=3">
 <script src="js/theme.js?v=4"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=8"></script>
+<script src="js/accounts-auth.js?v=9"></script>
 <script>if (!CHESTAccounts.isLoggedIn()) window.location.replace('/connexion');</script>
 </head>
 <!--
@@ -79,8 +79,8 @@
       <p class="cx-sub">Une offre, tout l'outil. Tu peux changer ou arrêter quand tu veux depuis ton compte.</p>
       <div class="of-billing">
         <div class="cx-seg" role="group" aria-label="Facturation" id="ofBilling">
-          <button type="button" data-billing="month" aria-pressed="false">Mensuel</button>
-          <button type="button" data-billing="year" aria-pressed="true">Annuel<span class="of-save">2 mois offerts</span></button>
+          <button type="button" data-billing="premium" aria-pressed="true">Premium</button>
+          <button type="button" data-billing="essentiel" aria-pressed="false">Essentiel</button>
         </div>
       </div>
     </div>
@@ -130,40 +130,21 @@
   const query = new URLSearchParams(location.search);
 
   // ---------------- Offres ----------------
-  // Prix TTC. En annuel, on affiche le prix ramené au mois, avec le prix mensuel barré.
-  // Depuis le 2026-10-21, les offres payantes viennent du serveur (GET /pricing), modifiables par l'admin
-  // en mode édition sur cette page. OFFERS ci-dessous ne sert que de secours hors ligne (mêmes valeurs que
-  // PRICING_DEFAULT côté serveur). Trois emplacements fixes : la clé donne les droits, le reste s'affiche.
-  const GRATUIT = {
-    name: 'Essai gratuit', free: true, monthOnly: true,
-    who: 'Pour découvrir CHEST sans engagement',
-    desc: '7 jours sur tout CHEST Essentiel, sans carte bancaire.',
-    feats: [[1, 'Tout CHEST Essentiel pendant 7 jours'], [1, 'Sans carte bancaire'], [1, 'Tes données restent sur ton appareil'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions']],
-  };
-  const RIGHTS = { essentiel: 'Essentiel', premium: 'Premium', allstar: 'Allstar' };
-  const sl = cfg.stripeLinks || {};
-  let OFFERS = [
-    { key: 'essentiel', enabled: true, soon: false, name: 'CHEST Essentiel', month: 99.98, year: 1000,
-      who: 'Pour trader en autonomie avec tous les outils', desc: 'Toute la plateforme pour analyser, tester et suivre tes trades.',
-      linkMonth: sl.essentiel_month || '', linkYear: sl.essentiel_year || '',
-      feats: [[1, 'Tous les scanners et leurs alertes'], [1, 'Backtesting et rapports complets'], [1, 'Journal de trading'], [1, 'Dashboard et comptes reliés'], [1, 'Calendrier économique'], [1, '2 cours School offerts'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions'], [0, 'Accompagnement personnalisé']] },
-    { key: 'premium', enabled: true, soon: false, name: 'CHEST Premium', month: 299.98, year: 3000,
-      who: 'Pour progresser vite, accompagné', desc: 'Tout CHEST, la formation complète et un suivi pour atteindre tes objectifs.',
-      linkMonth: sl.premium_month || '', linkYear: sl.premium_year || '',
-      feats: [[1, 'Tout CHEST Essentiel'], [1, 'School complet : cours écrits et vidéo'], [1, 'BERICH et suivi des positions'], [1, 'Accompagnement personnalisé vers tes objectifs']] },
-    { key: 'allstar', enabled: true, soon: true, name: 'CHEST Allstar', month: null, year: 9999.98,
-      who: 'Pour déléguer et automatiser', desc: 'Tout CHEST Premium, avec l’automatisation complète de ton trading.',
-      linkMonth: '', linkYear: sl.allstar_year || '',
-      feats: [[1, 'Tout CHEST Premium'], [1, 'Automatisation complète'], [1, '×2 garanti en 1 an sur ton capital de départ']] },
-  ];
-  let PLANS = {};
-  function buildPlans() {
-    PLANS = { gratuit: GRATUIT };
-    OFFERS.filter((o) => o.enabled).forEach((o) => {
-      PLANS[o.key] = { ...o, yearOnly: o.month == null, monthOnly: o.year == null };
-    });
-  }
-  buildPlans();
+  // v2 (2026-10-28) : deux offres, Essentiel et Premium, chacune en 3 rangs payés en une fois :
+  // rang 1 = 3 mois, rang 2 = 6 mois, rang 3 = 1 an. Les offres viennent du serveur (GET /pricing, modifiables
+  // par l'admin en mode édition) ; OFFERS ci-dessous ne sert que de secours hors ligne (= PRICING_DEFAULT).
+  const MONTHS = { 1: 3, 2: 6, 3: 12 };
+  const ESS_FEATS = [[1, 'Tous les scanners et leurs alertes'], [1, 'Backtesting et rapports complets'], [1, 'Journal de trading'], [1, 'Dashboard et comptes reliés'], [1, 'Calendrier économique'], [1, '2 cours School offerts'], [0, 'School complet et cours vidéo'], [0, 'BERICH et suivi des positions'], [0, 'Accompagnement personnalisé']];
+  const PRE_FEATS = [[1, 'Tout CHEST Essentiel'], [1, 'School complet : cours écrits et vidéo'], [1, 'BERICH et suivi des positions'], [1, 'Accompagnement personnalisé par ton éducateur']];
+  const mk = (group, level, price) => ({
+    key: group + level, group, level, months: MONTHS[level], enabled: true, soon: false, featured: group === 'premium' && level === 3,
+    name: (group === 'premium' ? 'Premium ' : 'Essentiel ') + level, price, link: '',
+    who: group === 'premium' ? 'Pour progresser vite, accompagné' : 'Pour trader en autonomie avec tous les outils',
+    desc: group === 'premium' ? `${MONTHS[level]} mois de CHEST complet, formation et suivi.` : `${MONTHS[level]} mois sur toute la plateforme.`,
+    feats: (group === 'premium' ? PRE_FEATS : ESS_FEATS).map((f) => f.slice()),
+  });
+  let OFFERS = [mk('essentiel', 1, 250), mk('essentiel', 2, 500), mk('essentiel', 3, 1000), mk('premium', 1, 1000), mk('premium', 2, 1500), mk('premium', 3, 3000)];
+  const GROUP_NAME = { essentiel: 'Essentiel', premium: 'Premium' };
   async function loadPricing() {
     try {
       const ctrl = new AbortController();
@@ -171,61 +152,47 @@
       const res = await fetch(A.apiBase() + '/pricing', { signal: ctrl.signal });
       clearTimeout(t);
       const data = await res.json();
-      if (res.ok && Array.isArray(data.offers) && data.offers.length) { OFFERS = data.offers; buildPlans(); }
+      if (res.ok && Array.isArray(data.offers) && data.offers.length === 6) OFFERS = data.offers;
     } catch (e) { /* hors ligne : offres de secours ci-dessus */ }
   }
-  let billing = 'year';
+  let billing = 'premium'; // onglet affiché : 'premium' | 'essentiel'
   let reco = null;
   let answers = null;
-  try { const saved = JSON.parse(localStorage.getItem(ONB_KEY) || 'null'); if (saved && saved.answers) { answers = saved.answers; reco = saved.reco; } } catch (e) { /* rien */ }
+  try { const saved = JSON.parse(localStorage.getItem(ONB_KEY) || 'null'); if (saved && saved.answers) { answers = saved.answers; reco = saved.reco === 'allstar' ? 'premium' : saved.reco; } } catch (e) { /* rien */ }
+  if (reco === 'essentiel' || reco === 'premium') billing = reco;
 
   const user = () => A.getUser() || {};
   const acc = () => user().access || {};
-  const currentPaid = () => { const a = acc(); return a.active && ['essentiel', 'premium', 'allstar'].includes(a.plan) ? a.plan : null; };
-  const linkFor = (plan, period) => { const p = PLANS[plan] || {}; return String((period === 'year' ? p.linkYear : p.linkMonth) || '').trim(); };
+  // L'offre en cours sous la forme de sa clé (premium2…), ou le groupe seul pour un ancien abonnement sans rang.
+  const currentKey = () => { const a = acc(); return a.active && ['essentiel', 'premium'].includes(a.plan) ? a.plan + (a.level || '') : null; };
   const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
+  const durTxt = (m) => (m === 12 ? '1 an' : `${m} mois`);
 
-  function priceHtml(p) {
-    if (p.free) return '<div class="of-price"><span class="of-was" aria-hidden="true"></span><div class="cx-plan__price"><b>0</b><span>€</span></div><span class="of-bill">pendant 7 jours, puis tu choisis ton offre</span></div>';
-    // Allstar : annuel seulement, affiché à son vrai prix annuel.
-    if (p.yearOnly) return `<div class="of-price"><span class="of-was" aria-hidden="true"></span><div class="cx-plan__price"><b>${eur(p.year)}</b><span>€/an</span></div><span class="of-bill">engagement annuel</span></div>`;
-    const period = billing;
-    const perMonth = period === 'year' ? p.year / 12 : p.month;
-    const was = period === 'year' && p.month ? `<span class="of-was">${eur(p.month)} €</span>` : '<span class="of-was" aria-hidden="true"></span>';
-    const bill = p.yearOnly ? 'par mois, engagement annuel' : period === 'year' ? 'par mois, facturé annuellement' : 'par mois, sans engagement';
-    return `<div class="of-price">${was}<div class="cx-plan__price"><b>${eur(perMonth)}</b><span>€/mois</span></div><span class="of-bill">${bill}</span></div>`;
+  function priceHtml(o) {
+    const perMonth = o.price / o.months;
+    return `<div class="of-price"><span class="of-dur">${durTxt(o.months)} d’accès</span><div class="cx-plan__price"><b>${eur(o.price)}</b><span>€</span></div><span class="of-bill">payé une fois · soit ${eur(perMonth)} €/mois</span></div>`;
   }
 
   function renderPlans() {
-    const paid = currentPaid();
-    const a = acc();
-    // Mensuel : Essai gratuit, Essentiel, Premium. Annuel : Essentiel, Premium, Allstar.
     if (editing) { renderEditor(); return; }
-    const shown = Object.entries(PLANS).filter(([, p]) => (billing === 'month' ? !p.yearOnly : !p.monthOnly) && !(p.free && (paid || user().isAdmin)));
+    const cur = currentKey();
+    const shown = OFFERS.filter((o) => o.enabled && o.group === billing);
     $('#ofPlans').style.setProperty('--n', String(Math.max(1, shown.length)));
-    $('#ofPlans').innerHTML = shown.map(([key, p]) => {
-      const isCur = paid === key;
-      const isReco = !paid && reco === key && !!PLANS[reco];
-      const period = p.yearOnly ? 'year' : billing;
+    $('#ofPlans').innerHTML = shown.map((o) => {
+      const isCur = cur === o.key;
       let cta, disabled = false;
-      if (p.free) {
-        if (a.trial && a.active) cta = 'Continuer l\u2019essai';
-        else if (a.trialUsed) { cta = 'Essai déjà utilisé'; disabled = true; }
-        else cta = 'Commencer l\u2019essai';
-      }
-      else if (p.soon) { cta = 'Bientôt disponible'; disabled = true; }
+      if (o.soon) { cta = 'Bientôt disponible'; disabled = true; }
       else if (isCur) cta = 'Aller sur CHEST';
-      else if (paid) cta = 'Changer d’offre';
-      else cta = 'Choisir ' + p.name.replace('CHEST ', '');
-      const tag = p.soon ? '<span class="of-tag of-tag--soon">Bientôt</span>' : isCur ? '<span class="of-tag of-tag--current">Ton offre</span>' : '';
-      return `<article class="cx-plan ${isReco ? 'is-reco' : ''} ${p.soon ? 'is-soon' : ''} ${isCur ? 'is-current' : ''}" aria-label="Offre ${esc(p.name)}">
-        <span class="cx-plan__badge">Recommandé pour toi</span>${tag}
-        <div class="cx-plan__name">${esc(p.name)}</div>
-        ${priceHtml(p)}
-        <div class="cx-plan__who">${esc(p.who)}</div>
-        <p class="cx-plan__desc">${esc(p.desc)}</p>
-        <ul class="cx-feats">${p.feats.map(([on, t]) => `<li class="${on ? '' : 'is-off'}"><span class="cx-check" aria-hidden="true">${on ? CHECK : DASH}</span><span><span class="cx-sr">${on ? 'Inclus : ' : 'Non inclus : '}</span>${esc(t)}</span></li>`).join('')}</ul>
-        <div class="cx-plan__cta"><button type="button" class="cx-pill" data-plan="${key}" data-period="${period}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${esc(cta)}</button></div>
+      else cta = 'Choisir ' + o.name;
+      const tag = o.soon ? '<span class="of-tag of-tag--soon">Bientôt</span>' : isCur ? '<span class="of-tag of-tag--current">Ton offre</span>' : '';
+      return `<article class="cx-plan ${o.featured ? 'is-reco' : ''} ${o.soon ? 'is-soon' : ''} ${isCur ? 'is-current' : ''}" aria-label="Offre ${esc(o.name)}">
+        <span class="cx-plan__badge">La plus recommandée</span>${tag}
+        <div class="cx-plan__name">${esc(o.name)}</div>
+        ${priceHtml(o)}
+        <div class="cx-plan__who">${esc(o.who)}</div>
+        <p class="cx-plan__desc">${esc(o.desc)}</p>
+        <ul class="cx-feats">${o.feats.map(([on, t]) => `<li class="${on ? '' : 'is-off'}"><span class="cx-check" aria-hidden="true">${on ? CHECK : DASH}</span><span><span class="cx-sr">${on ? 'Inclus : ' : 'Non inclus : '}</span>${esc(t)}</span></li>`).join('')}</ul>
+        <div class="cx-plan__cta"><button type="button" class="cx-pill" data-plan="${o.key}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${esc(cta)}</button></div>
       </article>`;
     }).join('');
     document.querySelectorAll('#ofBilling button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.billing === billing)));
@@ -236,8 +203,7 @@
     const a = acc();
     const btn = $('#ofTrialBtn');
     const box = $('#ofTrial');
-    // En mensuel, l'essai est la carte de gauche : le bandeau ne sert qu'en annuel.
-    box.hidden = !!currentPaid() || !!user().isAdmin || billing === 'month' || editing;
+    box.hidden = !!currentKey() || !!user().isAdmin || editing;
     if (a.trial && a.active) {
       $('#ofTrialTitle').textContent = 'Ton essai gratuit est en cours';
       $('#ofTrialText').textContent = `Il se termine le ${fmtDate(a.endsAt)}. Tes données restent sur ton appareil jusqu'à ce que tu choisisses une offre ; elles te suivront ensuite.`;
@@ -253,13 +219,12 @@
 
   function recoSentence() {
     const el = $('#ofReco');
-    if (!reco || currentPaid() || editing || !PLANS[reco]) { el.hidden = true; return; }
+    if (!reco || currentKey() || editing || !GROUP_NAME[reco]) { el.hidden = true; return; }
     const why = {
       essentiel: 'Tu as déjà des bases solides : les outils de CHEST suffisent pour structurer et faire progresser ton trading.',
-      premium: 'Avec la formation complète, BERICH et un accompagnement personnalisé, tu progresses plus vite et tu évites les erreurs classiques.',
-      allstar: 'Tu veux automatiser ton trading : Allstar est fait pour toi. Il ouvre bientôt ; en attendant, Premium te donne tout le reste.',
+      premium: 'Avec la formation complète, BERICH et l’accompagnement de ton éducateur, tu progresses plus vite et tu évites les erreurs classiques.',
     }[reco];
-    el.innerHTML = `D'après tes réponses, on te conseille <b>${esc(PLANS[reco].name)}</b>. ${esc(why)}`;
+    el.innerHTML = `D'après tes réponses, on te conseille l’offre <b>${esc(GROUP_NAME[reco])}</b>. ${esc(why)}`;
     el.hidden = false;
   }
 
@@ -270,17 +235,11 @@
 
   $('#ofPlans').addEventListener('click', (e) => {
     const b = e.target.closest('[data-plan]');
-    if (!b || b.disabled) return;
-    const plan = b.dataset.plan, period = b.dataset.period;
-    if (plan === 'gratuit') { trialFlow(b); return; }
-    if (currentPaid() === plan) { goToApp(); return; }
-    if (currentPaid()) {
-      // Déjà abonné : changer d'offre passe par le portail Stripe (sinon deux abonnements en parallèle).
-      if (cfg.stripePortal) { window.location.href = cfg.stripePortal; return; }
-      notice('Pour changer d’offre, écris-nous : le changement se fait sans double paiement.');
-      return;
-    }
-    const link = linkFor(plan, period);
+    if (!b || b.disabled || editing) return;
+    const key = b.dataset.plan;
+    if (currentKey() === key) { goToApp(); return; }
+    const o = OFFERS.find((x) => x.key === key) || {};
+    const link = String(o.link || '').trim();
     if (!link) { notice('Le paiement en ligne de cette offre ouvre très bientôt.'); return; }
     const u = user();
     const sep = link.includes('?') ? '&' : '?';
@@ -292,7 +251,6 @@
     billing = b.dataset.billing;
     renderPlans();
   });
-  // Essai : carte de gauche (mensuel) ou bandeau (annuel), même logique.
   async function trialFlow(btn) {
     const a = acc();
     if (a.trial && a.active) { goToApp(); return; }
@@ -343,16 +301,16 @@
   function renderEditor() {
     const ed = (f, cls, ph, v) => `<div class="${cls} of-ed__txt" contenteditable="plaintext-only" spellcheck="true" data-f="${f}" data-ph="${esc(ph)}">${esc(v)}</div>`;
     $('#ofPlans').style.setProperty('--n', '3');
-    $('#ofPlans').innerHTML = edDraft.map((o, i) => `<article class="cx-plan of-ed ${o.enabled ? '' : 'is-off'}" data-i="${i}" aria-label="Édition de l'offre ${esc(o.name)}">
+    $('#ofPlans').innerHTML = edDraft.map((o, i) => (o.group !== billing ? '' : `<article class="cx-plan of-ed ${o.enabled ? '' : 'is-off'}" data-i="${i}" aria-label="Édition de l'offre ${esc(o.name)}">
       <div class="of-ed__bar">
-        <span class="of-ed__slot">Droits ${esc(RIGHTS[o.key] || o.key)}</span>
+        <span class="of-ed__slot">${esc(GROUP_NAME[o.group])} ${o.level} · ${durTxt(o.months)}</span>
         <label class="of-ed__sw"><input type="checkbox" data-f="enabled" ${o.enabled ? 'checked' : ''}><span aria-hidden="true"></span>Affichée</label>
+        <label class="of-ed__sw"><input type="checkbox" data-f="featured" ${o.featured ? 'checked' : ''}><span aria-hidden="true"></span>Recommandée</label>
         <label class="of-ed__sw"><input type="checkbox" data-f="soon" ${o.soon ? 'checked' : ''}><span aria-hidden="true"></span>Bientôt</label>
       </div>
       ${ed('name', 'cx-plan__name', 'Nom de l’offre', o.name)}
-      <div class="of-ed__prices">
-        <label class="of-ed__field"><span>Mensuel</span><input type="text" inputmode="decimal" data-f="month" value="${esc(fmtNum(o.month))}" placeholder="—" aria-label="Prix mensuel en euros"><i>€/mois</i></label>
-        <label class="of-ed__field"><span>Annuel</span><input type="text" inputmode="decimal" data-f="year" value="${esc(fmtNum(o.year))}" placeholder="—" aria-label="Prix annuel en euros"><i>€/an</i></label>
+      <div class="of-ed__prices of-ed__prices--one">
+        <label class="of-ed__field"><span>Prix pour ${durTxt(o.months)}</span><input type="text" inputmode="decimal" data-f="price" value="${esc(fmtNum(o.price))}" placeholder="—" aria-label="Prix en euros"><i>€</i></label>
       </div>
       ${ed('who', 'cx-plan__who', 'Pour qui', o.who)}
       ${ed('desc', 'cx-plan__desc', 'Description courte', o.desc)}
@@ -363,10 +321,10 @@
       </li>`).join('')}</ul>
       <button type="button" class="of-ed__add" data-act="add" ${o.feats.length >= 16 ? 'disabled' : ''}>+ Ajouter un élément</button>
       <div class="of-ed__links">
-        <label class="of-ed__field of-ed__field--link"><span>Lien Stripe mensuel</span><input type="url" data-f="linkMonth" value="${esc(o.linkMonth || '')}" placeholder="https://buy.stripe.com/…" spellcheck="false"></label>
-        <label class="of-ed__field of-ed__field--link"><span>Lien Stripe annuel</span><input type="url" data-f="linkYear" value="${esc(o.linkYear || '')}" placeholder="https://buy.stripe.com/…" spellcheck="false"></label>
+        <label class="of-ed__field of-ed__field--link"><span>Lien de paiement Stripe</span><input type="url" data-f="link" value="${esc(o.link || '')}" placeholder="https://buy.stripe.com/…" spellcheck="false"></label>
       </div>
-    </article>`).join('');
+    </article>`)).join('');
+    document.querySelectorAll('#ofBilling button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.billing === billing)));
   }
 
   const plansEl = $('#ofPlans');
@@ -377,8 +335,8 @@
     const t = e.target;
     const f = t.dataset.f;
     if (t.dataset.feat != null) o.feats[+t.dataset.feat][1] = t.textContent.replace(/\s+/g, ' ').trim();
-    else if (f === 'month' || f === 'year') { const n = parseNum(t.value); t.classList.toggle('is-bad', Number.isNaN(n)); if (!Number.isNaN(n)) o[f] = n; }
-    else if (f === 'linkMonth' || f === 'linkYear') o[f] = t.value.trim();
+    else if (f === 'price') { const n = parseNum(t.value); t.classList.toggle('is-bad', Number.isNaN(n)); if (!Number.isNaN(n)) o[f] = n; }
+    else if (f === 'link') o[f] = t.value.trim();
     else if (f && t.isContentEditable) o[f] = t.textContent.replace(/\s+/g, ' ').trim();
     edState();
   });
@@ -414,14 +372,14 @@
     if (plansEl.querySelector('.is-bad')) { edState('Un prix n’est pas un nombre valide.', 'err'); return; }
     // Prix changé mais même lien Stripe : le client paierait l'ancien montant.
     const before = JSON.parse(savedJson);
-    const stale = edDraft.filter((o, i) => o.enabled && !o.soon && [['month', 'linkMonth'], ['year', 'linkYear']].some(([f, l]) => o[f] != null && before[i][f] !== o[f] && o[l] && o[l] === before[i][l]));
+    const stale = edDraft.filter((o, i) => o.enabled && !o.soon && o.price != null && before[i].price !== o.price && o.link && o.link === before[i].link);
     if (stale.length && !confirm(`Prix modifié pour ${stale.map((o) => o.name).join(', ')}, avec le même lien Stripe.\n\nCrée dans Stripe un lien de paiement au nouveau montant et colle-le dans la carte, sinon le client paiera l'ancien prix.\n\nEnregistrer quand même ?`)) return;
     btn.disabled = true; btn.textContent = 'Enregistrement…';
     try {
       const res = await fetch(A.apiBase() + '/pricing', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ offers: edDraft }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Enregistrement impossible.');
-      OFFERS = data.offers; buildPlans();
+      OFFERS = data.offers;
       edDraft = JSON.parse(JSON.stringify(OFFERS)); savedJson = JSON.stringify(edDraft);
       renderEditor();
       edState('Enregistré : les offres sont à jour pour tout le monde.', 'ok');
@@ -454,7 +412,7 @@
   const visible = () => Q.filter((q) => !q.when || q.when(draft));
 
   function recommend(a) {
-    if (a.goal === 'automate' && a.budget === 'gt1000') return 'allstar';
+    if (a.goal === 'automate' && a.budget === 'gt1000') return 'premium';
     if (a.budget === 'lt100') return 'essentiel';
     let p = 0;
     if (a.goal === 'learn') p += 3; else if (a.goal === 'improve') p += 2; else if (a.goal === 'automate') p += 1;
@@ -507,7 +465,7 @@
     reco = recommend(answers);
     try { localStorage.setItem(ONB_KEY, JSON.stringify({ answers, reco })); } catch (e) { /* tant pis */ }
     A.saveOnboarding(answers, reco).catch(() => { /* les réponses restent sur l'appareil */ });
-    if (reco === 'essentiel' || reco === 'allstar') billing = 'year';
+    if (reco === 'essentiel' || reco === 'premium') billing = reco;
     show('offers');
   }
 
@@ -554,7 +512,7 @@
     $('#ofWait').hidden = view !== 'wait';
     if (view === 'quiz') renderQuiz();
     if (view === 'offers') { renderPlans(); recoSentence(); }
-    $('#ofBilling').parentElement.hidden = editing;
+    $('#ofBilling').parentElement.hidden = false;
     window.scrollTo(0, 0);
   }
 
@@ -572,7 +530,7 @@
     if (query.get('paiement') === 'ok') { startWait(); return; }
     if (query.get('paiement') === 'annule') notice('Paiement annulé : rien n’a été débité. Tu peux choisir une autre offre ou réessayer.');
     else if (query.get('raison') === 'fin' && !a.active && (a.trialUsed || (a.plan && a.plan !== 'none'))) notice(a.trial || a.trialUsed ? 'Ton essai gratuit est terminé. Choisis une offre pour continuer, tes données sont conservées.' : 'Ton accès a pris fin. Choisis une offre pour retrouver CHEST.');
-    if (!answers && !currentPaid() && !user().isAdmin) showQuiz(0); else show('offers');
+    if (!answers && !currentKey() && !user().isAdmin) showQuiz(0); else show('offers');
   }
   start();
 })();

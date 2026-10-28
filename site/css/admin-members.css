@@ -636,3 +636,4 @@
 .am-pay__st{ font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); }
 .am-pay__st.is-paid{ color:#33e6a6; border-color:rgba(51,230,166,.35); } .am-pay__st.is-refused{ color:#ff4d5e; border-color:rgba(255,77,94,.35); }
 @media (max-width:980px){ .am-pay{ grid-template-columns:1fr auto; } .am-pay__to, .am-pay__act{ grid-column:1 / -1; justify-content:flex-start; } }
+[data-level-row][hidden]{ display:none; }
