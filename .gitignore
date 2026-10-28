@@ -32,6 +32,7 @@ Thumbs.db
 
 # Base de comptes utilisateurs (emails + hashs de mots de passe) - jamais dans le repo
 accounts-bridge/accounts.db
+accounts-bridge/data.key
 
 # Vrai code source Pine des algos (WolfX/Algomni/SWYPER/Pivot) - JAMAIS dans le repo (public sur
 # GitHub, voir scanner-store.js) : servi uniquement via /scanners (accounts-bridge/server.py),

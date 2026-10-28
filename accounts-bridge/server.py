@@ -250,6 +250,19 @@ def init_db():
         """)
         db.execute("CREATE INDEX IF NOT EXISTS idx_udh_user_key ON user_data_history (user_id, key, id)")
         # Programme éducateur (2026-10-25) : lien d'invitation, coordonnées de paiement, demandes de retrait.
+        # Connexion BERICH « clé en main » (Premium 3, 2026-10-28) : le membre donne son broker et ses accès MT5,
+        # son éducateur installe le VPS lui-même. Mot de passe chiffré (Fernet, clé hors base).
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS berich_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                educator_id INTEGER,
+                broker_id TEXT, broker_name TEXT, kind TEXT, server TEXT, login TEXT, password_enc TEXT,
+                phase TEXT, rules TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL, done_at TEXT, note TEXT
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS edu_invites (
                 code TEXT PRIMARY KEY,
@@ -916,6 +929,8 @@ def delete_member(member_id):
         db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
+        db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
+        db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
         db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
@@ -1439,6 +1454,106 @@ def edu_overview():
     if err:
         return err
     return jsonify(edu_report(get_db(), who))
+
+
+# ---------------------------------------------------------------- Connexion BERICH clé en main (2026-10-28)
+_FERNET = None
+
+
+def _fernet():
+    """Clé de chiffrement des accès MT5 : variable DATA_KEY, sinon un fichier data.key créé une fois sur le volume."""
+    global _FERNET
+    if _FERNET is None:
+        from cryptography.fernet import Fernet
+        key = os.environ.get("DATA_KEY", "").encode()
+        if not key:
+            kp = os.path.join(DB_DIR, "data.key")
+            if not os.path.exists(kp):
+                with open(kp, "wb") as f:
+                    f.write(Fernet.generate_key())
+            with open(kp, "rb") as f:
+                key = f.read().strip()
+        _FERNET = Fernet(key)
+    return _FERNET
+
+
+def _req_public(r, reveal=False):
+    out = {"id": r["id"], "userId": r["user_id"], "brokerId": r["broker_id"], "broker": r["broker_name"], "kind": r["kind"],
+           "server": r["server"], "login": r["login"], "phase": r["phase"], "rules": json.loads(r["rules"] or "{}"),
+           "status": r["status"], "createdAt": r["created_at"], "doneAt": r["done_at"], "note": r["note"] or ""}
+    if reveal and r["password_enc"]:
+        try:
+            out["password"] = _fernet().decrypt(r["password_enc"].encode()).decode()
+        except Exception:
+            out["password"] = None
+    return out
+
+
+@app.route("/berich/requests", methods=["GET", "POST"])
+def berich_requests():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    if request.method == "GET":
+        r = db.execute("SELECT * FROM berich_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user["id"],)).fetchone()
+        return jsonify({"request": _req_public(r) if r else None})
+    a = access_of(user)
+    if not (a["berich"] and (a.get("level") == 3 or user["is_admin"] or _col(user, "role") == "educator")):
+        return jsonify({"error": "La connexion clé en main est incluse dans Premium 3."}), 403
+    b = request.get_json(silent=True) or {}
+    clean = lambda v, n: re.sub(r"\s+", " ", str(v or "")).strip()[:n]
+    broker, server, login, password = clean(b.get("broker"), 60), clean(b.get("server"), 80), clean(b.get("login"), 40), str(b.get("password") or "")[:120]
+    if not broker:
+        return jsonify({"error": "Choisis ton broker ou ta propfirm."}), 400
+    if not server:
+        return jsonify({"error": "Indique le serveur MT5 de ton compte."}), 400
+    if not re.fullmatch(r"[0-9]{4,20}", login):
+        return jsonify({"error": "Le numéro de compte MT5 ne contient que des chiffres."}), 400
+    if len(password) < 4:
+        return jsonify({"error": "Indique le mot de passe MT5 (principal) de ce compte."}), 400
+    kind = "propfirm" if b.get("kind") == "propfirm" else "broker"
+    phase = clean(b.get("phase"), 20) if kind == "propfirm" else ""
+    rules = {}
+    for k in ("minDays", "target", "dailyLoss", "maxLoss"):
+        v = (b.get("rules") or {}).get(k)
+        try:
+            rules[k] = float(str(v).replace(",", ".")) if v not in (None, "") else None
+        except ValueError:
+            rules[k] = None
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db.execute("UPDATE berich_requests SET status = 'replaced' WHERE user_id = ? AND status = 'pending'", (user["id"],))
+        db.execute("INSERT INTO berich_requests (user_id, educator_id, broker_id, broker_name, kind, server, login, password_enc, phase, rules, status, created_at) "
+                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
+                   (user["id"], _col(user, "referred_by"), clean(b.get("brokerId"), 40), broker, kind, server, login,
+                    _fernet().encrypt(password.encode()).decode(), phase, json.dumps(rules), now))
+        db.commit()
+    r = db.execute("SELECT * FROM berich_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user["id"],)).fetchone()
+    return jsonify({"request": _req_public(r)})
+
+
+def _can_handle_request(user, req):
+    return bool(user) and (user["is_admin"] or (is_educator(user) and req["educator_id"] == user["id"]))
+
+
+@app.route("/berich/requests/<int:rid>", methods=["POST"])
+def berich_request_update(rid):
+    """L'éducateur (ou l'admin) marque la connexion comme faite, avec un mot pour le membre."""
+    user = current_user()
+    db = get_db()
+    req = db.execute("SELECT * FROM berich_requests WHERE id = ?", (rid,)).fetchone()
+    if not req or not _can_handle_request(user, req):
+        return jsonify({"error": "Demande introuvable."}), 404
+    b = request.get_json(silent=True) or {}
+    status = b.get("status")
+    if status not in ("done", "pending"):
+        return jsonify({"error": "Statut inconnu."}), 400
+    with db_lock:
+        db.execute("UPDATE berich_requests SET status = ?, done_at = ?, note = ? WHERE id = ?",
+                   (status, datetime.now(timezone.utc).isoformat() if status == "done" else None, str(b.get("note") or "")[:240], rid))
+        db.commit()
+    return jsonify({"request": _req_public(db.execute("SELECT * FROM berich_requests WHERE id = ?", (rid,)).fetchone(), reveal=True)})
 
 
 @app.route("/edu/code", methods=["POST"])
