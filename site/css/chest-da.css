@@ -71,6 +71,11 @@ html, body{ overflow-x:hidden; max-width:100%; }
    (Safari/Chrome mobile, Firefox recent). */
 html{ --chest-ui-scale: 1; }
 body.chest-root{ zoom: var(--chest-ui-scale); }
+/* BUG RÉEL (2026-10-28, retour utilisateur : « case blanche sur téléphone, pointeur du graphique décalé sur PC ») :
+   le zoom de la coque (app.html) s'applique déjà au contenu de l'iframe ; le zoom de la page intégrée le doublait
+   (80 % devenait 64 %, la souris des graphiques ne tombait plus au bon endroit). Une page intégrée ne zoome donc
+   plus elle-même, et la coque compense la hauteur de l'écran (100dvh est lui aussi réduit par le zoom). */
+html.is-embedded body.chest-root{ zoom: 1; }
 /* Pas de regle globale ".chest-root a{color:...}" : elle battait par
    specificite les couleurs des composants (nav, boutons-liens...) qui
    n'ont qu'une seule classe - constate en direct, le texte du menu
@@ -582,8 +587,8 @@ html.is-embedded .chest-main{ min-height:100vh; min-height:100dvh; }
    valeur écrase la 1re si comprise, sinon le navigateur garde 100vh tel quel - aucun risque de
    casser un vieux navigateur). */
 html.is-shell, html.is-shell body{ height:100%; overflow:hidden; }
-.chest-shell.is-app{ height:100vh; height:100dvh; min-height:0; }
-.chest-shell.is-app > .chest-main{ height:100vh; height:100dvh; min-height:0; overflow:hidden; }
+.chest-shell.is-app{ height:100vh; height:calc(100dvh / var(--chest-ui-scale, 1)); min-height:0; }
+.chest-shell.is-app > .chest-main{ height:100vh; height:calc(100dvh / var(--chest-ui-scale, 1)); min-height:0; overflow:hidden; }
 .chest-shell.is-app .chest-topbar{ flex-shrink:0; }
 .chest-view{ position:relative; flex:1 1 auto; min-height:0; }
 .chest-view iframe{
