@@ -15,8 +15,9 @@
 <link rel="stylesheet" href="css/chest-da.css?v=19">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/admin-members.css?v=7">
-<link rel="stylesheet" href="css/educator.css?v=3">
-<link rel="stylesheet" href="css/suivi.css?v=1">
+<link rel="stylesheet" href="css/educator.css?v=4">
+<link rel="stylesheet" href="css/mentor-hub.css?v=1">
+<link rel="stylesheet" href="css/suivi.css?v=2">
 <script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -78,7 +79,7 @@
            Le membre ouvre son propre suivi ; l'éducateur ou l'admin choisit un élève (?member=ID). -->
       <header class="am-head sv-head">
         <div>
-          <div class="chest-step">School · Suivi</div>
+          <div class="chest-step">Suivi</div>
           <h1 class="am-head__title" id="svTitle">Ton suivi</h1>
           <p class="sv-sub" id="svSub"></p>
         </div>
@@ -93,38 +94,34 @@
       <div id="svSpace" hidden>
         <nav class="am-nav" id="svNav" aria-label="Rubriques du suivi">
           <div class="am-nav__tabs" role="tablist">
-            <button type="button" role="tab" data-view="home" aria-selected="true">Tableau de bord</button>
-            <button type="button" role="tab" data-view="plan" aria-selected="false">Planning <small id="svPlanCount"></small></button>
+            <button type="button" role="tab" data-view="home" aria-selected="true">Accueil</button>
+            <button type="button" role="tab" data-view="plan" aria-selected="false">Appels <small id="svPlanCount"></small></button>
             <button type="button" role="tab" data-view="notes" aria-selected="false">Notes <small id="svNotesCount"></small></button>
-            <button type="button" role="tab" data-view="lib" aria-selected="false">Bibliothèque <small id="svLibCount"></small></button>
+            <button type="button" role="tab" data-view="lib" aria-selected="false">Ressources <small id="svLibCount"></small></button>
           </div>
         </nav>
 
-        <!-- 01 — Tableau de bord -->
-        <section class="am-view" data-panel="home" aria-label="Tableau de bord">
+        <!-- 01 — Accueil -->
+        <section class="am-view" data-panel="home" aria-label="Accueil">
+          <div class="sv-ask" id="svAsk" hidden></div>
           <div class="am-grid">
             <article class="sv-next ed-span-7" id="svNext"></article>
-            <article class="am-panel ed-span-5">
-              <header class="am-panel__head"><h2 class="am-panel__t">À faire</h2><span class="am-panel__meta" id="svTodoMeta"></span></header>
-              <div id="svTodo"></div>
+            <article class="am-panel ed-span-5 sv-missions">
+              <header class="am-panel__head"><h2 class="am-panel__t">Avant le prochain appel</h2><span class="am-panel__meta" id="svTaskMeta"></span></header>
+              <div id="svTasks"></div>
             </article>
-            <div class="am-kpis ed-span-12" id="svKpis"></div>
-            <article class="am-panel sv-span-6">
-              <header class="am-panel__head"><h2 class="am-panel__t">Dernières notes</h2><button type="button" class="am-link" data-goto="notes">Toutes les notes</button></header>
-              <div id="svHomeNotes"></div>
-            </article>
-            <article class="am-panel sv-span-6">
-              <header class="am-panel__head"><h2 class="am-panel__t">Ajouté récemment</h2><button type="button" class="am-link" data-goto="lib">Toute la bibliothèque</button></header>
-              <div id="svHomeLib"></div>
+            <article class="am-panel ed-span-12">
+              <header class="am-panel__head"><h2 class="am-panel__t">Récemment</h2><span class="am-panel__meta">notes et ressources</span></header>
+              <div id="svRecent"></div>
             </article>
           </div>
         </section>
 
-        <!-- 02 — Planning -->
-        <section class="am-view" data-panel="plan" aria-label="Planning" hidden>
+        <!-- 02 — Appels -->
+        <section class="am-view" data-panel="plan" aria-label="Appels" hidden>
           <div class="sv-bar">
-            <p class="sv-bar__txt">Propose un créneau : il apparaît chez l'autre, qui le confirme ou le refuse.</p>
-            <button type="button" class="chest-btn" data-new="event">Proposer un rendez-vous</button>
+            <p class="sv-bar__txt">Propose un créneau : l'autre le confirme ou le refuse.</p>
+            <button type="button" class="chest-btn" data-new="event">Proposer un appel</button>
           </div>
           <div class="am-grid">
             <article class="am-panel ed-span-5">
@@ -133,7 +130,7 @@
               <div class="sv-cal" id="svCal"></div>
             </article>
             <article class="am-panel ed-span-7">
-              <header class="am-panel__head"><h2 class="am-panel__t">Rendez-vous</h2>
+              <header class="am-panel__head"><h2 class="am-panel__t">Appels</h2>
                 <div class="chest-seg sv-seg" id="svWhen" role="group" aria-label="Période"><button type="button" data-when="up" class="is-active">À venir</button><button type="button" data-when="past">Passés</button></div></header>
               <div id="svAgenda"></div>
             </article>
@@ -143,14 +140,14 @@
         <!-- 03 — Notes -->
         <section class="am-view" data-panel="notes" aria-label="Notes" hidden>
           <div class="sv-bar">
-            <p class="sv-bar__txt">Chaque séance laisse une trace : ce qui a été vu, ce qu'il reste à travailler.</p>
+            <p class="sv-bar__txt">Ce qui s'est dit pendant l'appel, ce qu'il reste à faire.</p>
             <button type="button" class="chest-btn" data-new="note">Écrire une note</button>
           </div>
           <div class="sv-notes" id="svNotes"></div>
         </section>
 
-        <!-- 04 — Bibliothèque -->
-        <section class="am-view" data-panel="lib" aria-label="Bibliothèque" hidden>
+        <!-- 04 — Ressources -->
+        <section class="am-view" data-panel="lib" aria-label="Ressources" hidden>
           <div class="sv-bar">
             <div class="chest-seg sv-seg" id="svKinds" role="group" aria-label="Filtrer">
               <button type="button" data-kind="" class="is-active">Tout</button><button type="button" data-kind="text">Textes</button><button type="button" data-kind="video">Vidéos</button><button type="button" data-kind="link">Liens</button><button type="button" data-kind="file">Fichiers</button>
@@ -185,7 +182,9 @@
 <script src="js/nav.js?v=9"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/suivi.js?v=1"></script>
+<script src="js/rank-badge.js?v=1"></script>
+<script src="js/mentor-hub.js?v=1"></script>
+<script src="js/suivi.js?v=2"></script>
 <script src="js/v2.js?v=3"></script>
 </body>
 </html>

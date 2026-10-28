@@ -90,16 +90,18 @@
     }
 
     // membres
+    // Badge de rang (Premium III…) avec le prix de son offre : js/rank-badge.js
+    const rankChip = (m) => (window.CHESTRank && m.planKey && m.planKey !== 'none' ? CHESTRank.chip(m.planKey, m.level, m.price, m.active || m.trial) : `<i class="ed-pill is-off">${esc(m.plan)}</i>`);
     const status = (m) => (m.active ? ['Abonné', 'is-on'] : m.trial ? ['Essai', 'is-trial'] : ['Inactif', 'is-off']);
     const recent = D.members.slice(0, 5);
-    $('edRecent').innerHTML = recent.length ? `<ul class="ed-people">${recent.map((m) => { const [s, c] = status(m); return `<li><button type="button" class="ed-people__btn" data-member="${m.id}"><span class="ed-av">${esc(m.name.slice(0, 1))}</span><span class="ed-people__n">${esc(m.name)}<small>inscrit le ${esc(day(m.joinedAt))} · ${esc(m.plan)}</small></span><span class="ed-pill ${c}">${s}</span><b>${esc(eur(m.commission))}</b></button></li>`; }).join('')}</ul>`
+    $('edRecent').innerHTML = recent.length ? `<ul class="ed-people">${recent.map((m) => { const [s, c] = status(m); return `<li><button type="button" class="ed-people__btn" data-member="${m.id}"><span class="ed-av">${esc(m.name.slice(0, 1))}</span><span class="ed-people__n">${esc(m.name)}<small>inscrit le ${esc(day(m.joinedAt))} · ${s.toLowerCase()}</small></span>${rankChip(m)}<b>${esc(eur(m.commission))}</b></button></li>`; }).join('')}</ul>`
       : '<p class="ed-empty">Personne encore. Partage ton lien pour accueillir tes premiers membres.</p>';
     // Connexions BERICH clé en main (Premium 3) à faire : rappel en tête de l'espace
     const todo = D.members.filter((m) => m.berichPending);
     $('edAlert').hidden = !todo.length;
     $('edAlert').innerHTML = todo.length ? `<span class="ed-alert__dot"></span><span><b>${todo.length} connexion${todo.length > 1 ? 's' : ''} BERICH à faire</b> · ${todo.map((m) => esc(m.name)).join(', ')} attend${todo.length > 1 ? 'ent' : ''} que tu installes son VPS.</span><button type="button" class="chest-btn-2 ed-alert__go" data-member="${todo[0].id}">Voir ${todo.length > 1 ? 'la première' : 'la demande'}</button>` : '';
-    $('edMembers').innerHTML = D.members.length ? `<div class="ed-tr ed-tr--h"><span>Membre</span><span>Inscrit le</span><span>Offre</span><span>Statut</span><span>Ventes</span><span>Ta commission</span></div>` + D.members.map((m) => { const [s, c] = status(m); return `<button type="button" class="ed-tr ed-tr--btn" data-member="${m.id}">
-        <span class="ed-people__n"><span class="ed-av">${esc(m.name.slice(0, 1))}</span>${esc(m.name)}${m.berichPending ? '<i class="ed-pill is-trial">BERICH à connecter</i>' : ''}</span><span>${esc(day(m.joinedAt))}</span><span>${esc(m.plan)}${m.endsAt && m.active ? `<small class="ed-sub">jusqu’au ${esc(day(m.endsAt))}</small>` : ''}</span><span><i class="ed-pill ${c}">${s}</i></span><span class="ed-num">${esc(eur(m.sales, 0))}</span><span class="ed-num ed-strong">${esc(eur(m.commission))}</span></button>`; }).join('')
+    $('edMembers').innerHTML = D.members.length ? `<div class="ed-tr ed-tr--h"><span>Membre</span><span>Inscrit le</span><span>Rang</span><span>Statut</span><span>Ventes</span><span>Ta commission</span></div>` + D.members.map((m) => { const [s, c] = status(m); return `<button type="button" class="ed-tr ed-tr--btn" data-member="${m.id}">
+        <span class="ed-people__n"><span class="ed-av">${esc(m.name.slice(0, 1))}</span>${esc(m.name)}${m.berichPending ? '<i class="ed-pill is-trial">BERICH à connecter</i>' : ''}</span><span>${esc(day(m.joinedAt))}</span><span>${rankChip(m)}${m.endsAt && m.active ? `<small class="ed-sub">jusqu’au ${esc(day(m.endsAt))}</small>` : ''}</span><span><i class="ed-pill ${c}">${s}</i></span><span class="ed-num">${esc(eur(m.sales, 0))}</span><span class="ed-num ed-strong">${esc(eur(m.commission))}</span></button>`; }).join('')
       : '<p class="ed-empty">Aucun membre inscrit avec ton lien pour l’instant.</p>';
 
     // carte portefeuille
@@ -215,7 +217,7 @@
       <section class="ed-sh__sec">
         <div class="chest-step">01 — Rang</div>
         <div class="ed-rank ${isPremium ? 'is-premium' : ''}">
-          <div class="ed-rank__top"><b>${esc(a.label || 'Sans offre')}</b>${lvl ? `<span class="ed-pill">Rang ${lvl} · ${MONTHS[lvl]}</span>` : ''}</div>
+          <div class="ed-rank__top"><span class="ed-rank__id">${window.CHESTRank ? CHESTRank.badge(a.plan, lvl, 40) : ''}<b>${esc(a.label || 'Sans offre')}</b></span>${lvl ? `<span class="ed-pill">${M.price ? `${Number(M.price).toLocaleString('fr-FR')} € · ` : ''}${MONTHS[lvl]}</span>` : ''}</div>
           ${pct != null ? `<div class="ed-rank__bar"><i style="transform:scaleX(${(pct / 100).toFixed(3)})"></i></div>
           <div class="ed-rank__dates"><span>${esc(day(a.startedAt))}</span><span>${left > 0 ? `${left} jour${left > 1 ? 's' : ''} restant${left > 1 ? 's' : ''}` : 'Terminé'}</span><span>${esc(day(a.endsAt))}</span></div>` : `<p class="ed-hint">${a.trial ? 'Essai gratuit en cours.' : a.active ? 'Accès sans échéance.' : 'Aucun accès actif pour le moment.'}</p>`}
           <ul class="ed-ticks">

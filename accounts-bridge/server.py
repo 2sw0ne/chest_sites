@@ -267,6 +267,12 @@ def init_db():
             )
         """)
         db.execute("""
+            CREATE TABLE IF NOT EXISTS mentor_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER NOT NULL, author_id INTEGER NOT NULL,
+                title TEXT NOT NULL, due_at TEXT, done_at TEXT, created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("""
             CREATE TABLE IF NOT EXISTS mentor_library (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER NOT NULL, author_id INTEGER NOT NULL,
                 kind TEXT NOT NULL, title TEXT, body TEXT, url TEXT, file TEXT, created_at TEXT NOT NULL
@@ -952,7 +958,7 @@ def delete_member(member_id):
         db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
         for row in db.execute("SELECT file FROM mentor_library WHERE member_id = ? AND file IS NOT NULL", (member_id,)).fetchall():
             delete_file(json.loads(row["file"]))
-        for t in ("mentor_events", "mentor_notes", "mentor_library"):
+        for t in ("mentor_events", "mentor_notes", "mentor_library", "mentor_tasks"):
             db.execute(f"DELETE FROM {t} WHERE member_id = ?", (member_id,))
         db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
@@ -1037,6 +1043,19 @@ _ESS_FEATS = [[1, "Tous les scanners et leurs alertes"], [1, "Backtesting et rap
               [0, "School complet et cours vidéo"], [0, "BERICH et suivi des positions"], [0, "Accompagnement personnalisé"]]
 _PRE_FEATS = [[1, "Tout CHEST Essentiel"], [1, "School complet : cours écrits et vidéo"], [1, "BERICH et suivi des positions"],
               [1, "Accompagnement personnalisé par ton éducateur"]]
+
+
+ROMAN = {1: "I", 2: "II", 3: "III"}
+
+
+def rank_price(plan, level):
+    """Prix affiché de l'offre d'un rang (éditeur Prix), en euros ; None hors Essentiel/Premium."""
+    if plan not in ("essentiel", "premium") or not level:
+        return None
+    for o in get_pricing()["offers"]:
+        if o.get("key") == f"{plan}{level}":
+            return o.get("price")
+    return None
 
 
 def _default_offer(key):
@@ -1171,7 +1190,7 @@ def access_of(row):
     return {
         "plan": plan,
         "level": level,
-        "label": f"{label} {level}" if level else label,
+        "label": f"{label} {ROMAN.get(level, level)}" if level else label,
         "period": _col(row, "plan_period"),
         "status": _col(row, "plan_status"),
         "startedAt": _col(row, "plan_started_at"),
@@ -1416,7 +1435,7 @@ def edu_report(db, educator, full=False):
             "joinedAt": m["created_at"], "plan": a["label"] if a["active"] else ("Essai terminé" if a["trialUsed"] else "Sans offre"),
             "active": bool(a["active"]) and a["plan"] not in ("trial", "none"), "trial": a["trial"] and a["active"],
             "sales": total, "commission": round(comm), "payments": len(sales), "lastSeenAt": _col(m, "last_seen_at"),
-            "level": a.get("level"), "planKey": a["plan"], "endsAt": a["endsAt"],
+            "level": a.get("level"), "planKey": a["plan"], "endsAt": a["endsAt"], "price": rank_price(a["plan"], a.get("level")),
             "berichPending": bool(db.execute("SELECT 1 FROM berich_requests WHERE user_id = ? AND status = 'pending'", (m["id"],)).fetchone()),
         })
         mk = (m["created_at"] or "")[:7]
@@ -1630,9 +1649,11 @@ def _mentor_payload(db, user, member, edu):
     lib = [{"id": r["id"], "kind": r["kind"], "title": r["title"] or "", "body": r["body"] or "", "url": r["url"] or "",
             "file": json.loads(r["file"]) if r["file"] else None, "authorId": r["author_id"], "author": who(r["author_id"]), "createdAt": r["created_at"]}
            for r in db.execute("SELECT * FROM mentor_library WHERE member_id = ? ORDER BY created_at DESC", (mid,)).fetchall()]
+    tasks = [{"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "author": who(r["author_id"]), "createdAt": r["created_at"]}
+             for r in db.execute("SELECT * FROM mentor_tasks WHERE member_id = ? ORDER BY done_at IS NOT NULL, due_at IS NULL, due_at, id", (mid,)).fetchall()]
     a = access_of(member)
-    return {"me": {"id": user["id"], "role": "member" if user["id"] == mid else ("educator" if is_educator(user) else "admin")},
-            "member": {**_person(member), "plan": a["label"], "level": a.get("level"), "planKey": a["plan"], "endsAt": a["endsAt"], "joinedAt": member["created_at"]},
+    return {"tasks": tasks, "me": {"id": user["id"], "role": "member" if user["id"] == mid else ("educator" if is_educator(user) else "admin")},
+            "member": {**_person(member), "plan": a["label"], "level": a.get("level"), "planKey": a["plan"], "price": rank_price(a["plan"], a.get("level")), "endsAt": a["endsAt"], "joinedAt": member["created_at"]},
             "educator": _person(edu), "events": events, "notes": notes, "library": lib}
 
 
@@ -1658,7 +1679,11 @@ def mentor_students():
     for m in rows:
         nxt = db.execute("SELECT starts_at, status FROM mentor_events WHERE member_id = ? AND starts_at >= ? AND status IN ('proposed', 'confirmed') ORDER BY starts_at LIMIT 1", (m["id"], now)).fetchone()
         a = access_of(m)
-        out.append({**_person(m), "plan": a["label"], "level": a.get("level"), "next": dict(nxt) if nxt else None,
+        t = db.execute("SELECT COUNT(*) AS n, SUM(done_at IS NOT NULL) AS d, SUM(done_at IS NULL AND due_at < ?) AS late FROM mentor_tasks WHERE member_id = ?", (now, m["id"])).fetchone()
+        last = db.execute("SELECT MAX(created_at) FROM mentor_notes WHERE member_id = ?", (m["id"],)).fetchone()[0]
+        out.append({**_person(m), "plan": a["label"], "level": a.get("level"), "planKey": a["plan"], "active": bool(a["active"]),
+                    "price": rank_price(a["plan"], a.get("level")), "endsAt": a["endsAt"], "next": dict(nxt) if nxt else None,
+                    "tasks": {"total": t["n"] or 0, "done": t["d"] or 0, "late": t["late"] or 0}, "lastNoteAt": last,
                     "pending": db.execute("SELECT COUNT(*) AS n FROM mentor_events WHERE member_id = ? AND status = 'proposed' AND author_id = ?", (m["id"], m["id"])).fetchone()["n"]})
     return jsonify({"students": out})
 
@@ -1732,6 +1757,60 @@ def mentor_event_status(eid):
         return jsonify({"error": "C'est à l'autre personne de confirmer ta proposition."}), 400
     with db_lock:
         db.execute("UPDATE mentor_events SET status = ?, updated_at = ? WHERE id = ?", (status, datetime.now(timezone.utc).isoformat(), eid))
+        db.commit()
+    return jsonify(_mentor_payload(db, user, member, edu))
+
+
+@app.route("/mentor/tasks", methods=["POST"])
+def mentor_task_save():
+    """L'éducateur (ou l'admin) fixe une mission avec une date de fin ; le membre la coche."""
+    b = request.get_json(silent=True) or {}
+    ctx, err = _mentor_write(b.get("member"))
+    if err:
+        return err
+    user, member, edu = ctx
+    if user["id"] == member["id"]:
+        return jsonify({"error": "Les missions sont fixées par ton éducateur."}), 403
+    title = re.sub(r"\s+", " ", str(b.get("title") or "")).strip()[:200]
+    if not title:
+        return jsonify({"error": "Décris la mission."}), 400
+    due = None
+    if b.get("dueAt"):
+        try:
+            d = datetime.fromisoformat(str(b["dueAt"]).replace("Z", "+00:00"))
+            due = (d if d.tzinfo else d.replace(tzinfo=timezone.utc)).isoformat()
+        except ValueError:
+            return jsonify({"error": "Date de fin invalide."}), 400
+    db = get_db()
+    with db_lock:
+        if b.get("id"):
+            if not db.execute("SELECT 1 FROM mentor_tasks WHERE id = ? AND member_id = ?", (b["id"], member["id"])).fetchone():
+                return jsonify({"error": "Mission introuvable."}), 404
+            db.execute("UPDATE mentor_tasks SET title = ?, due_at = ? WHERE id = ?", (title, due, b["id"]))
+        else:
+            db.execute("INSERT INTO mentor_tasks (member_id, author_id, title, due_at, created_at) VALUES (?, ?, ?, ?, ?)",
+                       (member["id"], user["id"], title, due, datetime.now(timezone.utc).isoformat()))
+        db.commit()
+    return jsonify(_mentor_payload(db, user, member, edu))
+
+
+@app.route("/mentor/tasks/<int:tid>/<action>", methods=["POST"])
+def mentor_task_action(tid, action):
+    db = get_db()
+    t = db.execute("SELECT * FROM mentor_tasks WHERE id = ?", (tid,)).fetchone()
+    if not t or action not in ("toggle", "delete"):
+        return jsonify({"error": "Mission introuvable."}), 404
+    ctx, err = _mentor_write(t["member_id"])
+    if err:
+        return err
+    user, member, edu = ctx
+    with db_lock:
+        if action == "toggle":
+            db.execute("UPDATE mentor_tasks SET done_at = ? WHERE id = ?", (None if t["done_at"] else datetime.now(timezone.utc).isoformat(), tid))
+        elif user["id"] == member["id"]:
+            return jsonify({"error": "Seul ton éducateur peut retirer une mission."}), 403
+        else:
+            db.execute("DELETE FROM mentor_tasks WHERE id = ?", (tid,))
         db.commit()
     return jsonify(_mentor_payload(db, user, member, edu))
 
@@ -1867,6 +1946,7 @@ def edu_member(mid):
     return jsonify({
         "id": mid, "name": f"{m['first_name']} {m['last_name']}".strip(), "first": m["first_name"], "email": m["email"],
         "joinedAt": m["created_at"], "lastSeenAt": _col(m, "last_seen_at"), "lastLoginAt": _col(m, "last_login_at"),
+        "price": rank_price(a["plan"], a.get("level")),
         "access": {k: a.get(k) for k in ("plan", "level", "label", "period", "status", "startedAt", "endsAt", "active", "trial", "school", "berich")},
         "onboarding": onboarding,
         "activity": {"days30": len(per_day), "views30": sum(per_day.values()),

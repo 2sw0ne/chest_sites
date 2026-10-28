@@ -217,3 +217,8 @@
 .ed-sheet .ed-warn{ font-size:13px; margin:10px 0 0; }
 @media (max-width:560px){ .ed-sheet__body{ padding:22px 18px 32px; } .ed-br__dl{ grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce){ .ed-sheet[open]{ animation:none; } }
+/* Rangs (2026-10-28) : badge + prix dans la liste, colonne Rang plus large */
+@media (min-width:761px){ .ed-tr{ grid-template-columns:minmax(160px,1.5fr) .9fr minmax(176px,1.3fr) .8fr .9fr 1fr; } .ed-tr > span:nth-child(3){ display:flex; flex-direction:column; align-items:flex-start; gap:4px; } }
+@media (max-width:760px){ .ed-tr--btn > span:nth-child(3){ display:flex; grid-column:1 / -1; order:5; } }
+.ed-people__btn .rk-chip{ justify-self:end; }
+.ed-rank__id{ display:flex; align-items:center; gap:12px; min-width:0; }

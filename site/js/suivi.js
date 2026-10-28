@@ -1,6 +1,6 @@
 // CHEST — Suivi élève–éducateur (2026-10-28, « comme Pronote »). Un membre et son éducateur partagent :
-// un planning (l'un propose un rendez-vous, l'autre le confirme), des notes de séance et une bibliothèque
-// (textes, vidéos envoyées ou liens, fichiers). Données : GET /mentor (accounts-bridge).
+// des appels (l'un propose, l'autre confirme), des missions à faire avant le prochain appel (fixées par
+// l'éducateur, cochées par l'élève), des notes et des ressources (textes, vidéos envoyées ou liens, fichiers). Données : GET /mentor (accounts-bridge).
 // Le membre ouvre son propre suivi ; l'éducateur (ou l'admin) voit la liste de ses élèves puis suivi.html?member=ID.
 (() => {
   'use strict';
@@ -95,26 +95,20 @@
     const u = A.getUser() || {};
     const staff = u.isAdmin || u.role === 'educator';
     try {
-      if (!S.member && staff) return renderStudents((await api('/mentor/students')).students, u);
+      if (!S.member && staff) return renderStudents(u);
       S.D = await api('/mentor' + (S.member ? `?member=${encodeURIComponent(S.member)}` : ''));
       showError('');
       render();
     } catch (e) { showError(e.message); }
   }
 
-  function renderStudents(list, u) {
-    $('svTitle').textContent = 'Suivi de tes élèves';
-    $('svSub').textContent = u.isAdmin && u.role !== 'educator' ? 'Tous les membres rattachés à un éducateur.' : 'Les membres inscrits avec ton code. Choisis un élève pour ouvrir son espace.';
+  // Éducateur / admin sans élève choisi : les cartes de ses élèves (js/mentor-hub.js, comme l'accueil de School).
+  function renderStudents(u) {
+    $('svTitle').textContent = 'Tes élèves';
+    $('svSub').textContent = u.isAdmin && u.role !== 'educator' ? 'Tous les membres rattachés à un éducateur.' : 'Leurs appels, leurs missions et leurs notes.';
     const box = $('svStudents');
     box.hidden = false;
-    box.innerHTML = list.length ? `<div class="sv-studs">${list.map((s) => `
-      <button type="button" class="sv-stud" data-open="${s.id}">
-        <span class="sv-av">${esc(initials(s.name))}</span>
-        <span class="sv-stud__main"><b>${esc(s.name)}</b><span>${esc(s.plan)}</span></span>
-        <span class="sv-stud__next">${s.next ? `<b>${esc(relDay(s.next.starts_at))}</b><span>${hm(s.next.starts_at)} · ${s.next.status === 'confirmed' ? 'confirmé' : 'à confirmer'}</span>` : '<span>Aucun rendez-vous</span>'}</span>
-        ${s.pending ? `<span class="sv-chip sv-chip--ask">${s.pending} demande${s.pending > 1 ? 's' : ''}</span>` : ''}
-      </button>`).join('')}</div>`
-      : '<p class="ed-empty">Aucun élève pour le moment. Ils apparaîtront ici dès qu’ils s’inscrivent avec ton code de référent.</p>';
+    if (window.CHESTMentorHub) CHESTMentorHub.render(box);
   }
 
   // ---------- rendu ----------
@@ -122,11 +116,12 @@
     const D = S.D, me = D.me.role;
     $('svSpace').hidden = false;
     if (me === 'member') {
-      $('svTitle').textContent = D.educator ? `Ton suivi avec ${D.educator.first}` : 'Ton suivi';
-      $('svSub').textContent = D.educator ? 'Vos rendez-vous, les notes de chaque séance et vos ressources, au même endroit.' : '';
+      $('svTitle').textContent = D.educator ? `Ton espace avec ${D.educator.first}` : 'Ton espace';
+      $('svSub').textContent = D.educator ? 'Tes appels, ce qu’il y a à faire avant le prochain, et ce que vous partagez.' : '';
     } else {
-      $('svTitle').textContent = `Suivi de ${D.member.first}`;
-      $('svSub').innerHTML = `${esc(D.member.plan)}${D.member.endsAt ? ` · jusqu’au ${fr(D.member.endsAt, { day: 'numeric', month: 'long', year: 'numeric' })}` : ''} · <button type="button" class="am-link" id="svBack">Tous mes élèves</button>`;
+      $('svTitle').textContent = D.member.name;
+      const chip = window.CHESTRank && D.member.planKey ? CHESTRank.chip(D.member.planKey, D.member.level, D.member.price) : esc(D.member.plan);
+      $('svSub').innerHTML = `<span class="sv-subrow">${chip}${D.member.endsAt ? `<span>jusqu’au ${fr(D.member.endsAt, { day: 'numeric', month: 'long', year: 'numeric' })}</span>` : ''}<button type="button" class="am-link" id="svBack">Tous mes élèves</button></span>`;
       $('svBack').onclick = () => go('');
     }
     $('svPair').innerHTML = `<span class="sv-av" title="${esc(D.member.name)}">${esc(initials(D.member.name))}</span><i></i><span class="sv-av sv-av--edu" title="${esc(D.educator ? D.educator.name : 'Éducateur')}">${esc(D.educator ? initials(D.educator.name) : '?')}</span>`;
@@ -136,7 +131,7 @@
       showError('');
       $('svStudents').hidden = false;
       $('svStudents').innerHTML = `<div class="sv-alone"><span class="sv-alone__ic">${ic('cal')}</span><h2>Pas encore d’éducateur</h2>
-        <p>Le suivi relie un membre à son éducateur : rendez-vous, notes de séance et ressources partagées. Il s’ouvre quand tu t’inscris avec le code de référent de ton éducateur.</p></div>`;
+        <p>Cet espace relie un membre à son éducateur : appels, missions, notes et ressources partagées. Il s’ouvre quand tu t’inscris avec le code de référent de ton éducateur.</p></div>`;
       return;
     }
     const up = upcoming();
@@ -155,47 +150,75 @@
     }
     if (future && e.status === 'confirmed' && e.link) out.push(`<a class="chest-btn sv-sm" href="${esc(e.link)}" target="_blank" rel="noopener">Rejoindre</a>`);
     if (future && live(e)) out.push(`<button type="button" class="chest-btn-2 sv-sm" data-act="move" data-id="${e.id}">Déplacer</button>`, `<button type="button" class="sv-tl" data-act="cancel" data-id="${e.id}">Annuler</button>`);
-    if (!future && (e.status === 'confirmed' || e.status === 'done') && !compact) out.push(`<button type="button" class="chest-btn-2 sv-sm" data-act="note" data-id="${e.id}">${ic('note')}Note de séance</button>`);
+    if (!future && (e.status === 'confirmed' || e.status === 'done') && !compact) out.push(`<button type="button" class="chest-btn-2 sv-sm" data-act="note" data-id="${e.id}">${ic('note')}Note de l’appel</button>`);
     return out.join('');
   }
 
+  // Accueil (2026-10-28, « moins scolaire ») : les demandes à confirmer seulement s'il y en a, le prochain appel,
+  // les missions à faire avant (fixées par l'éducateur avec une date de fin, cochées par l'élève), puis « Récemment ».
   function renderHome() {
     const D = S.D, up = upcoming(), n = up[0];
+    const asks = up.filter((e) => e.status === 'proposed' && !mine(e) && e !== n);
+    $('svAsk').hidden = !asks.length;
+    $('svAsk').innerHTML = asks.map((e) => `<div class="sv-ask__i"><span class="sv-dot sv-dot--ask"></span><span><b>${esc(e.author)}</b> propose un appel ${esc(relDay(e.startsAt).toLowerCase())} à ${hm(e.startsAt)} · ${esc(e.topic)}</span><span class="sv-acts">${eventActions(e, true)}</span></div>`).join('');
+
     $('svNext').className = 'sv-next ed-span-7' + (n ? '' : ' is-empty');
     $('svNext').innerHTML = n ? (() => {
       const [lbl, tone] = statusOf(n);
       const d = new Date(n.startsAt);
       return `<div class="sv-next__date"><span>${fr(d, { weekday: 'short' })}</span><b>${d.getDate()}</b><span>${fr(d, { month: 'short' })}</span></div>
         <div class="sv-next__main">
-          <span class="chest-step">Prochain rendez-vous</span>
+          <span class="chest-step">Prochain appel</span>
           <h2>${esc(n.topic)}</h2>
           <p class="sv-next__when">${esc(relDay(d))} · ${hm(d)} – ${hm(end(n))} · ${MODES[n.mode] || 'Visio'}</p>
           <div class="sv-next__row"><span class="sv-chip sv-chip--${tone}">${lbl}</span><span class="sv-by">proposé par ${mine(n) ? 'toi' : esc(n.author)}</span></div>
           <div class="sv-acts">${eventActions(n, true)}</div>
         </div>`;
-    })() : `<div class="sv-next__main"><span class="chest-step">Prochain rendez-vous</span><h2>Rien de prévu pour l’instant</h2>
-        <p class="sv-next__when">Propose un créneau à ${other() ? esc(other().first) : 'ton éducateur'} : il le confirmera depuis son espace.</p>
-        <div class="sv-acts"><button type="button" class="chest-btn" data-new="event">Proposer un rendez-vous</button></div></div>`;
+    })() : `<div class="sv-next__main"><span class="chest-step">Prochain appel</span><h2>Rien de prévu pour l’instant</h2>
+        <p class="sv-next__when">Propose un créneau à ${other() ? esc(other().first) : 'l’autre'} : il apparaît dans son espace pour qu’il le confirme.</p>
+        <div class="sv-acts"><button type="button" class="chest-btn" data-new="event">Proposer un appel</button></div></div>`;
 
-    // À faire : propositions à confirmer, mes propositions en attente, séances passées sans note
-    const todo = [];
-    up.filter((e) => e.status === 'proposed' && !mine(e)).forEach((e) => todo.push(`<li class="sv-todo__i"><span class="sv-dot sv-dot--ask"></span><span><b>Confirmer</b> « ${esc(e.topic)} » · ${esc(relDay(e.startsAt))} à ${hm(e.startsAt)}</span><span class="sv-acts">${eventActions(e, true)}</span></li>`));
-    up.filter((e) => e.status === 'proposed' && mine(e)).forEach((e) => todo.push(`<li class="sv-todo__i"><span class="sv-dot sv-dot--wait"></span><span>Ta proposition du ${fr(e.startsAt, { day: 'numeric', month: 'short' })} attend la réponse de ${other() ? esc(other().first) : 'l’autre'}</span></li>`));
-    const noted = new Set(D.notes.map((x) => x.eventId).filter(Boolean));
-    held().filter((e) => !noted.has(e.id)).slice(0, 3).forEach((e) => todo.push(`<li class="sv-todo__i"><span class="sv-dot"></span><span>Séance du ${fr(e.startsAt, { day: 'numeric', month: 'short' })} sans note</span><span class="sv-acts"><button type="button" class="chest-btn-2 sv-sm" data-act="note" data-id="${e.id}">Écrire</button></span></li>`));
-    $('svTodoMeta').textContent = todo.length ? `${todo.length} élément${todo.length > 1 ? 's' : ''}` : '';
-    $('svTodo').innerHTML = todo.length ? `<ul class="sv-todo">${todo.join('')}</ul>` : '<p class="ed-empty">Tout est à jour.</p>';
+    renderTasks(n);
 
-    const h = held().length;
-    $('svKpis').innerHTML = [
-      ['Séances faites', String(h), h ? `dernière le ${fr(held()[0].startsAt, { day: 'numeric', month: 'short' })}` : 'pas encore'],
-      ['À venir', String(up.length), up.length ? `${up.filter((e) => e.status === 'confirmed').length} confirmé${up.filter((e) => e.status === 'confirmed').length > 1 ? 's' : ''}` : 'aucun créneau'],
-      ['Notes', String(D.notes.length), 'comptes rendus de séance'],
-      ['Offre', D.member.plan, D.member.endsAt ? `jusqu’au ${fr(D.member.endsAt, { day: 'numeric', month: 'short', year: 'numeric' })}` : ''],
-    ].map(([k, v, s]) => `<div class="am-kpi"><div class="am-kpi__k">${k}</div><div class="am-kpi__v"><b>${esc(v)}</b></div><div class="am-kpi__n">${esc(s)}</div></div>`).join('');
+    const recent = D.notes.map((x) => ({ t: x.createdAt, html: `<li><button type="button" data-read-note="${x.id}"><span class="sv-mini__ic">${ic('note')}</span><b>${esc(x.title || 'Note')}</b><span>Note · ${esc(x.author)} · ${fr(x.createdAt, { day: 'numeric', month: 'short' })}</span></button></li>` }))
+      .concat(D.library.map((x) => ({ t: x.createdAt, html: `<li><button type="button" data-open-lib="${x.id}"><span class="sv-mini__ic">${ic(x.kind)}</span><b>${esc(x.title)}</b><span>${KINDS[x.kind]} · ${esc(x.author)} · ${fr(x.createdAt, { day: 'numeric', month: 'short' })}</span></button></li>` })))
+      .sort((a, b) => Date.parse(b.t) - Date.parse(a.t)).slice(0, 4);
+    $('svRecent').innerHTML = recent.length ? `<ul class="sv-mini sv-mini--2">${recent.map((r) => r.html).join('')}</ul>` : '<p class="ed-empty">Les notes et les ressources partagées apparaîtront ici.</p>';
+  }
 
-    $('svHomeNotes').innerHTML = D.notes.length ? `<ul class="sv-mini">${D.notes.slice(0, 3).map((x) => `<li><button type="button" data-read-note="${x.id}"><b>${esc(x.title || 'Note')}</b><span>${esc(x.author)} · ${fr(x.createdAt, { day: 'numeric', month: 'short' })}</span></button></li>`).join('')}</ul>` : '<p class="ed-empty">Aucune note pour le moment.</p>';
-    $('svHomeLib').innerHTML = D.library.length ? `<ul class="sv-mini">${D.library.slice(0, 3).map((x) => `<li><button type="button" data-open-lib="${x.id}"><span class="sv-mini__ic">${ic(x.kind)}</span><b>${esc(x.title)}</b><span>${KINDS[x.kind]} · ${esc(x.author)}</span></button></li>`).join('')}</ul>` : '<p class="ed-empty">La bibliothèque est vide. Textes, vidéos, liens et fichiers : chacun peut y ajouter.</p>';
+  // Missions « avant le prochain appel » : date de fin par défaut = jour du prochain appel.
+  function renderTasks(nextCall) {
+    const T = S.D.tasks || [], staff = S.D.me.role !== 'member';
+    const done = T.filter((t) => t.doneAt).length;
+    $('svTaskMeta').textContent = T.length ? `${done} sur ${T.length} faite${done > 1 ? 's' : ''}` : '';
+    const dueTxt = (t) => {
+      if (!t.dueAt) return '';
+      const days = Math.round((new Date(t.dueAt).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / DAY);
+      const late = !t.doneAt && Date.parse(t.dueAt) < Date.now();
+      const txt = late ? `en retard · ${fr(t.dueAt, { day: 'numeric', month: 'short' })}` : days === 0 ? "pour aujourd'hui" : days === 1 ? 'pour demain' : `pour le ${fr(t.dueAt, { weekday: 'short', day: 'numeric', month: 'short' })}`;
+      return `<small class="${late ? 'is-late' : days <= 1 && !t.doneAt ? 'is-soon' : ''}">${txt}</small>`;
+    };
+    const list = T.length ? `${T.length ? `<div class="sv-tbar"><i style="transform:scaleX(${(done / T.length).toFixed(3)})"></i></div>` : ''}<ul class="sv-tasks">${T.map((t) => `<li class="sv-task${t.doneAt ? ' is-done' : ''}">
+        <button type="button" class="sv-check" data-act="task-toggle" data-id="${t.id}" role="checkbox" aria-checked="${!!t.doneAt}" aria-label="${esc(t.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg></button>
+        <span class="sv-task__t">${esc(t.title)}${dueTxt(t)}</span>
+        ${staff ? `<button type="button" class="sv-ib sv-task__x" data-act="task-del" data-id="${t.id}" aria-label="Retirer la mission">${ic('trash')}</button>` : ''}
+      </li>`).join('')}</ul>`
+      : `<p class="ed-empty">${staff ? 'Fixe ce qu’il doit préparer avant votre prochain appel.' : `Rien à faire pour l’instant. ${other() ? esc(other().first) : 'Ton éducateur'} ajoutera ici ce qu’il faut préparer avant votre prochain appel.`}</p>`;
+    const pad2 = (x) => String(x).padStart(2, '0');
+    const def = nextCall ? new Date(nextCall.startsAt) : new Date(Date.now() + 7 * DAY);
+    const add = staff ? `<form class="sv-tadd" id="svTaskAdd" novalidate>
+        <input type="text" id="svTaskT" maxlength="200" placeholder="Nouvelle mission…" aria-label="Nouvelle mission">
+        <input type="date" id="svTaskD" value="${def.getFullYear()}-${pad2(def.getMonth() + 1)}-${pad2(def.getDate())}" aria-label="Date de fin">
+        <button type="submit" class="chest-btn sv-sm">Ajouter</button></form>` : '';
+    $('svTasks').innerHTML = list + add;
+    const f = $('svTaskAdd');
+    if (f) f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = $('svTaskT').value.trim(), d = $('svTaskD').value;
+      if (!title) return $('svTaskT').focus();
+      try { S.D = await post('/mentor/tasks', { title, dueAt: d ? new Date(`${d}T23:59`).toISOString() : null }); render(); toast('Mission ajoutée.'); setTimeout(() => $('svTaskT') && $('svTaskT').focus(), 0); }
+      catch (err) { toast(err.message); }
+    });
   }
 
   function renderPlan() {
@@ -210,7 +233,7 @@
     for (let d = 1; d <= days; d++) {
       const date = new Date(m.getFullYear(), m.getMonth(), d), k = dayKey(date), evs = byDay.get(k) || [];
       const cls = ['sv-cal__d', k === today ? 'is-today' : '', S.day === k ? 'is-sel' : '', date < new Date(new Date().setHours(0, 0, 0, 0)) ? 'is-past' : ''].join(' ');
-      cells += `<button type="button" class="${cls}" data-day="${date.getTime()}" aria-label="${fr(date, { weekday: 'long', day: 'numeric', month: 'long' })}${evs.length ? `, ${evs.length} rendez-vous` : ''}">${d}${evs.length ? `<i>${evs.slice(0, 3).map((e) => `<em class="sv-dot sv-dot--${statusOf(e)[1]}"></em>`).join('')}</i>` : ''}</button>`;
+      cells += `<button type="button" class="${cls}" data-day="${date.getTime()}" aria-label="${fr(date, { weekday: 'long', day: 'numeric', month: 'long' })}${evs.length ? `, ${evs.length} appel${evs.length > 1 ? 's' : ''}` : ''}">${d}${evs.length ? `<i>${evs.slice(0, 3).map((e) => `<em class="sv-dot sv-dot--${statusOf(e)[1]}"></em>`).join('')}</i>` : ''}</button>`;
     }
     $('svCal').innerHTML = cells;
 
@@ -229,7 +252,7 @@
         <span class="sv-chip sv-chip--${tone}">${lbl}</span>
         <div class="sv-acts">${eventActions(e)}</div>
       </div>`;
-    }).join('') : `<p class="ed-empty">${S.day ? 'Aucun rendez-vous ce jour-là.' : S.when === 'up' ? 'Aucun rendez-vous à venir.' : 'Aucun rendez-vous passé.'}</p>`;
+    }).join('') : `<p class="ed-empty">${S.day ? 'Aucun appel ce jour-là.' : S.when === 'up' ? 'Aucun appel à venir.' : 'Aucun appel passé.'}</p>`;
     $('svAgenda').innerHTML = html;
     const all = $('svAllDays');
     if (all) all.onclick = () => { S.day = null; renderPlan(); };
@@ -241,11 +264,11 @@
       const ev = x.eventId && eventById(x.eventId);
       return `<article class="sv-note" id="note-${x.id}">
         <header><div><h3>${esc(x.title || 'Note')}</h3><span>${esc(x.author)} · ${fr(x.createdAt, { day: 'numeric', month: 'long', year: 'numeric' })}${x.updatedAt !== x.createdAt ? ' · modifiée' : ''}</span></div>
-          ${ev ? `<span class="sv-chip">${ic('cal')}Séance du ${fr(ev.startsAt, { day: 'numeric', month: 'short' })}</span>` : ''}</header>
+          ${ev ? `<span class="sv-chip">${ic('cal')}Appel du ${fr(ev.startsAt, { day: 'numeric', month: 'short' })}</span>` : ''}</header>
         <div class="sv-note__body">${textToHtml(x.body)}</div>
         ${mine(x) || S.D.me.role === 'admin' ? `<footer><button type="button" class="sv-tl" data-act="edit-note" data-id="${x.id}">${ic('edit')}Modifier</button><button type="button" class="sv-tl sv-tl--red" data-act="del-note" data-id="${x.id}">${ic('trash')}Supprimer</button></footer>` : ''}
       </article>`;
-    }).join('') : `<div class="sv-alone"><span class="sv-alone__ic">${ic('note')}</span><h2>Aucune note</h2><p>Après chaque rendez-vous, notez ce qui a été vu et la suite à donner. Les deux peuvent écrire.</p></div>`;
+    }).join('') : `<div class="sv-alone"><span class="sv-alone__ic">${ic('note')}</span><h2>Aucune note</h2><p>Après chaque appel, notez ce qui a été vu et la suite à donner. Les deux peuvent écrire.</p></div>`;
   }
 
   function renderLib() {
@@ -269,7 +292,7 @@
         </button>
         ${canDel(x) ? `<button type="button" class="sv-ib sv-card__del" data-act="del-lib" data-id="${x.id}" aria-label="Retirer ${esc(x.title)}">${ic('trash')}</button>` : ''}
       </article>`;
-    }).join('') : `<div class="sv-alone"><span class="sv-alone__ic">${ic('video')}</span><h2>${S.kind ? 'Rien dans cette catégorie' : 'Bibliothèque vide'}</h2><p>Ajoutez un texte, une vidéo (fichier ou lien YouTube / Vimeo), un lien ou un document : il apparaît chez vous deux.</p></div>`;
+    }).join('') : `<div class="sv-alone"><span class="sv-alone__ic">${ic('video')}</span><h2>${S.kind ? 'Rien dans cette catégorie' : 'Aucune ressource'}</h2><p>Ajoutez un texte, une vidéo (fichier ou lien YouTube / Vimeo), un lien ou un document : il apparaît chez vous deux.</p></div>`;
   }
 
   // ---------- vues ----------
@@ -319,14 +342,14 @@
 
   function eventForm(ev, day) {
     const d = ev ? new Date(ev.startsAt) : (() => { const x = day ? new Date(day) : new Date(Date.now() + DAY); x.setHours(18, 0, 0, 0); return x; })();
-    openDlg(ev ? 'Déplacer' : 'Planning', ev ? 'Déplacer le rendez-vous' : 'Proposer un rendez-vous', `
+    openDlg(ev ? 'Déplacer' : 'Appels', ev ? 'Déplacer l’appel' : 'Proposer un appel', `
       <div class="sv-row2"><label class="ed-field"><span>Date</span><input type="date" id="fDate" value="${ymd(d)}" min="${ymd(new Date())}" required></label>
       <label class="ed-field"><span>Heure</span><input type="time" id="fTime" value="${pad(d.getHours())}:${pad(d.getMinutes())}" step="900" required></label></div>
       <div class="ed-field"><span>Durée</span>${seg('min', [[30, '30 min'], [45, '45 min'], [60, '1 h'], [90, '1 h 30']], ev ? ev.minutes : 45)}</div>
       <label class="ed-field"><span>Sujet</span><input type="text" id="fTopic" maxlength="140" value="${esc(ev ? ev.topic : '')}" placeholder="Ex. Revue de mes trades de la semaine"></label>
       <div class="ed-field"><span>Format</span>${seg('mode', Object.entries(MODES), ev ? ev.mode || 'visio' : 'visio')}</div>
       <label class="ed-field"><span>Lien de la visio <i>(facultatif)</i></span><input type="url" id="fLink" maxlength="300" value="${esc(ev ? ev.link : '')}" placeholder="https://meet.google.com/…"></label>
-      <p class="ed-hint">${ev ? 'Le rendez-vous déplacé redevient une proposition' : 'Ta proposition apparaît'} chez ${other() ? esc(other().first) : 'l’autre'}, qui la confirme ou la refuse.</p>`, foot(ev ? 'Proposer ce créneau' : 'Envoyer la proposition'), async () => {
+      <p class="ed-hint">${ev ? 'L’appel déplacé redevient une proposition' : 'Ta proposition apparaît'} chez ${other() ? esc(other().first) : 'l’autre'}, qui la confirme ou la refuse.</p>`, foot(ev ? 'Proposer ce créneau' : 'Envoyer la proposition'), async () => {
       const date = $('fDate').value, time = $('fTime').value;
       if (!date || !time) throw new Error('Choisis une date et une heure.');
       const at = new Date(`${date}T${time}`);
@@ -343,8 +366,8 @@
     const sel = n ? n.eventId : eventId;
     const ev = sel && eventById(sel);
     openDlg('Notes', n ? 'Modifier la note' : 'Nouvelle note', `
-      <label class="ed-field"><span>Rendez-vous lié</span><select id="fEv"><option value="">Aucun</option>${evs.map((e) => `<option value="${e.id}" ${e.id === sel ? 'selected' : ''}>${esc(fr(e.startsAt, { day: 'numeric', month: 'short' }))} · ${esc(e.topic)}</option>`).join('')}</select></label>
-      <label class="ed-field"><span>Titre</span><input type="text" id="fTitle" maxlength="140" value="${esc(n ? n.title : ev ? `Séance du ${fr(ev.startsAt, { day: 'numeric', month: 'long' })}` : '')}" placeholder="Ex. Séance du 3 novembre"></label>
+      <label class="ed-field"><span>Appel lié</span><select id="fEv"><option value="">Aucun</option>${evs.map((e) => `<option value="${e.id}" ${e.id === sel ? 'selected' : ''}>${esc(fr(e.startsAt, { day: 'numeric', month: 'short' }))} · ${esc(e.topic)}</option>`).join('')}</select></label>
+      <label class="ed-field"><span>Titre</span><input type="text" id="fTitle" maxlength="140" value="${esc(n ? n.title : ev ? `Appel du ${fr(ev.startsAt, { day: 'numeric', month: 'long' })}` : '')}" placeholder="Ex. Appel du 3 novembre"></label>
       <label class="ed-field"><span>Note</span><textarea id="fBody" rows="9" maxlength="20000" placeholder="Ce qui a été vu, ce qu’il reste à travailler, les objectifs d’ici la prochaine séance…">${esc(n ? n.body : '')}</textarea></label>`,
     foot(n ? 'Enregistrer' : 'Ajouter la note'), async () => {
       S.D = await post('/mentor/notes', { id: n && n.id, eventId: +$('fEv').value || null, title: $('fTitle').value, body: $('fBody').value });
@@ -360,7 +383,7 @@
     if (f) f.accept = k === 'video' ? 'video/*' : '';
   }
   function libForm() {
-    openDlg('Bibliothèque', 'Ajouter à la bibliothèque', `
+    openDlg('Ressources', 'Ajouter une ressource', `
       <div class="ed-field"><span>Type</span>${seg('kind', Object.entries(KINDS), S.kind || 'text')}</div>
       <label class="ed-field"><span>Titre</span><input type="text" id="fTitle" maxlength="140" placeholder="Ex. Ma routine avant l’ouverture de Londres"></label>
       <label class="ed-field" data-for="text"><span>Texte</span><textarea id="fBody" rows="9" maxlength="20000"></textarea></label>
@@ -378,7 +401,7 @@
       if (file) prog.hidden = false;
       S.D = await upload(fd, (p) => { prog.firstElementChild.style.transform = `scaleX(${p})`; });
       render();
-      toast('Ajouté à la bibliothèque.');
+      toast('Ressource ajoutée.');
     });
     $('svDlgBody').dataset.sync = '1';
     syncKind();
@@ -388,7 +411,7 @@
     const x = S.D.notes.find((n) => n.id === id);
     if (!x) return;
     const ev = x.eventId && eventById(x.eventId);
-    openDlg(`${x.author} · ${fr(x.createdAt, { day: 'numeric', month: 'long' })}`, x.title || 'Note', `${ev ? `<p class="sv-chip">${ic('cal')}Séance du ${fr(ev.startsAt, { day: 'numeric', month: 'long' })} · ${esc(ev.topic)}</p>` : ''}<div class="sv-read">${textToHtml(x.body)}</div>`);
+    openDlg(`${x.author} · ${fr(x.createdAt, { day: 'numeric', month: 'long' })}`, x.title || 'Note', `${ev ? `<p class="sv-chip">${ic('cal')}Appel du ${fr(ev.startsAt, { day: 'numeric', month: 'long' })} · ${esc(ev.topic)}</p>` : ''}<div class="sv-read">${textToHtml(x.body)}</div>`);
   }
   function openLib(id) {
     const x = S.D.library.find((l) => l.id === id);
@@ -440,14 +463,16 @@
     const id = +act.dataset.id;
     try {
       switch (act.dataset.act) {
-        case 'confirm': S.D = await api(`/mentor/events/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'confirmed' }) }); toast('Rendez-vous confirmé.'); break;
+        case 'confirm': S.D = await api(`/mentor/events/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'confirmed' }) }); toast('Appel confirmé.'); break;
         case 'decline': if (!(await ask('Refuser ce créneau ? L’autre pourra en proposer un nouveau.', 'Refuser'))) return; S.D = await api(`/mentor/events/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'declined' }) }); break;
-        case 'cancel': if (!(await ask('Annuler ce rendez-vous ?', 'Annuler le rendez-vous'))) return; S.D = await api(`/mentor/events/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'cancelled' }) }); toast('Rendez-vous annulé.'); break;
+        case 'cancel': if (!(await ask('Annuler cet appel ?', 'Annuler l’appel'))) return; S.D = await api(`/mentor/events/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'cancelled' }) }); toast('Appel annulé.'); break;
+        case 'task-toggle': S.D = await api(`/mentor/tasks/${id}/toggle`, { method: 'POST' }); break;
+        case 'task-del': if (!(await ask('Retirer cette mission ?', 'Retirer'))) return; S.D = await api(`/mentor/tasks/${id}/delete`, { method: 'POST' }); break;
         case 'move': return eventForm(eventById(id));
         case 'note': { const n = S.D.notes.find((x) => x.eventId === id); return n && mine(n) ? noteForm(n) : noteForm(null, id); }
         case 'edit-note': return noteForm(S.D.notes.find((x) => x.id === id));
         case 'del-note': if (!(await ask('Supprimer cette note ?', 'Supprimer'))) return; S.D = await api(`/mentor/notes/${id}/delete`, { method: 'POST' }); break;
-        case 'del-lib': if (!(await ask('Retirer cet élément de la bibliothèque ?', 'Retirer'))) return; S.D = await api(`/mentor/library/${id}/delete`, { method: 'POST' }); break;
+        case 'del-lib': if (!(await ask('Retirer cette ressource ?', 'Retirer'))) return; S.D = await api(`/mentor/library/${id}/delete`, { method: 'POST' }); break;
         default: return;
       }
       render();

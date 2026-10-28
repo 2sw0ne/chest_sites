@@ -47,3 +47,11 @@
 .sc-mentor:hover .sc-mentor__go i{ transform:translateX(3px); }
 @media (max-width:560px){ .sc-mentor{ flex-wrap:wrap; gap:14px; padding:16px; } .sc-mentor__go{ width:100%; } }
 @media (prefers-reduced-motion:reduce){ .sc-mentor, .sc-mentor__go i{ transition:none; } }
+/* School côté éducateur (2026-10-28) : « Tes élèves » remplace l'ancien accueil ; les portes restent en ligne secondaire */
+.sc-edu{ padding:44px 34px 8px; }
+.sc-edu[hidden]{ display:none; }
+#scHome.is-edu > .sc-hero, #scHome.is-edu > .chest-section:has(#scNews), #scHome.is-edu > .chest-section:has(#scShelfTiles), #scHome.is-edu #scMentor{ display:none; }
+#scHome.is-edu > .chest-section:has(.sc-doors){ padding-top:34px; }
+#scHome.is-edu > .chest-section:has(.sc-doors)::before{ content:"Contenu de School"; display:block; margin:0 0 14px; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--chest-ink-3); }
+#scHome.is-edu .sc-door{ min-height:0; }
+@media (max-width:640px){ .sc-edu{ padding:28px 18px 6px; } }

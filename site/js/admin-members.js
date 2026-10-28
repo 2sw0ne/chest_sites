@@ -27,8 +27,16 @@
     { key: 'educator', name: 'Éducateur', group: 'team', rights: 'Accès complet sans abonnement. Publiera bientôt dans School.', c1: '#b79bff', c2: '#6b4dff', g: 'M4 10.5 12 7l8 3.5-8 3.5zM7.5 12v3.2c0 1 2 2.3 4.5 2.3s4.5-1.3 4.5-2.3V12' },
     { key: 'privilege', name: 'Privilège', group: 'access', rights: 'Tout CHEST, offert par toi, avec ou sans date de fin.', c1: '#9dbcff', c2: '#3f7bff', g: 'M12 6.2l1.5 4.3 4.3 1.5-4.3 1.5L12 17.8l-1.5-4.3L6.2 12l4.3-1.5z' },
     { key: 'allstar', name: 'Allstar', group: 'access', rights: 'Tout CHEST et l’automatisation complète. Bientôt disponible.', c1: '#ffe39a', c2: '#d99a1e', g: 'M12 6.3l1.7 3.6 3.9.5-2.9 2.7.7 3.9L12 15.1 8.6 17l.7-3.9-2.9-2.7 3.9-.5z' },
-    { key: 'premium', name: 'Premium', group: 'access', rights: 'Tout CHEST, School, BERICH et l’accompagnement.', c1: '#ffab6b', c2: '#ff4f3a', g: 'M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10' },
-    { key: 'essentiel', name: 'Essentiel', group: 'access', rights: 'Toute la plateforme, sauf School et BERICH. Deux cours offerts.', c1: '#5ff0bd', c2: '#13a274', g: 'M7.8 12.4l2.8 2.8 5.6-6' },
+    // Offres v2 (2026-10-28) : un rang par niveau, en chiffres romains (I = 3 mois, II = 6 mois, III = 1 an).
+    // « premium » / « essentiel » sans niveau = anciens abonnements mensuels/annuels (masqués s'ils sont vides).
+    { key: 'premium3', name: 'Premium III', roman: 'III', group: 'access', rights: '1 an de CHEST complet : School, BERICH, connexion BERICH clé en main, suivi.', c1: '#ff6aa8', c2: '#fc1283' },
+    { key: 'premium2', name: 'Premium II', roman: 'II', group: 'access', rights: '6 mois de CHEST complet : School, BERICH et suivi.', c1: '#ffab6b', c2: '#ff4f3a' },
+    { key: 'premium1', name: 'Premium I', roman: 'I', group: 'access', rights: '3 mois de CHEST complet : School, BERICH et suivi.', c1: '#ffc59a', c2: '#ff8a4c' },
+    { key: 'premium', name: 'Premium', legacy: true, group: 'access', rights: 'Ancien abonnement Premium (mensuel ou annuel).', c1: '#ffab6b', c2: '#ff4f3a', g: 'M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10' },
+    { key: 'essentiel3', name: 'Essentiel III', roman: 'III', group: 'access', rights: '1 an sur toute la plateforme, sauf School et BERICH.', c1: '#3fe0c8', c2: '#0b7f8a' },
+    { key: 'essentiel2', name: 'Essentiel II', roman: 'II', group: 'access', rights: '6 mois sur toute la plateforme, sauf School et BERICH.', c1: '#5ff0bd', c2: '#13a274' },
+    { key: 'essentiel1', name: 'Essentiel I', roman: 'I', group: 'access', rights: '3 mois sur toute la plateforme, sauf School et BERICH.', c1: '#a8f7d9', c2: '#34c08f' },
+    { key: 'essentiel', name: 'Essentiel', legacy: true, group: 'access', rights: 'Ancien abonnement Essentiel (mensuel ou annuel).', c1: '#5ff0bd', c2: '#13a274', g: 'M7.8 12.4l2.8 2.8 5.6-6' },
     { key: 'trial', name: 'Essai', group: 'access', rights: '7 jours d’Essentiel, données gardées sur l’appareil.', c1: '#7ce3f5', c2: '#0f93ad', g: 'M8.6 6.5h6.8M8.6 17.5h6.8M9.3 6.5c0 3.4 5.4 3.6 5.4 5.5s-5.4 2.1-5.4 5.5M14.7 6.5c0 3.4-5.4 3.6-5.4 5.5s5.4 2.1 5.4 5.5' },
     { key: 'expired', name: 'Ancien', group: 'out', rights: 'Abonnement, Privilège ou essai terminé.', c1: '#ff8f9a', c2: '#a8253a', g: 'M12 7.4a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2zM12 9.6V12l1.7 1.2' },
     { key: 'none', name: 'Sans accès', group: 'out', rights: 'Inscrit, aucune offre choisie pour l’instant.', c1: '#a0a0a8', c2: '#4a4a52', g: 'M8.5 12h7' },
@@ -43,7 +51,7 @@
     { key: 'all', label: 'Tous', test: () => true },
     { key: 'team', label: 'Équipe', test: (m) => ['admin', 'manager', 'educator'].includes(cat(m)) },
     { key: 'privilege', label: 'Privilège', test: (m) => cat(m) === 'privilege' },
-    { key: 'subs', label: 'Abonnés', test: (m) => ['allstar', 'premium', 'essentiel'].includes(cat(m)) },
+    { key: 'subs', label: 'Abonnés', test: (m) => ['allstar', 'premium', 'essentiel'].includes(base(cat(m))) },
     { key: 'trial', label: 'Essai', test: (m) => cat(m) === 'trial' },
     { key: 'expired', label: 'Anciens', test: (m) => cat(m) === 'expired' },
     { key: 'none', label: 'Sans accès', test: (m) => cat(m) === 'none' },
@@ -58,9 +66,11 @@
       <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t.c1}"/><stop offset="1" stop-color="${t.c2}"/></linearGradient></defs>
       <path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#${id})" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"/>
       <path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"/>
-      <path d="${t.g}" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      ${t.roman ? `<text x="12" y="15.4" text-anchor="middle" font-family="Instrument Sans, system-ui, sans-serif" font-weight="700" font-size="${t.roman.length > 2 ? 6.6 : t.roman.length > 1 ? 7.6 : 8.6}" fill="#fff">${t.roman}</text>`
+        : `<path d="${t.g}" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>`}
     </svg>`;
   }
+  const base = (c) => String(c || '').replace(/[123]$/, '');
   const tierStyle = (key) => { const t = TIER[key] || TIER.none; return `--c1:${t.c1};--c2:${t.c2}`; };
   const chip = (key) => `<span class="am-chip" style="${tierStyle(key)}">${badge(key, 16)}${esc((TIER[key] || TIER.none).name)}</span>`;
 
@@ -97,12 +107,14 @@
   const plural = (n, one, many) => `${nf(n)} ${n > 1 ? many : one}`;
 
   // Catégorie : calculée par le serveur (member_category) ; repli local identique si absente.
+  // Premium / Essentiel avec niveau → rang « premium3 », « essentiel1 »… (base(c) redonne la famille).
   function cat(m) {
-    if (m.category) return m.category;
+    const a = m.access || {};
+    const withLevel = (c) => (['premium', 'essentiel'].includes(c) && [1, 2, 3].includes(a.level) ? c + a.level : c);
+    if (m.category) return withLevel(m.category);
     if (m.isAdmin) return m.role === 'manager' ? 'manager' : 'admin';
     if (m.role === 'educator') return 'educator';
-    const a = m.access || {};
-    if (a.active) return a.plan === 'offert' ? 'privilege' : a.plan;
+    if (a.active) return a.plan === 'offert' ? 'privilege' : withLevel(a.plan);
     return a.trialUsed || (a.plan && a.plan !== 'none') ? 'expired' : 'none';
   }
   const isTeam = (m) => ['admin', 'manager', 'educator'].includes(cat(m));
@@ -125,7 +137,7 @@
     if (c === 'expired') return { label: a.plan === 'trial' ? 'Essai terminé' : `${(TIER[a.plan === 'offert' ? 'privilege' : a.plan] || { name: 'Offre' }).name} terminé`, sub: a.endsAt ? `depuis le ${dt(a.endsAt)}` : 'essai utilisé', cls: 'is-bad' };
     if (c === 'none') return { label: 'Aucune offre', sub: `inscrit ${ago(m.createdAt)}`, cls: '' };
     const per = a.level ? '' : a.period === 'year' ? 'annuel' : a.period === 'month' ? 'mensuel' : '';
-    const label = `${TIER[c].name}${a.level ? ' ' + a.level : ''}${per ? ' ' + per : ''}`;
+    const label = `${TIER[c].name}${per ? ' ' + per : ''}`;
     if (a.status === 'past_due') return { label, sub: 'paiement en retard', cls: 'is-bad' };
     if (a.status === 'canceling') return { label, sub: `se termine le ${dt(a.endsAt)}`, cls: 'is-warn' };
     return { label, sub: (a.paid ? 'renouvellement le ' : 'jusqu’au ') + dt(a.endsAt), cls: soon };
@@ -185,10 +197,10 @@
     const per = {};
     S.members.forEach((m) => {
       const c = cat(m);
-      if (['essentiel', 'premium', 'allstar'].includes(c)) per[c] = (per[c] || 0) + 1;
+      if (['essentiel', 'premium', 'allstar'].includes(base(c))) per[c] = (per[c] || 0) + 1;
     });
     const tot = Object.values(per).reduce((a, b) => a + b, 0);
-    const mix = ['allstar', 'premium', 'essentiel'].filter((k) => per[k]);
+    const mix = TIERS.map((t) => t.key).filter((k) => per[k]);
     zone.innerHTML = `
       <div class="am-kpi am-kpi--hero">
         <div class="am-kpi__k">Revenu mensuel récurrent</div>
@@ -452,7 +464,7 @@
       <div class="am-spectrum__legend"><span>Sommet de la hiérarchie</span><span>${plural(S.members.length, 'membre', 'membres')}</span><span>Base</span></div>`;
     const bySeen = (a, b) => (seenOf(b) || 0) - (seenOf(a) || 0);
     $('amRanks').innerHTML = GROUPS.map((g) => {
-      const tiers = TIERS.filter((t) => t.group === g.key);
+      const tiers = TIERS.filter((t) => t.group === g.key && !(t.legacy && !c[t.key]));
       const n = tiers.reduce((a, t) => a + (c[t.key] || 0), 0);
       return `<section class="am-group" aria-label="${g.name}">
         <div class="am-group__h"><h2>${g.name}</h2><span>${g.desc}</span><em>${plural(n, 'membre', 'membres')}</em></div>
@@ -726,7 +738,7 @@
     const left = daysUntil(a.endsAt);
     const ob = m.onboarding;
     const role = roleOf(m);
-    const planNow = c === 'privilege' ? 'offert' : ['premium', 'essentiel'].includes(c) ? c : (c === 'none' || c === 'expired' ? 'none' : 'offert');
+    const planNow = c === 'privilege' ? 'offert' : ['premium', 'essentiel'].includes(base(c)) ? base(c) : (c === 'none' || c === 'expired' ? 'none' : 'offert');
     const t = TIER[c] || TIER.none;
     const maxV = Math.max(1, ...(act.top || []).map((x) => x[1]));
     const last30 = act.last30 || act.last14 || [];
@@ -750,7 +762,7 @@
       </dl>` : '<p class="am-muted">Pas encore répondu.</p>'}</div>
       <div class="am-block"><h3 class="am-sub">Abonnement</h3><dl class="am-dl">
         <dt>Offre</dt><dd>${esc(a.label || 'Aucune')}</dd>
-        <dt>Période</dt><dd>${a.period === 'year' ? 'Annuelle' : a.period === 'month' ? 'Mensuelle' : /^\d+m$/.test(a.period || '') ? `${parseInt(a.period, 10)} mois${a.level ? ` · rang ${a.level}` : ''}` : '—'}</dd>
+        <dt>Période</dt><dd>${a.period === 'year' ? 'Annuelle' : a.period === 'month' ? 'Mensuelle' : /^\d+m$/.test(a.period || '') ? `${parseInt(a.period, 10)} mois${a.level ? ` · rang ${['', 'I', 'II', 'III'][a.level]}` : ''}` : '—'}</dd>
         <dt>Début</dt><dd>${esc(dt(a.startedAt))}</dd>
         <dt>Dernier montant</dt><dd>${eurCents(m.amount)}</dd>
       </dl></div>
@@ -763,7 +775,7 @@
       <form class="am-block" data-access-form><h3 class="am-sub">Accès</h3>
         <div class="am-opt am-opt--4">${[['offert', 'Privilège', 'Tout, offert'], ['premium', 'Premium', 'Tout CHEST'], ['essentiel', 'Essentiel', 'Sans School ni BERICH'], ['none', 'Aucun', 'Couper l’accès']].map(([k, l, s]) => `<button type="button" data-plan="${k}" aria-pressed="${planNow === k}"><b>${l}</b><small>${s}</small></button>`).join('')}</div>
         <div data-level-row ${['premium', 'essentiel'].includes(planNow) ? '' : 'hidden'} style="margin-top:14px">
-          <div class="am-dur">${[[1, 'Rang 1 · 3 mois'], [2, 'Rang 2 · 6 mois'], [3, 'Rang 3 · 1 an']].map(([k, l]) => `<button type="button" data-level="${k}" class="${(m.access || {}).level === k ? 'is-active' : ''}">${l}</button>`).join('')}</div>
+          <div class="am-dur">${[[1, 'Rang I · 3 mois'], [2, 'Rang II · 6 mois'], [3, 'Rang III · 1 an']].map(([k, l]) => `<button type="button" data-level="${k}" class="${(m.access || {}).level === k ? 'is-active' : ''}">${l}</button>`).join('')}</div>
         </div>
         <div data-dur-row ${planNow === 'none' ? 'hidden' : ''} style="margin-top:14px">
           <div class="am-dur">${[['7', '7 jours'], ['30', '30 jours'], ['90', '3 mois'], ['180', '6 mois'], ['365', '1 an'], ['date', 'Jusqu’au…'], ['', 'Sans limite']].map(([k, l]) => `<button type="button" data-dur="${k}" class="${(planNow === 'offert' ? k === '' : k === '30') ? 'is-active' : ''}" ${k === '' && planNow !== 'offert' ? 'hidden' : ''}>${l}</button>`).join('')}</div>
