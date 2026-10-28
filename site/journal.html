@@ -464,7 +464,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=10"></script>
-<script src="js/sync-store.js?v=15"></script>
+<script src="js/sync-store.js?v=16"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
 </head>
@@ -929,7 +929,7 @@
 <script src="js/myfxbook-store.js?v=7"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
-<script src="js/journal-store.js?v=12"></script>
+<script src="js/journal-store.js?v=13"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
@@ -2183,12 +2183,16 @@ CHESTTour.init([
         <td>${r.chartLink ? `<a class="jr-chart-link" href="${r.chartLink}" target="_blank" rel="noopener">📈</a>` : ''}</td>
         <td class="jr-source">${sourceLabel(r)}</td>
         <td class="jr-row-actions">
-          ${r.source === 'manual' ? `<button type="button" data-edit="${r.id}" title="Modifier">✎</button><button type="button" data-delete="${r.id}" title="Supprimer">✕</button>` : ''}
+          ${r.source === 'manual' ? `<button type="button" data-edit="${r.id}" title="Modifier">✎</button>` : ''}<button type="button" data-delete="${r.id}" data-src="${r.source || 'manual'}" title="Supprimer ce trade">✕</button>
         </td>
       </tr>`).join('');
 
     tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', async () => {
-      if (await CHESTConfirm('Supprimer ce trade du journal ?')) { CHESTJournal.remove(btn.dataset.delete); loadAndRender(); }
+      const imported = btn.dataset.src !== 'manual';
+      const msg = imported
+        ? 'Retirer ce trade du journal ? Il vient d’une source automatique : il sera masqué et ne reviendra pas à la prochaine synchro. Tes statistiques seront recalculées sans lui.'
+        : 'Supprimer ce trade du journal ? Tes statistiques seront recalculées sans lui.';
+      if (await CHESTConfirm(msg)) { CHESTJournal.removeAny(btn.dataset.delete); loadAndRender(); }
     }));
     tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(allRows.find((r) => r.id === btn.dataset.edit))));
   }

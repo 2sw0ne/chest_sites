@@ -324,6 +324,17 @@
   function remove(id) {
     persist(list().filter((e) => e.id !== id));
   }
+  // Supprimer n'importe quel trade (2026-10-28, demande utilisateur) : un trade saisi à la main est effacé ; un trade
+  // importé (Myfxbook, VPS, BERICH) est masqué pour de bon (chest_journal_hidden, synchronisé), sinon il
+  // reviendrait à la prochaine relecture de sa source.
+  const HIDDEN_KEY = 'chest_journal_hidden';
+  function hiddenIds() { try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]')); } catch (e) { return new Set(); } }
+  function removeAny(id) {
+    if (list().some((e) => e.id === id)) { remove(id); return 'deleted'; }
+    const h = hiddenIds(); h.add(id);
+    try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...h].slice(-5000))); } catch (e) { /* tant pis */ }
+    return 'hidden';
+  }
 
   // ---------- Import depuis BERICH (positions prises via le bouton) ----------
   function rrFromLevels(side, entry, sl, tp) {
@@ -671,7 +682,8 @@
         return !dup;
       });
     }
-    const rows = [...main, ...liveRows].map((e) => Object.assign({}, e, { accountId: account.id })).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const hiddenSet = hiddenIds();
+    const rows = [...main, ...liveRows].filter((e) => !hiddenSet.has(e.id)).map((e) => Object.assign({}, e, { accountId: account.id })).sort((a, b) => new Date(b.date) - new Date(a.date));
     rows.hiddenDuplicates = hidden;
     return rows;
   }
@@ -733,7 +745,7 @@
   }
 
   window.CHESTJournal = {
-    list, add, update, remove, berichEntries, allEntries, entriesFor, liveAccounts, addLiveAccount, updateLiveAccount, removeLiveAccount, syncLiveAccount, syncVpsLiveAccount, extEntries, mergeExternal, mfxToEntry, computeStats, importBacktestTrades,
+    list, add, update, remove, removeAny, berichEntries, allEntries, entriesFor, liveAccounts, addLiveAccount, updateLiveAccount, removeLiveAccount, syncLiveAccount, syncVpsLiveAccount, extEntries, mergeExternal, mfxToEntry, computeStats, importBacktestTrades,
     knownTags, rememberTag, favoritePairs, toggleFavoritePair,
     propfirms, challengeModels, stageList, stageRules, propfirmLogo,
     listAccounts, addAccount, updateAccount, removeAccount,
