@@ -252,6 +252,26 @@ def init_db():
         # Programme éducateur (2026-10-25) : lien d'invitation, coordonnées de paiement, demandes de retrait.
         # Connexion BERICH « clé en main » (Premium 3, 2026-10-28) : le membre donne son broker et ses accès MT5,
         # son éducateur installe le VPS lui-même. Mot de passe chiffré (Fernet, clé hors base).
+        # Suivi élève–éducateur (2026-10-28, « comme Pronote ») : rendez-vous, notes, bibliothèque partagée.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mentor_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER NOT NULL, author_id INTEGER NOT NULL,
+                starts_at TEXT NOT NULL, minutes INTEGER NOT NULL DEFAULT 45, topic TEXT, mode TEXT, link TEXT,
+                status TEXT NOT NULL DEFAULT 'proposed', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mentor_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER NOT NULL, author_id INTEGER NOT NULL,
+                event_id INTEGER, title TEXT, body TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS mentor_library (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER NOT NULL, author_id INTEGER NOT NULL,
+                kind TEXT NOT NULL, title TEXT, body TEXT, url TEXT, file TEXT, created_at TEXT NOT NULL
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS berich_requests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -930,6 +950,10 @@ def delete_member(member_id):
         db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
+        for row in db.execute("SELECT file FROM mentor_library WHERE member_id = ? AND file IS NOT NULL", (member_id,)).fetchall():
+            delete_file(json.loads(row["file"]))
+        for t in ("mentor_events", "mentor_notes", "mentor_library"):
+            db.execute(f"DELETE FROM {t} WHERE member_id = ?", (member_id,))
         db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
@@ -1392,6 +1416,8 @@ def edu_report(db, educator, full=False):
             "joinedAt": m["created_at"], "plan": a["label"] if a["active"] else ("Essai terminé" if a["trialUsed"] else "Sans offre"),
             "active": bool(a["active"]) and a["plan"] not in ("trial", "none"), "trial": a["trial"] and a["active"],
             "sales": total, "commission": round(comm), "payments": len(sales), "lastSeenAt": _col(m, "last_seen_at"),
+            "level": a.get("level"), "planKey": a["plan"], "endsAt": a["endsAt"],
+            "berichPending": bool(db.execute("SELECT 1 FROM berich_requests WHERE user_id = ? AND status = 'pending'", (m["id"],)).fetchone()),
         })
         mk = (m["created_at"] or "")[:7]
         monthly.setdefault(mk, {"month": mk, "signups": 0, "commission": 0.0})["signups"] += 1
@@ -1554,6 +1580,307 @@ def berich_request_update(rid):
                    (status, datetime.now(timezone.utc).isoformat() if status == "done" else None, str(b.get("note") or "")[:240], rid))
         db.commit()
     return jsonify({"request": _req_public(db.execute("SELECT * FROM berich_requests WHERE id = ?", (rid,)).fetchone(), reveal=True)})
+
+
+# ---------------------------------------------------------------- Suivi élève–éducateur (2026-10-28)
+# L'élève et son éducateur partagent un espace : planning de rendez-vous (l'un propose, l'autre confirme), notes
+# (rattachées ou non à un rendez-vous) et bibliothèque (textes, vidéos envoyées ou liens, fichiers).
+# Accès : l'élève (son espace), son éducateur (users.referred_by), un admin.
+EVENT_STATUSES = ("proposed", "confirmed", "declined", "cancelled", "done")
+
+
+def _mentor_ctx(member_id):
+    """(user, member, educator) si l'utilisateur connecté peut ouvrir l'espace de member_id, sinon une réponse d'erreur."""
+    user = current_user()
+    if not user:
+        return None, (jsonify({"error": "Non connecté."}), 401)
+    db = get_db()
+    try:
+        mid = int(member_id) if member_id not in (None, "") else user["id"]
+    except (TypeError, ValueError):
+        return None, (jsonify({"error": "Élève introuvable."}), 404)
+    member = db.execute("SELECT * FROM users WHERE id = ?", (mid,)).fetchone()
+    if not member:
+        return None, (jsonify({"error": "Élève introuvable."}), 404)
+    allowed = user["id"] == member["id"] or user["is_admin"] or (is_educator(user) and member["referred_by"] == user["id"])
+    if not allowed:
+        return None, (jsonify({"error": "Cet espace ne t'est pas ouvert."}), 403)
+    edu = db.execute("SELECT * FROM users WHERE id = ?", (member["referred_by"],)).fetchone() if member["referred_by"] else None
+    return (user, member, edu), None
+
+
+def _person(row):
+    return {"id": row["id"], "name": f"{row['first_name']} {row['last_name']}", "first": row["first_name"]} if row else None
+
+
+def _mentor_payload(db, user, member, edu):
+    names = {}
+    def who(uid):
+        if uid not in names:
+            r = db.execute("SELECT first_name, last_name FROM users WHERE id = ?", (uid,)).fetchone()
+            names[uid] = f"{r['first_name']} {(r['last_name'] or '')[:1]}." if r else "Compte supprimé"
+        return names[uid]
+    mid = member["id"]
+    events = [{"id": r["id"], "startsAt": r["starts_at"], "minutes": r["minutes"], "topic": r["topic"] or "", "mode": r["mode"] or "",
+               "link": r["link"] or "", "status": r["status"], "authorId": r["author_id"], "author": who(r["author_id"]),
+               "createdAt": r["created_at"]} for r in db.execute("SELECT * FROM mentor_events WHERE member_id = ? ORDER BY starts_at", (mid,)).fetchall()]
+    notes = [{"id": r["id"], "eventId": r["event_id"], "title": r["title"] or "", "body": r["body"] or "", "authorId": r["author_id"],
+              "author": who(r["author_id"]), "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
+             for r in db.execute("SELECT * FROM mentor_notes WHERE member_id = ? ORDER BY created_at DESC", (mid,)).fetchall()]
+    lib = [{"id": r["id"], "kind": r["kind"], "title": r["title"] or "", "body": r["body"] or "", "url": r["url"] or "",
+            "file": json.loads(r["file"]) if r["file"] else None, "authorId": r["author_id"], "author": who(r["author_id"]), "createdAt": r["created_at"]}
+           for r in db.execute("SELECT * FROM mentor_library WHERE member_id = ? ORDER BY created_at DESC", (mid,)).fetchall()]
+    a = access_of(member)
+    return {"me": {"id": user["id"], "role": "member" if user["id"] == mid else ("educator" if is_educator(user) else "admin")},
+            "member": {**_person(member), "plan": a["label"], "level": a.get("level"), "planKey": a["plan"], "endsAt": a["endsAt"], "joinedAt": member["created_at"]},
+            "educator": _person(edu), "events": events, "notes": notes, "library": lib}
+
+
+@app.route("/mentor")
+def mentor_get():
+    ctx, err = _mentor_ctx(request.args.get("member"))
+    if err:
+        return err
+    return jsonify(_mentor_payload(get_db(), *ctx))
+
+
+@app.route("/mentor/students")
+def mentor_students():
+    """Les élèves d'un éducateur (ou tous les élèves rattachés, pour l'admin), avec leur prochain rendez-vous."""
+    user = current_user()
+    if not user or not (is_educator(user) or user["is_admin"]):
+        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    db = get_db()
+    rows = db.execute("SELECT * FROM users WHERE referred_by = ? ORDER BY first_name", (user["id"],)).fetchall() if is_educator(user) \
+        else db.execute("SELECT * FROM users WHERE referred_by IS NOT NULL ORDER BY first_name").fetchall()
+    now = datetime.now(timezone.utc).isoformat()
+    out = []
+    for m in rows:
+        nxt = db.execute("SELECT starts_at, status FROM mentor_events WHERE member_id = ? AND starts_at >= ? AND status IN ('proposed', 'confirmed') ORDER BY starts_at LIMIT 1", (m["id"], now)).fetchone()
+        a = access_of(m)
+        out.append({**_person(m), "plan": a["label"], "level": a.get("level"), "next": dict(nxt) if nxt else None,
+                    "pending": db.execute("SELECT COUNT(*) AS n FROM mentor_events WHERE member_id = ? AND status = 'proposed' AND author_id = ?", (m["id"], m["id"])).fetchone()["n"]})
+    return jsonify({"students": out})
+
+
+def _mentor_write(member_id):
+    ctx, err = _mentor_ctx(member_id)
+    if err:
+        return None, err
+    user, member, edu = ctx
+    if user["id"] == member["id"] and not edu:
+        return None, (jsonify({"error": "Tu n'as pas encore d'éducateur : inscris-toi avec son code pour ouvrir ton suivi."}), 400)
+    return ctx, None
+
+
+@app.route("/mentor/events", methods=["POST"])
+def mentor_event_save():
+    b = request.get_json(silent=True) or {}
+    ctx, err = _mentor_write(b.get("member"))
+    if err:
+        return err
+    user, member, edu = ctx
+    try:
+        starts = datetime.fromisoformat(str(b.get("startsAt") or "").replace("Z", "+00:00"))
+        if starts.tzinfo is None:
+            starts = starts.replace(tzinfo=timezone.utc)
+    except ValueError:
+        return jsonify({"error": "Date et heure invalides."}), 400
+    try:
+        minutes = max(10, min(240, int(b.get("minutes") or 45)))
+    except (TypeError, ValueError):
+        minutes = 45
+    topic = re.sub(r"\s+", " ", str(b.get("topic") or "")).strip()[:140]
+    if not topic:
+        return jsonify({"error": "Indique le sujet du rendez-vous."}), 400
+    mode = b.get("mode") if b.get("mode") in ("visio", "telephone", "presentiel") else "visio"
+    link = str(b.get("link") or "").strip()[:300]
+    if link and not re.fullmatch(r"https://\S+", link):
+        return jsonify({"error": "Le lien de visio doit commencer par https://"}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    db = get_db()
+    with db_lock:
+        if b.get("id"):
+            ev = db.execute("SELECT * FROM mentor_events WHERE id = ? AND member_id = ?", (b.get("id"), member["id"])).fetchone()
+            if not ev:
+                return jsonify({"error": "Rendez-vous introuvable."}), 404
+            # déplacé : il redevient une proposition, à confirmer par l'autre
+            db.execute("UPDATE mentor_events SET starts_at = ?, minutes = ?, topic = ?, mode = ?, link = ?, status = 'proposed', author_id = ?, updated_at = ? WHERE id = ?",
+                       (starts.isoformat(), minutes, topic, mode, link, user["id"], now, ev["id"]))
+        else:
+            db.execute("INSERT INTO mentor_events (member_id, author_id, starts_at, minutes, topic, mode, link, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?)",
+                       (member["id"], user["id"], starts.isoformat(), minutes, topic, mode, link, now, now))
+        db.commit()
+    return jsonify(_mentor_payload(db, user, member, edu))
+
+
+@app.route("/mentor/events/<int:eid>/status", methods=["POST"])
+def mentor_event_status(eid):
+    b = request.get_json(silent=True) or {}
+    db = get_db()
+    ev = db.execute("SELECT * FROM mentor_events WHERE id = ?", (eid,)).fetchone()
+    if not ev:
+        return jsonify({"error": "Rendez-vous introuvable."}), 404
+    ctx, err = _mentor_write(ev["member_id"])
+    if err:
+        return err
+    user, member, edu = ctx
+    status = b.get("status")
+    if status not in EVENT_STATUSES:
+        return jsonify({"error": "Statut inconnu."}), 400
+    if status in ("confirmed", "declined") and ev["author_id"] == user["id"] and not user["is_admin"]:
+        return jsonify({"error": "C'est à l'autre personne de confirmer ta proposition."}), 400
+    with db_lock:
+        db.execute("UPDATE mentor_events SET status = ?, updated_at = ? WHERE id = ?", (status, datetime.now(timezone.utc).isoformat(), eid))
+        db.commit()
+    return jsonify(_mentor_payload(db, user, member, edu))
+
+
+@app.route("/mentor/notes", methods=["POST"])
+def mentor_note_save():
+    b = request.get_json(silent=True) or {}
+    ctx, err = _mentor_write(b.get("member"))
+    if err:
+        return err
+    user, member, edu = ctx
+    title = re.sub(r"\s+", " ", str(b.get("title") or "")).strip()[:140]
+    body = str(b.get("body") or "").strip()[:20000]
+    if not body:
+        return jsonify({"error": "La note est vide."}), 400
+    event_id = b.get("eventId") or None
+    db = get_db()
+    if event_id and not db.execute("SELECT 1 FROM mentor_events WHERE id = ? AND member_id = ?", (event_id, member["id"])).fetchone():
+        event_id = None
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        if b.get("id"):
+            n = db.execute("SELECT * FROM mentor_notes WHERE id = ? AND member_id = ?", (b.get("id"), member["id"])).fetchone()
+            if not n or (n["author_id"] != user["id"] and not user["is_admin"]):
+                return jsonify({"error": "Tu ne peux modifier que tes propres notes."}), 403
+            db.execute("UPDATE mentor_notes SET title = ?, body = ?, event_id = ?, updated_at = ? WHERE id = ?", (title, body, event_id, now, n["id"]))
+        else:
+            db.execute("INSERT INTO mentor_notes (member_id, author_id, event_id, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                       (member["id"], user["id"], event_id, title, body, now, now))
+        db.commit()
+    return jsonify(_mentor_payload(db, user, member, edu))
+
+
+@app.route("/mentor/notes/<int:nid>/delete", methods=["POST"])
+def mentor_note_delete(nid):
+    db = get_db()
+    n = db.execute("SELECT * FROM mentor_notes WHERE id = ?", (nid,)).fetchone()
+    if not n:
+        return jsonify({"error": "Note introuvable."}), 404
+    ctx, err = _mentor_write(n["member_id"])
+    if err:
+        return err
+    user, member, edu = ctx
+    if n["author_id"] != user["id"] and not user["is_admin"]:
+        return jsonify({"error": "Tu ne peux supprimer que tes propres notes."}), 403
+    with db_lock:
+        db.execute("DELETE FROM mentor_notes WHERE id = ?", (nid,))
+        db.commit()
+    return jsonify(_mentor_payload(db, user, member, edu))
+
+
+@app.route("/mentor/library", methods=["POST"])
+def mentor_library_add():
+    try:
+        b = json.loads(request.form.get("data", "{}")) if (request.files or request.form) else (request.get_json(silent=True) or {})
+    except ValueError:
+        return jsonify({"error": "Données invalides."}), 400
+    ctx, err = _mentor_write(b.get("member"))
+    if err:
+        return err
+    user, member, edu = ctx
+    kind = b.get("kind")
+    if kind not in ("text", "video", "link", "file"):
+        return jsonify({"error": "Type inconnu."}), 400
+    title = re.sub(r"\s+", " ", str(b.get("title") or "")).strip()[:140]
+    if not title:
+        return jsonify({"error": "Donne un titre."}), 400
+    body = str(b.get("body") or "").strip()[:20000]
+    url = str(b.get("url") or "").strip()[:500]
+    if url and not re.fullmatch(r"https://\S+", url):
+        return jsonify({"error": "Le lien doit commencer par https://"}), 400
+    up = save_upload("file", f"m{member['id']}")
+    if kind == "text" and not body:
+        return jsonify({"error": "Le texte est vide."}), 400
+    if kind in ("video", "file") and not up and not url:
+        return jsonify({"error": "Ajoute un fichier ou un lien."}), 400
+    db = get_db()
+    with db_lock:
+        db.execute("INSERT INTO mentor_library (member_id, author_id, kind, title, body, url, file, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                   (member["id"], user["id"], kind, title, body, url, json.dumps(up) if up else None, datetime.now(timezone.utc).isoformat()))
+        db.commit()
+    return jsonify(_mentor_payload(db, user, member, edu))
+
+
+@app.route("/mentor/library/<int:lid>/delete", methods=["POST"])
+def mentor_library_delete(lid):
+    db = get_db()
+    it = db.execute("SELECT * FROM mentor_library WHERE id = ?", (lid,)).fetchone()
+    if not it:
+        return jsonify({"error": "Élément introuvable."}), 404
+    ctx, err = _mentor_write(it["member_id"])
+    if err:
+        return err
+    user, member, edu = ctx
+    if it["author_id"] != user["id"] and not user["is_admin"] and not is_educator(user):
+        return jsonify({"error": "Tu ne peux retirer que ce que tu as ajouté."}), 403
+    with db_lock:
+        if it["file"]:
+            delete_file(json.loads(it["file"]))
+        db.execute("DELETE FROM mentor_library WHERE id = ?", (lid,))
+        db.commit()
+    return jsonify(_mentor_payload(db, user, member, edu))
+
+
+@app.route("/edu/members/<int:mid>")
+def edu_member(mid):
+    """Fiche complète d'un membre pour son éducateur (ou l'admin) : identité, rang et ce qu'il inclut, questionnaire,
+    activité, paiements et commissions, demande BERICH clé en main (accès MT5 déchiffrés), état du suivi."""
+    user = current_user()
+    db = get_db()
+    m = db.execute("SELECT * FROM users WHERE id = ?", (mid,)).fetchone()
+    if not user or not m or not (user["is_admin"] or (is_educator(user) and m["referred_by"] == user["id"])):
+        return jsonify({"error": "Membre introuvable."}), 404
+    edu = db.execute("SELECT * FROM users WHERE id = ?", (m["referred_by"],)).fetchone() if m["referred_by"] else None
+    rate = edu_rate(edu) if edu else 0
+    a = access_of(m)
+    sales = member_sales(db, mid)
+    since = (datetime.now(timezone.utc) - timedelta(days=30)).date().isoformat()
+    acts = db.execute("SELECT day, page, views FROM user_activity WHERE user_id = ? AND day >= ?", (mid, since)).fetchall()
+    pages, per_day = {}, {}
+    for r in acts:
+        pages[r["page"]] = pages.get(r["page"], 0) + r["views"]
+        per_day[r["day"]] = per_day.get(r["day"], 0) + r["views"]
+    today = datetime.now(timezone.utc).date()
+    try:
+        onboarding = json.loads(_col(m, "onboarding") or "null")
+    except ValueError:
+        onboarding = None
+    breq = db.execute("SELECT * FROM berich_requests WHERE user_id = ? AND status != 'replaced' ORDER BY id DESC LIMIT 1", (mid,)).fetchone()
+    now = datetime.now(timezone.utc).isoformat()
+    nxt = db.execute("SELECT starts_at, topic, status FROM mentor_events WHERE member_id = ? AND starts_at >= ? AND status IN ('proposed', 'confirmed') ORDER BY starts_at LIMIT 1", (mid, now)).fetchone()
+    count = lambda q: db.execute(q, (mid,)).fetchone()[0]
+    return jsonify({
+        "id": mid, "name": f"{m['first_name']} {m['last_name']}".strip(), "first": m["first_name"], "email": m["email"],
+        "joinedAt": m["created_at"], "lastSeenAt": _col(m, "last_seen_at"), "lastLoginAt": _col(m, "last_login_at"),
+        "access": {k: a.get(k) for k in ("plan", "level", "label", "period", "status", "startedAt", "endsAt", "active", "trial", "school", "berich")},
+        "onboarding": onboarding,
+        "activity": {"days30": len(per_day), "views30": sum(per_day.values()),
+                     "last30": [per_day.get((today - timedelta(days=i)).isoformat(), 0) for i in range(29, -1, -1)],
+                     "top": sorted(([k, v] for k, v in pages.items()), key=lambda x: -x[1])[:5]},
+        "sales": [{"at": r["created_at"], "amount": r["amount"]} for r in sales],
+        "salesTotal": sum(r["amount"] for r in sales), "commission": round(sum(r["amount"] for r in sales) * rate / 100), "rate": rate,
+        "berich": _req_public(breq, reveal=True) if breq else None,
+        "mentor": {"next": dict(nxt) if nxt else None,
+                   "held": db.execute("SELECT COUNT(*) FROM mentor_events WHERE member_id = ? AND status IN ('confirmed', 'done') AND starts_at < ?", (mid, now)).fetchone()[0],
+                   "notes": count("SELECT COUNT(*) FROM mentor_notes WHERE member_id = ?"),
+                   "library": count("SELECT COUNT(*) FROM mentor_library WHERE member_id = ?"),
+                   "pending": db.execute("SELECT COUNT(*) FROM mentor_events WHERE member_id = ? AND status = 'proposed' AND author_id = ? AND starts_at >= ?", (mid, mid, now)).fetchone()[0]},
+    })
 
 
 @app.route("/edu/code", methods=["POST"])

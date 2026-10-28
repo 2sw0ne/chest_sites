@@ -92,10 +92,14 @@
     // membres
     const status = (m) => (m.active ? ['Abonné', 'is-on'] : m.trial ? ['Essai', 'is-trial'] : ['Inactif', 'is-off']);
     const recent = D.members.slice(0, 5);
-    $('edRecent').innerHTML = recent.length ? `<ul class="ed-people">${recent.map((m) => { const [s, c] = status(m); return `<li><span class="ed-av">${esc(m.name.slice(0, 1))}</span><span class="ed-people__n">${esc(m.name)}<small>inscrit le ${esc(day(m.joinedAt))}</small></span><span class="ed-pill ${c}">${s}</span><b>${esc(eur(m.commission))}</b></li>`; }).join('')}</ul>`
+    $('edRecent').innerHTML = recent.length ? `<ul class="ed-people">${recent.map((m) => { const [s, c] = status(m); return `<li><button type="button" class="ed-people__btn" data-member="${m.id}"><span class="ed-av">${esc(m.name.slice(0, 1))}</span><span class="ed-people__n">${esc(m.name)}<small>inscrit le ${esc(day(m.joinedAt))} · ${esc(m.plan)}</small></span><span class="ed-pill ${c}">${s}</span><b>${esc(eur(m.commission))}</b></button></li>`; }).join('')}</ul>`
       : '<p class="ed-empty">Personne encore. Partage ton lien pour accueillir tes premiers membres.</p>';
-    $('edMembers').innerHTML = D.members.length ? `<div class="ed-tr ed-tr--h"><span>Membre</span><span>Inscrit le</span><span>Offre</span><span>Statut</span><span>Ventes</span><span>Ta commission</span></div>` + D.members.map((m) => { const [s, c] = status(m); return `<div class="ed-tr">
-        <span class="ed-people__n"><span class="ed-av">${esc(m.name.slice(0, 1))}</span>${esc(m.name)}</span><span>${esc(day(m.joinedAt))}</span><span>${esc(m.plan)}</span><span><i class="ed-pill ${c}">${s}</i></span><span class="ed-num">${esc(eur(m.sales, 0))}</span><span class="ed-num ed-strong">${esc(eur(m.commission))}</span></div>`; }).join('')
+    // Connexions BERICH clé en main (Premium 3) à faire : rappel en tête de l'espace
+    const todo = D.members.filter((m) => m.berichPending);
+    $('edAlert').hidden = !todo.length;
+    $('edAlert').innerHTML = todo.length ? `<span class="ed-alert__dot"></span><span><b>${todo.length} connexion${todo.length > 1 ? 's' : ''} BERICH à faire</b> · ${todo.map((m) => esc(m.name)).join(', ')} attend${todo.length > 1 ? 'ent' : ''} que tu installes son VPS.</span><button type="button" class="chest-btn-2 ed-alert__go" data-member="${todo[0].id}">Voir ${todo.length > 1 ? 'la première' : 'la demande'}</button>` : '';
+    $('edMembers').innerHTML = D.members.length ? `<div class="ed-tr ed-tr--h"><span>Membre</span><span>Inscrit le</span><span>Offre</span><span>Statut</span><span>Ventes</span><span>Ta commission</span></div>` + D.members.map((m) => { const [s, c] = status(m); return `<button type="button" class="ed-tr ed-tr--btn" data-member="${m.id}">
+        <span class="ed-people__n"><span class="ed-av">${esc(m.name.slice(0, 1))}</span>${esc(m.name)}${m.berichPending ? '<i class="ed-pill is-trial">BERICH à connecter</i>' : ''}</span><span>${esc(day(m.joinedAt))}</span><span>${esc(m.plan)}${m.endsAt && m.active ? `<small class="ed-sub">jusqu’au ${esc(day(m.endsAt))}</small>` : ''}</span><span><i class="ed-pill ${c}">${s}</i></span><span class="ed-num">${esc(eur(m.sales, 0))}</span><span class="ed-num ed-strong">${esc(eur(m.commission))}</span></button>`; }).join('')
       : '<p class="ed-empty">Aucun membre inscrit avec ton lien pour l’instant.</p>';
 
     // carte portefeuille
@@ -175,6 +179,134 @@
     try { D = await api('/edu/payouts', { method: 'POST', body: JSON.stringify({ amount }) }); $('edAmount').value = ''; render(); msg.textContent = 'Demande envoyée : tu la suis dans « Mouvements ».'; msg.className = 'am-msg is-ok'; }
     catch (err) { msg.textContent = err.message; msg.className = 'am-msg is-err'; $('edAsk').disabled = false; }
   });
+
+  // ---------- fiche d'un membre (2026-10-28) ----------
+  // Tout ce que l'éducateur doit savoir d'un membre : rang et ce qu'il inclut, connexion BERICH clé en main à faire
+  // (accès MT5 déchiffrés pour lui seul), suivi, questionnaire, activité, paiements. GET /edu/members/<id>.
+  const ANSWERS = {
+    made: { yes: 'Oui', no: 'Non' },
+    amount: { lt1k: 'moins de 1 000 €', '1k-10k': '1 000 à 10 000 €', '10k-50k': '10 000 à 50 000 €', gt50k: 'plus de 50 000 €' },
+    goal: { learn: 'Apprendre de zéro', improve: 'S’améliorer', structure: 'Structurer', automate: 'Automatiser' },
+    budget: { lt100: 'moins de 100 €/mois', '100-300': '100 à 300 €/mois', '300-1000': '300 à 1 000 €/mois', gt1000: 'plus de 1 000 €/mois' },
+    reco: { essentiel: 'Essentiel', premium: 'Premium', allstar: 'Allstar' },
+  };
+  const PAGE_LBL = { dashboard: 'Dashboard', backtesting: 'Backtesting', journal: 'Journal', strategies: 'Stratégies', calendar: 'Calendrier', berich: 'BERICH', school: 'School', suivi: 'Suivi', account: 'Compte' };
+  const MONTHS = { 1: '3 mois', 2: '6 mois', 3: '1 an' };
+  const sheet = $('edSheet');
+  let M = null;
+  const tick = (on, label, note) => `<li class="${on ? 'is-on' : ''}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${on ? 'M5 12.5l4.2 4.2L19 7' : 'M7 7l10 10M17 7L7 17'}"/></svg><span>${label}${note ? `<small>${note}</small>` : ''}</span></li>`;
+  const copyBtn = (v, l) => `<button type="button" class="ed-copy" data-copy="${esc(v)}" aria-label="Copier ${l}">Copier</button>`;
+
+  function renderSheet() {
+    const a = M.access || {}, lvl = a.level, ob = M.onboarding, act = M.activity, br = M.berich, mt = M.mentor;
+    const start = Date.parse(a.startedAt), end = Date.parse(a.endsAt);
+    const pct = start && end && end > start ? Math.min(100, Math.max(0, (Date.now() - start) / (end - start) * 100)) : null;
+    const left = end ? Math.ceil((end - Date.now()) / 86400000) : null;
+    const isPremium = a.plan === 'premium';
+    const maxV = Math.max(1, ...act.last30);
+    $('edSheetBody').innerHTML = `
+      <header class="ed-sh__head">
+        <span class="ed-av ed-av--lg">${esc((M.first || '?').slice(0, 1))}</span>
+        <div class="ed-sh__id"><h2 id="edSheetT">${esc(M.name)}</h2><a href="mailto:${esc(M.email)}">${esc(M.email)}</a>
+          <span>Inscrit le ${esc(day(M.joinedAt))}${M.lastSeenAt ? ` · vu le ${esc(day(M.lastSeenAt))}` : ''}</span></div>
+      </header>
+      <div class="ed-sh__acts"><button type="button" class="chest-btn" data-suivi="${M.id}">Ouvrir son suivi</button><a class="chest-btn-2" href="mailto:${esc(M.email)}">Écrire</a></div>
+
+      <section class="ed-sh__sec">
+        <div class="chest-step">01 — Rang</div>
+        <div class="ed-rank ${isPremium ? 'is-premium' : ''}">
+          <div class="ed-rank__top"><b>${esc(a.label || 'Sans offre')}</b>${lvl ? `<span class="ed-pill">Rang ${lvl} · ${MONTHS[lvl]}</span>` : ''}</div>
+          ${pct != null ? `<div class="ed-rank__bar"><i style="transform:scaleX(${(pct / 100).toFixed(3)})"></i></div>
+          <div class="ed-rank__dates"><span>${esc(day(a.startedAt))}</span><span>${left > 0 ? `${left} jour${left > 1 ? 's' : ''} restant${left > 1 ? 's' : ''}` : 'Terminé'}</span><span>${esc(day(a.endsAt))}</span></div>` : `<p class="ed-hint">${a.trial ? 'Essai gratuit en cours.' : a.active ? 'Accès sans échéance.' : 'Aucun accès actif pour le moment.'}</p>`}
+          <ul class="ed-ticks">
+            ${tick(a.active, 'Dashboard, journal, backtests, stratégies, calendrier')}
+            ${tick(a.school, 'School', a.school ? '' : 'inclus dans Premium')}
+            ${tick(a.berich, 'BERICH', a.berich ? '' : 'inclus dans Premium')}
+            ${tick(isPremium && lvl === 3, 'Connexion BERICH clé en main', isPremium && lvl === 3 ? 'c’est toi qui installes son VPS' : 'Premium 3 uniquement')}
+            ${tick(!!M.email, 'Suivi avec toi : rendez-vous, notes, bibliothèque')}
+          </ul>
+        </div>
+      </section>
+
+      ${br ? `<section class="ed-sh__sec">
+        <div class="chest-step">02 — Connexion BERICH clé en main</div>
+        <div class="ed-br ${br.status === 'done' ? 'is-done' : ''}">
+          <div class="ed-br__top"><b>${esc(br.broker)}</b><i class="ed-pill ${br.status === 'done' ? 'is-on' : 'is-trial'}">${br.status === 'done' ? `Connecté le ${esc(day(br.doneAt))}` : `Demandé le ${esc(day(br.createdAt))}`}</i></div>
+          <dl class="ed-br__dl">
+            <div><dt>Type</dt><dd>${br.kind === 'propfirm' ? `Propfirm${br.phase ? ' · ' + esc(br.phase) : ''}` : 'Broker'}</dd></div>
+            <div><dt>Serveur MT5</dt><dd>${esc(br.server)} ${copyBtn(br.server, 'le serveur')}</dd></div>
+            <div><dt>Numéro de compte</dt><dd>${esc(br.login)} ${copyBtn(br.login, 'le numéro de compte')}</dd></div>
+            <div><dt>Mot de passe</dt><dd>${br.password ? `<span class="ed-secret" data-secret="${esc(br.password)}">••••••••</span> <button type="button" class="ed-copy" data-reveal>Afficher</button> ${copyBtn(br.password, 'le mot de passe')}` : '<span class="ed-warn">Illisible : redemande-le au membre.</span>'}</dd></div>
+            ${br.kind === 'propfirm' && br.rules ? `<div class="ed-br__wide"><dt>Règles</dt><dd>${[['minDays', 'jours min.', ''], ['target', 'objectif', ' %'], ['dailyLoss', 'perte jour', ' %'], ['maxLoss', 'perte max', ' %']].filter(([k]) => br.rules[k] != null).map(([k, l, u]) => `${l} ${esc(String(br.rules[k]).replace('.', ','))}${u}`).join(' · ') || '—'}</dd></div>` : ''}
+            ${br.note ? `<div class="ed-br__wide"><dt>Ton mot au membre</dt><dd>${esc(br.note)}</dd></div>` : ''}
+          </dl>
+          <div class="ed-br__acts">${br.status === 'done' ? `<button type="button" class="chest-btn-2" data-breq="pending" data-id="${br.id}">Rouvrir la demande</button>` : `<button type="button" class="chest-btn" data-breq="done" data-id="${br.id}">Marquer comme connecté</button><span class="ed-hint">Le membre est prévenu sur sa page BERICH.</span>`}</div>
+        </div>
+      </section>` : ''}
+
+      <section class="ed-sh__sec">
+        <div class="chest-step">${br ? '03' : '02'} — Suivi</div>
+        <div class="ed-sh__facts">
+          <div><span>Prochain rendez-vous</span><b>${mt.next ? `${esc(day(mt.next.starts_at))} · ${new Date(mt.next.starts_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : '—'}</b>${mt.next ? `<small>${esc(mt.next.topic)}${mt.next.status === 'proposed' ? ' · à confirmer' : ''}</small>` : ''}</div>
+          <div><span>Séances faites</span><b>${mt.held}</b></div>
+          <div><span>Notes</span><b>${mt.notes}</b></div>
+          <div><span>Bibliothèque</span><b>${mt.library}</b></div>
+        </div>
+        ${mt.pending ? `<p class="ed-warn">${mt.pending} demande${mt.pending > 1 ? 's' : ''} de rendez-vous à confirmer.</p>` : ''}
+      </section>
+
+      <section class="ed-sh__sec">
+        <div class="chest-step">${br ? '04' : '03'} — Ce qu’il a indiqué</div>
+        ${ob ? `<dl class="ed-sh__dl">
+          <dt>Niveau</dt><dd>${esc(ob.level || '—')} / 10</dd>
+          <dt>Déjà gagné en trading</dt><dd>${esc(ANSWERS.made[ob.made] || '—')}${ob.amount ? ', ' + esc(ANSWERS.amount[ob.amount] || '') : ''}</dd>
+          <dt>Objectif</dt><dd>${esc(ANSWERS.goal[ob.goal] || '—')}</dd>
+          <dt>Budget</dt><dd>${esc(ANSWERS.budget[ob.budget] || '—')}</dd>
+          <dt>Offre conseillée</dt><dd>${esc(ANSWERS.reco[ob.recommended] || '—')}</dd>
+        </dl>` : '<p class="ed-empty">Questionnaire d’accueil pas encore rempli.</p>'}
+      </section>
+
+      <section class="ed-sh__sec">
+        <div class="chest-step">${br ? '05' : '04'} — Activité · 30 jours</div>
+        <div class="ed-spark" aria-label="${act.days30} jours actifs sur 30">${act.last30.map((v) => `<i style="height:${Math.max(v ? 12 : 4, v / maxV * 100).toFixed(0)}%" class="${v ? 'is-on' : ''}"></i>`).join('')}</div>
+        <p class="ed-hint">${act.days30} jour${act.days30 > 1 ? 's' : ''} actif${act.days30 > 1 ? 's' : ''}${act.top.length ? ' · surtout ' + act.top.slice(0, 3).map(([p]) => esc(PAGE_LBL[p] || p)).join(', ') : ''}</p>
+      </section>
+
+      <section class="ed-sh__sec">
+        <div class="chest-step">${br ? '06' : '05'} — Paiements</div>
+        ${M.sales.length ? `<ul class="ed-tx">${M.sales.map((s) => `<li><span class="ed-tx__ic is-in" aria-hidden="true">+</span><span class="ed-tx__l">Paiement<small>${esc(day(s.at))}</small></span><b>${esc(eur(s.amount))}</b></li>`).join('')}</ul>
+        <p class="ed-hint">Total ${esc(eur(M.salesTotal))} · ta commission ${esc(eur(M.commission))} (${esc(pctTxt(M.rate))})</p>` : '<p class="ed-empty">Aucun paiement encaissé pour l’instant.</p>'}
+      </section>`;
+  }
+
+  async function openMember(id) {
+    $('edSheetBody').innerHTML = '<p class="ed-empty">Chargement…</p>';
+    if (!sheet.open) sheet.showModal();
+    try { M = await api(`/edu/members/${id}`); renderSheet(); }
+    catch (err) { $('edSheetBody').innerHTML = `<p class="ed-error">${esc(err.message)}</p>`; }
+  }
+  sheet.addEventListener('click', async (e) => {
+    const t = e.target;
+    if (t === sheet || t.closest('[data-sheet-close]')) return sheet.close();
+    const cp = t.closest('[data-copy]');
+    if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); cp.textContent = 'Copié'; setTimeout(() => { cp.textContent = 'Copier'; }, 1400); } catch (err) { /* presse-papiers refusé */ } return; }
+    const rv = t.closest('[data-reveal]');
+    if (rv) { const s = rv.parentElement.querySelector('[data-secret]'); const on = rv.textContent === 'Afficher'; s.textContent = on ? s.dataset.secret : '••••••••'; rv.textContent = on ? 'Masquer' : 'Afficher'; return; }
+    const sv = t.closest('[data-suivi]');
+    if (sv) { const sh = window.parent && window.parent !== window && window.parent.CHESTShell; sheet.close(); if (sh && sh.go) sh.go('suivi', `?member=${sv.dataset.suivi}`); else location.href = `suivi.html?member=${sv.dataset.suivi}`; return; }
+    const bq = t.closest('[data-breq]');
+    if (bq) {
+      let note = '';
+      if (bq.dataset.breq === 'done') {
+        note = window.CHESTPrompt ? await CHESTPrompt('Un mot pour le membre (facultatif) :', { value: 'Ton VPS est installé, BERICH tourne sur ton compte.', confirmLabel: 'Marquer comme connecté' }) : '';
+        if (note === null) return;
+      }
+      bq.disabled = true;
+      try { await api(`/berich/requests/${bq.dataset.id}`, { method: 'POST', body: JSON.stringify({ status: bq.dataset.breq, note }) }); M = await api(`/edu/members/${M.id}`); renderSheet(); load(); }
+      catch (err) { bq.disabled = false; if (window.CHESTAlert) CHESTAlert(err.message); }
+    }
+  });
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-member]'); if (b && !sheet.contains(b)) openMember(b.dataset.member); });
 
   // ---------- chargement ----------
   async function load() {

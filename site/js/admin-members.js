@@ -750,7 +750,7 @@
       </dl>` : '<p class="am-muted">Pas encore répondu.</p>'}</div>
       <div class="am-block"><h3 class="am-sub">Abonnement</h3><dl class="am-dl">
         <dt>Offre</dt><dd>${esc(a.label || 'Aucune')}</dd>
-        <dt>Période</dt><dd>${a.period === 'year' ? 'Annuelle' : a.period === 'month' ? 'Mensuelle' : '—'}</dd>
+        <dt>Période</dt><dd>${a.period === 'year' ? 'Annuelle' : a.period === 'month' ? 'Mensuelle' : /^\d+m$/.test(a.period || '') ? `${parseInt(a.period, 10)} mois${a.level ? ` · rang ${a.level}` : ''}` : '—'}</dd>
         <dt>Début</dt><dd>${esc(dt(a.startedAt))}</dd>
         <dt>Dernier montant</dt><dd>${eurCents(m.amount)}</dd>
       </dl></div>

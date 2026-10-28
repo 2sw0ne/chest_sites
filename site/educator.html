@@ -15,8 +15,8 @@
 <link rel="stylesheet" href="css/chest-da.css?v=19">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/admin-members.css?v=7">
-<link rel="stylesheet" href="css/educator.css?v=2">
-<script src="js/theme.js?v=4"></script>
+<link rel="stylesheet" href="css/educator.css?v=3">
+<script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=10"></script>
@@ -95,6 +95,7 @@
       </nav>
 
       <div class="ed-error" id="edError" hidden></div>
+      <div class="ed-alert" id="edAlert" hidden role="status"></div>
 
       <!-- 01 — Vue d'ensemble -->
       <section class="am-view" data-panel="overview" aria-label="Vue d'ensemble">
@@ -121,7 +122,7 @@
         <div class="am-panel">
           <div class="ed-table" id="edMembers"></div>
         </div>
-        <p class="am-note">Seuls le prénom et l'initiale du nom s'affichent. Les ventes comptent les paiements réellement encaissés par CHEST.</p>
+        <p class="am-note">Clique sur un membre pour ouvrir sa fiche : rang, connexion BERICH, suivi, questionnaire, activité. Les ventes comptent les paiements réellement encaissés par CHEST.</p>
       </section>
 
       <!-- 03 — Portefeuille -->
@@ -209,6 +210,9 @@
           </div>
         </details>
       </section>
+      <dialog class="ed-sheet" id="edSheet" aria-labelledby="edSheetT">
+        <div class="ed-sheet__win"><button type="button" class="ed-sheet__x" data-sheet-close aria-label="Fermer la fiche"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="ed-sheet__body" id="edSheetBody"></div></div>
+      </dialog>
     </main>
   </div>
 </div>
@@ -224,7 +228,7 @@
 <script src="js/nav.js?v=9"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/educator.js?v=2"></script>
+<script src="js/educator.js?v=3"></script>
 <script src="js/v2.js?v=3"></script>
 </body>
 </html>

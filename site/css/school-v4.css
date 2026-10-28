@@ -26,3 +26,24 @@
 @media (max-width:760px){
   .chest-root .sc-notice{ margin:12px 18px 0; }
 }
+
+/* Bandeau « Ton suivi » (2026-10-28) : lien élève–éducateur, en tête de School */
+.sc-mentor{ display:flex; align-items:center; gap:20px; width:100%; margin:0 0 22px; padding:18px 22px; border-radius:20px; text-decoration:none; color:var(--chest-ink); cursor:pointer;
+  border:1px solid rgba(252,18,131,.3); background:radial-gradient(110% 160% at 0% 0%, rgba(252,18,131,.16), transparent 55%), radial-gradient(80% 140% at 100% 100%, rgba(249,164,94,.1), transparent 60%), rgba(255,255,255,.02);
+  transition:border-color .2s cubic-bezier(.16,1,.3,1), transform .16s cubic-bezier(.16,1,.3,1); }
+.sc-mentor[hidden]{ display:none; }
+.sc-mentor:hover{ border-color:rgba(252,18,131,.55); }
+.sc-mentor:active{ transform:scale(.995); }
+.sc-mentor__pair{ display:flex; align-items:center; flex-shrink:0; }
+.sc-mentor__pair i{ width:20px; height:1px; background:linear-gradient(90deg, rgba(255,255,255,.25), rgba(252,18,131,.6)); }
+.sc-mentor__av{ display:inline-grid; place-items:center; width:40px; height:40px; border-radius:50%; font-size:13px; font-weight:600; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); }
+.sc-mentor__av--edu{ border-color:transparent; background:linear-gradient(135deg,#fc1283,#f9a45e); color:#fff; }
+.sc-mentor__main{ display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
+.sc-mentor__main .chest-step{ margin:0; }
+.sc-mentor__main b{ font-size:17px; font-weight:600; letter-spacing:-.01em; }
+.sc-mentor__main > span:last-child{ font-size:13.5px; color:var(--chest-ink-2); }
+.sc-mentor__go{ flex-shrink:0; font-size:13.5px; font-weight:600; color:var(--chest-ink); }
+.sc-mentor__go i{ display:inline-block; font-style:normal; transition:transform .2s cubic-bezier(.16,1,.3,1); }
+.sc-mentor:hover .sc-mentor__go i{ transform:translateX(3px); }
+@media (max-width:560px){ .sc-mentor{ flex-wrap:wrap; gap:14px; padding:16px; } .sc-mentor__go{ width:100%; } }
+@media (prefers-reduced-motion:reduce){ .sc-mentor, .sc-mentor__go i{ transition:none; } }
