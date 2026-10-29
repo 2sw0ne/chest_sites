@@ -151,6 +151,87 @@ def send_signup_notification(first_name: str, last_name: str, email: str) -> Non
         print(f"Echec de l'envoi de la notification d'inscription : {exc}")
 
 
+SITE_URL = os.environ.get("SITE_URL", "https://www.ch3st.app").rstrip("/")
+
+
+def send_mail(to, subject, html, text):
+    """Envoie un e-mail avec le compte SMTP de CHEST (variables SMTP_* de Railway). Renvoie '' ou l'erreur."""
+    if not (SMTP_HOST and SMTP_USER and SMTP_PASSWORD):
+        return "L'envoi d'e-mails n'est pas configuré (variables SMTP_HOST, SMTP_USER, SMTP_PASSWORD sur Railway)."
+    from email.mime.multipart import MIMEMultipart
+    from email.utils import formataddr, make_msgid
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        sender = SMTP_FROM or SMTP_USER
+        msg["From"] = sender if "<" in sender else formataddr(("CHEST", sender))
+        msg["To"] = to
+        msg["Message-ID"] = make_msgid(domain="ch3st.app")
+        msg.attach(MIMEText(text, "plain", "utf-8"))
+        msg.attach(MIMEText(html, "html", "utf-8"))
+        port = SMTP_PORT
+        if port == 465:
+            with smtplib.SMTP_SSL(SMTP_HOST, port, timeout=15) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.sendmail(SMTP_USER, [to], msg.as_string())
+        else:
+            with smtplib.SMTP(SMTP_HOST, port, timeout=15) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.sendmail(SMTP_USER, [to], msg.as_string())
+        return ""
+    except Exception as exc:
+        return f"Envoi impossible : {type(exc).__name__}"
+
+
+MAIL_KINDS = {
+    "avertissement": ("Avertissement", "#e8b339"),
+    "information": ("Information", "#fc1283"),
+    "rappel": ("Rappel", "#f9a45e"),
+    "compte": ("Ton compte", "#33e6a6"),
+}
+
+
+def _h(v):
+    return (str(v or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;"))
+
+
+def render_mail(kind, title, paragraphs, first_name="", cta=None, signature="L'équipe CHEST"):
+    """L'e-mail de CHEST : fond noir, logo, filet dégradé rose → orange, une carte, un bouton. Tables et styles en
+    ligne (les messageries ignorent le CSS externe) ; une version texte pour les messageries sans HTML."""
+    label, color = MAIL_KINDS.get(kind, MAIL_KINDS["information"])
+    paras = [p for p in (paragraphs or []) if str(p).strip()][:8]
+    hello = f"Salut {_h(first_name)}," if first_name else "Salut,"
+    body = "".join(f'<p style="margin:0 0 14px;font:400 15px/1.6 Helvetica,Arial,sans-serif;color:#c9c9cf">{_h(p)}</p>' for p in paras)
+    button = ""
+    if cta and cta.get("label") and str(cta.get("url", "")).startswith("https://"):
+        button = (f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 6px"><tr><td style="border-radius:999px;'
+                  f'background:#fc1283;background-image:linear-gradient(135deg,#fc1283,#f9a45e)"><a href="{_h(cta["url"])}" '
+                  f'style="display:inline-block;padding:12px 24px;font:600 14px Helvetica,Arial,sans-serif;color:#ffffff;text-decoration:none">{_h(cta["label"])}</a></td></tr></table>')
+    html = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><title>{_h(title)}</title></head>
+<body style="margin:0;padding:0;background:#050505">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050505"><tr><td align="center" style="padding:32px 16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
+<tr><td style="padding:0 4px 20px"><img src="{SITE_URL}/assets/logo-chest.png" width="36" height="36" alt="CHEST" style="vertical-align:middle;border:0;border-radius:9px">
+<span style="font:700 18px Helvetica,Arial,sans-serif;color:#f6f6f7;letter-spacing:-.02em;vertical-align:middle;padding-left:10px">CHEST</span></td></tr>
+<tr><td style="background:#0d0d10;border:1px solid #1f1f25;border-radius:18px;overflow:hidden">
+<div style="height:3px;background:#fc1283;background-image:linear-gradient(90deg,#fc1283,#f9a45e)"></div>
+<div style="padding:28px 28px 22px">
+<p style="margin:0 0 14px;font:700 10px Helvetica,Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:{color}">{_h(label)}</p>
+<h1 style="margin:0 0 18px;font:700 24px/1.25 Helvetica,Arial,sans-serif;letter-spacing:-.03em;color:#f6f6f7">{_h(title)}</h1>
+<p style="margin:0 0 14px;font:400 15px/1.6 Helvetica,Arial,sans-serif;color:#f6f6f7">{hello}</p>
+{body}{button}
+<p style="margin:22px 0 0;font:400 15px/1.6 Helvetica,Arial,sans-serif;color:#c9c9cf">{_h(signature)}</p>
+</div></td></tr>
+<tr><td style="padding:18px 6px 0;font:400 12px/1.6 Helvetica,Arial,sans-serif;color:#5c5c63">
+Tu reçois ce message parce que tu as un compte sur CHEST. Une question ? Réponds simplement à cet e-mail.<br>
+<a href="{SITE_URL}" style="color:#9b9ba1;text-decoration:none">ch3st.app</a></td></tr>
+</table></td></tr></table></body></html>"""
+    text = "\n\n".join([hello] + [str(p) for p in paras] + ([f"{cta['label']} : {cta['url']}"] if button else []) + [signature, f"CHEST · {SITE_URL}"])
+    return html, text
+
+
 def get_db():
     db = getattr(g, "_db", None)
     if db is None:
@@ -462,6 +543,22 @@ def init_db():
                 PRIMARY KEY (user_id, day, page)
             )
         """)
+        # Journal des interactions avec la plateforme (2026-10-29) : connexions, échecs, inscriptions, retraits,
+        # paiements, remboursements, actions de l'équipe, signaux d'abus. Lu par CHEST HQ (GET /admin/events) :
+        # Atlas le transmet aux agents (Sécurité, Communauté, Société). Adresse IP tronquée, jamais d'e-mail.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS event_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                at TEXT NOT NULL,
+                user_id INTEGER,
+                kind TEXT NOT NULL,
+                level TEXT NOT NULL DEFAULT 'info',
+                detail TEXT,
+                ip TEXT,
+                device TEXT
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS event_log_user ON event_log (user_id, kind, at)")
         db.execute("""
             CREATE TABLE IF NOT EXISTS billing_events (
                 id TEXT PRIMARY KEY,
@@ -515,6 +612,37 @@ _rl_hits = {}
 def _client_ip():
     fwd = request.headers.get("X-Forwarded-For", "")
     return (fwd.split(",")[0].strip() if fwd else "") or request.remote_addr or "?"
+
+
+def _ip_prefix(ip):
+    """L'adresse tronquée (réseau /24 en IPv4, /48 en IPv6) : assez pour voir un compte partagé, jamais l'adresse exacte."""
+    ip = str(ip or "")
+    if ":" in ip:
+        return ":".join(ip.split(":")[:3]) + "::/48"
+    parts = ip.split(".")
+    return ".".join(parts[:3]) + ".0/24" if len(parts) == 4 else "?"
+
+
+def _device():
+    ua = request.headers.get("User-Agent", "")
+    os_ = next((n for k, n in (("iPhone", "iPhone"), ("iPad", "iPad"), ("Android", "Android"), ("Windows", "Windows"),
+                                 ("Mac OS", "Mac"), ("Linux", "Linux")) if k in ua), "autre")
+    br = next((n for k, n in (("Edg/", "Edge"), ("OPR/", "Opera"), ("Chrome/", "Chrome"), ("Firefox/", "Firefox"),
+                                ("Safari/", "Safari")) if k in ua), "autre")
+    return f"{br} · {os_}"
+
+
+def log_event(db, kind, user_id=None, detail="", level="info", locked=False, with_request=True):
+    """Une ligne du journal. locked=True quand l'appelant tient déjà db_lock (il fait le commit)."""
+    row = (datetime.now(timezone.utc).isoformat(), user_id, kind, level, str(detail or "")[:400],
+           _ip_prefix(_client_ip()) if with_request else None, _device() if with_request else None)
+    sql = "INSERT INTO event_log (at, user_id, kind, level, detail, ip, device) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    if locked:
+        db.execute(sql, row)
+        return
+    with db_lock:
+        db.execute(sql, row)
+        db.commit()
 
 
 def too_many(key, limit, window):
@@ -611,6 +739,144 @@ def current_user():
         (token, datetime.now(timezone.utc).isoformat()),
     ).fetchone()
     return row
+
+
+_AUDIT_ADMIN = re.compile(r"^/members/(\d+)/(approve|reject|block|delete|role|access|reset-password)$")
+SCANNER_DAILY_ALERT = 400  # au-delà, par jour et par membre : lecture massive des scanners (aspiration)
+
+
+@app.after_request
+def _audit(resp):
+    """Le journal des interactions : relevé ici, après chaque route sensible, pour ne jamais casser la route elle-même."""
+    try:
+        path, method, code = request.path, request.method, resp.status_code
+        if method == "OPTIONS":
+            return resp
+        body = request.get_json(silent=True) if request.is_json else None
+        body = body if isinstance(body, dict) else {}
+        db = get_db()
+        if path == "/login" and method == "POST":
+            email = str(body.get("email") or "").strip().lower()
+            row = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone() if email else None
+            uid = row["id"] if row else None
+            if code == 200:
+                log_event(db, "connexion", uid)
+                # compte partagé ? trois réseaux différents en 24 h (une alerte par jour au plus)
+                since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+                nets = {r["ip"] for r in db.execute("SELECT ip FROM event_log WHERE user_id = ? AND kind = 'connexion' AND at >= ?", (uid, since)).fetchall()}
+                if len(nets) >= 3 and not db.execute("SELECT 1 FROM event_log WHERE user_id = ? AND kind = 'alerte.partage' AND at >= ?", (uid, since)).fetchone():
+                    log_event(db, "alerte.partage", uid, f"{len(nets)} réseaux différents en 24 h", "alerte")
+            elif code == 401:
+                log_event(db, "connexion.echec", uid, "mauvais mot de passe" if uid else "adresse inconnue", "warn")
+            elif code == 403:
+                log_event(db, "connexion.refusee", uid, "compte bloqué ou pas encore approuvé", "warn")
+            elif code == 429:
+                log_event(db, "abus.rafale", uid, "trop d'essais de connexion", "alerte")
+        elif path == "/signup" and method == "POST":
+            if code < 300:
+                row = db.execute("SELECT id, referred_by FROM users WHERE email = ?", (str(body.get("email") or "").strip().lower(),)).fetchone()
+                if row:
+                    log_event(db, "inscription", row["id"], f"parrainé par le membre {row['referred_by']}" if row["referred_by"] else "")
+            elif code == 429:
+                log_event(db, "abus.rafale", None, "trop d'inscriptions depuis le même réseau", "alerte")
+        elif code < 300 and method == "POST":
+            m = _AUDIT_ADMIN.match(path)
+            user = current_user()
+            if m:
+                log_event(db, f"admin.{m.group(2)}", int(m.group(1)), f"par {user['first_name'] if user else '?'}")
+            elif path == "/me/password":
+                log_event(db, "mot_de_passe.change", user["id"] if user else None)
+            elif path == "/edu/payouts" and user:
+                log_event(db, "retrait.demande", user["id"], f"{body.get('amount')} €")
+            elif path.startswith("/admin/payouts/"):
+                log_event(db, f"retrait.{body.get('status')}", None, f"demande n°{path.rsplit('/', 1)[-1]} par {user['first_name'] if user else '?'}")
+            elif path == "/backtests/share" and user:
+                log_event(db, "backtest.partage", user["id"], f"vers le membre {body.get('toUserId') or '?'}")
+        elif path == "/scanners/model" and method == "GET" and code == 200:
+            user = current_user()
+            if user:
+                day = datetime.now(timezone.utc).date().isoformat()
+                with db_lock:
+                    db.execute("INSERT INTO user_activity (user_id, day, page, views) VALUES (?, ?, 'scanner-calcul', 1) "
+                               "ON CONFLICT(user_id, day, page) DO UPDATE SET views = views + 1", (user["id"], day))
+                    db.commit()
+                n = db.execute("SELECT views FROM user_activity WHERE user_id = ? AND day = ? AND page = 'scanner-calcul'", (user["id"], day)).fetchone()
+                if n and n["views"] == SCANNER_DAILY_ALERT:
+                    log_event(db, "alerte.scanners", user["id"], f"{SCANNER_DAILY_ALERT} calculs de scanners aujourd'hui", "alerte")
+    except Exception as exc:  # le journal ne doit jamais faire échouer une requête
+        print(f"Journal : {type(exc).__name__}")
+    return resp
+
+
+@app.route("/admin/events")
+def admin_events():
+    """Le journal, pour l'admin et CHEST HQ : ?after=<id> (les suivants), ?kind=, ?level=, ?member=, ?limit= (500 max)."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    q, args = "SELECT e.*, u.first_name, u.last_name FROM event_log e LEFT JOIN users u ON u.id = e.user_id WHERE e.id > ?", [int(request.args.get("after", 0) or 0)]
+    for key, col in (("kind", "e.kind"), ("level", "e.level"), ("member", "e.user_id")):
+        v = request.args.get(key)
+        if v:
+            q += f" AND {col} {'LIKE' if key == 'kind' else '='} ?"
+            args.append(v + "%" if key == "kind" else v)
+    try:
+        limit = max(1, min(500, int(request.args.get("limit", 200))))
+    except ValueError:
+        limit = 200
+    rows = get_db().execute(q + " ORDER BY e.id DESC LIMIT ?", (*args, limit)).fetchall()
+    out = [{"id": r["id"], "at": r["at"], "kind": r["kind"], "level": r["level"], "detail": r["detail"] or "",
+            "member": {"id": r["user_id"], "name": f"{r['first_name']} {(r['last_name'] or '')[:1]}.".strip()} if r["user_id"] and r["first_name"] else ({"id": r["user_id"]} if r["user_id"] else None),
+            "ip": r["ip"], "device": r["device"]} for r in rows]
+    return jsonify({"events": out[::-1], "last": max([e["id"] for e in out], default=int(request.args.get("after", 0) or 0))})
+
+
+@app.route("/admin/billing")
+def admin_billing():
+    """Les achats, échecs, remboursements et litiges (Stripe), pour la Société de CHEST HQ : ?days= (365 max)."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    try:
+        days = max(1, min(365, int(request.args.get("days", 30))))
+    except ValueError:
+        days = 30
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    rows = get_db().execute("SELECT b.*, u.first_name, u.last_name, u.referred_by FROM billing_events b LEFT JOIN users u ON u.id = b.user_id "
+                            "WHERE b.created_at >= ? ORDER BY b.created_at", (since,)).fetchall()
+    return jsonify({"days": days, "holdDays": EDU_HOLD_DAYS, "events": [{
+        "id": r["id"], "at": r["created_at"], "type": r["type"], "amount": r["amount"] or 0, "summary": r["summary"] or "",
+        "member": {"id": r["user_id"], "name": f"{r['first_name']} {(r['last_name'] or '')[:1]}.".strip(), "educator": r["referred_by"]} if r["user_id"] and r["first_name"] else None,
+    } for r in rows]})
+
+
+@app.route("/admin/mail", methods=["POST"])
+def admin_mail():
+    """Un e-mail à un membre, au nom de CHEST (envoyé par le serveur : l'adresse du membre ne sort jamais d'ici).
+    {memberId, kind: avertissement|information|rappel|compte, subject, title, paragraphs: [...], cta?: {label, url}, preview?: true}"""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    b = request.get_json(silent=True) or {}
+    db = get_db()
+    member = db.execute("SELECT * FROM users WHERE id = ?", (b.get("memberId"),)).fetchone()
+    if not member:
+        return jsonify({"error": "Membre introuvable."}), 404
+    subject = str(b.get("subject") or "").strip()[:140]
+    title = str(b.get("title") or subject).strip()[:140]
+    paras = [str(p)[:1200] for p in (b.get("paragraphs") or []) if str(p).strip()][:8]
+    if not subject or not paras:
+        return jsonify({"error": "Objet et texte requis."}), 400
+    kind = b.get("kind") if b.get("kind") in MAIL_KINDS else "information"
+    cta = b.get("cta") if isinstance(b.get("cta"), dict) else None
+    html, text = render_mail(kind, title, paras, member["first_name"], cta)
+    if b.get("preview"):
+        return jsonify({"html": html, "text": text, "to": f"{member['first_name']} {(member['last_name'] or '')[:1]}."})
+    err = send_mail(member["email"], f"CHEST — {subject}", html, text)
+    if err:
+        return jsonify({"error": err}), 503
+    log_event(db, f"mail.{kind}", member["id"], f"« {subject} » envoyé par {admin['first_name']}")
+    return jsonify({"ok": True, "to": f"{member['first_name']} {(member['last_name'] or '')[:1]}."})
 
 
 @app.route("/signup", methods=["POST"])
@@ -1014,6 +1280,7 @@ def delete_member(member_id):
         db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
+        db.execute("DELETE FROM event_log WHERE user_id = ?", (member_id,))
         db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
         db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
@@ -1430,6 +1697,9 @@ def ops():
 # indicatif : les retraits demandés sont vérifiés puis payés par la société (CHEST HQ / admin), par virement.
 EDU_DEFAULT_RATE = 100 / 3
 EDU_MIN_PAYOUT = 5000  # centimes : 50 €
+# Remboursement possible pendant 7 jours : une commission ne devient retirable que 14 jours après le paiement,
+# pour pouvoir rembourser un membre avec les fonds de sa vente. Un remboursement annule la commission.
+EDU_HOLD_DAYS = 14
 SALE_TYPES = ("invoice.paid", "checkout.session.completed", "checkout.session.async_payment_succeeded")
 
 
@@ -1474,12 +1744,32 @@ def edu_report(db, educator, full=False):
     rate = edu_rate(educator)
     members = db.execute("SELECT * FROM users WHERE referred_by = ? ORDER BY created_at DESC", (educator["id"],)).fetchall()
     out_members, tx, monthly = [], [], {}
-    earned = 0.0
+    earned = matured = 0.0
+    now = datetime.now(timezone.utc)
+    hold_until = lambda at: (_parse_iso(at) or now) + timedelta(days=EDU_HOLD_DAYS)
     for m in members:
         sales = member_sales(db, m["id"])
-        total = sum(r["amount"] for r in sales)
+        refunds = db.execute("SELECT id, amount, created_at FROM billing_events WHERE user_id = ? AND type = 'charge.refunded' AND amount > 0",
+                             (m["id"],)).fetchall()
+        # chaque remboursement annule la vente la plus récente qui le précède (jamais une autre)
+        net = {r["id"]: r["amount"] for r in sales}
+        for rf in sorted(refunds, key=lambda x: x["created_at"] or ""):
+            left = rf["amount"]
+            for sale in sorted(sales, key=lambda x: x["created_at"] or "", reverse=True):
+                if left <= 0:
+                    break
+                if (sale["created_at"] or "") <= (rf["created_at"] or "") and net[sale["id"]] > 0:
+                    cut = min(left, net[sale["id"]])
+                    net[sale["id"]] -= cut
+                    left -= cut
+        total = sum(net.values())
         comm = total * rate / 100
         earned += comm
+        # retirable : ce qui reste des ventes payées il y a plus de 14 jours
+        matured += sum(net[r["id"]] for r in sales if hold_until(r["created_at"]) <= now) * rate / 100
+        for r in refunds:
+            tx.append({"kind": "refund", "at": r["created_at"], "amount": -round(r["amount"] * rate / 100), "sale": r["amount"],
+                       "member": f"{m['first_name']} {(m['last_name'] or '')[:1]}.".strip()})
         a = access_of(m)
         out_members.append({
             "id": m["id"], "name": f"{m['first_name']} {(m['last_name'] or '')[:1]}.".strip(),
@@ -1494,6 +1784,7 @@ def edu_report(db, educator, full=False):
         for r in sales:
             c = r["amount"] * rate / 100
             tx.append({"kind": "commission", "at": r["created_at"], "amount": round(c), "sale": r["amount"],
+                       "availableAt": hold_until(r["created_at"]).isoformat(), "locked": hold_until(r["created_at"]) > now,
                        "member": f"{m['first_name']} {(m['last_name'] or '')[:1]}.".strip()})
             k = (r["created_at"] or "")[:7]
             monthly.setdefault(k, {"month": k, "signups": 0, "commission": 0.0})["commission"] += c
@@ -1522,7 +1813,8 @@ def edu_report(db, educator, full=False):
         "members": out_members,
         "totals": {"members": len(out_members), "active": sum(1 for m in out_members if m["active"]),
                    "trials": sum(1 for m in out_members if m["trial"]), "sales": sum(m["sales"] for m in out_members)},
-        "wallet": {"earned": earned_c, "paid": paid, "pending": pending, "available": max(0, earned_c - paid - pending)},
+        "wallet": {"earned": earned_c, "paid": paid, "pending": pending, "holdDays": EDU_HOLD_DAYS,
+                   "locked": max(0, earned_c - round(matured)), "available": max(0, round(matured) - paid - pending)},
         "transactions": tx[:200], "payoutInfo": pinfo,
         "monthly": sorted(({**v, "commission": round(v["commission"])} for v in monthly.values() if v["month"]), key=lambda x: x["month"])[-12:],
     }
@@ -2967,6 +3259,7 @@ def billing_webhook():
             else:
                 summary = f"Paiement non rattaché (montant {amount}, membre {'trouvé' if user else 'inconnu'})"
             _log_billing(db, event.get("id"), uid, etype, int(obj.get("amount_total") or 0), summary)
+            log_event(db, "paiement", uid, summary, "info", locked=True, with_request=False)
         elif etype in ("invoice.paid", "invoice.payment_succeeded"):
             lines = (obj.get("lines") or {}).get("data") or []
             ends = [_ts((ln.get("period") or {}).get("end")) for ln in lines]
@@ -2978,6 +3271,7 @@ def billing_webhook():
             if user:
                 db.execute("UPDATE users SET plan_status = 'past_due' WHERE id = ?", (uid,))
             _log_billing(db, event.get("id"), uid, etype, int(obj.get("amount_due") or 0), "Échec de paiement — Stripe va réessayer")
+            log_event(db, "paiement.echec", uid, f"{int(obj.get('amount_due') or 0) / 100:.2f} €", "warn", locked=True, with_request=False)
         elif etype == "customer.subscription.updated":
             if user:
                 end = _sub_period_end(obj)
@@ -2987,6 +3281,13 @@ def billing_webhook():
                 else:
                     db.execute("UPDATE users SET plan_status = ? WHERE id = ?", (status, uid))
             _log_billing(db, event.get("id"), uid, etype, 0, "Résiliation programmée en fin de période" if obj.get("cancel_at_period_end") else "Abonnement mis à jour")
+        elif etype == "charge.refunded":
+            # remboursement (politique : 7 jours) : il annule la commission de l'éducateur sur ce paiement
+            _log_billing(db, event.get("id"), uid, etype, int(obj.get("amount_refunded") or 0), "Remboursement")
+            log_event(db, "remboursement", uid, f"{int(obj.get('amount_refunded') or 0) / 100:.2f} €", "warn", locked=True, with_request=False)
+        elif etype in ("charge.dispute.created", "charge.dispute.closed"):
+            _log_billing(db, event.get("id"), uid, etype, int(obj.get("amount") or 0), "Litige ouvert" if etype.endswith("created") else f"Litige clos ({obj.get('status')})")
+            log_event(db, "litige", uid, f"{int(obj.get('amount') or 0) / 100:.2f} € · {obj.get('reason') or ''}", "alerte", locked=True, with_request=False)
         elif etype == "customer.subscription.deleted":
             if user:
                 db.execute("UPDATE users SET plan_status = 'canceled', plan_ends_at = ? WHERE id = ?", (now.isoformat(), uid))

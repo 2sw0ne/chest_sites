@@ -44,7 +44,7 @@
       ['Membres inscrits', String(t.members), `${t.active} abonné${t.active > 1 ? 's' : ''} · ${t.trials} en essai`, ''],
       ['Ventes générées', eur(t.sales, 0), 'paiements encaissés par CHEST', ''],
       ['Commissions gagnées', eur(w.earned), `${pctTxt(D.rate)} des ventes`, 'am-kpi--hero'],
-      ['Disponible', eur(w.available), w.pending ? `${eur(w.pending)} en cours de versement` : 'à retirer dès 50 €', ''],
+      ['Disponible', eur(w.available), w.pending ? `${eur(w.pending)} en cours de versement` : w.locked ? `${eur(w.locked)} débloqué sous ${w.holdDays || 14} jours` : 'à retirer dès 50 €', ''],
     ].map(([k, v, n, cls]) => `<div class="am-kpi ${cls}" data-tilt="5"><div class="am-kpi__k">${k}</div><div class="am-kpi__v"><b>${esc(v)}</b></div><div class="am-kpi__n">${esc(n)}</div></div>`).join('');
 
     // Code de référent (2026-10-28) : l'éducateur le choisit UNE fois (3 à 8 lettres ou chiffres), puis il est définitif.
@@ -111,13 +111,13 @@
         <div class="ed-wallet__v">${esc(eur(w.available))}</div>
         <div class="ed-wallet__row">
           <span><small>Commissions</small><b>${esc(eur(w.earned))}</b></span>
+          <span><small>Sous ${esc(String(w.holdDays || 14))} jours</small><b>${esc(eur(w.locked || 0))}</b></span>
           <span><small>En cours</small><b>${esc(eur(w.pending))}</b></span>
           <span><small>Déjà versé</small><b>${esc(eur(w.paid))}</b></span>
-          <span><small>Taux</small><b>${esc(pctTxt(D.rate))}</b></span>
         </div>
         <div class="ed-wallet__holder">${esc((D.payoutInfo && D.payoutInfo.holder) || D.educator.name)}</div>
       </div>
-      <p class="ed-hint">Ce solde estime ce qui pourra t’être versé : ce n’est pas de l’argent détenu sur un compte. Voir « Nature du portefeuille » plus bas.</p>`;
+      <p class="ed-hint">Ce solde estime ce qui pourra t’être versé : ce n’est pas de l’argent détenu sur un compte. Une commission devient retirable ${esc(String(w.holdDays || 14))} jours après le paiement du membre (un membre peut être remboursé sous 7 jours) ; un remboursement l’annule. Voir « Nature du portefeuille » plus bas.</p>`;
 
     // retrait
     $('edMin').textContent = `minimum ${eur(D.minPayout, 0)}`;
@@ -142,7 +142,9 @@
     // mouvements
     const lbl = { pending: 'en attente', paid: 'versé', refused: 'refusé' };
     $('edTx').innerHTML = D.transactions.length ? `<ul class="ed-tx">${D.transactions.map((t) => t.kind === 'commission'
-      ? `<li><span class="ed-tx__ic is-in" aria-hidden="true">+</span><span class="ed-tx__l">Commission · ${esc(t.member)}<small>${esc(day(t.at))} · paiement de ${esc(eur(t.sale))}</small></span><b class="is-in">+${esc(eur(t.amount))}</b></li>`
+      ? `<li><span class="ed-tx__ic is-in" aria-hidden="true">+</span><span class="ed-tx__l">Commission · ${esc(t.member)}<small>${esc(day(t.at))} · paiement de ${esc(eur(t.sale))}${t.locked && t.availableAt ? ' · retirable le ' + esc(day(t.availableAt)) : ''}</small></span><b class="is-in">+${esc(eur(t.amount))}</b></li>`
+      : t.kind === 'refund'
+      ? `<li><span class="ed-tx__ic is-out" aria-hidden="true">−</span><span class="ed-tx__l">Remboursement · ${esc(t.member)}<small>${esc(day(t.at))} · paiement de ${esc(eur(t.sale))} remboursé, commission annulée</small></span><b class="is-void">${esc(eur(t.amount))}</b></li>`
       : `<li><span class="ed-tx__ic is-out" aria-hidden="true">↗</span><span class="ed-tx__l">Retrait ${t.method === 'iban' ? 'par virement' : 'en crypto'} <i class="ed-pill is-${t.status}">${lbl[t.status] || t.status}</i><small>${esc(day(t.at))}${t.processedAt ? ' · traité le ' + esc(day(t.processedAt)) : ''}${t.note ? ' · ' + esc(t.note) : ''}</small></span><b class="${t.status === 'refused' ? 'is-void' : ''}">${esc(eur(t.amount))}</b></li>`).join('')}</ul>`
       : '<p class="ed-empty">Tes commissions et tes retraits s’afficheront ici.</p>';
   }
