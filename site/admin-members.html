@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=19">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<link rel="stylesheet" href="css/admin-members.css?v=7">
+<link rel="stylesheet" href="css/admin-members.css?v=8">
 <script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -94,6 +94,7 @@
           <button type="button" role="tab" data-view="members">Membres <small id="amNavCount"></small></button>
           <button type="button" role="tab" data-view="ranks">Rangs</button>
           <button type="button" role="tab" data-view="engagement">Engagement</button>
+          <button type="button" role="tab" data-view="sales">Ventes</button>
           <button type="button" role="tab" data-view="educators">Éducateurs <small id="amEduBadge"></small></button>
           <button type="button" role="tab" data-view="system">Système <small id="amOpsBadge"></small></button>
         </div>
@@ -195,6 +196,20 @@
           </div>
         </div>
         <p class="am-note">Activité = page ouverte, jour et nombre de vues. Jamais ce que le membre y fait.</p>
+      </section>
+
+      <!-- Ventes (2026-10-30) : qui a acheté quoi, quel éducateur l'a amené, ce qui lui revient, ce qui reste à CHEST (GET /admin/sales). -->
+      <section class="am-view" data-panel="sales" aria-label="Ventes" hidden>
+        <div class="am-sales-kpis" id="amSalesKpis"></div>
+        <article class="am-panel">
+          <header class="am-panel__head"><h2 class="am-panel__t">Par éducateur</h2><span class="am-panel__meta" id="amSalesMode"></span></header>
+          <div id="amSalesEdu"></div>
+        </article>
+        <article class="am-panel">
+          <header class="am-panel__head"><h2 class="am-panel__t">Registre des ventes</h2><span class="am-panel__meta" id="amSalesMeta"></span></header>
+          <div id="amSalesList"></div>
+        </article>
+        <p class="am-note">Commission = taux de l'éducateur × ce qui reste de la vente après remboursement. Elle est bloquée 14 jours (remboursement possible sous 7 jours), puis retirable. Mêmes chiffres que l'espace de chaque éducateur et que la Société de CHEST HQ.</p>
       </section>
 
       <!-- Éducateurs (2026-10-25) : taux, lien d'invitation, demandes de retrait (GET /admin/educators, /admin/payouts). -->
@@ -301,7 +316,7 @@ CHESTTour.init([
 ]);
 </script>
 <script src="js/rank-badge.js?v=3"></script>
-<script src="js/admin-members.js?v=11"></script>
+<script src="js/admin-members.js?v=12"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>

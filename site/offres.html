@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/chest-da.css?v=19">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/connect-da.css?v=1">
-<link rel="stylesheet" href="css/offres-da.css?v=3">
+<link rel="stylesheet" href="css/offres-da.css?v=4">
 <script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -154,8 +154,11 @@
       clearTimeout(t);
       const data = await res.json();
       if (res.ok && Array.isArray(data.offers) && data.offers.length === 6) OFFERS = data.offers;
+      if (res.ok) CHECKOUT = data.checkout || 'liens';
     } catch (e) { /* hors ligne : offres de secours ci-dessus */ }
   }
+  // 'auto' : le serveur ouvre le paiement Stripe au prix affiché (clé Stripe sur Railway) ; 'liens' : liens de l'éditeur
+  let CHECKOUT = 'liens';
   let billing = 'premium'; // onglet affiché : 'premium' | 'essentiel'
   let reco = null;
   let answers = null;
@@ -240,13 +243,18 @@
     const key = b.dataset.plan;
     if (currentKey() === key) { goToApp(); return; }
     const o = OFFERS.find((x) => x.key === key) || {};
-    const link = String(o.link || '').trim();
-    if (!link) { notice('Le paiement en ligne de cette offre ouvre très bientôt.'); return; }
+    if (CHECKOUT !== 'auto' && !String(o.link || '').trim()) { notice('Le paiement en ligne de cette offre ouvre très bientôt.'); return; }
     // Avant Stripe (2026-10-30) : CGV, accès immédiat + renonciation à la rétractation, risques ; accord enregistré.
-    const go = () => {
-      const u = user();
-      const sep = link.includes('?') ? '&' : '?';
-      window.location.href = `${link}${sep}client_reference_id=u${encodeURIComponent(u.id)}&prefilled_email=${encodeURIComponent(u.email || '')}&locale=fr`;
+    // Le serveur ouvre le paiement (au prix affiché, avec le membre et son éducateur inscrits dessus) ou rend le lien.
+    const go = async () => {
+      b.disabled = true;
+      notice('Ouverture du paiement sécurisé…');
+      try {
+        const res = await fetch(A.apiBase() + '/billing/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ offer: key }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.url) throw new Error(data.error || 'Le paiement n’a pas pu s’ouvrir. Réessaie dans un instant.');
+        window.location.href = data.url;
+      } catch (err) { notice(err.message); b.disabled = false; }
     };
     if (!window.CHESTConsent) { go(); return; }
     CHESTConsent.purchase(o).then((ok) => { if (ok) go(); });
@@ -327,7 +335,7 @@
       </li>`).join('')}</ul>
       <button type="button" class="of-ed__add" data-act="add" ${o.feats.length >= 16 ? 'disabled' : ''}>+ Ajouter un élément</button>
       <div class="of-ed__links">
-        <label class="of-ed__field of-ed__field--link"><span>Lien de paiement Stripe</span><input type="url" data-f="link" value="${esc(o.link || '')}" placeholder="https://buy.stripe.com/…" spellcheck="false"></label>
+        ${CHECKOUT === 'auto' ? '<p class="of-ed__field of-ed__field--link of-ed__auto">Paiement Stripe automatique, au prix ci-dessus.</p>' : `<label class="of-ed__field of-ed__field--link"><span>Lien de paiement Stripe</span><input type="url" data-f="link" value="${esc(o.link || '')}" placeholder="https://buy.stripe.com/…" spellcheck="false"></label>`}
       </div>
     </article>`)).join('');
     document.querySelectorAll('#ofBilling button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.billing === billing)));
@@ -378,7 +386,7 @@
     if (plansEl.querySelector('.is-bad')) { edState('Un prix n’est pas un nombre valide.', 'err'); return; }
     // Prix changé mais même lien Stripe : le client paierait l'ancien montant.
     const before = JSON.parse(savedJson);
-    const stale = edDraft.filter((o, i) => o.enabled && !o.soon && o.price != null && before[i].price !== o.price && o.link && o.link === before[i].link);
+    const stale = CHECKOUT === 'auto' ? [] : edDraft.filter((o, i) => o.enabled && !o.soon && o.price != null && before[i].price !== o.price && o.link && o.link === before[i].link);
     if (stale.length && !confirm(`Prix modifié pour ${stale.map((o) => o.name).join(', ')}, avec le même lien Stripe.\n\nCrée dans Stripe un lien de paiement au nouveau montant et colle-le dans la carte, sinon le client paiera l'ancien prix.\n\nEnregistrer quand même ?`)) return;
     btn.disabled = true; btn.textContent = 'Enregistrement…';
     try {

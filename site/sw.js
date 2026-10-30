@@ -73,11 +73,16 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || '/dashboard';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
-      const existing = clientsArr.find((c) => c.url.includes(new URL(targetUrl, self.location.origin).pathname));
-      if (existing) return existing.focus();
-      return self.clients.openWindow(targetUrl);
-    })
-  );
+  // CHEST déjà ouvert : on le ramène au premier plan et on l'emmène sur la bonne page (une alerte
+  // scanner ouvre le bon scanner, la bonne paire, la bonne unité). Avant, on cherchait l'adresse
+  // parmi les fenêtres, y compris les pages dans l'iframe du shell : CHEST revenait devant mais
+  // restait sur la page en cours (2026-10-30).
+  const url = new URL(targetUrl, self.location.origin).href;
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const top = all.find((c) => c.frameType !== 'nested' && c.url.startsWith(self.location.origin));
+    if (!top) return self.clients.openWindow(url);
+    const focused = (await top.focus().catch(() => null)) || top;
+    if (focused.url !== url) await focused.navigate(url).catch(() => self.clients.openWindow(url));
+  })());
 });
