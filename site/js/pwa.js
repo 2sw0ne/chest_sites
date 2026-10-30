@@ -30,7 +30,7 @@
   const FLAG = 'chest_push_on';
   // Notifications toujours actives (2026-10-31, demande utilisateur : « jamais redemandé et toujours activé ») :
   // seul un « Désactiver » explicite (Compte) les coupe sur cet appareil, et ce choix est retenu ici.
-  const OFF = 'chest_push_off', ASKED = 'chest_push_asked';
+  const OFF = 'chest_push_off';
   const getLs = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const setLs = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* navigation privée */ } };
   function flag(v) {
@@ -133,21 +133,12 @@
       flag(true);
     } catch (e) { lastSync = 0; }
   }
-  // Une seule demande par appareil : au premier geste dans l'app (clic ou touche) d'un membre connecté qui n'a jamais
-  // répondu. Les navigateurs (Safari en tête) n'acceptent la demande que pendant un geste. Ensuite plus jamais :
-  // accepté → resync() tient l'abonnement à jour tout seul ; refusé → c'est le réglage du navigateur qui décide.
-  function askOnce() {
-    if (!('Notification' in window) || !('PushManager' in window) || Notification.permission !== 'default') return;
-    if (getLs(ASKED) || getLs(OFF) || !(window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken())) return;
-    setLs(ASKED, '1');
-    enableNotifications().catch(() => { /* refusé ou fermé : on ne redemande pas */ });
-  }
+  // Pas de demande automatique (retour utilisateur du 2026-10-31) : l'autorisation se donne une fois par le bouton
+  // « Activer » (Compte, Stratégies), qui disparaît ensuite ; on/off se règle par type dans Compte → notifications.
   if (window === window.top) {
     setTimeout(resync, 4000);
     setInterval(() => { if (!document.hidden) resync(); }, 30 * 60 * 1000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) resync(); });
-    document.addEventListener('pointerdown', askOnce, true);
-    document.addEventListener('keydown', askOnce, true);
   }
 
   window.CHESTPwa = { notificationStatus, enableNotifications, disableNotifications, resync };

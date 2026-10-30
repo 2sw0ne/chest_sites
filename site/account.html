@@ -239,7 +239,7 @@
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=10"></script>
 <script src="js/sync-store.js?v=16"></script>
-<script src="js/pwa.js?v=5"></script>
+<script src="js/pwa.js?v=6"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
 </head>
@@ -866,16 +866,16 @@ CHESTTour.init([
     if (!window.CHESTPwa) { notifValueEl.textContent = NOTIF_LABELS.unsupported; notifBtn.hidden = true; return; }
     const status = await CHESTPwa.notificationStatus();
     notifValueEl.textContent = NOTIF_LABELS[status] || NOTIF_LABELS.unsupported;
-    notifBtn.hidden = status === 'unsupported' || status === 'denied' || status === 'ios-install-required';
-    notifBtn.textContent = status === 'enabled' ? 'Désactiver' : 'Activer';
+    // Bouton « Activer » seulement tant que l'appareil n'est pas abonné : une fois activées, il disparaît et
+    // l'autorisation n'est jamais retirée d'ici (2026-10-31) ; on/off se règle par type juste en dessous.
+    notifBtn.hidden = status !== 'disabled';
+    notifBtn.textContent = 'Activer';
   }
   notifBtn.addEventListener('click', async () => {
     notifBtn.disabled = true;
     notifValueEl.textContent = NOTIF_LABELS.loading;
     try {
-      const status = await CHESTPwa.notificationStatus();
-      if (status === 'enabled') await CHESTPwa.disableNotifications();
-      else await CHESTPwa.enableNotifications();
+      await CHESTPwa.enableNotifications();
     } catch (e) { showToast(e.message || "Impossible d'activer les notifications."); }
     notifBtn.disabled = false;
     refreshNotifRow();
