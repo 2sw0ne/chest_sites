@@ -142,7 +142,7 @@
   const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* tant pis */ } };
   const read = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   { const d = Number(read('chest_admin_days')); if ([7, 30, 90, 365].includes(d)) S.days = d; }
-  { const v = read('chest_admin_view'); if (['overview', 'members', 'ranks', 'engagement', 'educators', 'system'].includes(v)) S.view = v; }
+  { const v = read('chest_admin_view'); if (['overview', 'members', 'ranks', 'engagement', 'sales', 'educators', 'system'].includes(v)) S.view = v; }
   { const m = read('chest_admin_metric'); if (['revenue', 'signups', 'users', 'views'].includes(m)) S.metric = m; }
   const periodWord = () => ({ 7: 'sur 7 jours', 30: 'sur 30 jours', 90: 'sur 90 jours', 365: 'sur 12 mois' }[S.days]);
 
@@ -648,7 +648,46 @@
     catch (e) { CHESTAlert(e.message); }
   });
 
-  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, educators: renderEducators, system: renderSystem };
+  // ------------------------------------------------------------ Ventes (2026-10-30)
+  let SALES = null;
+  const SALE_ST = { bloquee: 'Bloquée', retirable: 'Retirable', remboursee: 'Remboursée', encaissee: 'Encaissée' };
+  async function renderSales() {
+    if (!SALES || SALES.days !== S.days) {
+      $('amSalesList').innerHTML = '<p class="am-empty">Chargement…</p>';
+      try { SALES = await eduApi('/admin/sales?days=' + S.days); } catch (e) { $('amSalesList').innerHTML = `<p class="am-empty">${esc(e.message)}</p>`; return; }
+    }
+    const t = SALES.totals;
+    const kpi = (k, v, n, hero) => `<div class="am-sales-kpi${hero ? ' is-hero' : ''}"><span>${k}</span><b>${esc(v)}</b><small>${n}</small></div>`;
+    $('amSalesKpis').innerHTML = [
+      kpi('Encaissé', euro(t.net, 0), `${t.count} vente${t.count > 1 ? 's' : ''} ${periodWord()}${t.refunded ? ` · ${esc(euro(t.refunded, 0))} remboursés` : ''}`, true),
+      kpi('Aux éducateurs', euro(t.commission, 0), t.locked ? `dont ${esc(euro(t.locked, 0))} encore bloqués 14 j` : 'rien de bloqué'),
+      kpi('Reste à CHEST', euro(t.chest, 0), t.net ? `${Math.round((t.chest / t.net) * 100)} % de l’encaissé` : '—'),
+      kpi('Ventes directes', String(SALES.direct.sales), `${esc(euro(SALES.direct.net, 0))} sans éducateur`),
+    ].join('');
+    $('amSalesMode').innerHTML = SALES.checkout === 'auto'
+      ? '<span class="am-sales-ok">Paiement Stripe automatique au prix affiché</span>'
+      : '<span class="am-sales-warn">Paiement par liens Stripe : ajoute la clé STRIPE_SECRET_KEY sur Railway</span>';
+    $('amSalesEdu').innerHTML = SALES.educators.length ? SALES.educators.map((e) => `<div class="am-sales-edu">
+        <div class="am-sales-edu__who"><b>${esc(e.name)}</b><small>${pctOf(e.rate)} % · ${e.sales} vente${e.sales > 1 ? 's' : ''} ${periodWord()}</small></div>
+        <div class="am-sales-edu__n"><span>Ventes</span><b>${esc(euro(e.net, 0))}</b></div>
+        <div class="am-sales-edu__n"><span>Sa part</span><b>${esc(euro(e.commission))}</b></div>
+        <div class="am-sales-edu__n"><span>Bloqué</span><b>${esc(euro(e.wallet.locked))}</b></div>
+        <div class="am-sales-edu__n"><span>Retirable</span><b class="is-ok">${esc(euro(e.wallet.available))}</b></div>
+        <div class="am-sales-edu__n"><span>Versé</span><b>${esc(euro(e.wallet.paid))}</b></div>
+      </div>`).join('') : '<p class="am-empty">Aucun éducateur pour l’instant.</p>';
+    $('amSalesMeta').textContent = `${t.count} ${periodWord()}`;
+    $('amSalesList').innerHTML = SALES.sales.length ? `<div class="am-sale am-sale--head"><span>Date</span><span>Membre · offre</span><span>Montant</span><span>Éducateur</span><span>Sa part</span><span>CHEST</span><span>Statut</span></div>` + SALES.sales.map((s) => `<div class="am-sale">
+        <span class="am-sale__at">${esc(dt(s.at, true))}</span>
+        <span class="am-sale__who"><b>${esc(s.member.name)}</b><small>${esc(s.offer)}</small></span>
+        <span class="am-sale__amt">${s.refunded ? `<s>${esc(euro(s.amount, 0))}</s> ` : ''}${esc(euro(s.net, 0))}</span>
+        <span class="am-sale__edu">${s.educator ? `${esc(s.educator.name)}<small>${pctOf(s.rate)} %</small>` : '<em>Directe</em>'}</span>
+        <span class="am-sale__num">${s.educator ? esc(euro(s.commission)) : '—'}</span>
+        <span class="am-sale__num">${esc(euro(s.chest))}</span>
+        <span class="am-sale__st is-${s.status}">${SALE_ST[s.status]}${s.status === 'bloquee' ? `<small>jusqu’au ${esc(dt(s.availableAt))}</small>` : ''}</span>
+      </div>`).join('') : `<p class="am-empty">Aucune vente ${periodWord()}.</p>`;
+  }
+
+  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, sales: renderSales, educators: renderEducators, system: renderSystem };
   function placeIndicator() {
     const tabs = document.querySelector('.am-nav__tabs');
     let ind = tabs.querySelector('.am-nav__ind');
@@ -662,7 +701,7 @@
     store('chest_admin_view', v);
     document.querySelectorAll('#amNav [data-view]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === v)));
     document.querySelectorAll('.am-view').forEach((p) => { p.hidden = p.dataset.panel !== v; });
-    const usesPeriod = v === 'overview' || v === 'engagement';
+    const usesPeriod = v === 'overview' || v === 'engagement' || v === 'sales';
     if (usesPeriod) $('amPeriod').removeAttribute('data-off'); else $('amPeriod').setAttribute('data-off', '');
     RENDER[v]();
     placeIndicator();

@@ -1135,6 +1135,62 @@ def admin_billing():
     } for r in rows]})
 
 
+@app.route("/admin/sales")
+def admin_sales():
+    """Le registre des ventes : qui a acheté quoi, quel éducateur l'a amené, ce qui lui revient (commission,
+    bloquée 14 jours puis retirable, annulée par un remboursement) et ce qui reste à CHEST. ?days= (730 max).
+    Mêmes règles que le portefeuille des éducateurs (edu_report)."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    try:
+        days = max(1, min(730, int(request.args.get("days", 90))))
+    except ValueError:
+        days = 90
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    since = (now - timedelta(days=days)).isoformat()
+    name = lambda u: f"{u['first_name']} {(u['last_name'] or '')[:1]}.".strip()
+    members = db.execute("SELECT * FROM users WHERE id IN (SELECT DISTINCT user_id FROM billing_events WHERE user_id IS NOT NULL AND amount > 0)").fetchall()
+    educators = {e["id"]: e for e in db.execute("SELECT * FROM users WHERE role = 'educator'").fetchall()}
+    rows = []
+    for m in members:
+        sales, _, net = _net_sales(db, m["id"])
+        edu = educators.get(_col(m, "referred_by"))
+        rate = edu_rate(edu) if edu else 0.0
+        for s in sales:
+            if (s["created_at"] or "") < since:
+                continue
+            left = net[s["id"]]
+            comm = round(left * rate / 100)
+            avail = (_parse_iso(s["created_at"]) or now) + timedelta(days=EDU_HOLD_DAYS)
+            summary = s["summary"] or ""
+            rows.append({
+                "id": s["id"], "at": s["created_at"], "member": {"id": m["id"], "name": name(m)},
+                "offer": summary[len("Paiement "):] if summary.startswith("Paiement ") else ("Renouvellement" if s["type"] == "invoice.paid" else summary),
+                "amount": s["amount"], "refunded": s["amount"] - left, "net": left,
+                "educator": {"id": edu["id"], "name": name(edu)} if edu else None, "rate": rate, "commission": comm,
+                "chest": left - comm, "availableAt": avail.isoformat(),
+                "status": "remboursee" if left <= 0 else ("encaissee" if not edu else ("bloquee" if avail > now else "retirable")),
+            })
+    rows.sort(key=lambda r: r["at"] or "", reverse=True)
+    per = []
+    for e in educators.values():
+        mine = [r for r in rows if r["educator"] and r["educator"]["id"] == e["id"]]
+        w = edu_report(db, e)["wallet"]
+        per.append({"id": e["id"], "name": name(e), "rate": edu_rate(e), "sales": len(mine),
+                    "net": sum(r["net"] for r in mine), "commission": sum(r["commission"] for r in mine), "wallet": w})
+    direct = [r for r in rows if not r["educator"]]
+    per.sort(key=lambda p: p["net"], reverse=True)
+    return jsonify({
+        "days": days, "holdDays": EDU_HOLD_DAYS, "checkout": "auto" if STRIPE_SECRET_KEY else "liens", "sales": rows[:500],
+        "totals": {"count": len(rows), "gross": sum(r["amount"] for r in rows), "refunded": sum(r["refunded"] for r in rows),
+                   "net": sum(r["net"] for r in rows), "commission": sum(r["commission"] for r in rows),
+                   "chest": sum(r["chest"] for r in rows), "locked": sum(r["commission"] for r in rows if r["status"] == "bloquee")},
+        "educators": per, "direct": {"sales": len(direct), "net": sum(r["net"] for r in direct)},
+    })
+
+
 @app.route("/admin/mail", methods=["POST"])
 def admin_mail():
     """Un e-mail à un membre, au nom de CHEST (envoyé par le serveur : l'adresse du membre ne sort jamais d'ici).
@@ -1694,6 +1750,28 @@ def reset_member_password(member_id):
 # L'offre est déduite du MONTANT avant remise (amount_subtotal), jamais de ce que le navigateur annonce :
 # changer le lien à la main ne donne pas une offre plus chère.
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+# Paiement au prix affiché (2026-10-30) : avec une clé Stripe (restreinte : écriture « Checkout Sessions »
+# suffit), le serveur ouvre lui-même la page de paiement de chaque achat (POST /billing/checkout), au prix
+# de l'éditeur /offres, avec le membre, l'offre et son éducateur (taux, commission) inscrits sur le paiement
+# dans Stripe. Plus de lien à recréer à chaque changement de prix. Sans clé : les liens de l'éditeur.
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+CHECKOUT_SITE = os.environ.get("SITE_URL", "https://www.ch3st.app").rstrip("/")
+
+
+def _stripe_post(path, fields):
+    req = urllib.request.Request("https://api.stripe.com" + path, data=urllib.parse.urlencode(fields).encode(), method="POST",
+                                 headers={"Authorization": "Bearer " + STRIPE_SECRET_KEY, "Stripe-Version": "2024-06-20"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            msg = (json.loads(e.read().decode()).get("error") or {}).get("message")
+        except ValueError:
+            msg = None
+        raise RuntimeError(msg or f"Stripe a refusé ({e.code}).")
+    except (urllib.error.URLError, TimeoutError):
+        raise RuntimeError("Stripe ne répond pas : réessaie dans un instant.")
 PLANS = {
     # features : school = School complet (sinon 2 cours), berich = BERICH, sync = données sur le serveur
     "trial": {"label": "Essai gratuit (Essentiel)", "school": False, "berich": False, "sync": False},
@@ -2090,6 +2168,25 @@ def member_sales(db, user_id):
             and not (r["summary"] or "").startswith(("Paiement en attente", "Paiement non rattaché"))]
 
 
+def _net_sales(db, user_id):
+    """Les ventes d'un membre, ses remboursements, et ce qu'il reste de chaque vente (centimes) : chaque
+    remboursement annule la vente la plus récente qui le précède (jamais une autre)."""
+    sales = member_sales(db, user_id)
+    refunds = db.execute("SELECT id, amount, created_at FROM billing_events WHERE user_id = ? AND type = 'charge.refunded' AND amount > 0",
+                         (user_id,)).fetchall()
+    net = {r["id"]: r["amount"] for r in sales}
+    for rf in sorted(refunds, key=lambda x: x["created_at"] or ""):
+        left = rf["amount"]
+        for sale in sorted(sales, key=lambda x: x["created_at"] or "", reverse=True):
+            if left <= 0:
+                break
+            if (sale["created_at"] or "") <= (rf["created_at"] or "") and net[sale["id"]] > 0:
+                cut = min(left, net[sale["id"]])
+                net[sale["id"]] -= cut
+                left -= cut
+    return sales, refunds, net
+
+
 def _mask(v, keep=4):
     v = str(v or "")
     return ("•••• " + v[-keep:]) if len(v) > keep else v
@@ -2111,20 +2208,7 @@ def edu_report(db, educator, full=False):
     now = datetime.now(timezone.utc)
     hold_until = lambda at: (_parse_iso(at) or now) + timedelta(days=EDU_HOLD_DAYS)
     for m in members:
-        sales = member_sales(db, m["id"])
-        refunds = db.execute("SELECT id, amount, created_at FROM billing_events WHERE user_id = ? AND type = 'charge.refunded' AND amount > 0",
-                             (m["id"],)).fetchall()
-        # chaque remboursement annule la vente la plus récente qui le précède (jamais une autre)
-        net = {r["id"]: r["amount"] for r in sales}
-        for rf in sorted(refunds, key=lambda x: x["created_at"] or ""):
-            left = rf["amount"]
-            for sale in sorted(sales, key=lambda x: x["created_at"] or "", reverse=True):
-                if left <= 0:
-                    break
-                if (sale["created_at"] or "") <= (rf["created_at"] or "") and net[sale["id"]] > 0:
-                    cut = min(left, net[sale["id"]])
-                    net[sale["id"]] -= cut
-                    left -= cut
+        sales, refunds, net = _net_sales(db, m["id"])
         total = sum(net.values())
         comm = total * rate / 100
         earned += comm
@@ -3618,7 +3702,8 @@ def admin_payout_update(pid):
 def pricing():
     if request.method == "GET":
         data = get_pricing()
-        return jsonify({"offers": data["offers"], "updatedAt": get_setting("pricing_updated_at")})
+        return jsonify({"offers": data["offers"], "updatedAt": get_setting("pricing_updated_at"),
+                        "checkout": "auto" if STRIPE_SECRET_KEY else "liens"})
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
@@ -3630,6 +3715,58 @@ def pricing():
     now = datetime.now(timezone.utc).isoformat()
     set_setting("pricing_updated_at", now)
     return jsonify({"offers": data["offers"], "updatedAt": now})
+
+
+def _offer_label(o):
+    return f"CHEST {'Premium' if o['group'] == 'premium' else 'Essentiel'} {ROMAN.get(o['level'], '')}".strip()
+
+
+@app.route("/billing/checkout", methods=["POST"])
+def billing_checkout():
+    """La page de paiement d'une offre, au prix affiché : {offer: "premium3"} → {url}. Le membre, l'offre, son
+    éducateur, le taux et la commission sont inscrits sur le paiement (visibles dans Stripe, relus par le webhook)."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Connecte-toi pour choisir une offre."}), 401
+    key = str((request.get_json(silent=True) or {}).get("offer") or "")
+    o = next((x for x in get_pricing()["offers"] if x.get("key") == key), None)
+    if not o or not o.get("enabled") or o.get("soon") or not o.get("price"):
+        return jsonify({"error": "Cette offre n'est pas disponible."}), 400
+    if not STRIPE_SECRET_KEY:
+        link = str(o.get("link") or "").strip()
+        if not link:
+            return jsonify({"error": "Le paiement en ligne de cette offre ouvre très bientôt."}), 503
+        q = urllib.parse.urlencode({"client_reference_id": f"u{user['id']}", "prefilled_email": user["email"], "locale": "fr"})
+        return jsonify({"url": f"{link}{'&' if '?' in link else '?'}{q}", "mode": "liens"})
+    db = get_db()
+    edu = db.execute("SELECT * FROM users WHERE id = ?", (_col(user, "referred_by"),)).fetchone() if _col(user, "referred_by") else None
+    edu = edu if is_educator(edu) else None
+    cents = int(round(float(o["price"]) * 100))
+    rate = edu_rate(edu) if edu else 0.0
+    label, who = _offer_label(o), f"{user['first_name']} {(user['last_name'] or '')[:1]}.".strip()
+    edu_name = f"{edu['first_name']} {edu['last_name'] or ''}".strip() if edu else "aucun (vente directe CHEST)"
+    meta = {"offer": key, "amount": str(cents), "member_id": str(user["id"]), "member": who,
+            "educator_id": str(edu["id"]) if edu else "", "educator": edu_name,
+            "commission_rate": f"{rate:.2f} %", "commission": f"{cents * rate / 10000:.2f} EUR"}
+    fields = [("mode", "payment"), ("locale", "fr"), ("client_reference_id", f"u{user['id']}"),
+              ("success_url", f"{CHECKOUT_SITE}/offres?paiement=ok"), ("cancel_url", f"{CHECKOUT_SITE}/offres"),
+              ("line_items[0][quantity]", "1"), ("line_items[0][price_data][currency]", "eur"),
+              ("line_items[0][price_data][unit_amount]", str(cents)),
+              ("line_items[0][price_data][product_data][name]", f"{label} · {o['months']} mois"),
+              ("payment_intent_data[description]", f"{label} · {who} · éducateur : {edu_name}")]
+    if _col(user, "stripe_customer_id"):
+        fields.append(("customer", user["stripe_customer_id"]))
+    else:
+        fields += [("customer_email", user["email"]), ("customer_creation", "always")]
+    for k, v in meta.items():
+        fields += [(f"metadata[{k}]", v), (f"payment_intent_data[metadata][{k}]", v)]
+    try:
+        session = _stripe_post("/v1/checkout/sessions", fields)
+    except RuntimeError as e:
+        log_event(db, "paiement.erreur", user["id"], f"{label} : {e}", "warn")
+        return jsonify({"error": f"Le paiement n'a pas pu s'ouvrir : {e}"}), 502
+    log_event(db, "paiement.ouvert", user["id"], f"{label} · {o['price']} € · éducateur : {edu_name}")
+    return jsonify({"url": session.get("url"), "mode": "auto"})
 
 
 @app.route("/billing/webhook", methods=["POST"])
@@ -3653,7 +3790,14 @@ def billing_webhook():
         summary = etype
         if etype in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
             amount = obj.get("amount_subtotal") if obj.get("amount_subtotal") is not None else obj.get("amount_total")
-            plan = plan_for_amount(amount)
+            # paiement ouvert par /billing/checkout : l'offre est inscrite dessus (par le serveur, signé par Stripe),
+            # valable seulement si le montant payé est bien celui de cette offre au moment de l'achat
+            meta = obj.get("metadata") or {}
+            plan = None
+            if meta.get("offer") in PRICING_KEYS and str(meta.get("amount") or "") == str(amount):
+                lvl = int(meta["offer"][-1])
+                plan = {"plan": meta["offer"][:-1], "level": lvl, "months": LEVEL_MONTHS[lvl]}
+            plan = plan or plan_for_amount(amount)
             paid = obj.get("payment_status") in ("paid", "no_payment_required")
             if user and plan and paid:
                 name, level, months = plan["plan"], plan["level"], plan["months"]

@@ -122,6 +122,7 @@ html[data-theme="light"] .chest-root .of-save{ filter:invert(1) hue-rotate(180de
 .of-ed__field input:focus{ border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.18); }
 .of-ed__field input.is-bad{ border-color:#ff4d5e; }
 .of-ed__field--link input{ font-size:12px; font-weight:500; padding-right:12px; }
+.of-ed__auto{ margin:0; padding:10px 12px; border:1px dashed rgba(255,255,255,.14); border-radius:12px; font-size:12px; letter-spacing:0; text-transform:none; color:var(--chest-ink-2); }
 .of-ed__feats li{ align-items:center; }
 .of-ed__feats .of-ed__txt{ flex:1; min-width:0; padding:1px 4px; }
 .of-ed__chk{ border:0; padding:0; cursor:pointer; flex-shrink:0; }
