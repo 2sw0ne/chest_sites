@@ -4873,6 +4873,37 @@ def push_subscribe():
     return jsonify({"ok": True})
 
 
+@app.route("/push/rotate", methods=["POST"])
+def push_rotate():
+    # Appelé par le service worker (sw.js, pushsubscriptionchange) quand le navigateur renouvelle l'abonnement :
+    # pas de session possible là-bas. On ne fait que REMPLACER un abonnement déjà enregistré, retrouvé par son
+    # ancienne adresse (une URL longue et secrète, connue du seul appareil) ; le membre reste le même.
+    ip = _client_ip()
+    if too_many("push-rotate:" + ip, 20, 3600):
+        return jsonify({"error": TOO_MANY}), 429
+    hit("push-rotate:" + ip)
+    body = request.get_json(silent=True) or {}
+    old = body.get("oldEndpoint")
+    sub = body.get("subscription") or {}
+    keys = sub.get("keys") or {}
+    endpoint, p256dh, auth = sub.get("endpoint"), keys.get("p256dh"), keys.get("auth")
+    if not old or not endpoint or not p256dh or not auth:
+        return jsonify({"error": "Abonnement incomplet."}), 400
+    with db_lock:
+        db = get_db()
+        row = db.execute("SELECT user_id FROM push_subscriptions WHERE endpoint = ?", (old,)).fetchone()
+        if not row:
+            return jsonify({"error": "Abonnement inconnu."}), 404
+        db.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", (old,))
+        db.execute(
+            "INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, created_at) VALUES (?, ?, ?, ?, ?) "
+            "ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth",
+            (row["user_id"], endpoint, p256dh, auth, datetime.now(timezone.utc).isoformat()),
+        )
+        db.commit()
+    return jsonify({"ok": True})
+
+
 @app.route("/push/unsubscribe", methods=["POST"])
 def push_unsubscribe():
     user = approved_user()

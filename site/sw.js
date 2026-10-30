@@ -70,6 +70,23 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// Le navigateur peut renouveler l'abonnement de lui-même (expiration, rotation des clés) : on se réabonne aussitôt
+// et on prévient le serveur, sans attendre que le membre rouvre l'app (2026-10-31). Le service worker n'a pas le
+// jeton de session : /push/rotate n'accepte que le remplacement d'un abonnement déjà connu (ancienne adresse).
+const PUSH_API = 'https://accounts-bridge-production.up.railway.app';
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil((async () => {
+    const old = event.oldSubscription;
+    const key = old && old.options && old.options.applicationServerKey;
+    const sub = event.newSubscription || (key ? await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }) : null);
+    if (!old || !sub) return;
+    await fetch(PUSH_API + '/push/rotate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldEndpoint: old.endpoint, subscription: sub.toJSON() }),
+    }).catch(() => {});
+  })());
+});
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || '/dashboard';
