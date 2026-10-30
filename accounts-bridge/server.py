@@ -577,6 +577,44 @@ def init_db():
             )
         """)
         db.execute("CREATE INDEX IF NOT EXISTS event_log_user ON event_log (user_id, kind, at)")
+        # La boîte aux lettres de CHEST HQ (2026-10-30) : le QG (sur le PC du patron) y dépose ce qui attend sa
+        # décision (actions, autorisations, comptes rendus) ; l'application téléphone (chest-hq.vercel.app) les lit,
+        # le patron balaie oui / non ou écrit à Atlas ; le QG relit et exécute. Rien ne s'exécute ici.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS hq_cards (
+                id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL,
+                title TEXT NOT NULL,
+                summary TEXT,
+                body TEXT,
+                meta TEXT,
+                status TEXT NOT NULL DEFAULT 'attente',
+                note TEXT,
+                created_at TEXT NOT NULL,
+                decided_at TEXT,
+                decided_by INTEGER,
+                acked INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS hq_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL,
+                card_id TEXT,
+                author_id INTEGER,
+                status TEXT NOT NULL DEFAULT 'envoye',
+                created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS hq_devices (
+                endpoint TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                p256dh TEXT NOT NULL,
+                auth TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS billing_events (
                 id TEXT PRIMARY KEY,
@@ -849,6 +887,233 @@ def admin_events():
             "member": {"id": r["user_id"], "name": f"{r['first_name']} {(r['last_name'] or '')[:1]}.".strip()} if r["user_id"] and r["first_name"] else ({"id": r["user_id"]} if r["user_id"] else None),
             "ip": r["ip"], "device": r["device"]} for r in rows]
     return jsonify({"events": out[::-1], "last": max([e["id"] for e in out], default=int(request.args.get("after", 0) or 0))})
+
+
+# ---------------------------------------------------------------- CHEST HQ au téléphone (2026-10-30)
+HQ_ONLINE_SECONDS = 90
+
+
+def _setting(db, key, default=None):
+    r = db.execute("SELECT value FROM site_settings WHERE key = ?", (key,)).fetchone()
+    return r["value"] if r else default
+
+
+def _set_setting(db, key, value):
+    db.execute("INSERT INTO site_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value))
+
+
+def _hq_agent():
+    """Le compte du QG (celui qui dépose les cartes). Le premier admin qui s'en sert devient ce compte ; ensuite lui seul."""
+    u = current_user()
+    if not u or not u["is_admin"]:
+        return None
+    db = get_db()
+    cur = _setting(db, "hq_account")
+    if cur is None:
+        with db_lock:
+            _set_setting(db, "hq_account", str(u["id"]))
+            db.commit()
+        return u
+    return u if str(u["id"]) == cur else None
+
+
+def _hq_patron():
+    """Le patron : un admin principal (pas manageur), qui n'est pas le compte du QG."""
+    u = current_user()
+    if not u or not u["is_admin"] or _col(u, "role") == "manager":
+        return None
+    return None if _setting(get_db(), "hq_account") == str(u["id"]) else u
+
+
+def _hq_card(r):
+    return {"id": r["id"], "kind": r["kind"], "title": r["title"], "summary": r["summary"] or "", "body": r["body"] or "",
+            "meta": json.loads(r["meta"] or "{}"), "status": r["status"], "note": r["note"] or "", "createdAt": r["created_at"],
+            "decidedAt": r["decided_at"]}
+
+
+@app.route("/hq/cards", methods=["POST"])
+def hq_cards_push():
+    """Le QG dépose ses cartes : {cards: [{id, kind, title, summary, body, meta}], close: [{id, status}], status: {...}}."""
+    hq = _hq_agent()
+    if not hq:
+        return jsonify({"error": "Réservé au compte du QG."}), 403
+    b = request.get_json(silent=True) or {}
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    fresh = []
+    with db_lock:
+        for c in (b.get("cards") or [])[:50]:
+            cid = str(c.get("id") or "")[:80]
+            if not cid or c.get("kind") not in ("action", "ask", "rapport", "info"):
+                continue
+            row = db.execute("SELECT status FROM hq_cards WHERE id = ?", (cid,)).fetchone()
+            vals = (str(c.get("title") or "")[:200], str(c.get("summary") or "")[:600], str(c.get("body") or "")[:60000],
+                    json.dumps(c.get("meta") or {}, ensure_ascii=False)[:4000])
+            if row:
+                if row["status"] == "attente":
+                    db.execute("UPDATE hq_cards SET title = ?, summary = ?, body = ?, meta = ? WHERE id = ?", (*vals, cid))
+                continue
+            status = "attente" if c["kind"] in ("action", "ask") else "info"
+            db.execute("INSERT INTO hq_cards (id, kind, title, summary, body, meta, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                       (cid, c["kind"], *vals, status, now))
+            fresh.append((c["kind"], vals[0]))
+        for c in (b.get("close") or [])[:100]:
+            db.execute("UPDATE hq_cards SET status = ?, acked = 1, decided_at = COALESCE(decided_at, ?) WHERE id = ? AND status IN ('attente', 'info')",
+                       (str(c.get("status") or "faite")[:20], now, str(c.get("id") or "")[:80]))
+        if isinstance(b.get("status"), dict):
+            _set_setting(db, "hq_status", json.dumps({**b["status"], "at": now}, ensure_ascii=False)[:2000])
+        # on ne garde que les 300 dernières cartes
+        db.execute("DELETE FROM hq_cards WHERE id NOT IN (SELECT id FROM hq_cards ORDER BY created_at DESC LIMIT 300)")
+        db.commit()
+    if fresh:
+        devs = db.execute("SELECT endpoint, p256dh, auth FROM hq_devices WHERE user_id != ?", (hq["id"],)).fetchall()
+        if devs:
+            asks = [t for k, t in fresh if k in ("action", "ask")]
+            title = (f"Atlas · {len(asks)} chose{'s' if len(asks) > 1 else ''} à valider" if asks else "Atlas · compte rendu")
+            _send_push_to_subscriptions(devs, title, (asks or [t for _, t in fresh])[0][:140], url="/", table="hq_devices", tag="chest-hq")
+    return jsonify({"ok": True, "new": len(fresh)})
+
+
+@app.route("/hq/sync")
+def hq_sync():
+    """Le QG relit ce que le patron a décidé ou écrit depuis son téléphone (et signale qu'il est en ligne)."""
+    hq = _hq_agent()
+    if not hq:
+        return jsonify({"error": "Réservé au compte du QG."}), 403
+    db = get_db()
+    with db_lock:
+        st = json.loads(_setting(db, "hq_status") or "{}")
+        _set_setting(db, "hq_status", json.dumps({**st, "at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False))
+        db.commit()
+    dec = db.execute("SELECT id, kind, status, note FROM hq_cards WHERE acked = 0 AND status IN ('oui', 'non', 'modif')").fetchall()
+    msgs = db.execute("SELECT id, text, card_id, created_at FROM hq_messages WHERE status = 'envoye' ORDER BY id").fetchall()
+    return jsonify({"decisions": [{"id": r["id"], "kind": r["kind"], "decision": r["status"], "note": r["note"] or ""} for r in dec],
+                    "messages": [{"id": r["id"], "text": r["text"], "cardId": r["card_id"], "at": r["created_at"]} for r in msgs]})
+
+
+@app.route("/hq/sync/ack", methods=["POST"])
+def hq_sync_ack():
+    hq = _hq_agent()
+    if not hq:
+        return jsonify({"error": "Réservé au compte du QG."}), 403
+    b = request.get_json(silent=True) or {}
+    db = get_db()
+    with db_lock:
+        for cid in (b.get("cards") or [])[:100]:
+            db.execute("UPDATE hq_cards SET acked = 1 WHERE id = ?", (str(cid)[:80],))
+        for m in (b.get("messages") or [])[:100]:
+            if isinstance(m, dict):
+                db.execute("UPDATE hq_messages SET status = ? WHERE id = ?", (str(m.get("status") or "pris")[:20], int(m.get("id") or 0)))
+        db.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/hq/inbox")
+def hq_inbox():
+    """L'application téléphone : ce qui attend, ce qui a été fait, les messages à Atlas, et l'état du QG."""
+    me = _hq_patron()
+    if not me:
+        return jsonify({"error": "Réservé au patron de CHEST."}), 403
+    db = get_db()
+    waiting = db.execute("SELECT * FROM hq_cards WHERE status = 'attente' ORDER BY created_at").fetchall()
+    unread = db.execute("SELECT * FROM hq_cards WHERE status = 'info' ORDER BY created_at DESC LIMIT 20").fetchall()
+    done = db.execute("SELECT * FROM hq_cards WHERE status NOT IN ('attente', 'info') ORDER BY COALESCE(decided_at, created_at) DESC LIMIT 30").fetchall()
+    msgs = db.execute("SELECT * FROM hq_messages ORDER BY id DESC LIMIT 20").fetchall()
+    st = json.loads(_setting(db, "hq_status") or "{}")
+    seen = _parse_iso(st.get("at"))
+    online = bool(seen and (datetime.now(timezone.utc) - seen).total_seconds() < HQ_ONLINE_SECONDS)
+    return jsonify({"waiting": [_hq_card(r) for r in waiting], "reports": [_hq_card(r) for r in unread], "history": [_hq_card(r) for r in done],
+                    "messages": [{"id": r["id"], "text": r["text"], "cardId": r["card_id"], "status": r["status"], "at": r["created_at"]} for r in msgs],
+                    "hq": {"online": online, "seenAt": st.get("at"), "mission": st.get("mission"), "busy": bool(st.get("busy")) and online,
+                           "h24": bool(st.get("h24"))},
+                    "me": {"firstName": me["first_name"]}})
+
+
+@app.route("/hq/cards/<cid>/decide", methods=["POST"])
+def hq_card_decide(cid):
+    me = _hq_patron()
+    if not me:
+        return jsonify({"error": "Réservé au patron de CHEST."}), 403
+    b = request.get_json(silent=True) or {}
+    decision = b.get("decision")
+    if decision not in ("oui", "non", "lu"):
+        return jsonify({"error": "Décision inconnue."}), 400
+    db = get_db()
+    with db_lock:
+        r = db.execute("SELECT status, kind FROM hq_cards WHERE id = ?", (cid,)).fetchone()
+        if not r:
+            return jsonify({"error": "Carte introuvable."}), 404
+        if decision == "lu":
+            if r["status"] == "info":
+                db.execute("UPDATE hq_cards SET status = 'lu', decided_at = ?, decided_by = ?, acked = 1 WHERE id = ?",
+                           (datetime.now(timezone.utc).isoformat(), me["id"], cid))
+        elif r["status"] != "attente":
+            return jsonify({"error": "Déjà traitée (au QG ou sur un autre appareil)."}), 409
+        else:
+            db.execute("UPDATE hq_cards SET status = ?, note = ?, decided_at = ?, decided_by = ? WHERE id = ?",
+                       (decision, str(b.get("note") or "")[:500], datetime.now(timezone.utc).isoformat(), me["id"], cid))
+        db.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/hq/messages", methods=["POST"])
+def hq_message():
+    """Un message à Atlas : une demande nouvelle, ou une modification sur une carte (qui repart alors chez Atlas)."""
+    me = _hq_patron()
+    if not me:
+        return jsonify({"error": "Réservé au patron de CHEST."}), 403
+    b = request.get_json(silent=True) or {}
+    text = str(b.get("text") or "").strip()[:4000]
+    if not text:
+        return jsonify({"error": "Message vide."}), 400
+    cid = str(b.get("cardId") or "")[:80] or None
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        if cid:
+            r = db.execute("SELECT status FROM hq_cards WHERE id = ?", (cid,)).fetchone()
+            if not r:
+                cid = None
+            elif r["status"] == "attente":
+                db.execute("UPDATE hq_cards SET status = 'modif', note = ?, decided_at = ?, decided_by = ? WHERE id = ?", (text[:500], now, me["id"], cid))
+            elif r["status"] == "info":
+                db.execute("UPDATE hq_cards SET status = 'lu', decided_at = ?, decided_by = ?, acked = 1 WHERE id = ?", (now, me["id"], cid))
+        db.execute("INSERT INTO hq_messages (text, card_id, author_id, created_at) VALUES (?, ?, ?, ?)", (text, cid, me["id"], now))
+        db.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/hq/devices", methods=["POST"])
+def hq_device_add():
+    me = _hq_patron()
+    if not me:
+        return jsonify({"error": "Réservé au patron de CHEST."}), 403
+    b = request.get_json(silent=True) or {}
+    keys = b.get("keys") or {}
+    if not b.get("endpoint") or not keys.get("p256dh") or not keys.get("auth"):
+        return jsonify({"error": "Abonnement incomplet."}), 400
+    db = get_db()
+    with db_lock:
+        db.execute("INSERT INTO hq_devices (endpoint, user_id, p256dh, auth, created_at) VALUES (?, ?, ?, ?, ?) "
+                   "ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth",
+                   (str(b["endpoint"])[:1000], me["id"], str(keys["p256dh"])[:300], str(keys["auth"])[:300], datetime.now(timezone.utc).isoformat()))
+        db.commit()
+    if b.get("test"):
+        devs = db.execute("SELECT endpoint, p256dh, auth FROM hq_devices WHERE endpoint = ?", (str(b["endpoint"])[:1000],)).fetchall()
+        return jsonify(_send_push_to_subscriptions(devs, "CHEST HQ", "Les notifications d’Atlas arrivent bien sur ce téléphone.", url="/", table="hq_devices", tag="chest-hq"))
+    return jsonify({"ok": True})
+
+
+@app.route("/hq/devices/remove", methods=["POST"])
+def hq_device_remove():
+    me = _hq_patron()
+    if not me:
+        return jsonify({"error": "Réservé au patron de CHEST."}), 403
+    db = get_db()
+    with db_lock:
+        db.execute("DELETE FROM hq_devices WHERE endpoint = ? AND user_id = ?", (str((request.get_json(silent=True) or {}).get("endpoint") or ""), me["id"]))
+        db.commit()
+    return jsonify({"ok": True})
 
 
 @app.route("/admin/billing")
@@ -1333,6 +1598,7 @@ def _purge_user(db, member_id):
     """Efface un compte et toutes ses données (admin ou le membre lui-même). Gardés : paiements (billing_events,
     obligations comptables) et preuves de consentement (user_consents)."""
     db.execute("DELETE FROM event_log WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM hq_devices WHERE user_id = ?", (member_id,))
     vps_ids = [r["id"] for r in db.execute("SELECT id FROM vps_accounts WHERE user_id = ?", (member_id,)).fetchall()]
     for vid in vps_ids:
         db.execute("DELETE FROM vps_deals WHERE vps_id = ?", (vid,))
@@ -4479,13 +4745,13 @@ def push_unsubscribe():
     return jsonify({"ok": True})
 
 
-def _send_push_to_subscriptions(subs, title, body_text, url=None, icon=None):
+def _send_push_to_subscriptions(subs, title, body_text, url=None, icon=None, table="push_subscriptions", tag=None):
     """Envoie a une liste de lignes push_subscriptions (deja chargees) ; retire tout abonnement
     expire/invalide (410 Gone, cas normal quand un navigateur se desinscrit sans le dire) plutot
     que de re-essayer indefiniment dessus."""
     if not VAPID_PRIVATE_KEY:
         return {"sent": 0, "error": "VAPID_PRIVATE_KEY non configurée côté serveur."}
-    payload = json.dumps({"title": title, "body": body_text, "url": url or "/dashboard", "icon": icon})
+    payload = json.dumps({"title": title, "body": body_text, "url": url or "/dashboard", "icon": icon, **({"tag": tag} if tag else {})})
     sent, dead, last_error = 0, [], None
     for sub in subs:
         try:
@@ -4513,7 +4779,7 @@ def _send_push_to_subscriptions(subs, title, body_text, url=None, icon=None):
             last_error = str(e)
     if dead:
         with db_lock:
-            get_db().executemany("DELETE FROM push_subscriptions WHERE endpoint = ?", [(e,) for e in dead])
+            get_db().executemany(f"DELETE FROM {'hq_devices' if table == 'hq_devices' else 'push_subscriptions'} WHERE endpoint = ?", [(e,) for e in dead])
             get_db().commit()
     result = {"sent": sent, "removed": len(dead)}
     if sent == 0 and last_error:
