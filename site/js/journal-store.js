@@ -441,9 +441,15 @@
     return { added, total: cur.length, limitReached, firstBatch: before === 0, possibleGap: limitReached && before > 0 && added === incoming.length };
   }
 
+  // Même source = même VPS (vpsId) ou même compte Myfxbook (accountId).
+  const sameSource = (a, b) => (a.vpsId ? a.vpsId === b.vpsId : !b.vpsId && a.accountId != null && String(a.accountId) === String(b.accountId));
   function addLiveAccount(accountId, live) {
     const acc = listAccounts().find((a) => a.id === accountId);
     if (!acc) return null;
+    // Doublons du journal (2026-10-30) : le même VPS pouvait être relié deux fois (Connecter un compte, Dashboard, Journal),
+    // chaque position apparaissait alors deux fois. On réutilise le lien existant.
+    const existing = liveAccounts(acc).find((l) => sameSource(l, live));
+    if (existing) return existing;
     const rec = Object.assign({ id: 'live_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), addedAt: new Date().toISOString() }, live);
     updateAccount(accountId, { live: [...liveAccounts(acc), rec] });
     return rec;
@@ -615,6 +621,28 @@
     const token = window.CHESTAccounts && window.CHESTAccounts.getToken && window.CHESTAccounts.getToken();
     return token ? { Authorization: 'Bearer ' + token } : {};
   }
+  // Anciennes lignes VPS (id vps-<live>-<ticket>, une par transaction de sortie) remplacées par une ligne par position
+  // (vps-<live>-p<position>) : notes et tags écrits à la main et masquage reportés sur la position.
+  function migrateDealEntries(liveId, groups, entries) {
+    const all = extAll();
+    const cur = all[liveId] || [];
+    const oldRe = new RegExp('^vps-' + liveId.replace(/[^\w-]/g, '') + '-\\d+$');
+    if (!cur.some((e) => oldRe.test(e.id))) return;
+    const old = new Map(cur.filter((e) => oldRe.test(e.id)).map((e) => [e.id.slice(e.id.lastIndexOf('-') + 1), e]));
+    const h = hiddenIds();
+    let hiddenChanged = false;
+    groups.forEach((g, i) => {
+      const prev = g.tickets.map((t) => old.get(String(t))).filter(Boolean);
+      const custom = prev.find((e) => e.notes && (!e.mfx || e.notes !== e.mfx.autoNotes));
+      if (custom) entries[i].notes = custom.notes;
+      const tags = [...new Set(prev.flatMap((e) => e.tags || []))];
+      if (tags.length) entries[i].tags = tags;
+      if (prev.length && prev.every((e) => h.has(e.id))) { h.add(entries[i].id); hiddenChanged = true; }
+    });
+    all[liveId] = cur.filter((e) => !oldRe.test(e.id));
+    try { localStorage.setItem(EXT_KEY, JSON.stringify(all)); } catch (e) { /* tant pis */ }
+    if (hiddenChanged) try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...h].slice(-5000))); } catch (e) { /* tant pis */ }
+  }
   async function syncVpsLiveAccount(accountId, liveId) {
     const acc = listAccounts().find((a) => a.id === accountId);
     const live = liveAccounts(acc).find((l) => l.id === liveId);
@@ -635,14 +663,31 @@
       const h = await fetch(`${apiBase()}/vps/history/${live.vpsId}?days=400`, { headers: authHeaders() }).then((r) => (r.ok ? r.json() : null));
       const deals = h && Array.isArray(h.deals) ? h.deals : [];
       if (deals.length) {
-        const txs = deals.map((x) => ({
+        // Doublons du journal (2026-10-30) : l'EA envoie chaque transaction de sortie, donc une position clôturée en
+        // plusieurs fois (partiel, BE) donnait plusieurs lignes. Regroupées ici par position MT5 : volumes, profits,
+        // swaps et commissions additionnés, prix de sortie moyen pondéré, heure de la dernière sortie.
+        const byPos = new Map();
+        deals.forEach((x) => {
+          const k = String(x.position || x.ticket);
+          const g = byPos.get(k);
+          if (!g) { byPos.set(k, { k, tickets: [x.ticket], x: Object.assign({}, x), pv: (x.closePrice || 0) * (x.volume || 0) }); return; }
+          g.tickets.push(x.ticket);
+          ['volume', 'profit', 'swap', 'commission'].forEach((f) => { g.x[f] = (g.x[f] || 0) + (x[f] || 0); });
+          g.pv += (x.closePrice || 0) * (x.volume || 0);
+          if (x.closeTime > g.x.closeTime) g.x.closeTime = x.closeTime;
+          if (!g.x.openTime && x.openTime) Object.assign(g.x, { openTime: x.openTime, openPrice: x.openPrice, sl: x.sl, tp: x.tp });
+        });
+        const groups = [...byPos.values()];
+        groups.forEach((g) => { if (g.tickets.length > 1 && g.x.volume) g.x.closePrice = Math.round(g.pv / g.x.volume * 100000) / 100000; });
+        const txs = groups.map(({ x }) => ({
           ticket: x.ticket, symbol: x.symbol, action: x.side === 'sell' ? 'Sell' : 'Buy',
           openTime: x.openTime ? new Date(x.openTime * 1000).toISOString() : null, closeTime: new Date(x.closeTime * 1000).toISOString(),
           openPrice: x.openPrice, closePrice: x.closePrice, sl: x.sl || null, tp: x.tp || null,
           profit: x.profit, commission: x.commission, interest: x.swap, sizing: { value: x.volume },
         }));
         const before = balancesBefore(txs, d.balance);
-        const entries = txs.map((tx, i) => Object.assign(mfxToEntry(tx, live, before.get(i)), { id: `vps-${live.id}-${tx.ticket}`, source: 'vps' }));
+        const entries = txs.map((tx, i) => Object.assign(mfxToEntry(tx, live, before.get(i)), { id: `vps-${live.id}-p${groups[i].k}`, source: 'vps' }));
+        migrateDealEntries(live.id, groups, entries);
         merged = mergeExternal(live.id, entries, { limit: 100000, refresh: true });
       }
     } catch (e) { /* historique indisponible : l'instantané reste à jour */ }
@@ -670,7 +715,10 @@
       main = [...manual, ...live];
     }
     let liveRows = [];
+    const seen = [];
     liveAccounts(account).forEach((l) => {
+      if (m === 'all' && seen.some((x) => sameSource(x, l))) return; // même VPS relié deux fois : lu une seule fois
+      seen.push(l);
       if (m === 'all' || m === l.id) liveRows = liveRows.concat(extEntries(l.id).map((e) => Object.assign({}, e, { liveId: l.id, sourceLabel: l.name })));
     });
     let hidden = 0;
