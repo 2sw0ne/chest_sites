@@ -2231,16 +2231,19 @@ def _event_public(db, r, who, start=None, occ=0):
             "author": who(r["author_id"]), "authorId": r["author_id"], "status": "confirmed"}
 
 
+CHEST_COLOR = "#fc1283"
 STAFF_PALETTE = ("#a855f7", "#f5c451", "#38bdf8", "#33e6a6", "#fc1283", "#f9a45e", "#ff4d5e", "#2dd4bf", "#4d8dff", "#e8e8ee")
 
 
 def _staff_list(db):
-    """L'équipe (admins puis éducateurs) avec sa couleur de planning : choisie par l'admin, sinon une de la palette."""
+    """L'équipe (admins puis éducateurs) avec sa couleur de planning : choisie par l'admin, sinon une de la palette.
+    Un admin a toujours la couleur de CHEST (2026-10-30) : ce qu'il pose dans le planning se reconnaît partout."""
     rows = db.execute("SELECT id, first_name, last_name, is_admin, role, staff_color FROM users WHERE is_admin = 1 OR role = 'educator' ORDER BY is_admin DESC, id").fetchall()
     out = []
     for i, r in enumerate(rows):
         out.append({"id": r["id"], "name": f"{r['first_name']} {r['last_name']}".strip(), "first": r["first_name"],
-                    "role": "admin" if r["is_admin"] else "educator", "color": r["staff_color"] or STAFF_PALETTE[i % len(STAFF_PALETTE)]})
+                    "role": "admin" if r["is_admin"] else "educator",
+                    "color": CHEST_COLOR if r["is_admin"] else (r["staff_color"] or STAFF_PALETTE[i % len(STAFF_PALETTE)])})
     return out
 
 
@@ -2328,8 +2331,11 @@ def school_agenda():
         if err:
             return err
         mids = [int(only)]
+    elif role == "educator":
+        # Éducateur (2026-10-30) : le planning de SES élèves seulement, pas celui des autres éducateurs.
+        mids = [r["id"] for r in db.execute("SELECT id FROM users WHERE referred_by = ? AND is_admin = 0 AND COALESCE(role, 'member') = 'member'", (user["id"],)).fetchall()]
     else:
-        # Équipe (admin et éducateurs) : le planning de tout le monde, chaque éducateur dans sa couleur (2026-10-28).
+        # Admin : le planning de tout le monde, chaque éducateur dans sa couleur.
         mids = [r["id"] for r in db.execute("SELECT id FROM users WHERE is_admin = 0 AND COALESCE(role, 'member') = 'member'").fetchall()]
     staff = _staff_list(db)
     color_of = {s["id"]: s["color"] for s in staff}
@@ -2355,13 +2361,20 @@ def school_agenda():
         for r in (db.execute(sql + " ORDER BY due_at IS NULL, due_at", (*task_mids, start.isoformat(), hi)).fetchall() if task_mids else []):
             tasks.append({"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "memberId": r["member_id"],
                           "member": people.get(r["member_id"]), "author": who(r["author_id"]), "common": bool(_col(r, "common_id"))})
+    # Couleurs (2026-10-30) : seul l'admin voit le code couleur des éducateurs. Un élève ne voit que son éducateur et un
+    # éducateur que ses élèves : pas de couleur à décoder, chaque rendez-vous garde la couleur de son type. Ce que pose un
+    # admin prend la couleur de CHEST partout (chest: true) ; ses appels collectifs sont signés « Un éducateur ».
+    admins = {s["id"] for s in staff if s["role"] == "admin"}
     for e in events:
         if e["type"] == "collective":
-            e["ownerId"], e["color"] = e["authorId"], color_of.get(e["authorId"])
+            e["ownerId"] = e["authorId"]
+        e["chest"] = e.get("ownerId") in admins
+        e["color"] = CHEST_COLOR if e["chest"] else (color_of.get(e.get("ownerId")) if role == "admin" else None)
+        if e["type"] == "collective" and e["chest"] and role != "admin":
+            e["author"] = "Un éducateur"
     events.sort(key=lambda e: e["startsAt"])
-    used = {e.get("ownerId") for e in events}
-    legend = [s for s in staff if s["id"] in used] if role == "member" else staff
-    return jsonify({"from": start.isoformat(), "to": end.isoformat(), "role": role, "events": events, "tasks": tasks, "staff": legend})
+    return jsonify({"from": start.isoformat(), "to": end.isoformat(), "role": role, "events": events, "tasks": tasks,
+                    "staff": staff if role == "admin" else []})
 
 
 @app.route("/school/events", methods=["POST"])

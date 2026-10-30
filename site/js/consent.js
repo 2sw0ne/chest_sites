@@ -136,8 +136,8 @@
       kicker: 'Programme éducateur', title: 'Avant de partager ton lien',
       lead: 'Tu vas parler de CHEST et accompagner des membres. Quelques règles protègent tes membres, CHEST et toi.',
       checks: [
-        `J’accepte les ${doc('programme-educateur', 'règles du programme éducateur')} : pas de promesse de gains, pas de conseil personnalisé, et la mention <b>« Publicité »</b> sur mes publications qui font la promotion de CHEST.`,
-        `J’ai lu la ${doc('revenus-educateurs', 'déclaration sur les revenus des éducateurs')} : <b>aucun revenu n’est garanti</b>, et mes commissions sont à déclarer.`,
+        `J’accepte les ${doc('charte-educateur', 'Charte de l’éducateur')} : pas de promesse de gains, pas de conseil personnalisé, et la mention <b>« Publicité »</b> sur mes publications qui font la promotion de CHEST.`,
+        `J’ai lu la ${doc('charte-educateur#revenus', 'déclaration sur les revenus')} : <b>aucun revenu n’est garanti</b>, et mes commissions sont à déclarer.`,
       ],
       cta: 'J’accepte', alt: 'Retour au Dashboard',
       onConfirm: () => post({ kind: 'educator' }),

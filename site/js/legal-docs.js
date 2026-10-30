@@ -189,9 +189,11 @@
       <h2>6. Fiscalité</h2>
       <p>Les gains de trading sont imposables. Il t'appartient de les déclarer selon ta situation.</p>` },
 
-    // ------------------------------------------------------------------------------------------------ Programme éducateur
-    { slug: 'programme-educateur', title: 'Programme éducateur : règles et procédures', short: 'Programme éducateur', html: () => `
-      <p class="lg-lead">Ces règles s'appliquent à toute personne ayant le rôle Éducateur. Elles sont acceptées à l'ouverture de l'espace éducateur et complètent les ${L('cgu', 'Conditions d’utilisation')}.</p>
+    // ------------------------------------------------------------------------------------------------ Charte de l'éducateur
+    // (2026-10-30) Règles du programme et déclaration sur les revenus réunies en un seul document : un seul lien en bas
+    // de page. Les anciennes adresses /legal/programme-educateur et /legal/revenus-educateurs y mènent (legal.html).
+    { slug: 'charte-educateur', title: 'Charte de l’éducateur', short: 'Charte de l’éducateur', html: () => `
+      <p class="lg-lead">Cette charte s'applique à toute personne ayant le rôle Éducateur. Elle est acceptée à l'ouverture de l'espace éducateur et complètent les ${L('cgu', 'Conditions d’utilisation')}.</p>
       <h2>1. Rôle</h2>
       <p>L'éducateur accompagne les membres inscrits avec son code : rendez-vous, missions, notes, ressources, installation du VPS pour la connexion BERICH clé en main (Premium III). Il agit comme <b>indépendant</b> : il n'est ni salarié, ni mandataire, ni représentant de ${C('name')} et ne peut pas l'engager.</p>
       <h2>2. Statut et fiscalité</h2>
@@ -227,19 +229,17 @@
       <h2>8. Manquements</h2>
       <p>En cas de manquement, CHEST peut, selon la gravité : t'avertir, suspendre tes commissions, retirer ton rôle d'éducateur, et réclamer les commissions obtenues de façon irrégulière. Tes membres restent membres de CHEST.</p>
       <h2>9. Fin</h2>
-      <p>Tu peux quitter le programme à tout moment en écrivant à ${MAIL()}. Les commissions dues sur des paiements encaissés avant ton départ te sont versées selon les règles ci-dessus.</p>` },
-
-    // ------------------------------------------------------------------------------------------------ Revenus éducateurs
-    { slug: 'revenus-educateurs', title: 'Déclaration sur les revenus des éducateurs', short: 'Revenus des éducateurs', html: () => `
-      <p class="lg-lead"><b>Devenir éducateur CHEST ne garantit aucun revenu.</b> Ce que tu gagnes dépend uniquement des accès payés par les membres que tu as accompagnés, et du temps que tu y consacres.</p>
-      <h2>Comment la commission est calculée</h2>
+      <p>Tu peux quitter le programme à tout moment en écrivant à ${MAIL()}. Les commissions dues sur des paiements encaissés avant ton départ te sont versées selon les règles ci-dessus.</p>
+      <h2 id="revenus">10. Revenus : déclaration</h2>
+      <p><b>Devenir éducateur CHEST ne garantit aucun revenu.</b> Ce que tu gagnes dépend uniquement des accès payés par les membres que tu as accompagnés, et du temps que tu y consacres.</p>
+      <h3>Comment la commission est calculée</h3>
       <p>Commission = montant encaissé par CHEST pour l'accès d'un de tes membres × ton taux (affiché dans ton espace). Exemple, avec un taux d'un tiers : un membre qui paie un accès de 1 500 € génère 500 € de commission, une seule fois, pour toute la durée de cet accès. S'il ne renouvelle pas, il ne génère plus rien.</p>
-      <h2>Ce qu'il faut savoir</h2>
+      <h3>Ce qu'il faut savoir</h3>
       <ul>
         <li>Une grande partie des éducateurs d'un programme de ce type gagnent peu ou rien. CHEST publiera ici la répartition réelle des commissions versées dès qu'elle portera sur une période et un nombre d'éducateurs suffisants pour être représentative.</li>
         <li>Les commissions sont des revenus imposables et soumis à cotisations ; les frais que tu engages (temps, publicité, matériel) restent à ta charge.</li>
         <li>Les revenus d'un éducateur ne proviennent pas du trading : ils ne disent rien des gains que peut faire un membre.</li>
-        <li>Toute présentation de revenus « faciles », « passifs » ou « garantis » est contraire aux ${L('programme-educateur', 'règles du programme')}.</li>
+        <li>Toute présentation de revenus « faciles », « passifs » ou « garantis » est contraire à cette charte.</li>
       </ul>` },
   ];
 

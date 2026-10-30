@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" href="/assets/logo-chest.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/legal.css?v=1">
+<link rel="stylesheet" href="/css/legal.css?v=2">
 </head>
 <body>
 <!-- Documents légaux (2026-10-30) : page publique, sans connexion. /legal = sommaire, /legal/<doc> = un document
@@ -22,12 +22,15 @@
   <main class="lg-doc" id="lgDoc"></main>
 </div>
 <footer class="lg-foot"><div data-legal-links></div><p>© 2026 CHEST</p></footer>
-<script src="/js/legal-docs.js?v=1"></script>
+<script src="/js/legal-docs.js?v=2"></script>
 <script>
 (() => {
   'use strict';
   const L = window.CHESTLegal;
-  const slug = (new URLSearchParams(location.search).get('doc') || (location.pathname.match(/^\/legal\/([\w-]+)/) || [])[1] || '').toLowerCase();
+  let slug = (new URLSearchParams(location.search).get('doc') || (location.pathname.match(/^\/legal\/([\w-]+)/) || [])[1] || '').toLowerCase();
+  // Programme éducateur et revenus des éducateurs : réunis dans la Charte de l'éducateur (2026-10-30).
+  const OLD = { 'programme-educateur': ['charte-educateur', ''], 'revenus-educateurs': ['charte-educateur', '#revenus'] };
+  if (OLD[slug]) { history.replaceState(null, '', `/legal/${OLD[slug][0]}${OLD[slug][1]}`); slug = OLD[slug][0]; }
   const doc = L.DOCS.find((d) => d.slug === slug);
   const date = new Date(L.LEGAL_VERSION + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   document.getElementById('lgNav').innerHTML = `<span class="lg-nav__h">Documents</span>${L.DOCS.map((d) => `<a href="/legal/${d.slug}"${doc === d ? ' aria-current="page"' : ''}>${d.short}</a>`).join('')}`;
@@ -43,9 +46,10 @@
   main.innerHTML = `<span class="lg-step">Documents légaux</span><h1>${doc.title}</h1>
     <p class="lg-meta">Version du ${date}<button type="button" class="lg-print" onclick="window.print()">Imprimer ou enregistrer en PDF</button></p>
     <article class="lg-body">${doc.html()}</article>`;
+  if (location.hash) { const t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
   if (document.querySelector('.lg-todo')) document.body.classList.add('has-todo');
 })();
 </script>
-<script src="/js/legal-links.js?v=1"></script>
+<script src="/js/legal-links.js?v=2"></script>
 </body>
 </html>

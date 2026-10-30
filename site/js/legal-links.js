@@ -4,7 +4,7 @@
 (() => {
   'use strict';
   const LINKS = [['cgu', 'Conditions d’utilisation'], ['cgv', 'Conditions de vente'], ['remboursement', 'Remboursement'], ['confidentialite', 'Confidentialité'],
-    ['risques', 'Avertissement sur les risques'], ['mentions-legales', 'Mentions légales'], ['programme-educateur', 'Programme éducateur'], ['revenus-educateurs', 'Revenus des éducateurs']];
+    ['risques', 'Avertissement sur les risques'], ['mentions-legales', 'Mentions légales'], ['charte-educateur', 'Charte de l’éducateur']];
   const inApp = window.parent !== window || document.body.dataset.page;
   const html = `<nav class="lg-links" aria-label="Documents légaux">${LINKS.map(([s, t]) => `<a href="/legal/${s}"${inApp ? ' target="_blank" rel="noopener"' : ''}>${t}</a>`).join('')}</nav>
     <p class="lg-links__risk">Le trading comporte un risque de perte en capital. CHEST n’est pas un conseiller en investissement.</p>`;

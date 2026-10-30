@@ -72,7 +72,7 @@
     } else $('edInvite').innerHTML = link
       ? `<div class="ed-codebox"><span>Ton code</span><b>${esc(D.invite)}</b><i>définitif</i></div>
          <div class="ed-link"><code id="edLink">${esc(link)}</code><button type="button" class="chest-btn-2" id="edCopy">Copier</button><a class="chest-btn-2" href="${esc(link)}" target="_blank" rel="noopener">Voir ma page</a></div>
-         <p class="ed-hint">Ta page d’invitation officielle : ton prénom, ce qu’est CHEST, et l’inscription avec ton code déjà rempli. Chaque personne qui crée son compte par ce lien est rattachée à ton espace. Sur les réseaux, indique « Publicité » et ne promets aucun gain (${'<a href="/legal/programme-educateur" target="_blank" rel="noopener">règles du programme</a>'}).</p>`
+         <p class="ed-hint">Ta page d’invitation officielle : ton prénom, ce qu’est CHEST, et l’inscription avec ton code déjà rempli. Chaque personne qui crée son compte par ce lien est rattachée à ton espace. Sur les réseaux, indique « Publicité » et ne promets aucun gain (${'<a href="/legal/charte-educateur" target="_blank" rel="noopener">règles du programme</a>'}).</p>`
       : '<p class="ed-hint">Ton lien n’est pas encore prêt : CHEST le crée pour toi. Il apparaîtra ici.</p>';
     const copy = $('edCopy');
     if (copy) copy.addEventListener('click', async () => {
