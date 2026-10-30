@@ -207,6 +207,10 @@
         <li>Une commission liée à un paiement remboursé ou contesté est retirée de ton solde, y compris après versement (déduite des commissions suivantes).</li>
         <li>Retrait à partir de 50 €, après vérification, par virement SEPA ou sur une adresse crypto que tu indiques ; une erreur d'adresse crypto n'est pas récupérable.</li>
       </ul>
+      <h3 id="portefeuille">Le portefeuille : un affichage indicatif</h3>
+      <p>Le portefeuille de ton espace éducateur n'est <b>ni un compte bancaire, ni un compte de paiement, ni de la monnaie électronique</b>. Aucune somme n'y est déposée ni conservée pour toi : les montants affichés sont une <b>estimation</b> des commissions que tu pourrais percevoir, à partir des paiements encaissés par CHEST auprès de tes membres. Ce solde ne constitue pas une créance tant que la demande de retrait n'a pas été vérifiée et acceptée ; seul le versement effectif fait foi.</p>
+      <h3 id="retraits">Demandes de retrait</h3>
+      <p>Tu enregistres d'abord tes coordonnées (IBAN ou adresse crypto). Chaque demande est vérifiée : paiements bien encaissés, absence de remboursement ou de litige, cohérence des coordonnées. Une fois acceptée, la somme est versée par virement SEPA ou sur le portefeuille crypto indiqué, dans un délai indicatif de quelques jours ouvrés. Une demande peut être refusée ou ajustée en cas d'erreur, de fraude ou de remboursement d'un membre. CHEST peut te demander un numéro SIRET ou une facture avant un versement.</p>
       <h2>5. Ce qui est interdit</h2>
       <ul>
         <li><b>Promettre des gains</b>, un rendement, un « ×2 », un taux de réussite, ou présenter les résultats de BERICH ou des backtests comme garantis.</li>
@@ -226,6 +230,7 @@
       </ul>
       <h2>7. Confidentialité</h2>
       <p>Les informations des membres auxquelles tu accèdes (identité, offre, activité, questionnaire, accès MT5 confiés, suivi) sont confidentielles et ne servent qu'à leur accompagnement. Les accès MT5 ne doivent jamais être copiés ailleurs que dans leur VPS. Tes notes personnelles sur un membre ne sont visibles que par toi.</p>
+      <p id="donnees">Tes propres coordonnées de versement (IBAN, adresse crypto) servent uniquement à te verser tes commissions. Elles ne sont visibles que par toi (en partie masquées) et par CHEST, et sont conservées le temps du programme puis la durée légale de conservation des pièces comptables. Tu peux les consulter, les corriger ou demander leur suppression en écrivant à ${MAIL()}.</p>
       <h2>8. Manquements</h2>
       <p>En cas de manquement, CHEST peut, selon la gravité : t'avertir, suspendre tes commissions, retirer ton rôle d'éducateur, et réclamer les commissions obtenues de façon irrégulière. Tes membres restent membres de CHEST.</p>
       <h2>9. Fin</h2>

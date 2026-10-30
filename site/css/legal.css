@@ -75,4 +75,4 @@ a:focus-visible, button:focus-visible{ outline:2px solid rgba(252,18,131,.6); ou
   .lg-body a{ color:#000; }
 }
 @media (prefers-reduced-motion:reduce){ .lg-card, .lg-card i, .lg-nav a{ transition:none; } }
-.lg-body h2[id]{ scroll-margin-top:96px; } /* ancres (ex. /legal/charte-educateur#revenus) visibles sous la barre fixe */
+.lg-body [id]{ scroll-margin-top:96px; } /* ancres (ex. /legal/charte-educateur#revenus) visibles sous la barre fixe */

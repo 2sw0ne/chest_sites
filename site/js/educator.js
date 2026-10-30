@@ -118,7 +118,7 @@
         </div>
         <div class="ed-wallet__holder">${esc((D.payoutInfo && D.payoutInfo.holder) || D.educator.name)}</div>
       </div>
-      <p class="ed-hint">Ce solde estime ce qui pourra t’être versé : ce n’est pas de l’argent détenu sur un compte. Voir « Nature du portefeuille » plus bas.</p>`;
+      <p class="ed-hint">Ce solde estime ce qui pourra t’être versé : ce n’est pas de l’argent détenu sur un compte. Voir <a href="/legal/charte-educateur#portefeuille" target="_blank" rel="noopener">la Charte de l’éducateur</a>.</p>`;
 
     // retrait
     $('edMin').textContent = `minimum ${eur(D.minPayout, 0)}`;
