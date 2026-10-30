@@ -137,10 +137,19 @@ function isTradableBar(c) {
 // consultation qui arrive juste après (et vice-versa) - seul le crédit dépensé pour l'obtenir est
 // compté séparément selon qui l'a demandée.
 const candleCache = new Map(); // "CODE|TF" -> {at, all, bars}
-async function getCandles(code, tf, source) {
+// `wantBar` (alarmes) : début de la bougie qui vient de se fermer. BUG RÉEL (2026-10-31, retour utilisateur :
+// « les notifications ne réagissent plus en temps réel ») : le cache est partagé avec les graphiques ouverts par
+// les membres. Une alarme lancée juste après une clôture tombait souvent sur des bougies lues quelques minutes
+// plus tôt par un graphique, sans la bougie qui venait de se fermer : le signal n'était vu qu'à la clôture
+// SUIVANTE (+5 min en M5, +15 min en M15, +1 h en H1, +4 h en H4). Désormais une bougie attendue absente du
+// cache force une relecture (au plus une toutes les 30 s, le temps que Twelve Data la publie).
+function hasBar(c, wantBar) { return !!c && c.all.length > 0 && c.all[c.all.length - 1].time >= wantBar; }
+async function getCandles(code, tf, source, wantBar) {
   const key = code + "|" + tf;
   const hit = candleCache.get(key);
-  if (hit && Date.now() - hit.at < candleTtl(tf)) return hit;
+  const age = hit ? Date.now() - hit.at : Infinity;
+  const missing = wantBar != null && hit && !hasBar(hit, wantBar);
+  if (hit && age < candleTtl(tf) && !(missing && age >= 30 * 1000)) return hit;
   const tdKey = source === "alarm" ? TD_KEY_ALARM : TD_KEY;
   if (!tdKey) throw new Error("clé de bougies non configurée");
   if (creditsRemaining(source) <= 0) {
@@ -188,10 +197,10 @@ function loadManifest() {
 // Calcul d'un scanner pour une paire et une unité de temps (sans cache : la mémoire compte)
 // source : 'view' (consultation à la demande, /data+/signals) ou 'alarm' (boucle de fond) - decide
 // quelle clé/quel budget Twelve Data est débité si une vraie requête est nécessaire.
-async function runScanner(name, code, tf, wantModels, source) {
+async function runScanner(name, code, tf, wantModels, source, wantBar) {
   const files = loadManifest()[name];
   if (!Array.isArray(files) || !files.length) throw new Error("scanner inconnu");
-  const { all, bars } = await getCandles(code, tf, source);
+  const { all, bars } = await getCandles(code, tf, source, wantBar);
   const r = await runInChild(files.map(safePath), all, bars, wantModels, code, tf, name);
   return { bars, models: r.models || [], alerts: r.alerts || [], levels: r.levels || null };
 }
@@ -279,12 +288,15 @@ function tradeStatus(side, levels, bars, fromTime) {
   }
   return milestone > 0 ? `tp${milestone}` : "active";
 }
-async function scanCombo(code, tf, source) {
+// Renvoie false (rien calculé) si la bougie attendue `wantBar` n'est pas encore lisible : l'alarme réessaie au
+// tour suivant au lieu de calculer 11 scanners sur des bougies d'avant la clôture.
+async function scanCombo(code, tf, source, wantBar) {
+  if (wantBar != null && !hasBar(await getCandles(code, tf, source, wantBar), wantBar)) return false;
   const names = Object.keys(loadManifest());
   const now = Date.now();
   for (const name of names) {
     let res;
-    try { res = await runScanner(name, code, tf, false, source); } catch (e) { continue; }
+    try { res = await runScanner(name, code, tf, false, source, wantBar); } catch (e) { continue; }
     const key = `${name}|${code}|${tf}`;
     const known = WATERMARK.has(key); // déjà vu au moins une fois : jamais de notification au tout premier calcul
     const lv = res.levels;
@@ -326,6 +338,7 @@ async function scanCombo(code, tf, source) {
   }
   SIGNALS = SIGNALS.filter((s) => s.time >= now - OPPORTUNITY_WINDOW || newest.get(`${s.scanner}|${s.symbol}|${s.tf}`) === s);
   saveSignals();
+  return true;
 }
 
 // Le moteur ne sort les alertes que pour la dernière bougie : on calcule une fois par bougie fermée
@@ -374,10 +387,18 @@ setInterval(async () => {
     if (!w.keep) { if (now - w.touched > WATCH_TTL) WATCH.delete(k); continue; }
     const [code, tf] = k.split("|");
     const closedStart = Math.floor(now / TF_MS[tf]) * TF_MS[tf] - TF_MS[tf];
-    if (now - (closedStart + TF_MS[tf]) < SCAN_DELAY) continue;
+    const sinceClose = now - (closedStart + TF_MS[tf]);
+    if (sinceClose < SCAN_DELAY) continue;
     if (w.lastBar === closedStart) continue;
-    w.lastBar = closedStart;
-    try { await scanCombo(code, tf, "alarm"); } catch (e) { /* bougies indisponibles : on réessaiera au prochain tour */ }
+    // M1 : on garde le plancher de 5 min du cache (sinon 1 440 lectures par jour et par paire, hors budget
+    // gratuit) ; au-dessus, on exige la bougie qui vient de se fermer et on réessaie jusqu'à l'avoir.
+    // Marché fermé (week-end, pause de 21 h UTC) : aucune bougie ne viendra, rien à relire.
+    if (!isTradableBar({ time: closedStart, open: 0, high: 1, low: 0, close: 1 })) { w.lastBar = closedStart; continue; }
+    const wantBar = tf === "1" ? undefined : closedStart;
+    let done = false;
+    try { done = await scanCombo(code, tf, "alarm", wantBar); } catch (e) { /* bougies indisponibles */ }
+    // Abandon de cette bougie si elle reste introuvable (budget épuisé, marché fermé, retard de la source)
+    if (done || creditsRemaining("alarm") <= 0 || sinceClose > Math.max(3 * 60 * 1000, TF_MS[tf] / 3)) w.lastBar = closedStart;
   }
 }, 15 * 1000);
 
