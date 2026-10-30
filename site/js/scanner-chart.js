@@ -254,15 +254,18 @@
       { key: 'stop', label: 'Stop suiveur', hint: 'Ligne ATR', def: true, series: plotIs('volume-des-bougies') },
     ],
     'swyper-v6': [
-      { key: 'arrows', label: 'Flèches d’entrée', def: true, labels: either(textIs(/^[▲▼△▽↑↓]$/), (el) => el.style === 'arrowup' || el.style === 'arrowdown') },
+      // SWYPER (2026-10-30) : positions START et PULL, bougie de confirmation, panneau de pression
+      // (zones de sweep calculées mais sans couleur dans le script, showSweeps = false : rien à basculer)
+      { key: 'arrows', label: 'Flèches d’entrée', hint: '△ START, ▲ PULL', def: true, labels: either(textIs(/^[▲▼△▽↑↓⬆⬇⇧⇩]$/), (el) => el.style === 'arrowup' || el.style === 'arrowdown') },
       { key: 'star', label: 'Étoile', hint: 'Setup armé ✦', def: true, labels: textIs(/^✦$/) },
       { key: 'pb', label: 'Pullbacks', hint: 'Étiquettes PB', def: true, labels: textIs(/^PB$/) },
-      { key: 'levels', label: 'Niveaux', hint: 'Entrée, SL, TP, Fibonacci', def: true, labels: textIs(PRICE_TAG), lines: extIs('right') },
-      { key: 'zone', label: 'Zone de pullback', def: true, boxes: everything },
+      { key: 'levels', label: 'Niveaux', hint: 'PE, SL, TP, Fibonacci', def: true, labels: textIs(PRICE_TAG), lines: extIs('right') },
+      { key: 'zone', label: 'Zone de pullback', def: true, boxes: (el) => !!el.borderColor },
+      { key: 'conf', label: 'Bougie de confirmation', def: true, series: plotIs('bougie-de-confirmation') },
       { key: 'exits', label: 'Marqueurs de sortie', hint: '◆ ✕ ■', def: true, labels: textIs(/^[◆✕■]$/) },
       { key: 'ut', label: 'UT Bot', def: true, series: plotIs('ut-bot-(matr)') },
       { key: 'mcg', label: 'McGinley 10', def: true, series: plotIs('mcginley-10') },
-      { key: 'table', label: 'Panneau', def: true, tables: everything },
+      { key: 'table', label: 'Panneau', hint: 'Pression acheteurs / vendeurs', def: true, tables: everything },
     ],
     wolfx: [
       { key: 'arrow', label: 'Flèche de signal', def: true, labels: (el) => el.style === 'arrowup' || el.style === 'arrowdown' },
