@@ -48,8 +48,13 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 return True
         for r in ROUTES["rewrites"]:
-            if r[0].match(path):
-                self.path = r[1] + ("?" + query if query else "")
+            m = r[0].match(path)
+            if m:
+                # Paramètres nommés (/legal/:doc -> /legal.html?doc=:doc), comme Vercel.
+                dest = r[1]
+                for k, v in m.groupdict().items():
+                    dest = dest.replace(":" + k, v or "")
+                self.path = dest + (("&" if "?" in dest else "?") + query if query else "")
                 break
         return False
 
@@ -71,8 +76,9 @@ def load_routes(directory):
     except (OSError, ValueError):
         return out
     def pattern(src):
-        # "/:page(a|b)" -> ^/(a|b)$ ; le reste est littéral
-        return re.compile("^" + re.sub(r":\w+\(([^)]*)\)", r"(\1)", src) + "$")
+        # "/:page(a|b)" -> ^/(?P<page>a|b)$ ; "/legal/:doc" -> ^/legal/(?P<doc>[^/]+)$ ; le reste est littéral
+        src = re.sub(r":(\w+)\(([^)]*)\)", r"(?P<\1>\2)", src)
+        return re.compile("^" + re.sub(r":(\w+)(?![\w>])", r"(?P<\1>[^/]+)", src) + "$")
     for kind in ("redirects", "rewrites"):
         for r in cfg.get(kind, []):
             out[kind].append((pattern(r["source"]), r["destination"]))

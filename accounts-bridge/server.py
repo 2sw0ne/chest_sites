@@ -280,6 +280,15 @@ def init_db():
         """)
         # Planning commun (2026-10-28) : l'admin pose un appel collectif (éventuellement chaque semaine) ou une mission chez
         # tous les élèves, ou chez ceux de certains éducateurs ; chaque copie garde common_id pour tout retirer d'un coup.
+        # Preuve des consentements (2026-10-30) : inscription (CGU, confidentialité, risques, 18 ans), nouvelle version
+        # des CGU, règles du programme éducateur, achat (CGV + renonciation au droit de rétractation). Gardée même après
+        # suppression du compte : c'est la preuve du contrat (durée légale de conservation).
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_consents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, email TEXT, kind TEXT NOT NULL,
+                version TEXT NOT NULL, detail TEXT, ip TEXT, user_agent TEXT, created_at TEXT NOT NULL
+            )
+        """)
         # Notes personnelles de l'éducateur (2026-10-30) : une note par membre, privée — le membre ne la voit jamais.
         db.execute("""
             CREATE TABLE IF NOT EXISTS edu_member_notes (
@@ -453,7 +462,9 @@ def init_db():
                     # Rangs (2026-10-28) : Essentiel / Premium 1, 2, 3 = accès de 3, 6, 12 mois
                     ("plan_level", "INTEGER"),
                     # Code de référent choisi par l'éducateur (2026-10-28) : une seule fois, 8 caractères max
-                    ("edu_code", "TEXT")]
+                    ("edu_code", "TEXT"),
+                    # Documents légaux (2026-10-30) : version des CGU acceptée, et des règles du programme éducateur
+                    ("terms_version", "TEXT"), ("edu_terms_version", "TEXT")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -576,6 +587,8 @@ def user_public(row):
         "isAdmin": bool(row["is_admin"]),
         "createdAt": row["created_at"],
         "tutoSeen": bool(row["tuto_seen_at"]) if "tuto_seen_at" in row.keys() else True,
+        "terms": {"accepted": _col(row, "terms_version"), "current": TERMS_VERSION,
+                  "eduAccepted": _col(row, "edu_terms_version"), "eduCurrent": EDU_TERMS_VERSION},
         "access": access_of(row),
         "role": ("manager" if _col(row, "role") == "manager" else "admin") if row["is_admin"] else (_col(row, "role") or "member"),
     }
@@ -620,6 +633,18 @@ def current_user():
     return row
 
 
+# Version des documents légaux (site/js/legal-docs.js, LEGAL_VERSION) : la changer redemande l'accord de chacun.
+TERMS_VERSION = "2026-10-30"
+EDU_TERMS_VERSION = "2026-10-30"
+
+
+def record_consent(db, user_row_or_id, kind, version, detail=None, email=None):
+    uid = user_row_or_id if isinstance(user_row_or_id, int) else user_row_or_id["id"]
+    db.execute("INSERT INTO user_consents (user_id, email, kind, version, detail, ip, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+               (uid, email, kind, version, json.dumps(detail or {}, ensure_ascii=False)[:2000], _client_ip(),
+                (request.headers.get("User-Agent") or "")[:300], datetime.now(timezone.utc).isoformat()))
+
+
 @app.route("/signup", methods=["POST"])
 def signup():
     if too_many("signup-ip:" + _client_ip(), 20, 3600):
@@ -634,6 +659,8 @@ def signup():
 
     if not first_name or not last_name:
         return jsonify({"error": "Prénom et nom requis."}), 400
+    if body.get("acceptTerms") is not True:
+        return jsonify({"error": "Coche la case pour confirmer que tu as 18 ans et que tu acceptes les conditions d'utilisation."}), 400
     if ref_code and not get_db().execute("SELECT 1 FROM edu_invites WHERE upper(code) = upper(?) AND active = 1", (ref_code,)).fetchone():
         return jsonify({"error": "Code de référent inconnu : vérifie-le auprès de ton éducateur, ou laisse le champ vide."}), 400
     if not EMAIL_RE.match(email):
@@ -668,6 +695,9 @@ def signup():
             (first_name, last_name, email, generate_password_hash(password), status, is_admin,
              datetime.now(timezone.utc).isoformat(), "offert" if is_first_user else "none"),
         )
+        new_id = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()["id"]
+        db.execute("UPDATE users SET terms_version = ? WHERE id = ?", (TERMS_VERSION, new_id))
+        record_consent(db, new_id, "signup", TERMS_VERSION, {"docs": ["cgu", "confidentialite", "risques"], "majeur": True, "ref": ref_code or None}, email)
         # Inscrit par le lien d'un éducateur (?ref=CODE) : rattaché à son compte
         if ref_code:
             inv = db.execute("SELECT educator_id FROM edu_invites WHERE upper(code) = upper(?) AND active = 1", (ref_code,)).fetchone()
@@ -772,6 +802,59 @@ def me_profile():
                    (first_name, last_name, email, user["id"]))
         db.commit()
     return jsonify(user_public(db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()))
+
+
+@app.route("/me/consents", methods=["POST"])
+def me_consents():
+    """Accord enregistré avec sa preuve : 'terms' (nouvelle version des CGU), 'educator' (règles du programme),
+    'purchase' (CGV + accès immédiat et renonciation au droit de rétractation, juste avant le paiement Stripe)."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    b = request.get_json(silent=True) or {}
+    kind = b.get("kind")
+    detail = b.get("detail") if isinstance(b.get("detail"), dict) else {}
+    db = get_db()
+    with db_lock:
+        if kind == "terms":
+            db.execute("UPDATE users SET terms_version = ? WHERE id = ?", (TERMS_VERSION, user["id"]))
+            record_consent(db, user, "terms", TERMS_VERSION, {"docs": ["cgu", "confidentialite", "risques"]}, user["email"])
+        elif kind == "educator":
+            if not is_educator(user):
+                return jsonify({"error": "Réservé aux éducateurs."}), 403
+            db.execute("UPDATE users SET edu_terms_version = ? WHERE id = ?", (EDU_TERMS_VERSION, user["id"]))
+            record_consent(db, user, "educator", EDU_TERMS_VERSION, {"docs": ["programme-educateur", "revenus-educateurs"]}, user["email"])
+        elif kind == "purchase":
+            if not (detail.get("cgv") is True and detail.get("immediate") is True and detail.get("risks") is True):
+                return jsonify({"error": "Coche les trois cases avant de payer."}), 400
+            clean = {k: detail.get(k) for k in ("offer", "price", "months", "cgv", "immediate", "risks")}
+            record_consent(db, user, "purchase", TERMS_VERSION, clean, user["email"])
+        else:
+            return jsonify({"error": "Consentement inconnu."}), 400
+        db.commit()
+    return jsonify({"ok": True, "user": user_public(db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone())})
+
+
+@app.route("/me/delete", methods=["POST"])
+def me_delete():
+    """Droit à l'effacement (RGPD) : le membre supprime lui-même son compte et ses données, mot de passe à l'appui.
+    Les paiements et les consentements restent conservés (obligations comptables et preuve du contrat)."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    key = f"me-delete:{user['id']}"
+    if too_many(key, 6, 900):
+        return jsonify({"error": TOO_MANY}), 429
+    if not check_password_hash(user["password_hash"], (request.get_json(silent=True) or {}).get("password") or ""):
+        hit(key)
+        return jsonify({"error": "Mot de passe incorrect."}), 400
+    if user["is_admin"]:
+        return jsonify({"error": "Un compte administrateur ne se supprime pas d'ici : retire d'abord ton rôle depuis Membres."}), 400
+    db = get_db()
+    with db_lock:
+        _purge_user(db, user["id"])
+        db.commit()
+    return jsonify({"ok": True})
 
 
 @app.route("/me/password", methods=["POST"])
@@ -980,6 +1063,43 @@ def block_member(member_id):
 # l'instant), donnees synchronisees (comptes, journal, backtests, identifiants Myfxbook...), comptes VPS et
 # leur historique, alertes scanner, abonnements aux notifications, backtests partages en attente (envoyes
 # ou recus). Irreversible. Jamais son propre compte (pour ne pas s'enfermer dehors), jamais le dernier admin.
+def _purge_user(db, member_id):
+    """Efface un compte et toutes ses données (admin ou le membre lui-même). Gardés : paiements (billing_events,
+    obligations comptables) et preuves de consentement (user_consents)."""
+    vps_ids = [r["id"] for r in db.execute("SELECT id FROM vps_accounts WHERE user_id = ?", (member_id,)).fetchall()]
+    for vid in vps_ids:
+        db.execute("DELETE FROM vps_deals WHERE vps_id = ?", (vid,))
+        db.execute("DELETE FROM vps_equity WHERE vps_id = ?", (vid,))
+    db.execute("DELETE FROM vps_accounts WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
+    db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM berich_plans WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_member_notes WHERE member_id = ? OR author_id = ?", (member_id, member_id))
+    for row in db.execute("SELECT file FROM mentor_library WHERE member_id = ? AND file IS NOT NULL", (member_id,)).fetchall():
+        delete_file(json.loads(row["file"]))
+    for row in db.execute("SELECT flyer FROM mentor_events WHERE member_id = ? AND flyer IS NOT NULL", (member_id,)).fetchall():
+        delete_file(json.loads(row["flyer"]))
+    for t in ("mentor_events", "mentor_notes", "mentor_library", "mentor_tasks"):
+        db.execute(f"DELETE FROM {t} WHERE member_id = ?", (member_id,))
+    for t, col in (("school_events", "flyer"), ("school_posts", "image")):
+        for row in db.execute(f"SELECT {col} FROM {t} WHERE author_id = ? AND {col} IS NOT NULL", (member_id,)).fetchall():
+            delete_file(json.loads(row[0]))
+        db.execute(f"DELETE FROM {t} WHERE author_id = ?", (member_id,))
+    db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
+    db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
+    db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
+    db.execute("DELETE FROM user_activity WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM users WHERE id = ?", (member_id,))
+    return vps_ids
+
+
 @app.route("/members/<int:member_id>/delete", methods=["POST"])
 def delete_member(member_id):
     admin = current_user()
@@ -997,38 +1117,7 @@ def delete_member(member_id):
     if target["is_admin"] and db.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin = 1").fetchone()["n"] <= 1:
         return jsonify({"error": "Impossible de supprimer le dernier administrateur."}), 400
     with db_lock:
-        vps_ids = [r["id"] for r in db.execute("SELECT id FROM vps_accounts WHERE user_id = ?", (member_id,)).fetchall()]
-        for vid in vps_ids:
-            db.execute("DELETE FROM vps_deals WHERE vps_id = ?", (vid,))
-            db.execute("DELETE FROM vps_equity WHERE vps_id = ?", (vid,))
-        db.execute("DELETE FROM vps_accounts WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
-        db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM berich_plans WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM edu_member_notes WHERE member_id = ? OR author_id = ?", (member_id, member_id))
-        for row in db.execute("SELECT file FROM mentor_library WHERE member_id = ? AND file IS NOT NULL", (member_id,)).fetchall():
-            delete_file(json.loads(row["file"]))
-        for row in db.execute("SELECT flyer FROM mentor_events WHERE member_id = ? AND flyer IS NOT NULL", (member_id,)).fetchall():
-            delete_file(json.loads(row["flyer"]))
-        for t in ("mentor_events", "mentor_notes", "mentor_library", "mentor_tasks"):
-            db.execute(f"DELETE FROM {t} WHERE member_id = ?", (member_id,))
-        for t, col in (("school_events", "flyer"), ("school_posts", "image")):
-            for row in db.execute(f"SELECT {col} FROM {t} WHERE author_id = ? AND {col} IS NOT NULL", (member_id,)).fetchall():
-                delete_file(json.loads(row[0]))
-            db.execute(f"DELETE FROM {t} WHERE author_id = ?", (member_id,))
-        db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
-        db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
-        db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
-        db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
-        db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
-        db.execute("DELETE FROM user_activity WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM billing_events WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM users WHERE id = ?", (member_id,))
+        vps_ids = _purge_user(db, member_id)
         db.commit()
     return jsonify({"ok": True, "vpsDeleted": len(vps_ids)})
 

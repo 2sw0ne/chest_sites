@@ -48,7 +48,8 @@
     ].map(([k, v, n, cls]) => `<div class="am-kpi ${cls}" data-tilt="5"><div class="am-kpi__k">${k}</div><div class="am-kpi__v"><b>${esc(v)}</b></div><div class="am-kpi__n">${esc(n)}</div></div>`).join('');
 
     // Code de référent (2026-10-28) : l'éducateur le choisit UNE fois (3 à 8 lettres ou chiffres), puis il est définitif.
-    const link = D.invite ? `${location.origin}/inscription?ref=${encodeURIComponent(D.invite)}` : '';
+    // Lien officiel (2026-10-30) : la page d'invitation de l'éducateur, qui mène à l'inscription avec son code rempli.
+    const link = D.invite ? `${location.origin}/rejoindre/${encodeURIComponent(D.invite)}` : '';
     if (!D.codeChosen && !readOnly) {
       $('edInvite').innerHTML = `<form class="ed-code" id="edCodeForm" novalidate>
           <label class="ed-field"><span>Choisis ton code de référent</span><input type="text" id="edCodeInput" maxlength="8" autocomplete="off" spellcheck="false" placeholder="Ex. KARIM"></label>
@@ -70,8 +71,8 @@
       });
     } else $('edInvite').innerHTML = link
       ? `<div class="ed-codebox"><span>Ton code</span><b>${esc(D.invite)}</b><i>définitif</i></div>
-         <div class="ed-link"><code id="edLink">${esc(link)}</code><button type="button" class="chest-btn-2" id="edCopy">Copier</button></div>
-         <p class="ed-hint">Chaque personne qui crée son compte avec ce lien est rattachée à ton espace. Tu touches ta commission sur chacun de ses paiements.</p>`
+         <div class="ed-link"><code id="edLink">${esc(link)}</code><button type="button" class="chest-btn-2" id="edCopy">Copier</button><a class="chest-btn-2" href="${esc(link)}" target="_blank" rel="noopener">Voir ma page</a></div>
+         <p class="ed-hint">Ta page d’invitation officielle : ton prénom, ce qu’est CHEST, et l’inscription avec ton code déjà rempli. Chaque personne qui crée son compte par ce lien est rattachée à ton espace. Sur les réseaux, indique « Publicité » et ne promets aucun gain (${'<a href="/legal/programme-educateur" target="_blank" rel="noopener">règles du programme</a>'}).</p>`
       : '<p class="ed-hint">Ton lien n’est pas encore prêt : CHEST le crée pour toi. Il apparaîtra ici.</p>';
     const copy = $('edCopy');
     if (copy) copy.addEventListener('click', async () => {
