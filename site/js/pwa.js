@@ -12,9 +12,46 @@
   }
 
   if ('serviceWorker' in navigator) {
-    // 'sw.js' (racine, jamais 'js/sw.js') : la portee d'un service worker est limitee a son
-    // propre dossier et en-dessous - a la racine, il couvre tout le site.
-    navigator.serviceWorker.register('sw.js').catch(() => { /* pas grave, l'app marche sans */ });
+    // '/sw.js' (racine, jamais 'js/sw.js') : la portee d'un service worker est limitee a son
+    // propre dossier et en-dessous - a la racine, il couvre tout le site. Chemin absolu : une page
+    // servie sous /legal/... ou /rejoindre/... visait sinon /legal/sw.js (2026-10-30).
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* pas grave, l'app marche sans */ });
+  }
+
+  // Le service worker actif. `ready` ne se résout jamais si l'enregistrement a échoué : le bouton
+  // « Activer » restait alors bloqué sans rien dire (2026-10-30). On attend 10 s au plus.
+  async function workerReady() {
+    if (!(await navigator.serviceWorker.getRegistration('/'))) await navigator.serviceWorker.register('/sw.js');
+    return Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, ko) => setTimeout(() => ko(new Error("Le service des notifications ne démarre pas : recharge la page et réessaie.")), 10000)),
+    ]);
+  }
+  const FLAG = 'chest_push_on';
+  function flag(v) {
+    try {
+      if (v === undefined) return localStorage.getItem(FLAG) === '1';
+      if (v) localStorage.setItem(FLAG, '1'); else localStorage.removeItem(FLAG);
+    } catch (e) { /* navigation privée */ }
+    return false;
+  }
+
+  async function saveSubscription(sub) {
+    const res = await fetch(apiBase() + '/push/subscribe', {
+      method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify(sub.toJSON()),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || "Le serveur n'a pas enregistré cet appareil (erreur " + res.status + ').');
+    }
+  }
+  function subscribe(reg) {
+    // La clé publique vit dans config.js (voir son commentaire : par nature non secrète) -
+    // pas besoin d'un aller-retour serveur pour l'obtenir, contrairement à la clé PRIVÉE qui
+    // reste uniquement côté serveur (variable d'environnement VAPID_PRIVATE_KEY).
+    const publicKey = window.CHEST_CONFIG && window.CHEST_CONFIG.vapidPublicKey;
+    if (!publicKey) throw new Error("Notifications pas encore configurées.");
+    return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
   }
 
   // Convertit la cle publique VAPID (base64 URL-safe) au format Uint8Array attendu par
@@ -42,8 +79,8 @@
       return (isIOS() && !isStandalone()) ? 'ios-install-required' : 'unsupported';
     }
     if (Notification.permission === 'denied') return 'denied';
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
+    const reg = await workerReady().catch(() => null);
+    const sub = reg && await reg.pushManager.getSubscription();
     return sub ? 'enabled' : 'disabled';
   }
 
@@ -51,24 +88,17 @@
     if (!('Notification' in window) || !('PushManager' in window)) throw new Error("Ton navigateur ne supporte pas les notifications.");
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') throw new Error('Permission refusée.');
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      // La clé publique vit dans config.js (voir son commentaire : par nature non secrète) -
-      // pas besoin d'un aller-retour serveur pour l'obtenir, contrairement à la clé PRIVÉE qui
-      // reste uniquement côté serveur (variable d'environnement VAPID_PRIVATE_KEY).
-      const publicKey = window.CHEST_CONFIG && window.CHEST_CONFIG.vapidPublicKey;
-      if (!publicKey) throw new Error("Notifications pas encore configurées.");
-      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
-    }
-    await fetch(apiBase() + '/push/subscribe', {
-      method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()), body: JSON.stringify(sub.toJSON()),
-    });
+    const reg = await workerReady();
+    const sub = (await reg.pushManager.getSubscription()) || (await subscribe(reg));
+    // avant : réponse du serveur ignorée → « activées » affiché alors que l'appareil n'était pas enregistré
+    await saveSubscription(sub);
+    flag(true);
     return true;
   }
 
   async function disableNotifications() {
-    const reg = await navigator.serviceWorker.ready;
+    flag(false);
+    const reg = await workerReady();
     const sub = await reg.pushManager.getSubscription();
     if (!sub) return true;
     await fetch(apiBase() + '/push/unsubscribe', {
@@ -78,5 +108,26 @@
     return true;
   }
 
-  window.CHESTPwa = { notificationStatus, enableNotifications, disableNotifications };
+  // Une fois activées, elles doivent le rester : le navigateur renouvelle parfois l'abonnement, le
+  // serveur efface ceux qui ont expiré (410), une connexion sur un autre compte le rattache ailleurs.
+  // À l'ouverture et au retour sur l'app (au plus 1 fois / 30 min), on renvoie l'abonnement de cet
+  // appareil au serveur, et on le recrée sans rien demander si la permission est déjà donnée.
+  let lastSync = 0;
+  async function resync() {
+    if (Date.now() - lastSync < 30 * 60 * 1000 || !('PushManager' in window) || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted' || !(window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken())) return;
+    lastSync = Date.now();
+    try {
+      const reg = await workerReady();
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub && flag()) sub = await subscribe(reg);
+      if (sub) { await saveSubscription(sub); flag(true); }
+    } catch (e) { lastSync = 0; }
+  }
+  if (window === window.top) {
+    setTimeout(resync, 4000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) resync(); });
+  }
+
+  window.CHESTPwa = { notificationStatus, enableNotifications, disableNotifications, resync };
 })();
