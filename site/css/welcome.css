@@ -588,7 +588,12 @@ html.wel-boot-hide .chest-shell{ visibility:hidden; }
   position:fixed; inset:0; z-index:500; display:none;
   font-family:'Instrument Sans', system-ui, sans-serif; color:#f6f6f7;
 }
-html.is-loggedout .auth-overlay{ display:block; }
+html.is-loggedout .auth-overlay{ display:block; overflow-y:auto; scrollbar-width:none; }
+html.is-loggedout .auth-overlay::-webkit-scrollbar{ display:none; }
+/* Documents légaux de la page de connexion : hors de la carte, juste sous l'écran (visibles en défilant un peu). */
+html.is-loggedout .auth-overlay > .auth-stage{ min-height:100%; } /* hauteur réelle de la fenêtre, même avec l'échelle d'interface */
+.auth-legal{ position:relative; z-index:2; padding:8px 20px 36px; transition:opacity 1.2s cubic-bezier(.16,1,.3,1); }
+.auth-stage.is-leaving + .auth-legal{ opacity:0; pointer-events:none; }
 /* Seul le shell (dashboard) reste caché avant connexion — le hero du Welcome, lui, doit rester visible
    pour continuer à s'animer dessous (voir plus bas .wel__stage/.wel__page--news pour ce qui, dans
    Welcome, reste malgré tout cache tant qu'on n'est pas vraiment connecte). */

@@ -15,7 +15,8 @@
 <link rel="stylesheet" href="css/chest-da.css?v=19">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/admin-members.css?v=7">
-<link rel="stylesheet" href="css/educator.css?v=5">
+<link rel="stylesheet" href="css/educator.css?v=6">
+<link rel="stylesheet" href="css/edu-notes.css?v=1">
 <script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -90,6 +91,7 @@
         <div class="am-nav__tabs" role="tablist">
           <button type="button" role="tab" data-view="overview" aria-selected="true">Vue d'ensemble</button>
           <button type="button" role="tab" data-view="members" aria-selected="false">Mes membres <small id="edCount"></small></button>
+          <button type="button" role="tab" data-view="notes" aria-selected="false">Notes <small id="edNotesCount"></small></button>
           <button type="button" role="tab" data-view="wallet" aria-selected="false">Portefeuille</button>
         </div>
       </nav>
@@ -123,6 +125,12 @@
           <div class="ed-table" id="edMembers"></div>
         </div>
         <p class="am-note">Clique sur un membre pour ouvrir sa fiche : rang, connexion BERICH, suivi, questionnaire, activité. Les ventes comptent les paiements réellement encaissés par CHEST.</p>
+      </section>
+
+      <!-- Notes : une note personnelle par membre (js/edu-notes.js) -->
+      <section class="am-view" data-panel="notes" aria-label="Notes" hidden>
+        <div class="en" id="edNotes"></div>
+        <p class="am-note">Tes notes sont personnelles : ni le membre, ni les autres éducateurs ne les voient. Chaque nouveau membre arrive avec sa note.</p>
       </section>
 
       <!-- 03 — Portefeuille -->
@@ -167,49 +175,13 @@
         </div>
       </section>
 
-      <!-- Documents (toujours visibles en bas de l'espace) -->
-      <section class="ed-docs" aria-labelledby="edDocsT">
-        <div class="ed-docs__head">
-          <span class="chest-step">Documents</span>
-          <h2 id="edDocsT">Cadre du programme éducateur</h2>
-          <p>À lire avant de partager ton lien. Version du 25 octobre 2026.</p>
-        </div>
-        <details class="ed-doc" open>
-          <summary>1. Nature du portefeuille CHEST : un affichage indicatif</summary>
-          <div>
-            <p>Le portefeuille CHEST n'est <b>ni un compte bancaire, ni un compte de paiement, ni de la monnaie électronique</b>. Aucune somme n'y est déposée ni conservée pour toi. Les montants affichés sont une <b>estimation</b> des commissions que tu pourrais percevoir, calculée à partir des paiements encaissés par CHEST auprès des membres inscrits avec ton lien.</p>
-            <p>Comme le compte de démonstration d'une propfirm, ce solde a une valeur d'information : il ne constitue pas une créance tant que la demande de retrait n'a pas été vérifiée et acceptée. Seul le versement effectif sur ton compte bancaire ou ton portefeuille crypto fait foi.</p>
-          </div>
-        </details>
-        <details class="ed-doc">
-          <summary>2. Conditions du programme</summary>
-          <div>
-            <p>Le programme éducateur est un partenariat d'apport d'affaires entre toi et CHEST. Tu recommandes CHEST avec ton lien personnel ; chaque personne qui crée son compte avec ce lien est rattachée à ton espace.</p>
-            <p>Ta commission est un pourcentage des sommes <b>effectivement encaissées</b> par CHEST pour les abonnements de tes membres (hors essais gratuits, remboursements, impayés et litiges). Le taux affiché en haut de cette page est celui qui s'applique ; CHEST peut le faire évoluer et t'en informe avant tout changement.</p>
-            <p>Sont interdits : l'auto-parrainage, les faux comptes, la publicité trompeuse (notamment toute promesse de gains en trading) et le spam. En cas de manquement, CHEST peut suspendre le programme et annuler les commissions concernées.</p>
-          </div>
-        </details>
-        <details class="ed-doc">
-          <summary>3. Demandes de retrait et versements</summary>
-          <div>
-            <p>Tu peux demander un retrait à partir de <b>50 €</b> disponibles, après avoir enregistré tes coordonnées (IBAN ou adresse crypto). Chaque demande est vérifiée par CHEST : paiements bien encaissés, absence de remboursement ou de litige, cohérence des coordonnées.</p>
-            <p>Une fois acceptée, la somme est versée par la société CHEST par virement bancaire (SEPA) ou sur le portefeuille crypto indiqué, dans un délai indicatif de quelques jours ouvrés. Une demande peut être refusée ou ajustée en cas d'erreur, de fraude ou de remboursement d'un membre. Vérifie tes coordonnées : un versement envoyé à une adresse crypto erronée ne peut pas être récupéré.</p>
-          </div>
-        </details>
-        <details class="ed-doc">
-          <summary>4. Ton statut et tes impôts</summary>
-          <div>
-            <p>Tu agis en indépendant : il n'existe aucun lien de subordination entre toi et CHEST. Les commissions perçues sont des revenus que tu dois déclarer selon ta situation (par exemple en micro-entreprise en France). CHEST peut te demander un numéro SIRET ou une facture avant un versement.</p>
-          </div>
-        </details>
-        <details class="ed-doc">
-          <summary>5. Tes données personnelles</summary>
-          <div>
-            <p>Ton IBAN ou ton adresse crypto servent uniquement à te verser tes commissions. Ils ne sont visibles que par toi (en partie masqués) et par la société CHEST, et sont conservés le temps du programme puis la durée légale de conservation des pièces comptables. Tu peux demander à les consulter, les corriger ou les supprimer en écrivant à CHEST.</p>
-            <p>Tes membres n'apparaissent ici qu'avec leur prénom et l'initiale de leur nom ; leur adresse e-mail et leur activité sur CHEST ne te sont pas communiquées.</p>
-          </div>
-        </details>
-      </section>
+      <!-- Documents (2026-10-30) : une ligne vers la Charte de l'éducateur (/legal/charte-educateur), qui réunit règles,
+           commissions, portefeuille, retraits, statut et données — plus de volets dépliables dans la page. -->
+      <a class="ed-charter" href="/legal/charte-educateur" target="_blank" rel="noopener">
+        <span class="ed-charter__ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/></svg></span>
+        <span class="ed-charter__t"><b>Charte de l’éducateur</b><small>Règles, commissions, portefeuille, retraits, statut et données</small></span>
+        <span class="ed-charter__go">Lire<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+      </a>
       <dialog class="ed-sheet" id="edSheet" aria-labelledby="edSheetT">
         <div class="ed-sheet__win"><button type="button" class="ed-sheet__x" data-sheet-close aria-label="Fermer la fiche"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="ed-sheet__body" id="edSheetBody"></div></div>
       </dialog>
@@ -229,8 +201,11 @@
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
 <script src="js/rank-badge.js?v=3"></script>
-<script src="js/educator.js?v=8"></script>
+<script src="js/educator.js?v=12"></script>
+<script src="js/edu-notes.js?v=1"></script>
+<script src="js/consent.js?v=2"></script>
+<script>CHESTConsent.ensureEducator();</script>
 <script src="js/tilt.js?v=1"></script>
-<script src="js/v2.js?v=3"></script>
+<script src="js/v2.js?v=5"></script>
 </body>
 </html>

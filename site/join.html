@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rejoindre CHEST</title>
+<meta name="description" content="Ton invitation sur CHEST : inscription, accès, l'écosystème, ton compte relié et la méthode DMC avec ton éducateur.">
+<link rel="icon" type="image/png" href="/assets/logo-chest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/legal.css?v=3">
+<style>
+  /* ── Hero ── */
+  .jn{ padding:0 16px; }
+  .jn-hero{ position:relative; min-height:88vh; min-height:88svh; display:grid; place-items:center; text-align:center; padding:72px 0 40px; }
+  .jn-hero__in{ position:relative; width:min(600px,100%); }
+  .jn-hero__in::before{ content:''; position:absolute; inset:-140px -60px auto; height:360px; z-index:-1; pointer-events:none;
+    background:radial-gradient(closest-side, rgba(252,18,131,.2), transparent); filter:blur(10px); }
+  .jn-logo{ display:block; margin:0 auto; width:64px; height:64px; filter:drop-shadow(0 10px 30px rgba(252,18,131,.45)); }
+  .jn-from{ display:inline-flex; align-items:center; gap:10px; margin:26px 0 0; padding:6px 14px 6px 6px; border-radius:999px; border:1px solid var(--rule); background:rgba(255,255,255,.03); font-size:13px; color:var(--ink-2); }
+  .jn-from b{ color:var(--ink); font-weight:600; }
+  .jn-av{ display:inline-grid; place-items:center; width:28px; height:28px; border-radius:50%; font-size:11.5px; font-weight:700; color:#fff; background:linear-gradient(135deg,#ff8fc4,#fc1283); }
+  .jn h1{ margin:18px 0 0; font-size:clamp(34px,6.4vw,56px); font-weight:600; letter-spacing:-.045em; line-height:1.02; }
+  .jn em.g{ font-style:normal; background:linear-gradient(90deg,#fc1283,#f9a45e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .jn-lead{ margin:18px auto 0; max-width:460px; font-size:15.5px; line-height:1.6; color:var(--ink-2); }
+  .jn-cta{ display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:52px; padding:0 28px; border-radius:999px; text-decoration:none;
+    font-size:15px; font-weight:600; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 16px 44px rgba(252,18,131,.32);
+    transition:transform .16s var(--ease), box-shadow .2s var(--ease); }
+  .jn-cta:hover{ box-shadow:0 20px 54px rgba(252,18,131,.42); }
+  .jn-cta:active{ transform:scale(.97); }
+  .jn-cta svg, .jn-more svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .jn-actions{ display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:12px 20px; margin:30px 0 0; }
+  .jn-more{ display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:500; color:var(--ink-2); text-decoration:none; transition:color .18s var(--ease); }
+  .jn-more:hover{ color:var(--ink); }
+  .jn-code{ margin:16px 0 0; font-size:12.5px; color:var(--ink-3); }
+  .jn-code b{ color:#f9a45e; letter-spacing:.12em; font-weight:600; }
+  .jn-skel{ display:inline-block; width:180px; height:1em; border-radius:6px; background:rgba(255,255,255,.06); vertical-align:middle; }
+
+  /* ── Parcours (fiche chronologique) ── */
+  .jn-path{ width:min(760px,100%); margin:0 auto; padding:24px 0 40px; scroll-margin-top:24px; }
+  .jn-kick{ display:block; font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-3); }
+  .jn-path > h2{ margin:12px 0 0; max-width:560px; font-size:clamp(26px,4vw,36px); font-weight:600; letter-spacing:-.035em; line-height:1.1; }
+  .tl{ position:relative; margin:44px 0 0; --rail:24px; }
+  .tl::before, .tl__fill{ content:''; position:absolute; left:var(--rail); top:24px; bottom:24px; width:2px; margin-left:-1px; border-radius:2px; }
+  .tl::before{ background:rgba(255,255,255,.07); }
+  .tl__fill{ background:linear-gradient(180deg,#fc1283,#f9a45e); transform-origin:top; transform:scaleY(var(--p,0)); box-shadow:0 0 14px rgba(252,18,131,.45); }
+  .tl__list{ list-style:none; margin:0; padding:0; }
+  .tl-step{ position:relative; display:grid; grid-template-columns:48px minmax(0,1fr); gap:20px; padding:0 0 34px; }
+  .tl-step:last-child{ padding-bottom:0; }
+  .tl-node{ position:relative; z-index:1; width:48px; height:48px; border-radius:16px; display:grid; place-items:center; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;
+    color:var(--ink-3); background:#0b0b0d; border:1px solid var(--rule); transition:color .4s var(--ease), border-color .4s var(--ease), box-shadow .4s var(--ease), background .4s var(--ease); }
+  .tl-step.is-on .tl-node{ color:#fff; border-color:transparent; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 10px 30px rgba(252,18,131,.35); }
+  .tl-card{ padding:18px 20px 20px; border-radius:20px; border:1px solid var(--rule); background:rgba(255,255,255,.02); }
+  .tl-meta{ display:flex; align-items:center; gap:10px; font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); }
+  .tl-meta span + span::before{ content:'·'; margin-right:10px; }
+  .tl-card h3{ margin:8px 0 0; font-size:20px; font-weight:600; letter-spacing:-.025em; line-height:1.2; }
+  .tl-card p{ margin:8px 0 0; font-size:14.5px; line-height:1.62; color:var(--ink-2); }
+  .tl-card p b{ color:var(--ink); font-weight:600; }
+  .tl-eco{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:16px 0 0; padding:0; list-style:none; }
+  .tl-eco li{ padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.05); }
+  .tl-eco b{ display:block; font-size:13.5px; font-weight:600; }
+  .tl-eco span{ font-size:12.5px; line-height:1.45; color:var(--ink-2); }
+  .tl-dmc{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:16px 0 0; padding:0; list-style:none; }
+  .tl-dmc li{ position:relative; padding:14px 14px 16px; border-radius:16px; border:1px solid rgba(252,18,131,.18);
+    background:radial-gradient(120% 90% at 0% 0%, rgba(252,18,131,.1), transparent 60%), rgba(255,255,255,.02); }
+  .tl-dmc i{ display:block; font-style:normal; font-size:34px; font-weight:700; letter-spacing:-.04em; line-height:1;
+    background:linear-gradient(135deg,#fc1283,#f9a45e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .tl-dmc b{ display:block; margin:10px 0 0; font-size:14.5px; font-weight:600; }
+  .tl-dmc li > span{ display:block; margin:4px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
+  .tl-loop{ display:flex; align-items:center; gap:8px; margin:14px 0 0; font-size:13px; color:var(--ink-2); }
+  .tl-loop svg{ width:15px; height:15px; flex-shrink:0; fill:none; stroke:#f9a45e; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* ── Dernier appel ── */
+  .jn-end{ width:min(760px,100%); margin:0 auto; padding:24px 0 96px; }
+  .jn-end__card{ position:relative; overflow:hidden; text-align:center; padding:40px 24px; border-radius:24px; border:1px solid rgba(252,18,131,.2);
+    background:radial-gradient(70% 120% at 50% 0%, rgba(252,18,131,.16), transparent 70%), rgba(255,255,255,.02); }
+  .jn-end__card h2{ margin:0; font-size:clamp(24px,3.6vw,32px); font-weight:600; letter-spacing:-.035em; }
+  .jn-end__card p{ margin:10px auto 0; max-width:420px; font-size:14.5px; line-height:1.6; color:var(--ink-2); }
+  .jn-end__card .jn-cta{ margin-top:24px; }
+  .jn-alt{ margin:16px 0 0; font-size:13px; color:var(--ink-2); }
+  .jn-alt a{ color:var(--ink); font-weight:600; text-decoration:none; }
+  .jn-alt a:hover{ text-decoration:underline; }
+
+  /* Apparition au défilement (seulement si le script tourne : sans JS, tout reste visible). */
+  .js .tl-step .tl-card{ opacity:0; transform:translateY(14px); transition:opacity .6s var(--ease), transform .6s var(--ease); }
+  .js .tl-step.is-in .tl-card{ opacity:1; transform:none; }
+
+  @media (max-width:600px){
+    .tl{ --rail:17px; }
+    .tl-step{ grid-template-columns:34px minmax(0,1fr); gap:14px; }
+    .tl-node{ width:34px; height:34px; border-radius:11px; font-size:11.5px; }
+    .tl::before, .tl__fill{ top:17px; bottom:17px; }
+    .tl-card{ padding:16px; }
+    .tl-eco{ grid-template-columns:1fr; }
+    .tl-dmc{ grid-template-columns:1fr; }
+    .tl-dmc li{ display:grid; grid-template-columns:40px 1fr; column-gap:12px; align-items:start; }
+    .tl-dmc i{ grid-row:span 2; font-size:30px; }
+    .tl-dmc b{ margin:0; }
+    .jn-cta{ width:100%; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .jn-cta, .tl-node{ transition:none; }
+    .js .tl-step .tl-card{ opacity:1; transform:none; transition:none; }
+  }
+</style>
+<script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+<!-- Page d'invitation officielle d'un éducateur (2026-10-30) : /rejoindre/<CODE> (vercel.json → join.html?code=).
+     Une page par éducateur, générée à partir de son code : son prénom, puis le parcours en cinq étapes (inscription,
+     accès, écosystème, compte relié, méthode DMC) et l'inscription avec le code déjà rempli et verrouillé
+     (/inscription?ref=CODE). Documents légaux sous la ligne de flottaison, comme sur la page de connexion. -->
+<main class="jn">
+  <section class="jn-hero">
+    <div class="jn-hero__in">
+      <img class="jn-logo" src="/assets/logo-chest.png" alt="CHEST">
+      <div class="jn-from" id="jnFrom"><span class="jn-av">·</span><span class="jn-skel"></span></div>
+      <h1 id="jnH">Rejoins <em class="g">CHEST</em>.</h1>
+      <p class="jn-lead">Ton espace de trading, et quelqu’un pour avancer avec toi. Voici exactement comment ça se passe, de l’inscription à ta première mission.</p>
+      <div class="jn-actions">
+        <a class="jn-cta" data-cta href="/inscription"><span data-cta-label>Créer mon compte</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="jn-more" href="#parcours">Voir les étapes<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></a>
+      </div>
+      <p class="jn-code" id="jnCode"></p>
+    </div>
+  </section>
+
+  <section class="jn-path" id="parcours" aria-labelledby="jnPathH">
+    <span class="jn-kick">Le parcours</span>
+    <h2 id="jnPathH">Cinq étapes, de ton inscription à ta première mission.</h2>
+    <div class="tl" id="jnTl">
+      <span class="tl__fill" aria-hidden="true"></span>
+      <ol class="tl__list">
+        <li class="tl-step">
+          <span class="tl-node" aria-hidden="true">01</span>
+          <div class="tl-card">
+            <div class="tl-meta"><span>Inscription</span><span>1 minute</span></div>
+            <h3>Crée ton compte</h3>
+            <p>Prénom, e-mail, mot de passe. <span data-code-line>Ton code éducateur est déjà rempli : ton compte est relié à <b data-first>ton éducateur</b> dès la première seconde.</span></p>
+          </div>
+        </li>
+        <li class="tl-step">
+          <span class="tl-node" aria-hidden="true">02</span>
+          <div class="tl-card">
+            <div class="tl-meta"><span>Accès</span><span>2 minutes</span></div>
+            <h3>Fais chauffer la carte</h3>
+            <p>Tu choisis ton accès, <b>Essentiel</b> ou <b>Premium</b>, selon l’accompagnement que tu veux. Le paiement passe par Stripe, sécurisé ; tu relis et acceptes les conditions de vente avant de payer.</p>
+          </div>
+        </li>
+        <li class="tl-step">
+          <span class="tl-node" aria-hidden="true">03</span>
+          <div class="tl-card">
+            <div class="tl-meta"><span>Découverte</span><span>Le premier jour</span></div>
+            <h3>Découvre tout l’écosystème</h3>
+            <p>Chaque outil a un rôle précis. <b data-first>Ton éducateur</b> te fait faire le tour pour que tu saches où tout se trouve.</p>
+            <ul class="tl-eco">
+              <li><b>Dashboard</b><span>Tes comptes, ton solde et tes objectifs en un coup d’œil.</span></li>
+              <li><b>Journal</b><span>Chaque trade noté, rempli tout seul depuis ton compte.</span></li>
+              <li><b>Backtesting</b><span>Tester une méthode sur le passé avant de la risquer.</span></li>
+              <li><b>Stratégies</b><span>Des méthodes écrites, étape par étape.</span></li>
+              <li><b>Calendrier</b><span>Les annonces économiques qui font bouger le marché.</span></li>
+              <li><b>School et BERICH</b><span>Les cours et ton suivi ; l’algorithme sur l’or.</span></li>
+            </ul>
+          </div>
+        </li>
+        <li class="tl-step">
+          <span class="tl-node" aria-hidden="true">04</span>
+          <div class="tl-card">
+            <div class="tl-meta"><span>Connexion</span><span>Avec ton éducateur</span></div>
+            <h3>Connecte ton environnement</h3>
+            <p>Ton compte MT5 se relie à CHEST par ton VPS : solde, positions et journal se mettent à jour tout seuls. <b data-first>Ton éducateur</b> t’aide à l’installer, et BERICH peut ensuite tourner sur ton propre compte.</p>
+          </div>
+        </li>
+        <li class="tl-step">
+          <span class="tl-node" aria-hidden="true">05</span>
+          <div class="tl-card">
+            <div class="tl-meta"><span>Méthode</span><span>Chaque semaine</span></div>
+            <h3>Avance avec la méthode DMC</h3>
+            <p>Notre façon d’avancer avec toi : pas de théorie dans le vide, un cycle simple qu’on répète.</p>
+            <ul class="tl-dmc">
+              <li><i aria-hidden="true">D</i><b>Dupliquer</b><span>Tu reproduis une méthode qui a fait ses preuves, au lieu de tout réinventer.</span></li>
+              <li><i aria-hidden="true">M</i><b>Mission</b><span><span data-first>Ton éducateur</span> te donne une mission concrète, avec une date.</span></li>
+              <li><i aria-hidden="true">C</i><b>Contrôler</b><span>Au call suivant, vous faites le point ensemble : journal, exécution, ajustements.</span></li>
+            </ul>
+            <p class="tl-loop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></svg>Et on recommence, mission après mission.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="jn-end">
+    <div class="jn-end__card">
+      <h2 id="jnEndH">On commence&nbsp;?</h2>
+      <p>Une minute pour créer ton compte. La suite, on la fait ensemble.</p>
+      <a class="jn-cta" data-cta href="/inscription"><span data-cta-label>Créer mon compte</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <p class="jn-alt">Déjà un compte ? <a href="/connexion">Se connecter</a></p>
+    </div>
+  </section>
+</main>
+<footer class="lg-foot"><div data-legal-links></div><p>© 2026 CHEST</p></footer>
+<script src="/js/config.js?v=5"></script>
+<script src="/js/config.local.js"></script>
+<script>
+(() => {
+  'use strict';
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const code = (new URLSearchParams(location.search).get('code') || (location.pathname.match(/^\/rejoindre\/([A-Za-z0-9]+)/) || [])[1] || '').toUpperCase().slice(0, 8);
+  const api = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || '';
+  const from = document.getElementById('jnFrom');
+  const invalid = () => {
+    from.innerHTML = '<span>Ce lien d’invitation n’est plus valable.</span>';
+    document.getElementById('jnCode').textContent = 'Demande un nouveau lien à ton éducateur, ou crée ton compte sans code.';
+    document.querySelectorAll('[data-code-line]').forEach((el) => { el.textContent = 'Si tu as un code éducateur, tu le saisis au même endroit.'; });
+  };
+  if (!/^[A-Z0-9]{3,8}$/.test(code)) invalid();
+  else {
+    fetch(`${api}/ref/${encodeURIComponent(code)}`).then((r) => r.json().then((d) => ({ ok: r.ok, d }))).then(({ ok, d }) => {
+      if (!ok) { invalid(); return; }
+      const name = d.educator || '', first = name.split(' ')[0] || name;
+      const ini = name.split(/\s+/).map((w) => w[0] || '').join('').slice(0, 2).toUpperCase();
+      document.title = `${first} t’invite sur CHEST`;
+      from.innerHTML = `<span class="jn-av">${esc(ini)}</span><span>Invitation de <b>${esc(name)}</b> · CHEST</span>`;
+      document.getElementById('jnH').innerHTML = `${esc(first)} t’invite sur <em class="g">CHEST</em>.`;
+      document.querySelectorAll('[data-first]').forEach((el) => { el.textContent = first; });
+      document.querySelectorAll('[data-cta]').forEach((a) => { a.href = `/inscription?ref=${encodeURIComponent(code)}`; });
+      document.querySelectorAll('[data-cta-label]').forEach((s) => { s.textContent = `Créer mon compte avec ${first}`; });
+      document.getElementById('jnEndH').textContent = `${first} t’attend. On commence ?`;
+      document.getElementById('jnCode').innerHTML = `Code éducateur <b>${esc(code)}</b>, déjà rempli à l’inscription.`;
+    }).catch(invalid);
+  }
+
+  // Fiche chronologique : chaque étape apparaît en entrant à l'écran, le fil se remplit avec le défilement.
+  const tl = document.getElementById('jnTl');
+  const fill = tl.querySelector('.tl__fill');
+  const steps = [...tl.querySelectorAll('.tl-step')];
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver((ents) => ents.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+  }), { rootMargin: '0px 0px -12% 0px' }) : null;
+  steps.forEach((s) => (io ? io.observe(s) : s.classList.add('is-in')));
+  let raf = 0;
+  const track = () => {
+    raf = 0;
+    const r = tl.getBoundingClientRect(), mark = innerHeight * 0.62;
+    const p = Math.max(0, Math.min(1, (mark - r.top - 24) / Math.max(1, r.height - 48)));
+    fill.style.setProperty('--p', p.toFixed(4));
+    steps.forEach((s) => { const n = s.querySelector('.tl-node').getBoundingClientRect(); s.classList.toggle('is-on', n.top + n.height / 2 <= mark); });
+  };
+  const onScroll = () => { if (!raf) raf = requestAnimationFrame(track); };
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onScroll);
+  track();
+})();
+</script>
+<script src="/js/legal-links.js?v=2"></script>
+</body>
+</html>

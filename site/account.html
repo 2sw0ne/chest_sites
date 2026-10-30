@@ -472,6 +472,32 @@
       <button type="button" class="chest-btn-2" data-open-drawer="backups" data-drawer-title="Sauvegardes">Voir</button>
     </div>
 
+    <!-- Documents légaux et droit à l'effacement (2026-10-30) -->
+    <div class="settings-group">Tes droits</div>
+    <div class="settings-row">
+      <div class="settings-row__info">
+        <div class="settings-row__text">
+          <p class="settings-row__title">Documents légaux</p>
+          <p class="settings-row__value">Conditions d’utilisation et de vente, confidentialité, risques, mentions légales.</p>
+        </div>
+      </div>
+      <a class="chest-btn-2" href="/legal" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir</a>
+    </div>
+    <div class="settings-row acc-del" id="accDel">
+      <div class="settings-row__info">
+        <div class="settings-row__text">
+          <p class="settings-row__title">Supprimer mon compte</p>
+          <p class="settings-row__value">Efface ton compte et tes données de CHEST. Un accès en cours n’est pas remboursé ; tes paiements restent archivés (obligation comptable).</p>
+          <form class="acc-del__form" id="accDelForm" hidden novalidate>
+            <input class="field" type="password" id="accDelPw" placeholder="Ton mot de passe pour confirmer" autocomplete="current-password" aria-label="Mot de passe">
+            <button type="submit" class="acc-del__go">Supprimer définitivement</button>
+            <p class="gate__error" id="accDelErr" role="alert" style="margin:0"></p>
+          </form>
+        </div>
+      </div>
+      <button type="button" class="chest-btn-2" id="accDelOpen">Supprimer</button>
+    </div>
+
     <div class="settings-row">
       <div class="settings-row__info">
         <div class="settings-row__text">
@@ -671,7 +697,7 @@
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/propfirm-rules.js"></script>
-<script src="js/journal-store.js?v=13"></script>
+<script src="js/journal-store.js?v=14"></script>
 <script src="js/myfxbook-store.js?v=7"></script>
 <script>
 // ---------- 01 — Comptes de trading ----------
@@ -1548,7 +1574,38 @@ CHESTTour.init([
   });
 })();
 </script>
-<script src="js/v2.js?v=3"></script>
+<style>
+  .acc-del__form{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .acc-del__form .field{ flex:1; min-width:200px; max-width:320px; }
+  .acc-del__go{ font:inherit; font-size:13px; font-weight:600; height:42px; padding:0 18px; border-radius:999px; cursor:pointer; color:#fff; border:1px solid rgba(255,77,94,.6); background:rgba(255,77,94,.16); }
+  .acc-del__go:hover{ background:rgba(255,77,94,.28); }
+  .acc-del__go:disabled{ opacity:.5; cursor:not-allowed; }
+</style>
+<script>
+// Droit à l'effacement (2026-10-30) : le membre supprime lui-même son compte, mot de passe à l'appui (POST /me/delete).
+(() => {
+  const open = document.getElementById('accDelOpen'), form = document.getElementById('accDelForm');
+  if (!open || !form) return;
+  open.addEventListener('click', () => { form.hidden = !form.hidden; open.textContent = form.hidden ? 'Supprimer' : 'Annuler'; if (!form.hidden) document.getElementById('accDelPw').focus(); });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('accDelErr'), btn = form.querySelector('.acc-del__go'), pw = document.getElementById('accDelPw').value;
+    err.textContent = '';
+    if (!pw) { err.textContent = 'Indique ton mot de passe.'; return; }
+    const sure = window.CHESTConfirm ? await CHESTConfirm('Supprimer définitivement ton compte CHEST et toutes tes données ? Cette action ne peut pas être annulée.') : confirm('Supprimer définitivement ton compte ?');
+    if (!sure) return;
+    btn.disabled = true;
+    try {
+      const r = await fetch(CHESTAccounts.apiBase() + '/me/delete', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + CHESTAccounts.getToken() }, body: JSON.stringify({ password: pw }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'Suppression impossible pour le moment.');
+      try { localStorage.clear(); sessionStorage.clear(); } catch (x) { /* tant pis */ }
+      (window.top || window).location.href = '/connexion';
+    } catch (x) { err.textContent = x.message; btn.disabled = false; }
+  });
+})();
+</script>
+<script src="js/v2.js?v=5"></script>
 <script>
 // Offre et abonnement (2026-10-18) : rappel de l'offre, de sa fin, et accès au portail Stripe.
 (() => {

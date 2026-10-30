@@ -55,12 +55,12 @@ window.CHESTAccounts = (() => {
     if (ref && /^[a-z0-9-]{3,40}$/i.test(ref)) localStorage.setItem(REF_KEY, ref);
   } catch (e) { /* stockage indisponible */ }
   function referralCode() { try { return localStorage.getItem(REF_KEY) || ''; } catch (e) { return ''; } }
-  async function signup({ firstName, lastName, email, password, ref: typed }) {
+  async function signup({ firstName, lastName, email, password, ref: typed, acceptTerms }) {
     const ref = typed != null ? String(typed).trim() : referralCode();
     const out = await jsonFetch('/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, email, password, ref: ref || undefined }),
+      body: JSON.stringify({ firstName, lastName, email, password, ref: ref || undefined, acceptTerms: acceptTerms === true }),
     });
     try { localStorage.removeItem(REF_KEY); } catch (e) { /* tant pis */ }
     return out;

@@ -48,7 +48,8 @@
     ].map(([k, v, n, cls]) => `<div class="am-kpi ${cls}" data-tilt="5"><div class="am-kpi__k">${k}</div><div class="am-kpi__v"><b>${esc(v)}</b></div><div class="am-kpi__n">${esc(n)}</div></div>`).join('');
 
     // Code de référent (2026-10-28) : l'éducateur le choisit UNE fois (3 à 8 lettres ou chiffres), puis il est définitif.
-    const link = D.invite ? `${location.origin}/inscription?ref=${encodeURIComponent(D.invite)}` : '';
+    // Lien officiel (2026-10-30) : la page d'invitation de l'éducateur, qui mène à l'inscription avec son code rempli.
+    const link = D.invite ? `${location.origin}/rejoindre/${encodeURIComponent(D.invite)}` : '';
     if (!D.codeChosen && !readOnly) {
       $('edInvite').innerHTML = `<form class="ed-code" id="edCodeForm" novalidate>
           <label class="ed-field"><span>Choisis ton code de référent</span><input type="text" id="edCodeInput" maxlength="8" autocomplete="off" spellcheck="false" placeholder="Ex. KARIM"></label>
@@ -70,8 +71,8 @@
       });
     } else $('edInvite').innerHTML = link
       ? `<div class="ed-codebox"><span>Ton code</span><b>${esc(D.invite)}</b><i>définitif</i></div>
-         <div class="ed-link"><code id="edLink">${esc(link)}</code><button type="button" class="chest-btn-2" id="edCopy">Copier</button></div>
-         <p class="ed-hint">Chaque personne qui crée son compte avec ce lien est rattachée à ton espace. Tu touches ta commission sur chacun de ses paiements.</p>`
+         <div class="ed-link"><code id="edLink">${esc(link)}</code><button type="button" class="chest-btn-2" id="edCopy">Copier</button><a class="chest-btn-2" href="${esc(link)}" target="_blank" rel="noopener">Voir ma page</a></div>
+         <p class="ed-hint">Ta page d’invitation officielle : ton prénom, ce qu’est CHEST, et l’inscription avec ton code déjà rempli. Chaque personne qui crée son compte par ce lien est rattachée à ton espace. Sur les réseaux, indique « Publicité » et ne promets aucun gain (${'<a href="/legal/charte-educateur" target="_blank" rel="noopener">règles du programme</a>'}).</p>`
       : '<p class="ed-hint">Ton lien n’est pas encore prêt : CHEST le crée pour toi. Il apparaîtra ici.</p>';
     const copy = $('edCopy');
     if (copy) copy.addEventListener('click', async () => {
@@ -117,7 +118,7 @@
         </div>
         <div class="ed-wallet__holder">${esc((D.payoutInfo && D.payoutInfo.holder) || D.educator.name)}</div>
       </div>
-      <p class="ed-hint">Ce solde estime ce qui pourra t’être versé : ce n’est pas de l’argent détenu sur un compte. Une commission devient retirable ${esc(String(w.holdDays || 14))} jours après le paiement du membre (un membre peut être remboursé sous 7 jours) ; un remboursement l’annule. Voir « Nature du portefeuille » plus bas.</p>`;
+      <p class="ed-hint">Ce solde estime ce qui pourra t’être versé : ce n’est pas de l’argent détenu sur un compte. Une commission devient retirable ${esc(String(w.holdDays || 14))} jours après le paiement du membre (un membre peut être remboursé sous 7 jours) ; un remboursement l’annule. Voir <a href="/legal/charte-educateur#portefeuille" target="_blank" rel="noopener">la Charte de l’éducateur</a>.</p>`;
 
     // retrait
     $('edMin').textContent = `minimum ${eur(D.minPayout, 0)}`;
@@ -221,7 +222,7 @@
         <div class="ed-sh__id"><h2 id="edSheetT">${esc(M.name)}</h2><a href="mailto:${esc(M.email)}">${esc(M.email)}</a>
           <span>Inscrit le ${esc(day(M.joinedAt))}${M.lastSeenAt ? ` · vu le ${esc(day(M.lastSeenAt))}` : ''}</span></div>
       </header>
-      <div class="ed-sh__acts"><button type="button" class="chest-btn" data-suivi="${M.id}">Ouvrir son suivi</button><a class="chest-btn-2" href="mailto:${esc(M.email)}">Écrire</a></div>
+      <div class="ed-sh__acts"><button type="button" class="chest-btn" data-suivi="${M.id}">Ouvrir son suivi</button><button type="button" class="chest-btn-2" data-mynote="${M.id}">Ma note</button><a class="chest-btn-2" href="mailto:${esc(M.email)}">Écrire</a></div>
 
       <section class="ed-sh__sec">
         <div class="chest-step">01 — Rang</div>
@@ -305,6 +306,8 @@
     if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); cp.textContent = 'Copié'; setTimeout(() => { cp.textContent = 'Copier'; }, 1400); } catch (err) { /* presse-papiers refusé */ } return; }
     const rv = t.closest('[data-reveal]');
     if (rv) { const s = rv.parentElement.querySelector('[data-secret]'); const on = rv.textContent === 'Afficher'; s.textContent = on ? s.dataset.secret : '••••••••'; rv.textContent = on ? 'Masquer' : 'Afficher'; return; }
+    const mn = t.closest('[data-mynote]');
+    if (mn) { sheet.close(); setView('notes'); if (window.CHESTEduNotes) CHESTEduNotes.open(mn.dataset.mynote); return; }
     const sv = t.closest('[data-suivi]');
     if (sv) { const sh = window.parent && window.parent !== window && window.parent.CHESTShell; sheet.close(); if (sh && sh.go) sh.go('suivi', `?member=${sv.dataset.suivi}`); else location.href = `suivi.html?member=${sv.dataset.suivi}`; return; }
     const bq = t.closest('[data-breq]');
@@ -338,7 +341,7 @@
   window.addEventListener('scroll', syncStuck, { passive: true });
   syncStuck();
   let v0 = 'overview';
-  try { const s = localStorage.getItem('chest_edu_view'); if (['overview', 'members', 'wallet'].includes(s)) v0 = s; } catch (e) { /* défaut */ }
+  try { const s = localStorage.getItem('chest_edu_view'); if (['overview', 'members', 'notes', 'wallet'].includes(s)) v0 = s; } catch (e) { /* défaut */ }
   setView(v0);
   load();
 })();

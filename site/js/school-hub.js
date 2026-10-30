@@ -94,8 +94,9 @@
     // équipe : « Call · nom du membre » ; membre : le sujet de son appel
     const title = e.type === 'personal' && ROLE !== 'member' ? `Call · ${esc(e.member || '')}` : esc(e.title);
     const sub = e.type === 'personal' && ROLE !== 'member' ? `<span class="sh-ev__topic">${esc(e.title)}</span>` : '';
-    const tag = o ? `<span class="sh-ev__who"><i></i>${esc(o.first)}</span>` : '';
-    return `<button type="button" class="sh-ev sh-ev--${k.k}${ended ? ' is-past' : ''}" data-ev="${esc(e.id)}"${e.color ? ` style="--c:${esc(e.color)}"` : ''}>
+    // ce que pose l'admin : couleur de CHEST et signé CHEST ; l'admin voit aussi le prénom de chaque éducateur
+    const tag = e.chest ? '<span class="sh-ev__who"><i></i>CHEST</span>' : o ? `<span class="sh-ev__who"><i></i>${esc(o.first)}</span>` : '';
+    return `<button type="button" class="sh-ev sh-ev--${k.k}${e.chest ? ' is-chest' : ''}${ended ? ' is-past' : ''}" data-ev="${esc(e.id)}"${e.color && !e.chest ? ` style="--c:${esc(e.color)}"` : ''}>
       ${e.flyer ? `<span class="sh-ev__fly"><img src="${esc(fileUrl(e.flyer))}" alt="" loading="lazy"></span>` : ''}
       <span class="sh-ev__body"><span class="sh-ev__t"><b>${hm(e.startsAt)}</b><span>${dur(e.minutes)}</span><em>${e.type === 'personal' ? 'Call' : k.label}</em></span>
       <span class="sh-ev__title">${title}</span>${sub}${tag}${ask}</span></button>`;
@@ -156,7 +157,7 @@
       </div>
       <div class="sh-days">${cols}</div>
       ${undated.length ? `<div class="sh-undated"><span class="chest-step">Toujours à faire</span>${undated.map(taskChip).join('')}</div>` : ''}
-      <div class="sh-legend">${((D.staff) || []).map((x) => `<button type="button" class="sh-lg${S.owner === x.id ? ' is-on' : ''}${S.owner && S.owner !== x.id ? ' is-off' : ''}" style="--c:${esc(x.color)}" data-owner="${x.id}" ${ROLE === 'member' ? 'disabled' : `aria-pressed="${S.owner === x.id}"`}>${esc(x.first)}</button>`).join('')}<span class="sh-lg sh-lg--due">Mission à rendre</span>${S.owner ? '<button type="button" class="sh-link" data-owner="">Tout afficher</button>' : ''}</div>
+      ${ROLE === 'admin' ? `<div class="sh-legend">${((D.staff) || []).map((x) => `<button type="button" class="sh-lg${x.role === 'admin' ? ' sh-lg--chest' : ''}${S.owner === x.id ? ' is-on' : ''}${S.owner && S.owner !== x.id ? ' is-off' : ''}" style="--c:${esc(x.color)}" data-owner="${x.id}" aria-pressed="${S.owner === x.id}">${x.role === 'admin' ? 'CHEST' : esc(x.first)}</button>`).join('')}<span class="sh-lg sh-lg--due">Mission à rendre</span>${S.owner ? '<button type="button" class="sh-link" data-owner="">Tout afficher</button>' : ''}</div>` : ''}
     </div>`;
   }
 
@@ -351,9 +352,9 @@
 
   const PALETTE = ['#a855f7', '#f5c451', '#38bdf8', '#33e6a6', '#fc1283', '#f9a45e', '#ff4d5e', '#2dd4bf', '#4d8dff', '#e8e8ee'];
   function colorsHtml() {
-    const staff = (S.agenda && S.agenda.staff) || [];
+    const staff = ((S.agenda && S.agenda.staff) || []).filter((x) => x.role !== 'admin');
     if (!staff.length) return '';
-    return `<div class="sh-colors"><div class="sh-sub"><span class="chest-step">Couleurs du planning</span><span class="sh-hint">Chaque call prend la couleur de son éducateur.</span></div>
+    return `<div class="sh-colors"><div class="sh-sub"><span class="chest-step">Couleurs du planning</span><span class="sh-hint">Visibles par toi seul : chaque call prend la couleur de son éducateur, ce que tu poses prend celle de CHEST.</span></div>
       <ul>${staff.map((x) => `<li style="--c:${esc(x.color)}"><span class="sh-colors__who"><i></i><b>${esc(x.name)}</b><small>${x.role === 'admin' ? 'Admin' : 'Éducateur'}</small></span>
         <span class="sh-swatches">${PALETTE.map((c) => `<button type="button" class="sh-sw${c === x.color ? ' is-on' : ''}" style="--s:${c}" data-color="${c}" data-staff="${x.id}" aria-label="${esc(x.first)} en ${c}" aria-pressed="${c === x.color}"></button>`).join('')}
         <label class="sh-sw sh-sw--pick" title="Autre couleur"><input type="color" value="${esc(x.color)}" data-staff-pick="${x.id}" aria-label="Autre couleur pour ${esc(x.first)}"></label></span></li>`).join('')}</ul></div>`;

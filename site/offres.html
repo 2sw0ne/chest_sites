@@ -116,6 +116,7 @@
     </div>
   </section>
 </main>
+<footer class="of-legal" data-legal-links></footer>
 
 <script>
 (() => {
@@ -241,9 +242,14 @@
     const o = OFFERS.find((x) => x.key === key) || {};
     const link = String(o.link || '').trim();
     if (!link) { notice('Le paiement en ligne de cette offre ouvre très bientôt.'); return; }
-    const u = user();
-    const sep = link.includes('?') ? '&' : '?';
-    window.location.href = `${link}${sep}client_reference_id=u${encodeURIComponent(u.id)}&prefilled_email=${encodeURIComponent(u.email || '')}&locale=fr`;
+    // Avant Stripe (2026-10-30) : CGV, accès immédiat + renonciation à la rétractation, risques ; accord enregistré.
+    const go = () => {
+      const u = user();
+      const sep = link.includes('?') ? '&' : '?';
+      window.location.href = `${link}${sep}client_reference_id=u${encodeURIComponent(u.id)}&prefilled_email=${encodeURIComponent(u.email || '')}&locale=fr`;
+    };
+    if (!window.CHESTConsent) { go(); return; }
+    CHESTConsent.purchase(o).then((ok) => { if (ok) go(); });
   });
   $('#ofBilling').addEventListener('click', (e) => {
     const b = e.target.closest('[data-billing]');
@@ -535,5 +541,8 @@
   start();
 })();
 </script>
+<style>.of-legal{ padding:26px 16px 40px; text-align:center; }</style>
+<script src="js/consent.js?v=2"></script>
+<script src="js/legal-links.js?v=2"></script>
 </body>
 </html>

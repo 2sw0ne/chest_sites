@@ -361,6 +361,22 @@ def init_db():
         """)
         # Planning commun (2026-10-28) : l'admin pose un appel collectif (éventuellement chaque semaine) ou une mission chez
         # tous les élèves, ou chez ceux de certains éducateurs ; chaque copie garde common_id pour tout retirer d'un coup.
+        # Preuve des consentements (2026-10-30) : inscription (CGU, confidentialité, risques, 18 ans), nouvelle version
+        # des CGU, règles du programme éducateur, achat (CGV + renonciation au droit de rétractation). Gardée même après
+        # suppression du compte : c'est la preuve du contrat (durée légale de conservation).
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_consents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, email TEXT, kind TEXT NOT NULL,
+                version TEXT NOT NULL, detail TEXT, ip TEXT, user_agent TEXT, created_at TEXT NOT NULL
+            )
+        """)
+        # Notes personnelles de l'éducateur (2026-10-30) : une note par membre, privée — le membre ne la voit jamais.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS edu_member_notes (
+                author_id INTEGER NOT NULL, member_id INTEGER NOT NULL, body TEXT NOT NULL DEFAULT '',
+                updated_at TEXT, PRIMARY KEY (author_id, member_id)
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS mentor_common (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, title TEXT NOT NULL, starts_at TEXT, minutes INTEGER,
@@ -527,7 +543,9 @@ def init_db():
                     # Rangs (2026-10-28) : Essentiel / Premium 1, 2, 3 = accès de 3, 6, 12 mois
                     ("plan_level", "INTEGER"),
                     # Code de référent choisi par l'éducateur (2026-10-28) : une seule fois, 8 caractères max
-                    ("edu_code", "TEXT")]
+                    ("edu_code", "TEXT"),
+                    # Documents légaux (2026-10-30) : version des CGU acceptée, et des règles du programme éducateur
+                    ("terms_version", "TEXT"), ("edu_terms_version", "TEXT")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -697,6 +715,8 @@ def user_public(row):
         "isAdmin": bool(row["is_admin"]),
         "createdAt": row["created_at"],
         "tutoSeen": bool(row["tuto_seen_at"]) if "tuto_seen_at" in row.keys() else True,
+        "terms": {"accepted": _col(row, "terms_version"), "current": TERMS_VERSION,
+                  "eduAccepted": _col(row, "edu_terms_version"), "eduCurrent": EDU_TERMS_VERSION},
         "access": access_of(row),
         "role": ("manager" if _col(row, "role") == "manager" else "admin") if row["is_admin"] else (_col(row, "role") or "member"),
     }
@@ -879,6 +899,18 @@ def admin_mail():
     return jsonify({"ok": True, "to": f"{member['first_name']} {(member['last_name'] or '')[:1]}."})
 
 
+# Version des documents légaux (site/js/legal-docs.js, LEGAL_VERSION) : la changer redemande l'accord de chacun.
+TERMS_VERSION = "2026-10-30"
+EDU_TERMS_VERSION = "2026-10-30"
+
+
+def record_consent(db, user_row_or_id, kind, version, detail=None, email=None):
+    uid = user_row_or_id if isinstance(user_row_or_id, int) else user_row_or_id["id"]
+    db.execute("INSERT INTO user_consents (user_id, email, kind, version, detail, ip, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+               (uid, email, kind, version, json.dumps(detail or {}, ensure_ascii=False)[:2000], _client_ip(),
+                (request.headers.get("User-Agent") or "")[:300], datetime.now(timezone.utc).isoformat()))
+
+
 @app.route("/signup", methods=["POST"])
 def signup():
     if too_many("signup-ip:" + _client_ip(), 20, 3600):
@@ -893,6 +925,8 @@ def signup():
 
     if not first_name or not last_name:
         return jsonify({"error": "Prénom et nom requis."}), 400
+    if body.get("acceptTerms") is not True:
+        return jsonify({"error": "Coche la case pour confirmer que tu as 18 ans et que tu acceptes les conditions d'utilisation."}), 400
     if ref_code and not get_db().execute("SELECT 1 FROM edu_invites WHERE upper(code) = upper(?) AND active = 1", (ref_code,)).fetchone():
         return jsonify({"error": "Code de référent inconnu : vérifie-le auprès de ton éducateur, ou laisse le champ vide."}), 400
     if not EMAIL_RE.match(email):
@@ -927,6 +961,9 @@ def signup():
             (first_name, last_name, email, generate_password_hash(password), status, is_admin,
              datetime.now(timezone.utc).isoformat(), "offert" if is_first_user else "none"),
         )
+        new_id = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()["id"]
+        db.execute("UPDATE users SET terms_version = ? WHERE id = ?", (TERMS_VERSION, new_id))
+        record_consent(db, new_id, "signup", TERMS_VERSION, {"docs": ["cgu", "confidentialite", "risques"], "majeur": True, "ref": ref_code or None}, email)
         # Inscrit par le lien d'un éducateur (?ref=CODE) : rattaché à son compte
         if ref_code:
             inv = db.execute("SELECT educator_id FROM edu_invites WHERE upper(code) = upper(?) AND active = 1", (ref_code,)).fetchone()
@@ -1031,6 +1068,59 @@ def me_profile():
                    (first_name, last_name, email, user["id"]))
         db.commit()
     return jsonify(user_public(db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()))
+
+
+@app.route("/me/consents", methods=["POST"])
+def me_consents():
+    """Accord enregistré avec sa preuve : 'terms' (nouvelle version des CGU), 'educator' (règles du programme),
+    'purchase' (CGV + accès immédiat et renonciation au droit de rétractation, juste avant le paiement Stripe)."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    b = request.get_json(silent=True) or {}
+    kind = b.get("kind")
+    detail = b.get("detail") if isinstance(b.get("detail"), dict) else {}
+    db = get_db()
+    with db_lock:
+        if kind == "terms":
+            db.execute("UPDATE users SET terms_version = ? WHERE id = ?", (TERMS_VERSION, user["id"]))
+            record_consent(db, user, "terms", TERMS_VERSION, {"docs": ["cgu", "confidentialite", "risques"]}, user["email"])
+        elif kind == "educator":
+            if not is_educator(user):
+                return jsonify({"error": "Réservé aux éducateurs."}), 403
+            db.execute("UPDATE users SET edu_terms_version = ? WHERE id = ?", (EDU_TERMS_VERSION, user["id"]))
+            record_consent(db, user, "educator", EDU_TERMS_VERSION, {"docs": ["programme-educateur", "revenus-educateurs"]}, user["email"])
+        elif kind == "purchase":
+            if not (detail.get("cgv") is True and detail.get("immediate") is True and detail.get("risks") is True):
+                return jsonify({"error": "Coche les trois cases avant de payer."}), 400
+            clean = {k: detail.get(k) for k in ("offer", "price", "months", "cgv", "immediate", "risks")}
+            record_consent(db, user, "purchase", TERMS_VERSION, clean, user["email"])
+        else:
+            return jsonify({"error": "Consentement inconnu."}), 400
+        db.commit()
+    return jsonify({"ok": True, "user": user_public(db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone())})
+
+
+@app.route("/me/delete", methods=["POST"])
+def me_delete():
+    """Droit à l'effacement (RGPD) : le membre supprime lui-même son compte et ses données, mot de passe à l'appui.
+    Les paiements et les consentements restent conservés (obligations comptables et preuve du contrat)."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    key = f"me-delete:{user['id']}"
+    if too_many(key, 6, 900):
+        return jsonify({"error": TOO_MANY}), 429
+    if not check_password_hash(user["password_hash"], (request.get_json(silent=True) or {}).get("password") or ""):
+        hit(key)
+        return jsonify({"error": "Mot de passe incorrect."}), 400
+    if user["is_admin"]:
+        return jsonify({"error": "Un compte administrateur ne se supprime pas d'ici : retire d'abord ton rôle depuis Membres."}), 400
+    db = get_db()
+    with db_lock:
+        _purge_user(db, user["id"])
+        db.commit()
+    return jsonify({"ok": True})
 
 
 @app.route("/me/password", methods=["POST"])
@@ -1239,6 +1329,44 @@ def block_member(member_id):
 # l'instant), donnees synchronisees (comptes, journal, backtests, identifiants Myfxbook...), comptes VPS et
 # leur historique, alertes scanner, abonnements aux notifications, backtests partages en attente (envoyes
 # ou recus). Irreversible. Jamais son propre compte (pour ne pas s'enfermer dehors), jamais le dernier admin.
+def _purge_user(db, member_id):
+    """Efface un compte et toutes ses données (admin ou le membre lui-même). Gardés : paiements (billing_events,
+    obligations comptables) et preuves de consentement (user_consents)."""
+    db.execute("DELETE FROM event_log WHERE user_id = ?", (member_id,))
+    vps_ids = [r["id"] for r in db.execute("SELECT id FROM vps_accounts WHERE user_id = ?", (member_id,)).fetchall()]
+    for vid in vps_ids:
+        db.execute("DELETE FROM vps_deals WHERE vps_id = ?", (vid,))
+        db.execute("DELETE FROM vps_equity WHERE vps_id = ?", (vid,))
+    db.execute("DELETE FROM vps_accounts WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
+    db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM berich_plans WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_member_notes WHERE member_id = ? OR author_id = ?", (member_id, member_id))
+    for row in db.execute("SELECT file FROM mentor_library WHERE member_id = ? AND file IS NOT NULL", (member_id,)).fetchall():
+        delete_file(json.loads(row["file"]))
+    for row in db.execute("SELECT flyer FROM mentor_events WHERE member_id = ? AND flyer IS NOT NULL", (member_id,)).fetchall():
+        delete_file(json.loads(row["flyer"]))
+    for t in ("mentor_events", "mentor_notes", "mentor_library", "mentor_tasks"):
+        db.execute(f"DELETE FROM {t} WHERE member_id = ?", (member_id,))
+    for t, col in (("school_events", "flyer"), ("school_posts", "image")):
+        for row in db.execute(f"SELECT {col} FROM {t} WHERE author_id = ? AND {col} IS NOT NULL", (member_id,)).fetchall():
+            delete_file(json.loads(row[0]))
+        db.execute(f"DELETE FROM {t} WHERE author_id = ?", (member_id,))
+    db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
+    db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
+    db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
+    db.execute("DELETE FROM user_activity WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM users WHERE id = ?", (member_id,))
+    return vps_ids
+
+
 @app.route("/members/<int:member_id>/delete", methods=["POST"])
 def delete_member(member_id):
     admin = current_user()
@@ -1256,38 +1384,7 @@ def delete_member(member_id):
     if target["is_admin"] and db.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin = 1").fetchone()["n"] <= 1:
         return jsonify({"error": "Impossible de supprimer le dernier administrateur."}), 400
     with db_lock:
-        vps_ids = [r["id"] for r in db.execute("SELECT id FROM vps_accounts WHERE user_id = ?", (member_id,)).fetchall()]
-        for vid in vps_ids:
-            db.execute("DELETE FROM vps_deals WHERE vps_id = ?", (vid,))
-            db.execute("DELETE FROM vps_equity WHERE vps_id = ?", (vid,))
-        db.execute("DELETE FROM vps_accounts WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
-        db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM berich_plans WHERE user_id = ?", (member_id,))
-        for row in db.execute("SELECT file FROM mentor_library WHERE member_id = ? AND file IS NOT NULL", (member_id,)).fetchall():
-            delete_file(json.loads(row["file"]))
-        for row in db.execute("SELECT flyer FROM mentor_events WHERE member_id = ? AND flyer IS NOT NULL", (member_id,)).fetchall():
-            delete_file(json.loads(row["flyer"]))
-        for t in ("mentor_events", "mentor_notes", "mentor_library", "mentor_tasks"):
-            db.execute(f"DELETE FROM {t} WHERE member_id = ?", (member_id,))
-        for t, col in (("school_events", "flyer"), ("school_posts", "image")):
-            for row in db.execute(f"SELECT {col} FROM {t} WHERE author_id = ? AND {col} IS NOT NULL", (member_id,)).fetchall():
-                delete_file(json.loads(row[0]))
-            db.execute(f"DELETE FROM {t} WHERE author_id = ?", (member_id,))
-        db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
-        db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
-        db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
-        db.execute("DELETE FROM event_log WHERE user_id = ?", (member_id,))
-        db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
-        db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
-        db.execute("DELETE FROM user_activity WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM billing_events WHERE user_id = ?", (member_id,))
-        db.execute("DELETE FROM users WHERE id = ?", (member_id,))
+        vps_ids = _purge_user(db, member_id)
         db.commit()
     return jsonify({"ok": True, "vpsDeleted": len(vps_ids)})
 
@@ -1834,6 +1931,41 @@ def _edu_subject():
     if not is_educator(user):
         return None, (jsonify({"error": "Réservé aux éducateurs."}), 403)
     return user, None
+
+
+@app.route("/edu/notes")
+def edu_notes():
+    """Une note par membre de l'éducateur : chaque nouveau membre arrive avec sa note (vide). Admin : ?educator=ID, lecture."""
+    who, err = _edu_subject()
+    if err:
+        return err
+    db = get_db()
+    notes = {r["member_id"]: r for r in db.execute("SELECT * FROM edu_member_notes WHERE author_id = ?", (who["id"],)).fetchall()}
+    out = []
+    for m in db.execute("SELECT * FROM users WHERE referred_by = ? ORDER BY created_at DESC", (who["id"],)).fetchall():
+        a, n = access_of(m), notes.get(m["id"])
+        out.append({**_person(m), "joinedAt": m["created_at"], "planKey": a["plan"], "level": a.get("level"), "active": bool(a["active"]),
+                    "body": n["body"] if n else "", "updatedAt": n["updated_at"] if n else None})
+    return jsonify({"notes": out, "readOnly": who["id"] != current_user()["id"]})
+
+
+@app.route("/edu/notes/<int:mid>", methods=["PUT"])
+def edu_note_save(mid):
+    user = current_user()
+    if not user or not is_educator(user):
+        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    db = get_db()
+    if not db.execute("SELECT 1 FROM users WHERE id = ? AND referred_by = ?", (mid, user["id"])).fetchone():
+        return jsonify({"error": "Ce membre n'est pas l'un des tiens."}), 404
+    body = str((request.get_json(silent=True) or {}).get("body") or "")
+    if len(body) > 20000:
+        return jsonify({"error": "Note trop longue (20 000 caractères au plus)."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db.execute("INSERT INTO edu_member_notes (author_id, member_id, body, updated_at) VALUES (?, ?, ?, ?) "
+                   "ON CONFLICT(author_id, member_id) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at", (user["id"], mid, body, now))
+        db.commit()
+    return jsonify({"memberId": mid, "body": body, "updatedAt": now})
 
 
 @app.route("/edu/overview")
@@ -2391,16 +2523,19 @@ def _event_public(db, r, who, start=None, occ=0):
             "author": who(r["author_id"]), "authorId": r["author_id"], "status": "confirmed"}
 
 
+CHEST_COLOR = "#fc1283"
 STAFF_PALETTE = ("#a855f7", "#f5c451", "#38bdf8", "#33e6a6", "#fc1283", "#f9a45e", "#ff4d5e", "#2dd4bf", "#4d8dff", "#e8e8ee")
 
 
 def _staff_list(db):
-    """L'équipe (admins puis éducateurs) avec sa couleur de planning : choisie par l'admin, sinon une de la palette."""
+    """L'équipe (admins puis éducateurs) avec sa couleur de planning : choisie par l'admin, sinon une de la palette.
+    Un admin a toujours la couleur de CHEST (2026-10-30) : ce qu'il pose dans le planning se reconnaît partout."""
     rows = db.execute("SELECT id, first_name, last_name, is_admin, role, staff_color FROM users WHERE is_admin = 1 OR role = 'educator' ORDER BY is_admin DESC, id").fetchall()
     out = []
     for i, r in enumerate(rows):
         out.append({"id": r["id"], "name": f"{r['first_name']} {r['last_name']}".strip(), "first": r["first_name"],
-                    "role": "admin" if r["is_admin"] else "educator", "color": r["staff_color"] or STAFF_PALETTE[i % len(STAFF_PALETTE)]})
+                    "role": "admin" if r["is_admin"] else "educator",
+                    "color": CHEST_COLOR if r["is_admin"] else (r["staff_color"] or STAFF_PALETTE[i % len(STAFF_PALETTE)])})
     return out
 
 
@@ -2488,8 +2623,11 @@ def school_agenda():
         if err:
             return err
         mids = [int(only)]
+    elif role == "educator":
+        # Éducateur (2026-10-30) : le planning de SES élèves seulement, pas celui des autres éducateurs.
+        mids = [r["id"] for r in db.execute("SELECT id FROM users WHERE referred_by = ? AND is_admin = 0 AND COALESCE(role, 'member') = 'member'", (user["id"],)).fetchall()]
     else:
-        # Équipe (admin et éducateurs) : le planning de tout le monde, chaque éducateur dans sa couleur (2026-10-28).
+        # Admin : le planning de tout le monde, chaque éducateur dans sa couleur.
         mids = [r["id"] for r in db.execute("SELECT id FROM users WHERE is_admin = 0 AND COALESCE(role, 'member') = 'member'").fetchall()]
     staff = _staff_list(db)
     color_of = {s["id"]: s["color"] for s in staff}
@@ -2515,13 +2653,20 @@ def school_agenda():
         for r in (db.execute(sql + " ORDER BY due_at IS NULL, due_at", (*task_mids, start.isoformat(), hi)).fetchall() if task_mids else []):
             tasks.append({"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "memberId": r["member_id"],
                           "member": people.get(r["member_id"]), "author": who(r["author_id"]), "common": bool(_col(r, "common_id"))})
+    # Couleurs (2026-10-30) : seul l'admin voit le code couleur des éducateurs. Un élève ne voit que son éducateur et un
+    # éducateur que ses élèves : pas de couleur à décoder, chaque rendez-vous garde la couleur de son type. Ce que pose un
+    # admin prend la couleur de CHEST partout (chest: true) ; ses appels collectifs sont signés « Un éducateur ».
+    admins = {s["id"] for s in staff if s["role"] == "admin"}
     for e in events:
         if e["type"] == "collective":
-            e["ownerId"], e["color"] = e["authorId"], color_of.get(e["authorId"])
+            e["ownerId"] = e["authorId"]
+        e["chest"] = e.get("ownerId") in admins
+        e["color"] = CHEST_COLOR if e["chest"] else (color_of.get(e.get("ownerId")) if role == "admin" else None)
+        if e["type"] == "collective" and e["chest"] and role != "admin":
+            e["author"] = "Un éducateur"
     events.sort(key=lambda e: e["startsAt"])
-    used = {e.get("ownerId") for e in events}
-    legend = [s for s in staff if s["id"] in used] if role == "member" else staff
-    return jsonify({"from": start.isoformat(), "to": end.isoformat(), "role": role, "events": events, "tasks": tasks, "staff": legend})
+    return jsonify({"from": start.isoformat(), "to": end.isoformat(), "role": role, "events": events, "tasks": tasks,
+                    "staff": staff if role == "admin" else []})
 
 
 @app.route("/school/events", methods=["POST"])

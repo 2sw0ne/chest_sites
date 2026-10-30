@@ -62,7 +62,7 @@
 <link rel="stylesheet" href="css/layout.css?v=3">
 <link rel="stylesheet" href="css/chest-da.css?v=19">
 <link rel="stylesheet" href="css/patch-chest-da.css?v=20">
-<link rel="stylesheet" href="css/welcome.css?v=39">
+<link rel="stylesheet" href="css/welcome.css?v=41">
 <script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -129,6 +129,8 @@
       <p class="auth-footnote">Pas encore de compte ? <a href="/inscription">Créer un compte</a></p>
     </div>
   </div>
+  <!-- Documents légaux : sous la ligne de flottaison, on les trouve en défilant un peu (pas dans la carte). -->
+  <footer class="auth-legal" data-legal-links></footer>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
@@ -425,5 +427,8 @@
 </script>
 <script src="js/v2-shell.js?v=1"></script>
 <script src="js/hq.js?v=4"></script>
+<script src="js/legal-links.js?v=2"></script>
+<script src="js/consent.js?v=2"></script>
+<script>if (window.CHESTAccounts && CHESTAccounts.isLoggedIn()) CHESTConsent.ensureTerms();</script>
 </body>
 </html>

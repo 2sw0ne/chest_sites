@@ -33,6 +33,18 @@
   ],
   "rewrites": [
     {
+      "source": "/legal",
+      "destination": "/legal.html"
+    },
+    {
+      "source": "/legal/:doc",
+      "destination": "/legal.html?doc=:doc"
+    },
+    {
+      "source": "/rejoindre/:code",
+      "destination": "/join.html?code=:code"
+    },
+    {
       "source": "/connexion",
       "destination": "/app.html"
     },

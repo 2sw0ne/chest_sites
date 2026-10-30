@@ -129,4 +129,10 @@
     }).observe(main || body, { childList: true, subtree: true });
   }
 
+  // Documents légaux (2026-10-30) : liens discrets sous le logo du pied de page (js/legal-links.js).
+  if (document.querySelector('.v2-foot__inner') && !window.__chestLegalLinks) {
+    window.__chestLegalLinks = true;
+    const s = document.createElement('script'); s.src = 'js/legal-links.js?v=2'; document.body.appendChild(s);
+  }
+
 })();
