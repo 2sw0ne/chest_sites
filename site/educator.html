@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/admin-members.css?v=7">
 <link rel="stylesheet" href="css/educator.css?v=5">
+<link rel="stylesheet" href="css/edu-notes.css?v=1">
 <script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -90,6 +91,7 @@
         <div class="am-nav__tabs" role="tablist">
           <button type="button" role="tab" data-view="overview" aria-selected="true">Vue d'ensemble</button>
           <button type="button" role="tab" data-view="members" aria-selected="false">Mes membres <small id="edCount"></small></button>
+          <button type="button" role="tab" data-view="notes" aria-selected="false">Notes <small id="edNotesCount"></small></button>
           <button type="button" role="tab" data-view="wallet" aria-selected="false">Portefeuille</button>
         </div>
       </nav>
@@ -123,6 +125,12 @@
           <div class="ed-table" id="edMembers"></div>
         </div>
         <p class="am-note">Clique sur un membre pour ouvrir sa fiche : rang, connexion BERICH, suivi, questionnaire, activité. Les ventes comptent les paiements réellement encaissés par CHEST.</p>
+      </section>
+
+      <!-- Notes : une note personnelle par membre (js/edu-notes.js) -->
+      <section class="am-view" data-panel="notes" aria-label="Notes" hidden>
+        <div class="en" id="edNotes"></div>
+        <p class="am-note">Tes notes sont personnelles : ni le membre, ni les autres éducateurs ne les voient. Chaque nouveau membre arrive avec sa note.</p>
       </section>
 
       <!-- 03 — Portefeuille -->
@@ -229,7 +237,8 @@
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
 <script src="js/rank-badge.js?v=3"></script>
-<script src="js/educator.js?v=7"></script>
+<script src="js/educator.js?v=8"></script>
+<script src="js/edu-notes.js?v=1"></script>
 <script src="js/tilt.js?v=1"></script>
 <script src="js/v2.js?v=3"></script>
 </body>

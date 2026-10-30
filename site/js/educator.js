@@ -219,7 +219,7 @@
         <div class="ed-sh__id"><h2 id="edSheetT">${esc(M.name)}</h2><a href="mailto:${esc(M.email)}">${esc(M.email)}</a>
           <span>Inscrit le ${esc(day(M.joinedAt))}${M.lastSeenAt ? ` · vu le ${esc(day(M.lastSeenAt))}` : ''}</span></div>
       </header>
-      <div class="ed-sh__acts"><button type="button" class="chest-btn" data-suivi="${M.id}">Ouvrir son suivi</button><a class="chest-btn-2" href="mailto:${esc(M.email)}">Écrire</a></div>
+      <div class="ed-sh__acts"><button type="button" class="chest-btn" data-suivi="${M.id}">Ouvrir son suivi</button><button type="button" class="chest-btn-2" data-mynote="${M.id}">Ma note</button><a class="chest-btn-2" href="mailto:${esc(M.email)}">Écrire</a></div>
 
       <section class="ed-sh__sec">
         <div class="chest-step">01 — Rang</div>
@@ -303,6 +303,8 @@
     if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); cp.textContent = 'Copié'; setTimeout(() => { cp.textContent = 'Copier'; }, 1400); } catch (err) { /* presse-papiers refusé */ } return; }
     const rv = t.closest('[data-reveal]');
     if (rv) { const s = rv.parentElement.querySelector('[data-secret]'); const on = rv.textContent === 'Afficher'; s.textContent = on ? s.dataset.secret : '••••••••'; rv.textContent = on ? 'Masquer' : 'Afficher'; return; }
+    const mn = t.closest('[data-mynote]');
+    if (mn) { sheet.close(); setView('notes'); if (window.CHESTEduNotes) CHESTEduNotes.open(mn.dataset.mynote); return; }
     const sv = t.closest('[data-suivi]');
     if (sv) { const sh = window.parent && window.parent !== window && window.parent.CHESTShell; sheet.close(); if (sh && sh.go) sh.go('suivi', `?member=${sv.dataset.suivi}`); else location.href = `suivi.html?member=${sv.dataset.suivi}`; return; }
     const bq = t.closest('[data-breq]');
@@ -336,7 +338,7 @@
   window.addEventListener('scroll', syncStuck, { passive: true });
   syncStuck();
   let v0 = 'overview';
-  try { const s = localStorage.getItem('chest_edu_view'); if (['overview', 'members', 'wallet'].includes(s)) v0 = s; } catch (e) { /* défaut */ }
+  try { const s = localStorage.getItem('chest_edu_view'); if (['overview', 'members', 'notes', 'wallet'].includes(s)) v0 = s; } catch (e) { /* défaut */ }
   setView(v0);
   load();
 })();

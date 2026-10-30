@@ -280,6 +280,13 @@ def init_db():
         """)
         # Planning commun (2026-10-28) : l'admin pose un appel collectif (éventuellement chaque semaine) ou une mission chez
         # tous les élèves, ou chez ceux de certains éducateurs ; chaque copie garde common_id pour tout retirer d'un coup.
+        # Notes personnelles de l'éducateur (2026-10-30) : une note par membre, privée — le membre ne la voit jamais.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS edu_member_notes (
+                author_id INTEGER NOT NULL, member_id INTEGER NOT NULL, body TEXT NOT NULL DEFAULT '',
+                updated_at TEXT, PRIMARY KEY (author_id, member_id)
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS mentor_common (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, title TEXT NOT NULL, starts_at TEXT, minutes INTEGER,
@@ -1001,6 +1008,7 @@ def delete_member(member_id):
         db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
         db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
         db.execute("DELETE FROM berich_plans WHERE user_id = ?", (member_id,))
+        db.execute("DELETE FROM edu_member_notes WHERE member_id = ? OR author_id = ?", (member_id, member_id))
         for row in db.execute("SELECT file FROM mentor_library WHERE member_id = ? AND file IS NOT NULL", (member_id,)).fetchall():
             delete_file(json.loads(row["file"]))
         for row in db.execute("SELECT flyer FROM mentor_events WHERE member_id = ? AND flyer IS NOT NULL", (member_id,)).fetchall():
@@ -1542,6 +1550,41 @@ def _edu_subject():
     if not is_educator(user):
         return None, (jsonify({"error": "Réservé aux éducateurs."}), 403)
     return user, None
+
+
+@app.route("/edu/notes")
+def edu_notes():
+    """Une note par membre de l'éducateur : chaque nouveau membre arrive avec sa note (vide). Admin : ?educator=ID, lecture."""
+    who, err = _edu_subject()
+    if err:
+        return err
+    db = get_db()
+    notes = {r["member_id"]: r for r in db.execute("SELECT * FROM edu_member_notes WHERE author_id = ?", (who["id"],)).fetchall()}
+    out = []
+    for m in db.execute("SELECT * FROM users WHERE referred_by = ? ORDER BY created_at DESC", (who["id"],)).fetchall():
+        a, n = access_of(m), notes.get(m["id"])
+        out.append({**_person(m), "joinedAt": m["created_at"], "planKey": a["plan"], "level": a.get("level"), "active": bool(a["active"]),
+                    "body": n["body"] if n else "", "updatedAt": n["updated_at"] if n else None})
+    return jsonify({"notes": out, "readOnly": who["id"] != current_user()["id"]})
+
+
+@app.route("/edu/notes/<int:mid>", methods=["PUT"])
+def edu_note_save(mid):
+    user = current_user()
+    if not user or not is_educator(user):
+        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    db = get_db()
+    if not db.execute("SELECT 1 FROM users WHERE id = ? AND referred_by = ?", (mid, user["id"])).fetchone():
+        return jsonify({"error": "Ce membre n'est pas l'un des tiens."}), 404
+    body = str((request.get_json(silent=True) or {}).get("body") or "")
+    if len(body) > 20000:
+        return jsonify({"error": "Note trop longue (20 000 caractères au plus)."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db.execute("INSERT INTO edu_member_notes (author_id, member_id, body, updated_at) VALUES (?, ?, ?, ?) "
+                   "ON CONFLICT(author_id, member_id) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at", (user["id"], mid, body, now))
+        db.commit()
+    return jsonify({"memberId": mid, "body": body, "updatedAt": now})
 
 
 @app.route("/edu/overview")
