@@ -148,6 +148,8 @@
       ? `<li><span class="ed-tx__ic is-out" aria-hidden="true">−</span><span class="ed-tx__l">Remboursement · ${esc(t.member)}<small>${esc(day(t.at))} · paiement de ${esc(eur(t.sale))} remboursé, commission annulée</small></span><b class="is-void">${esc(eur(t.amount))}</b></li>`
       : `<li><span class="ed-tx__ic is-out" aria-hidden="true">↗</span><span class="ed-tx__l">Retrait ${t.method === 'iban' ? 'par virement' : 'en crypto'} <i class="ed-pill is-${t.status}">${lbl[t.status] || t.status}</i><small>${esc(day(t.at))}${t.processedAt ? ' · traité le ' + esc(day(t.processedAt)) : ''}${t.note ? ' · ' + esc(t.note) : ''}</small></span><b class="${t.status === 'refused' ? 'is-void' : ''}">${esc(eur(t.amount))}</b></li>`).join('')}</ul>`
       : '<p class="ed-empty">Tes commissions et tes retraits s’afficheront ici.</p>';
+    // CHEST 2.0 : vue d'ensemble de la maquette (js/educator-2.js)
+    document.dispatchEvent(new CustomEvent('chest:edu-render', { detail: { D, link, readOnly } }));
   }
 
   // ---------- coordonnées de paiement ----------
