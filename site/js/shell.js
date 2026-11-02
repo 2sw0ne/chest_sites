@@ -225,6 +225,7 @@
       el.classList.toggle('is-active', el.dataset.page === path);
     });
     markNav2(active, path);
+    if (window.CHESTTopbar) CHESTTopbar.sync(frame.contentWindow);
 
     shell.classList.remove('is-navigating');
     shell.classList.add('is-done');

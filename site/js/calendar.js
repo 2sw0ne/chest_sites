@@ -1034,6 +1034,7 @@
     renderSentimentHeader(allEvents); // sentiment : toujours base sur tout (hors "faible"), independant du filtre affiche
     renderDayZone(filtered);
     renderUpcoming(filtered);
+    document.dispatchEvent(new CustomEvent('chest:cal-render'));
   }
 
   function showState(el, html) { el.innerHTML = `<div class="cal-state">${html}</div>`; }
@@ -1209,6 +1210,67 @@
     zone.innerHTML = html;
   }
 
+  // ---------- CHEST 2.0 (2026-11-02) : modèle lu par js/cal-2.js, qui pose la page à l'identique de
+  // CHEST-DESIGN-2.0/html-exact/Calendrier.html. Aucun calcul nouveau : mêmes fonctions que le hero ci-dessus
+  // (prévision verrouillée = somme des effets estimés des annonces de la semaine sur la paire, plafonnée ±3 %). ----------
+  function weekFrame() {
+    const { monday: todayMonday } = getWeekBounds(tradingWeekReference());
+    const pastMonday = isForexMarketClosedNow() ? todayMonday : new Date(todayMonday.getTime() - 7 * 86400000);
+    const nextMonday = new Date(pastMonday.getTime() + 7 * 86400000);
+    return { pastMonday, nextMonday };
+  }
+  function calModel() {
+    const pairKey = loadPair();
+    const config = PAIR_CONFIG[pairKey] || null;
+    const { pastMonday, nextMonday } = weekFrame();
+    const nextSunday = new Date(nextMonday.getTime() + 6 * 86400000);
+    const pastSunday = new Date(pastMonday.getTime() + 6 * 86400000);
+    const weekEvents = allEvents.filter((e) => e.date && isoInRange(e.date, nextMonday, nextSunday));
+    const model = { pairKey, crypto: !!CRYPTO_CONFIG[pairKey], code: (config || CRYPTO_CONFIG[pairKey] || {}).code || pairKey,
+      label: (config || CRYPTO_CONFIG[pairKey] || {}).label || '', nextMonday, pastMonday, weekEvents, filter: [...importanceFilter],
+      countries: config ? config.drivers.map((d) => d.country) : [], drivers: [], top3: [], locked: null, pastPrevision: null };
+    if (!config) return model;
+    const nextResult = computeForecastSentiment(weekEvents, config);
+    model.locked = nextResult.drivers.length ? getLockedWeeklyForecast(pairKey, nextMonday, nextResult, config) : null;
+    model.drivers = nextResult.drivers.map((d) => Object.assign({}, d, { est: estimateForecastMove(d.ev, config) }));
+    model.top3 = rankedDrivers(nextResult.drivers, config).slice(0, 3).map((d) => Object.assign({}, d, { est: estimateForecastMove(d.ev, config) }));
+    const pastResult = computeForecastSentiment(allEvents.filter((e) => e.date && isoInRange(e.date, pastMonday, pastSunday)), config);
+    if (pastResult.drivers.length) model.pastPrevision = getLockedWeeklyForecast(pairKey, pastMonday, pastResult, config).weeklyCapped;
+    model.weightOf = (country) => { const d = config.drivers.find((x) => x.country === country); return d ? d.weight : 0; };
+    model.missing = missingCurrencyNames(config);
+    return model;
+  }
+  // Bilan d'une semaine passée (k = 1 : la dernière) : prévision verrouillée vs mouvement réel, même règle que « Réussite ».
+  async function pastWeek(k) {
+    const pairKey = loadPair();
+    const config = PAIR_CONFIG[pairKey];
+    if (!config) return null;
+    const monday = new Date(weekFrame().nextMonday.getTime() - 7 * k * 86400000);
+    const sunday = new Date(monday.getTime() + 6 * 86400000);
+    const evs = allEvents.filter((e) => e.date && isoInRange(e.date, monday, sunday));
+    if (!evs.length) return null;
+    const res = computeForecastSentiment(evs, config);
+    if (!res.drivers.length) return { monday, prevision: null, real: null, match: null };
+    const prevision = getLockedWeeklyForecast(pairKey, monday, res, config).weeklyCapped;
+    const real = await fetchWeeklyRealMovePct(pairKey, monday, sunday);
+    return { monday, prevision, real, match: forecastDirectionMatch(prevision, real) };
+  }
+  window.CHESTCalendar = {
+    model: calModel,
+    pastWeek,
+    pairs: () => Object.keys(PAIR_CONFIG).filter((k) => k !== 'DXY').map((k) => ({ key: k, code: PAIR_CONFIG[k].code, label: PAIR_CONFIG[k].label }))
+      .concat(Object.keys(CRYPTO_CONFIG).map((k) => ({ key: k, code: CRYPTO_CONFIG[k].code, label: CRYPTO_CONFIG[k].label }))),
+    setPair(key) { try { localStorage.setItem(PAIR_KEY, key); } catch (e) { /* tant pis */ } renderAll(); },
+    toggleImportance(imp) {
+      if (importanceFilter.has(imp)) importanceFilter.delete(imp); else importanceFilter.add(imp);
+      saveImportanceFilter(importanceFilter);
+      renderAll();
+    },
+    estimate: (ev) => estimateForecastMove(ev, PAIR_CONFIG[loadPair()]),
+    hasNoData,
+    all: () => allEvents,
+  };
+
   async function load() {
     setupImportanceFilter();
     setupDayNav();
@@ -1235,6 +1297,7 @@
       showState(document.getElementById('bubbleZone'), 'Calendrier en attente — réessaie dans un instant.');
       document.getElementById('tickerTrack').innerHTML = '<div class="ticker-meta">En attente de données…</div>';
       document.getElementById('upcomingZone').innerHTML = '';
+      document.dispatchEvent(new CustomEvent('chest:cal-error'));
     }
   }
 

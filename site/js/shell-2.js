@@ -120,3 +120,37 @@
     setInterval(paintNotifs, 60000);
   }
 })();
+
+// Actions propres à une page dans la barre du haut (maquette Calendrier : prochaine annonce + paire suivie).
+// La page (même origine) appelle parent.CHESTTopbar.set(window, html) et branche ses boutons sur le nœud rendu ;
+// le shell les retire dès qu'une autre page est chargée (shell.js → sync). La recherche laisse sa place.
+window.CHESTTopbar = (function () {
+  const slot = document.getElementById('c2PageActions');
+  const search = document.getElementById('c2Search');
+  let owner = null;
+  // Lumière du fond : chaque maquette a la sienne (Main = rose à droite, Calendrier = verte à gauche,
+  // School = rose à gauche ; Journal, Stratégies, BERICH, Backtesting : aucune, leurs sections ont leur halo).
+  const lightEl = document.querySelector('#chestShell .c2-shell__light');
+  const BASE = lightEl ? lightEl.getAttribute('style') : '';
+  const LIGHTS = {
+    calendar: 'position: absolute; left: 180px; top: -280px; width: 1100px; height: 700px; pointer-events: none; filter: blur(120px); opacity: 0.85; background: radial-gradient(40% 46% at 40% 50%, rgba(51, 230, 166, 0.16), transparent 72%), radial-gradient(30% 36% at 70% 40%, rgba(252, 18, 131, 0.08), transparent 74%);',
+    school: 'position: absolute; left: 160px; top: -300px; width: 900px; height: 640px; pointer-events: none; filter: blur(110px); background: radial-gradient(42% 46% at 40% 50%, rgba(252, 18, 131, 0.15), transparent 72%), radial-gradient(34% 40% at 66% 44%, rgba(249, 164, 94, 0.09), transparent 74%);',
+    journal: 'display: none;', strategies: 'display: none;', berich: 'display: none;', backtesting: 'display: none;',
+  };
+  function light(page) { if (lightEl) lightEl.setAttribute('style', LIGHTS[page] || BASE); }
+  function clear() { owner = null; if (!slot) return; slot.innerHTML = ''; slot.hidden = true; if (search) search.hidden = false; }
+  return {
+    set(win, html) {
+      if (!slot) return null;
+      owner = win; slot.innerHTML = html; slot.hidden = false; if (search) search.hidden = true;
+      return slot;
+    },
+    clear,
+    sync(win) {
+      if (owner && owner !== win) clear();
+      let page = '';
+      try { page = (win.document.body && win.document.body.dataset.page) || ''; } catch (e) { /* autre origine */ }
+      light(page);
+    },
+  };
+})();

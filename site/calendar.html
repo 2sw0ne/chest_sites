@@ -349,6 +349,7 @@
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
 <link rel="stylesheet" href="css/chest-2-site.css?v=2">
+<link rel="stylesheet" href="css/cal-2.css?v=1">
 </head>
 <body data-page="calendar" class="chest-root">
 
@@ -395,6 +396,89 @@
         </a>
       </div>
     </header>
+<main id="calMain" class="is-loading" style="position: relative; z-index: 1; min-width: 0px; display: flex; flex-direction: column; color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px;">
+  <!-- CHEST 2.0 (2026-11-02) : contenu copié de CHEST-DESIGN-2.0/html-exact/Calendrier.html, styles inchangés.
+       Les données réelles sont posées par js/cal-2.js (modèle de js/calendar.js, événement chest:cal-render). -->
+    <section style="position: relative; isolation: isolate; overflow: hidden; text-align: center; padding: 46px 36px 40px; display: flex; flex-direction: column; align-items: center;">
+      <div id="c2CalHalo" aria-hidden="true" style="position: absolute; left: 50%; top: -40px; width: 1000px; height: 600px; margin-left: -500px; z-index: -2; pointer-events: none; background: radial-gradient(55% 64% at 50% 20%, rgba(51, 230, 166, 0.3), transparent 72%);"></div>
+      <div aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 120px; z-index: -1; pointer-events: none; background: linear-gradient(transparent, rgba(5, 5, 6, 0.95));"></div>
+      <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 22px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 78%) text; color: transparent;">Calendrier</div>
+      <span id="c2CalBadge" style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(127, 243, 202); border: 1px solid rgba(51, 230, 166, 0.4); background: rgba(51, 230, 166, 0.08); padding: 7px 14px; border-radius: 999px;">…</span>
+      <h1 style="margin: 18px 0px 0px; font-size: 112px; line-height: 1; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(rgb(255, 255, 255), rgba(255, 255, 255, 0.55)) text; color: transparent;" id="c2CalCode">—</h1>
+      <span id="c2CalLabel" style="margin-top: 6px; font-size: 14px; color: rgb(155, 155, 161);">&nbsp;</span>
+      <div style="margin-top: 26px; display: flex; align-items: baseline; gap: 12px;">
+        <span id="c2CalMove" style="font-size: 72px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; color: rgb(127, 243, 202); font-variant-numeric: tabular-nums; text-shadow: rgba(51, 230, 166, 0.55) 0px 0px 34px;">—</span>
+        <span style="max-width: 150px; text-align: left; font-size: 12.5px; line-height: 1.45; color: rgb(155, 155, 161);" id="c2CalMoveWords">&nbsp;</span>
+      </div>
+      <div id="c2CalGauge" style="margin-top: 22px; width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="position: relative; height: 8px; border-radius: 999px; background: linear-gradient(90deg, rgba(255, 77, 94, 0.7), rgba(255, 255, 255, 0.12) 50%, rgba(51, 230, 166, 0.8));">
+          <span id="c2CalKnob" style="position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0px 0px -9px; border-radius: 999px; background: rgb(5, 5, 6); border: 2px solid rgb(127, 243, 202); box-shadow: rgba(51, 230, 166, 0.9) 0px 0px 16px;"></span>
+          <span id="c2CalLastDot" hidden aria-hidden="true" title="Semaine passée" style="position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0px 0px -4px; border-radius: 999px; background: rgba(255, 255, 255, 0.45);"></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span>−3 %</span><span>0</span><span>+3 %</span></div>
+        
+        <div id="c2CalPast" hidden style="margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; font-size: 11.5px; color: rgb(122, 122, 130);">
+          <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.45);"></span>Semaine passée</span>
+          <span>prévu <b id="c2CalPastPrev" style="color: rgb(201, 201, 206); font-weight: 600;">—</b></span>
+          <span>réalisé <b id="c2CalPastReal" style="color: rgb(127, 243, 202); font-weight: 600;">…</b><span id="c2CalPastMark"></span></span>
+          <span id="c2CalDots" hidden style="display: flex; align-items: center; gap: 3px;"></span>
+        </div>
+      </div>
+      <span id="c2CalLock" style="margin-top: 24px; display: flex; align-items: center; gap: 8px; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: rgb(122, 122, 130);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg> Prévision verrouillée lundi</span>
+      <p id="c2CalText" style="margin: 14px 0px 0px; max-width: 600px; font-size: 14px; line-height: 1.6; color: rgb(201, 201, 206);">Chargement de l’analyse…</p>
+    </section>
+
+    <div id="c2CalEcon" style="display: flex; flex-direction: column; gap: 34px; padding: 6px 36px 64px; max-width: 1180px; width: 100%; box-sizing: border-box;">
+
+      
+      <section style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Les trois annonces qui décident</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
+        </div>
+        <div id="c2CalMajors" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
+        </div>
+      </section>
+
+      
+      <section style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — La semaine</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
+        </div>
+        
+        <div role="group" aria-label="Force de l'annonce" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(255, 255, 255, 0.02);">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130); margin-right: 4px;">Force du marché</span>
+          <span id="c2CalStars" style="display: contents;"></span>
+          <span id="c2CalShown" style="margin-left: auto; font-size: 11.5px; color: rgb(122, 122, 130);"></span>
+        </div>
+        <div style="overflow-x: auto;">
+          <div id="c2CalWeek" style="min-width: 760px; display: grid; grid-template-columns: repeat(5, minmax(0px, 1fr)); border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(255, 255, 255, 0.016); overflow: hidden;">
+          </div>
+        </div>
+      </section>
+
+      
+      <section style="display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);" id="c2CalLibTitle">03 — Bibliothèque</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
+          <span style="font-size: 12px; color: rgb(155, 155, 161);">Un étage par jour. Plus le livre est épais, plus l’annonce pèse.</span>
+        </div>
+
+        
+        <div id="c2CalShelf" style="position: relative; padding: 12px 22px 18px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.07); background: radial-gradient(80% 60% at 50% 100%, rgba(249, 164, 94, 0.06), transparent 70%), linear-gradient(rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.03)); box-shadow: rgba(0, 0, 0, 0.25) 0px 0px 0px 6px inset;">
+        </div>
+
+        <div id="c2CalBook"></div>
+      </section>
+
+    </div>
+</main>
+
+  <!-- Ancienne page : gardée cachée, calendar.js y calcule encore le hero (textes) et la semaine passée. -->
+  <div class="c2-legacy" hidden>
 
     <div class="ticker-wrap">
       <div class="ticker-track" id="tickerTrack">
@@ -525,6 +609,7 @@
     </div>
   </section>
 </main>
+  </div>
 </div>
 </div>
 
@@ -542,17 +627,16 @@
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/crypto-movers.js"></script>
-<script src="js/calendar.js?v=25"></script>
+<script src="js/calendar.js?v=26"></script>
+<script src="js/cal-2.js?v=3"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([
-  { selector: '.ticker-wrap', title: 'Ticker en direct', text: 'Les principales paires forex qui défilent en continu.' },
-  { selector: '.sentiment-hero', title: 'Sentiment', text: 'Biais haussier ou baissier estimé pour la paire suivie, à partir des annonces macro de la semaine (pour une crypto : calendrier US, Fear & Greed et momentum). Change la paire suivie dans Compte.' },
-  { selector: '#moversSection', title: 'Marché crypto', text: 'Visible seulement quand la paire suivie est une crypto : meilleures et moins bonnes performances sur 24 h parmi les 100 plus grosses capitalisations.' },
-  { selector: '#importanceFilter', title: 'Filtre l\'importance', text: 'Ne garde que les annonces à fort impact si tu veux aller à l\'essentiel.' },
-  { selector: '.day-nav-head', title: 'Navigue de jour en jour', text: 'Parcours les jours passés et à venir. La liste « Prochains jours » plus bas reste toujours ancrée sur aujourd\'hui.' },
-  { selector: '#bubbleZone', title: 'Annonces du jour', text: 'Le détail des annonces du jour choisi : prévu, réel et impact estimé sur l\'or et le dollar.' },
-  { selector: '#upcomingZone', title: 'Prochains jours', text: 'Vue d\'ensemble des jours suivants pour anticiper les annonces à fort impact.' },
+  { selector: '#c2CalCode', title: 'La prévision de la semaine', text: 'Le mouvement attendu sur la paire suivie : somme des effets estimés des annonces de la semaine, plafonnée à ±3 %, verrouillée le lundi.' },
+  { selector: '#c2CalMajors', title: 'Les trois annonces qui décident', text: 'Les annonces qui pèsent le plus sur la paire cette semaine. Clique pour ouvrir leur fiche.' },
+  { selector: '#c2CalStars', title: 'Force de l’annonce', text: 'Filtre les annonces par importance ; la bibliothèque suit le même filtre.' },
+  { selector: '#c2CalWeek', title: 'La semaine', text: 'Toutes les annonces, toutes devises. Celles de la paire sont en blanc et ouvrent leur livre.' },
+  { selector: '#c2CalShelf', title: 'La bibliothèque', text: 'Un étage par jour. Plus le livre est épais, plus l’annonce pèse.' },
 ]);
 </script>
 <script src="js/v2.js?v=5"></script>
