@@ -66,6 +66,34 @@
     font-variant-numeric:tabular-nums; pointer-events:none;
   }
   .bt-card__meta b{ color:var(--chest-ink); }
+  /* CHEST 2.0 (2026-11-02) : cartes d'algorithme de la maquette (html-exact/Backtesting.html, .algo) */
+  body[data-page] .bt-grid{ grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); gap:18px; }
+  body[data-page] .bt-card--custom{ display:flex; flex-direction:column; gap:16px; padding:20px; border-radius:18px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.12); background:linear-gradient(160deg,rgba(16,16,19,.72),rgba(9,9,11,.88));
+    box-shadow:0 14px 34px rgba(0,0,0,.4), inset 1.5px 1.5px 0 rgba(255,255,255,.14), inset -1.5px -1.5px 0 rgba(255,255,255,.04);
+    transition:border-color .2s cubic-bezier(.16,1,.3,1), transform .22s cubic-bezier(.16,1,.3,1), box-shadow .22s cubic-bezier(.16,1,.3,1); }
+  body[data-page] .bt-card--custom::before{ content:''; position:absolute; top:0; left:10%; right:10%; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent); pointer-events:none; }
+  body[data-page] .bt-card--custom:hover{ transform:translateY(-3px); border-color:rgba(249,164,94,.45); box-shadow:0 18px 44px rgba(0,0,0,.5), 0 10px 30px rgba(252,18,131,.14), inset 1.5px 1.5px 0 rgba(255,255,255,.16); }
+  body[data-page] .bt-card--custom.is-spot{ border-color:rgba(249,164,94,.45); }
+  body[data-page] .bt-card--custom .bt-card__top{ padding:0; align-items:center; }
+  .bt-card__id{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  body[data-page] .bt-card--custom .bt-card__title{ font-size:16px; font-weight:700; letter-spacing:-.02em; }
+  .bt-card__range{ font-family:var(--c2-mono,'JetBrains Mono',ui-monospace,monospace); font-size:10.5px; color:#7a7a82; }
+  .bt-card__perf{ position:relative; display:flex; align-items:baseline; gap:10px; font-size:12px; color:#7a7a82; pointer-events:none; }
+  .bt-card__pct{ font-size:34px; font-weight:700; letter-spacing:-.04em; font-variant-numeric:tabular-nums; color:#7ff3ca; text-shadow:0 0 22px rgba(51,230,166,.4); }
+  .bt-card__pct.is-neg{ color:#ff94a0; text-shadow:0 0 22px rgba(255,77,94,.4); }
+  body[data-page] .bt-card--custom .bt-card__spark{ height:96px; margin:0; }
+  body[data-page] .bt-card--custom .bt-card__meta{ display:flex; flex-wrap:wrap; gap:16px; margin:0; padding:14px 0 0; border-top:1px solid rgba(255,255,255,.07); font-size:11.5px; color:#7a7a82; font-variant-numeric:tabular-nums; }
+  body[data-page] .bt-card--custom .bt-card__meta > span{ display:inline; font-size:11.5px; letter-spacing:0; text-transform:none; color:#7a7a82; }
+  body[data-page] .bt-card--custom .bt-card__meta b{ color:#f6f6f7; font-weight:700; font-size:11.5px; letter-spacing:0; }
+  .chest-root .bth__actions .chest-btn{ display:inline-flex; align-items:center; }
+  body[data-page] .bt-card--custom .bt-card__meta b.is-dd{ color:#ff94a0; }
+  body[data-page] .bt-card__add{ min-height:300px; border-radius:18px; border:1px dashed rgba(255,255,255,.18); background:transparent; }
+  .chest-root .bth__actions .chest-btn{ height:44px; padding:0 22px; border-radius:999px; font-weight:600; }
+  .chest-root .bth__actions .chest-btn-2{ display:flex; align-items:center; height:44px; padding:0 20px; border-radius:999px; font-weight:600; color:#f6f6f7;
+    border:1px solid rgba(255,255,255,.14); background:#0b0b0e; box-shadow:none; }
+  .chest-root .bth__actions .chest-btn-2:hover{ border-color:rgba(255,255,255,.28); background:#111115; }
+  @media (prefers-reduced-motion:reduce){ body[data-page] .bt-card--custom:hover{ transform:none; } }
   .bt-card__add{
     display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:10px;
     min-height:250px; padding:24px; border:1px dashed rgba(255,255,255,.18); border-radius:18px; text-decoration:none;
@@ -227,7 +255,7 @@
   <section class="chest-section" style="border-top:1px solid var(--chest-rule)">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px">
       <span class="chest-step">03 — Algorithmes</span>
-      <span style="font-size:11.5px;color:var(--chest-ink-3)">Trié par date d'import</span>
+      <span style="font-size:11.5px;color:var(--chest-ink-3)">Trié par profit</span>
     </div>
     <div class="bt-grid">
       <div id="customBacktests"></div>
@@ -306,15 +334,34 @@
   // ---------- Aperçu d'équity (courbe verte au-dessus du capital de départ,
   // rouge en dessous - même langage visuel que le Dashboard, à l'échelle
   // d'une mini-carte) - calculé sur la config "compte propre" du backtest. ----------
+  // Courbes lissées comme la maquette (Catmull-Rom -> Bézier cubique), sur au plus `max` points
+  // (le premier et le dernier sont gardés) : les milliers de positions d'un backtest restent lisibles.
+  function thin(pts, max) {
+    if (pts.length <= max) return pts;
+    const out = [];
+    for (let k = 0; k < max; k++) out.push(pts[Math.round(k * (pts.length - 1) / (max - 1))]);
+    return out;
+  }
+  function smoothD(pts) {
+    if (!pts.length) return '';
+    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+  }
   function buildSpark(values) {
-    const w = 400, h = 86;
+    const w = 300, h = 96;
     const start = values[0];
     const min = Math.min(...values, start), max = Math.max(...values, start);
     const range = (max - min) || 1;
     const n = values.length;
     const x = (i) => (n > 1 ? (i / (n - 1)) * w : 0);
     const y = (v) => h - ((v - min) / range) * h;
-    const line = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const line = smoothD(thin(values.map((v, i) => [x(i), y(v)]), 60));
     const area = `${line} L${w},${h} L0,${h} Z`;
     let zeroT = Math.max(0.04, Math.min(0.96, y(start) / h));
     return { line, area, zeroT, allAbove: min >= start, allBelow: max <= start };
@@ -335,6 +382,21 @@
     };
   }
   // Affichage par défaut : la propfirm quand elle existe (2026-10-04, demande utilisateur), sinon le compte propre.
+  const fmtPctCard = (v) => (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('fr-FR', { maximumFractionDigits: Math.abs(v) >= 100 ? 0 : 1 }) + ' %';
+  function datesOf(report) { const d = report.curve.map((p) => p.date).filter(Boolean); return [d[0], d[d.length - 1]]; }
+  function rangeLabel(report) {
+    const [a, z] = datesOf(report);
+    const m = (d) => new Date(d).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+    return a ? `${m(a)} → ${m(z)}` : 'Sans date';
+  }
+  function spanLabel(report) {
+    const [a, z] = datesOf(report);
+    if (!a) return '';
+    const months = Math.max(1, Math.round((new Date(z) - new Date(a)) / (30.44 * 86400000)));
+    if (months < 12) return `sur ${months} mois`;
+    const y = Math.round(months / 12);
+    return `sur ${y} an${y > 1 ? 's' : ''}`;
+  }
   function hasPfConfig(b) { return !!(b.pf && b.pf.mode); }
   function capitalFor(b) { return hasPfConfig(b) ? (b.pfCapital || b.capital) : b.capital; }
   function reportFor(b) {
@@ -443,7 +505,7 @@
     const END = W * .94; // la courbe s'arrête sous le point lumineux (le bord droit est fondu)
     const X = (i) => (n > 1 ? i / (n - 1) * END : 0);
     const Y = (v) => 12 + (1 - (f(v) - fLo) / span) * (H - 24);
-    const line = caps.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' ');
+    const line = smoothD(thin(caps.map((v, i) => [X(i), Y(v)]), 110));
     const area = line + ` L${END} ${H} L0 ${H} Z`;
     const base = Y(cap0);
     const endY = Y(caps[caps.length - 1]);
@@ -459,6 +521,7 @@
         <path d="${line}" fill="none" stroke="url(#bthL)" stroke-width="2.4" stroke-linejoin="round" pathLength="1" class="bth__line"/>
       </svg>
       <span class="bth__dot" style="top:${(endY / H * 100).toFixed(2)}%;--c:${col}"></span>
+      <span class="bth__scale">${logScale ? 'Échelle logarithmique' : 'Échelle linéaire'} · capital de départ en pointillés</span>
 `;
   }
 
@@ -466,10 +529,11 @@
     grid.querySelectorAll('.bt-card--custom').forEach((el) => el.remove());
     const items = window.CHESTBacktests.list();
     renderKpis(items);
+    const perf = new Map(items.map((b) => [b.id, reportFor(b).stats.performancePct]));
     renderSpot(items);
     const spotId = currentSpotId(items);
     const wrap = document.createElement('div');
-    wrap.innerHTML = items.map((b) => {
+    wrap.innerHTML = items.slice().sort((x, y) => perf.get(y.id) - perf.get(x.id)).map((b) => {
       const report = reportFor(b);
       const spark = buildSpark(report.curve.map((p) => p.capital));
       const stops = sparkStops(spark);
@@ -479,7 +543,7 @@
       <div class="bt-card bt-card--custom chest-glass--mini${b.sharedBy ? ' bt-card--shared' : ''}${spotId === b.id ? ' is-spot' : ''}">
         <a class="bt-card__hit" href="backtest-view.html?id=${encodeURIComponent(b.id)}" aria-label="Ouvrir ${b.title}"></a>
         <div class="bt-card__top">
-          <div class="bt-card__title">${esc(b.title)}${b.sharedBy ? `<span class="bt-card__by">by ${String(b.sharedBy.name || '').split(' ')[0].replace(/[<>&"]/g, '')}</span>` : ''}</div>
+          <div class="bt-card__id"><div class="bt-card__title">${esc(b.title)}${b.sharedBy ? `<span class="bt-card__by">by ${String(b.sharedBy.name || '').split(' ')[0].replace(/[<>&"]/g, '')}</span>` : ''}</div><span class="bt-card__range">${esc(rangeLabel(report))}</span></div>
           <div class="bt-card__menu">
             <button type="button" class="bt-card__menu-btn" data-menu-toggle aria-label="Options du backtest">⋮</button>
             <div class="bt-card__menu-list" data-menu-list hidden>
@@ -493,22 +557,22 @@
             </div>
           </div>
         </div>
-        <p class="bt-card__desc">${esc(b.description || 'Backtest ajouté depuis un fichier Excel personnel.')}</p>
+        <div class="bt-card__perf"><span class="bt-card__pct is-${pct >= 0 ? 'pos' : 'neg'}">${fmtPctCard(pct)}</span><span>${esc(spanLabel(report))}</span></div>
         <div class="bt-card__spark">
-          <svg viewBox="0 0 400 86" preserveAspectRatio="none" style="width:100%;height:86px;display:block;overflow:visible">
+          <svg viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true" style="width:100%;height:96px;display:block;overflow:visible">
             <defs>
-              <linearGradient id="line-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="86">${stops.lineStops}</linearGradient>
-              <linearGradient id="area-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="86">${stops.areaStops}</linearGradient>
+              <linearGradient id="line-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">${stops.lineStops}</linearGradient>
+              <linearGradient id="area-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">${stops.areaStops}</linearGradient>
             </defs>
-            <line x1="0" y1="${(spark.zeroT * 86).toFixed(1)}" x2="400" y2="${(spark.zeroT * 86).toFixed(1)}" stroke="rgba(255,255,255,.16)" stroke-width="1"></line>
+            <line x1="0" x2="300" y1="${(spark.zeroT * 96).toFixed(1)}" y2="${(spark.zeroT * 96).toFixed(1)}" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
             <path d="${spark.area}" fill="url(#area-${uid})"></path>
-            <path d="${spark.line}" fill="none" stroke="url(#line-${uid})" stroke-width="2.5" stroke-linecap="round" style="filter:drop-shadow(0 2px 8px rgba(51,230,166,.35))"></path>
+            <path d="${spark.line}" fill="none" stroke="url(#line-${uid})" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
           </svg>
         </div>
         <div class="bt-card__meta">
-          <span><b style="color:${pct >= 0 ? '#33e6a6' : '#ff4d5e'}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</b> profit</span>
-          <span><b>${(b.trades || []).length}</b> positions</span>
-          <span><b>$${Math.round(capitalFor(b)).toLocaleString('fr-FR')}</b> capital${hasPfConfig(b) ? ' propfirm' : ''}</span>
+          <span><b>${(b.trades || []).length.toLocaleString('fr-FR')}</b> positions</span>
+          <span><b>${Math.round(report.stats.winRatePct)} %</b> réussite</span>
+          <span><b class="is-dd">−${Math.abs(report.stats.maxDrawdownPct).toFixed(1).replace('.', ',')} %</b> DD max</span>
         </div>
       </div>`;
     }).join('');
@@ -634,6 +698,21 @@ CHESTTour.init([
   { selector: '.bt-grid', title: 'Un backtest = une carte', text: 'La mini-courbe montre l\'évolution du capital simulé. Clique la carte pour ouvrir son rapport complet ; le menu ⋮ permet de modifier ou supprimer un backtest.' },
   { selector: '.bt-card__add', title: 'Ajouter un backtest', text: 'Importe un nouveau fichier : l\'assistant te guide en 4 étapes (fichier, infos, import, gestion du risque).' },
 ]);
+</script>
+<script>
+// CHEST 2.0 : bouton « Comparer » de la barre du haut (maquette Backtesting) : compare le backtest mis en avant.
+(function () {
+  const T = window.parent !== window && window.parent.CHESTTopbar;
+  if (!T || !window.CHESTCompare) return;
+  const slot = T.set(window, '<button type="button" class="btn2" style="height: 38px; padding: 0px 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgb(11, 11, 14); color: rgb(246, 246, 247); font: inherit; font-weight: 600; cursor: pointer;">Comparer</button>');
+  if (!slot) return;
+  slot.querySelector("button").addEventListener("click", () => {
+    const items = (window.CHESTBacktests && CHESTBacktests.list()) || [];
+    if (!items.length) { location.href = "backtest-add.html"; return; }
+    let id = null; try { id = localStorage.getItem("chest_bt_spot"); } catch (e) { /* stockage indisponible */ }
+    CHESTCompare.open(items.some((b) => b.id === id) ? id : items[0].id);
+  });
+})();
 </script>
 <script src="js/v2.js?v=5"></script>
 </body>
