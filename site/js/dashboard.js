@@ -1537,6 +1537,8 @@
     document.getElementById('kpiTradedDays').textContent = d.tradedDays ?? '—';
     document.getElementById('kpiTradedDaysSub').textContent = d.tradedDaysSub || '—';
     drawChart(d);
+    // v3 : js/dash-v3.js dessine l'anneau, la courbe miniature, les fenêtres glissantes et les priorités.
+    document.dispatchEvent(new CustomEvent('chest:dash-render', { detail: { account: a, period, data: d, objectives: a.objectives === null ? null : (a.objectives || SAMPLE_OBJECTIVES) } }));
   }
 
   // Degrade "chaleur" neon, en 2 phases (retour direct utilisateur du
