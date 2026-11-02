@@ -211,3 +211,6 @@ html.is-embedded .am2-bar .am-head__live{ margin-left:0; }
   .am2-counts{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:18px; width:100%; }
   .am2-cnt:nth-child(3){ border-left:0; }
 }
+
+/* CHEST 2.0 (2026-11-02) : dans le shell, les onglets des vues sont dans la barre du haut (js/admin-2.js) */
+html.am2-topbar .am-nav__tabs{ display:none !important; }
