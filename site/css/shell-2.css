@@ -65,8 +65,8 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
 
 /* ---------- Bloc 2 : raccords au site ---------- */
 /* le grain de la maquette est dans le shell : on retire l'ancien grain fixe de chest-da.css */
-#chestShell::after{ display:none !important; }
-#chestShell > .chest-main{ height:100vh; height:calc(100dvh / var(--chest-ui-scale, 1)); min-height:0; overflow:hidden; }
+#chestShell.c2-shell::after{ display:none !important; }
+#chestShell.c2-shell > .chest-main{ height:100vh; height:calc(100dvh / var(--chest-ui-scale, 1)); min-height:0; overflow:hidden; }
 .c2-topbar{ position:relative; }
 .c2-topbar a, .c2-topbar a:hover{ text-decoration:none; }
 .sb-acc__row:hover{ background:rgba(255,255,255,.03); }
@@ -83,13 +83,13 @@ html.plan-no-berich .nav-i[data-page="berich"]::after{
 }
 .sbT:checked ~ .sb .nav-i::after{ display:none; }
 /* le menu mobile de l'ancien shell n'existe plus : la maquette pose le menu en haut sous 900 px */
-#chestShell .chest-sidebar-overlay{ display:none; }
-@media (max-width:900px){ #chestShell > .chest-main{ height:auto; min-height:100vh; overflow:visible; } #chestShell .chest-view{ height:100vh; } }
+#chestShell.c2-shell .chest-sidebar-overlay{ display:none; }
+@media (max-width:900px){ #chestShell.c2-shell > .chest-main{ height:auto; min-height:100vh; overflow:visible; } #chestShell.c2-shell .chest-view{ height:100vh; } }
 /* la maquette garde l'interligne par défaut du navigateur (normal) : l'ancien CSS du site en imposait un plus grand */
-#chestShell{ line-height:normal; }
+#chestShell.c2-shell{ line-height:normal; }
 /* un élément réservé (Admin, HQ, Espace éducateur) reste caché malgré son display en ligne */
-#chestShell [hidden]{ display:none !important; }
+#chestShell.c2-shell [hidden]{ display:none !important; }
 /* l'ancienne règle « label » du site (marge basse) agrandissait la barre : neutralisée */
-#chestShell .c2-search label{ margin:0; }
-#chestShell .c2-topbar .chest-progress{ position:absolute; left:0; bottom:-1px; }
-#chestShell .c2-search label{ font-weight:400; font-size:inherit; }
+#chestShell.c2-shell .c2-search label{ margin:0; }
+#chestShell.c2-shell .c2-topbar .chest-progress{ position:absolute; left:0; bottom:-1px; }
+#chestShell.c2-shell .c2-search label{ font-weight:400; font-size:inherit; }
