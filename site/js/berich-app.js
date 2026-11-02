@@ -396,12 +396,12 @@
       g.addColorStop(0, rgba(MINT, 1)); g.addColorStop(t, rgba(MINT, 1)); g.addColorStop(t, rgba(RED, 1)); g.addColorStop(1, rgba(RED, 1));
       return g;
     }
-    g.addColorStop(0, rgba(MINT, maxV > base ? .12 : 0)); g.addColorStop(t, rgba(MINT, 0)); g.addColorStop(t, rgba(RED, 0)); g.addColorStop(1, rgba(RED, minV < base ? .12 : 0));
+    g.addColorStop(0, rgba(MINT, maxV > base ? .26 : 0)); g.addColorStop(t, rgba(MINT, 0)); g.addColorStop(t, rgba(RED, 0)); g.addColorStop(1, rgba(RED, minV < base ? .24 : 0));
     return g;
   }
   const glowPlugin = {
     id: 'brGlow',
-    beforeDatasetDraw(c, args) { if (args.index !== 0) return; c.ctx.save(); c.ctx.shadowColor = 'transparent'; c.ctx.shadowBlur = 0; }, // v3 : plus de lueur
+    beforeDatasetDraw(c, args) { if (args.index !== 0) return; c.ctx.save(); c.ctx.shadowColor = 'rgba(160,255,220,.5)'; c.ctx.shadowBlur = 12; },
     afterDatasetDraw(c, args) { if (args.index === 0) c.ctx.restore(); },
   };
   // Ligne d'objectif en pointillés (vue « Ton plan »).

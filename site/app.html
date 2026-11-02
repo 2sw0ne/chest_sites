@@ -70,7 +70,6 @@
 <script src="js/sync-store.js?v=16"></script>
 <script src="js/pwa.js?v=6"></script>
 <link rel="stylesheet" href="css/v2.css?v=16">
-<link rel="stylesheet" href="css/v3.css?v=2">
 <!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
 <style>
   html.plan-no-school .chest-nav__item[data-page="school"]::after,
@@ -276,16 +275,13 @@
       <svg class="chest-sidebar__toggle-bg" viewBox="0 0 22 112" preserveAspectRatio="none"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    <!-- v3 (2026-11-02) : navigation rangée par thèmes (les liens gardent .chest-nav__item[data-page] pour shell.js). -->
-    <nav class="chest-nav chest-nav--v3">
-      <div class="chest-nav__group" aria-hidden="true"><span>Ton compte</span></div>
+    <div class="chest-sidebar__label"><span>Navigation</span></div>
+    <nav class="chest-nav">
       <a href="#/dashboard" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
+      <a href="#/backtesting" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
       <a href="#/journal" data-page="journal" class="chest-nav__item"><span class="chest-nav__ic chest-ic-journal"></span><span class="chest-nav__item-label">Journal</span><span class="chest-nav__mark"></span></a>
-      <div class="chest-nav__group" aria-hidden="true"><span>Marché</span></div>
       <a href="#/strategies" data-page="strategies" class="chest-nav__item"><span class="chest-nav__ic chest-ic-strategies"></span><span class="chest-nav__item-label">Stratégies</span><span class="chest-nav__mark"></span></a>
       <a href="#/calendar" data-page="calendar" class="chest-nav__item"><span class="chest-nav__ic chest-ic-calendar"></span><span class="chest-nav__item-label">Calendrier</span><span class="chest-nav__mark"></span></a>
-      <a href="#/backtesting" data-page="backtesting" class="chest-nav__item"><span class="chest-nav__ic chest-ic-backtesting"></span><span class="chest-nav__item-label">Backtesting</span><span class="chest-nav__mark"></span></a>
-      <div class="chest-nav__group" aria-hidden="true"><span>Croissance</span></div>
       <a href="#/berich" data-page="berich" class="chest-nav__item"><span class="chest-nav__ic chest-ic-berich"></span><span class="chest-nav__item-label">BERICH</span><span class="chest-nav__mark"></span></a>
       <a href="#/school" data-page="school" class="chest-nav__item"><span class="chest-nav__ic chest-ic-school"></span><span class="chest-nav__item-label">School</span><span class="chest-nav__mark"></span></a>
       <div class="chest-nav__sep" data-admin-only hidden aria-hidden="true"></div>

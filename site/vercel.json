@@ -1,11 +1,6 @@
 {
   "redirects": [
     {
-      "source": "/",
-      "destination": "/connexion",
-      "permanent": false
-    },
-    {
       "source": "/index.html",
       "destination": "/connexion",
       "permanent": false
@@ -29,9 +24,18 @@
       "source": "/offres.html",
       "destination": "/offres",
       "permanent": false
+    },
+    {
+      "source": "/landing.html",
+      "destination": "/",
+      "permanent": false
     }
   ],
   "rewrites": [
+    {
+      "source": "/",
+      "destination": "/landing.html"
+    },
     {
       "source": "/legal",
       "destination": "/legal.html"

@@ -1537,8 +1537,6 @@
     document.getElementById('kpiTradedDays').textContent = d.tradedDays ?? '—';
     document.getElementById('kpiTradedDaysSub').textContent = d.tradedDaysSub || '—';
     drawChart(d);
-    // v3 : js/dash-v3.js dessine l'anneau, la courbe miniature, les fenêtres glissantes et les priorités.
-    document.dispatchEvent(new CustomEvent('chest:dash-render', { detail: { account: a, period, data: d, objectives: a.objectives === null ? null : (a.objectives || SAMPLE_OBJECTIVES) } }));
   }
 
   // Degrade "chaleur" neon, en 2 phases (retour direct utilisateur du
@@ -1583,7 +1581,7 @@
     const grad = c2d.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
     // Remplissage moins sature (etait 0.85) : a cette intensite il noyait le trait au lieu de
     // rester un simple appui visuel derriere lui (retour utilisateur 2026-10-11, "trop vague").
-    const peak = forLine ? 1 : 0.14; // v3 : remplissage plus discret
+    const peak = forLine ? 1 : 0.3;
     const maxV = Math.max(...series, r), minV = Math.min(...series, r);
     if (maxV <= r) {
       if (forLine) { grad.addColorStop(0, rgbaColor(NEON_RED, peak)); grad.addColorStop(1, rgbaColor(NEON_RED, peak)); return grad; }
@@ -1620,7 +1618,7 @@
     beforeDatasetDraw(c, args) {
       if (!args.meta.dataset || args.index !== 0) return;
       c.ctx.save();
-      c.ctx.shadowColor = 'transparent'; // v3 : plus de lueur sous la courbe
+      c.ctx.shadowColor = 'rgba(160,255,220,.35)';
       c.ctx.shadowBlur = 4;
     },
     afterDatasetDraw(c, args) { if (args.index === 0) c.ctx.restore(); },
@@ -1853,11 +1851,6 @@
     // fin du chargement, qui peut prendre plusieurs minutes.
     const toolsToggle = document.getElementById('toolsToggle');
     const toolsPanel = document.getElementById('toolsPanel');
-    // v3 : outils toujours visibles (plus de volet) - rendus tout de suite.
-    if (!toolsToggle || !toolsPanel) {
-      CHESTSessionTimeline.render('sessionTimeline');
-      CHESTCurrencyStrength.render('currencyStrength');
-    } else {
     let toolsLoaded = false;
     const toolsObserver = new MutationObserver(() => {
       if (toolsToggle.classList.contains('is-open')) {
@@ -1876,7 +1869,6 @@
         CHESTCurrencyStrength.render('currencyStrength');
       }
     });
-    }
 
     document.addEventListener('chest:theme', () => render(document.querySelector('#periodPills .is-active').dataset.period));
   });
