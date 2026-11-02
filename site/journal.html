@@ -469,6 +469,7 @@
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
 <link rel="stylesheet" href="css/chest-2-site.css?v=2">
+<link rel="stylesheet" href="css/journal-2.css?v=1">
 </head>
 <body data-page="journal" class="chest-root">
 
@@ -617,6 +618,60 @@
 
   <!-- ============ Page 3 : dashboard du compte ============ -->
   <div id="jrDashboard" hidden>
+    <!-- CHEST 2.0 (2026-11-02) : vue du journal copiée de CHEST-DESIGN-2.0/html-exact/Journal.html, remplie par js/journal-2.js
+         (événement chest:jr-render). Les blocs v2 ci-dessous restent pour les formulaires et l'historique complet. -->
+    <div id="jr2" hidden style="color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px;">
+    <section id="jr2Hero" style="position: relative; isolation: isolate; overflow: hidden; text-align: center; padding: 40px 36px 0px;"></section>
+
+    <div style="display: flex; flex-direction: column; gap: 0px; padding: 0px 36px 64px; max-width: 1180px; width: 100%; box-sizing: border-box;">
+      <section id="jr2Kpis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); row-gap: 18px; padding: 26px 0px 30px;"></section>
+
+      <div class="cols2" style="display: grid; grid-template-columns: repeat(2, minmax(0px, 1fr)); column-gap: 44px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+      <section style="padding: 30px 0px;">
+        <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — Conditions du compte</span>
+          <span id="jr2CondHint" style="margin-left: auto; font-size: 11.5px; color: rgb(122, 122, 130);"></span>
+        </div>
+        <div id="jr2Conds" style="display: flex; flex-direction: column;"></div>
+      </section>
+      <section style="padding: 30px 0px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <span id="jr2MonthTitle" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">03 — Le mois jour par jour</span>
+          <span id="jr2MonthHint" style="margin-left: auto; font-size: 11.5px; color: rgb(122, 122, 130);"></span>
+        </div>
+        <div id="jr2Month" style="display: grid; grid-template-columns: repeat(5, minmax(0px, 1fr)); gap: 6px;"></div>
+      </section>
+      </div>
+
+      <section style="position: relative; overflow: hidden; margin-top: 6px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(14, 14, 17, 0.72), rgba(9, 9, 11, 0.86)); box-shadow: rgba(0, 0, 0, 0.45) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+        <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">04 — Positions</span>
+          <div role="group" aria-label="Filtre" id="jr2Filter" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);"></div>
+        </div>
+        <div style="overflow-x: auto;">
+          <div style="min-width: 820px; display: flex; flex-direction: column;">
+            <div style="display: grid; grid-template-columns: 1.1fr 1fr 0.8fr 0.6fr 0.9fr 0.9fr 0.6fr 1.3fr 0.9fr; gap: 10px; padding: 8px; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: rgb(122, 122, 130); border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
+              <span>Date</span><span>Paire</span><span>Sens</span><span>Lot</span><span>Entrée</span><span>Sortie</span><span>R</span><span>Note</span><span style="text-align: right;">Résultat</span>
+            </div>
+            <div id="jr2Rows" style="display: contents;"></div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: rgb(122, 122, 130);">
+          <span id="jr2Count"></span>
+          <button type="button" data-all style="margin-left: auto; height: 34px; padding: 0px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.12); background: transparent; color: rgb(201, 201, 206); font: inherit; font-size: 12px; cursor: pointer;">Voir tout l’historique</button>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 18px; padding-top: 40px;">
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">05 — Tes journaux</span>
+          <span style="margin-left: auto; font-size: 11.5px; color: rgb(122, 122, 130);">Un journal par compte</span>
+        </div>
+        <div id="jr2Journals" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 16px;"></div>
+      </section>
+    </div>
+    </div>
     <!-- v2 : héros du journal — choix du journal, P&L cumulé en grand, actions, puis la courbe pleine largeur. -->
     <section class="jrd" id="jrDetailHero">
       <div class="jrd__top">
@@ -834,9 +889,9 @@
       </div>
     </div>
 
-    <div class="chest-section" style="border-top:1px solid var(--chest-rule)">
+    <div class="chest-section" id="jrHistory" style="border-top:1px solid var(--chest-rule)">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px">
-      <span class="chest-step">03 — Positions</span>
+      <span class="chest-step">Historique complet</span>
     </div>
     <div class="chest-glass jr-table-wrap" id="jrTableWrap">
       <table class="jr-table">
@@ -2294,7 +2349,8 @@ CHESTTour.init([
   async function loadAndRender() {
     const accounts = CHESTJournal.listAccounts();
     const params = new URLSearchParams(window.location.search);
-    const acc = params.get('acc') ? accounts.find((a) => a.id === params.get('acc')) : null;
+    const acc = params.get('acc') ? accounts.find((a) => a.id === params.get('acc'))
+      : (params.get('hub') === '1' || !accounts.length ? null : (CHESTJournal.getActiveAccount() || accounts[0]));
     if (!acc) {
       showView('hub');
       await renderHub();
@@ -2317,6 +2373,9 @@ CHESTTour.init([
     renderStats(allRows);
     renderTable();
     onAccountChanged();
+    document.getElementById('jrHistory').hidden = document.body.classList.contains('jr2-on') ? document.getElementById('jrHistory').hidden : true;
+    document.dispatchEvent(new CustomEvent('chest:jr-render', { detail: { acc, rows: allRows, member: currentMember, subtitle: accountSubtitle(acc), subtitleOf: accountSubtitle,
+      openForm: (id) => { const r = allRows.find((x) => x.id === id); if (r) openForm(r); } } }));
     if (params.get('addlive') === '1') { openLiveModal(acc.id); history.replaceState(null, '', `journal.html?acc=${encodeURIComponent(acc.id)}`); }
     else syncLives(acc, false);
   }
@@ -2324,6 +2383,7 @@ CHESTTour.init([
   loadAndRender();
 })();
 </script>
+<script src="js/journal-2.js?v=2"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>
