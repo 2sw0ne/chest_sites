@@ -314,6 +314,7 @@
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
 <link rel="stylesheet" href="css/chest-2-site.css?v=2">
+<link rel="stylesheet" href="css/strat-2.css?v=2">
 </head>
 <body data-page="strategies" class="chest-root">
 
@@ -594,7 +595,7 @@ CHESTTour.init([
     document.getElementById('scnrHeroLogoWrap').innerHTML = scanner.logo
       ? `<img class="scnr-hero__logo" src="${scanner.logo}" alt="${scanner.name}">`
       : `<span class="scnr-hero__logo-fallback" style="background:${scanner.logoColor}">${scanner.logoInitials}</span>`;
-    document.getElementById('scnrHeroName').textContent = 'Stratégie ' + scanner.name;
+    document.getElementById('scnrHeroName').textContent = scanner.name; // CHEST 2.0 : le nom seul, comme la maquette
     document.getElementById('scnrHeroTags').textContent = (scanner.tags || []).join(' · ');
   }
 
@@ -746,6 +747,8 @@ CHESTTour.init([
   }
 
   function renderOpportunities(list) {
+    // CHEST 2.0 : « Signal en cours » et « Derniers signaux » sous le graphique (js/strat-2.js)
+    document.dispatchEvent(new CustomEvent('chest:scnr-opps', { detail: { list, scannerId: currentScannerId, symbol: currentSymbol, tf: currentTimeframe } }));
     const box = document.getElementById('alrLast');
     const mine = list.filter((o) => o.scanner === currentScannerId).sort((x, y) => y.time - x.time)[0];
     if (!mine) {
@@ -794,6 +797,7 @@ CHESTTour.init([
       renderOpportunities(body.opportunities || []);
     } catch (e) {
       document.getElementById('alrLast').innerHTML = '<div class="alr-last__empty">Opportunité indisponible pour le moment.</div>';
+      document.dispatchEvent(new CustomEvent('chest:scnr-opps', { detail: { list: [], error: true, scannerId: currentScannerId, symbol: currentSymbol, tf: currentTimeframe } }));
     }
   }
 
@@ -996,6 +1000,7 @@ CHESTTour.init([
     </div>
   </div>
 </div>
+<script src="js/strat-2.js?v=1"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>
