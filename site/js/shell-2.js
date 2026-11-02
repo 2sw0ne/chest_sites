@@ -7,6 +7,19 @@
   const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const go = (name, search) => { if (window.CHESTShell) CHESTShell.go(name, search || ''); else location.hash = '#/' + name + (search || ''); };
 
+  // ---------- Menu replié (case #sbT de la maquette), gardé par appareil avec la même clé que nav.js ----------
+  const sbT = $('sbT');
+  if (sbT) {
+    try { sbT.checked = localStorage.getItem('chest_nav_collapsed') === '1'; } catch (e) { /* tant pis */ }
+    sbT.addEventListener('change', () => {
+      try { localStorage.setItem('chest_nav_collapsed', sbT.checked ? '1' : '0'); } catch (e) { /* tant pis */ }
+      const sh = $('chestShell'); if (sh) sh.classList.toggle('is-collapsed', sbT.checked);
+    });
+  }
+  // HQ est un lien « # » dans la maquette : on garde l'adresse, js/hq.js ouvre CHEST HQ.
+  const hqLink = $('chestHq');
+  if (hqLink) hqLink.addEventListener('click', (e) => e.preventDefault());
+
   // ---------- Recherche ----------
   const PAGES = [
     ['dashboard', 'Dashboard', 'Suivi'], ['journal', 'Journal de trading', 'Suivi'], ['backtesting', 'Backtesting', 'Recherche'],
@@ -60,7 +73,6 @@
     list.addEventListener('mousedown', (e) => { const b = e.target.closest('[data-i]'); if (b) { e.preventDefault(); pick(Number(b.dataset.i)); } });
     input.addEventListener('blur', () => setTimeout(close, 120));
     const kbd = $('c2SearchKbd');
-    if (kbd && !/Mac|iPhone|iPad/.test(navigator.platform)) kbd.textContent = 'Ctrl K';
     document.addEventListener('keydown', (e) => {
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
       if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !typing)) { e.preventDefault(); input.focus(); input.select(); }

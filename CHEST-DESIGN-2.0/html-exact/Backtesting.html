@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHEST 2.0 — Backtesting</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+
+    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
+      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
+      border-radius:2px;box-sizing:border-box;overflow:hidden}
+    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
+    html.sc-dc-streaming .sc-placeholder,
+    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
+      background:color-mix(in srgb,currentColor 5%,transparent);
+      border-color:transparent}
+    html.sc-dc-streaming .sc-placeholder::before,
+    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
+      position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
+      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
+    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
+    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
+      background:color-mix(in srgb,currentColor 8%,transparent)}
+    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
+      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
+    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
+      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;color:transparent;
+      user-select:none}
+    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
+      color:color-mix(in srgb,currentColor 50%,transparent);
+      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
+      padding:0 3px}
+    .sc-host.sc-has-error{position:relative}
+    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
+      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
+      border-radius:4px;white-space:pre-wrap;pointer-events:none}
+    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts — keep both
+       in sync until dc-runtime regains a build step. */
+    @media print {
+      @page { margin: 0.5cm; }
+      figure, table { break-inside: avoid; }
+      #dc-root, #dc-root > .sc-host { height: auto; }
+      *, *::before, *::after {
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        animation-delay: -99s !important; animation-duration: .001s !important;
+        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+        animation-play-state: running !important; transition-duration: 0s !important;
+      }
+    }
+  
+
+body{margin:0;background:#050506}
+a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
+.algo{transition:border-color .2s cubic-bezier(.16,1,.3,1),transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s cubic-bezier(.16,1,.3,1)}
+.algo:hover{transform:translateY(-3px);border-color:rgba(249,164,94,.45)!important;box-shadow:0 18px 44px rgba(0,0,0,.5),0 10px 30px rgba(252,18,131,.14),inset 1.5px 1.5px 0 rgba(255,255,255,.16)!important}
+.add:hover{border-color:rgba(249,164,94,.5)!important;background:linear-gradient(135deg,rgba(252,18,131,.08),rgba(249,164,94,.06))!important}
+.pick{transition:color .2s}
+.pick:hover{color:#f6f6f7!important}
+.btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
+.btn2:hover{background:linear-gradient(#0b0b0e,#0b0b0e) padding-box,linear-gradient(135deg,#fc1283,#f9a45e) border-box!important;box-shadow:0 8px 26px rgba(252,18,131,.18)}
+@keyframes dotPulse{50%{box-shadow:0 0 0 10px rgba(51,230,166,0),0 0 22px rgba(51,230,166,.9)}}
+.pulse{animation:dotPulse 2.4s ease-in-out infinite}
+.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
+.sb-tog:hover{color:#f6f6f7}
+.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
+.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i:active{transform:scale(.98)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
+.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.adm .ic{stroke:url(#sba)}
+.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc__id{display:flex;flex-direction:column;min-width:0}
+.sb-acc__id b{font-size:12.5px;line-height:1.25}
+.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
+.sbT:checked ~ .sb .sb-txt{display:none}
+.sbT:checked ~ .sb .sb-tog .chev{transform:none}
+.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
+.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
+.sbT:checked ~ .sb .sb-nav{padding:0 11px}
+.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
+.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
+.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
+.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+</style>
+</head>
+<body>
+
+<div id="dc-root"><div class="sc-host" data-sc-name="Backtesting"><div data-dc-tpl="3" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: rgb(5, 5, 6); color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
+  <div data-dc-tpl="4" aria-hidden="true" style="position: absolute; inset: 0px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.05; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size: 180px 180px;"></div>
+
+  
+  <input data-dc-tpl="5" type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside data-dc-tpl="6" class="sb">
+    <svg data-dc-tpl="7" width="0" height="0" aria-hidden="true" style="position: absolute;"><defs data-dc-tpl="8"><linearGradient data-dc-tpl="9" id="sbg" x1="0" y1="0" x2="1" y2="1"><stop data-dc-tpl="10" offset="0" stop-color="#fc1283"></stop><stop data-dc-tpl="11" offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient data-dc-tpl="12" id="sba" x1="0" y1="0" x2="1" y2="1"><stop data-dc-tpl="13" offset="0" stop-color="#ff8a1f"></stop><stop data-dc-tpl="14" offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label data-dc-tpl="15" for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg data-dc-tpl="16" class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path data-dc-tpl="17" d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg data-dc-tpl="18" class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="19" d="M9 5l7 7-7 7"></path></svg>
+    </label>
+    <a data-dc-tpl="20" href="Main.dc.html" class="sb-brand">
+      <img data-dc-tpl="21" src="assets/logo-chest-new.webp" alt="CHEST">
+      <span data-dc-tpl="22" class="sb-txt">CHEST</span>
+    </a>
+    <div data-dc-tpl="23" class="sb-label"><span data-dc-tpl="24" class="sb-txt">Navigation</span></div>
+    <nav data-dc-tpl="25" class="sb-nav" aria-label="Navigation principale">
+        <a data-dc-tpl="26" href="Main.dc.html" class="nav-i" title="Dashboard">
+          <svg data-dc-tpl="27" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="28" x="3" y="3" width="8" height="8" rx="2"></rect><rect data-dc-tpl="29" x="13" y="3" width="8" height="5" rx="2"></rect><rect data-dc-tpl="30" x="3" y="13" width="8" height="8" rx="2"></rect><rect data-dc-tpl="31" x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span data-dc-tpl="32" class="sb-txt">Dashboard</span>
+        </a>
+        <a data-dc-tpl="33" href="Backtesting.dc.html" class="nav-i on" aria-current="page" title="Backtesting">
+          <svg data-dc-tpl="34" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="35" d="M3 17l5-5 4 3 6-8"></path><path data-dc-tpl="36" d="M3 21h18"></path></svg>
+          <span data-dc-tpl="37" class="sb-txt">Backtesting</span>
+        </a>
+        <a data-dc-tpl="38" href="Journal.dc.html" class="nav-i" title="Journal">
+          <svg data-dc-tpl="39" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="40" x="4" y="3" width="16" height="18" rx="2"></rect><path data-dc-tpl="41" d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span data-dc-tpl="42" class="sb-txt">Journal</span>
+        </a>
+        <a data-dc-tpl="43" href="Strategies.dc.html" class="nav-i" title="Stratégies">
+          <svg data-dc-tpl="44" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="45" d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span data-dc-tpl="46" class="sb-txt">Stratégies</span>
+        </a>
+        <a data-dc-tpl="47" href="Calendrier.dc.html" class="nav-i" title="Calendrier">
+          <svg data-dc-tpl="48" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="49" x="3" y="5" width="18" height="16" rx="2"></rect><path data-dc-tpl="50" d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span data-dc-tpl="51" class="sb-txt">Calendrier</span>
+        </a>
+        <a data-dc-tpl="52" href="Berich.dc.html" class="nav-i" title="BERICH">
+          <svg data-dc-tpl="53" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="54" d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span data-dc-tpl="55" class="sb-txt">BERICH</span>
+        </a>
+        <a data-dc-tpl="56" href="School.dc.html" class="nav-i" title="School">
+          <svg data-dc-tpl="57" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="58" d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path data-dc-tpl="59" d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path data-dc-tpl="60" d="M22 9.5V15"></path></svg>
+          <span data-dc-tpl="61" class="sb-txt">School</span>
+        </a>
+        <span data-dc-tpl="62" class="sb-sep" aria-hidden="true"></span>
+        <a data-dc-tpl="63" href="Admin.dc.html" class="nav-i adm" title="Admin">
+          <svg data-dc-tpl="64" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="65" d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span data-dc-tpl="66" class="sb-txt">Admin</span>
+        </a>
+    </nav>
+    <div data-dc-tpl="67" class="sb-acc">
+      <div data-dc-tpl="68" class="sb-acc__label sb-txt">Compte</div>
+      <a data-dc-tpl="69" href="Compte.dc.html" class="sb-acc__row">
+        <span data-dc-tpl="70" class="sb-acc__av">M</span>
+        <span data-dc-tpl="71" class="sb-txt sb-acc__id"><b data-dc-tpl="72">Morgan</b><span data-dc-tpl="73">morgan@exemple.fr</span></span>
+      </a>
+      <button data-dc-tpl="74" type="button" class="sb-out" title="Se déconnecter">
+        <svg data-dc-tpl="75" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="76" d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span data-dc-tpl="77" class="sb-txt">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <a data-dc-tpl="78" href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
+    <svg data-dc-tpl="79" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="80" x="5" y="2.5" width="14" height="19" rx="3"></rect><path data-dc-tpl="81" d="M8.5 6.5h7"></path><path data-dc-tpl="82" d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
+  </a>
+
+  
+  <main data-dc-tpl="83" style="position: relative; z-index: 1; flex: 999 1 560px; min-width: 0px; display: flex; flex-direction: column;">
+    <header data-dc-tpl="84" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+      <div data-dc-tpl="85" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+        <span data-dc-tpl="86" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Recherche</span>
+        <span data-dc-tpl="87" style="color: rgb(58, 58, 64);">/</span>
+        <span data-dc-tpl="88" style="font-weight: 600;">Backtesting</span>
+      </div>
+      <button data-dc-tpl="89" type="button" class="btn2" style="margin-left: auto; height: 38px; padding: 0px 16px; border-radius: 12px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)) border-box border-box; color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-weight: 600; cursor: pointer;">Comparer</button>
+    </header>
+
+    
+    <section data-dc-tpl="90" style="position: relative; isolation: isolate; overflow: hidden; text-align: center; padding: 40px 36px 0px;">
+      <div data-dc-tpl="91" aria-hidden="true" style="position: absolute; left: 50%; top: 0px; width: 900px; height: 520px; margin-left: -450px; z-index: -2; pointer-events: none; filter: blur(100px); background: radial-gradient(40% 46% at 40% 40%, rgba(252, 18, 131, 0.22), transparent 72%), radial-gradient(34% 40% at 64% 36%, rgba(249, 164, 94, 0.14), transparent 74%);"></div>
+      <div data-dc-tpl="92" class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 18px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 78%) text; color: transparent;">Backtesting</div>
+
+      <div data-dc-tpl="93" role="tablist" aria-label="Algorithme mis en avant" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 24px;">
+        
+          <button data-dc-tpl="95" type="button" role="tab" class="pick" aria-selected="true" style="position: relative; padding: 8px 0px; border: 0px; background: none; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; color: rgb(246, 246, 247); cursor: pointer;">
+            <span class="sc-interp">SWYPER</span>
+            <span data-dc-tpl="96" aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.55) 0px 0px 10px; opacity: 1;"></span>
+          </button>
+        
+          <button data-dc-tpl="95" type="button" role="tab" class="pick" aria-selected="false" style="position: relative; padding: 8px 0px; border: 0px; background: none; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; color: rgb(122, 122, 130); cursor: pointer;">
+            <span class="sc-interp">PULSE</span>
+            <span data-dc-tpl="96" aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.55) 0px 0px 10px; opacity: 0;"></span>
+          </button>
+        
+          <button data-dc-tpl="95" type="button" role="tab" class="pick" aria-selected="false" style="position: relative; padding: 8px 0px; border: 0px; background: none; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; color: rgb(122, 122, 130); cursor: pointer;">
+            <span class="sc-interp">NEXUS</span>
+            <span data-dc-tpl="96" aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.55) 0px 0px 10px; opacity: 0;"></span>
+          </button>
+        
+          <button data-dc-tpl="95" type="button" role="tab" class="pick" aria-selected="false" style="position: relative; padding: 8px 0px; border: 0px; background: none; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; color: rgb(122, 122, 130); cursor: pointer;">
+            <span class="sc-interp">SUPERNOVA</span>
+            <span data-dc-tpl="96" aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.55) 0px 0px 10px; opacity: 0;"></span>
+          </button>
+        
+          <button data-dc-tpl="95" type="button" role="tab" class="pick" aria-selected="false" style="position: relative; padding: 8px 0px; border: 0px; background: none; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; color: rgb(122, 122, 130); cursor: pointer;">
+            <span class="sc-interp">HARMONICS</span>
+            <span data-dc-tpl="96" aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.55) 0px 0px 10px; opacity: 0;"></span>
+          </button>
+        
+          <button data-dc-tpl="95" type="button" role="tab" class="pick" aria-selected="false" style="position: relative; padding: 8px 0px; border: 0px; background: none; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; color: rgb(122, 122, 130); cursor: pointer;">
+            <span class="sc-interp">WAVE</span>
+            <span data-dc-tpl="96" aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.55) 0px 0px 10px; opacity: 0;"></span>
+          </button>
+        
+      </div>
+
+      <div data-dc-tpl="97" style="margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
+        <h1 data-dc-tpl="98" style="margin: 0px; font-size: 76px; line-height: 1; font-weight: 700; letter-spacing: -0.05em;"><span class="sc-interp">SWYPER</span></h1>
+        
+          <span data-dc-tpl="100" style="font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; padding: 5px 11px; border-radius: 999px; color: rgb(249, 164, 94); border: 1px solid rgba(249, 164, 94, 0.4); background: rgba(249, 164, 94, 0.08);">Meilleur ratio</span>
+        
+      </div>
+      <p data-dc-tpl="101" style="max-width: 560px; margin: 14px auto 0px; font-size: 13.5px; line-height: 1.6; color: rgb(155, 155, 161);"><span class="sc-interp">Retournements après balayage de liquidité sur l’or. Le plus régulier de la bibliothèque.</span></p>
+      <div data-dc-tpl="102" style="margin-top: 24px; font-size: 104px; line-height: 0.98; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; background: linear-gradient(rgb(255, 255, 255) 8%, rgb(201, 251, 233) 45%, rgb(51, 230, 166)) text; color: transparent; filter: drop-shadow(rgba(51, 230, 166, 0.3) 0px 0px 36px);"><span class="sc-interp">+184 %</span></div>
+      <div data-dc-tpl="103" style="margin-top: 10px; font-size: 13px; color: rgb(155, 155, 161);">de <b data-dc-tpl="104" style="color: rgb(246, 246, 247); font-weight: 600;"><span class="sc-interp">10 000 $</span></b> à <b data-dc-tpl="105" style="color: rgb(246, 246, 247); font-weight: 600;"><span class="sc-interp">28 400 $</span></b> · <span class="sc-interp">janv. 2023 → oct. 2026</span></div>
+
+      <dl data-dc-tpl="106" style="margin: 26px auto 0px; display: flex; flex-wrap: wrap; justify-content: center;">
+        
+          <div data-dc-tpl="108" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 26px; border-left: 0px;">
+            <dt data-dc-tpl="109" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Profit factor</span></dt>
+            <dd data-dc-tpl="110" style="margin: 0px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202);"><span class="sc-interp">2,31</span></dd>
+          </div>
+        
+          <div data-dc-tpl="108" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 26px; border-left: 1px solid rgba(255, 255, 255, 0.09);">
+            <dt data-dc-tpl="109" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Taux de réussite</span></dt>
+            <dd data-dc-tpl="110" style="margin: 0px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">58 %</span></dd>
+          </div>
+        
+          <div data-dc-tpl="108" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 26px; border-left: 1px solid rgba(255, 255, 255, 0.09);">
+            <dt data-dc-tpl="109" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Drawdown max</span></dt>
+            <dd data-dc-tpl="110" style="margin: 0px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160);"><span class="sc-interp">−7,8 %</span></dd>
+          </div>
+        
+          <div data-dc-tpl="108" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 26px; border-left: 1px solid rgba(255, 255, 255, 0.09);">
+            <dt data-dc-tpl="109" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Positions</span></dt>
+            <dd data-dc-tpl="110" style="margin: 0px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">612</span></dd>
+          </div>
+        
+      </dl>
+
+      <div data-dc-tpl="111" style="margin-top: 28px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+        <a data-dc-tpl="112" href="#" style="display: flex; align-items: center; height: 44px; padding: 0px 22px; border-radius: 999px; color: rgb(255, 255, 255); font-weight: 600; background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.3) 0px 10px 30px;">Ouvrir le rapport</a>
+        <a data-dc-tpl="113" href="#" class="btn2" style="display: flex; align-items: center; height: 44px; padding: 0px 20px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.14)) border-box border-box; font-weight: 600;">+ Nouveau backtest</a>
+      </div>
+
+      <div data-dc-tpl="114" style="position: relative; height: 280px; margin: 34px -36px 0px; mask-image: linear-gradient(90deg, transparent, rgb(0, 0, 0) 6%, rgb(0, 0, 0) 94%, transparent);">
+        <svg data-dc-tpl="115" width="100%" height="280" viewBox="0 0 1000 280" preserveAspectRatio="none" aria-label="Courbe du backtest mis en avant" style="display: block; overflow: visible;">
+          <defs data-dc-tpl="116">
+            <linearGradient data-dc-tpl="117" id="spA" x1="0" y1="0" x2="0" y2="1"><stop data-dc-tpl="118" offset="0" stop-color="rgba(51,230,166,.34)"></stop><stop data-dc-tpl="119" offset="1" stop-color="rgba(0,0,0,0)"></stop></linearGradient>
+            <linearGradient data-dc-tpl="120" id="spL" x1="0" y1="0" x2="1" y2="0"><stop data-dc-tpl="121" offset="0" stop-color="rgba(51,230,166,.35)"></stop><stop data-dc-tpl="122" offset=".55" stop-color="rgb(51,230,166)"></stop><stop data-dc-tpl="123" offset="1" stop-color="#ffffff"></stop></linearGradient>
+          </defs>
+          <line data-dc-tpl="124" x1="0" x2="1000" y1="266.0" y2="266.0" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 7" vector-effect="non-scaling-stroke"></line>
+          <path data-dc-tpl="125" d="M0.0,266.0 C1.8,265.1 7.0,262.9 10.6,260.5 C14.1,258.1 17.6,253.3 21.1,251.6 C24.6,250.0 28.2,250.7 31.7,250.8 C35.2,250.9 38.7,252.2 42.2,252.5 C45.8,252.8 49.3,253.7 52.8,252.6 C56.3,251.4 59.9,246.7 63.4,245.6 C66.9,244.6 70.4,246.3 73.9,246.1 C77.5,246.0 81.0,246.4 84.5,244.9 C88.0,243.4 91.5,238.9 95.1,237.4 C98.6,235.9 102.1,237.1 105.6,236.0 C109.1,234.9 112.7,233.1 116.2,230.9 C119.7,228.7 123.2,225.8 126.7,222.9 C130.3,219.9 133.8,214.8 137.3,213.4 C140.8,211.9 144.3,213.3 147.9,214.0 C151.4,214.7 154.9,216.7 158.4,217.5 C161.9,218.4 165.5,218.5 169.0,219.0 C172.5,219.6 176.0,220.4 179.6,220.7 C183.1,220.9 186.6,219.8 190.1,220.4 C193.6,221.1 197.2,224.4 200.7,224.5 C204.2,224.7 207.7,220.8 211.2,221.3 C214.8,221.7 218.3,226.7 221.8,227.2 C225.3,227.7 228.8,223.7 232.4,224.4 C235.9,225.1 239.4,229.6 242.9,231.3 C246.4,233.0 250.0,233.8 253.5,234.7 C257.0,235.5 260.5,236.0 264.0,236.3 C267.6,236.6 271.1,236.7 274.6,236.7 C278.1,236.6 281.6,236.5 285.2,236.3 C288.7,236.0 292.2,235.7 295.7,235.1 C299.3,234.6 302.8,232.8 306.3,232.9 C309.8,233.0 313.3,235.6 316.9,235.5 C320.4,235.3 323.9,232.1 327.4,231.9 C330.9,231.7 334.5,233.7 338.0,234.5 C341.5,235.3 345.0,236.7 348.5,236.7 C352.1,236.7 355.6,236.2 359.1,234.4 C362.6,232.7 366.1,227.2 369.7,226.1 C373.2,225.0 376.7,228.9 380.2,228.1 C383.7,227.2 387.3,222.9 390.8,220.8 C394.3,218.7 397.8,217.8 401.3,215.5 C404.9,213.3 408.4,209.0 411.9,207.3 C415.4,205.6 419.0,206.9 422.5,205.5 C426.0,204.0 429.5,200.8 433.0,198.4 C436.6,196.0 440.1,193.1 443.6,191.1 C447.1,189.1 450.6,188.0 454.2,186.2 C457.7,184.4 461.2,181.6 464.7,180.4 C468.2,179.3 471.8,181.1 475.3,179.5 C478.8,177.9 482.3,173.5 485.8,170.9 C489.4,168.3 492.9,166.3 496.4,163.8 C499.9,161.4 503.4,158.3 507.0,156.2 C510.5,154.0 514.0,152.2 517.5,150.8 C521.0,149.4 524.6,149.3 528.1,147.6 C531.6,146.0 535.1,142.1 538.7,140.9 C542.2,139.7 545.7,140.3 549.2,140.3 C552.7,140.3 556.3,141.2 559.8,140.7 C563.3,140.1 566.8,137.7 570.3,137.1 C573.9,136.6 577.4,137.6 580.9,137.3 C584.4,137.0 587.9,136.3 591.5,135.4 C595.0,134.5 598.5,133.8 602.0,131.8 C605.5,129.7 609.1,125.0 612.6,123.2 C616.1,121.4 619.6,121.1 623.1,120.9 C626.7,120.6 630.2,122.5 633.7,121.6 C637.2,120.7 640.7,117.7 644.3,115.7 C647.8,113.6 651.3,111.9 654.8,109.3 C658.4,106.7 661.9,101.2 665.4,100.1 C668.9,99.0 672.4,103.3 676.0,102.7 C679.5,102.1 683.0,97.3 686.5,96.3 C690.0,95.4 693.6,97.2 697.1,97.0 C700.6,96.9 704.1,97.0 707.6,95.4 C711.2,93.8 714.7,89.1 718.2,87.6 C721.7,86.0 725.2,86.0 728.8,86.2 C732.3,86.3 735.8,88.5 739.3,88.4 C742.8,88.2 746.4,87.2 749.9,85.4 C753.4,83.6 756.9,79.5 760.4,77.4 C764.0,75.3 767.5,73.2 771.0,72.9 C774.5,72.6 778.1,74.7 781.6,75.5 C785.1,76.3 788.6,77.4 792.1,77.5 C795.7,77.7 799.2,78.3 802.7,76.5 C806.2,74.7 809.7,69.0 813.3,66.8 C816.8,64.6 820.3,65.0 823.8,63.5 C827.3,62.0 830.9,59.6 834.4,57.6 C837.9,55.6 841.4,53.2 844.9,51.7 C848.5,50.2 852.0,48.8 855.5,48.6 C859.0,48.3 862.5,50.8 866.1,50.3 C869.6,49.8 873.1,46.9 876.6,45.7 C880.1,44.4 883.7,44.9 887.2,42.7 C890.7,40.6 894.2,34.1 897.8,32.7 C901.3,31.4 904.8,35.6 908.3,34.6 C911.8,33.5 915.4,28.9 918.9,26.3 C922.4,23.8 925.9,21.3 929.4,19.3 C933.0,17.2 938.2,14.9 940.0,14.0 L940,280 L0,280 Z" fill="url(#spA)"></path>
+          <path data-dc-tpl="126" d="M0.0,266.0 C1.8,265.1 7.0,262.9 10.6,260.5 C14.1,258.1 17.6,253.3 21.1,251.6 C24.6,250.0 28.2,250.7 31.7,250.8 C35.2,250.9 38.7,252.2 42.2,252.5 C45.8,252.8 49.3,253.7 52.8,252.6 C56.3,251.4 59.9,246.7 63.4,245.6 C66.9,244.6 70.4,246.3 73.9,246.1 C77.5,246.0 81.0,246.4 84.5,244.9 C88.0,243.4 91.5,238.9 95.1,237.4 C98.6,235.9 102.1,237.1 105.6,236.0 C109.1,234.9 112.7,233.1 116.2,230.9 C119.7,228.7 123.2,225.8 126.7,222.9 C130.3,219.9 133.8,214.8 137.3,213.4 C140.8,211.9 144.3,213.3 147.9,214.0 C151.4,214.7 154.9,216.7 158.4,217.5 C161.9,218.4 165.5,218.5 169.0,219.0 C172.5,219.6 176.0,220.4 179.6,220.7 C183.1,220.9 186.6,219.8 190.1,220.4 C193.6,221.1 197.2,224.4 200.7,224.5 C204.2,224.7 207.7,220.8 211.2,221.3 C214.8,221.7 218.3,226.7 221.8,227.2 C225.3,227.7 228.8,223.7 232.4,224.4 C235.9,225.1 239.4,229.6 242.9,231.3 C246.4,233.0 250.0,233.8 253.5,234.7 C257.0,235.5 260.5,236.0 264.0,236.3 C267.6,236.6 271.1,236.7 274.6,236.7 C278.1,236.6 281.6,236.5 285.2,236.3 C288.7,236.0 292.2,235.7 295.7,235.1 C299.3,234.6 302.8,232.8 306.3,232.9 C309.8,233.0 313.3,235.6 316.9,235.5 C320.4,235.3 323.9,232.1 327.4,231.9 C330.9,231.7 334.5,233.7 338.0,234.5 C341.5,235.3 345.0,236.7 348.5,236.7 C352.1,236.7 355.6,236.2 359.1,234.4 C362.6,232.7 366.1,227.2 369.7,226.1 C373.2,225.0 376.7,228.9 380.2,228.1 C383.7,227.2 387.3,222.9 390.8,220.8 C394.3,218.7 397.8,217.8 401.3,215.5 C404.9,213.3 408.4,209.0 411.9,207.3 C415.4,205.6 419.0,206.9 422.5,205.5 C426.0,204.0 429.5,200.8 433.0,198.4 C436.6,196.0 440.1,193.1 443.6,191.1 C447.1,189.1 450.6,188.0 454.2,186.2 C457.7,184.4 461.2,181.6 464.7,180.4 C468.2,179.3 471.8,181.1 475.3,179.5 C478.8,177.9 482.3,173.5 485.8,170.9 C489.4,168.3 492.9,166.3 496.4,163.8 C499.9,161.4 503.4,158.3 507.0,156.2 C510.5,154.0 514.0,152.2 517.5,150.8 C521.0,149.4 524.6,149.3 528.1,147.6 C531.6,146.0 535.1,142.1 538.7,140.9 C542.2,139.7 545.7,140.3 549.2,140.3 C552.7,140.3 556.3,141.2 559.8,140.7 C563.3,140.1 566.8,137.7 570.3,137.1 C573.9,136.6 577.4,137.6 580.9,137.3 C584.4,137.0 587.9,136.3 591.5,135.4 C595.0,134.5 598.5,133.8 602.0,131.8 C605.5,129.7 609.1,125.0 612.6,123.2 C616.1,121.4 619.6,121.1 623.1,120.9 C626.7,120.6 630.2,122.5 633.7,121.6 C637.2,120.7 640.7,117.7 644.3,115.7 C647.8,113.6 651.3,111.9 654.8,109.3 C658.4,106.7 661.9,101.2 665.4,100.1 C668.9,99.0 672.4,103.3 676.0,102.7 C679.5,102.1 683.0,97.3 686.5,96.3 C690.0,95.4 693.6,97.2 697.1,97.0 C700.6,96.9 704.1,97.0 707.6,95.4 C711.2,93.8 714.7,89.1 718.2,87.6 C721.7,86.0 725.2,86.0 728.8,86.2 C732.3,86.3 735.8,88.5 739.3,88.4 C742.8,88.2 746.4,87.2 749.9,85.4 C753.4,83.6 756.9,79.5 760.4,77.4 C764.0,75.3 767.5,73.2 771.0,72.9 C774.5,72.6 778.1,74.7 781.6,75.5 C785.1,76.3 788.6,77.4 792.1,77.5 C795.7,77.7 799.2,78.3 802.7,76.5 C806.2,74.7 809.7,69.0 813.3,66.8 C816.8,64.6 820.3,65.0 823.8,63.5 C827.3,62.0 830.9,59.6 834.4,57.6 C837.9,55.6 841.4,53.2 844.9,51.7 C848.5,50.2 852.0,48.8 855.5,48.6 C859.0,48.3 862.5,50.8 866.1,50.3 C869.6,49.8 873.1,46.9 876.6,45.7 C880.1,44.4 883.7,44.9 887.2,42.7 C890.7,40.6 894.2,34.1 897.8,32.7 C901.3,31.4 904.8,35.6 908.3,34.6 C911.8,33.5 915.4,28.9 918.9,26.3 C922.4,23.8 925.9,21.3 929.4,19.3 C933.0,17.2 938.2,14.9 940.0,14.0" fill="none" stroke="url(#spL)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.45) 0px 0px 8px);"></path>
+        </svg>
+        <span data-dc-tpl="127" class="pulse" style="position: absolute; left: 94%; top: 5%; width: 12px; height: 12px; margin: -6px 0px 0px -6px; border-radius: 999px; background: rgb(255, 255, 255); box-shadow: rgba(51, 230, 166, 0.25) 0px 0px 0px 4px, rgba(51, 230, 166, 0.9) 0px 0px 22px;"></span>
+        <span data-dc-tpl="128" style="position: absolute; left: 36px; bottom: 10px; font-size: 10.5px; color: rgb(122, 122, 130);"><span class="sc-interp">Échelle linéaire · capital de départ en pointillés</span></span>
+      </div>
+    </section>
+
+    <div data-dc-tpl="129" style="display: flex; flex-direction: column; gap: 30px; padding: 34px 36px 64px; max-width: 1180px; width: 100%; box-sizing: border-box;">
+
+      
+      <section data-dc-tpl="130" style="display: flex; flex-direction: column; gap: 18px;">
+        <div data-dc-tpl="131" style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;">
+          <span data-dc-tpl="132" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — La bibliothèque en chiffres</span>
+          <span data-dc-tpl="133" style="margin-left: auto; font-size: 11.5px; color: rgb(122, 122, 130);">Le meilleur de chaque mesure, tous backtests confondus.</span>
+        </div>
+        <div data-dc-tpl="134" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); row-gap: 18px; padding-bottom: 26px; border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
+          
+            <div data-dc-tpl="136" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 22px; border-left: 0px;">
+              <span data-dc-tpl="137" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Backtests</span></span>
+              <span data-dc-tpl="138" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247); text-shadow: none;"><span class="sc-interp">6</span></span>
+              <span data-dc-tpl="139" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">4 compatibles propfirm</span></span>
+            </div>
+          
+            <div data-dc-tpl="136" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 22px; border-left: 1px solid rgba(255, 255, 255, 0.08);">
+              <span data-dc-tpl="137" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Positions simulées</span></span>
+              <span data-dc-tpl="138" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247); text-shadow: none;"><span class="sc-interp">2 914</span></span>
+              <span data-dc-tpl="139" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">tous algorithmes</span></span>
+            </div>
+          
+            <div data-dc-tpl="136" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 22px; border-left: 1px solid rgba(255, 255, 255, 0.08);">
+              <span data-dc-tpl="137" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Meilleur profit</span></span>
+              <span data-dc-tpl="138" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.35) 0px 0px 18px;"><span class="sc-interp">+184 %</span></span>
+              <span data-dc-tpl="139" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">SWYPER · XAU/USD</span></span>
+            </div>
+          
+            <div data-dc-tpl="136" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 22px; border-left: 1px solid rgba(255, 255, 255, 0.08);">
+              <span data-dc-tpl="137" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Dernier import</span></span>
+              <span data-dc-tpl="138" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247); text-shadow: none;"><span class="sc-interp">Il y a 3 j</span></span>
+              <span data-dc-tpl="139" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">PULSE v2 · 488 positions</span></span>
+            </div>
+          
+        </div>
+      </section>
+
+      
+      <section data-dc-tpl="140" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+        <span data-dc-tpl="141" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">03 — Algorithmes</span>
+        <div data-dc-tpl="142" role="group" aria-label="Marché" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">
+          <button data-dc-tpl="143" type="button" aria-pressed="true" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: rgb(246, 246, 247); color: rgb(5, 5, 5); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Tous</button>
+          <button data-dc-tpl="144" type="button" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">Or</button>
+          <button data-dc-tpl="145" type="button" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">Forex</button>
+          <button data-dc-tpl="146" type="button" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">Indices</button>
+        </div>
+        <span data-dc-tpl="147" style="font-size: 11.5px; color: rgb(122, 122, 130);">Trié par profit</span>
+      </section>
+
+      
+      <section data-dc-tpl="148" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px;">
+        
+          <button data-dc-tpl="150" type="button" class="algo" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px; text-align: left; font: inherit; cursor: pointer; border-radius: 18px; border: 1px solid rgba(249, 164, 94, 0.45); background: linear-gradient(160deg, rgba(16, 16, 19, 0.72), rgba(9, 9, 11, 0.88)); box-shadow: rgba(0, 0, 0, 0.4) 0px 14px 34px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; color: rgb(246, 246, 247);">
+            <div data-dc-tpl="151" aria-hidden="true" style="position: absolute; top: 0px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);"></div>
+            <div data-dc-tpl="152" style="position: relative; display: flex; align-items: center; gap: 12px; width: 100%;">
+              <div data-dc-tpl="153" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="154" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">SWYPER</span> <span data-dc-tpl="155" style="color: rgb(249, 164, 94); text-shadow: rgba(249, 164, 94, 0.7) 0px 0px 10px;"><span class="sc-interp">★</span></span></span>
+                <span data-dc-tpl="156" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: rgb(122, 122, 130);"><span class="sc-interp">XAU/USD · M15</span></span>
+              </div>
+            </div>
+            <div data-dc-tpl="157" style="position: relative; display: flex; align-items: baseline; gap: 10px;">
+              <span data-dc-tpl="158" style="font-size: 34px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.4) 0px 0px 22px;"><span class="sc-interp">+184 %</span></span>
+              <span data-dc-tpl="159" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">sur 3 ans</span></span>
+            </div>
+            <div data-dc-tpl="160" style="position: relative; height: 96px; width: 100%;">
+              <svg data-dc-tpl="161" width="100%" height="96" viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
+                <defs data-dc-tpl="162">
+                  <linearGradient data-dc-tpl="163" id="ln0" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="164" offset="0" stop-color="#6ef2c9"></stop>
+                    <stop data-dc-tpl="165" offset="0.697" stop-color="#33e6a6"></stop>
+                    <stop data-dc-tpl="166" offset="0.917" stop-color="#dcdce0"></stop>
+                    <stop data-dc-tpl="167" offset="1" stop-color="#ff4d5e"></stop>
+                  </linearGradient>
+                  <linearGradient data-dc-tpl="168" id="ar0" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="169" offset="0" stop-color="#33e6a6" stop-opacity=".38"></stop>
+                    <stop data-dc-tpl="170" offset="0.917" stop-color="#33e6a6" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="171" offset="0.917" stop-color="#ff4d5e" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="172" offset="1" stop-color="#ff4d5e" stop-opacity=".4"></stop>
+                  </linearGradient>
+                </defs>
+                <line data-dc-tpl="173" x1="0" x2="300" y1="88.0" y2="88.0" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
+                <path data-dc-tpl="174" d="M0.0,88.0 C1.3,87.3 5.1,85.7 7.7,83.9 C10.3,82.1 12.8,78.5 15.4,77.3 C17.9,76.1 20.5,76.5 23.1,76.6 C25.6,76.7 28.2,77.7 30.8,77.9 C33.3,78.1 35.9,78.8 38.5,78.0 C41.0,77.1 43.6,73.0 46.2,72.8 C48.7,72.5 51.3,75.4 53.8,76.4 C56.4,77.5 59.0,78.8 61.5,78.8 C64.1,78.8 66.7,76.5 69.2,76.5 C71.8,76.5 74.4,78.4 76.9,78.7 C79.5,79.0 82.1,78.8 84.6,78.2 C87.2,77.7 89.7,76.6 92.3,75.5 C94.9,74.4 97.4,72.8 100.0,71.7 C102.6,70.6 105.1,69.4 107.7,68.9 C110.3,68.3 112.8,68.7 115.4,68.2 C117.9,67.8 120.5,66.8 123.1,66.1 C125.6,65.4 128.2,64.9 130.8,64.0 C133.3,63.1 135.9,61.1 138.5,60.5 C141.0,59.9 143.6,61.3 146.2,60.3 C148.7,59.3 151.3,55.3 153.8,54.6 C156.4,53.8 159.0,56.4 161.5,55.7 C164.1,55.0 166.7,50.9 169.2,50.3 C171.8,49.7 174.4,52.1 176.9,52.2 C179.5,52.4 182.1,51.9 184.6,51.4 C187.2,51.0 189.7,50.2 192.3,49.4 C194.9,48.5 197.4,47.5 200.0,46.4 C202.6,45.3 205.1,44.1 207.7,42.8 C210.3,41.5 212.8,40.2 215.4,38.6 C217.9,37.1 220.5,34.7 223.1,33.7 C225.6,32.6 228.2,33.6 230.8,32.3 C233.3,31.1 235.9,27.0 238.5,26.4 C241.0,25.7 243.6,27.7 246.2,28.3 C248.7,28.9 251.3,30.0 253.8,30.0 C256.4,30.0 259.0,29.6 261.5,28.3 C264.1,26.9 266.7,22.8 269.2,22.0 C271.8,21.2 274.4,24.2 276.9,23.5 C279.5,22.8 282.1,19.7 284.6,18.1 C287.2,16.5 289.7,15.8 292.3,14.1 C294.9,12.4 298.7,9.0 300.0,8.0 L300,88.0 L0,88.0 Z" fill="url(#ar0)"></path>
+                <path data-dc-tpl="175" d="M0.0,88.0 C1.3,87.3 5.1,85.7 7.7,83.9 C10.3,82.1 12.8,78.5 15.4,77.3 C17.9,76.1 20.5,76.5 23.1,76.6 C25.6,76.7 28.2,77.7 30.8,77.9 C33.3,78.1 35.9,78.8 38.5,78.0 C41.0,77.1 43.6,73.0 46.2,72.8 C48.7,72.5 51.3,75.4 53.8,76.4 C56.4,77.5 59.0,78.8 61.5,78.8 C64.1,78.8 66.7,76.5 69.2,76.5 C71.8,76.5 74.4,78.4 76.9,78.7 C79.5,79.0 82.1,78.8 84.6,78.2 C87.2,77.7 89.7,76.6 92.3,75.5 C94.9,74.4 97.4,72.8 100.0,71.7 C102.6,70.6 105.1,69.4 107.7,68.9 C110.3,68.3 112.8,68.7 115.4,68.2 C117.9,67.8 120.5,66.8 123.1,66.1 C125.6,65.4 128.2,64.9 130.8,64.0 C133.3,63.1 135.9,61.1 138.5,60.5 C141.0,59.9 143.6,61.3 146.2,60.3 C148.7,59.3 151.3,55.3 153.8,54.6 C156.4,53.8 159.0,56.4 161.5,55.7 C164.1,55.0 166.7,50.9 169.2,50.3 C171.8,49.7 174.4,52.1 176.9,52.2 C179.5,52.4 182.1,51.9 184.6,51.4 C187.2,51.0 189.7,50.2 192.3,49.4 C194.9,48.5 197.4,47.5 200.0,46.4 C202.6,45.3 205.1,44.1 207.7,42.8 C210.3,41.5 212.8,40.2 215.4,38.6 C217.9,37.1 220.5,34.7 223.1,33.7 C225.6,32.6 228.2,33.6 230.8,32.3 C233.3,31.1 235.9,27.0 238.5,26.4 C241.0,25.7 243.6,27.7 246.2,28.3 C248.7,28.9 251.3,30.0 253.8,30.0 C256.4,30.0 259.0,29.6 261.5,28.3 C264.1,26.9 266.7,22.8 269.2,22.0 C271.8,21.2 274.4,24.2 276.9,23.5 C279.5,22.8 282.1,19.7 284.6,18.1 C287.2,16.5 289.7,15.8 292.3,14.1 C294.9,12.4 298.7,9.0 300.0,8.0" fill="none" stroke="url(#ln0)" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.55) 0px 0px 7px);"></path>
+              </svg>
+            </div>
+            <div data-dc-tpl="176" style="position: relative; display: flex; flex-wrap: wrap; gap: 16px; width: 100%; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 11.5px; color: rgb(122, 122, 130); font-variant-numeric: tabular-nums;">
+              <span data-dc-tpl="177"><b data-dc-tpl="178" style="color: rgb(246, 246, 247);"><span class="sc-interp">612</span></b> positions</span>
+              <span data-dc-tpl="179"><b data-dc-tpl="180" style="color: rgb(246, 246, 247);"><span class="sc-interp">58 %</span></b> réussite</span>
+              <span data-dc-tpl="181"><b data-dc-tpl="182" style="color: rgb(255, 148, 160);"><span class="sc-interp">−7,8 %</span></b> DD max</span>
+            </div>
+          </button>
+        
+          <button data-dc-tpl="150" type="button" class="algo" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px; text-align: left; font: inherit; cursor: pointer; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(16, 16, 19, 0.72), rgba(9, 9, 11, 0.88)); box-shadow: rgba(0, 0, 0, 0.4) 0px 14px 34px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; color: rgb(246, 246, 247);">
+            <div data-dc-tpl="151" aria-hidden="true" style="position: absolute; top: 0px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);"></div>
+            <div data-dc-tpl="152" style="position: relative; display: flex; align-items: center; gap: 12px; width: 100%;">
+              <div data-dc-tpl="153" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="154" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">PULSE</span> <span data-dc-tpl="155" style="color: rgb(249, 164, 94); text-shadow: rgba(249, 164, 94, 0.7) 0px 0px 10px;"><span class="sc-interp"></span></span></span>
+                <span data-dc-tpl="156" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: rgb(122, 122, 130);"><span class="sc-interp">GBP/USD · H1</span></span>
+              </div>
+            </div>
+            <div data-dc-tpl="157" style="position: relative; display: flex; align-items: baseline; gap: 10px;">
+              <span data-dc-tpl="158" style="font-size: 34px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.4) 0px 0px 22px;"><span class="sc-interp">+96 %</span></span>
+              <span data-dc-tpl="159" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">sur 3 ans</span></span>
+            </div>
+            <div data-dc-tpl="160" style="position: relative; height: 96px; width: 100%;">
+              <svg data-dc-tpl="161" width="100%" height="96" viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
+                <defs data-dc-tpl="162">
+                  <linearGradient data-dc-tpl="163" id="ln1" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="164" offset="0" stop-color="#6ef2c9"></stop>
+                    <stop data-dc-tpl="165" offset="0.606" stop-color="#33e6a6"></stop>
+                    <stop data-dc-tpl="166" offset="0.826" stop-color="#dcdce0"></stop>
+                    <stop data-dc-tpl="167" offset="1" stop-color="#ff4d5e"></stop>
+                  </linearGradient>
+                  <linearGradient data-dc-tpl="168" id="ar1" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="169" offset="0" stop-color="#33e6a6" stop-opacity=".38"></stop>
+                    <stop data-dc-tpl="170" offset="0.826" stop-color="#33e6a6" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="171" offset="0.826" stop-color="#ff4d5e" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="172" offset="1" stop-color="#ff4d5e" stop-opacity=".4"></stop>
+                  </linearGradient>
+                </defs>
+                <line data-dc-tpl="173" x1="0" x2="300" y1="79.3" y2="79.3" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
+                <path data-dc-tpl="174" d="M0.0,79.3 C1.3,79.8 5.1,82.9 7.7,82.1 C10.3,81.3 12.8,76.9 15.4,74.5 C17.9,72.2 20.5,69.9 23.1,68.1 C25.6,66.3 28.2,65.0 30.8,63.8 C33.3,62.5 35.9,61.6 38.5,60.7 C41.0,59.8 43.6,58.3 46.2,58.5 C48.7,58.6 51.3,60.8 53.8,61.6 C56.4,62.4 59.0,62.1 61.5,63.1 C64.1,64.1 66.7,65.4 69.2,67.6 C71.8,69.7 74.4,74.3 76.9,76.1 C79.5,77.9 82.1,76.3 84.6,78.2 C87.2,80.2 89.7,86.5 92.3,88.0 C94.9,89.5 97.4,88.5 100.0,87.4 C102.6,86.2 105.1,82.7 107.7,80.9 C110.3,79.1 112.8,76.7 115.4,76.4 C117.9,76.2 120.5,79.8 123.1,79.5 C125.6,79.1 128.2,76.1 130.8,74.1 C133.3,72.1 135.9,68.6 138.5,67.4 C141.0,66.3 143.6,68.4 146.2,67.4 C148.7,66.5 151.3,64.0 153.8,61.7 C156.4,59.5 159.0,56.7 161.5,54.1 C164.1,51.5 166.7,47.4 169.2,46.0 C171.8,44.7 174.4,46.1 176.9,46.1 C179.5,46.1 182.1,46.1 184.6,46.0 C187.2,45.9 189.7,46.4 192.3,45.3 C194.9,44.1 197.4,40.4 200.0,39.0 C202.6,37.6 205.1,36.6 207.7,36.9 C210.3,37.2 212.8,40.8 215.4,40.7 C217.9,40.6 220.5,38.1 223.1,36.3 C225.6,34.6 228.2,31.1 230.8,30.0 C233.3,29.0 235.9,30.1 238.5,30.2 C241.0,30.3 243.6,31.4 246.2,30.6 C248.7,29.9 251.3,27.1 253.8,25.6 C256.4,24.0 259.0,21.6 261.5,21.4 C264.1,21.1 266.7,24.3 269.2,24.1 C271.8,23.9 274.4,21.3 276.9,20.3 C279.5,19.4 282.1,19.3 284.6,18.6 C287.2,17.8 289.7,17.6 292.3,15.8 C294.9,14.1 298.7,9.3 300.0,8.0 L300,79.3 L0,79.3 Z" fill="url(#ar1)"></path>
+                <path data-dc-tpl="175" d="M0.0,79.3 C1.3,79.8 5.1,82.9 7.7,82.1 C10.3,81.3 12.8,76.9 15.4,74.5 C17.9,72.2 20.5,69.9 23.1,68.1 C25.6,66.3 28.2,65.0 30.8,63.8 C33.3,62.5 35.9,61.6 38.5,60.7 C41.0,59.8 43.6,58.3 46.2,58.5 C48.7,58.6 51.3,60.8 53.8,61.6 C56.4,62.4 59.0,62.1 61.5,63.1 C64.1,64.1 66.7,65.4 69.2,67.6 C71.8,69.7 74.4,74.3 76.9,76.1 C79.5,77.9 82.1,76.3 84.6,78.2 C87.2,80.2 89.7,86.5 92.3,88.0 C94.9,89.5 97.4,88.5 100.0,87.4 C102.6,86.2 105.1,82.7 107.7,80.9 C110.3,79.1 112.8,76.7 115.4,76.4 C117.9,76.2 120.5,79.8 123.1,79.5 C125.6,79.1 128.2,76.1 130.8,74.1 C133.3,72.1 135.9,68.6 138.5,67.4 C141.0,66.3 143.6,68.4 146.2,67.4 C148.7,66.5 151.3,64.0 153.8,61.7 C156.4,59.5 159.0,56.7 161.5,54.1 C164.1,51.5 166.7,47.4 169.2,46.0 C171.8,44.7 174.4,46.1 176.9,46.1 C179.5,46.1 182.1,46.1 184.6,46.0 C187.2,45.9 189.7,46.4 192.3,45.3 C194.9,44.1 197.4,40.4 200.0,39.0 C202.6,37.6 205.1,36.6 207.7,36.9 C210.3,37.2 212.8,40.8 215.4,40.7 C217.9,40.6 220.5,38.1 223.1,36.3 C225.6,34.6 228.2,31.1 230.8,30.0 C233.3,29.0 235.9,30.1 238.5,30.2 C241.0,30.3 243.6,31.4 246.2,30.6 C248.7,29.9 251.3,27.1 253.8,25.6 C256.4,24.0 259.0,21.6 261.5,21.4 C264.1,21.1 266.7,24.3 269.2,24.1 C271.8,23.9 274.4,21.3 276.9,20.3 C279.5,19.4 282.1,19.3 284.6,18.6 C287.2,17.8 289.7,17.6 292.3,15.8 C294.9,14.1 298.7,9.3 300.0,8.0" fill="none" stroke="url(#ln1)" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.55) 0px 0px 7px);"></path>
+              </svg>
+            </div>
+            <div data-dc-tpl="176" style="position: relative; display: flex; flex-wrap: wrap; gap: 16px; width: 100%; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 11.5px; color: rgb(122, 122, 130); font-variant-numeric: tabular-nums;">
+              <span data-dc-tpl="177"><b data-dc-tpl="178" style="color: rgb(246, 246, 247);"><span class="sc-interp">488</span></b> positions</span>
+              <span data-dc-tpl="179"><b data-dc-tpl="180" style="color: rgb(246, 246, 247);"><span class="sc-interp">52 %</span></b> réussite</span>
+              <span data-dc-tpl="181"><b data-dc-tpl="182" style="color: rgb(255, 148, 160);"><span class="sc-interp">−11,2 %</span></b> DD max</span>
+            </div>
+          </button>
+        
+          <button data-dc-tpl="150" type="button" class="algo" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px; text-align: left; font: inherit; cursor: pointer; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(16, 16, 19, 0.72), rgba(9, 9, 11, 0.88)); box-shadow: rgba(0, 0, 0, 0.4) 0px 14px 34px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; color: rgb(246, 246, 247);">
+            <div data-dc-tpl="151" aria-hidden="true" style="position: absolute; top: 0px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);"></div>
+            <div data-dc-tpl="152" style="position: relative; display: flex; align-items: center; gap: 12px; width: 100%;">
+              <div data-dc-tpl="153" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="154" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">NEXUS</span> <span data-dc-tpl="155" style="color: rgb(249, 164, 94); text-shadow: rgba(249, 164, 94, 0.7) 0px 0px 10px;"><span class="sc-interp"></span></span></span>
+                <span data-dc-tpl="156" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: rgb(122, 122, 130);"><span class="sc-interp">USD/JPY · M30</span></span>
+              </div>
+            </div>
+            <div data-dc-tpl="157" style="position: relative; display: flex; align-items: baseline; gap: 10px;">
+              <span data-dc-tpl="158" style="font-size: 34px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.4) 0px 0px 22px;"><span class="sc-interp">+71 %</span></span>
+              <span data-dc-tpl="159" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">sur 2 ans</span></span>
+            </div>
+            <div data-dc-tpl="160" style="position: relative; height: 96px; width: 100%;">
+              <svg data-dc-tpl="161" width="100%" height="96" viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
+                <defs data-dc-tpl="162">
+                  <linearGradient data-dc-tpl="163" id="ln2" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="164" offset="0" stop-color="#6ef2c9"></stop>
+                    <stop data-dc-tpl="165" offset="0.697" stop-color="#33e6a6"></stop>
+                    <stop data-dc-tpl="166" offset="0.917" stop-color="#dcdce0"></stop>
+                    <stop data-dc-tpl="167" offset="1" stop-color="#ff4d5e"></stop>
+                  </linearGradient>
+                  <linearGradient data-dc-tpl="168" id="ar2" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="169" offset="0" stop-color="#33e6a6" stop-opacity=".38"></stop>
+                    <stop data-dc-tpl="170" offset="0.917" stop-color="#33e6a6" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="171" offset="0.917" stop-color="#ff4d5e" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="172" offset="1" stop-color="#ff4d5e" stop-opacity=".4"></stop>
+                  </linearGradient>
+                </defs>
+                <line data-dc-tpl="173" x1="0" x2="300" y1="88.0" y2="88.0" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
+                <path data-dc-tpl="174" d="M0.0,88.0 C1.3,87.4 5.1,85.3 7.7,84.1 C10.3,82.9 12.8,82.6 15.4,80.8 C17.9,79.0 20.5,75.2 23.1,73.2 C25.6,71.3 28.2,70.9 30.8,69.2 C33.3,67.6 35.9,64.5 38.5,63.5 C41.0,62.5 43.6,63.3 46.2,63.2 C48.7,63.1 51.3,62.6 53.8,63.0 C56.4,63.3 59.0,64.5 61.5,65.4 C64.1,66.3 66.7,67.8 69.2,68.5 C71.8,69.1 74.4,68.8 76.9,69.3 C79.5,69.7 82.1,69.3 84.6,71.0 C87.2,72.8 89.7,78.1 92.3,79.7 C94.9,81.3 97.4,80.4 100.0,80.5 C102.6,80.6 105.1,80.6 107.7,80.3 C110.3,80.0 112.8,79.0 115.4,78.8 C117.9,78.6 120.5,80.1 123.1,78.9 C125.6,77.7 128.2,73.7 130.8,71.5 C133.3,69.2 135.9,67.3 138.5,65.5 C141.0,63.6 143.6,62.4 146.2,60.4 C148.7,58.4 151.3,55.4 153.8,53.5 C156.4,51.6 159.0,50.0 161.5,49.0 C164.1,47.9 166.7,48.0 169.2,47.1 C171.8,46.1 174.4,44.2 176.9,43.2 C179.5,42.1 182.1,40.5 184.6,40.8 C187.2,41.2 189.7,45.2 192.3,45.3 C194.9,45.5 197.4,43.0 200.0,41.6 C202.6,40.3 205.1,38.4 207.7,37.0 C210.3,35.6 212.8,33.7 215.4,33.2 C217.9,32.8 220.5,34.9 223.1,34.3 C225.6,33.8 228.2,32.0 230.8,30.2 C233.3,28.4 235.9,25.8 238.5,23.4 C241.0,21.1 243.6,18.3 246.2,16.1 C248.7,13.9 251.3,10.6 253.8,10.0 C256.4,9.5 259.0,11.8 261.5,12.9 C264.1,14.0 266.7,16.3 269.2,16.4 C271.8,16.4 274.4,14.7 276.9,13.3 C279.5,11.9 282.1,8.4 284.6,8.0 C287.2,7.6 289.7,10.7 292.3,11.1 C294.9,11.6 298.7,10.8 300.0,10.7 L300,88.0 L0,88.0 Z" fill="url(#ar2)"></path>
+                <path data-dc-tpl="175" d="M0.0,88.0 C1.3,87.4 5.1,85.3 7.7,84.1 C10.3,82.9 12.8,82.6 15.4,80.8 C17.9,79.0 20.5,75.2 23.1,73.2 C25.6,71.3 28.2,70.9 30.8,69.2 C33.3,67.6 35.9,64.5 38.5,63.5 C41.0,62.5 43.6,63.3 46.2,63.2 C48.7,63.1 51.3,62.6 53.8,63.0 C56.4,63.3 59.0,64.5 61.5,65.4 C64.1,66.3 66.7,67.8 69.2,68.5 C71.8,69.1 74.4,68.8 76.9,69.3 C79.5,69.7 82.1,69.3 84.6,71.0 C87.2,72.8 89.7,78.1 92.3,79.7 C94.9,81.3 97.4,80.4 100.0,80.5 C102.6,80.6 105.1,80.6 107.7,80.3 C110.3,80.0 112.8,79.0 115.4,78.8 C117.9,78.6 120.5,80.1 123.1,78.9 C125.6,77.7 128.2,73.7 130.8,71.5 C133.3,69.2 135.9,67.3 138.5,65.5 C141.0,63.6 143.6,62.4 146.2,60.4 C148.7,58.4 151.3,55.4 153.8,53.5 C156.4,51.6 159.0,50.0 161.5,49.0 C164.1,47.9 166.7,48.0 169.2,47.1 C171.8,46.1 174.4,44.2 176.9,43.2 C179.5,42.1 182.1,40.5 184.6,40.8 C187.2,41.2 189.7,45.2 192.3,45.3 C194.9,45.5 197.4,43.0 200.0,41.6 C202.6,40.3 205.1,38.4 207.7,37.0 C210.3,35.6 212.8,33.7 215.4,33.2 C217.9,32.8 220.5,34.9 223.1,34.3 C225.6,33.8 228.2,32.0 230.8,30.2 C233.3,28.4 235.9,25.8 238.5,23.4 C241.0,21.1 243.6,18.3 246.2,16.1 C248.7,13.9 251.3,10.6 253.8,10.0 C256.4,9.5 259.0,11.8 261.5,12.9 C264.1,14.0 266.7,16.3 269.2,16.4 C271.8,16.4 274.4,14.7 276.9,13.3 C279.5,11.9 282.1,8.4 284.6,8.0 C287.2,7.6 289.7,10.7 292.3,11.1 C294.9,11.6 298.7,10.8 300.0,10.7" fill="none" stroke="url(#ln2)" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.55) 0px 0px 7px);"></path>
+              </svg>
+            </div>
+            <div data-dc-tpl="176" style="position: relative; display: flex; flex-wrap: wrap; gap: 16px; width: 100%; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 11.5px; color: rgb(122, 122, 130); font-variant-numeric: tabular-nums;">
+              <span data-dc-tpl="177"><b data-dc-tpl="178" style="color: rgb(246, 246, 247);"><span class="sc-interp">402</span></b> positions</span>
+              <span data-dc-tpl="179"><b data-dc-tpl="180" style="color: rgb(246, 246, 247);"><span class="sc-interp">49 %</span></b> réussite</span>
+              <span data-dc-tpl="181"><b data-dc-tpl="182" style="color: rgb(255, 148, 160);"><span class="sc-interp">−9,4 %</span></b> DD max</span>
+            </div>
+          </button>
+        
+          <button data-dc-tpl="150" type="button" class="algo" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px; text-align: left; font: inherit; cursor: pointer; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(16, 16, 19, 0.72), rgba(9, 9, 11, 0.88)); box-shadow: rgba(0, 0, 0, 0.4) 0px 14px 34px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; color: rgb(246, 246, 247);">
+            <div data-dc-tpl="151" aria-hidden="true" style="position: absolute; top: 0px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);"></div>
+            <div data-dc-tpl="152" style="position: relative; display: flex; align-items: center; gap: 12px; width: 100%;">
+              <div data-dc-tpl="153" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="154" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">SUPERNOVA</span> <span data-dc-tpl="155" style="color: rgb(249, 164, 94); text-shadow: rgba(249, 164, 94, 0.7) 0px 0px 10px;"><span class="sc-interp"></span></span></span>
+                <span data-dc-tpl="156" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: rgb(122, 122, 130);"><span class="sc-interp">NAS100 · M15</span></span>
+              </div>
+            </div>
+            <div data-dc-tpl="157" style="position: relative; display: flex; align-items: baseline; gap: 10px;">
+              <span data-dc-tpl="158" style="font-size: 34px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.4) 0px 0px 22px;"><span class="sc-interp">+58 %</span></span>
+              <span data-dc-tpl="159" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">sur 2 ans</span></span>
+            </div>
+            <div data-dc-tpl="160" style="position: relative; height: 96px; width: 100%;">
+              <svg data-dc-tpl="161" width="100%" height="96" viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
+                <defs data-dc-tpl="162">
+                  <linearGradient data-dc-tpl="163" id="ln3" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="164" offset="0" stop-color="#6ef2c9"></stop>
+                    <stop data-dc-tpl="165" offset="0.000" stop-color="#33e6a6"></stop>
+                    <stop data-dc-tpl="166" offset="0.218" stop-color="#dcdce0"></stop>
+                    <stop data-dc-tpl="167" offset="1" stop-color="#ff4d5e"></stop>
+                  </linearGradient>
+                  <linearGradient data-dc-tpl="168" id="ar3" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="169" offset="0" stop-color="#33e6a6" stop-opacity=".38"></stop>
+                    <stop data-dc-tpl="170" offset="0.218" stop-color="#33e6a6" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="171" offset="0.218" stop-color="#ff4d5e" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="172" offset="1" stop-color="#ff4d5e" stop-opacity=".4"></stop>
+                  </linearGradient>
+                </defs>
+                <line data-dc-tpl="173" x1="0" x2="300" y1="21.0" y2="21.0" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
+                <path data-dc-tpl="174" d="M0.0,21.0 C1.3,21.5 5.1,23.5 7.7,24.2 C10.3,25.0 12.8,24.1 15.4,25.3 C17.9,26.5 20.5,31.6 23.1,31.4 C25.6,31.3 28.2,24.3 30.8,24.3 C33.3,24.3 35.9,29.8 38.5,31.3 C41.0,32.9 43.6,30.5 46.2,33.5 C48.7,36.6 51.3,45.8 53.8,49.4 C56.4,52.9 59.0,53.5 61.5,54.8 C64.1,56.2 66.7,55.5 69.2,57.6 C71.8,59.8 74.4,65.5 76.9,67.5 C79.5,69.5 82.1,67.0 84.6,69.6 C87.2,72.2 89.7,80.3 92.3,83.1 C94.9,85.9 97.4,88.0 100.0,86.5 C102.6,85.0 105.1,75.7 107.7,74.0 C110.3,72.2 112.8,76.7 115.4,76.2 C117.9,75.6 120.5,70.7 123.1,70.6 C125.6,70.5 128.2,76.4 130.8,75.5 C133.3,74.6 135.9,66.3 138.5,65.2 C141.0,64.1 143.6,67.2 146.2,69.0 C148.7,70.9 151.3,75.7 153.8,76.4 C156.4,77.1 159.0,72.5 161.5,73.2 C164.1,73.8 166.7,77.6 169.2,80.0 C171.8,82.5 174.4,88.1 176.9,88.0 C179.5,87.9 182.1,81.7 184.6,79.3 C187.2,76.9 189.7,75.0 192.3,73.6 C194.9,72.2 197.4,73.6 200.0,70.9 C202.6,68.2 205.1,59.4 207.7,57.4 C210.3,55.5 212.8,60.9 215.4,59.3 C217.9,57.8 220.5,50.5 223.1,47.9 C225.6,45.3 228.2,44.7 230.8,43.6 C233.3,42.4 235.9,42.4 238.5,41.2 C241.0,39.9 243.6,39.2 246.2,36.2 C248.7,33.1 251.3,25.9 253.8,22.7 C256.4,19.6 259.0,17.1 261.5,17.4 C264.1,17.6 266.7,24.1 269.2,24.5 C271.8,24.9 274.4,19.4 276.9,19.6 C279.5,19.8 282.1,26.0 284.6,25.8 C287.2,25.6 289.7,21.7 292.3,18.7 C294.9,15.7 298.7,9.8 300.0,8.0 L300,21.0 L0,21.0 Z" fill="url(#ar3)"></path>
+                <path data-dc-tpl="175" d="M0.0,21.0 C1.3,21.5 5.1,23.5 7.7,24.2 C10.3,25.0 12.8,24.1 15.4,25.3 C17.9,26.5 20.5,31.6 23.1,31.4 C25.6,31.3 28.2,24.3 30.8,24.3 C33.3,24.3 35.9,29.8 38.5,31.3 C41.0,32.9 43.6,30.5 46.2,33.5 C48.7,36.6 51.3,45.8 53.8,49.4 C56.4,52.9 59.0,53.5 61.5,54.8 C64.1,56.2 66.7,55.5 69.2,57.6 C71.8,59.8 74.4,65.5 76.9,67.5 C79.5,69.5 82.1,67.0 84.6,69.6 C87.2,72.2 89.7,80.3 92.3,83.1 C94.9,85.9 97.4,88.0 100.0,86.5 C102.6,85.0 105.1,75.7 107.7,74.0 C110.3,72.2 112.8,76.7 115.4,76.2 C117.9,75.6 120.5,70.7 123.1,70.6 C125.6,70.5 128.2,76.4 130.8,75.5 C133.3,74.6 135.9,66.3 138.5,65.2 C141.0,64.1 143.6,67.2 146.2,69.0 C148.7,70.9 151.3,75.7 153.8,76.4 C156.4,77.1 159.0,72.5 161.5,73.2 C164.1,73.8 166.7,77.6 169.2,80.0 C171.8,82.5 174.4,88.1 176.9,88.0 C179.5,87.9 182.1,81.7 184.6,79.3 C187.2,76.9 189.7,75.0 192.3,73.6 C194.9,72.2 197.4,73.6 200.0,70.9 C202.6,68.2 205.1,59.4 207.7,57.4 C210.3,55.5 212.8,60.9 215.4,59.3 C217.9,57.8 220.5,50.5 223.1,47.9 C225.6,45.3 228.2,44.7 230.8,43.6 C233.3,42.4 235.9,42.4 238.5,41.2 C241.0,39.9 243.6,39.2 246.2,36.2 C248.7,33.1 251.3,25.9 253.8,22.7 C256.4,19.6 259.0,17.1 261.5,17.4 C264.1,17.6 266.7,24.1 269.2,24.5 C271.8,24.9 274.4,19.4 276.9,19.6 C279.5,19.8 282.1,26.0 284.6,25.8 C287.2,25.6 289.7,21.7 292.3,18.7 C294.9,15.7 298.7,9.8 300.0,8.0" fill="none" stroke="url(#ln3)" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.55) 0px 0px 7px);"></path>
+              </svg>
+            </div>
+            <div data-dc-tpl="176" style="position: relative; display: flex; flex-wrap: wrap; gap: 16px; width: 100%; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 11.5px; color: rgb(122, 122, 130); font-variant-numeric: tabular-nums;">
+              <span data-dc-tpl="177"><b data-dc-tpl="178" style="color: rgb(246, 246, 247);"><span class="sc-interp">731</span></b> positions</span>
+              <span data-dc-tpl="179"><b data-dc-tpl="180" style="color: rgb(246, 246, 247);"><span class="sc-interp">46 %</span></b> réussite</span>
+              <span data-dc-tpl="181"><b data-dc-tpl="182" style="color: rgb(255, 148, 160);"><span class="sc-interp">−14,6 %</span></b> DD max</span>
+            </div>
+          </button>
+        
+          <button data-dc-tpl="150" type="button" class="algo" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px; text-align: left; font: inherit; cursor: pointer; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(16, 16, 19, 0.72), rgba(9, 9, 11, 0.88)); box-shadow: rgba(0, 0, 0, 0.4) 0px 14px 34px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; color: rgb(246, 246, 247);">
+            <div data-dc-tpl="151" aria-hidden="true" style="position: absolute; top: 0px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);"></div>
+            <div data-dc-tpl="152" style="position: relative; display: flex; align-items: center; gap: 12px; width: 100%;">
+              <div data-dc-tpl="153" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="154" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">HARMONICS</span> <span data-dc-tpl="155" style="color: rgb(249, 164, 94); text-shadow: rgba(249, 164, 94, 0.7) 0px 0px 10px;"><span class="sc-interp"></span></span></span>
+                <span data-dc-tpl="156" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: rgb(122, 122, 130);"><span class="sc-interp">EUR/USD · H4</span></span>
+              </div>
+            </div>
+            <div data-dc-tpl="157" style="position: relative; display: flex; align-items: baseline; gap: 10px;">
+              <span data-dc-tpl="158" style="font-size: 34px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.4) 0px 0px 22px;"><span class="sc-interp">+33 %</span></span>
+              <span data-dc-tpl="159" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">sur 3 ans</span></span>
+            </div>
+            <div data-dc-tpl="160" style="position: relative; height: 96px; width: 100%;">
+              <svg data-dc-tpl="161" width="100%" height="96" viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
+                <defs data-dc-tpl="162">
+                  <linearGradient data-dc-tpl="163" id="ln4" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="164" offset="0" stop-color="#6ef2c9"></stop>
+                    <stop data-dc-tpl="165" offset="0.313" stop-color="#33e6a6"></stop>
+                    <stop data-dc-tpl="166" offset="0.533" stop-color="#dcdce0"></stop>
+                    <stop data-dc-tpl="167" offset="1" stop-color="#ff4d5e"></stop>
+                  </linearGradient>
+                  <linearGradient data-dc-tpl="168" id="ar4" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="169" offset="0" stop-color="#33e6a6" stop-opacity=".38"></stop>
+                    <stop data-dc-tpl="170" offset="0.533" stop-color="#33e6a6" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="171" offset="0.533" stop-color="#ff4d5e" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="172" offset="1" stop-color="#ff4d5e" stop-opacity=".4"></stop>
+                  </linearGradient>
+                </defs>
+                <line data-dc-tpl="173" x1="0" x2="300" y1="51.1" y2="51.1" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
+                <path data-dc-tpl="174" d="M0.0,51.1 C1.3,49.6 5.1,42.2 7.7,41.7 C10.3,41.1 12.8,46.8 15.4,47.6 C17.9,48.4 20.5,47.1 23.1,46.6 C25.6,46.0 28.2,44.5 30.8,44.4 C33.3,44.2 35.9,43.9 38.5,45.6 C41.0,47.2 43.6,51.4 46.2,54.2 C48.7,57.0 51.3,58.7 53.8,62.5 C56.4,66.2 59.0,73.6 61.5,76.7 C64.1,79.8 66.7,79.7 69.2,81.1 C71.8,82.6 74.4,84.7 76.9,85.3 C79.5,85.9 82.1,85.5 84.6,84.8 C87.2,84.2 89.7,81.1 92.3,81.3 C94.9,81.5 97.4,85.0 100.0,86.0 C102.6,86.9 105.1,86.8 107.7,87.1 C110.3,87.4 112.8,88.6 115.4,88.0 C117.9,87.4 120.5,86.4 123.1,83.2 C125.6,80.1 128.2,74.0 130.8,69.0 C133.3,64.1 135.9,56.5 138.5,53.6 C141.0,50.7 143.6,53.0 146.2,51.8 C148.7,50.6 151.3,49.2 153.8,46.3 C156.4,43.5 159.0,36.8 161.5,34.7 C164.1,32.6 166.7,35.8 169.2,33.6 C171.8,31.4 174.4,23.3 176.9,21.4 C179.5,19.5 182.1,24.4 184.6,22.1 C187.2,19.9 189.7,8.7 192.3,8.0 C194.9,7.3 197.4,14.4 200.0,17.7 C202.6,21.0 205.1,25.6 207.7,27.8 C210.3,30.0 212.8,31.4 215.4,30.8 C217.9,30.1 220.5,24.2 223.1,23.9 C225.6,23.5 228.2,26.1 230.8,28.7 C233.3,31.3 235.9,36.1 238.5,39.5 C241.0,42.9 243.6,47.5 246.2,49.3 C248.7,51.1 251.3,50.6 253.8,50.4 C256.4,50.3 259.0,49.9 261.5,48.3 C264.1,46.7 266.7,44.2 269.2,40.8 C271.8,37.5 274.4,29.0 276.9,28.3 C279.5,27.6 282.1,37.7 284.6,36.6 C287.2,35.5 289.7,23.0 292.3,21.9 C294.9,20.8 298.7,28.5 300.0,29.8 L300,51.1 L0,51.1 Z" fill="url(#ar4)"></path>
+                <path data-dc-tpl="175" d="M0.0,51.1 C1.3,49.6 5.1,42.2 7.7,41.7 C10.3,41.1 12.8,46.8 15.4,47.6 C17.9,48.4 20.5,47.1 23.1,46.6 C25.6,46.0 28.2,44.5 30.8,44.4 C33.3,44.2 35.9,43.9 38.5,45.6 C41.0,47.2 43.6,51.4 46.2,54.2 C48.7,57.0 51.3,58.7 53.8,62.5 C56.4,66.2 59.0,73.6 61.5,76.7 C64.1,79.8 66.7,79.7 69.2,81.1 C71.8,82.6 74.4,84.7 76.9,85.3 C79.5,85.9 82.1,85.5 84.6,84.8 C87.2,84.2 89.7,81.1 92.3,81.3 C94.9,81.5 97.4,85.0 100.0,86.0 C102.6,86.9 105.1,86.8 107.7,87.1 C110.3,87.4 112.8,88.6 115.4,88.0 C117.9,87.4 120.5,86.4 123.1,83.2 C125.6,80.1 128.2,74.0 130.8,69.0 C133.3,64.1 135.9,56.5 138.5,53.6 C141.0,50.7 143.6,53.0 146.2,51.8 C148.7,50.6 151.3,49.2 153.8,46.3 C156.4,43.5 159.0,36.8 161.5,34.7 C164.1,32.6 166.7,35.8 169.2,33.6 C171.8,31.4 174.4,23.3 176.9,21.4 C179.5,19.5 182.1,24.4 184.6,22.1 C187.2,19.9 189.7,8.7 192.3,8.0 C194.9,7.3 197.4,14.4 200.0,17.7 C202.6,21.0 205.1,25.6 207.7,27.8 C210.3,30.0 212.8,31.4 215.4,30.8 C217.9,30.1 220.5,24.2 223.1,23.9 C225.6,23.5 228.2,26.1 230.8,28.7 C233.3,31.3 235.9,36.1 238.5,39.5 C241.0,42.9 243.6,47.5 246.2,49.3 C248.7,51.1 251.3,50.6 253.8,50.4 C256.4,50.3 259.0,49.9 261.5,48.3 C264.1,46.7 266.7,44.2 269.2,40.8 C271.8,37.5 274.4,29.0 276.9,28.3 C279.5,27.6 282.1,37.7 284.6,36.6 C287.2,35.5 289.7,23.0 292.3,21.9 C294.9,20.8 298.7,28.5 300.0,29.8" fill="none" stroke="url(#ln4)" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.55) 0px 0px 7px);"></path>
+              </svg>
+            </div>
+            <div data-dc-tpl="176" style="position: relative; display: flex; flex-wrap: wrap; gap: 16px; width: 100%; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 11.5px; color: rgb(122, 122, 130); font-variant-numeric: tabular-nums;">
+              <span data-dc-tpl="177"><b data-dc-tpl="178" style="color: rgb(246, 246, 247);"><span class="sc-interp">214</span></b> positions</span>
+              <span data-dc-tpl="179"><b data-dc-tpl="180" style="color: rgb(246, 246, 247);"><span class="sc-interp">61 %</span></b> réussite</span>
+              <span data-dc-tpl="181"><b data-dc-tpl="182" style="color: rgb(255, 148, 160);"><span class="sc-interp">−5,1 %</span></b> DD max</span>
+            </div>
+          </button>
+        
+          <button data-dc-tpl="150" type="button" class="algo" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px; text-align: left; font: inherit; cursor: pointer; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(16, 16, 19, 0.72), rgba(9, 9, 11, 0.88)); box-shadow: rgba(0, 0, 0, 0.4) 0px 14px 34px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; color: rgb(246, 246, 247);">
+            <div data-dc-tpl="151" aria-hidden="true" style="position: absolute; top: 0px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);"></div>
+            <div data-dc-tpl="152" style="position: relative; display: flex; align-items: center; gap: 12px; width: 100%;">
+              <div data-dc-tpl="153" style="display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span data-dc-tpl="154" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">WAVE</span> <span data-dc-tpl="155" style="color: rgb(249, 164, 94); text-shadow: rgba(249, 164, 94, 0.7) 0px 0px 10px;"><span class="sc-interp"></span></span></span>
+                <span data-dc-tpl="156" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: rgb(122, 122, 130);"><span class="sc-interp">US30 · M5</span></span>
+              </div>
+            </div>
+            <div data-dc-tpl="157" style="position: relative; display: flex; align-items: baseline; gap: 10px;">
+              <span data-dc-tpl="158" style="font-size: 34px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160); text-shadow: rgba(255, 77, 94, 0.4) 0px 0px 22px;"><span class="sc-interp">−12 %</span></span>
+              <span data-dc-tpl="159" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">sur 1 an</span></span>
+            </div>
+            <div data-dc-tpl="160" style="position: relative; height: 96px; width: 100%;">
+              <svg data-dc-tpl="161" width="100%" height="96" viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
+                <defs data-dc-tpl="162">
+                  <linearGradient data-dc-tpl="163" id="ln5" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="164" offset="0" stop-color="#6ef2c9"></stop>
+                    <stop data-dc-tpl="165" offset="0.000" stop-color="#33e6a6"></stop>
+                    <stop data-dc-tpl="166" offset="0.108" stop-color="#dcdce0"></stop>
+                    <stop data-dc-tpl="167" offset="1" stop-color="#ff4d5e"></stop>
+                  </linearGradient>
+                  <linearGradient data-dc-tpl="168" id="ar5" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop data-dc-tpl="169" offset="0" stop-color="#33e6a6" stop-opacity=".38"></stop>
+                    <stop data-dc-tpl="170" offset="0.108" stop-color="#33e6a6" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="171" offset="0.108" stop-color="#ff4d5e" stop-opacity="0"></stop>
+                    <stop data-dc-tpl="172" offset="1" stop-color="#ff4d5e" stop-opacity=".4"></stop>
+                  </linearGradient>
+                </defs>
+                <line data-dc-tpl="173" x1="0" x2="300" y1="10.3" y2="10.3" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
+                <path data-dc-tpl="174" d="M0.0,10.3 C1.3,10.8 5.1,13.5 7.7,13.3 C10.3,13.2 12.8,9.8 15.4,9.6 C17.9,9.4 20.5,12.2 23.1,12.1 C25.6,11.9 28.2,9.4 30.8,8.7 C33.3,8.0 35.9,6.7 38.5,8.0 C41.0,9.3 43.6,13.2 46.2,16.2 C48.7,19.3 51.3,25.3 53.8,26.4 C56.4,27.6 59.0,22.6 61.5,23.0 C64.1,23.4 66.7,26.0 69.2,28.8 C71.8,31.6 74.4,36.8 76.9,40.0 C79.5,43.2 82.1,47.0 84.6,47.9 C87.2,48.8 89.7,46.5 92.3,45.5 C94.9,44.5 97.4,40.9 100.0,41.7 C102.6,42.5 105.1,49.9 107.7,50.3 C110.3,50.7 112.8,44.1 115.4,44.1 C117.9,44.2 120.5,49.7 123.1,50.6 C125.6,51.6 128.2,50.8 130.8,49.8 C133.3,48.8 135.9,44.3 138.5,44.7 C141.0,45.1 143.6,50.5 146.2,52.3 C148.7,54.2 151.3,53.9 153.8,55.7 C156.4,57.5 159.0,60.7 161.5,62.9 C164.1,65.1 166.7,68.4 169.2,68.8 C171.8,69.1 174.4,64.8 176.9,65.2 C179.5,65.6 182.1,71.2 184.6,71.2 C187.2,71.2 189.7,65.1 192.3,65.1 C194.9,65.1 197.4,70.0 200.0,71.2 C202.6,72.4 205.1,72.4 207.7,72.6 C210.3,72.7 212.8,70.9 215.4,72.1 C217.9,73.3 220.5,77.7 223.1,79.6 C225.6,81.4 228.2,82.9 230.8,83.2 C233.3,83.4 235.9,82.5 238.5,81.1 C241.0,79.6 243.6,74.7 246.2,74.5 C248.7,74.3 251.3,79.1 253.8,79.8 C256.4,80.6 259.0,77.7 261.5,79.0 C264.1,80.4 266.7,86.6 269.2,88.0 C271.8,89.4 274.4,88.2 276.9,87.4 C279.5,86.7 282.1,85.2 284.6,83.6 C287.2,82.1 289.7,79.7 292.3,78.1 C294.9,76.5 298.7,74.7 300.0,74.1 L300,10.3 L0,10.3 Z" fill="url(#ar5)"></path>
+                <path data-dc-tpl="175" d="M0.0,10.3 C1.3,10.8 5.1,13.5 7.7,13.3 C10.3,13.2 12.8,9.8 15.4,9.6 C17.9,9.4 20.5,12.2 23.1,12.1 C25.6,11.9 28.2,9.4 30.8,8.7 C33.3,8.0 35.9,6.7 38.5,8.0 C41.0,9.3 43.6,13.2 46.2,16.2 C48.7,19.3 51.3,25.3 53.8,26.4 C56.4,27.6 59.0,22.6 61.5,23.0 C64.1,23.4 66.7,26.0 69.2,28.8 C71.8,31.6 74.4,36.8 76.9,40.0 C79.5,43.2 82.1,47.0 84.6,47.9 C87.2,48.8 89.7,46.5 92.3,45.5 C94.9,44.5 97.4,40.9 100.0,41.7 C102.6,42.5 105.1,49.9 107.7,50.3 C110.3,50.7 112.8,44.1 115.4,44.1 C117.9,44.2 120.5,49.7 123.1,50.6 C125.6,51.6 128.2,50.8 130.8,49.8 C133.3,48.8 135.9,44.3 138.5,44.7 C141.0,45.1 143.6,50.5 146.2,52.3 C148.7,54.2 151.3,53.9 153.8,55.7 C156.4,57.5 159.0,60.7 161.5,62.9 C164.1,65.1 166.7,68.4 169.2,68.8 C171.8,69.1 174.4,64.8 176.9,65.2 C179.5,65.6 182.1,71.2 184.6,71.2 C187.2,71.2 189.7,65.1 192.3,65.1 C194.9,65.1 197.4,70.0 200.0,71.2 C202.6,72.4 205.1,72.4 207.7,72.6 C210.3,72.7 212.8,70.9 215.4,72.1 C217.9,73.3 220.5,77.7 223.1,79.6 C225.6,81.4 228.2,82.9 230.8,83.2 C233.3,83.4 235.9,82.5 238.5,81.1 C241.0,79.6 243.6,74.7 246.2,74.5 C248.7,74.3 251.3,79.1 253.8,79.8 C256.4,80.6 259.0,77.7 261.5,79.0 C264.1,80.4 266.7,86.6 269.2,88.0 C271.8,89.4 274.4,88.2 276.9,87.4 C279.5,86.7 282.1,85.2 284.6,83.6 C287.2,82.1 289.7,79.7 292.3,78.1 C294.9,76.5 298.7,74.7 300.0,74.1" fill="none" stroke="url(#ln5)" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.55) 0px 0px 7px);"></path>
+              </svg>
+            </div>
+            <div data-dc-tpl="176" style="position: relative; display: flex; flex-wrap: wrap; gap: 16px; width: 100%; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 11.5px; color: rgb(122, 122, 130); font-variant-numeric: tabular-nums;">
+              <span data-dc-tpl="177"><b data-dc-tpl="178" style="color: rgb(246, 246, 247);"><span class="sc-interp">467</span></b> positions</span>
+              <span data-dc-tpl="179"><b data-dc-tpl="180" style="color: rgb(246, 246, 247);"><span class="sc-interp">41 %</span></b> réussite</span>
+              <span data-dc-tpl="181"><b data-dc-tpl="182" style="color: rgb(255, 148, 160);"><span class="sc-interp">−21,3 %</span></b> DD max</span>
+            </div>
+          </button>
+        
+        <a data-dc-tpl="183" href="#" class="add" style="min-height: 300px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 24px; box-sizing: border-box; border-radius: 18px; border: 1px dashed rgba(255, 255, 255, 0.18); background: transparent; color: rgb(155, 155, 161); transition: border-color 0.2s, background 0.2s;">
+          <span data-dc-tpl="184" style="width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, 0.2); font-size: 17px;">+</span>
+          <span data-dc-tpl="185" style="font-size: 15px; font-weight: 700; color: rgb(246, 246, 247);">Ajouter un backtest</span>
+          <span data-dc-tpl="186" style="font-size: 12px; color: rgb(122, 122, 130); line-height: 1.5; max-width: 210px;">Importe un fichier Excel de positions, CHEST calcule le reste.</span>
+        </a>
+      </section>
+    </div>
+  </main></div></div></div>
+
+
+
+
+</body>
+</html>

@@ -6,6 +6,9 @@ faut pour l'appliquer au vrai site (`site/` du dépôt `chest_sites`).
 | Fichier | Rôle |
 | --- | --- |
 | `LISEZ-MOI.md` | Ce fichier : contenu, ordre de lecture, consigne à donner à Claude Code. |
+| **`METHODE-EXACTE.md`** | **À donner en premier à Claude Code** : comment reproduire les maquettes à l'identique (copie du HTML exact + comparaison au pixel). |
+| `html-exact/*.html` | Chaque page en HTML statique, exactement tel qu'il s'affiche (0,00 % d'écart avec sa capture). À copier, pas à réinterpréter. |
+| `outils/comparer.mjs` | Compare une page du site à sa capture et montre les différences en rouge. |
 | `CHEST-DA-2.0.md` | **La direction artistique 2.0.** Couleurs, typo, surfaces, composants, règles. |
 | `INTEGRATION.md` | **Le plan de travail page par page** : fichier du site concerné, ce qui change, ce qui reste. |
 | `css/chest-da-2.css` | Les tokens et les classes de la 2.0, prêts à brancher. |
@@ -54,14 +57,15 @@ valeur vient des données réelles déjà calculées par les scripts existants.
 
 ## Consigne à donner à Claude Code
 
-> Lis `CHEST-DESIGN-2.0/LISEZ-MOI.md`, puis `CHEST-DA-2.0.md` et `INTEGRATION.md`.
-> Applique la refonte CHEST 2.0 au site, une page à la fois, dans l'ordre de
-> `INTEGRATION.md`. Pour chaque page : ouvre la capture et la maquette `.dc.html`
-> correspondantes, reprends les valeurs exactes (tailles, espacements, couleurs),
-> garde toute la logique et les données existantes (on change la présentation, pas
-> le fonctionnement), respecte `CLAUDE.md` (incrément des `?v=`, fichiers à ne jamais
-> réécrire, vérification par JS/texte). Montre-moi chaque page avant de passer à la
-> suivante. Quand une maquette demande une donnée qui n'existe pas encore, demande-moi
+> Lis `CHEST-DESIGN-2.0/METHODE-EXACTE.md` puis `INTEGRATION.md` et `CHEST-DA-2.0.md`.
+> Applique la refonte CHEST 2.0 une page à la fois, dans l'ordre de `INTEGRATION.md`,
+> en suivant `METHODE-EXACTE.md` à la lettre : copie le balisage et les styles de
+> `html-exact/<Page>.html` **sans modifier aucune valeur**, branche les données réelles
+> déjà calculées par le JS existant (on change la présentation, pas le fonctionnement),
+> puis lance `outils/comparer.mjs` contre `captures/<Page>.png` et corrige tant que des
+> zones de mise en page ressortent en rouge. Respecte `CLAUDE.md` (`?v=`, fichiers à ne
+> jamais réécrire). Montre-moi `cote-a-cote.png` à la fin de chaque page avant de passer
+> à la suivante. Si une maquette demande une donnée qui n'existe pas encore, demande-moi
 > avant de l'inventer.
 
 Placer ce dossier à la racine du dépôt, à côté de `CHEST DESIGN/` (la DA 1.0, qui reste

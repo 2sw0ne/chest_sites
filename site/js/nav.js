@@ -81,7 +81,7 @@
       if (menuBtn) menuBtn.addEventListener('click', () => shell.classList.toggle('is-mobile-open'));
       if (overlay) overlay.addEventListener('click', closeMobile);
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMobile(); });
-      document.querySelectorAll('.chest-nav__item').forEach((a) => a.addEventListener('click', closeMobile));
+      document.querySelectorAll('.chest-nav__item, .nav-i').forEach((a) => a.addEventListener('click', closeMobile));
     }
 
     // Theme toggle button(s) — there may be one in the topbar.

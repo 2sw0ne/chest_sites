@@ -49,3 +49,4 @@ scanner-server/package-lock.json
 
 # School : fichiers déposés par l admin (documents, vidéos, miniatures), propres à chaque serveur
 accounts-bridge/school_files/
+comparaison/

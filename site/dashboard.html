@@ -601,8 +601,9 @@
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
-<link rel="stylesheet" href="css/chest-2-site.css?v=1">
-<link rel="stylesheet" href="css/dash-2.css?v=2">
+<link rel="stylesheet" href="css/chest-2-site.css?v=2">
+<link rel="stylesheet" href="css/shell-2.css?v=4">
+<link rel="stylesheet" href="css/dash-2.css?v=4">
 </head>
 <body data-page="dashboard" class="chest-root">
 
@@ -650,7 +651,9 @@
       </div>
     </header>
 
-    <main id="dashMain" class="d2">
+    <main id="dashMain" style="display: flex; flex-direction: column; gap: 28px; padding: 34px 36px 56px; max-width: 1180px; width: 100%; box-sizing: border-box; color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px;">
+  <!-- CHEST 2.0 (2026-11-02) : contenu copié de CHEST-DESIGN-2.0/html-exact/Main.html, valeurs inchangées.
+       Les données réelles sont posées par js/dash-2.js (événement chest:dash-render de dashboard.js). -->
   <div class="chest-section" id="dashEmptyState" hidden>
     <div class="chest-glass">
       <span class="chest-step">01 — Aucun compte</span>
@@ -660,109 +663,166 @@
     </div>
   </div>
 
-  <!-- CHEST 2.0 (2026-11-02, maquette CHEST-DESIGN-2.0/maquettes/Main.dc.html) :
-       en-tête · solde + 4 KPI · courbe d'equity · Aujourd'hui (sessions, annonces, force des devises)
-       · derniers trades + signaux. dashboard.js garde ses calculs ; js/dash-2.js dessine ce qui est nouveau
-       à partir de l'événement « chest:dash-render ». Le bloc Challenge est retiré (il vit dans le Journal). -->
-  <section class="d2-head">
-    <div class="d2-head__txt">
-      <span class="chest-step">01 — Vue d'ensemble</span>
-      <h1 class="d2-title">Dashboard</h1>
-      <p class="d2-date"><span id="d2Date">&nbsp;</span><span class="d2-tags"><span id="accKindTitle" class="d2-tag">Compte propre</span><span class="acc-sync-error" id="accSyncError" hidden title="Synchronisation en erreur">!</span><span class="d2-tag" id="accJournalTag" hidden></span><span class="conn-tag" id="accConnTag" hidden></span></span></p>
-    </div>
-    <div class="d2-head__ctl">
-      <div class="acc-switcher d2-acc" id="accSwitcher">
-        <button class="acc-switcher__btn" id="accSwitcherBtn" type="button">
-          <span class="d2-acc__dot" aria-hidden="true"></span>
-          <span class="avatar" id="accAvatar" hidden>—</span>
-          <span class="meta"><strong id="accName">—</strong><span id="accSub">—</span></span>
-          <svg class="d2-acc__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="acc-menu" id="accMenu">
-          <div id="accMenuList"></div>
-          <div class="acc-menu__divider"></div>
-          <button class="acc-menu__item acc-menu__add" id="familyAddBtn"><span>＋</span> Ajouter un compte</button>
+
+      
+      <section style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Vue d'ensemble</span>
+          <h1 style="margin: 0px; font-size: 40px; line-height: 1.06; font-weight: 700; letter-spacing: -0.04em;">Dashboard</h1>
+          <p id="d2Date" style="margin: 0px; font-size: 14px; color: rgb(155, 155, 161);">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
         </div>
-      </div>
-      <div class="c2-seg d2-seg" id="periodPills" role="group" aria-label="Période">
-        <button type="button" data-period="week">7J</button>
-        <button type="button" data-period="30d" class="is-active">30J</button>
-        <button type="button" data-period="90d">3M</button>
-        <button type="button" data-period="full">Tout</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="d2-band" aria-label="Solde et indicateurs de la période">
-    <div class="d2-bal">
-      <span class="c2-label" id="d2BalLabel">Solde</span>
-      <span class="d2-bal__num" id="d2Bal">—</span>
-      <div class="d2-bal__row"><span class="d2-chip" id="d2Chip">—</span><span class="d2-bal__sub" id="d2ChipSub"></span></div>
-    </div>
-    <div class="d2-kpis" id="d2Kpis"></div>
-  </section>
-
-  <section class="c2-glass d2-chart" aria-label="Courbe d'equity">
-    <div class="d2-chart__head">
-      <div class="d2-chart__ttl"><span class="c2-label">02 — Courbe d'equity</span><span class="d2-chart__t" id="d2ChartTitle">—</span></div>
-      <div class="d2-chart__legend">
-        <span class="d2-leg"><i aria-hidden="true"></i>Compte</span>
-        <div class="c2-seg d2-unit" id="unitToggle" role="group" aria-label="Unité">
-          <button type="button" data-unit="dollar">$</button>
-          <button type="button" data-unit="percent" class="is-active">%</button>
+        <div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+          <div class="acc-switcher" id="accSwitcher" style="position: relative;"><button type="button" class="btn2" id="accSwitcherBtn" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0px 14px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)) border-box border-box; color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-weight: 600; cursor: pointer;">
+            <span id="d2AccDot" style="width: 7px; height: 7px; border-radius: 999px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.8) 0px 0px 10px;"></span>
+            <span id="d2AccLabel">—</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9ba1" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button><div class="acc-menu" id="accMenu"><div id="accMenuList"></div><div class="acc-menu__divider"></div><button class="acc-menu__item acc-menu__add" id="familyAddBtn"><span>＋</span> Ajouter un compte</button></div></div>
+          <div role="group" aria-label="Période" id="periodPills" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">
+            <button type="button" data-period="week" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">7J</button>
+            <button type="button" data-period="30d" class="is-active" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">30J</button>
+            <button type="button" data-period="90d" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">3M</button>
+            <button type="button" data-period="full" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">Tout</button>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="d2-chart__plot"><canvas id="equityChart"></canvas></div>
-  </section>
+      </section>
 
-  <!-- Positions ouvertes en direct : VPS (offre Pro, poussées par l'EA toutes les 30 s) ou MyFxBook Live (latent estimé). -->
-  <section class="c2-glass d2-pos" id="openPosSection" hidden>
-    <div class="d2-tile__head"><span class="c2-label"><i class="dv2-live"></i>03 — Positions ouvertes · en direct</span><span class="d2-tile__meta" id="openPosMeta"></span></div>
-    <div class="openpos" id="openPosList"></div>
-  </section>
+      
+      <section style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 0px; padding: 26px 0px 30px; border-top: 1px solid rgba(255, 255, 255, 0.07); border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
+        <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 10px; padding-right: 32px;">
+          <span id="d2BalLabel" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Solde</span>
+          <span id="d2Bal" style="font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; font-variant-numeric: tabular-nums;">—</span>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span id="d2Chip" style="font-size: 13px; font-weight: 700; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12); padding: 4px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; text-shadow: rgba(51, 230, 166, 0.45) 0px 0px 14px;">+740 $ · +0,74 %</span>
+            <span id="d2ChipSub" style="font-size: 12.5px; color: rgb(155, 155, 161);">sur 30 jours</span>
+          </div>
+        </div>
+        <div id="d2Kpis" style="flex: 3 1 560px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); row-gap: 20px;"></div>
+      </section>
 
-  <section class="c2-tile d2-payouts dv2-payouts" id="payoutBar" hidden>
-    <div class="payout-bar__head">
-      <div class="payout-bar__info"><span class="c2-label">Payouts reçus</span><strong id="payoutTotal">$0</strong></div>
-      <div class="payout-bar__actions">
-        <button type="button" class="c2-btn-2 c2-btn-2--sm" id="payoutAddBtn">+ Ajouter un payout</button>
-        <button type="button" class="icon-btn payout-bar__collapse" id="payoutListToggle" title="Afficher/masquer le détail" aria-label="Afficher/masquer le détail des payouts"><span class="chev">▾</span></button>
-      </div>
-    </div>
-    <div class="payout-bar__list" id="payoutList" hidden></div>
-  </section>
+      
+      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px;">
 
-  <section class="d2-sec" aria-label="Aujourd'hui">
-    <div class="d2-sec__head"><span class="chest-step">04 — Aujourd'hui</span><span class="d2-sec__rule" aria-hidden="true"></span></div>
-    <div class="d2-today">
-      <div class="c2-tile d2-sess"><div id="sessionTimeline"><div class="d2-skel"></div></div></div>
-      <div class="c2-tile d2-news">
-        <div class="d2-tile__head"><b>Annonces du jour</b><a href="calendar.html">Calendrier →</a></div>
-        <div id="d2News"><div class="d2-skel d2-skel--sm"></div></div>
-        <p class="d2-news__fc" id="d2Forecast" hidden></p>
-      </div>
-      <div class="c2-tile d2-str">
-        <div class="d2-tile__head"><b>Force des devises</b><span class="d2-mono">H4</span></div>
-        <div id="d2Strength"><div class="d2-skel d2-skel--sm"></div></div>
-      </div>
-    </div>
-  </section>
+        
+        <div style="grid-column: 1 / -1; position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(14, 14, 17, 0.72), rgba(9, 9, 11, 0.86)); box-shadow: rgba(0, 0, 0, 0.45) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 16px;">
+          <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — Courbe d'equity</span>
+              <span id="d2ChartTitle" style="font-size: 19px; font-weight: 700; letter-spacing: -0.025em;">—</span>
+            </div>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 12px; color: rgb(155, 155, 161);">
+              <span style="display: flex; align-items: center; gap: 7px;"><span style="width: 16px; height: 2px; border-radius: 2px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.8) 0px 0px 8px;"></span>Compte</span>
+              <span id="d2LegBt" hidden style="display: flex; align-items: center; gap: 7px;"><span style="width: 16px; height: 0px; border-top: 2px dashed rgb(232, 179, 57);"></span>Backtest de départ</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; min-width: 0px;">
+            <div id="d2Y" style="display: flex; flex-direction: column; justify-content: space-between; height: 270px; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130); text-align: right; font-variant-numeric: tabular-nums;"></div>
+            <div style="position: relative; flex: 1 1 0%; min-width: 0px; height: 270px;">
+              <svg width="100%" height="270" viewBox="0 0 1000 270" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
+                <defs>
+                  <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#33e6a6" stop-opacity=".32"></stop>
+                    <stop offset="1" stop-color="#33e6a6" stop-opacity="0"></stop>
+                  </linearGradient>
+                  <linearGradient id="eqLine" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#dcdce0"></stop>
+                    <stop offset=".35" stop-color="#33e6a6"></stop>
+                    <stop offset="1" stop-color="#6ef2c9"></stop>
+                  </linearGradient>
+                </defs>
+                <line x1="0" x2="1000" y1="0.5" y2="0.5" stroke="rgba(255,255,255,.05)" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" x2="1000" y1="67.5" y2="67.5" stroke="rgba(255,255,255,.05)" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" x2="1000" y1="135" y2="135" stroke="rgba(255,255,255,.05)" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" x2="1000" y1="202.5" y2="202.5" stroke="rgba(255,255,255,.05)" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" x2="1000" y1="269.5" y2="269.5" stroke="rgba(255,255,255,.08)" vector-effect="non-scaling-stroke"></line>
+                <path id="d2Area" d="" fill="url(#eqFill)"></path>
+                <path id="d2Bt" d="" fill="none" stroke="#e8b339" stroke-width="1.5" stroke-dasharray="5 6" opacity=".75" vector-effect="non-scaling-stroke"></path>
+                <path id="d2Line" d="" fill="none" stroke="url(#eqLine)" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.65) 0px 0px 8px);"></path>
+              </svg>
+              <div id="d2Dot" style="position: absolute; left: 100%; top: 18px; width: 11px; height: 11px; margin: -5.5px 0px 0px -5.5px; border-radius: 999px; background: rgb(5, 5, 6); border: 2px solid rgb(110, 242, 201); box-shadow: rgba(51, 230, 166, 0.9) 0px 0px 14px;"></div>
+              <div id="d2DotLbl" style="position: absolute; left: 100%; top: 18px; transform: translate(-100%, -150%); padding: 6px 10px; border-radius: 10px; background: rgba(5, 5, 6, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); font-size: 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums;">—</div>
+            </div>
+          </div>
+          <div id="d2X" style="display: flex; justify-content: space-between; padding-left: 54px; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"></div>
+        </div>
 
-  <section class="d2-bottom">
-    <div class="c2-tile d2-trades">
-      <div class="d2-tile__head"><span class="c2-label">05 — Derniers trades</span><a href="journal.html">Journal →</a></div>
-      <div id="d2Trades"></div>
-    </div>
-    <div class="c2-tile d2-sig">
-      <div class="d2-tile__head"><span class="c2-label">06 — Signaux des scanners</span><a href="strategies.html">Stratégies →</a></div>
-      <div id="d2Signals"></div>
-    </div>
-  </section>
+      </section>
+
+      <section id="openPosSection" hidden style="position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(14, 14, 17, 0.72), rgba(9, 9, 11, 0.86)); box-shadow: rgba(0, 0, 0, 0.45) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 12px;">
+        <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">03 — Positions ouvertes · en direct</span>
+          <span id="openPosMeta" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);"></span>
+        </div>
+        <div class="openpos" id="openPosList"></div>
+      </section>
+
+      
+      <section style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">04 — Aujourd'hui</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
+
+          
+          <div class="tile" id="d2Sess" style="overflow: hidden; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; display: flex; flex-direction: column;">
+          </div>
+
+          
+          <div class="tile" id="d2NewsTile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;">
+              <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;">Annonces du jour</span>
+              <a href="calendar.html" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);">Calendrier →</a>
+            </div><div id="d2News" style="display: contents;"></div><p id="d2Forecast" hidden style="margin: auto 0px 0px; padding-top: 10px; font-size: 12.5px; color: rgb(155, 155, 161);"></p>
+          </div>
+
+          
+          <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;">Force des devises</span>
+              <span style="margin-left: auto; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(155, 155, 161);">H4</span>
+            </div>
+            <div id="d2Str" style="display: flex; flex-direction: column; gap: 7px;"></div>
+          </div>
+        </div>
+      </section>
+
+      
+      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px;">
+        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0px;">
+          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;">
+            <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">05 — Derniers trades</span>
+            <a href="journal.html" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);">Journal →</a>
+          </div>
+          <div style="overflow-x: auto;">
+            <div id="d2Trades" style="min-width: 420px; display: flex; flex-direction: column;">
+              <div style="display: grid; grid-template-columns: 1.2fr 0.8fr 1fr 0.7fr 1fr; gap: 10px; padding: 8px; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: rgb(122, 122, 130); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                <span>Paire</span><span>Sens</span><span>Ouvert</span><span>R</span><span style="text-align: right;">Résultat</span>
+              </div><div id="d2TradeRows" style="display: contents;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0px;">
+          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;">
+            <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">06 — Signaux des scanners</span>
+            <a href="strategies.html" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);">Stratégies →</a>
+          </div><div id="d2Sig" style="display: contents;"></div>
+        </div>
+      </section>
+
+    
 
   <!-- Éléments de l'ancien Dashboard encore écrits par dashboard.js (chiffres repris par dash-2.js,
        objectifs et calendrier du Challenge désormais dans le Journal) : gardés hors écran. -->
   <div class="d2-legacy" hidden aria-hidden="true">
+    <span id="accAvatar"></span><strong id="accName"></strong><span id="accSub"></span>
+    <span id="accKindTitle"></span><span id="accSyncError"></span><span id="accJournalTag"></span><span id="accConnTag"></span>
+    <div id="unitToggle"><button type="button" data-unit="dollar" class="is-active">$</button><button type="button" data-unit="percent">%</button></div>
+    <div style="position:relative;width:600px;height:200px"><canvas id="equityChart"></canvas></div>
+    <section id="payoutBar"><strong id="payoutTotal"></strong><button type="button" id="payoutAddBtn"></button><button type="button" id="payoutListToggle"></button><div id="payoutList"></div></section>
+    <div id="sessionTimeline"></div>
     <div id="heroSpot"><div id="heroGlow"></div></div>
     <span id="kpiProfit"></span><span id="kpiProfitSub"></span><span id="resEquity"></span><span id="resBalance"></span>
     <span id="resPnl"></span><span id="resToday"></span><span id="kpiProfitDollar"></span><span id="kpiProfitDollarSub"></span>
@@ -872,7 +932,7 @@
 <script src="js/nav.js?v=9"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/lot-calculator.js?v=5"></script>
+<script src="js/lot-calculator.js?v=6"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/myfxbook-store.js?v=7"></script>
@@ -885,8 +945,8 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=14"></script>
-<script src="js/live-sim.js?v=5"></script><script src="js/dashboard.js?v=60"></script>
-<script src="js/session-timeline.js?v=5"></script>
+<script src="js/live-sim.js?v=5"></script><script src="js/dashboard.js?v=61"></script>
+<script src="js/session-timeline.js?v=6"></script>
 <script src="js/currency-strength.js?v=2"></script>
 <script src="js/page-tour.js"></script>
 <script>
@@ -901,6 +961,6 @@ CHESTTour.init([
 </script>
 <script src="js/v2.js?v=5"></script>
 <script src="js/scanner-store.js"></script>
-<script src="js/dash-2.js?v=1"></script>
+<script src="js/dash-2.js?v=3"></script>
 </body>
 </html>

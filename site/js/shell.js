@@ -109,6 +109,16 @@
     const active = meta.nav || name;
     document.querySelectorAll('.chest-nav__item[data-page]').forEach((el) => el.classList.toggle('is-active', el.dataset.page === active));
     document.querySelectorAll('.chest-topbar__btn[data-page]').forEach((el) => el.classList.toggle('is-active', el.dataset.page === name));
+    markNav2(active, name);
+  }
+  // CHEST 2.0 : menu copié de la maquette (.nav-i, .sb-acc__row) — entrée active = classe « on ».
+  function markNav2(active, page) {
+    document.querySelectorAll('.nav-i[data-page]').forEach((el) => {
+      const on = el.dataset.page === active;
+      el.classList.toggle('on', on);
+      if (on) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current');
+    });
+    document.querySelectorAll('.sb-acc[data-page], .sb-acc__row[data-page]').forEach((el) => el.closest('.sb-acc').classList.toggle('on', el.dataset.page === page));
   }
   function showMaint(name, search) {
     markActive(name, search);
@@ -214,6 +224,7 @@
     document.querySelectorAll('.chest-topbar__btn[data-page]').forEach((el) => {
       el.classList.toggle('is-active', el.dataset.page === path);
     });
+    markNav2(active, path);
 
     shell.classList.remove('is-navigating');
     shell.classList.add('is-done');

@@ -1,0 +1,95 @@
+/* =====================================================================
+   CHEST 2.0 — shell (app.html) : menu + barre du haut.
+   Bloc 1 : copie EXACTE du <style> de CHEST-DESIGN-2.0/maquettes/Main.dc.html (aucune valeur changée).
+   Bloc 2 : raccords au site (cadenas d'offre, barre de progression, grain unique, repli par .is-collapsed).
+   ===================================================================== */
+
+/* ---------- Bloc 1 : maquette ---------- */
+body{margin:0;background:#050506}
+a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
+.tile{transition:border-color .2s cubic-bezier(.16,1,.3,1),transform .22s cubic-bezier(.16,1,.3,1)}
+.tile:hover{border-color:rgba(249,164,94,.32)}
+.row-h:hover{background:rgba(255,255,255,.025)}
+.btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
+.btn2:hover{background:linear-gradient(#0b0b0e,#0b0b0e) padding-box,linear-gradient(135deg,#fc1283,#f9a45e) border-box!important;box-shadow:0 8px 26px rgba(252,18,131,.18)}
+.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
+.sb-tog:hover{color:#f6f6f7}
+.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
+.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i:active{transform:scale(.98)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
+.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.adm .ic{stroke:url(#sba)}
+.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc__id{display:flex;flex-direction:column;min-width:0}
+.sb-acc__id b{font-size:12.5px;line-height:1.25}
+.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
+.sbT:checked ~ .sb .sb-txt{display:none}
+.sbT:checked ~ .sb .sb-tog .chev{transform:none}
+.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
+.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
+.sbT:checked ~ .sb .sb-nav{padding:0 11px}
+.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
+.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
+.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
+.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.span2{grid-column:auto!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- Bloc 2 : raccords au site ---------- */
+/* le grain de la maquette est dans le shell : on retire l'ancien grain fixe de chest-da.css */
+#chestShell::after{ display:none !important; }
+#chestShell > .chest-main{ height:100vh; height:calc(100dvh / var(--chest-ui-scale, 1)); min-height:0; overflow:hidden; }
+.c2-topbar{ position:relative; }
+.c2-topbar a, .c2-topbar a:hover{ text-decoration:none; }
+.sb-acc__row:hover{ background:rgba(255,255,255,.03); }
+.sb-out:focus-visible, .nav-i:focus-visible, .sb-tog:focus-visible, .sb-acc__row:focus-visible{ outline:2px solid rgba(252,18,131,.6); outline-offset:2px; }
+#c2Bell:hover, #c2Bell[aria-expanded="true"]{ color:#f6f6f7; border-color:rgba(255,255,255,.16) !important; }
+#c2Bell:focus-visible, #c2SearchInput:focus-visible{ outline:2px solid rgba(252,18,131,.6); outline-offset:2px; }
+.c2-search label:focus-within{ border-color:rgba(252,18,131,.55) !important; box-shadow:0 0 0 3px rgba(252,18,131,.15); }
+/* cadenas School / BERICH hors Premium (même règle que l'ancien menu) */
+html.plan-no-school .nav-i[data-page="school"]::after,
+html.plan-no-berich .nav-i[data-page="berich"]::after{
+  content:''; flex-shrink:0; width:12px; height:12px; margin-left:auto; background:currentColor; opacity:.5;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.sbT:checked ~ .sb .nav-i::after{ display:none; }
+/* le menu mobile de l'ancien shell n'existe plus : la maquette pose le menu en haut sous 900 px */
+#chestShell .chest-sidebar-overlay{ display:none; }
+@media (max-width:900px){ #chestShell > .chest-main{ height:auto; min-height:100vh; overflow:visible; } #chestShell .chest-view{ height:100vh; } }
+/* la maquette garde l'interligne par défaut du navigateur (normal) : l'ancien CSS du site en imposait un plus grand */
+#chestShell{ line-height:normal; }
+/* un élément réservé (Admin, HQ, Espace éducateur) reste caché malgré son display en ligne */
+#chestShell [hidden]{ display:none !important; }
+/* l'ancienne règle « label » du site (marge basse) agrandissait la barre : neutralisée */
+#chestShell .c2-search label{ margin:0; }
+#chestShell .c2-topbar .chest-progress{ position:absolute; left:0; bottom:-1px; }
+#chestShell .c2-search label{ font-weight:400; font-size:inherit; }

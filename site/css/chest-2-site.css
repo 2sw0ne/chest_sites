@@ -26,6 +26,9 @@ body.chest-root[data-page]:not([data-page="berich"]):not([data-page="calendar"])
 body.chest-root[data-page="journal"]::before{
   background:radial-gradient(34% 46% at 70% 46%, rgba(51,230,166,.16), transparent 72%), radial-gradient(28% 40% at 52% 60%, rgba(252,18,131,.12), transparent 74%);
 }
+/* pages chargées dans le shell : la lumière et le grain de la maquette sont dans le shell (app.html) */
+html.is-embedded body.chest-root[data-page]:not([data-page="berich"]):not([data-page="calendar"]):not([data-page="strategies"]):not([data-page="journal"])::before,
+html.is-embedded body.chest-root[data-page]::after{ display:none !important; }
 /* plus de lueur qui suit la souris */
 .chest-spot__layer{ display:none !important; }
 

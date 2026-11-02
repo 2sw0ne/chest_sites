@@ -61,15 +61,16 @@
   // de la DA). Les var(--chest-*, repli) gardent le widget correct même sur
   // une page qui ne charge pas chest-da.css.
   const STYLE = `
+    /* CHEST 2.0 : bouton rond de la maquette (.calc-fab, CHEST-DESIGN-2.0/maquettes/Main.dc.html) */
     .lotcalc-fab{
-      position:fixed; right:24px; bottom:24px; z-index:260; width:52px; height:52px; border-radius:50%;
-      border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff;
-      background:var(--chest-grad, linear-gradient(135deg,#fc1283,#f9a45e));
-      box-shadow:0 14px 34px rgba(252,18,131,.4), inset 1px 1px 0 rgba(255,255,255,.35);
-      transition:transform .2s var(--chest-ease, cubic-bezier(.16,1,.3,1)), box-shadow .2s;
+      position:fixed; right:28px; bottom:28px; z-index:260; width:54px; height:54px; border-radius:999px;
+      border:none; cursor:pointer; display:grid; place-items:center; color:#fff;
+      background:linear-gradient(135deg,#fc1283,#f9a45e);
+      box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);
+      transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s;
     }
-    .lotcalc-fab svg{ width:22px; height:22px; }
-    .lotcalc-fab:hover{ transform:translateY(-2px) scale(1.04); box-shadow:0 18px 44px rgba(252,18,131,.55), inset 1px 1px 0 rgba(255,255,255,.35); }
+    .lotcalc-fab svg{ width:20px; height:20px; }
+    .lotcalc-fab:hover{ transform:translateY(-2px); box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3); }
     .lotcalc-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
     .lotcalc-overlay{
       position:fixed; inset:0; z-index:280; background:rgba(0,0,0,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -157,7 +158,7 @@
     fab.type = 'button';
     fab.className = 'lotcalc-fab';
     fab.setAttribute('aria-label', 'Calculatrice de lots');
-    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.4"/></svg>';
+    fab.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>';
     document.body.appendChild(fab);
 
     const overlay = document.createElement('div');

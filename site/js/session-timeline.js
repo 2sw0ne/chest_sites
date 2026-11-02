@@ -386,5 +386,18 @@
     setInterval(() => { if (pinnedHour === null) paintFull(); }, 60000);
   }
 
-  window.CHESTSessionTimeline = { render };
+  // CHEST 2.0 (2026-11-02) : le modèle (heure locale, sessions, ciel) pour la carte « Aujourd'hui »
+  // du Dashboard, dessinée au balisage exact de la maquette par js/dash-2.js.
+  function model() {
+    const tz = getTz();
+    const info = tzInfo(tz);
+    const off = info.offsetHours, hour = info.localHour;
+    const sessions = SESSIONS.map((s) => {
+      const ls = shiftToLocal(s.start, off), le = shiftToLocal(s.end, off);
+      return { name: s.name, flag: s.flag, color: s.color, start: ls, end: le, open: isOpen(ls, le, hour), segs: segments(ls, le), delta: nextChangeHour(ls, le, hour) };
+    });
+    const city = tz && tz !== 'auto' ? (TZ_LABELS[tz] || tz.split('/').pop().replace(/_/g, ' ')) : null;
+    return { hour, offset: off, city, sessions, sky: skyColorsAt(hour), stars: starsOpacityAt(hour), body: skyBodyPos(hour) };
+  }
+  window.CHESTSessionTimeline = { render, model };
 })();
