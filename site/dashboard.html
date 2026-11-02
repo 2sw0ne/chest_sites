@@ -600,7 +600,7 @@
 <script src="js/sync-store.js?v=16"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
-<link rel="stylesheet" href="css/v3.css?v=1">
+<link rel="stylesheet" href="css/v3.css?v=2">
 </head>
 <body data-page="dashboard" class="chest-root">
 
@@ -648,7 +648,7 @@
       </div>
     </header>
 
-    <main id="dashMain" class="v3-dash">
+    <main id="dashMain" class="v3-page v3-dash">
   <div class="chest-section" id="dashEmptyState" hidden>
     <div class="chest-glass">
       <span class="chest-step">01 — Aucun compte</span>
@@ -658,21 +658,20 @@
     </div>
   </div>
 
-  <!-- v3 (2026-11-02) : tableau de bord en bulles. En-tête (salutation + compte), 4 bulles
-       chiffrées, courbe + « Ce qui demande ton attention », puis objectifs et calendrier.
-       Tous les identifiants écrits par dashboard.js sont gardés ; js/dash-v3.js ajoute
-       l'anneau, la courbe miniature, les fenêtres glissantes et les priorités. -->
-  <header class="v3-head">
-    <div class="v3-head__hello">
-      <span class="v3-eyebrow" id="v3Date">&nbsp;</span>
-      <h1 class="v3-title" id="v3Hello">Bonjour</h1>
-      <p class="v3-head__sub" id="v3HeadSub">Voici où en est ton compte.</p>
+  <!-- v3 (2026-11-02) : tableau de bord « neutre pro » — en-tête, 4 cartes chiffrées, courbe +
+       priorités, objectifs + calendrier, positions, payouts, outils de marché. Tous les
+       identifiants écrits par dashboard.js sont gardés ; js/dash-v3.js ajoute l'anneau, la courbe
+       miniature, le capital glissant et les priorités. -->
+  <header class="v3-pagehead">
+    <div>
+      <span class="v3-pagehead__eyebrow" id="v3Date">&nbsp;</span>
+      <h1 id="v3Hello">Bonjour</h1>
     </div>
     <div class="v3-head__acc">
       <div class="v3-head__tags">
         <span class="v3-tag"><span id="accKindTitle">Compte propre</span><span class="acc-sync-error" id="accSyncError" hidden>!</span></span>
         <span class="v3-tag" id="accJournalTag" hidden></span>
-        <span class="conn-tag" id="accConnTag" hidden></span>
+        <span class="conn-tag v3-tag" id="accConnTag" hidden></span>
       </div>
       <div class="acc-switcher" id="accSwitcher">
         <button class="acc-switcher__btn" id="accSwitcherBtn">
@@ -690,41 +689,39 @@
   </header>
 
   <section class="v3-kpis" aria-label="Chiffres clés">
-    <article class="v3-bubble v3-kpi v3-kpi--hero" id="heroSpot">
+    <article class="v3-card v3-kpi v3-kpi--hero" id="heroSpot">
       <div class="v3-kpi__top">
-        <span class="v3-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 16l5-5 4 4 7-7"/><path d="M15 8h5v5"/></svg></span>
-        <span class="v3-kpi__label">Résultat · <span id="v3PeriodName">ce mois</span></span>
+        <span class="v3-ic" data-tone="neutral" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 16l5-5 4 4 7-7"/><path d="M15 8h5v5"/></svg></span>
+        <span class="v3-kpi__label">Résultat <span class="v3-mut">· <span id="v3PeriodName">ce mois</span></span></span>
       </div>
       <div class="v3-kpi__val" id="kpiProfit">—</div>
       <div class="v3-kpi__row"><span class="v3-chip" id="kpiProfitDollar">—</span><span class="v3-kpi__note" id="kpiProfitSub">—</span></div>
       <div class="v3-kpi__foot" id="kpiProfitDollarSub">—</div>
     </article>
 
-    <article class="v3-bubble v3-kpi" data-tone="blue">
+    <article class="v3-card v3-kpi" data-tone="blue">
       <div class="v3-kpi__top">
         <span class="v3-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/></svg></span>
         <span class="v3-kpi__label">Equity</span>
       </div>
       <div class="v3-kpi__val" id="resEquity">—</div>
-      <div class="v3-kpi__row"><span class="v3-kpi__note">Balance <b id="resBalance">—</b></span></div>
-      <svg class="v3-spark" id="v3Spark" viewBox="0 0 200 48" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="v3-kpi__note">Balance <b id="resBalance">—</b></div>
+      <svg class="v3-spark" id="v3Spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"></svg>
     </article>
 
-    <article class="v3-bubble v3-kpi v3-kpi--ring" data-tone="pos">
+    <article class="v3-card v3-kpi v3-kpi--ring">
       <div class="v3-ring" aria-hidden="true">
-        <svg viewBox="0 0 88 88"><defs><linearGradient id="v3RingGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7ff3ca"/><stop offset="1" stop-color="#33e6a6"/></linearGradient></defs>
-          <circle class="v3-ring__track" cx="44" cy="44" r="36"/><circle class="v3-ring__arc" id="v3WinArc" cx="44" cy="44" r="36" pathLength="100" stroke-dasharray="0 100"/></svg>
-        <span class="v3-ring__ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6"/></svg></span>
+        <svg viewBox="0 0 88 88"><circle class="v3-ring__track" cx="44" cy="44" r="36"/><circle class="v3-ring__arc" id="v3WinArc" cx="44" cy="44" r="36" pathLength="100" stroke-dasharray="0 100"/></svg>
       </div>
       <div class="v3-kpi__body">
-        <div class="v3-kpi__top"><span class="v3-kpi__label">Winrate</span></div>
+        <span class="v3-kpi__label">Winrate</span>
         <div class="v3-kpi__val" id="kpiWinrate">—</div>
         <div class="v3-kpi__note" id="kpiWinrateSub">—</div>
-        <div class="v3-kpi__foot">R:R moyen <b id="kpiRR">—</b></div>
+        <div class="v3-kpi__foot"><span>R:R moyen</span><b id="kpiRR">—</b></div>
       </div>
     </article>
 
-    <article class="v3-bubble v3-kpi" data-tone="amber" id="v3DDCard">
+    <article class="v3-card v3-kpi" data-tone="amber" id="v3DDCard">
       <div class="v3-kpi__top">
         <span class="v3-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8l5 5 4-4 7 7"/><path d="M15 16h5v-5"/></svg></span>
         <span class="v3-kpi__label">Drawdown max</span>
@@ -737,9 +734,9 @@
   </section>
 
   <section class="v3-main">
-    <article class="v3-bubble v3-chart">
-      <div class="v3-bubble__head">
-        <div><span class="v3-eyebrow">Courbe du compte</span><h2 class="v3-h2">Évolution</h2></div>
+    <article class="v3-card v3-chart">
+      <div class="v3-card__head">
+        <div><h2 class="v3-card__title">Évolution du compte</h2></div>
         <div class="v3-chart__ctl">
           <div class="chest-seg dv2-tabs" id="periodPills">
             <button data-period="day">Jour</button>
@@ -763,31 +760,31 @@
     </article>
 
     <div class="v3-side">
-      <aside class="v3-bubble v3-attn" aria-labelledby="v3AttnTitle">
-        <div class="v3-bubble__head">
-          <div><span class="v3-eyebrow">Priorités</span><h2 class="v3-h2" id="v3AttnTitle">Ce qui demande ton attention</h2></div>
-          <span class="v3-count" id="v3AttnCount">0</span>
+      <aside class="v3-card v3-attn" aria-labelledby="v3AttnTitle">
+        <div class="v3-card__head">
+          <h2 class="v3-card__title" id="v3AttnTitle">À surveiller</h2>
+          <span class="v3-count is-zero" id="v3AttnCount">0</span>
         </div>
-        <div class="v3-attn__list" id="v3Attn"><div class="v3-skel"></div><div class="v3-skel"></div><div class="v3-skel"></div></div>
+        <div class="v3-attn__list" id="v3Attn"><div class="v3-skel"></div><div class="v3-skel"></div></div>
       </aside>
 
-      <article class="v3-bubble v3-roll">
-        <div class="v3-bubble__head">
-          <div><span class="v3-eyebrow">Capital glissant</span><h2 class="v3-h2">24 h · 7 j · 30 j</h2></div>
+      <article class="v3-card v3-roll">
+        <div class="v3-card__head">
+          <div><h2 class="v3-card__title">Capital glissant</h2><p class="v3-card__sub">Variation sur 24 h, 7 et 30 jours</p></div>
         </div>
         <div class="v3-roll__list" id="v3Roll"></div>
         <div class="v3-roll__limit" id="v3RollLimit" hidden>
-          <div class="v3-roll__limit-top"><span>Limite de perte totale</span><b id="v3RollLimitTxt">—</b></div>
-          <div class="v3-meter v3-meter--lg"><span class="v3-meter__fill" id="v3RollLimitFill"></span></div>
+          <div class="v3-roll__limit-top"><span>Perte totale / limite</span><b id="v3RollLimitTxt">—</b></div>
+          <div class="v3-meter"><span class="v3-meter__fill" id="v3RollLimitFill"></span></div>
         </div>
       </article>
     </div>
   </section>
 
   <section class="v3-duo">
-    <article class="v3-bubble v3-obj">
-      <div class="v3-bubble__head">
-        <div><span class="v3-eyebrow">Challenge</span><h2 class="v3-h2">Objectifs</h2></div>
+    <article class="v3-card v3-obj">
+      <div class="v3-card__head">
+        <div><h2 class="v3-card__title">Objectifs du challenge</h2></div>
         <button type="button" class="v3-iconbtn" id="editObjectivesBtn" title="Régler les conditions du propfirm" aria-label="Régler les conditions du propfirm">
           <svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg>
         </button>
@@ -795,9 +792,9 @@
       <div class="objectives" id="objectivesList"></div>
     </article>
 
-    <article class="v3-bubble v3-cal">
-      <div class="v3-bubble__head">
-        <div><span class="v3-eyebrow">Jour par jour</span><h2 class="v3-h2">Performance</h2></div>
+    <article class="v3-card v3-cal">
+      <div class="v3-card__head">
+        <div><h2 class="v3-card__title">Performance par jour</h2></div>
         <button type="button" class="v3-iconbtn" id="miniCalSettingsBtn" title="Période affichée" aria-label="Période affichée" hidden>
           <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
         </button>
@@ -816,23 +813,35 @@
   </section>
 
   <!-- Positions ouvertes en direct : VPS (offre Pro, poussées par l'EA toutes les 30 s) ou MyFxBook Live (latent estimé). -->
-  <section class="v3-bubble v3-pos" id="openPosSection" hidden>
-    <div class="v3-bubble__head">
-      <div><span class="v3-eyebrow"><i class="dv2-live"></i>En direct</span><h2 class="v3-h2">Positions ouvertes</h2></div>
-      <span class="v3-bubble__hint" id="openPosMeta"></span>
+  <section class="v3-card v3-pos" id="openPosSection" hidden>
+    <div class="v3-card__head">
+      <h2 class="v3-card__title"><i class="dv2-live"></i>Positions ouvertes</h2>
+      <span class="v3-card__aside" id="openPosMeta"></span>
     </div>
     <div class="openpos" id="openPosList"></div>
   </section>
 
-  <section class="v3-bubble v3-payouts dv2-payouts" id="payoutBar" hidden>
+  <section class="v3-card v3-payouts dv2-payouts" id="payoutBar" hidden>
     <div class="payout-bar__head">
-      <div class="payout-bar__info"><span class="v3-eyebrow">Payouts reçus</span><strong id="payoutTotal">$0</strong></div>
+      <div class="payout-bar__info"><span>Payouts reçus</span><strong id="payoutTotal">$0</strong></div>
       <div class="payout-bar__actions">
         <button type="button" class="chest-btn-2 dv2-small" id="payoutAddBtn">+ Ajouter un payout</button>
         <button type="button" class="icon-btn payout-bar__collapse" id="payoutListToggle" title="Afficher/masquer le détail" aria-label="Afficher/masquer le détail des payouts"><span class="chev">▾</span></button>
       </div>
     </div>
     <div class="payout-bar__list" id="payoutList" hidden></div>
+  </section>
+
+  <!-- Outils de marché (v3) : toujours visibles, plus de volet à déplier. -->
+  <section class="v3-tools">
+    <article class="v3-card">
+      <div class="v3-card__head"><div><h2 class="v3-card__title">Sessions de marché</h2><p class="v3-card__sub">Qui est ouvert en ce moment</p></div></div>
+      <div id="sessionTimeline"><div class="v3-skel"></div></div>
+    </article>
+    <article class="v3-card">
+      <div class="v3-card__head"><div><h2 class="v3-card__title">Force des devises</h2><p class="v3-card__sub">M30, H4 et D1</p></div></div>
+      <div id="currencyStrength"><div class="v3-skel"></div></div>
+    </article>
   </section>
 
   <!-- Periode du calendrier de performance (14j ou mois complet) - reserve
@@ -849,31 +858,7 @@
     </div>
   </div>
 
-  <section class="v3-tools">
-    <!-- v2 : volet Outils bien visible — icône, titre, phrase d'explication, bouton Ouvrir/Fermer (2026-10-14). -->
-    <button type="button" class="tools-bar" id="toolsToggle" aria-expanded="false" aria-controls="toolsPanel">
-      <span class="tools-bar__ic" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3z"/></svg>
-      </span>
-      <span class="tools-bar__text">
-        <span class="chest-step">04 — Outils</span>
-        <span class="tools-bar__title">Sessions de marché et force des devises</span>
-        <span class="tools-bar__sub">Qui est ouvert en ce moment (Sydney, Tokyo, Londres, New York) et quelles devises tirent le marché.</span>
-      </span>
-      <span class="tools-bar__cta"><span class="tools-bar__open">Ouvrir</span><span class="tools-bar__close">Fermer</span><span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
-    </button>
-    <div class="more-panel" id="toolsPanel">
-      <div class="more-panel__inner">
-        <div class="chest-glass--mini" style="padding:0;overflow:hidden">
-          <div id="sessionTimeline"><p class="hint" style="margin:20px 22px">Chargement…</p></div>
-        </div>
-        <div class="chest-glass--mini" style="padding:20px 22px">
-          <div class="chest-step" style="margin-bottom:14px">Force des devises</div>
-          <div id="currencyStrength"><p class="hint">Chargement…</p></div>
-        </div>
-      </div>
-    </div>
-  </section>
+
 
 </main>
 </div>
@@ -973,7 +958,7 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=14"></script>
-<script src="js/live-sim.js?v=5"></script><script src="js/dashboard.js?v=61"></script>
+<script src="js/live-sim.js?v=5"></script><script src="js/dashboard.js?v=62"></script>
 <script src="js/session-timeline.js?v=5"></script>
 <script src="js/currency-strength.js"></script>
 <script src="js/page-tour.js"></script>
@@ -981,15 +966,15 @@
 CHESTTour.init([
   { selector: '#accSwitcher', title: 'Choisis ton compte', text: 'Ici tu changes de compte. Chaque compte est rattaché à un compte du Journal (📒 affiché sous son nom), qui garde son historique même si le compte est supprimé ou rattaché ailleurs. Le ⋮ de chaque compte permet de le renommer, le rattacher à un autre journal, ou le supprimer.' },
   { selector: '#kpiProfit', title: 'Ton résultat', text: 'Le profit du compte actif sur la période choisie, avec l\'equity juste dessous. À droite : balance, PnL non réalisé et profit du jour, synchronisés via Myfxbook.' },
-  { selector: '.dv2-kpis .chest-kpis', title: 'Indicateurs clés', text: 'Profit en dollars, R:R moyen, winrate, drawdown max et jours tradés sur la période choisie.' },
+  { selector: '.v3-kpis', title: 'Indicateurs clés', text: 'Profit en dollars, R:R moyen, winrate, drawdown max et jours tradés sur la période choisie.' },
   { selector: '#periodPills', title: 'Choisis la période', text: 'Jour, semaine, mois, année ou tout : la fenêtre s\'applique à la courbe et aux indicateurs. À côté, $ / % change l\'unité.' },
-  { selector: '.chest-glass--chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde, construite à partir de tes vraies positions synchronisées via Myfxbook.' },
+  { selector: '.v3-chart', title: 'Courbe d\'equity', text: 'L\'évolution de ton solde, construite à partir de tes vraies positions synchronisées via Myfxbook.' },
   { selector: '#objectivesList', title: 'Objectifs du challenge', text: 'Les règles de ton challenge propfirm (objectif de profit, perte du jour, perte max, jours minimum) et où tu en es. La roue dentée à côté du titre les règle.' },
   { selector: '#miniCalGrid', title: 'Performance par jour', text: 'Le résultat de chaque jour de trading, avec les totaux par semaine. Les flèches font défiler la fenêtre affichée.' },
-  { selector: '#toolsToggle', title: 'Outils', text: 'Clique « Ouvrir » : la timeline des sessions (Sydney, Tokyo, Londres, New York) et la force des devises en direct se déplient juste dessous.' },
+  { selector: '.v3-tools', title: 'Outils de marché', text: 'Les sessions ouvertes en ce moment (Sydney, Tokyo, Londres, New York) et la force des devises en direct.' }
 ]);
 </script>
 <script src="js/v2.js?v=5"></script>
-<script src="js/dash-v3.js?v=1"></script>
+<script src="js/dash-v3.js?v=2"></script>
 </body>
 </html>

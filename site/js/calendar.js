@@ -644,11 +644,29 @@
   // choix n'existe plus (moins d'annonces cette fois-ci).
   const driverCompactSelection = {};
 
+  // v3 (2026-11-02) : les annonces deviennent des lignes (Prévu / Réel / effet estimé sur la
+  // paire suivie) au lieu de grandes cartes ; les 3 plus fortes en tête, toutes les autres dans
+  // un bloc replié, par ordre chronologique avec un repère « Maintenant ».
+  const escHtml = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function driverHeadHtml(config) {
+    return `<div class="v3-drow v3-drow--head"><span>Annonce</span><span>Prévu</span><span>Réel</span><span title="Effet estimé sur ${escHtml(config.code)}">Effet</span></div>`;
+  }
+  function driverRowHtml(d, config) {
+    const ev = d.ev;
+    const when = [dayBadge(ev), ev.time].filter(Boolean).join(' · ');
+    const head = `<div class="v3-drow__ev">${flagIcon(ev.country)}<span><b>${escHtml(ev.event)}</b><small>${escHtml(when)}</small></span></div>`;
+    if (hasNoData(ev)) return `<div class="v3-drow">${head}<span class="v3-drow__na">Discours, sans chiffre</span></div>`;
+    const move = estimateForecastMove(ev, config);
+    return `<div class="v3-drow">${head}`
+      + `<span class="v3-num val ${forecastTone(ev)}">${escHtml(ev.consensus || '—')}</span>`
+      + `<span class="v3-num val ${ev.released ? valueTone(ev) : 'neutral'}">${ev.released ? escHtml(ev.actual || '—') : '<i class="v3-mut">À venir</i>'}</span>`
+      + `<span class="v3-num val ${impactTone(move)}">${fmtImpact(move)}</span></div>`;
+  }
+
   function renderDriverCompact(ids, drivers, config, emptyMessage) {
     const top3Wrap = document.getElementById(ids.top3);
     const compactWrap = document.getElementById(ids.compact);
     const stackWrap = document.getElementById(ids.stack);
-    const detailWrap = document.getElementById(ids.detail);
     if (!top3Wrap || !compactWrap) return;
     if (!drivers.length) {
       top3Wrap.innerHTML = `<p class="driver-empty">${emptyMessage}</p>`;
@@ -656,36 +674,19 @@
       return;
     }
     const ranked = rankedDrivers(drivers, config);
-    const top3 = ranked.slice(0, 3);
-    const rest = ranked.slice(3);
-    top3Wrap.innerHTML = top3.map(driverCardHtml).join('');
-
-    if (!rest.length) { compactWrap.hidden = true; return; }
+    top3Wrap.innerHTML = `<div class="v3-drows">${driverHeadHtml(config)}${ranked.slice(0, 3).map((d) => driverRowHtml(d, config)).join('')}</div>`;
+    if (ranked.length <= 3) { compactWrap.hidden = true; return; }
     compactWrap.hidden = false;
-
-    const nowIso = isoDateLocal(new Date());
-    const nowHM = new Date().toTimeString().slice(0, 5);
-    let insertedSep = false;
-    stackWrap.innerHTML = rest.map((d, i) => {
-      const isFuture = d.ev.date > nowIso || (d.ev.date === nowIso && (d.ev.time || '00:00') > nowHM);
-      const prefix = (isFuture && !insertedSep) ? (insertedSep = true, '<div class="driver-now-sep"><span>Maintenant</span></div>') : '';
-      return prefix + driverTabHtml(d, i);
-    }).join('');
-
-    // 4eme annonce la plus importante par defaut (rest[0], juste apres les 3
-    // vedettes) - ou la selection precedente si elle est toujours valide.
-    const savedIndex = driverCompactSelection[ids.stack];
-    const selectedIndex = (savedIndex != null && savedIndex < rest.length) ? savedIndex : 0;
-
-    function selectTab(i) {
-      driverCompactSelection[ids.stack] = i;
-      stackWrap.querySelectorAll('.driver-tab').forEach((b) => b.classList.toggle('is-active', Number(b.dataset.i) === i));
-      detailWrap.innerHTML = driverCardHtml(rest[i]);
-    }
-    stackWrap.querySelectorAll('.driver-tab').forEach((btn) => {
-      btn.addEventListener('click', () => selectTab(Number(btn.dataset.i)));
-    });
-    selectTab(selectedIndex);
+    const count = compactWrap.querySelector('[data-count]');
+    if (count) count.textContent = `(${ranked.length})`;
+    const nowKey = `${isoDateLocal(new Date())} ${new Date().toTimeString().slice(0, 5)}`;
+    const chrono = drivers.slice().sort((x, y) => `${x.ev.date} ${x.ev.time || '00:00'}`.localeCompare(`${y.ev.date} ${y.ev.time || '00:00'}`));
+    let sep = false;
+    stackWrap.innerHTML = `<div class="v3-drows">${driverHeadHtml(config)}${chrono.map((d) => {
+      const future = `${d.ev.date} ${d.ev.time || '00:00'}` > nowKey;
+      const mark = future && !sep ? (sep = true, '<div class="v3-drow-now"><span>Maintenant</span></div>') : '';
+      return mark + driverRowHtml(d, config);
+    }).join('')}</div>`;
   }
 
   // Cache localStorage pour fetchWeeklyRealMovePct - AJOUTE (2026-09-12,
@@ -966,7 +967,7 @@
     document.getElementById('sentimentBadge').textContent =
       nextLocked.tone === 'pos' ? 'Biais haussier' : nextLocked.tone === 'neg' ? 'Biais baissier' : 'Neutre';
     document.getElementById('sentimentWeekly').textContent = nextResult.drivers.length ? fmtMove(nextLocked.weeklyCapped) : '—';
-    document.getElementById('sentimentWeeklyLabel').textContent = `Prévision verrouillée lundi, pour la semaine à venir (${fmtRange(nextMonday, nextSunday)})`;
+    document.getElementById('sentimentWeeklyLabel').textContent = `Fixée lundi pour la semaine du ${fmtRange(nextMonday, nextSunday)}`;
 
     const textEl = document.getElementById('sentimentText');
     const missingNext = missingCurrencyNames(config);
@@ -987,7 +988,7 @@
 
     // --- Bas : resultats de la semaine PASSEE - prevision verrouillee de
     // cette semaine-la vs ce qui s'est reellement passe, + score de reussite.
-    document.getElementById('weekPastTitle').textContent = `02 — Semaine passée (${fmtRange(pastMonday, pastSunday)})`;
+    document.getElementById('weekPastTitle').textContent = `Du ${fmtRange(pastMonday, pastSunday)}`;
     const pastWeekEvents = allEvents.filter((e) => e.date && isoInRange(e.date, pastMonday, pastSunday));
     const pastResult = computeForecastSentiment(pastWeekEvents, config);
     renderPastAside(pastResult.drivers);
@@ -1032,6 +1033,8 @@
   function renderAll() {
     const filtered = allEvents.filter((e) => importanceFilter.has(e.importance || 'high'));
     renderSentimentHeader(allEvents); // sentiment : toujours base sur tout (hors "faible"), independant du filtre affiche
+    const pairCode = document.getElementById('sentimentCode').textContent; // v3 : rappel de la paire suivie
+    document.querySelectorAll('#v3CalPair, .js-v3pair').forEach((el) => { el.textContent = pairCode; });
     renderDayZone(filtered);
     renderUpcoming(filtered);
   }

@@ -21,7 +21,7 @@
     const hello = h < 5 ? 'Bonsoir' : h < 18 ? 'Bonjour' : 'Bonsoir';
     let first = '';
     try { const u = window.CHESTAccounts && CHESTAccounts.getUser(); first = (u && (u.firstName || u.first_name)) || ''; } catch (e) {}
-    $('v3Hello').innerHTML = first ? `${hello}, <em>${esc(first)}</em>` : hello;
+    $('v3Hello').textContent = first ? `${hello}, ${first}` : hello;
   }
 
   // ---------- Objectifs du compte (libellés anglais de dashboard.js) ----------
@@ -72,10 +72,10 @@
     let cum = 0;
     const pts = list.map((x) => (cum += x.pnl));
     const lo = Math.min(0, ...pts), hi = Math.max(0, ...pts), span = hi - lo || 1;
-    const W = 200, H = 48, pad = 6;
+    const W = 200, H = 40, pad = 4;
     const xy = pts.map((v, i) => [i / (pts.length - 1) * W, pad + (1 - (v - lo) / span) * (H - pad * 2)]);
     const line = xy.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
-    svg.innerHTML = `<defs><linearGradient id="v3SparkFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(77,141,255)" stop-opacity=".35"/><stop offset="1" stop-color="rgb(77,141,255)" stop-opacity="0"/></linearGradient></defs>`
+    svg.innerHTML = `<defs><linearGradient id="v3SparkFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(77,141,255)" stop-opacity=".16"/><stop offset="1" stop-color="rgb(77,141,255)" stop-opacity="0"/></linearGradient></defs>`
       + `<path class="area" fill="url(#v3SparkFill)" d="${line} L${W} ${H} L0 ${H} Z"/><path class="line" d="${line}"/>`;
   }
 
