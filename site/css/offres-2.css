@@ -1,0 +1,26 @@
+/* =====================================================================
+   CHEST 2.0 — Offres (2026-11-02), mesures de CHEST-DESIGN-2.0/html-exact/Offres.html.
+   Habillage seul : le rendu des offres, le mode édition admin et le paiement restent ceux de offres.html.
+   ===================================================================== */
+.chest-root.of-body .of-top{ max-width:1180px; margin:0 auto; padding:20px 36px; box-sizing:border-box; }
+.chest-root.of-body .of-brand{ gap:10px; font-size:16px; font-weight:700; letter-spacing:-.02em; }
+.chest-root.of-body .of-brand img{ width:26px; height:26px; filter:drop-shadow(0 0 7px rgba(252,18,131,.55)); }
+.chest-root.of-body #ofOffers{ max-width:1180px; margin:0 auto; padding:0 36px; box-sizing:border-box; }
+.chest-root.of-body #ofOffers .cx-kicker{ font-family:var(--c2-mono,'JetBrains Mono',ui-monospace,monospace); font-size:10px; letter-spacing:.2em; }
+.chest-root.of-body #ofOffers .cx-h1{ max-width:640px; margin:16px auto 12px; font-size:56px; line-height:1.05; letter-spacing:-.05em; }
+.chest-root.of-body #ofOffers .cx-h1 span{ background:linear-gradient(#fff, rgba(255,255,255,.62)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.chest-root.of-body #ofOffers .cx-sub{ font-size:14px; color:#9b9ba1; }
+.chest-root.of-body .cx-plans{ gap:16px; margin-top:8px; }
+.chest-root.of-body .cx-plan{ padding:22px 20px 20px; border-radius:18px; text-align:left; border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(160deg, rgba(16,16,19,.75), rgba(9,9,11,.9)); box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.12), inset -1.5px -1.5px 0 rgba(255,255,255,.03); }
+.chest-root.of-body .cx-plan.is-reco{ transform:none; border:1px solid rgba(252,18,131,.55); background:linear-gradient(160deg, rgba(252,18,131,.1), rgba(9,9,11,.9) 60%); box-shadow:0 24px 60px rgba(252,18,131,.18), inset 1.5px 1.5px 0 rgba(255,255,255,.14); }
+.chest-root.of-body .cx-plan__badge{ top:20px; left:auto; right:20px; padding:3px 9px; border-radius:999px; font-size:9.5px; letter-spacing:.1em; color:#050505; background:linear-gradient(135deg,#fc1283,#f9a45e); }
+.chest-root.of-body .cx-plan__name{ font-size:16px; font-weight:700; }
+.chest-root.of-body .of-price .cx-plan__price b{ font-size:52px; letter-spacing:-.05em; }
+.chest-root.of-body .of-bill{ font-family:var(--c2-mono,'JetBrains Mono',ui-monospace,monospace); font-size:10.5px; color:#7a7a82; }
+.chest-root.of-body .cx-feats{ gap:0; margin:6px 0 20px; }
+.chest-root.of-body .cx-feats li{ padding:10px 0; border-top:1px solid rgba(255,255,255,.06); font-size:12.5px; }
+.chest-root.of-body .cx-check{ background:none !important; color:#33e6a6 !important; }
+.chest-root.of-body .cx-plan__cta .cx-pill{ width:100%; height:44px; min-height:0; padding:0 18px; border-radius:999px; }
+.chest-root.of-body .cx-plan:not(.is-reco) .cx-pill{ background:rgba(255,255,255,.06); color:#f6f6f7; box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); }
+@media (max-width:900px){ .chest-root.of-body #ofOffers, .chest-root.of-body .of-top{ padding-left:16px; padding-right:16px; } .chest-root.of-body #ofOffers .cx-h1{ font-size:38px; } }
