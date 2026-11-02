@@ -120,3 +120,11 @@ html.is-embedded body.chest-root[data-page]::after{ display:none !important; }
 @media (max-width:760px){
   .c2-search{ display:none; }
 }
+
+/* ---------- Petits états (maquette Elements § 06 confirmation, § 07 message court) ---------- */
+.toast{ display:flex; align-items:center; gap:10px; padding:12px 16px !important; border-radius:14px !important; font-size:12.5px !important; color:#f6f6f7 !important; }
+.toast__ic{ width:22px; height:22px; flex:0 0 22px; border-radius:999px; display:grid; place-items:center; color:#050505; background:#33e6a6; box-shadow:0 0 12px rgba(51,230,166,.5); }
+.chestconfirm-modal{ border-radius:18px !important; padding:22px !important; max-width:400px !important; color:#f6f6f7; }
+.chestconfirm-modal .btn{ height:38px; padding:0 18px !important; border-radius:999px !important; font-size:13px !important; font-weight:600 !important; }
+.chestconfirm-modal .btn-ghost{ background:transparent !important; border:1px solid rgba(255,255,255,.14) !important; color:#c9c9ce !important; }
+.chestconfirm-modal .btn-primary{ border:0 !important; color:#fff !important; background:linear-gradient(135deg,#fc1283,#f9a45e) !important; box-shadow:0 10px 30px rgba(252,18,131,.3) !important; }

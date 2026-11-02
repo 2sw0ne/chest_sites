@@ -115,7 +115,9 @@
       el.className = 'toast';
       document.body.appendChild(el);
     }
-    el.textContent = message;
+    // CHEST 2.0 : coche verte + texte (maquette Elements § 07, message court)
+    el.innerHTML = '<span class="toast__ic" aria-hidden="true"><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"/></svg></span><span class="toast__t"></span>';
+    el.querySelector('.toast__t').textContent = message;
     requestAnimationFrame(() => el.classList.add('is-visible'));
     clearTimeout(window.__toastT);
     window.__toastT = setTimeout(() => el.classList.remove('is-visible'), 2600);
