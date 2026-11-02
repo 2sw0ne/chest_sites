@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>CHEST 2.0 — Éléments intermédiaires</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+</style>
+</helmet>
+<div style="position:relative; width:1600px; height:1640px; box-sizing:border-box; overflow:hidden; padding:56px 64px; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size:13.5px; display:flex; flex-direction:column; gap:34px">
+  <div aria-hidden="true" style="position:absolute; right:-200px; top:-260px; width:900px; height:600px; pointer-events:none; filter:blur(110px); background:radial-gradient(42% 46% at 58% 46%, rgba(252,18,131,.16), transparent 72%), radial-gradient(36% 40% at 34% 60%, rgba(249,164,94,.1), transparent 74%)"></div>
+
+  <header style="position:relative; display:flex; align-items:flex-end; gap:24px">
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">Les éléments entre les pages</span>
+      <h1 style="margin:0; font-size:48px; line-height:1.04; font-weight:700; letter-spacing:-.045em">Volets, fenêtres et petits états</h1>
+    </div>
+    <p style="margin:0 0 6px auto; max-width:420px; font-size:13px; line-height:1.6; color:#9b9ba1">Ce qui s'ouvre par-dessus une page : même verre, même lumière, mêmes boutons. Le bouton rose en bas à droite de chaque page ouvre la calculatrice.</p>
+  </header>
+
+  <div style="position:relative; display:grid; grid-template-columns:420px 76px 1fr 1fr; gap:28px; align-items:start">
+
+    <!-- Calculatrice de lot -->
+    <section style="display:flex; flex-direction:column; gap:10px">
+      <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">01 — Calculatrice de lot</span>
+      <div role="dialog" aria-label="Calculatrice de lot" style="position:relative; overflow:hidden; border-radius:22px; border:1px solid rgba(255,255,255,.14); background:linear-gradient(160deg, rgba(18,16,20,.92), rgba(9,9,11,.96)); box-shadow:0 30px 70px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.16); padding:24px; display:flex; flex-direction:column; gap:14px">
+        <div aria-hidden="true" style="position:absolute; top:0; left:10%; right:10%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent)"></div>
+        <div style="display:flex; align-items:center; gap:12px">
+          <span style="width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
+          </span>
+          <span style="font-size:18px; font-weight:700; letter-spacing:-.02em">Calculatrice de lots</span>
+          <button type="button" aria-label="Fermer" style="margin-left:auto; width:32px; height:32px; border-radius:999px; border:0; background:rgba(255,255,255,.06); color:#9b9ba1; cursor:pointer">✕</button>
+        </div>
+        <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:11px; color:#9b9ba1">Compte (optionnel)</span>
+          <span style="display:flex; align-items:center; height:42px; padding:0 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03)">Compte principal · FTMO 100k<span style="margin-left:auto; color:#7a7a82">▾</span></span>
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:11px; color:#9b9ba1">Paire</span>
+          <span style="display:flex; align-items:center; height:42px; padding:0 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03)">Or (XAU/USD)<span style="margin-left:auto; color:#7a7a82">▾</span></span>
+        </label>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+          <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:11px; color:#9b9ba1">Taille du compte ($)</span>
+            <span style="display:flex; align-items:center; height:42px; padding:0 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); font-variant-numeric:tabular-nums">100 740</span>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:11px; color:#9b9ba1">Stop-loss (pips)</span>
+            <span style="display:flex; align-items:center; height:42px; padding:0 14px; border-radius:12px; border:1px solid rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.15); background:rgba(255,255,255,.03); font-variant-numeric:tabular-nums">1 620</span>
+          </label>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px"><span style="font-size:11px; color:#9b9ba1">Risque</span>
+          <div style="display:flex; gap:8px">
+            <span style="flex:1; display:flex; align-items:center; height:42px; padding:0 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03)">1</span>
+            <div style="display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:12px; background:rgba(255,255,255,.025)">
+              <span style="display:grid; place-items:center; width:38px; border-radius:9px; background:#f6f6f7; color:#050505; font-weight:700">%</span>
+              <span style="display:grid; place-items:center; width:38px; border-radius:9px; color:#9b9ba1">$</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; padding:16px; border-radius:16px; border:1px solid rgba(249,164,94,.35); background:linear-gradient(135deg, rgba(252,18,131,.12), rgba(249,164,94,.06))">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:#9b9ba1">Lot à prendre</span>
+          <span style="font-size:44px; line-height:1; font-weight:700; letter-spacing:-.04em; font-variant-numeric:tabular-nums">0,62 <span style="font-size:18px; color:#9b9ba1">lot</span></span>
+          <span style="font-size:12px; color:#9b9ba1">Risque réel <b style="color:#f6f6f7">1 004 $</b> · 1 pip = 0,62 $</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Menu replié -->
+    <section style="display:flex; flex-direction:column; gap:10px">
+      <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; white-space:nowrap">02 — Menu</span>
+      <div style="position:relative; width:76px; height:660px; display:flex; flex-direction:column; align-items:center; gap:4px; padding-top:20px; box-sizing:border-box; background:rgba(8,8,10,.9); border-right:1px solid rgba(255,255,255,.1); border-radius:14px 0 0 14px">
+        <svg aria-hidden="true" viewBox="0 0 22 112" preserveAspectRatio="none" style="position:absolute; right:-22px; top:274px; width:22px; height:112px; overflow:visible"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112" fill="#070709" stroke="rgba(255,255,255,.12)"></path></svg>
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9b9ba1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; right:-14px; top:324px"><path d="M9 5l7 7-7 7"></path></svg>
+        <img src="assets/logo-chest-new.webp" alt="" style="width:26px; height:26px; object-fit:contain; margin-bottom:22px; filter:drop-shadow(0 0 7px rgba(252,18,131,.55))">
+        <sc-for list="{{rail}}" as="r" hint-placeholder-count="8">
+          <span style="position:relative; width:54px; height:42px; display:grid; place-items:center; border-radius:12px; background:{{r.bg}}">
+            <span style="position:absolute; left:-11px; top:12px; width:3px; height:18px; border-radius:0 3px 3px 0; background:linear-gradient(180deg,#fc1283,#f9a45e); box-shadow:0 0 14px rgba(252,18,131,.8); opacity:{{r.bar}}"></span>
+            <span style="width:9px; height:9px; border-radius:3px; background:{{r.dot}}"></span>
+          </span>
+        </sc-for>
+        <span style="margin-top:auto; margin-bottom:16px; width:30px; height:30px; border-radius:8px; display:grid; place-items:center; font-size:11px; font-weight:800; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e)">M</span>
+      </div>
+      <span style="font-size:11px; line-height:1.45; color:#7a7a82">Replié : icônes seules, l'encoche le rouvre.</span>
+    </section>
+
+    <!-- Volet des scanners + notifications -->
+    <section style="display:flex; flex-direction:column; gap:28px">
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">03 — Volet des scanners (Stratégies)</span>
+        <div style="padding:8px; border-radius:18px; border:1px solid rgba(255,255,255,.14); background:linear-gradient(160deg, rgba(18,18,22,.96), rgba(10,10,12,.98)); box-shadow:0 30px 70px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.12); display:flex; flex-direction:column; gap:2px">
+          <sc-for list="{{scans}}" as="s" hint-placeholder-count="5">
+            <div style="display:grid; grid-template-columns:36px 1fr auto 28px; align-items:center; gap:12px; padding:8px 10px; border-radius:12px; background:{{s.bg}}; box-shadow:{{s.ring}}">
+              <img src="{{s.logo}}" alt="" style="width:36px; height:36px; border-radius:10px; object-fit:cover">
+              <span style="display:flex; flex-direction:column; gap:2px"><b>{{s.name}}</b><span style="font-size:11px; color:#7a7a82">{{s.market}}</span></span>
+              <span style="display:flex; flex-direction:column; align-items:flex-end; gap:2px"><b style="font-variant-numeric:tabular-nums">{{s.win}}</b><span style="font-size:11px; color:{{s.lastInk}}">{{s.last}}</span></span>
+              <span style="width:28px; height:28px; border-radius:9px; display:grid; place-items:center; color:{{s.bellInk}}; background:{{s.bellBg}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg></span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">04 — Notifications</span>
+        <div style="border-radius:18px; border:1px solid rgba(255,255,255,.14); background:linear-gradient(160deg, rgba(18,18,22,.96), rgba(10,10,12,.98)); box-shadow:0 30px 70px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.12); padding:8px; display:flex; flex-direction:column">
+          <div style="display:flex; align-items:center; padding:8px 10px 10px"><b>Notifications</b><span style="margin-left:auto; font-size:11.5px; color:#f9a45e">Tout marquer lu</span></div>
+          <sc-for list="{{notifs}}" as="n" hint-placeholder-count="4">
+            <div style="display:flex; gap:12px; padding:10px; border-radius:12px; background:{{n.bg}}">
+              <span style="width:8px; height:8px; margin-top:5px; flex:0 0 8px; border-radius:999px; background:{{n.dot}}; box-shadow:0 0 8px {{n.dot}}"></span>
+              <span style="display:flex; flex-direction:column; gap:2px; min-width:0"><span style="font-weight:600">{{n.title}}</span><span style="font-size:12px; color:#9b9ba1">{{n.body}}</span></span>
+              <span style="margin-left:auto; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#7a7a82; white-space:nowrap">{{n.when}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- Volet de réglage + confirmation + toast -->
+    <section style="display:flex; flex-direction:column; gap:28px">
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">05 — Volet de réglage (Compte)</span>
+        <div style="position:relative; border-radius:20px 0 0 20px; border:1px solid rgba(255,255,255,.14); border-right:0; background:linear-gradient(160deg, rgba(16,16,19,.96), rgba(9,9,11,.98)); box-shadow:-30px 0 70px rgba(0,0,0,.55), inset 1.5px 1.5px 0 rgba(255,255,255,.12); padding:24px; display:flex; flex-direction:column; gap:14px">
+          <div style="display:flex; align-items:center"><span style="font-size:18px; font-weight:700; letter-spacing:-.02em">Paire suivie</span><button type="button" aria-label="Fermer" style="margin-left:auto; width:32px; height:32px; border-radius:999px; border:0; background:rgba(255,255,255,.06); color:#9b9ba1">✕</button></div>
+          <span style="font-size:12.5px; color:#9b9ba1">Le Calendrier et le Dashboard calculent la prévision pour cette paire.</span>
+          <sc-for list="{{pairs}}" as="p" hint-placeholder-count="4">
+            <label style="display:flex; align-items:center; gap:12px; height:48px; padding:0 14px; border-radius:12px; border:1px solid {{p.border}}; background:{{p.bg}}">
+              <span style="width:18px; height:18px; border-radius:999px; border:2px solid {{p.ring}}; display:grid; place-items:center"><span style="width:8px; height:8px; border-radius:999px; background:{{p.dot}}"></span></span>
+              <b>{{p.code}}</b><span style="color:#9b9ba1">{{p.name}}</span>
+            </label>
+          </sc-for>
+          <button type="button" style="height:44px; border-radius:999px; border:0; color:#fff; font:inherit; font-weight:600; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 10px 30px rgba(252,18,131,.3)">Enregistrer</button>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">06 — Confirmation</span>
+        <div role="alertdialog" style="border-radius:20px; border:1px solid rgba(255,255,255,.14); background:linear-gradient(160deg, rgba(18,16,20,.95), rgba(9,9,11,.98)); box-shadow:0 30px 70px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.14); padding:22px; display:flex; flex-direction:column; gap:12px">
+          <span style="width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:#ff94a0; background:rgba(255,77,94,.12)">!</span>
+          <b style="font-size:17px">Supprimer le backtest WAVE ?</b>
+          <span style="font-size:12.5px; line-height:1.55; color:#9b9ba1">Ses 467 positions et sa courbe disparaissent. Une copie reste 30 jours dans tes sauvegardes.</span>
+          <div style="display:flex; gap:10px; justify-content:flex-end">
+            <button type="button" style="height:38px; padding:0 16px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:transparent; color:#f6f6f7; font:inherit; font-weight:600">Annuler</button>
+            <button type="button" style="height:38px; padding:0 16px; border-radius:999px; border:0; background:#ff4d5e; color:#fff; font:inherit; font-weight:700">Supprimer</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">07 — Message court</span>
+        <div role="status" style="display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:14px; border:1px solid rgba(51,230,166,.3); background:rgba(12,20,17,.95); box-shadow:0 20px 50px rgba(0,0,0,.5)">
+          <span style="width:22px; height:22px; border-radius:999px; display:grid; place-items:center; font-size:11px; font-weight:700; color:#050505; background:#33e6a6; box-shadow:0 0 12px rgba(51,230,166,.5)">✓</span>
+          <span>Trade ajouté au journal <b>Compte principal</b></span>
+          <span style="margin-left:auto; font-size:12px; font-weight:600; color:#f9a45e">Annuler</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Quiz BERICH -->
+  <section style="position:relative; display:flex; flex-direction:column; gap:10px">
+    <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">08 — Quiz BERICH · question 3 sur 6</span>
+    <div style="position:relative; overflow:hidden; border-radius:22px; border:1px solid rgba(255,255,255,.12); background:radial-gradient(70% 120% at 0% 0%, rgba(8,153,129,.25), transparent 60%), linear-gradient(160deg, rgba(14,16,16,.9), rgba(9,9,11,.95)); box-shadow:0 30px 70px rgba(0,0,0,.5), inset 1.5px 1.5px 0 rgba(255,255,255,.14); padding:28px; display:grid; grid-template-columns:1fr 1.4fr; gap:36px; align-items:center">
+      <div style="display:flex; flex-direction:column; gap:12px">
+        <div style="display:flex; gap:5px"><sc-for list="{{steps}}" as="s" hint-placeholder-count="6"><span style="width:34px; height:4px; border-radius:999px; background:{{s.bg}}"></span></sc-for></div>
+        <h2 style="margin:6px 0 0; font-size:32px; line-height:1.1; font-weight:700; letter-spacing:-.035em">Jusqu'où veux-tu emmener ton compte ?</h2>
+        <span style="font-size:13px; line-height:1.6; color:#9b9ba1">Sur 12 mois, en partant de 10 000 €. Plus l'objectif est haut, plus les reculs en route seront grands.</span>
+        <div style="display:flex; gap:10px; margin-top:6px">
+          <button type="button" style="height:40px; padding:0 16px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:transparent; color:#c9c9ce; font:inherit; font-weight:600">← Retour</button>
+          <button type="button" style="height:40px; padding:0 20px; border-radius:999px; border:0; color:#fff; font:inherit; font-weight:600; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 10px 30px rgba(252,18,131,.3)">Continuer</button>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px">
+        <sc-for list="{{goals}}" as="g" hint-placeholder-count="4">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:18px 16px; border-radius:16px; border:1px solid {{g.border}}; background:{{g.bg}}; box-shadow:{{g.glow}}">
+            <span style="font-size:34px; font-weight:700; letter-spacing:-.04em; color:{{g.ink}}">{{g.mult}}</span>
+            <span style="font-weight:600">{{g.label}}</span>
+            <span style="font-size:12px; color:#9b9ba1">{{g.target}}</span>
+            <span style="font-size:11px; color:#7a7a82">{{g.note}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rail = [0, 1, 0, 0, 0, 0, 0, 0].map((on, i) => ({ bg: on ? 'linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)' : 'transparent', bar: on ? 1 : 0, dot: i === 7 ? 'linear-gradient(135deg,#ff8a1f,#ffd23f)' : on ? 'linear-gradient(135deg,#fc1283,#f9a45e)' : 'rgba(255,255,255,.3)' }));
+    const sc = (name, logo, market, win, last, on, alarm) => ({ name, logo, market, win, last, lastInk: last.includes('min') ? '#7ff3ca' : '#7a7a82', bg: on ? 'linear-gradient(135deg, rgba(252,18,131,.12), rgba(249,164,94,.07))' : 'transparent', ring: on ? 'inset 0 0 0 1px rgba(249,164,94,.4)' : 'none', bellInk: alarm ? '#f9a45e' : '#5c5c63', bellBg: alarm ? 'rgba(249,164,94,.12)' : 'rgba(255,255,255,.04)' });
+    const scans = [
+      sc('SWYPER', 'assets/logo-swyper-v2.webp', 'Or, indices · M15', '58 %', 'il y a 12 min', true, true),
+      sc('PULSE', 'assets/logo-pulse.webp', 'Forex · H1', '52 %', 'il y a 38 min', false, true),
+      sc('NEXUS', 'assets/logo-nexus.webp', 'Forex · M30', '49 %', 'il y a 1 h', false, false),
+      sc('SUPERNOVA', 'assets/logo-supernova.webp', 'Indices · M15', '46 %', 'il y a 2 h', false, false),
+      sc('HARMONICS', 'assets/logo-harmonics.webp', 'Forex · H4', '61 %', 'il y a 3 j', false, false)
+    ];
+    const nt = (title, body, when, dot, unread) => ({ title, body, when, dot, bg: unread ? 'rgba(255,255,255,.035)' : 'transparent' });
+    const notifs = [
+      nt('SWYPER · Achat XAU/USD', 'Bougie M15 de 14:15 · entrée 4 061,2', '12 min', '#33e6a6', true),
+      nt('ISM manufacturier dans 15 min', 'Impact fort sur XAU/USD', '1 h', '#ff4d5e', true),
+      nt('Sarah t’a fixé une mission', 'Écrire ton protocole d’annonces', 'hier', '#f9a45e', false),
+      nt('BERICH · objectif 3 R touché', '+426 € sur ton compte', '31 oct.', '#33e6a6', false)
+    ];
+    const pairs = [['XAU/USD', 'Or / Dollar', true], ['EUR/USD', 'Euro / Dollar'], ['GBP/USD', 'Livre / Dollar'], ['NAS100', 'Nasdaq 100']].map(([code, name, on]) => ({ code, name, border: on ? 'rgba(249,164,94,.45)' : 'rgba(255,255,255,.1)', bg: on ? 'linear-gradient(135deg, rgba(252,18,131,.1), rgba(249,164,94,.06))' : 'rgba(255,255,255,.02)', ring: on ? '#f9a45e' : 'rgba(255,255,255,.3)', dot: on ? '#f9a45e' : 'transparent' }));
+    const steps = [1, 1, 1, 0, 0, 0].map(on => ({ bg: on ? 'linear-gradient(90deg,#fc1283,#f9a45e)' : 'rgba(255,255,255,.1)' }));
+    const go = (mult, label, target, note, on) => ({ mult, label, target, note, ink: on ? '#7ff3ca' : '#f6f6f7', border: on ? 'rgba(51,230,166,.5)' : 'rgba(255,255,255,.1)', bg: on ? 'rgba(51,230,166,.08)' : 'rgba(255,255,255,.02)', glow: on ? '0 0 30px rgba(51,230,166,.15)' : 'none' });
+    const goals = [go('×2', 'Prudent', '20 000 €', 'reculs légers'), go('×3', 'Réaliste', '30 000 €', 'le plus choisi', true), go('×4', 'Ambitieux', '40 000 €', 'reculs marqués'), go('×6', 'Maximum', '60 000 €', 'gros reculs')];
+    return { rail, scans, notifs, pairs, steps, goals };
+  }
+}
+</script>
+</body>
+</html>

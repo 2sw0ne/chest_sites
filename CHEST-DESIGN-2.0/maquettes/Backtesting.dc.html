@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>CHEST 2.0 — Backtesting</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
+.algo{transition:border-color .2s cubic-bezier(.16,1,.3,1),transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s cubic-bezier(.16,1,.3,1)}
+.algo:hover{transform:translateY(-3px);border-color:rgba(249,164,94,.45)!important;box-shadow:0 18px 44px rgba(0,0,0,.5),0 10px 30px rgba(252,18,131,.14),inset 1.5px 1.5px 0 rgba(255,255,255,.16)!important}
+.add:hover{border-color:rgba(249,164,94,.5)!important;background:linear-gradient(135deg,rgba(252,18,131,.08),rgba(249,164,94,.06))!important}
+.pick{transition:color .2s}
+.pick:hover{color:#f6f6f7!important}
+.btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
+.btn2:hover{background:linear-gradient(#0b0b0e,#0b0b0e) padding-box,linear-gradient(135deg,#fc1283,#f9a45e) border-box!important;box-shadow:0 8px 26px rgba(252,18,131,.18)}
+@keyframes dotPulse{50%{box-shadow:0 0 0 10px rgba(51,230,166,0),0 0 22px rgba(51,230,166,.9)}}
+.pulse{animation:dotPulse 2.4s ease-in-out infinite}
+.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
+.sb-tog:hover{color:#f6f6f7}
+.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
+.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i:active{transform:scale(.98)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
+.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.adm .ic{stroke:url(#sba)}
+.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc__id{display:flex;flex-direction:column;min-width:0}
+.sb-acc__id b{font-size:12.5px;line-height:1.25}
+.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
+.sbT:checked ~ .sb .sb-txt{display:none}
+.sbT:checked ~ .sb .sb-tog .chev{transform:none}
+.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
+.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
+.sbT:checked ~ .sb .sb-nav{padding:0 11px}
+.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
+.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
+.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
+.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</helmet>
+
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size:13.5px; overflow:hidden">
+  <div aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.05; background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:180px 180px"></div>
+
+  <!-- ================= SIDEBAR (ancien volet CHEST, repliable) ================= -->
+  <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside class="sb">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"></stop><stop offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient id="sba" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a1f"></stop><stop offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+    </label>
+    <a href="Main.dc.html" class="sb-brand">
+      <img src="assets/logo-chest-new.webp" alt="CHEST">
+      <span class="sb-txt">CHEST</span>
+    </a>
+    <div class="sb-label"><span class="sb-txt">Navigation</span></div>
+    <nav class="sb-nav" aria-label="Navigation principale">
+        <a href="Main.dc.html" class="nav-i" title="Dashboard">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span class="sb-txt">Dashboard</span>
+        </a>
+        <a href="Backtesting.dc.html" class="nav-i on" aria-current="page" title="Backtesting">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 6-8"></path><path d="M3 21h18"></path></svg>
+          <span class="sb-txt">Backtesting</span>
+        </a>
+        <a href="Journal.dc.html" class="nav-i" title="Journal">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span class="sb-txt">Journal</span>
+        </a>
+        <a href="Strategies.dc.html" class="nav-i" title="Stratégies">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span class="sb-txt">Stratégies</span>
+        </a>
+        <a href="Calendrier.dc.html" class="nav-i" title="Calendrier">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span class="sb-txt">Calendrier</span>
+        </a>
+        <a href="Berich.dc.html" class="nav-i" title="BERICH">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span class="sb-txt">BERICH</span>
+        </a>
+        <a href="School.dc.html" class="nav-i" title="School">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path d="M22 9.5V15"></path></svg>
+          <span class="sb-txt">School</span>
+        </a>
+        <span class="sb-sep" aria-hidden="true"></span>
+        <a href="Admin.dc.html" class="nav-i adm" title="Admin">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span class="sb-txt">Admin</span>
+        </a>
+    </nav>
+    <div class="sb-acc">
+      <div class="sb-acc__label sb-txt">Compte</div>
+      <a href="Compte.dc.html" class="sb-acc__row">
+        <span class="sb-acc__av">M</span>
+        <span class="sb-txt sb-acc__id"><b>Morgan</b><span>morgan@exemple.fr</span></span>
+      </a>
+      <button type="button" class="sb-out" title="Se déconnecter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span class="sb-txt">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <a href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
+  </a>
+
+  <!-- ================= CONTENU ================= -->
+  <main style="position:relative; z-index:1; flex:999 1 560px; min-width:0; display:flex; flex-direction:column">
+    <header style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; min-height:64px; padding:10px 36px; box-sizing:border-box; border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Recherche</span>
+        <span style="color:#3a3a40">/</span>
+        <span style="font-weight:600">Backtesting</span>
+      </div>
+      <button type="button" class="btn2" style="margin-left:auto; height:38px; padding:0 16px; border-radius:12px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.12)) border-box; color:#f6f6f7; font:inherit; font-weight:600; cursor:pointer">Comparer</button>
+    </header>
+
+    <!-- ===== Héros « À la une » ===== -->
+    <section style="position:relative; isolation:isolate; overflow:hidden; text-align:center; padding:40px 36px 0">
+      <div aria-hidden="true" style="position:absolute; left:50%; top:0; width:900px; height:520px; margin-left:-450px; z-index:-2; pointer-events:none; filter:blur(100px); background:radial-gradient(40% 46% at 40% 40%, rgba(252,18,131,.22), transparent 72%), radial-gradient(34% 40% at 64% 36%, rgba(249,164,94,.14), transparent 74%)"></div>
+      <div class="ghost" aria-hidden="true" style="position:absolute; left:50%; top:18px; transform:translateX(-50%); z-index:-1; pointer-events:none; white-space:nowrap; font-size:210px; font-weight:700; letter-spacing:-.06em; line-height:1; background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent">Backtesting</div>
+
+      <div role="tablist" aria-label="Algorithme mis en avant" style="display:flex; flex-wrap:wrap; justify-content:center; gap:24px">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+          <button type="button" role="tab" class="pick" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="position:relative; padding:8px 0; border:0; background:none; font:inherit; font-size:12.5px; font-weight:600; color:{{t.ink}}; cursor:pointer">
+            {{t.name}}
+            <span aria-hidden="true" style="position:absolute; left:0; right:0; bottom:0; height:2px; border-radius:2px; background:linear-gradient(90deg,#fc1283,#f9a45e); box-shadow:0 0 10px rgba(252,18,131,.55); opacity:{{t.bar}}"></span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="margin-top:18px; display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap">
+        <h1 style="margin:0; font-size:76px; line-height:1; font-weight:700; letter-spacing:-.05em">{{spot.name}}</h1>
+        <sc-if value="{{spot.best}}" hint-placeholder-val="{{true}}">
+          <span style="font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; padding:5px 11px; border-radius:999px; color:#f9a45e; border:1px solid rgba(249,164,94,.4); background:rgba(249,164,94,.08)">Meilleur ratio</span>
+        </sc-if>
+      </div>
+      <p style="max-width:560px; margin:14px auto 0; font-size:13.5px; line-height:1.6; color:#9b9ba1">{{spot.desc}}</p>
+      <div style="margin-top:24px; font-size:104px; line-height:.98; padding-bottom:.04em; font-weight:700; letter-spacing:-.055em; font-variant-numeric:tabular-nums; background:{{spot.numBg}}; -webkit-background-clip:text; background-clip:text; color:transparent; filter:{{spot.numGlow}}">{{spot.profit}}</div>
+      <div style="margin-top:10px; font-size:13px; color:#9b9ba1">de <b style="color:#f6f6f7; font-weight:600">{{spot.from}}</b> à <b style="color:#f6f6f7; font-weight:600">{{spot.to}}</b> · {{spot.range}}</div>
+
+      <dl style="margin:26px auto 0; display:flex; flex-wrap:wrap; justify-content:center">
+        <sc-for list="{{spot.facts}}" as="f" hint-placeholder-count="4">
+          <div style="display:flex; flex-direction:column; gap:6px; padding:0 26px; border-left:{{f.border}}">
+            <dt style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">{{f.l}}</dt>
+            <dd style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:{{f.ink}}">{{f.v}}</dd>
+          </div>
+        </sc-for>
+      </dl>
+
+      <div style="margin-top:28px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap">
+        <a href="#" style="display:flex; align-items:center; height:44px; padding:0 22px; border-radius:999px; color:#fff; font-weight:600; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 10px 30px rgba(252,18,131,.3)">Ouvrir le rapport</a>
+        <a href="#" class="btn2" style="display:flex; align-items:center; height:44px; padding:0 20px; border-radius:999px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.14)) border-box; font-weight:600">+ Nouveau backtest</a>
+      </div>
+
+      <div style="position:relative; height:280px; margin:34px -36px 0; -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)">
+        <svg width="100%" height="280" viewBox="0 0 1000 280" preserveAspectRatio="none" aria-label="Courbe du backtest mis en avant" style="display:block; overflow:visible">
+          <defs>
+            <linearGradient id="spA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{{spot.areaTop}}"></stop><stop offset="1" stop-color="rgba(0,0,0,0)"></stop></linearGradient>
+            <linearGradient id="spL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{{spot.lineStart}}"></stop><stop offset=".55" stop-color="{{spot.lineMid}}"></stop><stop offset="1" stop-color="#ffffff"></stop></linearGradient>
+          </defs>
+          <line x1="0" x2="1000" y1="{{spot.baseY}}" y2="{{spot.baseY}}" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 7" vector-effect="non-scaling-stroke"></line>
+          <path d="{{spot.area}}" fill="url(#spA)"></path>
+          <path d="{{spot.line}}" fill="none" stroke="url(#spL)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 8px rgba(51,230,166,.45))"></path>
+        </svg>
+        <span class="pulse" style="position:absolute; left:94%; top:{{spot.endTop}}; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:999px; background:#fff; box-shadow:0 0 0 4px rgba(51,230,166,.25), 0 0 22px rgba(51,230,166,.9)"></span>
+        <span style="position:absolute; left:36px; bottom:10px; font-size:10.5px; color:#7a7a82">{{spot.scale}}</span>
+      </div>
+    </section>
+
+    <div style="display:flex; flex-direction:column; gap:30px; padding:34px 36px 64px; max-width:1180px; width:100%; box-sizing:border-box">
+
+      <!-- Bandeau KPI -->
+      <section style="display:flex; flex-direction:column; gap:18px">
+        <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:12px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">02 — La bibliothèque en chiffres</span>
+          <span style="margin-left:auto; font-size:11.5px; color:#7a7a82">Le meilleur de chaque mesure, tous backtests confondus.</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(180px,100%), 1fr)); row-gap:18px; padding-bottom:26px; border-bottom:1px solid rgba(255,255,255,.07)">
+          <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+            <div style="display:flex; flex-direction:column; gap:8px; padding:2px 22px; border-left:{{k.border}}">
+              <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">{{k.label}}</span>
+              <span style="font-size:26px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:{{k.color}}; text-shadow:{{k.glow}}">{{k.value}}</span>
+              <span style="font-size:11.5px; color:#7a7a82">{{k.note}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- Barre d'outils -->
+      <section style="display:flex; flex-wrap:wrap; align-items:center; gap:12px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">03 — Algorithmes</span>
+        <div role="group" aria-label="Marché" style="margin-left:auto; display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.025)">
+          <button type="button" aria-pressed="true" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:#f6f6f7; color:#050505; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Tous</button>
+          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Or</button>
+          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Forex</button>
+          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Indices</button>
+        </div>
+        <span style="font-size:11.5px; color:#7a7a82">Trié par profit</span>
+      </section>
+
+      <!-- Cartes -->
+      <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(300px,100%), 1fr)); gap:18px">
+        <sc-for list="{{algos}}" as="a" hint-placeholder-count="6">
+          <button type="button" class="algo" onClick="{{a.pick}}" style="position:relative; overflow:hidden; display:flex; flex-direction:column; gap:16px; padding:20px; text-align:left; font:inherit; cursor:pointer; border-radius:18px; border:1px solid {{a.border}}; background:linear-gradient(160deg, rgba(16,16,19,.72), rgba(9,9,11,.88)); box-shadow:0 14px 34px rgba(0,0,0,.4), inset 1.5px 1.5px 0 rgba(255,255,255,.14), inset -1.5px -1.5px 0 rgba(255,255,255,.04); color:#f6f6f7">
+            <div aria-hidden="true" style="position:absolute; top:0; left:10%; right:10%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent)"></div>
+            <div style="position:relative; display:flex; align-items:center; gap:12px; width:100%">
+              <div style="display:flex; flex-direction:column; gap:2px; min-width:0">
+                <span style="font-size:16px; font-weight:700; letter-spacing:-.02em">{{a.name}} <span style="color:#f9a45e; text-shadow:0 0 10px rgba(249,164,94,.7)">{{a.star}}</span></span>
+                <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; color:#7a7a82">{{a.meta}}</span>
+              </div>
+            </div>
+            <div style="position:relative; display:flex; align-items:baseline; gap:10px">
+              <span style="font-size:34px; font-weight:700; letter-spacing:-.04em; font-variant-numeric:tabular-nums; color:{{a.ink}}; text-shadow:{{a.glow}}">{{a.profit}}</span>
+              <span style="font-size:12px; color:#7a7a82">{{a.period}}</span>
+            </div>
+            <div style="position:relative; height:96px; width:100%">
+              <svg width="100%" height="96" viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true" style="display:block; overflow:visible">
+                <defs>
+                  <linearGradient id="ln{{$index}}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop offset="0" stop-color="#6ef2c9"></stop>
+                    <stop offset="{{a.zHi}}" stop-color="#33e6a6"></stop>
+                    <stop offset="{{a.z}}" stop-color="#dcdce0"></stop>
+                    <stop offset="1" stop-color="#ff4d5e"></stop>
+                  </linearGradient>
+                  <linearGradient id="ar{{$index}}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="96">
+                    <stop offset="0" stop-color="#33e6a6" stop-opacity=".38"></stop>
+                    <stop offset="{{a.z}}" stop-color="#33e6a6" stop-opacity="0"></stop>
+                    <stop offset="{{a.z}}" stop-color="#ff4d5e" stop-opacity="0"></stop>
+                    <stop offset="1" stop-color="#ff4d5e" stop-opacity=".4"></stop>
+                  </linearGradient>
+                </defs>
+                <line x1="0" x2="300" y1="{{a.zy}}" y2="{{a.zy}}" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
+                <path d="{{a.area}}" fill="url(#ar{{$index}})"></path>
+                <path d="{{a.path}}" fill="none" stroke="url(#ln{{$index}})" stroke-width="2" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 7px rgba(51,230,166,.55))"></path>
+              </svg>
+            </div>
+            <div style="position:relative; display:flex; flex-wrap:wrap; gap:16px; width:100%; padding-top:14px; border-top:1px solid rgba(255,255,255,.07); font-size:11.5px; color:#7a7a82; font-variant-numeric:tabular-nums">
+              <span><b style="color:#f6f6f7">{{a.trades}}</b> positions</span>
+              <span><b style="color:#f6f6f7">{{a.win}}</b> réussite</span>
+              <span><b style="color:#ff94a0">{{a.dd}}</b> DD max</span>
+            </div>
+          </button>
+        </sc-for>
+        <a href="#" class="add" style="min-height:300px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:10px; padding:24px; box-sizing:border-box; border-radius:18px; border:1px dashed rgba(255,255,255,.18); background:transparent; color:#9b9ba1; transition:border-color .2s, background .2s">
+          <span style="width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.2); font-size:17px">+</span>
+          <span style="font-size:15px; font-weight:700; color:#f6f6f7">Ajouter un backtest</span>
+          <span style="font-size:12px; color:#7a7a82; line-height:1.5; max-width:210px">Importe un fichier Excel de positions, CHEST calcule le reste.</span>
+        </a>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2160}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { spot: 0 }; }
+  smooth(pts) {
+    let d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      d += ' C' + (p1[0] + (p2[0] - p0[0]) / 6).toFixed(1) + ',' + (p1[1] + (p2[1] - p0[1]) / 6).toFixed(1) + ' ' + (p2[0] - (p3[0] - p1[0]) / 6).toFixed(1) + ',' + (p2[1] - (p3[1] - p1[1]) / 6).toFixed(1) + ' ' + p2[0].toFixed(1) + ',' + p2[1].toFixed(1);
+    }
+    return d;
+  }
+  curve(seed, drift, dip, n) {
+    let s = seed, v = 0; const out = [0];
+    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    for (let i = 1; i < n; i++) { v += drift + (rnd() - .5) * 9 - (i > n * .15 && i < n * .35 ? dip : 0); out.push(v); }
+    return out;
+  }
+  renderVals() {
+    const RAW = [
+      { name: 'SWYPER', logo: 'assets/logo-swyper-v2.webp', meta: 'XAU/USD · M15', profit: '+184 %', period: 'sur 3 ans', trades: '612', win: '58 %', pf: '2,31', dd: '−7,8 %', best: true, seed: 11, drift: 2.4, dip: 3, from: '10 000 $', to: '28 400 $', range: 'janv. 2023 → oct. 2026', desc: 'Retournements après balayage de liquidité sur l’or. Le plus régulier de la bibliothèque.' },
+      { name: 'PULSE', logo: 'assets/logo-pulse.webp', meta: 'GBP/USD · H1', profit: '+96 %', period: 'sur 3 ans', trades: '488', win: '52 %', pf: '1,74', dd: '−11,2 %', seed: 23, drift: 1.4, dip: 4, from: '10 000 $', to: '19 600 $', range: 'févr. 2023 → oct. 2026', desc: 'Suivi de momentum à l’ouverture de Londres.' },
+      { name: 'NEXUS', logo: 'assets/logo-nexus.webp', meta: 'USD/JPY · M30', profit: '+71 %', period: 'sur 2 ans', trades: '402', win: '49 %', pf: '1,52', dd: '−9,4 %', seed: 37, drift: 1.1, dip: 5, from: '10 000 $', to: '17 100 $', range: 'oct. 2024 → oct. 2026', desc: 'Cassures de range asiatique, sorties partielles à 2 R.' },
+      { name: 'SUPERNOVA', logo: 'assets/logo-supernova.webp', meta: 'NAS100 · M15', profit: '+58 %', period: 'sur 2 ans', trades: '731', win: '46 %', pf: '1,33', dd: '−14,6 %', seed: 51, drift: 1.0, dip: 6, from: '10 000 $', to: '15 800 $', range: 'nov. 2024 → oct. 2026', desc: 'Volatilité de l’ouverture américaine sur le Nasdaq.' },
+      { name: 'HARMONICS', logo: 'assets/logo-harmonics.webp', meta: 'EUR/USD · H4', profit: '+33 %', period: 'sur 3 ans', trades: '214', win: '61 %', pf: '1,48', dd: '−5,1 %', seed: 64, drift: .7, dip: 1, from: '10 000 $', to: '13 300 $', range: 'janv. 2023 → oct. 2026', desc: 'Figures harmoniques en H4, peu de trades, peu de recul.' },
+      { name: 'WAVE', logo: 'assets/logo-wave.webp', meta: 'US30 · M5', profit: '−12 %', period: 'sur 1 an', trades: '467', win: '41 %', pf: '0,91', dd: '−21,3 %', seed: 79, drift: -.3, dip: 2, from: '10 000 $', to: '8 800 $', range: 'oct. 2025 → oct. 2026', desc: 'Scalping sur le Dow. À retravailler avant un challenge.' }
+    ];
+    const spotI = this.state.spot;
+    const tabs = RAW.map((o, i) => ({ name: o.name, sel: i === spotI ? 'true' : 'false', ink: i === spotI ? '#f6f6f7' : '#7a7a82', bar: i === spotI ? 1 : 0, pick: () => this.setState({ spot: i }) }));
+
+    // Héros
+    const o = RAW[spotI];
+    const pos = o.profit.startsWith('+');
+    const c = this.curve(o.seed, o.drift, o.dip, 90);
+    const lo = Math.min(0, ...c), hi = Math.max(0, ...c), H = 280, END = 940;
+    const Y = v => 14 + (1 - (v - lo) / ((hi - lo) || 1)) * (H - 28);
+    const pts = c.map((v, k) => [k / (c.length - 1) * END, Y(v)]);
+    const line = this.smooth(pts);
+    const col = pos ? '51,230,166' : '255,77,94';
+    const fact = (l, v, ink, i) => ({ l, v, ink: ink || '#f6f6f7', border: i ? '1px solid rgba(255,255,255,.09)' : '0' });
+    const spot = {
+      ...o, line, area: line + ' L' + END + ',' + H + ' L0,' + H + ' Z', baseY: Y(0).toFixed(1), endTop: (pts[pts.length - 1][1] / H * 100).toFixed(2) + '%',
+      areaTop: 'rgba(' + col + ',.34)', lineStart: 'rgba(' + col + ',.35)', lineMid: 'rgb(' + col + ')',
+      numBg: pos ? 'linear-gradient(180deg,#ffffff 8%,#c9fbe9 45%,#33e6a6)' : 'linear-gradient(180deg,#ffffff 8%,#ffc2c9 45%,#ff4d5e)',
+      numGlow: pos ? 'drop-shadow(0 0 36px rgba(51,230,166,.3))' : 'drop-shadow(0 0 36px rgba(255,77,94,.3))',
+      scale: 'Échelle linéaire · capital de départ en pointillés',
+      facts: [fact('Profit factor', o.pf, pos ? '#7ff3ca' : '#ff94a0', 0), fact('Taux de réussite', o.win, null, 1), fact('Drawdown max', o.dd, '#ff94a0', 2), fact('Positions', o.trades, null, 3)]
+    };
+
+    // Cartes
+    const W = 300, CH = 96, PAD = 8;
+    const algos = RAW.map((x, i) => {
+      const cc = this.curve(x.seed, x.drift, x.dip, 40);
+      const l = Math.min(0, ...cc), h = Math.max(0, ...cc);
+      const y = v => PAD + (h - v) / ((h - l) || 1) * (CH - PAD * 2);
+      const p = this.smooth(cc.map((v, k) => [k / (cc.length - 1) * W, y(v)]));
+      const zy = y(0), z = Math.min(.999, Math.max(.001, zy / CH));
+      const ps = x.profit.startsWith('+');
+      return {
+        ...x, path: p, area: p + ' L' + W + ',' + zy.toFixed(1) + ' L0,' + zy.toFixed(1) + ' Z', zy: zy.toFixed(1), z: z.toFixed(3), zHi: Math.max(0, z - .22).toFixed(3),
+        ink: ps ? '#7ff3ca' : '#ff94a0', glow: ps ? '0 0 22px rgba(51,230,166,.4)' : '0 0 22px rgba(255,77,94,.4)',
+        star: i === spotI ? '★' : '', border: i === spotI ? 'rgba(249,164,94,.45)' : 'rgba(255,255,255,.12)',
+        pick: () => this.setState({ spot: i })
+      };
+    });
+    const k = (label, value, note, color, glow, i) => ({ label, value, note, color: color || '#f6f6f7', glow: glow || 'none', border: i ? '1px solid rgba(255,255,255,.08)' : '0' });
+    const kpis = [
+      k('Backtests', '6', '4 compatibles propfirm', null, null, 0),
+      k('Positions simulées', '2 914', 'tous algorithmes', null, null, 1),
+      k('Meilleur profit', '+184 %', 'SWYPER · XAU/USD', '#7ff3ca', '0 0 18px rgba(51,230,166,.35)', 2),
+      k('Dernier import', 'Il y a 3 j', 'PULSE v2 · 488 positions', null, null, 3)
+    ];
+    return { tabs, spot, algos, kpis };
+  }
+}
+</script>
+</body>
+</html>

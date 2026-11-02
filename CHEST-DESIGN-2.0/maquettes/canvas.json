@@ -1,0 +1,51 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-02T13:50:00Z"
+  },
+  "title": "CHEST 2.0 — Prototype visuel",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 1680, "title": "Dashboard 2.0", "expand": "fill"},
+    "Calendrier.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 3000, "title": "Calendrier 2.0", "expand": "fill", "is_interactive": true},
+    "Backtesting.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 2160, "title": "Backtesting 2.0", "expand": "fill", "is_interactive": true},
+    "Pack-DA.dc.html": {"x": 4560, "y": 0, "w": 1440, "h": 1560, "title": "Pack de design 2.0"},
+    "Journal.dc.html": {"x": 0, "y": 3480, "w": 1440, "h": 2250, "title": "Journal 2.0", "expand": "fill", "is_interactive": true},
+    "Strategies.dc.html": {"x": 1520, "y": 3480, "w": 1440, "h": 1860, "title": "Stratégies 2.0", "expand": "fill", "is_interactive": true},
+    "Berich.dc.html": {"x": 3040, "y": 3480, "w": 1440, "h": 3300, "title": "BERICH 2.0", "expand": "fill", "is_interactive": true},
+    "School.dc.html": {"x": 4560, "y": 3480, "w": 1440, "h": 1760, "title": "School 2.0", "expand": "fill"},
+    "Compte.dc.html": {"x": 0, "y": 7260, "w": 1440, "h": 1640, "title": "Compte 2.0", "expand": "fill"},
+    "Educateur.dc.html": {"x": 1520, "y": 7260, "w": 1440, "h": 1640, "title": "Espace éducateur 2.0", "expand": "fill"},
+    "Admin.dc.html": {"x": 3040, "y": 7260, "w": 1440, "h": 1560, "title": "Admin membres 2.0", "expand": "fill"},
+    "Offres.dc.html": {"x": 4560, "y": 7260, "w": 1440, "h": 1300, "title": "Offres 2.0", "expand": "fill", "is_interactive": true},
+    "Connexion.dc.html": {"x": 0, "y": 9380, "w": 1440, "h": 900, "title": "Connexion 2.0", "expand": "fill"},
+    "Elements.dc.html": {"x": 1520, "y": 9380, "w": 1600, "h": 1640, "title": "Éléments intermédiaires"}
+  },
+  "order": [
+    "Main.dc.html",
+    "Calendrier.dc.html",
+    "Backtesting.dc.html",
+    "Pack-DA.dc.html",
+    "Journal.dc.html",
+    "Strategies.dc.html",
+    "Berich.dc.html",
+    "School.dc.html",
+    "Compte.dc.html",
+    "Educateur.dc.html",
+    "Admin.dc.html",
+    "Offres.dc.html",
+    "Connexion.dc.html",
+    "Elements.dc.html"
+  ],
+  "notes": {
+    "titre": {"x": 0, "y": -300, "text": "CHEST 2.0 — épuré, une seule lumière", "kind": "title1", "maxW": 6000},
+    "row2": {"x": 0, "y": 3220, "text": "Suivi, scanners, exécution, formation", "kind": "title1", "maxW": 6000},
+    "row3": {"x": 0, "y": 7000, "text": "Compte, équipe, offres", "kind": "title1", "maxW": 6000},
+    "row4": {"x": 0, "y": 9120, "text": "Entrée et éléments intermédiaires", "kind": "title1", "maxW": 3120}
+  },
+  "designSystems": []
+}

@@ -142,6 +142,9 @@
     if (period === 'day') return [startOfToday, now];
     if (period === 'week') { const s = new Date(startOfToday); s.setDate(s.getDate() - 6); return [s, now]; }
     if (period === 'month') return [new Date(now.getFullYear(), now.getMonth(), 1), now];
+    // CHEST 2.0 (2026-11-02) : fenêtres glissantes du segmenté 7J / 30J / 3M / Tout.
+    if (period === '30d') { const s = new Date(startOfToday); s.setDate(s.getDate() - 29); return [s, now]; }
+    if (period === '90d') { const s = new Date(startOfToday); s.setDate(s.getDate() - 89); return [s, now]; }
     if (period === 'full') return [new Date(2000, 0, 1), now]; // "Historique complet" - tout ce qui est connu, sans borne basse reelle
     return [new Date(now.getFullYear(), 0, 1), now]; // 'all' -> année en cours
   }
@@ -301,7 +304,11 @@
     const equity = points.map((p) => p.capital);
     const labels = points.map((p) => formatPeriodLabel(period, p.date));
     const windowTrades = (trades || []).filter((t) => t.date && t.date >= start && t.date <= end);
-    let rr = '—', winrate = '—', winrateSub = 'aucun trade sur cette période';
+    let rr = '—', winrate = '—', winrateSub = 'aucun trade sur cette période', nWins = 0;
+    // Profit factor (CHEST 2.0) : somme des R gagnés ÷ somme des R perdus sur la fenêtre.
+    const sumWin = windowTrades.reduce((acc, t) => acc + Math.max(0, Number(t.rr) || 0), 0);
+    const sumLoss = windowTrades.reduce((acc, t) => acc + Math.max(0, -(Number(t.rr) || 0)), 0);
+    const pf = sumLoss ? sumWin / sumLoss : (sumWin ? Infinity : null);
     // Jours tradés = jours calendaires distincts couverts par les trades de
     // la fenêtre (pas le nombre de trades) - même logique que le compteur
     // "Minimum Trading Days" des objectifs (voir objectivesStatsFromHistory),
@@ -315,6 +322,7 @@
       // direct utilisateur du 2026-09-16) - pas un profit factor gain/perte.
       rr = winsWithRR.length ? (winsWithRR.reduce((s, t) => s + Number(t.rr), 0) / winsWithRR.length).toFixed(1) : '—';
       winrate = Math.round((wins.length / windowTrades.length) * 100) + '%';
+      nWins = wins.length;
       winrateSub = `${wins.length}/${windowTrades.length} trades`;
     }
     const tradedDaysSub = `${windowTrades.length} trade${windowTrades.length === 1 ? '' : 's'}`;
@@ -324,7 +332,7 @@
       // equity et labels doivent TOUJOURS garder la meme longueur (le
       // graphique les zippe point a point) - le repli 2 points ci-dessous
       // doit donc aussi dupliquer le label, jamais juste l'equity.
-      return { profit: '+0.0%', profitSub: `$0 ${subLabel}`, profitDollar: '+$0', profitDollarSub: `+0.0% · ${tradedDays} jour${tradedDays === 1 ? '' : 's'} tradés`, rr, winrate, winrateSub, dd: '0.0%', ddSub: 'pic → creux sur la période', tradedDays, tradedDaysSub, equity: [bal, bal], labels: [lbl, lbl], refCapital };
+      return { nTrades: windowTrades.length, nWins, pf, profit: '+0.0%', profitSub: `$0 ${subLabel}`, profitDollar: '+$0', profitDollarSub: `+0.0% · ${tradedDays} jour${tradedDays === 1 ? '' : 's'} tradés`, rr, winrate, winrateSub, dd: '0.0%', ddSub: 'pic → creux sur la période', tradedDays, tradedDaysSub, equity: [bal, bal], labels: [lbl, lbl], refCapital };
     }
     const startBal = equity[0], endBal = equity[equity.length - 1];
     const diff = endBal - startBal;
@@ -332,6 +340,7 @@
     const pctBase = refCapital || startBal;
     const profitPct = pctBase ? (diff / pctBase * 100) : 0;
     return {
+      nTrades: windowTrades.length, nWins, pf, diff, profitPct,
       profit: `${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(1)}%`,
       profitSub: `${diff >= 0 ? '+' : ''}${money(diff)} ${subLabel}`,
       profitDollar: `${diff >= 0 ? '+' : ''}${money(diff)}`,
@@ -353,9 +362,9 @@
     const beforeToday = restCurve.filter((p) => isoDateLocal(p.date) < todayIso);
     const startOfDayCapital = beforeToday.length ? beforeToday[beforeToday.length - 1].capital : (startCapital || currentBalance - (todayPnl || 0));
     const dayCurve = intradayCurveFromTrades(history, startOfDayCapital, todayPnl);
-    const subLabels = { day: "aujourd'hui", week: 'cette semaine', month: 'ce mois', all: 'cette année', full: 'sur tout l\'historique' };
+    const subLabels = { day: "aujourd'hui", week: 'sur 7 jours', month: 'ce mois', '30d': 'sur 30 jours', '90d': 'sur 90 jours', all: 'cette année', full: 'sur tout l\'historique' };
     const out = {};
-    ['day', 'week', 'month', 'all', 'full'].forEach((key) => {
+    ['day', 'week', 'month', '30d', '90d', 'all', 'full'].forEach((key) => {
       const curve = key === 'day' ? dayCurve : restCurve;
       out[key] = periodStatsFromCurve(key, curve, trades, subLabels[key], startCapital || null);
     });
@@ -1518,7 +1527,8 @@
 
   function render(period) {
     const a = activeAccountData || currentAccount();
-    const d = (a.periods || SAMPLE_PERIODS)[period];
+    const P = a.periods || SAMPLE_PERIODS;
+    const d = P[period] || P[{ '30d': 'month', '90d': 'all' }[period]] || P.month;
     document.getElementById('kpiProfit').textContent = d.profit;
     document.getElementById('kpiProfitSub').textContent = d.profitSub;
     // v2 : la lueur du héros prend la couleur du résultat (vert / rouge).
@@ -1537,6 +1547,12 @@
     document.getElementById('kpiTradedDays').textContent = d.tradedDays ?? '—';
     document.getElementById('kpiTradedDaysSub').textContent = d.tradedDaysSub || '—';
     drawChart(d);
+    // CHEST 2.0 : js/dash-2.js dessine le bandeau, les KPI, les trades et la rangée « Aujourd'hui ».
+    document.dispatchEvent(new CustomEvent('chest:dash-render', { detail: {
+      account: a, period, data: d, periods: P,
+      objectives: a.objectives === null ? null : (a.objectives || SAMPLE_OBJECTIVES),
+      trades: unifiedTradesList(a, fixedRiskPercent()),
+    } }));
   }
 
   // Degrade "chaleur" neon, en 2 phases (retour direct utilisateur du

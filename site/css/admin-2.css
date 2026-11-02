@@ -4,12 +4,7 @@
    Chargé après admin-members.css. Préfixe am2-. Valeurs reprises de la maquette. */
 
 .am{ position:relative; isolation:isolate; }
-/* halo chaud en haut de page, comme la maquette */
-.am::before{
-  content:''; position:absolute; z-index:-1; pointer-events:none; left:120px; top:-300px; width:900px; height:640px; max-width:90%;
-  filter:blur(110px);
-  background:radial-gradient(42% 46% at 40% 50%, rgba(249,164,94,.14), transparent 72%), radial-gradient(34% 40% at 66% 44%, rgba(252,18,131,.09), transparent 74%);
-}
+/* lumière : le halo unique de la page vient de css/chest-2-site.css (DA 2.0) */
 .am2-mono{ font-family:'JetBrains Mono', ui-monospace, Menlo, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; font-weight:500; }
 .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 

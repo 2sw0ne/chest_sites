@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>CHEST 2.0 — BERICH</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
+.tile{transition:border-color .2s cubic-bezier(.16,1,.3,1)}
+.tile:hover{border-color:rgba(249,164,94,.32)}
+.row-h:hover{background:rgba(255,255,255,.025)}
+.btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
+.btn2:hover{background:linear-gradient(#0b0b0e,#0b0b0e) padding-box,linear-gradient(135deg,#fc1283,#f9a45e) border-box!important;box-shadow:0 8px 26px rgba(252,18,131,.18)}
+@keyframes dotPulse{50%{box-shadow:0 0 0 10px rgba(51,230,166,0),0 0 22px rgba(51,230,166,.9)}}
+.pulse{animation:dotPulse 2.4s ease-in-out infinite}
+.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
+.sb-tog:hover{color:#f6f6f7}
+.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
+.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i:active{transform:scale(.98)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
+.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.adm .ic{stroke:url(#sba)}
+.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc__id{display:flex;flex-direction:column;min-width:0}
+.sb-acc__id b{font-size:12.5px;line-height:1.25}
+.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
+.sbT:checked ~ .sb .sb-txt{display:none}
+.sbT:checked ~ .sb .sb-tog .chev{transform:none}
+.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
+.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
+.sbT:checked ~ .sb .sb-nav{padding:0 11px}
+.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
+.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
+.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
+.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</helmet>
+
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size:13.5px; overflow:hidden">
+  <div aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.05; background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:180px 180px"></div>
+
+  <!-- ================= SIDEBAR (ancien volet CHEST, repliable) ================= -->
+  <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside class="sb">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"></stop><stop offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient id="sba" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a1f"></stop><stop offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+    </label>
+    <a href="Main.dc.html" class="sb-brand">
+      <img src="assets/logo-chest-new.webp" alt="CHEST">
+      <span class="sb-txt">CHEST</span>
+    </a>
+    <div class="sb-label"><span class="sb-txt">Navigation</span></div>
+    <nav class="sb-nav" aria-label="Navigation principale">
+        <a href="Main.dc.html" class="nav-i" title="Dashboard">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span class="sb-txt">Dashboard</span>
+        </a>
+        <a href="Backtesting.dc.html" class="nav-i" title="Backtesting">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 6-8"></path><path d="M3 21h18"></path></svg>
+          <span class="sb-txt">Backtesting</span>
+        </a>
+        <a href="Journal.dc.html" class="nav-i" title="Journal">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span class="sb-txt">Journal</span>
+        </a>
+        <a href="Strategies.dc.html" class="nav-i" title="Stratégies">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span class="sb-txt">Stratégies</span>
+        </a>
+        <a href="Calendrier.dc.html" class="nav-i" title="Calendrier">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span class="sb-txt">Calendrier</span>
+        </a>
+        <a href="Berich.dc.html" class="nav-i on" aria-current="page" title="BERICH">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span class="sb-txt">BERICH</span>
+        </a>
+        <a href="School.dc.html" class="nav-i" title="School">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path d="M22 9.5V15"></path></svg>
+          <span class="sb-txt">School</span>
+        </a>
+        <span class="sb-sep" aria-hidden="true"></span>
+        <a href="Admin.dc.html" class="nav-i adm" title="Admin">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span class="sb-txt">Admin</span>
+        </a>
+    </nav>
+    <div class="sb-acc">
+      <div class="sb-acc__label sb-txt">Compte</div>
+      <a href="Compte.dc.html" class="sb-acc__row">
+        <span class="sb-acc__av">M</span>
+        <span class="sb-txt sb-acc__id"><b>Morgan</b><span>morgan@exemple.fr</span></span>
+      </a>
+      <button type="button" class="sb-out" title="Se déconnecter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span class="sb-txt">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <a href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
+  </a>
+
+  <!-- ================= CONTENU ================= -->
+  <main style="position:relative; z-index:1; flex:999 1 560px; min-width:0; display:flex; flex-direction:column">
+    <div aria-hidden="true" style="position:absolute; left:50%; top:0; width:1000px; height:640px; margin-left:-500px; pointer-events:none; background:radial-gradient(ellipse 55% 64% at 50% 18%, rgba(8,153,129,.42), transparent 72%)"></div>
+
+    <header style="position:relative; display:flex; flex-wrap:wrap; align-items:center; gap:14px; min-height:64px; padding:10px 36px; box-sizing:border-box; border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Exécution</span>
+        <span style="color:#3a3a40">/</span>
+        <span style="font-weight:600">BERICH</span>
+      </div>
+      <button type="button" class="btn2" style="margin-left:auto; height:36px; padding:0 14px; border-radius:999px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.12)) border-box; color:#f6f6f7; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Refaire le quiz</button>
+    </header>
+
+    <!-- Signal en cours : bandeau d'action -->
+    <section aria-live="polite" style="position:relative; margin:22px 36px 0; display:flex; flex-wrap:wrap; align-items:center; gap:14px 26px; padding:14px 18px; border-radius:18px; border:1px solid rgba(51,230,166,.3); background:linear-gradient(90deg, rgba(8,153,129,.28), rgba(8,153,129,.06) 60%, rgba(255,255,255,.015)); box-shadow:inset 0 1px 0 rgba(255,255,255,.08)">
+      <span style="display:flex; align-items:center; gap:10px">
+        <span class="pulse" style="width:9px; height:9px; border-radius:999px; background:#33e6a6; box-shadow:0 0 0 4px rgba(51,230,166,.2)"></span>
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7ff3ca">Signal en cours · BERICH I</span>
+      </span>
+      <span style="font-size:20px; font-weight:700; letter-spacing:-.02em"><span style="color:#7ff3ca">Achat</span> XAU/USD</span>
+      <span style="display:flex; flex-wrap:wrap; gap:18px; font-size:12.5px; color:#9b9ba1; font-variant-numeric:tabular-nums">
+        <span>Entrée <b style="color:#f6f6f7">4 061,2</b></span>
+        <span>Stop <b style="color:#ff94a0">4 051,8</b></span>
+        <span>Objectif <b style="color:#7ff3ca">4 108,0</b></span>
+        <span>Ouvert à <b style="color:#f6f6f7">13:45</b> · sur ton compte à 13:45:02</span>
+      </span>
+      <span style="margin-left:auto; font-size:20px; font-weight:700; color:#7ff3ca; font-variant-numeric:tabular-nums; text-shadow:0 0 18px rgba(51,230,166,.45)">+1,9 R</span>
+    </section>
+
+    <!-- ===== Héros : plan, connexion, résultat, courbe ===== -->
+    <section style="position:relative; isolation:isolate; overflow:hidden; text-align:center; padding:34px 36px 0">
+      <div class="ghost" aria-hidden="true" style="position:absolute; left:50%; top:14px; transform:translateX(-50%); z-index:-1; pointer-events:none; white-space:nowrap; font-size:210px; font-weight:700; letter-spacing:-.06em; line-height:1; background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent">BERICH</div>
+      <div style="display:flex; justify-content:center; align-items:center; gap:12px">
+        <img src="assets/logo-berich.webp" alt="Logo BERICH" style="width:46px; height:46px; object-fit:contain; mix-blend-mode:screen">
+        <span style="display:flex; align-items:center; gap:8px; height:32px; padding:0 12px; border-radius:999px; border:1px solid rgba(51,230,166,.3); background:rgba(51,230,166,.07); font-size:12px">
+          <span style="width:6px; height:6px; border-radius:999px; background:#33e6a6; box-shadow:0 0 8px rgba(51,230,166,.9)"></span>VPS IC Markets relié · synchro 14:38
+        </span>
+      </div>
+      <div style="margin-top:14px; font-size:13px; color:#9b9ba1">Mon plan · <b style="color:#f6f6f7">×3 en 12 mois</b> · BERICH I 70 % + BERICH II 30 % · risque 1 %</div>
+      <div style="margin-top:14px; font-size:104px; line-height:.98; padding-bottom:.04em; font-weight:700; letter-spacing:-.055em; font-variant-numeric:tabular-nums; background:linear-gradient(180deg,#ffffff 8%,#c9fbe9 45%,#33e6a6); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 36px rgba(51,230,166,.3))">{{view.num}}</div>
+      <div style="margin-top:10px; font-size:13px; color:#9b9ba1">{{view.sub}}</div>
+
+      <div style="margin-top:22px; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:12px">
+        <div role="group" aria-label="Vue" style="display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(0,0,0,.25)">
+          <sc-for list="{{scopes}}" as="s" hint-placeholder-count="4">
+            <button type="button" aria-pressed="{{s.on}}" onClick="{{s.pick}}" style="height:32px; padding:0 14px; border:0; border-radius:999px; background:{{s.bg}}; color:{{s.ink}}; font:inherit; font-size:12.5px; font-weight:{{s.w}}; cursor:pointer">{{s.label}}</button>
+          </sc-for>
+        </div>
+        <span aria-hidden="true" style="width:1px; height:22px; background:rgba(255,255,255,.12)"></span>
+        <div role="group" aria-label="Période" style="display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(0,0,0,.25)">
+          <sc-for list="{{periods}}" as="p" hint-placeholder-count="4">
+            <button type="button" aria-pressed="{{p.on}}" onClick="{{p.pick}}" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:{{p.bg}}; color:{{p.ink}}; font:inherit; font-size:12.5px; font-weight:{{p.w}}; cursor:pointer">{{p.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="position:relative; height:270px; margin:26px -36px 0; -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)">
+        <svg width="100%" height="270" viewBox="0 0 1000 270" preserveAspectRatio="none" aria-label="Courbe du résultat cumulé" style="display:block; overflow:visible">
+          <defs>
+            <linearGradient id="bA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(51,230,166,.32)"></stop><stop offset="1" stop-color="rgba(51,230,166,0)"></stop></linearGradient>
+            <linearGradient id="bL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(51,230,166,.35)"></stop><stop offset=".55" stop-color="#33e6a6"></stop><stop offset="1" stop-color="#ffffff"></stop></linearGradient>
+          </defs>
+          <line x1="0" x2="1000" y1="{{view.baseY}}" y2="{{view.baseY}}" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 7" vector-effect="non-scaling-stroke"></line>
+          <path d="{{view.area}}" fill="url(#bA)"></path>
+          <path d="{{view.line}}" fill="none" stroke="url(#bL)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 8px rgba(51,230,166,.5))"></path>
+        </svg>
+        <span class="pulse" style="position:absolute; left:94%; top:{{view.endTop}}; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:999px; background:#fff; box-shadow:0 0 0 4px rgba(51,230,166,.25), 0 0 22px rgba(51,230,166,.9)"></span>
+        <span style="position:absolute; left:36px; bottom:10px; font-size:10.5px; color:#7a7a82">{{view.scale}}</span>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px 22px; padding:14px 0 0; font-size:12px; color:#9b9ba1">
+        <span><span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:999px; color:#7ff3ca; background:rgba(51,230,166,.12)">Achat</span> XAU/USD · 0,62 lot · <b style="color:#7ff3ca">+287 €</b></span>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(150px,100%), 1fr)); row-gap:16px; margin-top:22px; padding:22px 0 26px; border-top:1px solid rgba(255,255,255,.07); border-bottom:1px solid rgba(255,255,255,.07); text-align:left">
+        <sc-for list="{{view.kpis}}" as="k" hint-placeholder-count="5">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:2px 20px; border-left:{{k.border}}">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">{{k.label}}</span>
+            <span style="font-size:24px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:{{k.color}}; text-shadow:{{k.glow}}">{{k.value}}</span>
+            <span style="font-size:11.5px; color:#7a7a82">{{k.note}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="display:flex; flex-direction:column; gap:44px; padding:36px 36px 64px; max-width:1180px; width:100%; box-sizing:border-box">
+
+      <!-- 01 — Automatisation -->
+      <section style="display:flex; flex-direction:column; gap:18px">
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">01 — Automatisation</span>
+          <h2 style="margin:0; font-size:24px; font-weight:700; letter-spacing:-.03em">Du signal à ton compte</h2>
+        </div>
+        <ol style="position:relative; list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(240px,100%), 1fr)); gap:16px">
+          <sc-for list="{{flow}}" as="n" hint-placeholder-count="3">
+            <li class="tile" style="position:relative; display:flex; flex-direction:column; gap:10px; padding:20px; border-radius:18px; border:1px solid {{n.border}}; background:{{n.bg}}">
+              <span style="display:flex; align-items:center; gap:10px">
+                <span style="width:30px; height:30px; border-radius:999px; display:grid; place-items:center; font-weight:700; color:{{n.iInk}}; background:{{n.iBg}}; box-shadow:{{n.iGlow}}">{{n.glyph}}</span>
+                <span style="font-size:16px; font-weight:700; letter-spacing:-.02em">{{n.title}}</span>
+                <span style="margin-left:auto; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#7a7a82">{{n.step}}</span>
+              </span>
+              <span style="font-size:12.5px; line-height:1.55; color:#9b9ba1">{{n.sub}}</span>
+            </li>
+          </sc-for>
+        </ol>
+        <p style="margin:0; font-size:12.5px; color:#9b9ba1">Chaque signal part avec le risque de son algorithme : <b style="color:#f6f6f7">1 %</b> pour BERICH I, <b style="color:#f6f6f7">0,6 %</b> pour BERICH II, soit environ <b style="color:#f6f6f7">142 €</b> par position sur ton compte.</p>
+      </section>
+
+      <!-- 02 — Projection -->
+      <section style="display:flex; flex-direction:column; gap:18px">
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">02 — Projection</span>
+          <h2 style="margin:0; font-size:24px; font-weight:700; letter-spacing:-.03em">Où ton plan peut t'emmener</h2>
+        </div>
+        <div style="position:relative; overflow:hidden; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(160deg, rgba(12,16,15,.72), rgba(9,9,11,.88)); box-shadow:0 18px 44px rgba(0,0,0,.45), inset 1.5px 1.5px 0 rgba(255,255,255,.14), inset -1.5px -1.5px 0 rgba(255,255,255,.04); padding:24px; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(320px,100%), 1fr)); gap:28px">
+          <div aria-hidden="true" style="position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent)"></div>
+          <figure style="margin:0; display:flex; flex-direction:column; gap:10px; min-width:0">
+            <div style="display:flex; gap:10px">
+              <div style="display:flex; flex-direction:column; justify-content:space-between; height:260px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#7a7a82; text-align:right"><span>40 k€</span><span>30 k€</span><span>20 k€</span><span>10 k€</span></div>
+              <div style="position:relative; flex:1; min-width:0; height:260px">
+                <svg width="100%" height="260" viewBox="0 0 600 260" preserveAspectRatio="none" aria-hidden="true" style="display:block">
+                  <line x1="0" x2="600" y1="{{fan.y3}}" y2="{{fan.y3}}" stroke="#f9a45e" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"></line>
+                  <path d="{{fan.outer}}" fill="rgba(51,230,166,.08)"></path>
+                  <path d="{{fan.inner}}" fill="rgba(51,230,166,.16)"></path>
+                  <path d="{{fan.mid}}" fill="none" stroke="#33e6a6" stroke-width="2" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 8px rgba(51,230,166,.7))"></path>
+                  <path d="{{fan.real}}" fill="none" stroke="#f6f6f7" stroke-width="2.4" vector-effect="non-scaling-stroke"></path>
+                </svg>
+                <span style="position:absolute; right:8px; top:{{fan.y3pct}}; transform:translateY(-130%); font-size:11px; font-weight:600; color:#f9a45e">Objectif 30 000 €</span>
+              </div>
+            </div>
+            <figcaption style="display:flex; flex-wrap:wrap; gap:16px; padding-left:44px; font-size:11.5px; color:#9b9ba1">
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:14px; height:8px; border-radius:2px; background:rgba(51,230,166,.22)"></span>8 futurs sur 10</span>
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:14px; height:8px; border-radius:2px; background:rgba(51,230,166,.4)"></span>1 sur 2</span>
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:14px; height:2px; background:#33e6a6"></span>futur médian</span>
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:14px; height:2px; background:#f6f6f7"></span>ton compte</span>
+            </figcaption>
+          </figure>
+          <div style="display:flex; flex-direction:column; gap:18px">
+            <div style="display:flex; align-items:center; gap:18px">
+              <div style="position:relative; width:120px; height:120px; flex:0 0 120px">
+                <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9"></circle>
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#33e6a6" stroke-width="9" stroke-linecap="round" stroke-dasharray="{{ring}}" transform="rotate(-90 60 60)" style="filter:drop-shadow(0 0 8px rgba(51,230,166,.6))"></circle>
+                </svg>
+                <span style="position:absolute; inset:0; display:grid; place-items:center; font-size:26px; font-weight:700; letter-spacing:-.03em">64 %</span>
+              </div>
+              <span style="font-size:13px; line-height:1.55; color:#9b9ba1">des futurs simulés touchent <b style="color:#f6f6f7">30 000 €</b> en 12 mois, en restant sous ton recul accepté.</span>
+            </div>
+            <dl style="margin:0; display:flex; flex-direction:column; border-top:1px solid rgba(255,255,255,.07)">
+              <div style="display:flex; align-items:baseline; gap:10px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.055)"><dt style="color:#9b9ba1">Médiane</dt><dd style="margin:0 0 0 auto; font-weight:700; font-variant-numeric:tabular-nums">31 400 €</dd></div>
+              <div style="display:flex; align-items:baseline; gap:10px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.055)"><dt style="color:#9b9ba1">8 fois sur 10, entre</dt><dd style="margin:0 0 0 auto; font-weight:700; font-variant-numeric:tabular-nums">19 200 € <span style="color:#7a7a82; font-weight:500">et</span> 46 800 €</dd></div>
+              <div style="display:flex; align-items:baseline; gap:10px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.055)"><dt style="color:#9b9ba1">Creux probable en route</dt><dd style="margin:0 0 0 auto; font-weight:700; color:#ff94a0">−12 % <span style="color:#7a7a82; font-weight:500">· au pire −24 %</span></dd></div>
+            </dl>
+            <div style="display:flex; flex-wrap:wrap; gap:10px">
+              <button type="button" class="btn2" style="height:38px; padding:0 16px; border-radius:999px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.14)) border-box; color:#f6f6f7; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Comparer d'autres réglages</button>
+              <button type="button" style="height:38px; padding:0 4px; border:0; background:none; color:#f9a45e; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Refaire le quiz →</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 — Performances -->
+      <section style="display:flex; flex-direction:column; gap:18px">
+        <div style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px">
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">03 — Performances</span>
+            <h2 style="margin:0; font-size:24px; font-weight:700; letter-spacing:-.03em">{{algoName}} : depuis toujours, l'an dernier, cette année</h2>
+          </div>
+          <div role="group" aria-label="Algorithme" style="margin-left:auto; display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.025)">
+            <sc-for list="{{algoTabs}}" as="a" hint-placeholder-count="2">
+              <button type="button" aria-pressed="{{a.on}}" onClick="{{a.pick}}" style="height:32px; padding:0 14px; border:0; border-radius:999px; background:{{a.bg}}; color:{{a.ink}}; font:inherit; font-size:12.5px; font-weight:{{a.w}}; cursor:pointer">{{a.label}} <span style="color:#f9a45e">{{a.mine}}</span></button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(280px,100%), 1fr)); gap:16px">
+          <sc-for list="{{perf}}" as="p" hint-placeholder-count="3">
+            <article class="tile" style="display:flex; flex-direction:column; gap:12px; padding:22px; border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05)">
+              <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">{{p.title}}</span>
+              <span style="font-size:38px; font-weight:700; letter-spacing:-.04em; font-variant-numeric:tabular-nums; color:#7ff3ca; text-shadow:0 0 22px rgba(51,230,166,.35)">{{p.r}}</span>
+              <span style="display:flex; align-items:baseline; gap:10px; font-size:12.5px; color:#9b9ba1"><b style="font-size:15px; color:#7ff3ca">{{p.pct}}</b>{{p.money}}</span>
+              <dl style="margin:4px 0 0; display:grid; grid-template-columns:1fr 1fr; gap:0 18px; border-top:1px solid rgba(255,255,255,.07)">
+                <sc-for list="{{p.facts}}" as="f" hint-placeholder-count="6">
+                  <div style="display:flex; justify-content:space-between; gap:8px; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.05); grid-column:{{f.span}}">
+                    <dt style="font-size:12px; color:#7a7a82">{{f.l}}</dt><dd style="margin:0; font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums; color:{{f.ink}}">{{f.v}}</dd>
+                  </div>
+                </sc-for>
+              </dl>
+              <span style="font-size:11.5px; color:#7a7a82">{{p.sub}}</span>
+            </article>
+          </sc-for>
+        </div>
+        <p style="margin:0; font-size:12px; color:#7a7a82">Le calcul en euros suit le réglage de ton plan pour cet algorithme (1 %, palier après 3 stops) en partant de 10 000 €, gains réinvestis.</p>
+      </section>
+
+      <!-- 04 — Registre -->
+      <section style="position:relative; overflow:hidden; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(160deg, rgba(14,14,17,.72), rgba(9,9,11,.86)); box-shadow:0 18px 44px rgba(0,0,0,.45), inset 1.5px 1.5px 0 rgba(255,255,255,.14), inset -1.5px -1.5px 0 rgba(255,255,255,.04); padding:22px; display:flex; flex-direction:column; gap:12px">
+        <div aria-hidden="true" style="position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent)"></div>
+        <div style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px">
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">04 — Registre</span>
+            <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.025em">Toutes les positions</h2>
+          </div>
+          <div role="group" aria-label="Filtre" style="margin-left:auto; display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.025)">
+            <button type="button" aria-pressed="true" style="height:30px; padding:0 12px; border:0; border-radius:999px; background:#f6f6f7; color:#050505; font:inherit; font-size:12px; font-weight:600; cursor:pointer">Toutes</button>
+            <button type="button" style="height:30px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12px; cursor:pointer">Gagnantes</button>
+            <button type="button" style="height:30px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12px; cursor:pointer">Perdantes</button>
+            <button type="button" style="height:30px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12px; cursor:pointer">En cours</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <div style="min-width:760px; display:flex; flex-direction:column">
+            <div style="display:grid; grid-template-columns:1.2fr .9fr .8fr .9fr .9fr 1.1fr .7fr .7fr; gap:10px; padding:8px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:#7a7a82; border-bottom:1px solid rgba(255,255,255,.07)">
+              <span>Ouverture</span><span>Algo</span><span>Sens</span><span>Entrée</span><span>Sortie</span><span>Issue</span><span>Durée</span><span style="text-align:right">R</span>
+            </div>
+            <sc-for list="{{ledger}}" as="h" hint-placeholder-count="8">
+              <div class="row-h" style="display:grid; grid-template-columns:1.2fr .9fr .8fr .9fr .9fr 1.1fr .7fr .7fr; gap:10px; align-items:center; padding:11px 8px; border-bottom:1px solid rgba(255,255,255,.045); font-size:12.5px">
+                <span style="color:#9b9ba1; font-variant-numeric:tabular-nums">{{h.when}}</span>
+                <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:#c9c9ce">{{h.algo}}</span>
+                <span><span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; color:{{h.sideInk}}; background:{{h.sideBg}}">{{h.side}}</span></span>
+                <span style="font-variant-numeric:tabular-nums">{{h.in}}</span>
+                <span style="font-variant-numeric:tabular-nums">{{h.out}}</span>
+                <span style="color:#9b9ba1">{{h.issue}}</span>
+                <span style="color:#9b9ba1; font-variant-numeric:tabular-nums">{{h.dur}}</span>
+                <span style="text-align:right; font-weight:700; font-variant-numeric:tabular-nums; color:{{h.ink}}">{{h.r}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <button type="button" style="align-self:center; height:34px; padding:0 16px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:transparent; color:#c9c9ce; font:inherit; font-size:12px; cursor:pointer">Afficher 10 de plus · 473 positions</button>
+      </section>
+
+      <!-- 05 + 06 -->
+      <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(380px,100%), 1fr)); gap:16px">
+        <div class="tile" style="display:flex; flex-direction:column; gap:14px; padding:22px; border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05)">
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">05 — Sessions</span>
+            <span style="font-size:18px; font-weight:700; letter-spacing:-.02em">Quand l'algorithme performe</span>
+            <span style="font-size:12px; color:#7a7a82">Longueur de barre = winrate, chiffre = résultat cumulé. Heures de Paris.</span>
+          </div>
+          <sc-for list="{{sessions}}" as="s" hint-placeholder-count="4">
+            <div style="display:grid; grid-template-columns:120px 1fr 64px; align-items:center; gap:12px">
+              <span style="display:flex; flex-direction:column; gap:1px"><span style="font-weight:600">{{s.name}}</span><span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#7a7a82">{{s.hours}}</span></span>
+              <div style="height:10px; border-radius:999px; background:rgba(255,255,255,.05)"><div style="height:100%; width:{{s.w}}; border-radius:999px; background:{{s.bg}}; box-shadow:{{s.glow}}"></div></div>
+              <span style="text-align:right; font-weight:700; font-variant-numeric:tabular-nums; color:{{s.ink}}">{{s.r}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div class="tile" style="display:flex; flex-direction:column; gap:14px; padding:22px; border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05)">
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">06 — Sens &amp; durée</span>
+            <span style="font-size:18px; font-weight:700; letter-spacing:-.02em">Achats, ventes, temps en position</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0">
+            <div style="display:flex; flex-direction:column; gap:6px; padding-right:18px">
+              <span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#7ff3ca">Achats · 278</span>
+              <span style="font-size:26px; font-weight:700; letter-spacing:-.03em; color:#7ff3ca">+64,2 R</span>
+              <span style="font-size:12px; color:#9b9ba1">winrate 44 %</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; padding-left:18px; border-left:1px solid rgba(249,164,94,.5)">
+              <span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#ff94a0">Ventes · 195</span>
+              <span style="font-size:26px; font-weight:700; letter-spacing:-.03em; color:#7ff3ca">+31,8 R</span>
+              <span style="font-size:12px; color:#9b9ba1">winrate 39 %</span>
+            </div>
+          </div>
+          <div style="display:flex; height:10px; border-radius:999px; overflow:hidden">
+            <div style="width:59%; background:linear-gradient(90deg,#33e6a6,rgba(51,230,166,.5))"></div>
+            <div style="width:41%; background:linear-gradient(90deg,rgba(255,77,94,.5),#ff4d5e)"></div>
+          </div>
+          <dl style="margin:4px 0 0; display:flex; flex-direction:column; border-top:1px solid rgba(255,255,255,.07)">
+            <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.05)"><dt style="color:#9b9ba1">Temps moyen · gagnantes</dt><dd style="margin:0; font-weight:700">5,8 h</dd></div>
+            <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.05)"><dt style="color:#9b9ba1">Temps moyen · perdantes</dt><dd style="margin:0; font-weight:700">1,4 h</dd></div>
+            <div style="display:flex; justify-content:space-between; padding:10px 0"><dt style="color:#9b9ba1">Plus longue position</dt><dd style="margin:0; font-weight:700">3,2 j</dd></div>
+          </dl>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3300}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { scope: 'plan', period: 'all', algo: 'b1' }; }
+  renderVals() {
+    const S = this.state;
+    const seg = (on) => ({ on: on ? 'true' : 'false', bg: on ? '#f6f6f7' : 'transparent', ink: on ? '#050505' : '#9b9ba1', w: on ? 700 : 500 });
+    const scopes = [['plan', 'Mon plan'], ['me', 'Mes positions'], ['b1', 'BERICH I'], ['b2', 'BERICH II']].map(([k, label]) => ({ label, ...seg(S.scope === k), pick: () => this.setState({ scope: k }) }));
+    const periods = [['30', '30 j'], ['90', '90 j'], ['365', '1 an'], ['all', 'Tout']].map(([k, label]) => ({ label, ...seg(S.period === k), pick: () => this.setState({ period: k }) }));
+
+    const K = (label, value, note, color, i) => ({ label, value, note, color: color || '#f6f6f7', glow: color === '#7ff3ca' ? '0 0 18px rgba(51,230,166,.35)' : 'none', border: i ? '1px solid rgba(255,255,255,.09)' : '0' });
+    const VIEWS = {
+      plan: { num: '14 210 €', sub: 'Ton plan rejoué sur 46 positions · 10 000 € au départ, le 1er juin', seed: 3, scale: 'Capital en euros · départ en pointillés',
+        kpis: [K('Performance', '+42,1 %', '10 000 € → 14 210 €', '#7ff3ca', 0), K('Recul max', '−6,2 %', 'depuis un plus haut', '#ff94a0', 1), K('Pire série', '4 stops', 'd’un algorithme', null, 2), K('Risque', '1 %', 'BERICH I 1 % · II 0,6 %', null, 3), K('Positions', '46', 'rejouées', null, 4)] },
+      me: { num: '+4 186 $', sub: '38 positions prises par toi via BERICH, depuis ton accès le 1er juin', seed: 9, scale: 'Résultat en dollars',
+        kpis: [K('Winrate', '44,7 %', '17 gagnantes · 21 perdantes', null, 0), K('Espérance', '+110 $', 'par position', '#7ff3ca', 1), K('Profit factor', '1,94', 'gains ÷ pertes', null, 2), K('Drawdown max', '−612 $', 'pire recul cumulé', '#ff94a0', 3), K('Positions', '38', 'clôturées', null, 4)] },
+      b1: { num: '+18,4 R', sub: '33 positions BERICH I · depuis ton accès à BERICH, le 1er juin', seed: 5, scale: 'Résultat en R',
+        kpis: [K('Winrate', '42,4 %', '14 gagnantes · 19 perdantes', null, 0), K('Espérance', '+0,56 R', 'par position', '#7ff3ca', 1), K('Profit factor', '2,08', 'gains ÷ pertes', null, 2), K('Drawdown max', '−4,0 R', 'pire recul cumulé', '#ff94a0', 3), K('Positions', '33', 'clôturées', null, 4)] },
+      b2: { num: '+21,0 R', sub: '13 positions BERICH II · RR 5, sortie à 0 possible', seed: 13, scale: 'Résultat en R',
+        kpis: [K('Winrate', '38,5 %', '5 gagnantes · 8 perdantes', null, 0), K('Espérance', '+1,62 R', 'par position', '#7ff3ca', 1), K('Profit factor', '3,10', 'gains ÷ pertes', null, 2), K('Drawdown max', '−5,0 R', 'pire recul cumulé', '#ff94a0', 3), K('Positions', '13', 'clôturées', null, 4)] }
+    };
+    const v = VIEWS[S.scope];
+    // Courbe déterministe
+    let s = v.seed, c = 0; const pts = [0];
+    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    const n = S.period === '30' ? 18 : S.period === '90' ? 34 : S.period === '365' ? 60 : 80;
+    for (let i = 1; i < n; i++) { c += (rnd() - .38) * 6; pts.push(c); }
+    const lo = Math.min(0, ...pts), hi = Math.max(0, ...pts), H = 270, END = 940;
+    const Y = x => 14 + (1 - (x - lo) / ((hi - lo) || 1)) * (H - 28);
+    const line = pts.map((x, i) => (i ? 'L' : 'M') + (i / (pts.length - 1) * END).toFixed(1) + ' ' + Y(x).toFixed(1)).join(' ');
+    const view = { ...v, line, area: line + ' L' + END + ' ' + H + ' L0 ' + H + ' Z', baseY: Y(0).toFixed(1), endTop: (Y(pts[pts.length - 1]) / H * 100).toFixed(2) + '%' };
+
+    const node = (step, title, sub, state) => ({ step, title, sub, glyph: state === 'ok' ? '✓' : state === 'wait' ? '…' : step.slice(-1),
+      iInk: state === 'ok' ? '#050505' : '#f4d07a', iBg: state === 'ok' ? '#33e6a6' : 'rgba(232,179,57,.16)', iGlow: state === 'ok' ? '0 0 14px rgba(51,230,166,.5)' : 'none',
+      border: state === 'ok' ? 'rgba(51,230,166,.25)' : 'rgba(232,179,57,.3)', bg: state === 'ok' ? 'linear-gradient(160deg, rgba(51,230,166,.07), rgba(255,255,255,.012))' : 'rgba(232,179,57,.04)' });
+    const flow = [
+      node('Étape 1', 'Signal BERICH', 'Or, 5 min · dernier signal il y a 55 min', 'ok'),
+      node('Étape 2', 'Ton plan', '×3 en 12 mois · BERICH I + II', 'ok'),
+      node('Étape 3', 'Ton compte', 'IC Markets · 14 210 € · rattaché à ton plan par l’équipe CHEST', 'ok')
+    ];
+
+    // Éventail : 13 mois, capital 10 k€ → 40 k€
+    const W = 600, FH = 260, y = m => FH - (m - 10) / 30 * FH, x = i => i / 12 * W;
+    const mid = [10, 11.2, 12.4, 13.2, 14.2, 15.6, 17.1, 18.8, 20.6, 22.8, 25.2, 28.1, 31.4];
+    const sp = mid.map((_, i) => i * .9);
+    const band = k => { const up = mid.map((m, i) => [x(i), y(m + sp[i] * k)]); const dn = mid.map((m, i) => [x(i), y(Math.max(10, m - sp[i] * k * .7))]).reverse(); return 'M' + up.map(p => p.map(q => q.toFixed(1)).join(',')).join(' L') + ' L' + dn.map(p => p.map(q => q.toFixed(1)).join(',')).join(' L') + ' Z'; };
+    const pathOf = arr => 'M' + arr.map((m, i) => x(i).toFixed(1) + ',' + y(m).toFixed(1)).join(' L');
+    const fan = { outer: band(1.7), inner: band(.8), mid: pathOf(mid), real: pathOf([10, 10.8, 12.1, 11.5, 13.4, 14.2]), y3: y(30).toFixed(1), y3pct: (y(30) / FH * 100).toFixed(1) + '%' };
+    const C = 2 * Math.PI * 50;
+    const ring = (C * .64).toFixed(1) + ' ' + C.toFixed(1);
+
+    const algoTabs = [['b1', 'BERICH I', '★'], ['b2', 'BERICH II', '★']].map(([k, label, mine]) => ({ label, mine, ...seg(S.algo === k), pick: () => this.setState({ algo: k }) }));
+    const algoName = S.algo === 'b1' ? 'BERICH I' : 'BERICH II';
+    const F = (l, v2, ink, span) => ({ l, v: v2, ink: ink || '#f6f6f7', span: span ? '1 / -1' : 'auto' });
+    const P1 = [
+      { title: 'Depuis toujours', r: '+96,0 R', pct: '+184 %', money: '1 000 € → 2 840 €', sub: 'depuis le 3 janv. 2023', facts: [F('Positions', '473'), F('Winrate', '41,6 %'), F('Profit factor', '1,92'), F('Espérance', '+0,20 R'), F('Drawdown max', '−9,0 R', '#ff94a0'), F('Mois positifs', '28 sur 34'), F('Meilleur mois', '+14,0 R · mars 2024', null, true)] },
+      { title: 'L’année dernière · 2025', r: '+31,0 R', pct: '+36 %', money: '1 000 € → 1 360 €', sub: 'du 1er janvier au 31 décembre 2025', facts: [F('Positions', '162'), F('Winrate', '40,1 %'), F('Profit factor', '1,71'), F('Espérance', '+0,19 R'), F('Drawdown max', '−7,0 R', '#ff94a0'), F('Mois positifs', '10 sur 12'), F('Meilleur mois', '+9,0 R · juillet 2025', null, true)] },
+      { title: 'Cette année · 2026', r: '+27,0 R', pct: '+31 %', money: '1 000 € → 1 310 €', sub: 'depuis le 1er janvier 2026', facts: [F('Positions', '139'), F('Winrate', '43,2 %'), F('Profit factor', '2,04'), F('Espérance', '+0,19 R'), F('Drawdown max', '−6,0 R', '#ff94a0'), F('Mois positifs', '8 sur 10'), F('Meilleur mois', '+8,0 R · avril 2026', null, true)] }
+    ];
+    const P2 = P1.map(p => ({ ...p, r: p.r.replace('96,0', '104,0').replace('31,0', '38,0').replace('27,0', '21,0') }));
+    const perf = S.algo === 'b1' ? P1 : P2;
+
+    const L = (when, algo, side, i, o, issue, dur, r) => ({ when, algo, side, in: i, out: o, issue, dur, r, ink: r.startsWith('+') ? '#7ff3ca' : r.startsWith('0') ? '#9b9ba1' : '#ff94a0', sideInk: side === 'Achat' ? '#7ff3ca' : '#ff94a0', sideBg: side === 'Achat' ? 'rgba(51,230,166,.12)' : 'rgba(255,77,94,.12)' });
+    const ledger = [
+      L('2 nov. 13:45', 'BERICH I', 'Achat', '4 061,2', 'en cours', 'Ouverte', '55 min', '+1,9'),
+      L('31 oct. 10:30', 'BERICH I', 'Achat', '4 012,5', '4 040,7', 'Objectif 3 R', '6,2 h', '+3,0'),
+      L('29 oct. 15:15', 'BERICH II', 'Vente', '4 031,0', '4 038,4', 'Stop', '0,8 h', '−1,0'),
+      L('28 oct. 09:00', 'BERICH I', 'Achat', '4 044,8', '4 039,6', 'Stop', '1,1 h', '−1,0'),
+      L('24 oct. 14:45', 'BERICH II', 'Achat', '4 002,1', '4 049,6', 'Objectif 5 R', '1,9 j', '+5,0'),
+      L('22 oct. 11:15', 'BERICH II', 'Vente', '4 018,7', '4 018,7', 'Sortie à 0', '3,4 h', '0,0'),
+      L('20 oct. 16:00', 'BERICH I', 'Vente', '4 051,3', '4 027,9', 'Objectif 3 R', '4,7 h', '+3,0'),
+      L('17 oct. 08:30', 'BERICH I', 'Achat', '3 998,4', '3 993,1', 'Stop', '0,6 h', '−1,0')
+    ];
+    const ss = (name, hours, win, r) => ({ name, hours, w: win + '%', r, ink: r.startsWith('+') ? '#7ff3ca' : '#ff94a0', bg: r.startsWith('+') ? 'linear-gradient(90deg,#33e6a6,#6ef2c9)' : 'linear-gradient(90deg,#ff4d5e,#ff94a0)', glow: r.startsWith('+') ? '0 0 10px rgba(51,230,166,.4)' : 'none' });
+    const sessions = [ss('Asie', '01:00 → 09:00', 31, '−6,0 R'), ss('Londres', '09:00 → 14:00', 46, '+42,0 R'), ss('Chevauchement', '14:00 → 18:00', 51, '+49,0 R'), ss('New York', '18:00 → 23:00', 38, '+11,0 R')];
+    return { scopes, periods, view, flow, fan, ring, algoTabs, algoName, perf, ledger, sessions };
+  }
+}
+</script>
+</body>
+</html>

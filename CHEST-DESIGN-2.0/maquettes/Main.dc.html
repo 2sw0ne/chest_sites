@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>CHEST 2.0 — Dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
+.tile{transition:border-color .2s cubic-bezier(.16,1,.3,1),transform .22s cubic-bezier(.16,1,.3,1)}
+.tile:hover{border-color:rgba(249,164,94,.32)}
+.row-h:hover{background:rgba(255,255,255,.025)}
+.btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
+.btn2:hover{background:linear-gradient(#0b0b0e,#0b0b0e) padding-box,linear-gradient(135deg,#fc1283,#f9a45e) border-box!important;box-shadow:0 8px 26px rgba(252,18,131,.18)}
+.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
+.sb-tog:hover{color:#f6f6f7}
+.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
+.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i:active{transform:scale(.98)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
+.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.adm .ic{stroke:url(#sba)}
+.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc__id{display:flex;flex-direction:column;min-width:0}
+.sb-acc__id b{font-size:12.5px;line-height:1.25}
+.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
+.sbT:checked ~ .sb .sb-txt{display:none}
+.sbT:checked ~ .sb .sb-tog .chev{transform:none}
+.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
+.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
+.sbT:checked ~ .sb .sb-nav{padding:0 11px}
+.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
+.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
+.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
+.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.span2{grid-column:auto!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</helmet>
+
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size:13.5px; overflow:hidden">
+
+  <!-- Lumière unique, en haut à droite, très diffuse -->
+  <div aria-hidden="true" style="position:absolute; right:-220px; top:-260px; width:980px; height:640px; pointer-events:none; filter:blur(110px); opacity:.9; background:radial-gradient(42% 46% at 58% 46%, rgba(252,18,131,.16), transparent 72%), radial-gradient(36% 40% at 34% 60%, rgba(249,164,94,.10), transparent 74%)"></div>
+  <!-- Grain -->
+  <div aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.05; background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:180px 180px"></div>
+
+  <!-- ================= SIDEBAR (ancien volet CHEST, repliable) ================= -->
+  <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside class="sb">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"></stop><stop offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient id="sba" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a1f"></stop><stop offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+    </label>
+    <a href="Main.dc.html" class="sb-brand">
+      <img src="assets/logo-chest-new.webp" alt="CHEST">
+      <span class="sb-txt">CHEST</span>
+    </a>
+    <div class="sb-label"><span class="sb-txt">Navigation</span></div>
+    <nav class="sb-nav" aria-label="Navigation principale">
+        <a href="Main.dc.html" class="nav-i on" aria-current="page" title="Dashboard">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span class="sb-txt">Dashboard</span>
+        </a>
+        <a href="Backtesting.dc.html" class="nav-i" title="Backtesting">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 6-8"></path><path d="M3 21h18"></path></svg>
+          <span class="sb-txt">Backtesting</span>
+        </a>
+        <a href="Journal.dc.html" class="nav-i" title="Journal">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span class="sb-txt">Journal</span>
+        </a>
+        <a href="Strategies.dc.html" class="nav-i" title="Stratégies">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span class="sb-txt">Stratégies</span>
+        </a>
+        <a href="Calendrier.dc.html" class="nav-i" title="Calendrier">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span class="sb-txt">Calendrier</span>
+        </a>
+        <a href="Berich.dc.html" class="nav-i" title="BERICH">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span class="sb-txt">BERICH</span>
+        </a>
+        <a href="School.dc.html" class="nav-i" title="School">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path d="M22 9.5V15"></path></svg>
+          <span class="sb-txt">School</span>
+        </a>
+        <span class="sb-sep" aria-hidden="true"></span>
+        <a href="Admin.dc.html" class="nav-i adm" title="Admin">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span class="sb-txt">Admin</span>
+        </a>
+    </nav>
+    <div class="sb-acc">
+      <div class="sb-acc__label sb-txt">Compte</div>
+      <a href="Compte.dc.html" class="sb-acc__row">
+        <span class="sb-acc__av">M</span>
+        <span class="sb-txt sb-acc__id"><b>Morgan</b><span>morgan@exemple.fr</span></span>
+      </a>
+      <button type="button" class="sb-out" title="Se déconnecter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span class="sb-txt">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <a href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
+  </a>
+
+  <!-- ================= CONTENU ================= -->
+  <main style="position:relative; z-index:1; flex:999 1 560px; min-width:0; display:flex; flex-direction:column">
+
+    <!-- Barre du haut -->
+    <header style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; min-height:64px; padding:10px 36px; box-sizing:border-box; border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Suivi</span>
+        <span style="color:#3a3a40">/</span>
+        <span style="font-weight:600">Dashboard</span>
+      </div>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+        <label style="display:flex; align-items:center; gap:10px; height:38px; width:280px; max-width:100%; padding:0 12px; box-sizing:border-box; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.025); color:#7a7a82">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <input type="search" placeholder="Rechercher une page, une paire…" style="flex:1; min-width:0; background:transparent; border:0; outline:0; color:#f6f6f7; font:inherit; font-size:13px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#9b9ba1; border:1px solid rgba(255,255,255,.12); padding:2px 6px; border-radius:6px">⌘K</span>
+        </label>
+        <button type="button" aria-label="Notifications" style="position:relative; width:38px; height:38px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.025); color:#9b9ba1; display:grid; place-items:center; cursor:pointer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg>
+          <span style="position:absolute; top:8px; right:9px; width:7px; height:7px; border-radius:999px; background:#fc1283; box-shadow:0 0 8px rgba(252,18,131,.9)"></span>
+        </button>
+        <a href="#" style="display:flex; align-items:center; gap:8px; height:38px; padding:0 14px; border-radius:12px; font-weight:700; font-size:12.5px; letter-spacing:.04em; color:#050505; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 8px 24px rgba(252,18,131,.25)">HQ</a>
+      </div>
+    </header>
+
+    <div style="display:flex; flex-direction:column; gap:28px; padding:34px 36px 56px; max-width:1180px; width:100%; box-sizing:border-box">
+
+      <!-- En-tête de page -->
+      <section style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:20px">
+        <div style="display:flex; flex-direction:column; gap:10px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">01 — Vue d'ensemble</span>
+          <h1 style="margin:0; font-size:40px; line-height:1.06; font-weight:700; letter-spacing:-.04em">Dashboard</h1>
+          <p style="margin:0; font-size:14px; color:#9b9ba1">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
+        </div>
+        <div style="margin-left:auto; display:flex; flex-wrap:wrap; align-items:center; gap:10px">
+          <button type="button" class="btn2" style="display:flex; align-items:center; gap:10px; height:40px; padding:0 14px; border-radius:999px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.12)) border-box; color:#f6f6f7; font:inherit; font-weight:600; cursor:pointer">
+            <span style="width:7px; height:7px; border-radius:999px; background:#33e6a6; box-shadow:0 0 10px rgba(51,230,166,.8)"></span>
+            Compte principal · FTMO 100k
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9ba1" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <div role="group" aria-label="Période" style="display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.025)">
+            <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">7J</button>
+            <button type="button" aria-pressed="true" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:#f6f6f7; color:#050505; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">30J</button>
+            <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">3M</button>
+            <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Tout</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Héros + bandeau KPI (sur la surface de la page, pas de carte) -->
+      <section style="display:flex; flex-wrap:wrap; align-items:stretch; gap:0; padding:26px 0 30px; border-top:1px solid rgba(255,255,255,.07); border-bottom:1px solid rgba(255,255,255,.07)">
+        <div style="flex:1 1 320px; display:flex; flex-direction:column; gap:10px; padding-right:32px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Solde · FTMO 100k</span>
+          <span style="font-size:64px; line-height:1; font-weight:700; letter-spacing:-.05em; font-variant-numeric:tabular-nums">100 740<span style="color:#7a7a82; font-weight:600"> $</span></span>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+            <span style="font-size:13px; font-weight:700; color:#7ff3ca; background:rgba(51,230,166,.12); padding:4px 10px; border-radius:999px; font-variant-numeric:tabular-nums; text-shadow:0 0 14px rgba(51,230,166,.45)">+740 $ · +0,74 %</span>
+            <span style="font-size:12.5px; color:#9b9ba1">sur 30 jours</span>
+          </div>
+        </div>
+        <div style="flex:3 1 560px; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(150px,100%), 1fr)); row-gap:20px">
+          <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+            <div style="display:flex; flex-direction:column; gap:8px; padding:4px 22px; border-left:1px solid rgba(255,255,255,.08)">
+              <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">{{k.label}}</span>
+              <span style="font-size:26px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:{{k.color}}; text-shadow:{{k.glow}}">{{k.value}}</span>
+              <div style="height:3px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden">
+                <div style="height:100%; width:{{k.bar}}; border-radius:999px; background:{{k.barBg}}"></div>
+              </div>
+              <span style="font-size:11.5px; color:#7a7a82">{{k.note}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- Courbe + Challenge -->
+      <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(340px,100%), 1fr)); gap:16px">
+
+        <!-- Fenêtre verre : courbe -->
+        <div style="grid-column:1 / -1; position:relative; overflow:hidden; min-width:0; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(160deg, rgba(14,14,17,.72), rgba(9,9,11,.86)); box-shadow:0 18px 44px rgba(0,0,0,.45), inset 1.5px 1.5px 0 rgba(255,255,255,.14), inset -1.5px -1.5px 0 rgba(255,255,255,.04); padding:22px 22px 18px; display:flex; flex-direction:column; gap:16px">
+          <div aria-hidden="true" style="position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent)"></div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px">
+            <div style="display:flex; flex-direction:column; gap:4px">
+              <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">02 — Courbe d'equity</span>
+              <span style="font-size:19px; font-weight:700; letter-spacing:-.025em">+740 $ en octobre</span>
+            </div>
+            <div style="margin-left:auto; display:flex; align-items:center; gap:16px; font-size:12px; color:#9b9ba1">
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:16px; height:2px; border-radius:2px; background:#33e6a6; box-shadow:0 0 8px rgba(51,230,166,.8)"></span>Compte</span>
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:16px; height:0; border-top:2px dashed #e8b339"></span>Backtest de départ</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; min-width:0">
+            <div style="display:flex; flex-direction:column; justify-content:space-between; height:270px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#7a7a82; text-align:right; font-variant-numeric:tabular-nums">
+              <sc-for list="{{yLabels}}" as="y" hint-placeholder-count="5"><span>{{y}}</span></sc-for>
+            </div>
+            <div style="position:relative; flex:1; min-width:0; height:270px">
+              <svg width="100%" height="270" viewBox="0 0 1000 270" preserveAspectRatio="none" aria-hidden="true" style="display:block; overflow:visible">
+                <defs>
+                  <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#33e6a6" stop-opacity=".32"></stop>
+                    <stop offset="1" stop-color="#33e6a6" stop-opacity="0"></stop>
+                  </linearGradient>
+                  <linearGradient id="eqLine" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#dcdce0"></stop>
+                    <stop offset=".35" stop-color="#33e6a6"></stop>
+                    <stop offset="1" stop-color="#6ef2c9"></stop>
+                  </linearGradient>
+                </defs>
+                <line x1="0" x2="1000" y1="0.5" y2="0.5" stroke="rgba(255,255,255,.05)" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" x2="1000" y1="67.5" y2="67.5" stroke="rgba(255,255,255,.05)" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" x2="1000" y1="135" y2="135" stroke="rgba(255,255,255,.05)" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" x2="1000" y1="202.5" y2="202.5" stroke="rgba(255,255,255,.05)" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" x2="1000" y1="269.5" y2="269.5" stroke="rgba(255,255,255,.08)" vector-effect="non-scaling-stroke"></line>
+                <path d="{{eqArea}}" fill="url(#eqFill)"></path>
+                <path d="{{btPath}}" fill="none" stroke="#e8b339" stroke-width="1.5" stroke-dasharray="5 6" opacity=".75" vector-effect="non-scaling-stroke"></path>
+                <path d="{{eqPath}}" fill="none" stroke="url(#eqLine)" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 8px rgba(51,230,166,.65))"></path>
+              </svg>
+              <div style="position:absolute; left:{{lastX}}; top:{{lastY}}; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:999px; background:#050506; border:2px solid #6ef2c9; box-shadow:0 0 14px rgba(51,230,166,.9)"></div>
+              <div style="position:absolute; left:{{lastX}}; top:{{lastY}}; transform:translate(-100%, -150%); padding:6px 10px; border-radius:10px; background:rgba(5,5,6,.85); border:1px solid rgba(255,255,255,.12); font-size:12px; font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums">100 740 $</div>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding-left:54px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#7a7a82">
+            <sc-for list="{{xLabels}}" as="x" hint-placeholder-count="6"><span>{{x}}</span></sc-for>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Aujourd'hui -->
+      <section style="display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:baseline; gap:12px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">04 — Aujourd'hui</span>
+          <span style="flex:1; height:1px; background:rgba(255,255,255,.07)"></span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(300px,100%), 1fr)); gap:16px">
+
+          <!-- Sessions -->
+          <div class="tile" style="overflow:hidden; border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); display:flex; flex-direction:column">
+            <!-- Ciel de l'endroit où tu es : nuit / aube / jour / crépuscule -->
+            <div style="position:relative; height:150px; overflow:hidden; background:linear-gradient(180deg, {{sky.top}}, {{sky.mid}} 62%, {{sky.bot}}); display:flex; align-items:center; justify-content:center">
+              <div aria-hidden="true" style="position:absolute; inset:0; opacity:{{sky.stars}}; background-image:radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 32% 12%, #fff, transparent), radial-gradient(1.5px 1.5px at 58% 28%, #fff, transparent), radial-gradient(1px 1px at 78% 16%, #fff, transparent), radial-gradient(1px 1px at 88% 40%, #fff, transparent)"></div>
+              <svg aria-hidden="true" viewBox="0 0 100 60" preserveAspectRatio="none" style="position:absolute; left:6%; right:6%; top:18px; width:88%; height:96px; opacity:.32"><path d="M0 60 Q50 -40 100 60" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="1.5 4" vector-effect="non-scaling-stroke"></path></svg>
+              <span aria-hidden="true" style="position:absolute; left:{{sky.x}}; top:{{sky.y}}; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:999px; background:{{sky.body}}; box-shadow:{{sky.bodyGlow}}"></span>
+              <div aria-hidden="true" style="position:absolute; left:0; right:0; bottom:18px; height:1px; background:rgba(255,255,255,.22)"></div>
+              <div style="position:relative; text-align:center; margin-top:26px">
+                <div style="font-size:23px; font-weight:800; letter-spacing:-.02em; color:#fff; text-shadow:0 1px 8px rgba(0,0,0,.4)">Londres + New York</div>
+                <div style="margin-top:4px; font-size:12.5px; color:rgba(255,255,255,.88); text-shadow:0 1px 4px rgba(0,0,0,.3)">14:40 à Paris · plein jour</div>
+              </div>
+            </div>
+            <div style="padding:16px 18px 18px; display:flex; flex-direction:column; gap:10px">
+              <div style="position:relative; display:flex; flex-direction:column; gap:9px">
+                <sc-for list="{{sessions}}" as="s" hint-placeholder-count="4">
+                  <div style="display:grid; grid-template-columns:96px 1fr 52px; align-items:center; gap:10px">
+                    <span style="display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:{{s.ink}}">
+                      <span aria-hidden="true" style="width:14px; height:14px; flex:0 0 14px; border-radius:999px; background:{{s.wx}}; box-shadow:{{s.wxGlow}}"></span>
+                      {{s.name}}
+                    </span>
+                    <div style="position:relative; height:10px; border-radius:999px; background:rgba(255,255,255,.04); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)">
+                      <div style="position:absolute; top:0; bottom:0; left:{{s.left}}; width:{{s.width}}; border-radius:999px; background:{{s.bg}}; box-shadow:{{s.glow}}"></div>
+                      <div style="position:absolute; top:0; bottom:0; left:{{s.left2}}; width:{{s.width2}}; border-radius:999px; background:{{s.bg}}"></div>
+                    </div>
+                    <span style="text-align:right; font-size:11px; font-weight:{{s.stW}}; color:{{s.stInk}}">{{s.local}}</span>
+                  </div>
+                </sc-for>
+                <div aria-hidden="true" style="position:absolute; top:-5px; bottom:-5px; left:calc(106px + (100% - 168px) * .611); width:2px; margin-left:-1px; background:#f6f6f7">
+                  <span style="position:absolute; top:50%; left:50%; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:999px; background:#0b0b0e; border:2px solid #f6f6f7; box-shadow:0 2px 6px rgba(0,0,0,.5)"></span>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; padding:0 62px 0 106px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:9.5px; color:#7a7a82"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding-top:4px; font-size:12.5px">
+                <span style="width:8px; height:8px; border-radius:999px; background:#ff4d5e; box-shadow:0 0 0 3px rgba(255,77,94,.18)"></span>
+                <b>Volatilité forte</b><span style="color:#9b9ba1">· chevauchement jusqu'à 18h</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Annonces du jour -->
+          <div class="tile" style="border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); padding:20px; display:flex; flex-direction:column; gap:6px">
+            <div style="display:flex; align-items:center; gap:10px; padding-bottom:8px">
+              <span style="font-size:15px; font-weight:700; letter-spacing:-.02em">Annonces du jour</span>
+              <a href="Calendrier.dc.html" style="margin-left:auto; font-size:12px; color:#9b9ba1">Calendrier →</a>
+            </div>
+            <sc-for list="{{news}}" as="n" hint-placeholder-count="3">
+              <div class="row-h" style="display:flex; align-items:center; gap:12px; padding:10px 8px; margin:0 -8px; border-radius:10px">
+                <span style="width:44px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; color:{{n.timeInk}}; font-variant-numeric:tabular-nums">{{n.time}}</span>
+                <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; font-weight:600; color:#9b9ba1; border:1px solid rgba(255,255,255,.1); padding:2px 6px; border-radius:6px">{{n.cur}}</span>
+                <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{n.name}}</span>
+                <span style="display:flex; gap:3px" aria-label="Impact {{n.impactLabel}}">
+                  <span style="width:4px; height:12px; border-radius:2px; background:{{n.b1}}"></span>
+                  <span style="width:4px; height:12px; border-radius:2px; background:{{n.b2}}"></span>
+                  <span style="width:4px; height:12px; border-radius:2px; background:{{n.b3}}"></span>
+                </span>
+              </div>
+            </sc-for>
+            <p style="margin:auto 0 0; padding-top:10px; font-size:12.5px; color:#9b9ba1">Prévision de la semaine sur XAU/USD : <strong style="color:#7ff3ca">haussier 68 %</strong></p>
+          </div>
+
+          <!-- Force des devises -->
+          <div class="tile" style="border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); padding:20px; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:10px">
+              <span style="font-size:15px; font-weight:700; letter-spacing:-.02em">Force des devises</span>
+              <span style="margin-left:auto; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:#9b9ba1">H4</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px">
+              <sc-for list="{{strength}}" as="c" hint-placeholder-count="8">
+                <div style="display:grid; grid-template-columns:34px 1fr 1fr 40px; align-items:center; gap:0">
+                  <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; font-weight:600; color:#c9c9ce">{{c.cur}}</span>
+                  <div style="display:flex; justify-content:flex-end; height:8px; border-right:1px solid rgba(255,255,255,.14)">
+                    <div style="height:100%; width:{{c.neg}}; border-radius:4px 0 0 4px; background:linear-gradient(270deg, rgba(255,77,94,.9), rgba(255,77,94,.25))"></div>
+                  </div>
+                  <div style="display:flex; height:8px">
+                    <div style="height:100%; width:{{c.pos}}; border-radius:0 4px 4px 0; background:linear-gradient(90deg, rgba(51,230,166,.9), rgba(51,230,166,.25))"></div>
+                  </div>
+                  <span style="text-align:right; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:{{c.ink}}; font-variant-numeric:tabular-nums">{{c.val}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trades + Signaux -->
+      <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(420px,100%), 1fr)); gap:16px">
+        <div class="tile" style="border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); padding:20px; display:flex; flex-direction:column; gap:6px; min-width:0">
+          <div style="display:flex; align-items:center; gap:10px; padding-bottom:6px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">05 — Derniers trades</span>
+            <a href="Journal.dc.html" style="margin-left:auto; font-size:12px; color:#9b9ba1">Journal →</a>
+          </div>
+          <div style="overflow-x:auto">
+            <div style="min-width:420px; display:flex; flex-direction:column">
+              <div style="display:grid; grid-template-columns:1.2fr .8fr 1fr .7fr 1fr; gap:10px; padding:8px 8px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:#7a7a82; border-bottom:1px solid rgba(255,255,255,.06)">
+                <span>Paire</span><span>Sens</span><span>Ouvert</span><span>R</span><span style="text-align:right">Résultat</span>
+              </div>
+              <sc-for list="{{trades}}" as="t" hint-placeholder-count="5">
+                <div class="row-h" style="display:grid; grid-template-columns:1.2fr .8fr 1fr .7fr 1fr; gap:10px; align-items:center; padding:11px 8px; border-bottom:1px solid rgba(255,255,255,.045); font-size:12.5px">
+                  <span style="font-weight:600">{{t.pair}}</span>
+                  <span><span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; color:{{t.sideInk}}; background:{{t.sideBg}}">{{t.side}}</span></span>
+                  <span style="color:#9b9ba1; font-variant-numeric:tabular-nums">{{t.when}}</span>
+                  <span style="color:#9b9ba1; font-variant-numeric:tabular-nums">{{t.r}}</span>
+                  <span style="text-align:right; font-weight:700; color:{{t.ink}}; font-variant-numeric:tabular-nums">{{t.res}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div class="tile" style="border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); padding:20px; display:flex; flex-direction:column; gap:4px; min-width:0">
+          <div style="display:flex; align-items:center; gap:10px; padding-bottom:8px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">06 — Signaux des scanners</span>
+            <a href="Strategies.dc.html" style="margin-left:auto; font-size:12px; color:#9b9ba1">Stratégies →</a>
+          </div>
+          <sc-for list="{{signals}}" as="g" hint-placeholder-count="4">
+            <div class="row-h" style="display:flex; align-items:center; gap:12px; padding:9px 8px; margin:0 -8px; border-radius:12px">
+              <img src="{{g.logo}}" alt="" style="width:34px; height:34px; border-radius:9px; object-fit:cover">
+              <div style="display:flex; flex-direction:column; gap:2px; min-width:0; flex:1">
+                <span style="font-weight:600">{{g.name}} <span style="color:#7a7a82; font-weight:400">· {{g.pair}} {{g.tf}}</span></span>
+                <span style="font-size:11.5px; color:#7a7a82">{{g.when}}</span>
+              </div>
+              <span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; color:{{g.ink}}; background:{{g.bg}}">{{g.side}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1680}}'>
+class Component extends DCLogic {
+  smooth(pts) {
+    let d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ' C' + c1x.toFixed(1) + ',' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ',' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ',' + p2[1].toFixed(1);
+    }
+    return d;
+  }
+  renderVals() {
+    const eq = [100000, 100000, 100035, 99980, 100060, 100110, 100090, 100170, 100150, 100215, 100260, 100230, 100290, 100340, 100310, 100380, 100355, 100420, 100470, 100445, 100520, 100500, 100565, 100610, 100590, 100650, 100700, 100680, 100720, 100740];
+    const bt = eq.map((_, i) => 100000 + i * 21 + Math.sin(i / 3) * 18);
+    const lo = 99900, hi = 100800, W = 1000, H = 270;
+    const toPt = (v, i) => [i / (eq.length - 1) * W, H - (v - lo) / (hi - lo) * H];
+    const pts = eq.map(toPt);
+    const eqPath = this.smooth(pts);
+    const eqArea = eqPath + ' L' + W + ',' + H + ' L0,' + H + ' Z';
+    const btPath = this.smooth(bt.map(toPt));
+    const last = pts[pts.length - 1];
+    const yLabels = [100800, 100575, 100350, 100125, 99900].map(v => (v / 1000).toFixed(1).replace('.', ',') + 'k');
+    const xLabels = ['1 oct.', '7 oct.', '13 oct.', '19 oct.', '25 oct.', '31 oct.'];
+
+    const G = 'linear-gradient(90deg,#fc1283,#f9a45e)';
+    const kpis = [
+      { label: 'P&L du mois', value: '+740 $', color: '#7ff3ca', glow: '0 0 18px rgba(51,230,166,.35)', bar: '74%', barBg: '#33e6a6', note: '11 trades · 7 gagnants' },
+      { label: 'Taux de réussite', value: '64 %', color: '#f6f6f7', glow: 'none', bar: '64%', barBg: G, note: 'Moyenne 90 j : 58 %' },
+      { label: 'Profit factor', value: '1,82', color: '#f6f6f7', glow: 'none', bar: '61%', barBg: G, note: 'Gain moyen 2,1 R' },
+      { label: 'Drawdown utilisé', value: '0,8 %', color: '#f6f6f7', glow: 'none', bar: '8%', barBg: '#e8b339', note: 'sur 10 % autorisés' }
+    ];
+    const rules = [
+      { label: 'Objectif de profit', value: '7,4 %', max: '/ 10 %', pct: '74%', bg: G, glow: '0 0 12px rgba(252,18,131,.45)' },
+      { label: 'Perte du jour', value: '0,3 %', max: '/ 5 %', pct: '6%', bg: '#e8b339', glow: 'none' },
+      { label: 'Perte max', value: '0,8 %', max: '/ 10 %', pct: '8%', bg: '#e8b339', glow: 'none' },
+      { label: 'Jours de trading', value: '4', max: '/ 4 ✓', pct: '100%', bg: '#33e6a6', glow: '0 0 12px rgba(51,230,166,.45)' }
+    ];
+    const pct = h => (h / 24 * 100).toFixed(2) + '%';
+    const WX = {
+      sun: ['radial-gradient(circle at 35% 32%,#fff8dd,#ffc862 55%,#ff9a3d)', '0 0 10px rgba(255,175,70,.6)'],
+      moon: ['radial-gradient(circle at 35% 32%,#f8faff,#d7deef 55%,#a8b3d6)', '0 0 8px rgba(200,215,255,.4)'],
+      dawn: ['linear-gradient(180deg,#ffd08a 0 52%,rgba(255,154,61,.35) 52%)', '0 0 8px rgba(255,154,61,.5)']
+    };
+    // Heures de Paris (UTC+1) ; une session qui passe minuit a deux morceaux
+    const sess = (name, a, b, on, wx, local, a2, b2) => ({ name, left: pct(a), width: pct(b - a), left2: pct(a2 || 0), width2: pct((b2 || 0) - (a2 || 0)), ink: on ? '#f6f6f7' : '#9b9ba1', bg: on ? 'linear-gradient(90deg,#33e6a6,#6ef2c9)' : 'rgba(255,255,255,.14)', glow: on ? '0 0 12px rgba(51,230,166,.45)' : 'none', wx: WX[wx][0], wxGlow: WX[wx][1], local, stInk: on ? '#7ff3ca' : '#7a7a82', stW: on ? 700 : 500 });
+    const sessions = [sess('Sydney', 22, 24, false, 'moon', '00:40', 0, 7), sess('Tokyo', 1, 10, false, 'moon', '22:40'), sess('Londres', 9, 18, true, 'sun', '13:40'), sess('New York', 14, 23, true, 'dawn', '08:40')];
+    // Ciel de Paris à 14:40 : après-midi (dégradé repris de session-timeline.js)
+    const tSun = (14.67 - 6) / 12;
+    const sky = { top: 'rgb(28,79,143)', mid: 'rgb(79,137,201)', bot: 'rgb(207,232,243)', stars: 0, x: (6 + tSun * 88).toFixed(1) + '%', y: (18 + (1 - 4 * tSun * (1 - tSun)) * 96).toFixed(0) + 'px', body: WX.sun[0], bodyGlow: '0 0 20px 5px rgba(255,175,70,.55)' };
+    const lvl = (n) => [n >= 1, n >= 2, n >= 3].map(on => on ? (n === 3 ? '#ff4d5e' : '#e8b339') : 'rgba(255,255,255,.1)');
+    const nw = (time, cur, name, n, done) => { const b = lvl(n); return { time, cur, name, b1: b[0], b2: b[1], b3: b[2], impactLabel: ['', 'faible', 'moyen', 'fort'][n], timeInk: done ? '#7a7a82' : '#f6f6f7' }; };
+    const news = [nw('10:00', 'EUR', 'PMI manufacturier zone euro', 2, true), nw('16:00', 'USD', 'ISM manufacturier', 3, false), nw('22:30', 'AUD', 'Discours du gouverneur RBA', 1, false)];
+    const sv = [['USD', -4.1], ['EUR', 2.6], ['GBP', 3.4], ['JPY', -1.2], ['CHF', 0.8], ['AUD', -2.2], ['CAD', -0.6], ['XAU', 5.2]];
+    const strength = sv.sort((a, b) => b[1] - a[1]).map(([cur, v]) => ({ cur, val: (v > 0 ? '+' : '') + v.toFixed(1).replace('.', ','), pos: v > 0 ? (v / 6 * 100) + '%' : '0%', neg: v < 0 ? (-v / 6 * 100) + '%' : '0%', ink: v >= 0 ? '#7ff3ca' : '#ff94a0' }));
+    const tr = (pair, side, when, r, res, win) => ({ pair, side, when, r, res, ink: win ? '#7ff3ca' : '#ff94a0', sideInk: side === 'Achat' ? '#7ff3ca' : '#ff94a0', sideBg: side === 'Achat' ? 'rgba(51,230,166,.12)' : 'rgba(255,77,94,.12)' });
+    const trades = [tr('XAU/USD', 'Achat', '31 oct. 15:02', '+2,4', '+312 $', true), tr('NAS100', 'Vente', '30 oct. 16:41', '−1,0', '−130 $', false), tr('GBP/JPY', 'Achat', '30 oct. 09:15', '+1,8', '+236 $', true), tr('EUR/USD', 'Vente', '29 oct. 14:48', '+1,2', '+158 $', true), tr('XAU/USD', 'Achat', '28 oct. 10:20', '−1,0', '−130 $', false)];
+    const sg = (logo, name, pair, tf, when, buy) => ({ logo, name, pair, tf, when, side: buy ? 'Achat' : 'Vente', ink: buy ? '#7ff3ca' : '#ff94a0', bg: buy ? 'rgba(51,230,166,.12)' : 'rgba(255,77,94,.12)' });
+    const signals = [
+      sg('assets/logo-swyper-v2.webp', 'SWYPER', 'XAU/USD', 'M15', 'il y a 12 min · bougie de 14:15', true),
+      sg('assets/logo-pulse.webp', 'PULSE', 'GBP/USD', 'H1', 'il y a 38 min · bougie de 14:00', true),
+      sg('assets/logo-nexus.webp', 'NEXUS', 'USD/JPY', 'M30', 'il y a 1 h · bougie de 13:30', false),
+      sg('assets/logo-supernova.webp', 'SUPERNOVA', 'NAS100', 'M15', 'il y a 2 h · bougie de 12:45', false)
+    ];
+    return { eqPath, eqArea, btPath, lastX: (last[0] / W * 100) + '%', lastY: last[1] + 'px', yLabels, xLabels, kpis, sessions, sky, news, strength, trades, signals };
+  }
+}
+</script>
+</body>
+</html>

@@ -70,6 +70,8 @@
 <script src="js/sync-store.js?v=16"></script>
 <script src="js/pwa.js?v=6"></script>
 <link rel="stylesheet" href="css/v2.css?v=16">
+<link rel="stylesheet" href="css/chest-da-2.css?v=1">
+<link rel="stylesheet" href="css/chest-2-site.css?v=1">
 <!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
 <style>
   html.plan-no-school .chest-nav__item[data-page="school"]::after,
@@ -275,6 +277,7 @@
       <svg class="chest-sidebar__toggle-bg" viewBox="0 0 22 112" preserveAspectRatio="none"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+    <a href="#/dashboard" class="c2-sb-brand" aria-label="CHEST, Dashboard"><img src="assets/logo-chest-new.webp" alt=""><span class="c2-sb-brand__txt">CHEST</span></a>
     <div class="chest-sidebar__label"><span>Navigation</span></div>
     <nav class="chest-nav">
       <a href="#/dashboard" data-page="dashboard" class="chest-nav__item"><span class="chest-nav__ic chest-ic-dashboard"></span><span class="chest-nav__item-label">Dashboard</span><span class="chest-nav__mark"></span></a>
@@ -289,10 +292,10 @@
     </nav>
     <div class="chest-sidebar__account">
       <div class="chest-sidebar__account-label">Compte</div>
-      <div class="chest-sidebar__account-row">
+      <a href="#/account" class="chest-sidebar__account-row" data-page="account" title="Compte">
         <span class="chest-sidebar__account-avatar" id="sidebarUserAvatar">—</span>
         <span style="min-width:0"><span class="chest-sidebar__account-name" id="sidebarUserName">—</span><span class="chest-sidebar__account-meta" id="sidebarUserEmail"></span></span>
-      </div>
+      </a>
       <button type="button" class="chest-sidebar__logout" data-logout title="Se déconnecter">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;flex-shrink:0"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="chest-sidebar__logout-text">Se déconnecter</span>
@@ -313,16 +316,29 @@
         <b id="crumbPage">Dashboard</b>
       </div>
       <div class="chest-topbar__actions">
-        <!-- Cloche de notifications retiree (2026-10-11, retour utilisateur : "la cloche en haut...
-             elle sert a rien") - window.CHESTNotifications (js/notifications-store.js) continue
-             d'enregistrer les evenements (phase validee, retrait detecte...) pour qui voudrait les
-             relire plus tard, seule cette presentation topbar/panneau disparait. -->
+        <!-- CHEST 2.0 (2026-11-02) : recherche de page ou de paire (⌘K) et cloche des notifications
+             (CHESTNotifications), volet « 04 — Notifications » de Elements.dc.html. Voir js/shell-2.js. -->
+        <div class="c2-search" id="c2Search">
+          <label class="c2-search__box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input type="search" id="c2SearchInput" placeholder="Rechercher une page, une paire…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="c2SearchList" aria-label="Rechercher une page ou une paire">
+            <kbd id="c2SearchKbd">⌘K</kbd>
+          </label>
+          <div class="c2-search__list" id="c2SearchList" role="listbox" hidden></div>
+        </div>
+        <div class="c2-notif">
+          <button type="button" class="c2-iconbtn" id="c2Bell" aria-label="Notifications" aria-expanded="false" aria-controls="c2Notif">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+            <span class="c2-iconbtn__dot" id="c2BellDot" hidden></span>
+          </button>
+          <div class="c2-notif__panel" id="c2Notif" role="dialog" aria-label="Notifications" hidden>
+            <div class="c2-notif__head"><b>Notifications</b><button type="button" id="c2NotifAll">Tout marquer lu</button></div>
+            <div class="c2-notif__list" id="c2NotifList"></div>
+          </div>
+        </div>
         <!-- Espace éducateur (2026-10-25) : visible pour les comptes au rôle « éducateur » (nav.js). -->
         <a href="#/educator" class="chest-topbar__btn chest-topbar__btn--edu" data-page="educator" data-educator-only hidden aria-label="Espace éducateur" title="Espace éducateur">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.6v4.2c0 1 2.2 2.4 5 2.4s5-1.4 5-2.4v-4.2"/><path d="M21 9.5v4.5"/></svg>
-        </a>
-        <a href="#/account" class="chest-topbar__btn" data-page="account" aria-label="Compte" title="Compte">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:17px;height:17px"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke-linecap="round"/></svg>
         </a>
         <!-- Case HQ : reservee a l'admin (data-admin-only), aurore pixelisee dessinee par js/hq.js.
              Ouvre CHEST HQ (data-url) dans un nouvel onglet. -->
@@ -427,6 +443,7 @@
 </script>
 <script src="js/v2-shell.js?v=1"></script>
 <script src="js/hq.js?v=4"></script>
+<script src="js/shell-2.js?v=1"></script>
 <script src="js/legal-links.js?v=2"></script>
 <script src="js/consent.js?v=2"></script>
 <script>if (window.CHESTAccounts && CHESTAccounts.isLoggedIn()) CHESTConsent.ensureTerms();</script>

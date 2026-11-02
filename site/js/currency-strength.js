@@ -92,5 +92,21 @@
     }
   }
 
-  window.CHESTCurrencyStrength = { render };
+  // CHEST 2.0 (2026-11-02) : force d'une seule unité de temps (240 = H4) pour la carte du Dashboard,
+  // même source fxblue, gardée 5 min dans la session.
+  async function byTf(tf) {
+    const key = 'chest_currency_strength_tf_' + tf;
+    try { const c = JSON.parse(sessionStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 5 * 60000) return c.list; } catch (e) { /* pas de cache */ }
+    const res = await fetch(ENDPOINT);
+    if (!res.ok) throw new Error(String(res.status));
+    const decoded = decodePayload(await res.text());
+    const list = decoded.currencies.map((c) => {
+      const per = decoded.data[c] && decoded.data[c][BAR_LENGTH];
+      return { code: c, index: Math.round(clamp(per && per[tf] ? per[tf].value : 0) * 10) / 10 };
+    }).sort((a, b) => b.index - a.index);
+    try { sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), list })); } catch (e) { /* tant pis */ }
+    return list;
+  }
+
+  window.CHESTCurrencyStrength = { render, byTf };
 })();

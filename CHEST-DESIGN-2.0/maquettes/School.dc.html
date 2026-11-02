@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>CHEST 2.0 — School</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
+.tile{transition:border-color .2s cubic-bezier(.16,1,.3,1),transform .22s cubic-bezier(.16,1,.3,1)}
+.tile:hover{border-color:rgba(249,164,94,.32)}
+.course:hover{transform:translateY(-3px);border-color:rgba(249,164,94,.45)!important}
+.row-h:hover{background:rgba(255,255,255,.025)}
+.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
+.sb-tog:hover{color:#f6f6f7}
+.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
+.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i:active{transform:scale(.98)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
+.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.adm .ic{stroke:url(#sba)}
+.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc__id{display:flex;flex-direction:column;min-width:0}
+.sb-acc__id b{font-size:12.5px;line-height:1.25}
+.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
+.sbT:checked ~ .sb .sb-txt{display:none}
+.sbT:checked ~ .sb .sb-tog .chev{transform:none}
+.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
+.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
+.sbT:checked ~ .sb .sb-nav{padding:0 11px}
+.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
+.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
+.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
+.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</helmet>
+
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size:13.5px; overflow:hidden">
+  <div aria-hidden="true" style="position:absolute; left:160px; top:-300px; width:900px; height:640px; pointer-events:none; filter:blur(110px); background:radial-gradient(42% 46% at 40% 50%, rgba(252,18,131,.15), transparent 72%), radial-gradient(34% 40% at 66% 44%, rgba(249,164,94,.09), transparent 74%)"></div>
+  <div aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.05; background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:180px 180px"></div>
+
+  <!-- ================= SIDEBAR (ancien volet CHEST, repliable) ================= -->
+  <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside class="sb">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"></stop><stop offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient id="sba" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a1f"></stop><stop offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+    </label>
+    <a href="Main.dc.html" class="sb-brand">
+      <img src="assets/logo-chest-new.webp" alt="CHEST">
+      <span class="sb-txt">CHEST</span>
+    </a>
+    <div class="sb-label"><span class="sb-txt">Navigation</span></div>
+    <nav class="sb-nav" aria-label="Navigation principale">
+        <a href="Main.dc.html" class="nav-i" title="Dashboard">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span class="sb-txt">Dashboard</span>
+        </a>
+        <a href="Backtesting.dc.html" class="nav-i" title="Backtesting">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 6-8"></path><path d="M3 21h18"></path></svg>
+          <span class="sb-txt">Backtesting</span>
+        </a>
+        <a href="Journal.dc.html" class="nav-i" title="Journal">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span class="sb-txt">Journal</span>
+        </a>
+        <a href="Strategies.dc.html" class="nav-i" title="Stratégies">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span class="sb-txt">Stratégies</span>
+        </a>
+        <a href="Calendrier.dc.html" class="nav-i" title="Calendrier">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span class="sb-txt">Calendrier</span>
+        </a>
+        <a href="Berich.dc.html" class="nav-i" title="BERICH">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span class="sb-txt">BERICH</span>
+        </a>
+        <a href="School.dc.html" class="nav-i on" aria-current="page" title="School">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path d="M22 9.5V15"></path></svg>
+          <span class="sb-txt">School</span>
+        </a>
+        <span class="sb-sep" aria-hidden="true"></span>
+        <a href="Admin.dc.html" class="nav-i adm" title="Admin">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span class="sb-txt">Admin</span>
+        </a>
+    </nav>
+    <div class="sb-acc">
+      <div class="sb-acc__label sb-txt">Compte</div>
+      <a href="Compte.dc.html" class="sb-acc__row">
+        <span class="sb-acc__av">M</span>
+        <span class="sb-txt sb-acc__id"><b>Morgan</b><span>morgan@exemple.fr</span></span>
+      </a>
+      <button type="button" class="sb-out" title="Se déconnecter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span class="sb-txt">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <a href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
+  </a>
+
+  <!-- ================= CONTENU ================= -->
+  <main style="position:relative; z-index:1; flex:999 1 560px; min-width:0; display:flex; flex-direction:column">
+    <header style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; min-height:64px; padding:10px 36px; box-sizing:border-box; border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Formation</span>
+        <span style="color:#3a3a40">/</span>
+        <span style="font-weight:600">School</span>
+      </div>
+      <label style="margin-left:auto; display:flex; align-items:center; gap:10px; height:38px; width:280px; max-width:100%; padding:0 12px; box-sizing:border-box; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.025); color:#7a7a82">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input type="search" placeholder="Chercher une notion, un cours…" style="flex:1; min-width:0; background:transparent; border:0; outline:0; color:#f6f6f7; font:inherit; font-size:13px">
+      </label>
+    </header>
+
+    <div style="display:flex; flex-direction:column; gap:30px; padding:34px 36px 64px; max-width:1180px; width:100%; box-sizing:border-box">
+
+      <section style="position:relative; isolation:isolate; display:flex; flex-direction:column; align-items:center; gap:16px; padding:14px 0 26px; text-align:center; border-bottom:1px solid rgba(255,255,255,.07)">
+        <div class="ghost" aria-hidden="true" style="position:absolute; left:50%; top:-26px; transform:translateX(-50%); z-index:-1; pointer-events:none; white-space:nowrap; font-size:210px; font-weight:700; letter-spacing:-.06em; line-height:1; background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent">School</div>
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:#7a7a82">01 — Ton espace</span>
+        <h1 style="margin:0; font-size:64px; line-height:1; font-weight:700; letter-spacing:-.05em">Prêt pour jeudi ?</h1>
+        <div style="display:flex; align-items:center; gap:12px; padding:8px 16px 8px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.02)">
+          <span style="width:34px; height:34px; border-radius:999px; display:grid; place-items:center; font-weight:700; color:#050505; background:#7ff3ca">S</span>
+          <span style="display:flex; flex-direction:column; gap:1px">
+            <span style="font-size:11px; color:#7a7a82">Ton éducatrice</span>
+            <span style="font-weight:600">Sarah · 4 mois ensemble</span>
+          </span>
+        </div>
+        <dl style="margin:6px 0 0; display:flex; flex-wrap:wrap; justify-content:center">
+          <div style="display:flex; flex-direction:column; gap:6px; padding:0 24px"><dt style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Prochain appel</dt><dd style="margin:0; font-size:20px; font-weight:700; background:linear-gradient(135deg,#fc1283,#f9a45e); -webkit-background-clip:text; background-clip:text; color:transparent">J−3</dd></div>
+          <div style="display:flex; flex-direction:column; gap:6px; padding:0 24px; border-left:1px solid rgba(255,255,255,.09)"><dt style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Missions</dt><dd style="margin:0; font-size:20px; font-weight:700">2 / 4</dd></div>
+          <div style="display:flex; flex-direction:column; gap:6px; padding:0 24px; border-left:1px solid rgba(255,255,255,.09)"><dt style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Cours terminés</dt><dd style="margin:0; font-size:20px; font-weight:700">3 / 8</dd></div>
+          <div style="display:flex; flex-direction:column; gap:6px; padding:0 24px; border-left:1px solid rgba(255,255,255,.09)"><dt style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Scanner</dt><dd style="margin:0; font-size:20px; font-weight:700">SWYPER</dd></div>
+        </dl>
+      </section>
+
+      <!-- Cette semaine -->
+      <section style="display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:baseline; gap:12px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">02 — Cette semaine</span>
+          <span style="flex:1; height:1px; background:rgba(255,255,255,.07)"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <div style="min-width:820px; display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); border-radius:18px; border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.015); overflow:hidden">
+            <sc-for list="{{week}}" as="d" hint-placeholder-count="7">
+              <div style="display:flex; flex-direction:column; gap:8px; min-height:170px; padding:14px 10px; border-left:{{d.border}}; background:{{d.bg}}">
+                <div style="display:flex; align-items:baseline; gap:6px; padding:0 4px">
+                  <span style="font-size:12.5px; font-weight:700; color:{{d.ink}}">{{d.name}}</span>
+                  <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; color:#7a7a82">{{d.date}}</span>
+                </div>
+                <sc-for list="{{d.events}}" as="e" hint-placeholder-count="1">
+                  <div style="display:flex; flex-direction:column; gap:4px; padding:10px; border-radius:11px; border:1px solid {{e.border}}; background:{{e.bg}}">
+                    <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:{{e.tagInk}}">{{e.time}} · {{e.tag}}</span>
+                    <span style="font-size:12.5px; font-weight:600; line-height:1.3">{{e.title}}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <!-- Prochain appel + missions + infos -->
+      <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(300px,100%), 1fr)); gap:16px">
+        <div style="position:relative; overflow:hidden; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(160deg, rgba(16,16,19,.75), rgba(9,9,11,.9)); box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.12), inset -1.5px -1.5px 0 rgba(255,255,255,.03); padding:22px; display:flex; flex-direction:column; gap:14px">
+          <div aria-hidden="true" style="position:absolute; right:-80px; top:-90px; width:260px; height:240px; background:radial-gradient(closest-side, rgba(252,18,131,.22), transparent)"></div>
+          <span style="position:relative; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Prochain appel</span>
+          <span style="position:relative; font-size:22px; font-weight:700; letter-spacing:-.025em">Bilan d'octobre avec Sarah</span>
+          <div style="position:relative; display:flex; align-items:baseline; gap:10px">
+            <span style="font-size:44px; line-height:1; font-weight:700; letter-spacing:-.045em; font-variant-numeric:tabular-nums; background:linear-gradient(135deg,#fc1283,#f9a45e); -webkit-background-clip:text; background-clip:text; color:transparent; padding-bottom:.06em">J−3</span>
+            <span style="color:#9b9ba1">jeudi 5 nov. · 18:30</span>
+          </div>
+          <div style="position:relative; display:flex; gap:10px; margin-top:auto">
+            <a href="#" style="display:flex; align-items:center; height:40px; padding:0 16px; border-radius:999px; color:#fff; font-weight:600; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 10px 30px rgba(252,18,131,.28)">Ajouter à mon agenda</a>
+            <a href="#" style="display:flex; align-items:center; height:40px; padding:0 16px; border-radius:999px; border:1px solid rgba(255,255,255,.14); color:#c9c9ce">Déplacer</a>
+          </div>
+        </div>
+
+        <div class="tile" style="border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); padding:22px; display:flex; flex-direction:column; gap:6px">
+          <div style="display:flex; align-items:center; gap:10px; padding-bottom:6px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Avant le prochain appel</span>
+            <span style="margin-left:auto; font-size:12px; font-weight:600; color:#f9a45e">2 / 4</span>
+          </div>
+          <sc-for list="{{missions}}" as="m" hint-placeholder-count="4">
+            <label style="display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.055); cursor:pointer">
+              <input type="checkbox" checked="{{m.done}}" style="width:18px; height:18px; margin:1px 0 0; accent-color:#fc1283">
+              <span style="display:flex; flex-direction:column; gap:2px">
+                <span style="font-size:13px; color:{{m.ink}}; text-decoration:{{m.deco}}">{{m.title}}</span>
+                <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; color:#7a7a82">{{m.due}}</span>
+              </span>
+            </label>
+          </sc-for>
+        </div>
+
+        <div class="tile" style="border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); padding:22px; display:flex; flex-direction:column; gap:14px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Infos</span>
+          <sc-for list="{{infos}}" as="i" hint-placeholder-count="2">
+            <div style="display:flex; flex-direction:column; gap:6px; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,.055)">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="font-size:9.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:3px 7px; border-radius:999px; color:{{i.tagInk}}; background:{{i.tagBg}}">{{i.from}}</span>
+                <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; color:#7a7a82">{{i.when}}</span>
+              </div>
+              <span style="font-weight:600">{{i.title}}</span>
+              <span style="font-size:12.5px; line-height:1.55; color:#9b9ba1">{{i.body}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- Ton scanner -->
+      <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(380px,100%), 1fr)); gap:16px">
+        <div class="tile" style="border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); padding:22px; display:flex; flex-direction:column; gap:12px">
+          <div style="display:flex; align-items:center; gap:12px">
+            <img src="assets/logo-swyper-v2.webp" alt="" style="width:40px; height:40px; border-radius:11px; object-fit:cover">
+            <span style="display:flex; flex-direction:column; gap:2px">
+              <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">03 — Ton scanner de référence</span>
+              <span style="font-size:17px; font-weight:700">SWYPER · XAU/USD M15</span>
+            </span>
+            <a href="Strategies.dc.html" style="margin-left:auto; font-size:12px; color:#9b9ba1">Ouvrir →</a>
+          </div>
+          <sc-for list="{{scan}}" as="t" hint-placeholder-count="4">
+            <div class="row-h" style="display:grid; grid-template-columns:1.3fr .8fr 1fr .6fr; align-items:center; gap:10px; padding:10px 8px; margin:0 -8px; border-radius:10px; font-size:12.5px">
+              <span style="color:#9b9ba1; font-variant-numeric:tabular-nums">{{t.when}}</span>
+              <span><span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; color:{{t.sideInk}}; background:{{t.sideBg}}">{{t.side}}</span></span>
+              <span style="color:#9b9ba1">{{t.out}}</span>
+              <span style="text-align:right; font-weight:700; font-variant-numeric:tabular-nums; color:{{t.ink}}">{{t.r}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div class="tile" style="border-radius:18px; border:1px solid rgba(255,255,255,.07); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); padding:22px; display:flex; flex-direction:column; gap:8px">
+          <div style="display:flex; align-items:center; gap:10px; padding-bottom:6px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Avant de trader aujourd'hui</span>
+            <span style="margin-left:auto; font-size:11.5px; color:#7a7a82">remis à zéro chaque matin</span>
+          </div>
+          <sc-for list="{{check}}" as="c" hint-placeholder-count="5">
+            <label style="display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.05); cursor:pointer">
+              <input type="checkbox" checked="{{c.done}}" style="width:18px; height:18px; margin:0; accent-color:#33e6a6">
+              <span style="font-size:13px; color:{{c.ink}}">{{c.t}}</span>
+            </label>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- Cours -->
+      <section style="display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:baseline; gap:12px">
+          <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82">04 — Tes cours</span>
+          <span style="flex:1; height:1px; background:rgba(255,255,255,.07)"></span>
+          <span style="font-size:12px; color:#9b9ba1">3 sur 8 terminés</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(240px,100%), 1fr)); gap:16px">
+          <sc-for list="{{courses}}" as="c" hint-placeholder-count="4">
+            <a href="#" class="tile course" style="display:flex; flex-direction:column; border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.02)">
+              <div style="position:relative; height:120px; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; background:{{c.cover}}">
+                <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.75)">{{c.kind}}</span>
+                <span style="font-size:44px; line-height:1; font-weight:700; letter-spacing:-.05em; color:rgba(255,255,255,.92)">{{c.num}}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:10px; padding:16px">
+                <span style="font-size:15px; font-weight:700; letter-spacing:-.02em">{{c.title}}</span>
+                <span style="font-size:12px; color:#7a7a82">{{c.meta}}</span>
+                <div style="height:4px; border-radius:999px; background:rgba(255,255,255,.06)"><div style="height:100%; width:{{c.pct}}; border-radius:999px; background:{{c.bar}}"></div></div>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ev = (time, tag, title, chest) => ({ time, tag, title, tagInk: chest ? '#f9a45e' : '#7ff3ca', border: chest ? 'rgba(249,164,94,.3)' : 'rgba(51,230,166,.25)', bg: chest ? 'linear-gradient(160deg, rgba(252,18,131,.1), rgba(249,164,94,.04))' : 'rgba(51,230,166,.06)' });
+    const D = [['Lun', '2'], ['Mar', '3'], ['Mer', '4'], ['Jeu', '5'], ['Ven', '6'], ['Sam', '7'], ['Dim', '8']];
+    const evs = { 0: [ev('19:00', 'CHEST', 'Live : préparer la semaine du NFP', true)], 2: [ev('12:30', 'Collectif', 'Questions-réponses Fibonacci')], 3: [ev('18:30', 'Sarah', 'Bilan d’octobre')], 4: [ev('14:15', 'CHEST', 'Live NFP en direct', true)] };
+    const week = D.map(([name, date], i) => ({ name, date, events: evs[i] || [], border: i ? '1px solid rgba(255,255,255,.06)' : '0', bg: i === 0 ? 'linear-gradient(180deg, rgba(252,18,131,.07), transparent 70%)' : 'transparent', ink: i === 0 ? '#f6f6f7' : '#c9c9ce' }));
+    const m = (title, due, done) => ({ title, due, done, ink: done ? '#7a7a82' : '#f6f6f7', deco: done ? 'line-through' : 'none' });
+    const missions = [m('Relire le cours Fibonacci', 'fait le 30 oct.', true), m('Noter 5 trades avec capture dans le Journal', 'fait le 1er nov.', true), m('Backtester SWYPER sur 2 semaines d’octobre', 'avant jeudi', false), m('Écrire ton protocole d’annonces', 'avant jeudi', false)];
+    const infos = [
+      { from: 'CHEST', when: 'hier', title: 'Semaine NFP : on réduit le risque', body: 'Pas plus de 0,5 % par trade de mercredi soir à vendredi 16:00.', tagInk: '#050505', tagBg: 'linear-gradient(135deg,#fc1283,#f9a45e)' },
+      { from: 'Sarah', when: '29 oct.', title: 'Tes deux derniers trades hors protocole', body: 'On en parle jeudi. Relis ta règle sur les annonces d’ici là.', tagInk: '#050505', tagBg: '#7ff3ca' }
+    ];
+    const t = (when, side, out, r) => ({ when, side, out, r, ink: r.startsWith('+') ? '#7ff3ca' : '#ff94a0', sideInk: side === 'Achat' ? '#7ff3ca' : '#ff94a0', sideBg: side === 'Achat' ? 'rgba(51,230,166,.12)' : 'rgba(255,77,94,.12)' });
+    const scan = [t('31 oct. 15:00', 'Achat', 'Objectif', '+4,1 R'), t('30 oct. 10:15', 'Vente', 'Stop', '−1,0 R'), t('29 oct. 14:30', 'Achat', 'Objectif', '+3,2 R'), t('27 oct. 09:45', 'Achat', 'Stop', '−1,0 R')];
+    const c = (txt, done) => ({ t: txt, done, ink: done ? '#9b9ba1' : '#f6f6f7' });
+    const check = [c('J’ai regardé le calendrier du jour', true), c('Je connais mon biais H4', true), c('Mon risque est à 1 % maximum', false), c('Aucune annonce forte dans les 30 min', false), c('Le signal vient de mon scanner de référence', false)];
+    const cr = (kind, num, title, meta, pct, cover) => ({ kind, num, title, meta, pct, cover, bar: pct === '100%' ? '#33e6a6' : 'linear-gradient(90deg,#fc1283,#f9a45e)' });
+    const courses = [
+      cr('Cours écrit', '01', 'Ressources Trading', '10 chapitres · terminé', '100%', 'linear-gradient(135deg, #3d0d27, #1a0d14 70%)'),
+      cr('Cours écrit', '02', 'Lexique VVS', '8 chapitres · 6 lus', '75%', 'linear-gradient(135deg, #2b1810, #140e0b 70%)'),
+      cr('Vidéo', '03', 'Fibonacci en pratique', '42 min · terminé', '100%', 'linear-gradient(135deg, #0b2a24, #0a1412 70%)'),
+      cr('Vidéo', '04', 'Lire une annonce', '35 min · pas commencé', '0%', 'linear-gradient(135deg, #14182b, #0c0d14 70%)')
+    ];
+    return { week, missions, infos, scan, check, courses };
+  }
+}
+</script>
+</body>
+</html>

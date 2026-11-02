@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>CHEST 2.0 — Admin membres</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
+.row-h{transition:background .18s cubic-bezier(.16,1,.3,1)}
+.row-h:hover{background:rgba(255,255,255,.03)}
+.btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
+.btn2:hover{background:linear-gradient(#0b0b0e,#0b0b0e) padding-box,linear-gradient(135deg,#fc1283,#f9a45e) border-box!important;box-shadow:0 8px 26px rgba(252,18,131,.18)}
+.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
+.sb-tog:hover{color:#f6f6f7}
+.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
+.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i:active{transform:scale(.98)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
+.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.adm .ic{stroke:url(#sba)}
+.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc__id{display:flex;flex-direction:column;min-width:0}
+.sb-acc__id b{font-size:12.5px;line-height:1.25}
+.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
+.sbT:checked ~ .sb .sb-txt{display:none}
+.sbT:checked ~ .sb .sb-tog .chev{transform:none}
+.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
+.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
+.sbT:checked ~ .sb .sb-nav{padding:0 11px}
+.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
+.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
+.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
+.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</helmet>
+
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size:13.5px; overflow:hidden">
+  <div aria-hidden="true" style="position:absolute; left:160px; top:-300px; width:900px; height:640px; pointer-events:none; filter:blur(110px); background:radial-gradient(42% 46% at 40% 50%, rgba(249,164,94,.14), transparent 72%), radial-gradient(34% 40% at 66% 44%, rgba(252,18,131,.09), transparent 74%)"></div>
+  <div aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.05; background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:180px 180px"></div>
+
+  <!-- ================= SIDEBAR (ancien volet CHEST, repliable) ================= -->
+  <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside class="sb">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"></stop><stop offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient id="sba" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a1f"></stop><stop offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+    </label>
+    <a href="Main.dc.html" class="sb-brand">
+      <img src="assets/logo-chest-new.webp" alt="CHEST">
+      <span class="sb-txt">CHEST</span>
+    </a>
+    <div class="sb-label"><span class="sb-txt">Navigation</span></div>
+    <nav class="sb-nav" aria-label="Navigation principale">
+        <a href="Main.dc.html" class="nav-i" title="Dashboard">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span class="sb-txt">Dashboard</span>
+        </a>
+        <a href="Backtesting.dc.html" class="nav-i" title="Backtesting">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 6-8"></path><path d="M3 21h18"></path></svg>
+          <span class="sb-txt">Backtesting</span>
+        </a>
+        <a href="Journal.dc.html" class="nav-i" title="Journal">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span class="sb-txt">Journal</span>
+        </a>
+        <a href="Strategies.dc.html" class="nav-i" title="Stratégies">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span class="sb-txt">Stratégies</span>
+        </a>
+        <a href="Calendrier.dc.html" class="nav-i" title="Calendrier">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span class="sb-txt">Calendrier</span>
+        </a>
+        <a href="Berich.dc.html" class="nav-i" title="BERICH">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span class="sb-txt">BERICH</span>
+        </a>
+        <a href="School.dc.html" class="nav-i" title="School">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path d="M22 9.5V15"></path></svg>
+          <span class="sb-txt">School</span>
+        </a>
+        <span class="sb-sep" aria-hidden="true"></span>
+        <a href="Admin.dc.html" class="nav-i on adm" aria-current="page" title="Admin">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span class="sb-txt">Admin</span>
+        </a>
+    </nav>
+    <div class="sb-acc">
+      <div class="sb-acc__label sb-txt">Compte</div>
+      <a href="Compte.dc.html" class="sb-acc__row">
+        <span class="sb-acc__av">M</span>
+        <span class="sb-txt sb-acc__id"><b>Morgan</b><span>morgan@exemple.fr</span></span>
+      </a>
+      <button type="button" class="sb-out" title="Se déconnecter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span class="sb-txt">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <a href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
+  </a>
+
+  <!-- ================= CONTENU ================= -->
+  <main style="position:relative; z-index:1; flex:999 1 560px; min-width:0; display:flex; flex-direction:column">
+    <header style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; min-height:64px; padding:10px 36px; box-sizing:border-box; border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px">
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Admin</span>
+        <span style="color:#3a3a40">/</span>
+        <span style="font-weight:600">Membres</span>
+      </div>
+      <div role="tablist" aria-label="Vues admin" style="margin-left:auto; display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.025)">
+        <button type="button" role="tab" aria-selected="false" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Vue d'ensemble</button>
+        <button type="button" role="tab" aria-selected="true" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:rgba(255,255,255,.08); box-shadow:inset 0 0 0 1px rgba(252,18,131,.45); color:#f6f6f7; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Membres</button>
+        <button type="button" role="tab" aria-selected="false" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Ventes</button>
+        <button type="button" role="tab" aria-selected="false" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Éducateurs</button>
+        <button type="button" role="tab" aria-selected="false" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Système</button>
+      </div>
+    </header>
+
+    <div style="display:flex; flex-direction:column; gap:26px; padding:34px 36px 64px; max-width:1180px; width:100%; box-sizing:border-box">
+
+      <!-- Titre + compteurs en bandeau -->
+      <section style="position:relative; isolation:isolate; display:flex; flex-direction:column; align-items:center; gap:14px; padding:14px 0 28px; text-align:center; border-bottom:1px solid rgba(255,255,255,.07)">
+        <div class="ghost" aria-hidden="true" style="position:absolute; left:50%; top:-26px; transform:translateX(-50%); z-index:-1; pointer-events:none; white-space:nowrap; font-size:210px; font-weight:700; letter-spacing:-.06em; line-height:1; background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent">Admin</div>
+        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:#7a7a82">01 — Gestion des membres</span>
+        <h1 style="margin:0; font-size:96px; line-height:1; font-weight:700; letter-spacing:-.055em; font-variant-numeric:tabular-nums">208 <span style="font-size:40px; letter-spacing:-.03em; color:#9b9ba1">membres</span></h1>
+        <div style="margin-top:10px; display:flex; flex-wrap:wrap; justify-content:center">
+          <sc-for list="{{counts}}" as="c" hint-placeholder-count="4">
+            <div style="display:flex; flex-direction:column; gap:6px; padding:0 24px; border-left:{{c.border}}">
+              <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">{{c.label}}</span>
+              <span style="font-size:28px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:{{c.ink}}; text-shadow:{{c.glow}}">{{c.value}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- Filtres -->
+      <section style="display:flex; flex-wrap:wrap; align-items:center; gap:10px">
+        <label style="display:flex; align-items:center; gap:10px; height:40px; flex:1 1 260px; max-width:360px; padding:0 12px; box-sizing:border-box; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.025); color:#7a7a82">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <input type="search" placeholder="Nom, e-mail, code de référent…" style="flex:1; min-width:0; background:transparent; border:0; outline:0; color:#f6f6f7; font:inherit; font-size:13px">
+        </label>
+        <div role="group" aria-label="État" style="display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.025)">
+          <button type="button" aria-pressed="true" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:#f6f6f7; color:#050505; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Tous</button>
+          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Essai</button>
+          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Expirent bientôt</button>
+          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Bloqués</button>
+        </div>
+      </section>
+
+      <!-- Liste + volet -->
+      <section style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start">
+        <div style="flex:2 1 520px; min-width:0; display:flex; flex-direction:column; border-top:1px solid rgba(255,255,255,.07)">
+          <sc-for list="{{members}}" as="m" hint-placeholder-count="8">
+            <div class="row-h" style="display:flex; align-items:center; gap:14px; padding:13px 10px; border-bottom:1px solid rgba(255,255,255,.055); border-radius:{{m.radius}}; background:{{m.bg}}; box-shadow:{{m.ring}}">
+              <span style="width:36px; height:36px; flex:0 0 36px; border-radius:11px; display:grid; place-items:center; font-weight:700; color:#050505; background:{{m.av}}">{{m.i}}</span>
+              <span style="flex:1; display:flex; flex-direction:column; gap:2px; min-width:0">
+                <span style="font-weight:600">{{m.name}}</span>
+                <span style="font-size:11.5px; color:#7a7a82; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{m.mail}}</span>
+              </span>
+              <span class="hide-sm" style="width:120px; font-size:12.5px; color:#c9c9ce">{{m.rank}}</span>
+              <span class="hide-sm" style="width:90px; font-size:12px; color:#7a7a82">{{m.edu}}</span>
+              <span style="width:112px; text-align:right"><span style="font-size:10.5px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; color:{{m.stInk}}; background:{{m.stBg}}">{{m.state}}</span></span>
+              <button type="button" aria-label="Actions pour {{m.name}}" style="width:32px; height:32px; border-radius:9px; border:0; background:transparent; color:#7a7a82; cursor:pointer; display:grid; place-items:center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r=".6"></circle><circle cx="12" cy="12" r=".6"></circle><circle cx="19" cy="12" r=".6"></circle></svg>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Volet latéral -->
+        <aside aria-label="Fiche du membre" style="flex:1 1 300px; min-width:0; position:relative; overflow:hidden; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(160deg, rgba(14,14,17,.8), rgba(9,9,11,.92)); box-shadow:0 18px 44px rgba(0,0,0,.45), inset 1.5px 1.5px 0 rgba(255,255,255,.14), inset -1.5px -1.5px 0 rgba(255,255,255,.04); padding:22px; display:flex; flex-direction:column; gap:18px">
+          <div aria-hidden="true" style="position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent)"></div>
+          <div style="display:flex; align-items:center; gap:14px">
+            <span style="width:52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:20px; font-weight:700; color:#050505; background:#9dbcff">I</span>
+            <span style="display:flex; flex-direction:column; gap:3px">
+              <span style="font-size:19px; font-weight:700; letter-spacing:-.02em">Inès</span>
+              <span style="font-size:12px; color:#7a7a82">ines@exemple.fr · inscrite le 14 oct.</span>
+            </span>
+          </div>
+          <div style="display:flex; flex-direction:column">
+            <sc-for list="{{detail}}" as="d" hint-placeholder-count="6">
+              <div style="display:flex; align-items:baseline; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.055)">
+                <span style="color:#9b9ba1">{{d.l}}</span>
+                <span style="margin-left:auto; font-weight:600; text-align:right; color:{{d.ink}}">{{d.v}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Accès jusqu'au</span>
+            <div style="display:flex; gap:8px">
+              <input type="text" value="14/10/2027" aria-label="Date de fin d'accès" style="flex:1; min-width:0; height:42px; padding:0 14px; border-radius:12px; border:1px solid rgba(252,18,131,.55); box-shadow:0 0 0 3px rgba(252,18,131,.15); background:rgba(255,255,255,.03); color:#f6f6f7; font:inherit; font-variant-numeric:tabular-nums; outline:0">
+              <button type="button" style="height:42px; padding:0 16px; border-radius:12px; border:0; color:#fff; font:inherit; font-weight:600; cursor:pointer; background:linear-gradient(135deg,#fc1283,#f9a45e)">Enregistrer</button>
+            </div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px">
+            <button type="button" class="btn2" style="height:36px; padding:0 14px; border-radius:999px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.14)) border-box; color:#f6f6f7; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Changer le rang</button>
+            <button type="button" class="btn2" style="height:36px; padding:0 14px; border-radius:999px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.14)) border-box; color:#f6f6f7; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Réinitialiser le mot de passe</button>
+            <button type="button" style="height:36px; padding:0 14px; border-radius:999px; border:1px solid rgba(255,77,94,.35); background:rgba(255,77,94,.06); color:#ff94a0; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Bloquer</button>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const counts = [
+      { label: 'En essai', value: '12', ink: '#f4d07a', glow: 'none', border: '0' },
+      { label: 'Actifs', value: '184', ink: '#7ff3ca', glow: '0 0 18px rgba(51,230,166,.35)', border: '1px solid rgba(255,255,255,.09)' },
+      { label: 'Expirent < 7 j', value: '9', ink: '#f6f6f7', glow: 'none', border: '1px solid rgba(255,255,255,.09)' },
+      { label: 'Bloqués', value: '3', ink: '#ff94a0', glow: 'none', border: '1px solid rgba(255,255,255,.09)' }
+    ];
+    const S = { 'Actif': ['#7ff3ca', 'rgba(51,230,166,.12)'], 'Essai · 4 j': ['#f4d07a', 'rgba(232,179,57,.14)'], 'Expire dans 6 j': ['#f4d07a', 'rgba(232,179,57,.14)'], 'Bloqué': ['#ff94a0', 'rgba(255,77,94,.12)'], 'Privilège': ['#9dbcff', 'rgba(77,141,255,.14)'] };
+    const mb = (name, mail, rank, edu, state, av, sel) => ({ name, i: name[0], mail, rank, edu, state, av, stInk: S[state][0], stBg: S[state][1], bg: sel ? 'linear-gradient(135deg, rgba(252,18,131,.1), rgba(249,164,94,.06))' : 'transparent', ring: sel ? 'inset 0 0 0 1px rgba(249,164,94,.4)' : 'none', radius: sel ? '12px' : '0' });
+    const members = [
+      mb('Inès', 'ines@exemple.fr', 'Premium III', 'Sarah', 'Actif', '#9dbcff', true),
+      mb('Yanis', 'yanis@exemple.fr', 'Premium II', 'Sarah', 'Actif', '#f4d07a'),
+      mb('Camille', 'camille@exemple.fr', 'Essai', 'Karim', 'Essai · 4 j', '#c9c9ce'),
+      mb('Léa', 'lea@exemple.fr', 'Essentiel III', 'Sarah', 'Actif', '#7ff3ca'),
+      mb('Nora', 'nora@exemple.fr', 'Essentiel I', 'Sarah', 'Expire dans 6 j', '#ff94a0'),
+      mb('Théo', 'theo@exemple.fr', 'Offert', '—', 'Privilège', 'linear-gradient(135deg,#fc1283,#f9a45e)'),
+      mb('Adam', 'adam@exemple.fr', 'Premium I', 'Karim', 'Bloqué', '#5c5c63'),
+      mb('Jade', 'jade@exemple.fr', 'Premium III', 'Karim', 'Actif', '#e8b339')
+    ];
+    const detail = [
+      { l: 'Rang', v: 'CHEST Premium III', ink: '#f9a45e' },
+      { l: 'Éducatrice', v: 'Sarah (code SARAH)', ink: '#f6f6f7' },
+      { l: 'Payé', v: '3 000 € · 14 oct.', ink: '#f6f6f7' },
+      { l: 'BERICH', v: 'Clé en main à connecter', ink: '#f4d07a' },
+      { l: 'Dernière connexion', v: 'il y a 2 h · Paris', ink: '#f6f6f7' },
+      { l: 'Alertes', v: 'aucune', ink: '#7ff3ca' }
+    ];
+    return { counts, members, detail };
+  }
+}
+</script>
+</body>
+</html>
