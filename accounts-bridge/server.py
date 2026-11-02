@@ -3887,6 +3887,16 @@ def _admin_member(db, row):
         (row["id"],)).fetchall()]
     out["amount"] = _col(row, "plan_amount")
     out["category"] = member_category(row)
+    # Fiche Admin 2.0 (2026-11-02) : éducateur, état BERICH et alertes du journal sur 30 jours.
+    edu = db.execute("SELECT id, first_name, last_name, edu_code FROM users WHERE id = ?",
+                     (_col(row, "referred_by"),)).fetchone() if _col(row, "referred_by") else None
+    out["educator"] = {"id": edu["id"], "name": f"{edu['first_name']} {edu['last_name'] or ''}".strip(),
+                       "code": _col(edu, "edu_code")} if edu else None
+    plan = db.execute("SELECT attached_at FROM berich_plans WHERE user_id = ?", (row["id"],)).fetchone()
+    req = db.execute("SELECT status FROM berich_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1", (row["id"],)).fetchone()
+    out["berich"] = {"plan": bool(plan), "attached": bool(plan and plan["attached_at"]), "request": req["status"] if req else None}
+    out["alerts"] = db.execute("SELECT COUNT(*) FROM event_log WHERE user_id = ? AND level = 'warn' AND at >= ?",
+                               (row["id"], (datetime.now(timezone.utc) - timedelta(days=30)).isoformat())).fetchone()[0]
     return out
 
 

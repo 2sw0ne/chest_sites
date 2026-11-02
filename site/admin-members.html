@@ -22,6 +22,8 @@
 <script src="js/sync-store.js?v=16"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/admin-2.css?v=2">
 </head>
 <body data-page="admin-members" class="chest-root">
 
@@ -70,46 +72,34 @@
     </header>
 
     <main class="am">
-      <!-- En-tête : titre + période -->
-      <header class="am-head">
-        <div>
-          <div class="chest-step">Administration</div>
-          <h1 class="am-head__title">Membres</h1>
-        </div>
-        <div class="am-head__side">
-          <div class="am-head__live" id="amLive" aria-live="polite"></div>
-          <div class="chest-seg am-period" id="amPeriod" role="group" aria-label="Période des statistiques">
-            <button type="button" data-days="7">7 j</button>
-            <button type="button" data-days="30" class="is-active">30 j</button>
-            <button type="button" data-days="90">90 j</button>
-            <button type="button" data-days="365">1 an</button>
+      <!-- Admin 2.0 (2026-11-02, maquette « Admin membres 2.0 ») : fil d'Ariane + vues en pilule.
+           Rangs et Engagement vivent désormais sous « Vue d'ensemble ». -->
+      <header class="am2-bar">
+        <div class="am2-crumb"><span class="am2-mono">Admin</span><span class="am2-crumb__sep" aria-hidden="true">/</span><b id="amCrumb">Membres</b></div>
+        <span class="am-head__live" id="amLive" aria-live="polite"></span>
+        <nav class="am-nav am2-tabs" id="amNav" aria-label="Vues admin">
+          <div class="am-nav__tabs" role="tablist">
+            <button type="button" role="tab" data-view="overview">Vue d'ensemble</button>
+            <button type="button" role="tab" data-view="members">Membres <small id="amNavCount"></small></button>
+            <button type="button" role="tab" data-view="sales">Ventes</button>
+            <button type="button" role="tab" data-view="educators">Éducateurs <small id="amEduBadge"></small></button>
+            <button type="button" role="tab" data-view="system">Système <small id="amOpsBadge"></small></button>
           </div>
-        </div>
+        </nav>
+        <button type="button" class="am2-quick" id="amQuick" aria-label="Rechercher un membre" title="Rechercher un membre (/)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </button>
       </header>
 
-      <!-- Navigation entre les vues de l'espace admin -->
-      <nav class="am-nav" id="amNav" aria-label="Vues de l'espace membres">
-        <div class="am-nav__tabs" role="tablist">
-          <button type="button" role="tab" data-view="overview">Vue d'ensemble</button>
-          <button type="button" role="tab" data-view="members">Membres <small id="amNavCount"></small></button>
-          <button type="button" role="tab" data-view="ranks">Rangs</button>
-          <button type="button" role="tab" data-view="engagement">Engagement</button>
-          <button type="button" role="tab" data-view="sales">Ventes</button>
-          <button type="button" role="tab" data-view="educators">Éducateurs <small id="amEduBadge"></small></button>
-          <button type="button" role="tab" data-view="system">Système <small id="amOpsBadge"></small></button>
+      <!-- Période des statistiques : ne concerne que Vue d'ensemble et Ventes. -->
+      <div class="am2-period-row">
+        <div class="chest-seg am-period" id="amPeriod" role="group" aria-label="Période des statistiques">
+          <button type="button" data-days="7">7 j</button>
+          <button type="button" data-days="30" class="is-active">30 j</button>
+          <button type="button" data-days="90">90 j</button>
+          <button type="button" data-days="365">1 an</button>
         </div>
-        <div class="am-nav__act">
-          <button type="button" class="am-nav__search" id="amQuick" aria-label="Rechercher un membre">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-            <span>Rechercher</span><kbd>/</kbd>
-          </button>
-          <a class="am-nav__search am-price-link" href="/offres?edit=1" target="_top" title="Modifier les offres et les prix">Prix<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
-          <button type="button" class="chest-btn am-gift-btn" id="amGiftBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5v7.5h14v-7.5M12 8.5V20M12 8.5c-1.6 0-4.5-.6-4.5-2.6 0-1.4 1.2-2.1 2.3-1.7C11.3 4.8 12 6.5 12 8.5zM12 8.5c1.6 0 4.5-.6 4.5-2.6 0-1.4-1.2-2.1-2.3-1.7-1.5.6-2.2 2.3-2.2 4.3z"/></svg>
-            <span>Offrir un Privilège</span>
-          </button>
-        </div>
-      </nav>
+      </div>
 
       <!-- Vue d'ensemble -->
       <section class="am-view" data-panel="overview" aria-label="Vue d'ensemble">
@@ -147,42 +137,53 @@
       </section>
 
       <!-- Membres -->
-      <section class="am-view" data-panel="members" aria-label="Membres" hidden>
-        <div class="am-toolbar">
-          <label class="am-search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-            <input type="search" id="amSearch" placeholder="Nom ou e-mail" autocomplete="off" aria-label="Rechercher un membre">
-          </label>
-          <label class="am-sort">
-            <span>Trier par</span>
-            <select id="amSort" aria-label="Trier les membres">
-              <option value="seen">Dernière visite</option>
-              <option value="new">Arrivée récente</option>
-              <option value="active">Les plus actifs</option>
-              <option value="ends">Échéance proche</option>
-              <option value="rank">Rang</option>
-              <option value="name">Nom</option>
-            </select>
-          </label>
+      <section class="am-view am2-members" data-panel="members" aria-label="Membres" hidden>
+        <div class="am2-hero">
+          <div class="am2-ghost" aria-hidden="true">Admin</div>
+          <span class="am2-mono am2-hero__k">01 — Gestion des membres</span>
+          <h2 class="am2-hero__n"><span id="amTotal">—</span> <small>membres</small></h2>
+          <div class="am2-counts" id="amCounts"></div>
         </div>
-        <div class="am-chips" id="amChips" role="tablist" aria-label="Catégories"></div>
-        <div class="am-filter" id="amFilter" hidden></div>
-        <div class="am-table" role="table" aria-label="Liste des membres">
-          <div class="am-tr am-tr--head" role="row">
-            <span role="columnheader">Membre</span><span role="columnheader">Rang</span><span role="columnheader">Offre et échéance</span><span role="columnheader">Activité · 30 j</span><span role="columnheader">Dernière visite</span><span></span>
+
+        <div class="am2-filters">
+          <label class="am2-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input type="search" id="amSearch" placeholder="Nom, e-mail, code de référent…" autocomplete="off" aria-label="Rechercher un membre">
+          </label>
+          <div class="am2-seg" id="amChips" role="group" aria-label="État"></div>
+          <div class="am2-filters__act">
+            <label class="am2-sort"><span class="sr-only">Trier par</span>
+              <select id="amSort" aria-label="Trier les membres">
+                <option value="seen">Dernière visite</option>
+                <option value="new">Arrivée récente</option>
+                <option value="active">Les plus actifs</option>
+                <option value="ends">Échéance proche</option>
+                <option value="rank">Rang</option>
+                <option value="name">Nom</option>
+              </select>
+            </label>
+            <a class="am2-btn2" href="/offres?edit=1" target="_top" title="Modifier les offres et les prix">Prix</a>
+            <button type="button" class="am2-btn" id="amGiftBtn">Offrir un Privilège</button>
           </div>
-          <div id="amRows" role="rowgroup"><div class="am-empty">Chargement…</div></div>
+        </div>
+        <div class="am-filter" id="amFilter" hidden></div>
+
+        <div class="am2-split">
+          <div class="am2-list" id="amRows" role="list" aria-label="Liste des membres"><div class="am-empty">Chargement…</div></div>
+          <aside class="am2-sheet" id="amSheet" aria-label="Fiche du membre" aria-live="polite"></aside>
         </div>
       </section>
 
       <!-- Rangs -->
       <section class="am-view" data-panel="ranks" aria-label="Rangs" hidden>
+        <h2 class="am2-sec"><span class="am2-mono">02 — Rangs</span>La répartition par offre</h2>
         <div class="am-spectrum" id="amSpectrum"></div>
         <div id="amRanks"></div>
       </section>
 
       <!-- Engagement -->
       <section class="am-view" data-panel="engagement" aria-label="Engagement" hidden>
+        <h2 class="am2-sec"><span class="am2-mono">03 — Engagement</span>Arrivées, assidus, à relancer</h2>
         <div class="am-grid am-grid--eng">
           <article class="am-panel am-panel--arrivals">
             <header class="am-panel__head"><h2 class="am-panel__t">Nouveaux membres</h2><span class="am-panel__meta" id="amArrMeta"></span></header>
@@ -316,7 +317,7 @@ CHESTTour.init([
 ]);
 </script>
 <script src="js/rank-badge.js?v=3"></script>
-<script src="js/admin-members.js?v=12"></script>
+<script src="js/admin-members.js?v=14"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>

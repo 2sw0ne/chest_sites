@@ -57,7 +57,17 @@
     { key: 'expired', label: 'Anciens', test: (m) => cat(m) === 'expired' },
     { key: 'none', label: 'Sans accès', test: (m) => cat(m) === 'none' },
     { key: 'blocked', label: 'Bloqués', test: (m) => m.status === 'blocked', hideEmpty: true },
+    // Admin 2.0 : accès payé ou offert qui se termine dans 7 jours (hors essai et équipe).
+    { key: 'soon', label: 'Expirent bientôt', test: (m) => soonLeft(m) != null },
   ];
+  // Filtres affichés en pilule (maquette Admin 2.0) ; les autres restent accessibles depuis la Vue d'ensemble.
+  const SEG = ['all', 'trial', 'soon', 'blocked'];
+  function soonLeft(m) {
+    const a = m.access || {};
+    if (!a.active || !a.endsAt || ['admin', 'manager', 'educator', 'trial'].includes(cat(m))) return null;
+    const l = daysUntil(a.endsAt);
+    return l != null && l >= 0 && l <= 7 ? l : null;
+  }
 
   function badge(key, size) {
     const t = TIER[key] || TIER.none;
@@ -395,7 +405,7 @@
     const c = CHIPS.find((x) => x.key === S.chip) || CHIPS[0];
     const q = norm(S.q).trim();
     let list = S.members.filter((m) => c.test(m) && (!S.filter || S.filter.test(m)));
-    if (q) list = list.filter((m) => norm(`${m.firstName} ${m.lastName} ${m.email} ${m.lastName} ${m.firstName}`).includes(q));
+    if (q) list = list.filter((m) => norm(`${m.firstName} ${m.lastName} ${m.email} ${m.lastName} ${m.firstName} ${(m.educator || {}).name || ''} ${(m.educator || {}).code || ''}`).includes(q));
     const seen = (m) => seenOf(m) || 0;
     const end = (m) => ((m.access || {}).active && ms((m.access || {}).endsAt)) || Infinity;
     const sorters = {
@@ -409,32 +419,47 @@
     return list.slice().sort(sorters[S.sort] || sorters.seen);
   }
   function renderChips() {
-    $('amChips').innerHTML = CHIPS.map((c) => {
-      const n = S.members.filter(c.test).length;
-      if (c.hideEmpty && !n) return '';
-      return `<button type="button" role="tab" data-chip="${c.key}" aria-selected="${S.chip === c.key}">${c.label}<small>${n}</small></button>`;
-    }).join('');
+    const count = (k) => S.members.filter((CHIPS.find((c) => c.key === k) || CHIPS[0]).test).length;
+    $('amChips').innerHTML = SEG.map((k) => `<button type="button" data-chip="${k}" aria-pressed="${S.chip === k}">${CHIPS.find((c) => c.key === k).label}</button>`).join('');
+    $('amTotal').textContent = nf(S.members.length);
+    const COUNTS = [['trial', 'En essai', 'amber'], ['subs', 'Actifs', 'green'], ['soon', 'Expirent < 7 j', ''], ['blocked', 'Bloqués', 'red']];
+    $('amCounts').innerHTML = COUNTS.map(([k, l, tone]) => `<button type="button" class="am2-cnt${tone ? ' is-' + tone : ''}" data-chip="${k}" aria-pressed="${S.chip === k}"><span class="am2-mono">${l}</span><b>${nf(count(k))}</b></button>`).join('');
+    // Filtre venu d'ailleurs (rang, catégorie hors pilules) : rappelé ici avec sa croix.
+    const extra = !SEG.includes(S.chip) ? CHIPS.find((x) => x.key === S.chip) : null;
     const f = $('amFilter');
-    if (S.filter) {
+    if (S.filter || extra) {
+      const lab = S.filter ? S.filter.label : extra.label;
       f.hidden = false;
-      f.innerHTML = `<span>Filtre</span><button type="button" class="am-chip ${S.filter.tier ? '' : 'am-chip--plain'}" style="${S.filter.style}" data-clear-filter aria-label="Retirer le filtre ${esc(S.filter.label)}">${S.filter.tier ? badge(S.filter.tier, 16) : ''}${esc(S.filter.label)}${CROSS}</button>`;
+      f.innerHTML = `<span>Filtre</span><button type="button" class="am-chip ${S.filter && S.filter.tier ? '' : 'am-chip--plain'}" style="${S.filter ? S.filter.style : ''}" data-clear-filter aria-label="Retirer le filtre ${esc(lab)}">${S.filter && S.filter.tier ? badge(S.filter.tier, 16) : ''}${esc(lab)}${CROSS}</button>`;
     } else { f.hidden = true; f.innerHTML = ''; }
   }
+  // État court d'un membre (pastille de la liste).
+  function stateOf(m) {
+    const c = cat(m), a = m.access || {}, left = daysUntil(a.endsAt);
+    if (m.status === 'blocked') return ['Bloqué', 'red'];
+    if (isTeam(m)) return [TIER[c].name, 'violet'];
+    if (c === 'privilege') return ['Privilège', 'blue'];
+    if (c === 'trial') return [left != null ? `Essai · ${Math.max(0, left)} j` : 'Essai', 'amber'];
+    if (c === 'expired') return ['Terminé', 'grey'];
+    if (c === 'none') return ['Sans accès', 'grey'];
+    if (a.status === 'past_due') return ['Paiement en retard', 'red'];
+    if (soonLeft(m) != null) return [`Expire dans ${soonLeft(m)} j`, 'amber'];
+    return ['Actif', 'green'];
+  }
+  const rankName = (m) => (cat(m) === 'privilege' ? 'Offert' : (TIER[cat(m)] || TIER.none).name);
+  const DOTS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg>';
   function rowHtml(m) {
-    const c = cat(m);
-    const t = TIER[c] || TIER.none;
-    const p = planLine(m);
-    const act = m.activity || {};
-    const last30 = act.last30 || act.last14 || [];
+    const t = TIER[cat(m)] || TIER.none;
+    const [st, tone] = stateOf(m);
     const isMe = me().id === m.id;
-    return `<div class="am-tr am-row${S.current === m.id ? ' is-current' : ''}" role="row" tabindex="0" data-id="${m.id}" style="${tierStyle(c)}">
-      <span class="am-who" role="cell"><span class="am-av">${esc(initials(m))}<span class="am-av__b">${badge(c, 16)}</span></span>
-        <span><b>${esc(fullName(m))}${isMe ? '<span class="am-tag">toi</span>' : ''}${m.status === 'blocked' ? '<span class="am-tag am-tag--red">bloqué</span>' : ''}</b><small>${esc(m.email)}</small></span></span>
-      <span role="cell">${chip(c)}</span>
-      <span class="am-plan" role="cell"><b>${esc(p.label)}</b><small class="${p.cls}">${esc(p.sub)}</small></span>
-      <span class="am-actcell" role="cell" title="Pages vues par jour, 30 derniers jours">${sparkBars(last30, t.c1, 24)}<small>${plural(act.days30 || 0, 'jour actif', 'jours actifs')}</small></span>
-      <span class="am-seen${isOnline(m) ? ' is-on' : ''}" role="cell">${isOnline(m) ? 'en ligne' : esc(ago(m.lastSeenAt || m.lastLoginAt))}</span>
-      ${CHEV_R}
+    const edu = m.educator ? m.educator.name.split(' ')[0] : '—';
+    return `<div class="am2-row am-row${S.sel === m.id ? ' is-sel' : ''}" role="listitem" tabindex="0" data-id="${m.id}" aria-current="${S.sel === m.id}">
+      <span class="am2-av" style="--c1:${t.c1};--c2:${t.c2}">${esc(initials(m)[0])}</span>
+      <span class="am2-who"><b>${esc(fullName(m))}${isMe ? '<span class="am-tag">toi</span>' : ''}</b><small>${esc(m.email)}</small></span>
+      <span class="am2-rank">${esc(rankName(m))}</span>
+      <span class="am2-edu">${esc(edu)}</span>
+      <span class="am2-st"><span class="am2-pill is-${tone}">${esc(st)}</span></span>
+      <button type="button" class="am2-more" data-full="${m.id}" aria-label="Fiche complète de ${esc(fullName(m))}" title="Fiche complète">${DOTS}</button>
     </div>`;
   }
   function renderRows() {
@@ -443,10 +468,67 @@
     const zone = $('amRows');
     if (!list.length) {
       zone.innerHTML = `<div class="am-empty">${S.q ? `Personne ne correspond à « ${esc(S.q)} ».` : 'Aucun membre ici pour l’instant.'}</div>`;
+      renderSheet();
       return;
     }
+    if (!S.list.includes(S.sel)) S.sel = (list.find((m) => m.id !== me().id) || list[0]).id; // fiche : un autre membre que soi par défaut
     const shown = list.slice(0, S.limit);
     zone.innerHTML = shown.map(rowHtml).join('') + (list.length > shown.length ? `<div class="am-more"><button type="button" class="chest-btn-2" data-more>Afficher ${Math.min(50, list.length - shown.length)} de plus · ${list.length - shown.length} restants</button></div>` : '');
+    renderSheet();
+  }
+  function selectMember(id, focusSheet) {
+    S.sel = id;
+    document.querySelectorAll('.am2-row').forEach((r) => { const on = Number(r.dataset.id) === id; r.classList.toggle('is-sel', on); r.setAttribute('aria-current', String(on)); });
+    renderSheet();
+    if (focusSheet && matchMedia('(max-width: 900px)').matches) $('amSheet').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+  // Fiche latérale (maquette Admin 2.0) : l'essentiel du membre + actions rapides.
+  // Le volet complet (rôle, activité, historique) s'ouvre par « Fiche complète » ou le bouton ⋯.
+  function berichLine(m) {
+    const br = m.berich || {}, c = cat(m);
+    if (br.request === 'pending') return ['Clé en main à connecter', 'is-warn'];
+    if (br.plan && !br.attached) return ['Plan à rattacher', 'is-warn'];
+    if (br.attached) return ['Plan rattaché', 'is-ok'];
+    const hasBerich = ['admin', 'manager', 'educator', 'privilege', 'allstar'].includes(c) || base(c) === 'premium';
+    return hasBerich ? ['Pas encore de plan', ''] : ['Non inclus', 'is-mute'];
+  }
+  function renderSheet() {
+    const box = $('amSheet');
+    const m = S.members.find((x) => x.id === S.sel);
+    if (!m) { box.innerHTML = '<p class="am-muted">Choisis un membre dans la liste.</p>'; return; }
+    const c = cat(m), t = TIER[c] || TIER.none, a = m.access || {}, isMe = me().id === m.id, team = isTeam(m);
+    const [br, brCls] = berichLine(m);
+    const pay = (m.billing || []).find((b) => /paid|completed|succeeded/.test(b.type) && b.amount);
+    const paid = pay ? `${eurCents(pay.amount)} · ${dt(pay.at)}` : m.amount ? `${eurCents(m.amount)} · ${dt(a.startedAt)}` : '—';
+    const rows = [
+      ['Rang', team ? t.name : c === 'privilege' ? 'Privilège' : `CHEST ${t.name}`, '', `color:${t.c1}`],
+      ['Éducateur', m.educator ? `${m.educator.name}${m.educator.code ? ` (code ${m.educator.code})` : ''}` : '—', '', ''],
+      ['Payé', paid, '', ''],
+      ['BERICH', br, brCls, ''],
+      ['Dernière connexion', isOnline(m) ? 'en ligne' : ago(m.lastLoginAt || m.lastSeenAt), isOnline(m) ? 'is-ok' : '', ''],
+      ['Alertes', m.alerts ? `${m.alerts} sur 30 jours` : 'aucune', m.alerts ? 'is-bad' : 'is-ok', ''],
+    ];
+    const endIso = a.endsAt ? isoDay(new Date(ms(a.endsAt))) : '';
+    const lockAccess = isMe || team;
+    box.innerHTML = `<div class="am2-sheet__head">
+        <span class="am2-av am2-av--lg" style="--c1:${t.c1};--c2:${t.c2}">${esc(initials(m)[0])}</span>
+        <span><b>${esc(fullName(m))}</b><small>${esc(m.email)} · inscription le ${esc(dt(m.createdAt))}</small></span>
+      </div>
+      <dl class="am2-facts">${rows.map(([l, v, cls, st]) => `<div><dt>${l}</dt><dd class="${cls}" style="${st}">${esc(v)}</dd></div>`).join('')}</dl>
+      <form class="am2-access" data-sheet-access>
+        <label class="am2-mono" for="amSheetEnd">Accès jusqu’au</label>
+        <div class="am2-access__row">
+          <input type="date" id="amSheetEnd" value="${endIso}" min="${isoDay(new Date(Date.now() + DAY))}" ${lockAccess ? 'disabled' : ''} aria-describedby="amSheetMsg">
+          <button type="submit" class="am2-btn" ${lockAccess ? 'disabled' : ''}>Enregistrer</button>
+        </div>
+        <p class="am-msg" id="amSheetMsg" role="status">${isMe ? 'C’est ton compte.' : team ? 'Son rôle lui donne déjà tout l’accès.' : ''}</p>
+      </form>
+      <div class="am2-sheet__acts">
+        <button type="button" class="am2-btn2" data-sheet-rank ${isMe ? 'disabled' : ''}>Changer le rang</button>
+        <button type="button" class="am2-btn2" data-sheet-reset ${isMe ? 'disabled' : ''}>Réinitialiser le mot de passe</button>
+        ${m.status === 'blocked' ? `<button type="button" class="am2-btn2" data-sheet-block="0" ${isMe ? 'disabled' : ''}>Débloquer</button>` : `<button type="button" class="am2-danger" data-sheet-block="1" ${isMe ? 'disabled' : ''}>Bloquer</button>`}
+        <button type="button" class="am2-link" data-full="${m.id}">Fiche complète</button>
+      </div>`;
   }
   function renderMembers() { renderChips(); renderRows(); }
 
@@ -687,7 +769,7 @@
       </div>`).join('') : `<p class="am-empty">Aucune vente ${periodWord()}.</p>`;
   }
 
-  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, sales: renderSales, educators: renderEducators, system: renderSystem };
+  const RENDER = { overview: () => { renderOverview(); renderRanks(); renderEngagement(); }, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, sales: renderSales, educators: renderEducators, system: renderSystem };
   function placeIndicator() {
     const tabs = document.querySelector('.am-nav__tabs');
     let ind = tabs.querySelector('.am-nav__ind');
@@ -696,13 +778,17 @@
     ind.style.width = (b.offsetWidth - 28) + 'px';
     ind.style.transform = `translateX(${b.offsetLeft + 14}px)`;
   }
+  const VIEW_LABEL = { overview: 'Vue d’ensemble', members: 'Membres', sales: 'Ventes', educators: 'Éducateurs', system: 'Système' };
   function setView(v, opts) {
+    if (v === 'ranks' || v === 'engagement') v = 'overview';
     S.view = v;
+    $('amCrumb').textContent = VIEW_LABEL[v] || 'Membres';
     store('chest_admin_view', v);
     document.querySelectorAll('#amNav [data-view]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === v)));
-    document.querySelectorAll('.am-view').forEach((p) => { p.hidden = p.dataset.panel !== v; });
+    document.querySelectorAll('.am-view').forEach((p) => { p.hidden = !(p.dataset.panel === v || (v === 'overview' && ['ranks', 'engagement'].includes(p.dataset.panel))); });
     const usesPeriod = v === 'overview' || v === 'engagement' || v === 'sales';
     if (usesPeriod) $('amPeriod').removeAttribute('data-off'); else $('amPeriod').setAttribute('data-off', '');
+    document.querySelector('.am2-period-row').hidden = !usesPeriod;
     RENDER[v]();
     placeIndicator();
     if (!(opts && opts.keepScroll)) {
@@ -888,19 +974,53 @@
 
   // Membres
   $('amChips').addEventListener('click', (e) => { const b = e.target.closest('[data-chip]'); if (!b) return; S.chip = b.dataset.chip; S.limit = 50; renderMembers(); });
-  $('amFilter').addEventListener('click', (e) => { if (e.target.closest('[data-clear-filter]')) { S.filter = null; renderMembers(); } });
+  $('amCounts').addEventListener('click', (e) => { const b = e.target.closest('[data-chip]'); if (!b) return; S.filter = null; S.chip = S.chip === b.dataset.chip ? 'all' : b.dataset.chip; S.limit = 50; renderMembers(); });
+  $('amFilter').addEventListener('click', (e) => { if (e.target.closest('[data-clear-filter]')) { S.filter = null; if (!SEG.includes(S.chip)) S.chip = 'all'; renderMembers(); } });
   let qTimer;
   $('amSearch').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { S.q = e.target.value; S.limit = 50; renderRows(); }, 80); });
-  $('amSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter' && S.list.length) openDrawer(S.list[0]); });
+  $('amSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter' && S.list.length) selectMember(S.list[0], true); });
   $('amSort').addEventListener('change', (e) => { S.sort = e.target.value; renderRows(); });
   $('amRows').addEventListener('click', (e) => {
     if (e.target.closest('[data-more]')) { S.limit += 50; renderRows(); return; }
-    const r = e.target.closest('.am-row'); if (r) openDrawer(Number(r.dataset.id));
+    const full = e.target.closest('[data-full]'); if (full) { openDrawer(Number(full.dataset.full)); return; }
+    const r = e.target.closest('.am-row'); if (r) selectMember(Number(r.dataset.id), true);
   });
   $('amRows').addEventListener('keydown', (e) => {
     const r = e.target.closest('.am-row'); if (!r) return;
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrawer(Number(r.dataset.id)); }
+    if (e.target.closest('[data-full]')) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMember(Number(r.dataset.id), true); }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = e.key === 'ArrowDown' ? r.nextElementSibling : r.previousElementSibling; if (n && n.classList.contains('am-row')) n.focus(); }
+  });
+
+  // Fiche latérale : accès jusqu'au, rang, mot de passe, blocage
+  $('amSheet').addEventListener('click', async (e) => {
+    const m = S.members.find((x) => x.id === S.sel); if (!m) return;
+    if (e.target.closest('[data-full]')) { openDrawer(m.id); return; }
+    if (e.target.closest('[data-sheet-rank]')) { openDrawer(m.id, 'access'); return; }
+    if (e.target.closest('[data-sheet-reset]')) {
+      if (!(await CHESTConfirm(`Générer un nouveau mot de passe pour ${fullName(m)} ? L’ancien ne fonctionnera plus.`))) return;
+      try { const pw = await A.resetMemberPassword(m.id); await CHESTAlert(`Nouveau mot de passe de ${fullName(m)} : ${pw}. Transmets-le par un canal privé.`); } catch (err) { await CHESTAlert(err.message); }
+      return;
+    }
+    const bl = e.target.closest('[data-sheet-block]');
+    if (bl) {
+      const blocking = bl.dataset.sheetBlock === '1';
+      if (blocking && !(await CHESTConfirm(`Bloquer ${fullName(m)} ? Son accès est coupé tout de suite, rien n’est effacé.`))) return;
+      bl.disabled = true;
+      try { if (blocking) await A.blockMember(m.id); else await A.approveMember(m.id); await reload(); } catch (err) { await CHESTAlert(err.message); bl.disabled = false; }
+    }
+  });
+  $('amSheet').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const m = S.members.find((x) => x.id === S.sel); if (!m) return;
+    const msg = $('amSheetMsg'), until = $('amSheetEnd').value;
+    if (!until) { say(msg, 'Choisis une date de fin.', 'err'); return; }
+    const c = cat(m), fam = base(c);
+    const plan = ['premium', 'essentiel'].includes(fam) ? fam : 'offert';
+    const level = ['premium', 'essentiel'].includes(fam) ? (m.access || {}).level || null : null;
+    if (plan === 'offert' && c !== 'privilege' && !(await CHESTConfirm(`${fullName(m)} n’a pas d’offre payée en cours : lui offrir un Privilège jusqu’au ${new Date(until).toLocaleDateString('fr-FR')} ?`))) return;
+    const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true; say(msg, 'Enregistrement…');
+    try { await A.setMemberAccess(m.id, plan, null, until, level); await reload(); say($('amSheetMsg'), 'Accès mis à jour.', 'ok'); } catch (err) { say(msg, err.message, 'err'); btn.disabled = false; }
   });
 
   // Raccourcis clavier
