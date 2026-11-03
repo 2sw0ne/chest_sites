@@ -133,7 +133,7 @@
 
   @media (max-width:760px){ .auth-card{ max-width:380px; padding:36px 24px 28px; } }
 </style>
-<link rel="stylesheet" href="css/auth-2.css?v=4">
+<link rel="stylesheet" href="css/auth-2.css?v=5">
 </head>
 <body>
 
@@ -143,6 +143,7 @@
 </div>
 
 <div class="auth-stage" id="authStage">
+  <a class="auth-back" href="/" aria-label="Retour à l’accueil" title="Retour à l’accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></a>
  <div class="auth-center">
   <div class="auth-steps" aria-label="Étapes"><span class="is-on"><i>1</i>Ton compte</span><span><i>2</i>5 questions</span><span><i>3</i>Ton accès</span></div>
   <div class="auth-card">
@@ -240,7 +241,8 @@
   (function initRef() {
     const input = document.getElementById('refCode');
     const hint = document.getElementById('refHint');
-    const fromLink = (new URLSearchParams(location.search).get('ref') || (CHESTAccounts.referralCode && CHESTAccounts.referralCode()) || '').trim();
+    // Seul le lien généré par l'éducateur (?ref=CODE) remplit le code : jamais de code par défaut ni de code gardé d'une visite précédente (2026-11-03)
+    const fromLink = (new URLSearchParams(location.search).get('ref') || '').trim();
     if (!fromLink) return;
     input.value = fromLink.toUpperCase();
     input.readOnly = true;

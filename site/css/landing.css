@@ -747,3 +747,8 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 @media (prefers-reduced-motion:reduce){
   .pg *, .pg *::before, .pg *::after{ animation:none !important; transition:none !important; }
 }
+/* 2026-11-03 : les trois arguments sous le hero prennent le style de la pastille « BÊTA » */
+.trust--pills{ gap:10px; }
+.trust--pills li.pill{ font-family:inherit; font-size:12.5px; letter-spacing:0; text-transform:none; color:var(--ink); padding:6px 14px 6px 6px; }
+.trust--pills li.pill::before{ display:none; }
+.trust--pills li.pill b{ font-size:9.5px; }

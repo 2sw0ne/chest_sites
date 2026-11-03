@@ -44,3 +44,12 @@
 .auth-center:has(> .auth-steps){ flex-direction:column; }
 .auth-center > .auth-steps{ margin:0 auto 54px; flex:none; }
 .auth-card form .auth-field + .auth-field, .auth-card form .auth-field{ margin-top:26px; }
+/* Flèche de retour vers la landing (2026-11-03) */
+.auth-back{ position:fixed; top:22px; left:24px; z-index:6; width:40px; height:40px; border-radius:12px; display:grid; place-items:center; color:#c9c9ce;
+  border:1px solid rgba(255,255,255,.14); background:rgba(10,10,12,.5); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  transition:color .2s cubic-bezier(.16,1,.3,1), border-color .2s cubic-bezier(.16,1,.3,1), transform .16s cubic-bezier(.16,1,.3,1); }
+.auth-back svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.auth-back:hover{ color:#fff; border-color:rgba(249,164,94,.6); }
+.auth-back:active{ transform:scale(.96); }
+.auth-back:focus-visible{ outline:2px solid #f9a45e; outline-offset:2px; }
+@media (max-width:640px){ .auth-back{ top:14px; left:14px; } }

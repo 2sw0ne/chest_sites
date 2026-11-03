@@ -41,6 +41,13 @@
   /* ---------- Ticker — bandeau plein-largeur DE LA COLONNE DE CONTENU
      (plus un breakout 100vw : ca casserait la grille sidebar+contenu de
      .chest-shell, la sidebar n'etant plus la meme largeur ouverte/repliee). ---------- */
+  /* CHEST 2.0 : bandeau défilant des paires en haut de la page, bords fondus */
+  .c2-ticker{ position:relative; width:100%; max-width:100%; min-width:0; overflow:hidden; contain:inline-size; border-bottom:1px solid rgba(255,255,255,.07); background:rgba(8,8,10,.55); -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+  .c2-ticker .ticker-item{ padding:10px 22px; border-right:1px solid rgba(255,255,255,.06); font-size:12px; }
+  .c2-ticker .ticker-item b{ color:#f6f6f7; font-weight:600; }
+  .c2-ticker .ticker-item .px{ color:#9b9ba1; }
+  .c2-ticker .ticker-item .chg.pos{ color:#33e6a6; } .c2-ticker .ticker-item .chg.neg{ color:#ff4d5e; }
+  .c2-ticker .ticker-meta{ border-left:0; background:none; color:#7a7a82; }
   .ticker-wrap{
     display:flex; align-items:stretch; border-bottom:1px solid var(--chest-rule); overflow:hidden;
   }
@@ -397,6 +404,13 @@
       </div>
     </header>
 <main id="calMain" class="is-loading" style="position: relative; z-index: 1; min-width: 0px; display: flex; flex-direction: column; color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px;">
+  <!-- Bandeau des paires (hausse / baisse du jour), données de js/calendar.js renderTicker -->
+    <div class="ticker-wrap c2-ticker" aria-label="Variation des paires aujourd’hui">
+      <div class="ticker-track" id="tickerTrack">
+        <div class="ticker-meta" id="tickerMeta">Chargement…</div>
+      </div>
+    </div>
+
   <!-- CHEST 2.0 (2026-11-02) : contenu copié de CHEST-DESIGN-2.0/html-exact/Calendrier.html, styles inchangés.
        Les données réelles sont posées par js/cal-2.js (modèle de js/calendar.js, événement chest:cal-render). -->
     <section style="position: relative; isolation: isolate; overflow: hidden; text-align: center; padding: 46px 36px 40px; display: flex; flex-direction: column; align-items: center;">
@@ -480,11 +494,6 @@
   <!-- Ancienne page : gardée cachée, calendar.js y calcule encore le hero (textes) et la semaine passée. -->
   <div class="c2-legacy" hidden>
 
-    <div class="ticker-wrap">
-      <div class="ticker-track" id="tickerTrack">
-        <div class="ticker-meta" id="tickerMeta">Chargement…</div>
-      </div>
-    </div>
 
     <section class="sentiment-hero" id="sentimentHero" data-tone="neutral">
     <div class="sentiment-hero__inner">
