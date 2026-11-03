@@ -6,6 +6,7 @@
 (function () {
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const SCREENS = { Dashboard: 'dashboard', Backtesting: 'backtesting', Journal: 'journal', 'Stratégies': 'strategies', Calendrier: 'calendar', BERICH: 'berich', School: 'school' };
+  const SCREEN_IDS = Object.values(SCREENS);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // ---------- 7 espaces ----------
@@ -17,7 +18,22 @@
     cur.replaceWith(next);
     const tab = next.querySelector('.tab.on');
     if (tab) tab.focus({ preventScroll: true });
+    fitDemo();
   }
+
+  // ---------- fenêtre de démonstration : la vraie page CHEST 2.0 (landing-app/*.html) mise à l'échelle ----------
+  function fitDemo() {
+    document.querySelectorAll('.app-live').forEach((el) => {
+      const f = el.querySelector('iframe');
+      if (f) f.style.transform = `scale(${el.clientWidth / 1440})`;
+    });
+  }
+  fitDemo();
+  window.addEventListener('resize', fitDemo);
+  // un clic dans le menu de la page de démonstration change d'espace comme les onglets
+  window.addEventListener('message', (e) => {
+    if (e.origin === location.origin && e.data && SCREEN_IDS.includes(e.data.chestDemo)) showScreen(e.data.chestDemo);
+  });
 
   function recountMissions(scope) {
     const n = scope.querySelectorAll('.mis.done').length;
@@ -67,6 +83,28 @@
   }
 
   // ---------- Bulles du problème ----------
+  // ---------- 01 — Le problème : à mi-course de la scène fixe, les bulles passent du rouge au vert ----------
+  const pain = document.querySelector('.pain');
+  const painBub = pain && pain.querySelector('.bubbles');
+  if (pain && painBub) {
+    let raf = 0;
+    const tick = () => {
+      raf = 0;
+      const r = pain.getBoundingClientRect(), vh = window.innerHeight;
+      const run = Math.max(1, r.height - vh);
+      // scène fixe : bascule à 45 % de la course ; sans scène fixe (mobile) : quand la section a bien défilé
+      const p = r.height > vh * 1.5 ? -r.top / run : (vh * 0.55 - r.top) / r.height;
+      const flip = p > 0.45;
+      if (flip !== painBub.classList.contains('is-flip')) {
+        painBub.classList.toggle('is-flip', flip);
+        painBub.querySelector('.core-a').setAttribute('aria-hidden', String(flip));
+        painBub.querySelector('.core-b').setAttribute('aria-hidden', String(!flip));
+      }
+    };
+    window.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(tick); }, { passive: true });
+    window.addEventListener('resize', tick);
+    tick();
+  }
   const bub = document.querySelector('.bubbles');
   if (bub) {
     if (reduce || !('IntersectionObserver' in window)) bub.classList.add('in');
