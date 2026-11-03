@@ -43,3 +43,11 @@ body[data-page="educator"] .ed-bar--b{ background:linear-gradient(180deg,#f9a45e
 .ed2-steps li + li{ border-left:1px solid rgba(255,255,255,.08); }
 .ed2-steps span{ font-size:10.5px; color:#7a7a82; }
 .ed2-steps b{ font-size:12px; font-weight:600; }
+
+/* Fiche membre (maquette Edu-Fiche, 2026-11-03) : fenêtre centrée en verre au lieu du volet de droite */
+.ed-sheet{ margin:auto; width:min(700px, calc(100vw - 32px)); height:auto; max-height:calc(100dvh - 48px); }
+.ed-sheet[open]{ animation:ed2SheetIn .24s cubic-bezier(.16,1,.3,1); }
+@keyframes ed2SheetIn{ from{ transform:translateY(10px) scale(.98); opacity:0; } }
+.ed-sheet__win{ height:auto; max-height:calc(100dvh - 48px); border:1px solid rgba(255,255,255,.13); border-radius:20px;
+  background:linear-gradient(180deg, rgba(24,18,24,.96), rgba(10,10,12,.98)); box-shadow:0 40px 120px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.1); }
+@media (prefers-reduced-motion:reduce){ .ed-sheet[open]{ animation:none; } }

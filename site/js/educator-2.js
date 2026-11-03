@@ -19,6 +19,7 @@
     const T = window.parent !== window && window.parent.CHESTTopbar;
     if (!T) return;
     const cur = current();
+    try { const c = window.parent.document.getElementById('crumbPage'); const v = VIEWS.find(([k]) => k === cur); if (c && v) c.textContent = v[0] === 'overview' ? 'Espace éducateur' : v[1]; } catch (e) { /* autre origine */ }
     const slot = T.set(window, `<div role="tablist" aria-label="Vues de l'espace éducateur" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">${VIEWS.map(([k, l, c]) => `<button type="button" role="tab" data-ed2-view="${k}" aria-selected="${cur === k}" style="height: 30px; padding: 0px 13px; border: 0px; border-radius: 999px; background: ${cur === k ? 'rgba(255, 255, 255, 0.08)' : 'transparent'}; box-shadow: ${cur === k ? 'rgba(252, 18, 131, 0.45) 0px 0px 0px 1px inset' : 'none'}; color: ${cur === k ? 'rgb(246, 246, 247)' : 'rgb(155, 155, 161)'}; font: inherit; font-size: 12.5px; font-weight: ${cur === k ? 600 : 400}; cursor: pointer;">${l}${c && $(c) && $(c).textContent ? ` <small style="${MONO} font-size: 10px; color: rgb(122, 122, 130);">${esc($(c).textContent)}</small>` : ''}</button>`).join('')}</div>`);
     if (!slot) return;
     slot.querySelectorAll('[data-ed2-view]').forEach((b) => b.addEventListener('click', () => {
