@@ -92,8 +92,10 @@
     const o = ownerOf(e);
     const ask = e.status === 'proposed' ? '<span class="sh-ev__ask">à confirmer</span>' : '';
     // équipe : « Call · nom du membre » ; membre : le sujet de son appel
-    const title = e.type === 'personal' && ROLE !== 'member' ? `Call · ${esc(e.member || '')}` : esc(e.title);
-    const sub = e.type === 'personal' && ROLE !== 'member' ? `<span class="sh-ev__topic">${esc(e.title)}</span>` : '';
+    // un appel commun posé chez plusieurs élèves = une seule carte côté équipe (« 4 élèves »)
+    const many = e._n > 1;
+    const title = e.type === 'personal' && ROLE !== 'member' ? (many ? esc(e.title) : `Call · ${esc(e.member || '')}`) : esc(e.title);
+    const sub = e.type === 'personal' && ROLE !== 'member' ? `<span class="sh-ev__topic">${many ? `${e._n} élèves` : esc(e.title)}</span>` : '';
     // ce que pose l'admin : couleur de CHEST et signé CHEST ; l'admin voit aussi le prénom de chaque éducateur
     const tag = e.chest ? '<span class="sh-ev__who"><i></i>CHEST</span>' : o ? `<span class="sh-ev__who"><i></i>${esc(o.first)}</span>` : '';
     return `<button type="button" class="sh-ev sh-ev--${k.k}${e.chest ? ' is-chest' : ''}${ended ? ' is-past' : ''}" data-ev="${esc(e.id)}"${e.color && !e.chest ? ` style="--c:${esc(e.color)}"` : ''}>
@@ -124,6 +126,17 @@
     return out.map((t) => (t.group && t.group.length === 1 ? t.group[0] : t));
   }
 
+  function groupCommon(list) {
+    if (ROLE === 'member') return list;
+    const out = [], seen = new Map();
+    list.forEach((e) => {
+      if (e.type !== 'personal') return out.push(e);
+      const k = `${e.title}|${e.startsAt}|${e.ownerId}`;
+      if (seen.has(k)) { seen.get(k)._n += 1; return; }
+      const g = Object.assign({}, e, { _n: 1 }); seen.set(k, g); out.push(g);
+    });
+    return out;
+  }
   function weekHtml() {
     const D = S.agenda || { events: [], tasks: [] };
     const days = Array.from({ length: 7 }, (_, i) => new Date(S.week.getTime() + i * DAY));
@@ -132,7 +145,7 @@
     const range = `${fr(S.week, { day: 'numeric', month: S.week.getMonth() === end.getMonth() ? undefined : 'short' })} – ${fr(end, { day: 'numeric', month: 'long' })}`;
     const total = D.events.length;
     const cols = days.map((d) => {
-      const evs = D.events.filter((e) => sameDay(e.startsAt, d) && (!S.owner || e.ownerId === S.owner));
+      const evs = groupCommon(D.events.filter((e) => sameDay(e.startsAt, d) && (!S.owner || e.ownerId === S.owner)));
       const due = groupTasks(D.tasks.filter((t) => t.dueAt && sameDay(t.dueAt, d)));
       const today = sameDay(d, new Date());
       const past = d < new Date(new Date().setHours(0, 0, 0, 0));

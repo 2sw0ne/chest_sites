@@ -244,7 +244,7 @@
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
 <link rel="stylesheet" href="css/chest-2-site.css?v=5">
-<link rel="stylesheet" href="css/account-2.css?v=2">
+<link rel="stylesheet" href="css/account-2.css?v=3">
 </head>
 <body data-page="account" class="chest-root">
 
@@ -402,6 +402,13 @@
         <button type="button" class="chest-btn-2" id="notifToggleBtn">…</button>
       </div>
     </div>
+
+    <!-- CHEST 2.0 (2026-11-03) : la cloche du haut est retirée ; l'historique des notifications reste consultable ici. -->
+    <div class="settings-row">
+      <div class="settings-row__info"><div class="settings-row__text"><p class="settings-row__title">Notifications reçues</p><p class="settings-row__value" id="notifHistValue">—</p></div></div>
+      <button type="button" class="chest-btn-2" id="notifHistBtn" aria-expanded="false" aria-controls="notifHist">Voir</button>
+    </div>
+    <div class="acc-notifs" id="notifHist" hidden></div>
 
     <div class="settings-group">Marché et exécution</div>
     <div class="settings-row">
@@ -1607,6 +1614,24 @@ CHESTTour.init([
       (window.top || window).location.href = '/connexion';
     } catch (x) { err.textContent = x.message; btn.disabled = false; }
   });
+})();
+</script>
+<script src="js/notifications-store.js?v=1"></script>
+<script>
+// Historique des notifications (js/notifications-store.js), ouvert depuis Compte → Alertes.
+(() => {
+  const N = window.CHESTNotifications, box = document.getElementById('notifHist'), btn = document.getElementById('notifHistBtn'), val = document.getElementById('notifHistValue');
+  if (!N || !box) return;
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const when = (iso) => { const t = Date.parse(iso); return isNaN(t) ? '' : new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+  function paint() {
+    const all = N.list().slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    const unread = N.unreadCount();
+    val.textContent = all.length ? `${all.length} au total${unread ? ` · ${unread} non lue${unread > 1 ? 's' : ''}` : ''}` : 'Aucune pour l’instant';
+    box.innerHTML = all.length ? all.slice(0, 30).map((n) => `<div class="acc-notifs__it${n.read ? '' : ' is-new'}"><b>${esc(n.title)}</b><span>${esc(n.body || '')}</span><time>${esc(when(n.createdAt))}</time></div>`).join('') : '<p class="acc-notifs__empty">Rien pour l’instant.</p>';
+  }
+  btn.addEventListener('click', () => { const open = box.hidden; box.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.textContent = open ? 'Masquer' : 'Voir'; if (open) { paint(); N.markAllRead(); } });
+  paint();
 })();
 </script>
 <script src="js/v2.js?v=5"></script>

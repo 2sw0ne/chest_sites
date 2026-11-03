@@ -2363,6 +2363,14 @@ CHESTTour.init([
     }
     const m = params.get('m') || 'all';
     currentMember = m === 'all' || m === 'main' || CHESTJournal.liveAccounts(acc).some((l) => l.id === m) ? m : 'all';
+    // Un même compte live relié plusieurs fois (avant l'anti-doublon d'addLiveAccount) : on garde le premier,
+    // les copies et leurs trades importés en double sont retirés (sinon P&L et positions comptés plusieurs fois).
+    const seenLive = new Set();
+    CHESTJournal.liveAccounts(acc).forEach((l) => {
+      const k = l.vpsId ? 'vps:' + l.vpsId : 'mfx:' + l.accountId;
+      if (seenLive.has(k)) CHESTJournal.removeLiveAccount(acc.id, l.id); else seenLive.add(k);
+    });
+    if (seenLive.size < (acc.live || []).length) acc.live = CHESTJournal.liveAccounts(CHESTJournal.listAccounts().find((x) => x.id === acc.id));
     CHESTJournal.setActiveAccountId(acc.id);
     showView('dashboard');
     allRows = await CHESTJournal.entriesFor(acc, currentMember);
@@ -2371,7 +2379,8 @@ CHESTTour.init([
     // CHEST 2.0 : la vue de la maquette est posée d'abord (js/journal-2.js) ; une erreur dans un bloc v2 ne peut plus l'empêcher.
     document.getElementById('jrHistory').hidden = document.body.classList.contains('jr2-on') ? document.getElementById('jrHistory').hidden : true;
     const subtitleOf = (a) => { try { return accountSubtitle(a); } catch (e) { return a.type === 'propfirm' ? 'Propfirm' : 'Compte propre'; } };
-    document.dispatchEvent(new CustomEvent('chest:jr-render', { detail: { acc, rows: allRows, member: currentMember, subtitle: subtitleOf(acc), subtitleOf,
+    // gardé aussi sur window : si js/journal-2.js n'est pas encore chargé (journal sans compte relié = réponse immédiate), il le reprend au chargement
+    document.dispatchEvent(new CustomEvent('chest:jr-render', { detail: window.__chestJr = { acc, rows: allRows, member: currentMember, subtitle: subtitleOf(acc), subtitleOf,
       openForm: (id) => { const r = allRows.find((x) => x.id === id); if (r) openForm(r); } } }));
     renderAccSwitcher();
     renderLiveBar(acc);
@@ -2386,7 +2395,7 @@ CHESTTour.init([
   loadAndRender();
 })();
 </script>
-<script src="js/journal-2.js?v=3"></script>
+<script src="js/journal-2.js?v=5"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>

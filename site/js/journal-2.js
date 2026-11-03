@@ -86,6 +86,18 @@
       </div>`;
   }
 
+  function legendHtml(acc, others, M) {
+    return others.map((o) => {
+      const v = closed(monthRows(o.rows, M)).reduce((s, r) => s + r.pnl, 0);
+      return `
+          <a href="journal.html?acc=${encodeURIComponent(o.a.id)}" class="leg" style="display: inline-flex; align-items: center; gap: 9px; padding: 4px 0px; font-size: 12.5px; color: ${o.a.id === acc.id ? 'rgb(246, 246, 247)' : 'rgb(155, 155, 161)'};">
+            <i style="width: 6px; height: 6px; border-radius: 999px; background: ${o.color}; box-shadow: ${o.color} 0px 0px 8px;"></i>
+            <span>${esc(o.a.name || 'Journal')}</span>
+            <b style="font-weight: 700; font-variant-numeric: tabular-nums; color: ${v < 0 ? NEG : POS};">${money(v)}</b>
+          </a>`;
+    }).join('');
+  }
+  function paintLegend(acc, others, M) { const el = $('jr2Legend'); if (el) el.innerHTML = legendHtml(acc, others, M); }
   function paintHero(acc, rows, others) {
     const M = monthOf(closed(rows));
     const mrows = closed(monthRows(rows, M));
@@ -101,15 +113,7 @@
             ${esc(o.a.name || 'Journal')}
             <span aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.55) 0px 0px 10px; opacity: ${o.a.id === acc.id ? 1 : 0};"></span>
           </button>`).join('');
-    const legend = others.map((o) => {
-      const v = closed(monthRows(o.rows, M)).reduce((s, r) => s + r.pnl, 0);
-      return `
-          <a href="journal.html?acc=${encodeURIComponent(o.a.id)}" class="leg" style="display: inline-flex; align-items: center; gap: 9px; padding: 4px 0px; font-size: 12.5px; color: ${o.a.id === acc.id ? 'rgb(246, 246, 247)' : 'rgb(155, 155, 161)'};">
-            <i style="width: 6px; height: 6px; border-radius: 999px; background: ${o.color}; box-shadow: ${o.color} 0px 0px 8px;"></i>
-            <span>${esc(o.a.name || 'Journal')}</span>
-            <b style="font-weight: 700; font-variant-numeric: tabular-nums; color: ${v < 0 ? NEG : POS};">${money(v)}</b>
-          </a>`;
-    }).join('');
+    const legend = legendHtml(acc, others, M);
     $('jr2Hero').innerHTML = `
       <div aria-hidden="true" style="position: absolute; left: 50%; top: 0px; width: 900px; height: 520px; margin-left: -450px; z-index: -2; pointer-events: none; filter: blur(100px); background: radial-gradient(40% 46% at 42% 42%, rgba(51, 230, 166, 0.16), transparent 72%), radial-gradient(34% 40% at 64% 36%, rgba(252, 18, 131, 0.12), transparent 74%);"></div>
       <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 16px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 78%) text; color: transparent;">Journal</div>
@@ -125,7 +129,7 @@
         ${$('jrAddBtn') && !$('jrAddBtn').hidden ? `<button type="button" data-jr2="add" style="display: flex; align-items: center; height: 44px; padding: 0px 22px; border-radius: 999px; border: 0px; color: rgb(255, 255, 255); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.3) 0px 10px 30px;">+ Ajouter un trade</button>` : ''}
         <button type="button" class="btn2" data-jr2="edit" style="display: flex; align-items: center; height: 44px; padding: 0px 20px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.14)) border-box border-box; color: rgb(246, 246, 247); font: inherit; font-weight: 600; cursor: pointer;">Modifier ce compte</button>
       </div>
-      <div style="margin: 28px auto 0px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px;">${legend}
+      <div id="jr2Legend" style="margin: 28px auto 0px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px;">${legend}
       </div>
       ${curveSvg(rows, M)}`;
     return M;
@@ -318,11 +322,16 @@
     state = detail;
     const { acc, rows } = detail;
     const accounts = J().listAccounts();
-    const others = await Promise.all(accounts.map(async (a, i) => ({
-      a, color: COLORS[i % COLORS.length], subtitle: detail.subtitleOf ? detail.subtitleOf(a) : '',
-      rows: a.id === acc.id ? rows : await Promise.resolve().then(() => J().entriesFor(a, 'all')).catch(() => []),
-    })));
-    if (state !== detail) return; // un rendu plus récent est passé entre-temps
+    // Le journal ouvert s'affiche tout de suite ; les autres journaux (légende, cartes « Tes journaux ») se
+    // complètent quand leurs positions arrivent. Avant, la vue attendait tous les journaux : si l'un d'eux
+    // tardait (compte relié, synchro), la page restait sur l'ancien affichage.
+    const sub = (a) => { try { return detail.subtitleOf ? detail.subtitleOf(a) : ''; } catch (e) { return ''; } };
+    const others = accounts.map((a, i) => ({ a, color: COLORS[i % COLORS.length], subtitle: sub(a), rows: a.id === acc.id ? rows : [] }));
+    others.filter((o) => o.a.id !== acc.id).forEach((o) => {
+      Promise.race([Promise.resolve().then(() => J().entriesFor(o.a, 'all')), new Promise((r) => setTimeout(() => r(null), 15000))])
+        .then((r) => { if (!r || state !== detail) return; o.rows = r; const M = monthOf(closed(rows)); try { paintLegend(acc, others, M); paintJournals(acc, others); } catch (e) { /* tant pis */ } })
+        .catch(() => {});
+    });
     $('jr2').hidden = false;
     document.body.classList.add('jr2-on');
     // chaque bloc est indépendant : un compte aux données incomplètes n'empêche pas les autres de s'afficher
@@ -337,6 +346,7 @@
   }
 
   document.addEventListener('chest:jr-render', (e) => { render(e.detail); });
+  if (window.__chestJr) render(window.__chestJr); // rendu déjà demandé avant le chargement de ce script
   document.addEventListener('click', (e) => {
     if (!state) return;
     const t = e.target.closest('#jr2 [data-jr2], #jr2 [data-acc], #jr2 [data-filter], #jr2 [data-edit], #jr2 [data-all]');
