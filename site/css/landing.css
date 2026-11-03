@@ -828,19 +828,28 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
   .bubbles.is-flip .bub-burst{ animation:none; }
 }
 
-/* 05 — Offres (2026-11-03) : prix plus discrets, un grand hexagone du rang en fond de chaque carte */
-.o-price{ margin-top:24px; }
-.o-price b{ font-size:clamp(44px, 4.4vw, 62px); letter-spacing:-.055em; }
-.o-price span{ font-size:14px; }
-.offer::before{ content:''; position:absolute; z-index:0; right:-70px; top:-60px; width:300px; height:330px; pointer-events:none; opacity:.16; filter:blur(1px);
-  clip-path:polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); }
-.o-ess::before{ background:linear-gradient(160deg, rgba(92,255,196,.9), rgba(0,179,119,0) 70%); }
-.o-prem::before{ background:linear-gradient(160deg, rgba(255,179,107,.95), rgba(255,61,31,0) 70%); opacity:.2; }
-.offer > *{ position:relative; z-index:1; }
-.o-prem > .holo{ z-index:1; }
-.offer .o-line + ul, .offer ul{ position:relative; }
-.o-ess::after{ content:''; position:absolute; inset:auto -40% -50% auto; width:420px; height:420px; border-radius:50%; z-index:0; pointer-events:none; background:radial-gradient(closest-side, rgba(51,230,166,.08), transparent); }
+/* 05 — Offres (2026-11-03) : cartes d'origine, fond noir uni autour, tout tient dans un écran */
+.offers{ background:#050505; padding:90px 0 80px; }
+.offers .h2{ font-size:clamp(40px, 4.6vw, 68px); }
+.offers .lead{ margin-top:12px; }
+.duo{ margin-top:36px; max-width:1020px; }
+.offer{ padding:24px 26px; border-radius:24px; }
+.o-price{ margin-top:16px; }
+.o-price b{ font-size:clamp(40px, 3.6vw, 52px); letter-spacing:-.055em; }
+.o-price span{ font-size:13.5px; }
+.o-full{ font-size:13px; }
+.offer ul{ gap:8px; font-size:13.5px; }
+.offer .btn{ margin-top:20px; min-height:46px; }
+.o-prem .promise{ margin:14px 0 0; padding:10px 14px; font-size:13px; }
+.vals{ margin:12px 0 14px; gap:10px; }
+.val{ padding:12px 14px; }
+.val p{ font-size:12px; }
 /* overflow:hidden sur .pg empêchait la scène fixe (sticky) : clip coupe pareil sans créer de zone de défilement */
 .pg{ overflow:clip; }
 .pain-stage{ padding-top:70px; box-sizing:border-box; }
 .pain .bubbles{ height:min(720px, calc(100svh - 170px)); }
+
+/* bulles moins collées aux bords de l'écran */
+.pain .bubbles{ max-width:1180px; margin-left:auto; margin-right:auto; }
+.pain-stage{ flex-direction:column; justify-content:center; align-items:stretch; }
+.pain-stage > .wrap{ width:auto; }
