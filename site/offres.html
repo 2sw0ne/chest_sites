@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/connect-da.css?v=1">
 <link rel="stylesheet" href="css/offres-da.css?v=4">
-<link rel="stylesheet" href="css/offres-2.css?v=1">
+<link rel="stylesheet" href="css/offres-2.css?v=2">
 <script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -229,7 +229,12 @@
       essentiel: 'Tu as déjà des bases solides : les outils de CHEST suffisent pour structurer et faire progresser ton trading.',
       premium: 'Avec la formation complète, BERICH et l’accompagnement de ton éducateur, tu progresses plus vite et tu évites les erreurs classiques.',
     }[reco];
-    el.innerHTML = `D'après tes réponses, on te conseille l’offre <b>${esc(GROUP_NAME[reco])}</b>. ${esc(why)}`;
+    // CHEST 2.0 : bandeau de la maquette Offres.html, au-dessus du titre, avec « Refaire le questionnaire »
+    el.innerHTML = `<span>D’après tes réponses, on te conseille <b class="of-reco__grad">${esc(GROUP_NAME[reco])}</b>.</span> <span class="of-reco__why">${esc(why)}</span><button type="button" class="of-reco__redo" data-reco-redo>Refaire le questionnaire</button>`;
+    const stage = document.querySelector('#ofOffers .cx-stage');
+    if (stage && el.parentNode !== stage) stage.insertBefore(el, stage.querySelector('.cx-kicker'));
+    const redo = el.querySelector('[data-reco-redo]'), go = $('#ofRedo');
+    if (redo && go) redo.addEventListener('click', () => go.click());
     el.hidden = false;
   }
 
@@ -503,8 +508,16 @@
         $('#ofLive').classList.add('is-ok');
         $('#ofLive').querySelector('.cx-live__orb i').innerHTML = CHECK;
         $('#ofWaitTitle').textContent = 'Paiement validé';
-        $('#ofWaitText').textContent = `Bienvenue dans ${a.label}. On t’ouvre CHEST…`;
-        setTimeout(goToApp, 1600);
+        $('#ofWaitText').textContent = `Bienvenue dans ${a.label}. On t’ouvre CHEST… Ta facture Stripe arrive par e-mail.`;
+        // CHEST 2.0 (maquette T-Validation.html) : ce que l'offre ouvre, en trois cartes
+        const prem = a.plan === 'premium' || a.plan === 'allstar';
+        const cards = prem
+          ? [['Ton éducateur', 'Il te contacte pour fixer ton premier appel.'], ['BERICH', a.level === 3 ? 'Clé en main : envoie tes accès MT5 depuis la page BERICH.' : 'Relie ton VPS depuis la page BERICH.'], ['School complet', 'Tous les cours et les appels collectifs sont ouverts.']]
+          : [['Scanners et alertes', 'Tous les scanners, avec leurs alertes.'], ['Backtesting et journal', 'Tes backtests, ton journal et tes comptes reliés.'], ['Calendrier', 'Les annonces de la semaine et la prévision de ta paire.']];
+        let box = $('#ofWaitCards');
+        if (!box) { box = document.createElement('div'); box.id = 'ofWaitCards'; box.className = 'of-wait__cards'; $('#ofLive').after(box); }
+        box.innerHTML = cards.map(([t, d]) => `<div class="of-wait__card"><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join('');
+        setTimeout(goToApp, 4000);
         return;
       }
       if (Date.now() - started > 180000) {
