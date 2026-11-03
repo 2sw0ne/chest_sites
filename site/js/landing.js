@@ -151,6 +151,59 @@
     tilt();
   }
 
+  // ---------- fin de page : « CHEST » en caractères (esprit swashmotion.com) ----------
+  // Deux couches en police à chasse fixe : un champ qui ondule, et le mot CHEST qui s'ouvre à mesure qu'on descend.
+  const asc = document.querySelector('.asc');
+  if (asc) {
+    const preF = asc.querySelector('.asc-f'), preM = asc.querySelector('.asc-m');
+    const RAMP = ' .:-=+*#%@';
+    let cols = 0, rows = 0, mask = null, seed = null, live = false;
+    const build = () => {
+      const cw = 6.62, lh = 12; // police 11 px
+      cols = Math.max(40, Math.floor(asc.clientWidth / cw));
+      rows = Math.max(16, Math.floor(asc.clientHeight / lh));
+      const c = document.createElement('canvas'); c.width = cols; c.height = rows;
+      const x = c.getContext('2d');
+      x.fillStyle = '#000'; x.fillRect(0, 0, cols, rows);
+      x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      // les caractères sont 2 fois plus hauts que larges : on écrase le mot en hauteur pour garder ses proportions
+      x.setTransform(1, 0, 0, 0.55, 0, 0);
+      let fs = rows * 1.55; x.font = `700 ${fs}px "Instrument Sans", Arial, sans-serif`;
+      const w = x.measureText('CHEST').width; if (w > cols * 0.9) { fs *= (cols * 0.9) / w; x.font = `700 ${fs}px "Instrument Sans", Arial, sans-serif`; }
+      x.fillText('CHEST', cols / 2, (rows / 2) / 0.55 + fs * 0.04);
+      const d = x.getImageData(0, 0, cols, rows).data;
+      mask = new Float32Array(cols * rows); seed = new Float32Array(cols * rows);
+      for (let i = 0; i < cols * rows; i++) { mask[i] = d[i * 4] / 255; seed[i] = Math.random(); }
+    };
+    let open = reduce ? 1 : 0;
+    const frame = (t) => {
+      if (!live) return;
+      const r = asc.getBoundingClientRect(), vh = window.innerHeight;
+      // s'ouvre entre le moment où le haut entre à l'écran et le bas de la page
+      const target = reduce ? 1 : Math.min(1, Math.max(0, (vh - r.top) / (r.height * 0.95)));
+      open += (target - open) * 0.08;
+      const T = reduce ? 0 : t / 1000;
+      let f = '', m = '';
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const i = y * cols + x;
+          const v = 0.5 + 0.5 * Math.sin(x * 0.045 + T * 0.9 + Math.sin(y * 0.18 + T * 0.6) * 1.6) * Math.cos(y * 0.07 - T * 0.4);
+          f += RAMP[Math.min(9, Math.floor(v * v * 7))];
+          const on = mask[i] > 0.15 && seed[i] < open * 1.15 - 0.1;
+          m += on ? RAMP[Math.min(9, 5 + Math.floor(mask[i] * 3 + v * 1.9))] : ' ';
+        }
+        f += '\n'; m += '\n';
+      }
+      preF.textContent = f; preM.textContent = m;
+      requestAnimationFrame(frame);
+    };
+    const start = () => { if (!mask) build(); if (!live) { live = true; requestAnimationFrame(frame); } };
+    if ('IntersectionObserver' in window) new IntersectionObserver((es) => { if (es[0].isIntersecting) start(); else live = false; }).observe(asc);
+    else start();
+    window.addEventListener('resize', () => { mask = null; if (live) build(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { mask = null; if (live) build(); });
+  }
+
   // ---------- 01 — Le problème : à mi-course de la scène fixe, les bulles passent du rouge au vert ----------
   const pain = document.querySelector('.pain');
   const painBub = pain && pain.querySelector('.bubbles');
