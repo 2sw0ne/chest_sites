@@ -83,6 +83,25 @@
   }
 
   // ---------- Bulles du problème ----------
+  // ---------- lumières des bords : chaque trait descend avec le défilement, à sa propre vitesse, et reboucle ----------
+  const edges = [...document.querySelectorAll('.edge-fx i')];
+  if (edges.length && !reduce) {
+    const SPEED = [0.32, 0.5, 0.75], OFFSET = [0.1, 0.45, 0.8];
+    let raf2 = 0;
+    const paint = () => {
+      raf2 = 0;
+      const vh = window.innerHeight, y = window.scrollY;
+      edges.forEach((el, i) => {
+        const k = i % 3, span = vh + el.offsetHeight;
+        const pos = ((y * SPEED[k] + (OFFSET[k] + (i >= 3 ? 0.5 : 0)) * span) % span) - el.offsetHeight;
+        el.style.transform = `translate3d(0, ${pos.toFixed(1)}px, 0)`;
+      });
+    };
+    window.addEventListener('scroll', () => { if (!raf2) raf2 = requestAnimationFrame(paint); }, { passive: true });
+    window.addEventListener('resize', paint);
+    paint();
+  }
+
   // ---------- 01 — Le problème : à mi-course de la scène fixe, les bulles passent du rouge au vert ----------
   const pain = document.querySelector('.pain');
   const painBub = pain && pain.querySelector('.bubbles');
