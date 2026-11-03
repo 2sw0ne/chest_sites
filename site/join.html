@@ -7,7 +7,7 @@
 <meta name="description" content="Ton invitation sur CHEST : inscription, accès, l'écosystème, ton compte relié et la méthode DMC avec ton éducateur.">
 <link rel="icon" type="image/png" href="/assets/logo-chest.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/legal.css?v=3">
 <style>
   /* ── Hero ── */
@@ -102,6 +102,14 @@
     .jn-cta, .tl-node{ transition:none; }
     .js .tl-step .tl-card{ opacity:1; transform:none; transition:none; }
   }
+  /* CHEST 2.0 (T-Rejoindre.html) : aurore animée de la connexion derrière le haut de page, CHEST en italique serif */
+  .jn-aurora{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; background:#050505; }
+  .jn-aurora canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; opacity:.75; }
+  .jn-aurora::after{ content:''; position:absolute; inset:0; background:linear-gradient(rgba(5,5,5,0) 35%, rgba(5,5,5,.9) 78%, #050505); }
+  .jn, .of-legal, footer{ position:relative; z-index:1; }
+  .jn-logo{ display:none; }
+  .jn em.g{ font-family:'Instrument Serif', Georgia, serif; font-style:italic; font-weight:400; letter-spacing:-.02em; padding-right:.06em; background:linear-gradient(90deg,#f6d3a8,#f9a45e); -webkit-background-clip:text; background-clip:text; }
+  .jn-from{ -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); background:rgba(10,10,12,.5); }
 </style>
 <script>document.documentElement.classList.add('js');</script>
 </head>
@@ -110,6 +118,7 @@
      Une page par éducateur, générée à partir de son code : son prénom, puis le parcours en cinq étapes (inscription,
      accès, écosystème, compte relié, méthode DMC) et l'inscription avec le code déjà rempli et verrouillé
      (/inscription?ref=CODE). Documents légaux sous la ligne de flottaison, comme sur la page de connexion. -->
+<div class="jn-aurora" aria-hidden="true"><canvas id="jnLight"></canvas><canvas id="jnStars"></canvas></div>
 <main class="jn">
   <section class="jn-hero">
     <div class="jn-hero__in">
@@ -253,5 +262,7 @@
 })();
 </script>
 <script src="/js/legal-links.js?v=2"></script>
+<script src="/js/hero-bg.js"></script>
+<script>try { CHESTHeroBg.init(document.getElementById('jnLight'), document.getElementById('jnStars'), {}); } catch (e) { /* fond simple */ }</script>
 </body>
 </html>

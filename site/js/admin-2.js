@@ -38,8 +38,10 @@
   });
   function paintHero() {
     const [title, sub] = HEAD[current()] || HEAD.overview;
+    const num = String(Object.keys(HEAD).indexOf(current()) + 1 || 1).padStart(2, '0');
+    try { const c = window.parent.document.getElementById('crumbPage'); if (c && window.parent !== window) c.textContent = title; } catch (e) { /* autre origine */ }
     hero.innerHTML = `<div class="am2v-ghost" aria-hidden="true">${esc(title)}</div>
-      <div class="am2v-txt"><span class="am2v-lb">01 — Espace membres</span><h1>${esc(title)}</h1><p>${esc(sub)}</p></div>`;
+      <div class="am2v-txt"><span class="am2v-lb">${num} — Espace membres</span><h1>${esc(title)}</h1><p>${esc(sub)}</p></div>`;
   }
 
   // ---------- barre du haut du shell : en ligne + période ----------

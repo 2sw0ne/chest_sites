@@ -38,3 +38,9 @@
 .auth-steps .is-on{ color:#f6f6f7; }
 .auth-steps .is-on i{ border:0; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e); }
 @media (max-width:640px){ .auth-top{ padding:16px; } .auth-steps{ margin-bottom:46px; } }
+/* connexion intégrée d'app.html (ids authEmail / authPassword) et étapes de l'inscription dans .auth-center */
+.auth-card .auth-field:has(#authEmail)::before{ content:'E-mail'; }
+.auth-card .auth-field:has(#authPassword)::before{ content:'Mot de passe'; }
+.auth-center:has(> .auth-steps){ flex-direction:column; }
+.auth-center > .auth-steps{ margin:0 auto 54px; flex:none; }
+.auth-card form .auth-field + .auth-field, .auth-card form .auth-field{ margin-top:26px; }

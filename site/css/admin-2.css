@@ -232,3 +232,16 @@ html.am2v #amQuick, html.am2v #amGiftBtn, html.am2v .am2-btn2[href*="offres"]{ d
 html.is-embedded.am2v .am2-crumb, html.is-embedded.am2v #amLive, html.is-embedded.am2v .am2-period-row{ display:none !important; }
 @media (max-width:900px){ .am2v-ghost{ font-size:80px; } .am2v-txt h1{ font-size:34px; } .am2v-tools{ margin-left:0; } }
 html.am2v .am2-bar{ margin-bottom:22px; }
+
+/* Maquettes Admin-Membres / Admin-Systeme (2026-11-03) : liste pleine largeur, la fiche s'ouvre en volet ;
+   interrupteurs gris « En service », rose « Maintenance » avec le libellé à gauche */
+html.am2v .am2-members .am2-hero{ display:none; }
+html.am2v .am2-members .am2-sheet{ display:none; }
+html.am2v .am2-members .am2-list{ flex-basis:100%; }
+.am-sw{ flex-direction:row-reverse; }
+.am-sw em{ text-align:right; color:#7a7a82; }
+.am-sw input:checked ~ em{ color:#f9a45e; }
+.am-sw > span{ width:34px; height:20px; background:rgba(255,255,255,.12); }
+.am-sw > span::after{ top:3px; left:3px; width:14px; height:14px; }
+.am-sw input:checked + span{ background:linear-gradient(135deg,#fc1283,#f9a45e); }
+.am-sw input:checked + span::after{ transform:translateX(14px); }

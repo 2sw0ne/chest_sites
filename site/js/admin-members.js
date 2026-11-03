@@ -982,12 +982,12 @@
   $('amRows').addEventListener('click', (e) => {
     if (e.target.closest('[data-more]')) { S.limit += 50; renderRows(); return; }
     const full = e.target.closest('[data-full]'); if (full) { openDrawer(Number(full.dataset.full)); return; }
-    const r = e.target.closest('.am-row'); if (r) selectMember(Number(r.dataset.id), true);
+    const r = e.target.closest('.am-row'); if (r) { selectMember(Number(r.dataset.id)); openDrawer(Number(r.dataset.id)); } // CHEST 2.0 : la fiche s'ouvre en volet
   });
   $('amRows').addEventListener('keydown', (e) => {
     const r = e.target.closest('.am-row'); if (!r) return;
     if (e.target.closest('[data-full]')) return;
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMember(Number(r.dataset.id), true); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMember(Number(r.dataset.id)); openDrawer(Number(r.dataset.id)); }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = e.key === 'ArrowDown' ? r.nextElementSibling : r.previousElementSibling; if (n && n.classList.contains('am-row')) n.focus(); }
   });
 
