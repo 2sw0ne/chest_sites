@@ -159,3 +159,9 @@ html.plan-no-berich .nav-i[data-page="berich"]::after{
   #chestShell.c2-shell #chestHq{ display:none !important; }
 }
 @media (max-width:900px){ #chestShell.c2-shell .sb-nav .nav-i{ font-size:9px; letter-spacing:-.02em; } #chestShell.c2-shell .sb-nav .nav-i .sb-txt{ padding:0 1px; } }
+/* iPhone : la barre d'onglets passe au-dessus de la barre blanche (indicateur d'accueil) — viewport-fit=cover dans app.html */
+@media (max-width:900px){
+  #chestShell.c2-shell > .sb{ height:calc(64px + max(env(safe-area-inset-bottom), 14px)) !important; padding-bottom:max(env(safe-area-inset-bottom), 14px) !important; }
+  #chestShell.c2-shell > .chest-main{ padding-bottom:calc(64px + max(env(safe-area-inset-bottom), 14px)) !important; }
+  #chestShell.c2-shell .c2-topbar{ padding-left:max(14px, env(safe-area-inset-left)) !important; padding-right:max(14px, env(safe-area-inset-right)) !important; }
+}
