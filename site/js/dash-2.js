@@ -115,6 +115,16 @@
     $('d2Line').setAttribute('d', line);
     $('d2Area').setAttribute('d', line + ' L' + W + ',' + H + ' L0,' + H + ' Z');
     $('d2Bt').setAttribute('d', '');
+    // vert au-dessus du solde de départ de la période, rouge en dessous (demande utilisateur 2026-11-03)
+    const t = Math.max(0, Math.min(1, (H - (eq[0] - lo) / (hi - lo) * H) / H)).toFixed(4);
+    const grad = (id, stops) => { const g = document.getElementById(id); if (!g) return; ['x1', 'y1', 'x2'].forEach((k) => g.setAttribute(k, '0')); g.setAttribute('y2', String(H)); g.setAttribute('gradientUnits', 'userSpaceOnUse');
+      g.innerHTML = stops.map(([o, c, a]) => `<stop offset="${o}" stop-color="${c}" stop-opacity="${a}"></stop>`).join(''); };
+    grad('eqLine', [[0, '#6ef2c9', 1], [t, '#33e6a6', 1], [t, '#ff4d5e', 1], [1, '#ff4d5e', 1]]);
+    grad('eqFill', [[0, '#33e6a6', 0.3], [t, '#33e6a6', 0.02], [t, '#ff4d5e', 0.02], [1, '#ff4d5e', 0.3]]);
+    const up = eq[eq.length - 1] >= eq[0];
+    $('d2Line').style.filter = up ? 'drop-shadow(rgba(51, 230, 166, 0.65) 0px 0px 8px)' : 'drop-shadow(rgba(255, 77, 94, 0.65) 0px 0px 8px)';
+    $('d2Dot').style.borderColor = up ? 'rgb(110, 242, 201)' : 'rgb(255, 120, 135)';
+    $('d2Dot').style.boxShadow = up ? 'rgba(51, 230, 166, 0.9) 0px 0px 14px' : 'rgba(255, 77, 94, 0.9) 0px 0px 14px';
     const last = pts[pts.length - 1];
     [$('d2Dot'), $('d2DotLbl')].forEach((el) => { el.hidden = false; el.style.left = (last[0] / W * 100) + '%'; el.style.top = last[1] + 'px'; });
     $('d2DotLbl').textContent = `${nfr(Math.round(eq[eq.length - 1]))} $`;

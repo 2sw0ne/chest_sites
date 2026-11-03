@@ -134,5 +134,6 @@ html.is-embedded .chest-main > main, html.is-embedded .br-page{ margin-left:auto
 html.is-embedded .chest-main [style*="max-width: 1180px"], html.is-embedded .chest-main [style*="max-width: 1040px"],
 html.is-embedded .chest-main [style*="max-width: 1240px"]{ margin-left:auto !important; margin-right:auto !important; }
 html.is-embedded body[data-page="backtesting"] .chest-main > main,
-html.is-embedded body[data-page="strategies"] .chest-main > main{ width:100%; max-width:1520px !important; box-sizing:border-box; }
+html.is-embedded body[data-page="strategies"] .chest-main > main,
+html.is-embedded body[data-page="journal"] .chest-main > main{ width:100%; max-width:1520px !important; box-sizing:border-box; }
 html.is-embedded body[data-page="school"] .chest-main > main{ width:100%; max-width:1180px; box-sizing:border-box; }

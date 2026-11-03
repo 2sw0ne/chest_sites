@@ -361,20 +361,12 @@
           </label>
           <div class="c2-search__list" id="c2SearchList" role="listbox" hidden></div>
         </div>
-        <div class="c2-notif">
-          <button type="button" id="c2Bell" aria-label="Notifications" aria-expanded="false" aria-controls="c2Notif" style="position: relative; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.024); color: rgb(155, 155, 161); display: grid; place-items: center; cursor: pointer;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg>
-            <span id="c2BellDot" hidden style="position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 999px; background: rgb(252, 18, 131); box-shadow: rgba(252, 18, 131, 0.9) 0px 0px 8px;"></span>
-          </button>
-          <div class="c2-notif__panel" id="c2Notif" role="dialog" aria-label="Notifications" hidden>
-            <div class="c2-notif__head"><b>Notifications</b><button type="button" id="c2NotifAll">Tout marquer lu</button></div>
-            <div class="c2-notif__list" id="c2NotifList"></div>
-          </div>
-        </div>
-        <!-- Espace éducateur : visible pour les comptes au rôle « éducateur » (nav.js), même bouton que la cloche. -->
-        <a href="#/educator" data-page="educator" data-educator-only hidden aria-label="Espace éducateur" title="Espace éducateur" style="position: relative; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.024); color: rgb(155, 155, 161); display: grid; place-items: center; cursor: pointer;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.6v4.2c0 1 2.2 2.4 5 2.4s5-1.4 5-2.4v-4.2"/><path d="M21 9.5v4.5"/></svg>
+        <!-- CHEST 2.0 (2026-11-03) : le compte remplace la cloche des notifications (demande utilisateur). -->
+        <a href="#/account" data-page="account" aria-label="Compte" title="Compte" style="position: relative; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.024); color: rgb(155, 155, 161); display: grid; place-items: center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4"></path></svg>
         </a>
+        <!-- Espace éducateur : visible pour les comptes au rôle « éducateur » (nav.js), même bouton que la cloche. -->
+        <a href="#/educator" data-page="educator" data-educator-only hidden aria-label="Espace éducateur" title="Espace éducateur" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.25) 0px 8px 24px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.6v4.2c0 1 2.2 2.2 5 2.2s5-1.2 5-2.2v-4.2"/></svg>Éducateur</a>
         <!-- HQ (admin principal) : ouvre CHEST HQ (js/hq.js, data-url). -->
         <a href="#" id="chestHq" data-admin-only data-owner-only hidden data-url="https://chest-hq.vercel.app" aria-label="CHEST HQ" title="CHEST HQ" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.04em; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.25) 0px 8px 24px;">HQ<canvas class="chest-hq__sky" width="32" height="14" aria-hidden="true" hidden></canvas></a>
       </div>
@@ -473,7 +465,7 @@
 </script>
 <script src="js/v2-shell.js?v=1"></script>
 <script src="js/hq.js?v=4"></script>
-<script src="js/shell-2.js?v=4"></script>
+<script src="js/shell-2.js?v=5"></script>
 <script src="js/liquid-glass.js?v=1"></script>
 <script src="js/legal-links.js?v=2"></script>
 <script src="js/consent.js?v=2"></script>

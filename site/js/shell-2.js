@@ -154,3 +154,14 @@ window.CHESTTopbar = (function () {
     },
   };
 })();
+
+// Logo du menu : rouvre l'écran Welcome (comme avant la 2.0), sinon le Dashboard.
+(function () {
+  const brand = document.querySelector('#chestShell .sb-brand');
+  if (!brand) return;
+  brand.addEventListener('click', (e) => {
+    if (!window.CHESTWelcome || !CHESTWelcome.show) return;
+    e.preventDefault();
+    CHESTWelcome.show();
+  });
+})();

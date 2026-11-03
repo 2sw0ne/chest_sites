@@ -2368,15 +2368,17 @@ CHESTTour.init([
     allRows = await CHESTJournal.entriesFor(acc, currentMember);
     document.getElementById('jrBalanceWarn').hidden = acc.balance > 0;
     document.getElementById('jrAddBtn').hidden = acc.mode === 'auto' || !(currentMember === 'all' || currentMember === 'main');
+    // CHEST 2.0 : la vue de la maquette est posée d'abord (js/journal-2.js) ; une erreur dans un bloc v2 ne peut plus l'empêcher.
+    document.getElementById('jrHistory').hidden = document.body.classList.contains('jr2-on') ? document.getElementById('jrHistory').hidden : true;
+    const subtitleOf = (a) => { try { return accountSubtitle(a); } catch (e) { return a.type === 'propfirm' ? 'Propfirm' : 'Compte propre'; } };
+    document.dispatchEvent(new CustomEvent('chest:jr-render', { detail: { acc, rows: allRows, member: currentMember, subtitle: subtitleOf(acc), subtitleOf,
+      openForm: (id) => { const r = allRows.find((x) => x.id === id); if (r) openForm(r); } } }));
     renderAccSwitcher();
     renderLiveBar(acc);
     renderConditions();
     renderStats(allRows);
     renderTable();
     onAccountChanged();
-    document.getElementById('jrHistory').hidden = document.body.classList.contains('jr2-on') ? document.getElementById('jrHistory').hidden : true;
-    document.dispatchEvent(new CustomEvent('chest:jr-render', { detail: { acc, rows: allRows, member: currentMember, subtitle: accountSubtitle(acc), subtitleOf: accountSubtitle,
-      openForm: (id) => { const r = allRows.find((x) => x.id === id); if (r) openForm(r); } } }));
     if (params.get('addlive') === '1') { openLiveModal(acc.id); history.replaceState(null, '', `journal.html?acc=${encodeURIComponent(acc.id)}`); }
     else syncLives(acc, false);
   }
@@ -2384,7 +2386,7 @@ CHESTTour.init([
   loadAndRender();
 })();
 </script>
-<script src="js/journal-2.js?v=2"></script>
+<script src="js/journal-2.js?v=3"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>

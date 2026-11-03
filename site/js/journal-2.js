@@ -68,8 +68,8 @@
     const short = ({ 2: 'mars', 4: 'mai', 5: 'juin', 7: 'août' })[M.m] || mm;
     const yEnd = Y(total);
     return `
-      <div style="position: relative; height: 260px; margin: 20px -36px 0px; mask-image: linear-gradient(90deg, transparent, rgb(0, 0, 0) 6%, rgb(0, 0, 0) 94%, transparent);">
-        <svg width="100%" height="260" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-label="P&amp;L cumulé du compte" style="display: block; overflow: visible;">
+      <div style="position: relative; height: clamp(200px, 30vh, 300px); margin: 20px -36px 0px; mask-image: linear-gradient(90deg, transparent, rgb(0, 0, 0) 6%, rgb(0, 0, 0) 94%, transparent);">
+        <svg width="100%" height="100%" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-label="P&amp;L cumulé du compte" style="display: block; overflow: visible; height: 100%;">
           <defs>
             <linearGradient id="jA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(${col},.3)"></stop><stop offset=".7" stop-color="rgba(${col},.04)"></stop><stop offset="1" stop-color="rgba(${col},0)"></stop></linearGradient>
             <linearGradient id="jL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(${col},.35)"></stop><stop offset=".6" stop-color="${hex}"></stop><stop offset="1" stop-color="#ffffff"></stop></linearGradient>
@@ -320,18 +320,20 @@
     const accounts = J().listAccounts();
     const others = await Promise.all(accounts.map(async (a, i) => ({
       a, color: COLORS[i % COLORS.length], subtitle: detail.subtitleOf ? detail.subtitleOf(a) : '',
-      rows: a.id === acc.id ? rows : await J().entriesFor(a, 'all').catch(() => []),
+      rows: a.id === acc.id ? rows : await Promise.resolve().then(() => J().entriesFor(a, 'all')).catch(() => []),
     })));
     if (state !== detail) return; // un rendu plus récent est passé entre-temps
     $('jr2').hidden = false;
     document.body.classList.add('jr2-on');
-    paintTopbar(acc);
-    const M = paintHero(acc, rows, others);
-    paintKpis(acc, rows);
-    paintConditions(acc, rows);
-    paintMonth(rows, M);
-    paintPositions(rows);
-    paintJournals(acc, others);
+    // chaque bloc est indépendant : un compte aux données incomplètes n'empêche pas les autres de s'afficher
+    const safe = (fn) => { try { return fn(); } catch (e) { console.warn('journal-2', e); return null; } };
+    safe(() => paintTopbar(acc));
+    const M = safe(() => paintHero(acc, rows, others)) || { y: new Date().getFullYear(), m: new Date().getMonth(), current: true };
+    safe(() => paintKpis(acc, rows));
+    safe(() => paintConditions(acc, rows));
+    safe(() => paintMonth(rows, M));
+    safe(() => paintPositions(rows));
+    safe(() => paintJournals(acc, others));
   }
 
   document.addEventListener('chest:jr-render', (e) => { render(e.detail); });
