@@ -1100,3 +1100,39 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 /* nouveau robot (vert, fond noir) : le noir disparaît par fusion */
 .vz-bot img{ width:118px; height:118px; filter:drop-shadow(0 0 22px rgba(43,228,192,.35)); mix-blend-mode:screen; }
 .vz-bot img{ filter:none; }
+
+/* ===== Téléphone (2026-11-03) ===== */
+@media (max-width:1180px){
+  .pain .bubbles{ height:auto !important; width:auto; margin-left:0; }
+  .pain .bub{ transform:none; }
+  .pain .core{ margin-bottom:28px; }
+  .brk{ margin:10px 0 0; }
+}
+@media (max-width:640px){
+  .hero{ padding-top:130px; }
+  .h1{ font-size:clamp(38px, 11vw, 52px); }
+  .h2, .nw .h2, .offers .h2{ font-size:clamp(28px, 8vw, 36px); }
+  .n89, .n10{ font-size:clamp(96px, 30vw, 130px); }
+  .pain .core-t{ font-size:18px; }
+  .pain{ padding:80px 0 60px; }
+  .kick{ font-size:18px; }
+  .seven{ font-size:96px; }
+  .sol{ padding-bottom:60px; }
+  .app-hint{ margin-top:24px; }
+  .tabs{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; margin:0 -16px; padding:0 16px; }
+  .tabs::-webkit-scrollbar{ display:none; }
+  .tab{ flex:none; }
+  .cap2{ padding:20px; }
+  .nw{ padding:60px 0 50px; }
+  .nw-card{ padding:20px; }
+  .vz-bot{ width:140px; height:140px; } .vz-bot img{ width:96px; height:96px; }
+  .mob{ padding:60px 0; }
+  .mob-vis{ min-height:560px; }
+  .mob-vis .iph{ transform:rotateZ(3deg) scale(.78); }
+  .offers{ padding:70px 0 60px; }
+  .offer{ padding:20px; }
+  .end{ padding-top:90px; padding-bottom:90px; }
+  .end-t{ font-size:clamp(46px, 14vw, 64px); }
+  .foot-card{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); padding:22px; gap:20px; }
+  .asc-gap, .asc{ height:min(42vh, 320px); }
+}
