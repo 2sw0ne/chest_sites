@@ -153,3 +153,44 @@ html.is-embedded body[data-page="school"] .chest-main > main{ width:100%; max-wi
 #chestShell .chest-maint__pills .is-off{ color:#f4d07a; background:rgba(232,179,57,.12); }
 #chestShell .chest-maint__back{ border-radius:999px !important; background:rgba(255,255,255,.04) !important; border:1px solid rgba(255,255,255,.14) !important; }
 @media (prefers-reduced-motion:reduce){ #chestShell .chest-maint__ic::after{ animation:none; } }
+
+/* ===== Téléphone (2026-11-03) : chiffres et titres héros à la taille d'un écran de téléphone ===== */
+@media (max-width:600px){
+  html.is-embedded #d2Bal{ font-size:44px !important; }
+  html.is-embedded #d2Bal *{ font-size:inherit !important; }
+  html.is-embedded #c2CalCode{ font-size:58px !important; }
+  html.is-embedded #c2CalMove{ font-size:42px !important; }
+  html.is-embedded .br-hero__num{ font-size:52px !important; }
+  html.is-embedded #scnrHeroName, body[data-page="strategies"] .scnr-hero__name{ font-size:46px !important; }
+  html.is-embedded [style*="font-size: 112px"]{ font-size:56px !important; }
+  html.is-embedded [style*="font-size: 100px"]{ font-size:50px !important; }
+  html.is-embedded [style*="font-size: 96px"]{ font-size:48px !important; }
+  html.is-embedded [style*="font-size: 72px"]{ font-size:42px !important; }
+  html.is-embedded h1[style*="font-size: 64px"], html.is-embedded [style*="font-size: 64px"]:not(.ghost){ font-size:38px !important; }
+  html.is-embedded .sc-door__n{ font-size:44px !important; }
+  html.is-embedded .ghost, html.is-embedded [class*="ghost"]{ max-width:100vw; overflow:hidden; }
+}
+@media (max-width:600px){
+  /* Calendrier : le contenu reprend la largeur de l'écran (jauge et textes à largeur fixe) */
+  html.is-embedded #calMain{ width:100% !important; max-width:100vw; box-sizing:border-box; overflow-x:hidden; }
+  html.is-embedded #calMain > section{ max-width:100%; box-sizing:border-box; padding-left:16px !important; padding-right:16px !important; }
+  html.is-embedded #c2CalGauge, html.is-embedded #c2CalGauge > div, html.is-embedded #c2CalPast, html.is-embedded #c2CalText, html.is-embedded #c2CalLock{ width:100% !important; max-width:100% !important; box-sizing:border-box; }
+  html.is-embedded #c2CalLock{ white-space:normal !important; text-align:center; }
+  /* BERICH : la page tient dans l'écran */
+  html.is-embedded .br-page{ max-width:100vw !important; box-sizing:border-box; overflow-x:hidden; }
+  html.is-embedded .br-top, html.is-embedded .br-top__right{ flex-wrap:wrap !important; min-width:0 !important; max-width:100%; }
+  html.is-embedded .br-planchip{ white-space:normal !important; max-width:100%; height:auto !important; min-height:32px; text-align:left; }
+  html.is-embedded .br-watch > span{ white-space:normal !important; }
+}
+@media (max-width:600px){
+  /* Admin et Éducateur : la page tient dans l'écran, les onglets défilent */
+  html.is-embedded main.am{ width:100% !important; max-width:100vw !important; min-width:0 !important; box-sizing:border-box; overflow-x:hidden; padding-left:16px !important; padding-right:16px !important; }
+  html.is-embedded main.am > *, html.is-embedded main.am .am-view, html.is-embedded main.am .am-grid > *, html.is-embedded main.am .am-kpis > *{ min-width:0 !important; max-width:100%; }
+  html.is-embedded main.am .am-nav, html.is-embedded main.am .am-nav__tabs{ max-width:100%; overflow-x:auto; flex-wrap:nowrap !important; scrollbar-width:none; }
+  html.is-embedded main.am .am-nav__tabs::-webkit-scrollbar{ display:none; }
+  html.is-embedded main.am .am-nav__tabs > *{ flex:none; }
+  html.is-embedded .am2-bar, html.is-embedded .am2v-tools{ flex-wrap:wrap !important; max-width:100%; }
+  html.is-embedded .ed-alert{ flex-wrap:wrap; max-width:100%; box-sizing:border-box; }
+  html.is-embedded main.am p, html.is-embedded main.am section{ max-width:100%; }
+}
+@media (max-width:600px){ html.is-embedded #chestShell, html.is-embedded #chestShell > .chest-main{ width:100% !important; max-width:100vw !important; min-width:0 !important; overflow-x:hidden; } }

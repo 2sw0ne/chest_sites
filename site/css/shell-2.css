@@ -93,3 +93,51 @@ html.plan-no-berich .nav-i[data-page="berich"]::after{
 #chestShell.c2-shell .c2-search label{ margin:0; }
 #chestShell.c2-shell .c2-topbar .chest-progress{ position:absolute; left:0; bottom:-1px; }
 #chestShell.c2-shell .c2-search label{ font-weight:400; font-size:inherit; }
+
+/* ===== Téléphone : l'app comme une application (2026-11-03) =====
+   Barre du haut compacte (logo, page en cours, actions), contenu sur toute la hauteur,
+   et le menu devient une barre d'onglets fixe en bas (icône + nom court), comme une app native. */
+.c2-mbrand{ display:none; }
+@media (max-width:900px){
+  #chestShell.c2-shell{ display:block !important; min-height:0 !important; }
+  #chestShell.c2-shell > .sb{ position:fixed !important; left:0; right:0; bottom:0; top:auto; z-index:60; flex:none !important; max-width:none !important; min-height:0 !important;
+    height:calc(64px + env(safe-area-inset-bottom)); padding:0 6px env(safe-area-inset-bottom); flex-direction:row; align-items:stretch;
+    background:rgba(8,8,10,.94); -webkit-backdrop-filter:blur(20px) saturate(1.2); backdrop-filter:blur(20px) saturate(1.2); border-top:1px solid rgba(255,255,255,.08); box-shadow:0 -12px 40px rgba(0,0,0,.45); }
+  #chestShell.c2-shell > .sb > :not(.sb-nav){ display:none !important; }
+  #chestShell.c2-shell .sb-nav{ flex:1; flex-direction:row !important; flex-wrap:nowrap !important; align-items:stretch; justify-content:space-between; gap:2px; margin:0 !important; padding:6px 0 !important;
+    overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  #chestShell.c2-shell .sb-nav::-webkit-scrollbar{ display:none; }
+  #chestShell.c2-shell .sb-nav .sb-sep{ display:none !important; }
+  #chestShell.c2-shell .sb-nav .nav-i{ flex:1 0 50px; flex-direction:column; justify-content:center; gap:4px; padding:6px 2px !important; border-radius:12px; font-size:10px; font-weight:600; letter-spacing:-.01em;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  #chestShell.c2-shell .sb-nav .nav-i .sb-txt{ display:block !important; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+  #chestShell.c2-shell .sb-nav .nav-i .ic{ flex:none; width:20px; height:20px; }
+  #chestShell.c2-shell .sb-nav .nav-i.on{ background:linear-gradient(180deg, rgba(252,18,131,.16), rgba(249,164,94,.04)); }
+  #chestShell.c2-shell .sb-nav .nav-i.on::before{ left:50%; top:-6px; width:22px; height:3px; margin:0 0 0 -11px; border-radius:0 0 3px 3px; }
+  #chestShell.c2-shell .sb-nav .nav-i:active{ transform:scale(.95); }
+  .chest-sidebar-overlay{ display:none !important; }
+
+  #chestShell.c2-shell > .chest-main{ height:100vh !important; height:100dvh !important; overflow:hidden !important; padding-bottom:calc(64px + env(safe-area-inset-bottom)); box-sizing:border-box; }
+  #chestShell.c2-shell .chest-view{ flex:1 1 auto; height:auto !important; min-height:0; }
+  #chestShell.c2-shell .c2-topbar{ min-height:54px !important; padding:6px 14px !important; padding-top:max(6px, env(safe-area-inset-top)) !important; gap:10px !important; flex-wrap:nowrap !important; }
+  .c2-mbrand{ display:grid; place-items:center; flex:none; width:32px; height:32px; border-radius:10px; }
+  .c2-mbrand img{ width:24px; height:24px; filter:drop-shadow(0 0 7px rgba(252,18,131,.5)); }
+  #chestShell.c2-shell #crumbCat, #chestShell.c2-shell #crumb > span:nth-child(2){ display:none; }
+  #chestShell.c2-shell #crumbPage{ font-size:15px; font-weight:700; letter-spacing:-.02em; white-space:nowrap; }
+  #chestShell.c2-shell .c2-search{ display:none !important; }
+  #chestShell.c2-shell .c2-topbar > div:last-of-type{ flex-wrap:nowrap !important; min-width:0; }
+  #chestShell.c2-shell #c2PageActions{ flex-wrap:nowrap !important; overflow-x:auto; max-width:calc(100vw - 170px); scrollbar-width:none; }
+  #chestShell.c2-shell #c2PageActions::-webkit-scrollbar{ display:none; }
+  #chestShell.c2-shell #c2PageActions > *{ flex:none; }
+  #chestShell.c2-shell .c2-topbar a[data-page="account"], #chestShell.c2-shell #chestHq{ width:34px !important; height:34px !important; }
+  #chestShell.c2-shell .c2-topbar a[data-educator-only]{ height:34px !important; padding:0 10px !important; font-size:0 !important; gap:0 !important; }
+  #chestShell.c2-shell .c2-topbar a[data-educator-only] svg{ width:16px; height:16px; }
+}
+@media (max-width:900px) and (prefers-reduced-motion:reduce){ #chestShell.c2-shell .sb-nav .nav-i:active{ transform:none; } }
+@media (max-width:900px){
+  #chestShell.c2-shell .c2-topbar > div[style*="margin-left: auto"]{ flex-wrap:nowrap !important; min-width:0; gap:8px !important; }
+  #chestShell.c2-shell #c2PageActions{ max-width:calc(100vw - 190px); }
+  #chestShell.c2-shell #crumb{ min-width:0; flex:0 1 auto; overflow:hidden; }
+  #chestShell.c2-shell #crumbPage{ overflow:hidden; text-overflow:ellipsis; }
+}
+@media (max-width:900px){ #chestShell.c2-shell > .chest-main{ width:100% !important; max-width:100vw !important; min-width:0 !important; } #chestShell.c2-shell .c2-topbar{ max-width:100vw; overflow:hidden; } }

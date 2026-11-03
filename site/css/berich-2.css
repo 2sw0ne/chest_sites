@@ -67,3 +67,4 @@ body[data-page="berich"] #brStreaks .br-section__head h3{ font-size:20px !import
 @media (max-width:900px){ body[data-page="berich"] .br-page{ padding:0 16px 48px !important; } body[data-page="berich"] .br-hero::before{ font-size:90px; top:-30px; }
   body[data-page="berich"] .br-flow{ grid-template-columns:1fr !important; } body[data-page="berich"] .br-curve{ margin:20px -16px 0 !important; } }
 body[data-page="berich"] .br-depth{ opacity:.55; }
+@media (max-width:600px){ body[data-page="berich"] .br-hero__num{ font-size:52px !important; } }
