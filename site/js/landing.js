@@ -158,8 +158,20 @@
     const preF = asc.querySelector('.asc-f'), preM = asc.querySelector('.asc-m');
     const RAMP = ' .:-=+*#%@';
     let cols = 0, rows = 0, mask = null, seed = null, live = false;
+    // souris : les caractères proches s'animent et prennent les couleurs de l'aurore du Welcome (calque canvas)
+    const preH = asc.querySelector('.asc-h');
+    let mx = -1e4, my = -1e4, mcx = -1e4, mcy = -1e4, hover = 0, cw = 6.62;
+    asc.addEventListener('pointermove', (e) => {
+      const r = asc.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top;
+      if (mcx < -1e3) { mcx = mx; mcy = my; }
+    });
+    asc.addEventListener('pointerleave', () => { mx = my = -1e4; });
     const build = () => {
-      const cw = 6.62, lh = 12; // police 11 px
+      const lh = 12; // police 11 px
+      // le raccourci CSS contient « / 12px » (interligne), que le canvas refuse : on recompose la police
+      const cs = getComputedStyle(preF), font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const mc = document.createElement('canvas').getContext('2d'); mc.font = font;
+      cw = mc.measureText('MMMMMMMMMM').width / 10 || 6.62;
       cols = Math.max(40, Math.floor(asc.clientWidth / cw));
       rows = Math.max(16, Math.floor(asc.clientHeight / lh));
       const c = document.createElement('canvas'); c.width = cols; c.height = rows;
@@ -183,11 +195,15 @@
       const target = reduce ? 1 : Math.min(1, Math.max(0, (vh - g.top) / g.height));
       open += (target - open) * 0.08;
       const T = reduce ? 0 : t / 1000;
+      // le point suivi glisse vers la souris ; l'effet monte et retombe en douceur
+      if (mx > -1e3) { mcx += (mx - mcx) * 0.18; mcy += (my - mcy) * 0.18; hover += (1 - hover) * 0.1; } else hover += (0 - hover) * 0.06;
+      const pc = mcx / cw, pr = mcy / 12;
       let f = '', m = '';
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
           const i = y * cols + x;
-          const v = 0.5 + 0.5 * Math.sin(x * 0.045 + T * 0.9 + Math.sin(y * 0.18 + T * 0.6) * 1.6) * Math.cos(y * 0.07 - T * 0.4);
+          let v = 0.5 + 0.5 * Math.sin(x * 0.045 + T * 0.9 + Math.sin(y * 0.18 + T * 0.6) * 1.6) * Math.cos(y * 0.07 - T * 0.4);
+          if (hover > 0.01) { const dx = (x - pc) / 2.1, dy = y - pr, d2 = dx * dx + dy * dy; v = Math.min(1, v + hover * 0.75 * Math.exp(-d2 / 70) * (0.75 + 0.25 * Math.sin(d2 * 0.08 - T * 6))); }
           f += RAMP[Math.min(9, Math.floor(v * v * 7))];
           const on = mask[i] > 0.15 && seed[i] < open * 1.15 - 0.1;
           m += on ? RAMP[Math.min(9, 5 + Math.floor(mask[i] * 3 + v * 1.9))] : ' ';
@@ -195,6 +211,12 @@
         f += '\n'; m += '\n';
       }
       preF.textContent = f; preM.textContent = m;
+      // calque aurore : le même champ, coloré aux couleurs de l'aurore du Welcome, visible seulement autour de la souris (masque CSS)
+      if (preH) {
+        if (hover > 0.02) preH.textContent = f;
+        asc.style.setProperty('--mx', mcx.toFixed(0) + 'px'); asc.style.setProperty('--my', mcy.toFixed(0) + 'px');
+        asc.style.setProperty('--hv', hover.toFixed(3)); asc.style.setProperty('--ax', (Math.sin(T * 0.4) * 30).toFixed(1) + '%');
+      }
       requestAnimationFrame(frame);
     };
     const start = () => { if (!mask) build(); if (!live) { live = true; requestAnimationFrame(frame); } };
