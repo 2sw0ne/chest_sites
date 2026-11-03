@@ -205,8 +205,20 @@
           let v = 0.5 + 0.5 * Math.sin(x * 0.045 + T * 0.9 + Math.sin(y * 0.18 + T * 0.6) * 1.6) * Math.cos(y * 0.07 - T * 0.4);
           if (hover > 0.01) { const dx = (x - pc) / 2.1, dy = y - pr, d2 = dx * dx + dy * dy; v = Math.min(1, v + hover * 0.75 * Math.exp(-d2 / 70) * (0.75 + 0.25 * Math.sin(d2 * 0.08 - T * 6))); }
           f += RAMP[Math.min(9, Math.floor(v * v * 7))];
-          const on = mask[i] > 0.15 && seed[i] < open * 1.15 - 0.1;
-          m += on ? RAMP[Math.min(9, 5 + Math.floor(mask[i] * 3 + v * 1.9))] : ' ';
+          // le mot réagit à la souris : effet de loupe qui repousse les lettres, onde, caractères brouillés
+          let si = i, near = 0;
+          if (hover > 0.01) {
+            const ddx = x - pc, ddy = (y - pr) * 2.1, d = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+            near = hover * Math.exp(-(d * d) / 520);
+            if (near > 0.01) {
+              const push = near * 9 + hover * 1.6 * Math.sin(d * 0.55 - T * 7) * Math.exp(-d / 26);
+              const sx = Math.round(x - (ddx / d) * push), sy = Math.round(y - (ddy / d) * push / 2.1);
+              si = (sy < 0 || sy >= rows || sx < 0 || sx >= cols) ? -1 : sy * cols + sx;
+            }
+          }
+          const mv = si < 0 ? 0 : mask[si];
+          const on = mv > 0.15 && seed[i] < open * 1.15 - 0.1;
+          m += on ? (near > 0.25 && Math.random() < near * 0.5 ? RAMP[5 + Math.floor(Math.random() * 5)] : RAMP[Math.min(9, 5 + Math.floor(mv * 3 + v * 1.9))]) : ' ';
         }
         f += '\n'; m += '\n';
       }
