@@ -45,6 +45,32 @@
 .cs-alt{ font:inherit; background:none; border:none; padding:10px 4px; font-size:13px; color:#9b9ba1; cursor:pointer; text-decoration:none; }
 .cs-alt:hover{ color:#f6f6f7; }
 .cs-note{ margin:14px 0 0; font-size:11.5px; line-height:1.5; color:#5c5c63; text-align:center; }
+/* CHEST 2.0 (maquettes T-Paiement, T-Conditions, Edu-Accueil, 2026-11-03) */
+.cs-box{ border-radius:20px; border-color:rgba(255,255,255,.13); background:linear-gradient(170deg, rgba(30,20,28,.92), rgba(10,10,12,.96)); box-shadow:0 40px 120px rgba(0,0,0,.7), inset 1.5px 1.5px 0 rgba(255,255,255,.1); }
+.cs-k{ font-family:"JetBrains Mono", ui-monospace, monospace; font-size:9.5px; font-weight:500; letter-spacing:.2em; color:#f9a45e; }
+.cs-box h2{ margin-top:6px; font-size:22px; }
+.cs-head{ display:flex; align-items:center; gap:14px; }
+.cs-head__ic{ flex:none; display:inline-flex; }
+.cs-head__ic svg{ display:block; }
+.cs-box.is-center{ text-align:center; }
+.cs-box.is-center .cs-head{ flex-direction:column; gap:12px; }
+.cs-box.is-center h2{ font-size:26px; margin-top:4px; }
+.cs-tile{ width:52px; height:52px; border-radius:16px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 14px 40px rgba(252,18,131,.35), inset 0 1px 0 rgba(255,255,255,.35); }
+.cs-tile svg{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.cs-check a{ color:#f9a45e; text-decoration:none; }
+.cs-check a:hover{ text-decoration:underline; text-underline-offset:2px; }
+.cs-alt.is-btn{ min-height:44px; padding:0 18px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:#f6f6f7; font-weight:600; }
+.cs-alt.is-btn:hover{ background:rgba(255,255,255,.08); }
+.cs-box.is-center .cs-foot{ flex-wrap:nowrap; }
+.cs-box.is-center .cs-alt.is-btn{ flex:1; }
+.cs-box.is-center .cs-cta{ flex:1.6; min-height:44px; border-radius:12px; }
+.cs-stripe{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:#7a7a82; margin-right:auto; }
+.cs-stripe svg{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.8; }
+.cs-box.is-pay .cs-foot{ flex-wrap:nowrap; }
+.cs-box.is-pay .cs-cta{ flex:none; min-height:42px; border-radius:12px; font-size:13.5px; }
+.cs-hint{ margin:10px 0 0; font-size:11.5px; color:#7a7a82; text-align:right; }
+.cs-box:has(.cs-cta:not(:disabled)) .cs-hint{ visibility:hidden; }
+@media (max-width:520px){ .cs-box.is-pay .cs-foot, .cs-box.is-center .cs-foot{ flex-wrap:wrap; } .cs-box.is-pay .cs-cta{ flex:1 1 100%; } }
 @media (prefers-reduced-motion:reduce){ .cs, .cs-box{ animation:none; } }`;
     document.head.appendChild(st);
   }
@@ -56,12 +82,12 @@
       const prev = document.activeElement;
       const el = document.createElement('div');
       el.className = 'cs';
-      el.innerHTML = `<div class="cs-box" role="dialog" aria-modal="true" aria-labelledby="csH">
-        ${o.kicker ? `<span class="cs-k">${o.kicker}</span>` : ''}<h2 id="csH">${o.title}</h2>${o.lead ? `<p class="cs-lead">${o.lead}</p>` : ''}
+      el.innerHTML = `<div class="cs-box ${o.center ? 'is-center' : ''} ${o.stripe ? 'is-pay' : ''}" role="dialog" aria-modal="true" aria-labelledby="csH">
+        <div class="cs-head">${o.icon ? `<span class="cs-head__ic">${o.icon}</span>` : ''}<div>${o.kicker ? `<span class="cs-k">${o.kicker}</span>` : ''}<h2 id="csH">${o.title}</h2></div></div>${o.lead ? `<p class="cs-lead">${o.lead}</p>` : ''}
         <div class="cs-checks">${o.checks.map((c, i) => `<label class="cs-check"><input type="checkbox" data-i="${i}"><span class="cs-box__b">${CHECK}</span><span>${c}</span></label>`).join('')}</div>
         <p class="cs-err" role="alert"></p>
-        <div class="cs-foot">${o.alt === null ? '' : o.altHref ? `<a class="cs-alt" href="${o.altHref}">${o.alt}</a>` : `<button type="button" class="cs-alt" data-cs="no">${o.alt || 'Annuler'}</button>`}
-          <button type="button" class="cs-cta" data-cs="yes" disabled>${o.cta}</button></div>
+        <div class="cs-foot">${o.stripe ? `<span class="cs-stripe"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Stripe</span>` : ''}${o.alt === null ? '' : o.altHref ? `<a class="cs-alt is-btn" href="${o.altHref}">${o.alt}</a>` : `<button type="button" class="cs-alt is-btn" data-cs="no">${o.alt || 'Annuler'}</button>`}
+          <button type="button" class="cs-cta" data-cs="yes" disabled>${o.cta}</button></div>${o.hint ? `<p class="cs-hint">${o.hint}</p>` : ''}
         ${o.note ? `<p class="cs-note">${o.note}</p>` : ''}</div>`;
       document.body.appendChild(el);
       const boxes = [...el.querySelectorAll('input[type="checkbox"]')], cta = el.querySelector('[data-cs="yes"]'), err = el.querySelector('.cs-err');
@@ -98,8 +124,13 @@
   function purchase(offer) {
     const eur = (n) => Number(n).toLocaleString('fr-FR') + ' €';
     const dur = offer.months === 12 ? '1 an' : `${offer.months} mois`;
+    const R = window.CHESTRank;
+    const fam = offer.group === 'essentiel' ? 'Essentiel' : offer.group === 'premium' ? 'Premium' : '';
+    const name = fam && offer.level && R && R.ROMAN ? `${fam} ${R.ROMAN[offer.level] || offer.level}` : offer.name;
+    let icon = '';
+    try { icon = R && offer.group ? R.badge(offer.group, offer.level, 40) : ''; } catch (e) { /* sans badge */ }
     return dialog({
-      kicker: 'Avant le paiement', title: `${offer.name} · ${eur(offer.price)}`,
+      kicker: 'Avant le paiement', title: `${name} · ${eur(offer.price)}`, icon, stripe: true, hint: 'Coche les trois cases pour continuer.',
       lead: `${dur} d’accès, payé une fois, <b>sans renouvellement automatique</b>. Paiement sécurisé par Stripe : CHEST ne voit jamais ta carte.`,
       checks: [
         `J’ai lu et j’accepte les ${doc('cgv', 'conditions générales de vente')} et la ${doc('remboursement', 'politique de remboursement')}.`,
@@ -118,6 +149,7 @@
     if (!u || !u.terms || u.terms.accepted === u.terms.current) return;
     const first = !u.terms.accepted;
     await dialog({
+      center: true, icon: '<span class="cs-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></span>',
       kicker: first ? 'Documents légaux' : 'Mise à jour', title: first ? 'Nos règles, avant de continuer' : 'Nos conditions évoluent',
       lead: first ? 'CHEST se dote de conditions d’utilisation et d’une politique de confidentialité. Prends une minute pour les lire : ton accord est nécessaire pour continuer.'
         : 'Une nouvelle version de nos documents est en ligne. Ton accès et son prix ne changent pas.',
@@ -133,6 +165,7 @@
     const u = await me().catch(() => null);
     if (!u || u.role !== 'educator' || !u.terms || u.terms.eduAccepted === u.terms.eduCurrent) return;
     await dialog({
+      center: true, icon: '<span class="cs-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/></svg></span>',
       kicker: 'Programme éducateur', title: 'Avant de partager ton lien',
       lead: 'Tu vas parler de CHEST et accompagner des membres. Quelques règles protègent tes membres, CHEST et toi.',
       checks: [
