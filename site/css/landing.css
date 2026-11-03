@@ -891,11 +891,6 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 
 /* ===== 2026-11-03 (retours) ===== */
 /* grille de fond sur toute la page (esprit cibby.app) */
-/* grille de fond (esprit cibby.app) seulement de 03 à 04, fondue en haut et en bas */
-.nw::before, .mob::before{ content:''; position:absolute; z-index:-1; top:0; bottom:0; left:calc(50% - 50vw); right:calc(50% - 50vw); pointer-events:none;
-  background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size:40px 40px; background-position:center top; }
-.nw::before{ -webkit-mask-image:linear-gradient(transparent, #000 160px); mask-image:linear-gradient(transparent, #000 160px); }
-.mob::before{ -webkit-mask-image:linear-gradient(#000 calc(100% - 200px), transparent); mask-image:linear-gradient(#000 calc(100% - 200px), transparent); }
 /* bulles : étalées sur presque toute la largeur de l'écran, à ~110 px des bords */
 @media (min-width:1181px){
   .pain .bubbles{ width:calc(100vw - 230px); max-width:none; margin-left:calc(50% - 50vw + 115px); margin-right:0; }
@@ -919,13 +914,54 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 /* Transition 01 → 02 : deux rubans croisés qui défilent en sens inverse */
 .brk{ position:relative; z-index:2; height:260px; margin:-40px 0 -60px; overflow:hidden; display:grid; place-items:center; }
 .brk-r{ position:absolute; left:-5%; right:-5%; overflow:hidden; padding:18px 0; white-space:nowrap; }
-.brk-r > div{ display:flex; width:max-content; animation:marq 46s linear infinite; }
+.brk-r > div{ display:flex; width:max-content; will-change:transform; }
 .brk-r span{ padding:0 22px; font-size:clamp(22px, 2.4vw, 34px); font-weight:700; letter-spacing:-.04em; }
 .brk-r i{ font-style:normal; font-size:18px; align-self:center; }
 .brk-r--a{ transform:rotate(-4deg); background:linear-gradient(90deg, #fc1283, #f9a45e); color:#0a0507; box-shadow:0 30px 80px rgba(252,18,131,.35); z-index:2; }
 .brk-r--a i{ color:rgba(10,5,7,.55); }
 .brk-r--b{ transform:rotate(3deg); background:rgba(14,12,14,.92); color:#f6f6f7; box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
-.brk-r--b > div{ animation-direction:reverse; animation-duration:58s; }
+
 .brk-r--b span{ color:#c9c9ce; } .brk-r--b i{ color:#f9a45e; }
 @media (max-width:860px){ .brk{ height:180px; } .brk-r{ padding:12px 0; } }
 @media (prefers-reduced-motion:reduce){ .brk-r > div{ animation:none; } }
+
+/* ===== Finitions 2026-11-03 (bibliothèque : méthode site premium, Emil Kowalski, kit CHEST) ===== */
+/* Étiquettes de section : plus de petites capitales espacées en mono. Numéro dans une pastille cerclée du dégradé,
+   intitulé en Instrument Serif italique, comme les mots en italique des titres. */
+.kick{ gap:12px; font-family:var(--serif); font-style:italic; font-size:21px; font-weight:400; letter-spacing:-.01em; text-transform:none; color:#c9c9ce; }
+.kick i{ display:none; }
+.kick b{ display:inline-grid; place-items:center; min-width:34px; height:24px; padding:0 9px; border-radius:999px; border:1px solid transparent;
+  background:linear-gradient(#0d0a0c, #0d0a0c) padding-box, linear-gradient(120deg, #fc1283, #f9a45e) border-box;
+  font-family:var(--sans); font-style:normal; font-size:11px; font-weight:600; letter-spacing:.02em; color:#f6f6f7; font-variant-numeric:tabular-nums; }
+
+/* Bulles : verre en couches (reflet en haut, grain fin, liseré dégradé), profondeur au défilement, éclat en particules */
+.bub-f{ position:relative; overflow:hidden; }
+.bub-f::before{ content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:.07; mix-blend-mode:overlay;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"); }
+.bub-f::after{ content:''; position:absolute; inset:0; border-radius:inherit; padding:1px; pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; }
+.bub-a{ background:linear-gradient(180deg, rgba(40,16,22,.82), rgba(16,9,12,.86)); box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 30px 70px rgba(0,0,0,.5), 0 0 60px rgba(255,84,104,.07); }
+.bub-a::after{ background:linear-gradient(160deg, rgba(255,120,135,.55), rgba(255,84,104,.12) 45%, rgba(255,84,104,.05)); }
+.bub-b{ background:linear-gradient(180deg, rgba(14,36,28,.84), rgba(8,16,13,.88)); box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 30px 70px rgba(0,0,0,.5), 0 0 60px rgba(51,230,166,.1); }
+.bub-b::after{ background:linear-gradient(160deg, rgba(120,255,205,.6), rgba(51,230,166,.14) 45%, rgba(51,230,166,.05)); }
+.bub-ic{ box-shadow:inset 0 0 0 1px rgba(255,84,104,.32), 0 6px 18px rgba(255,84,104,.18); }
+.bub-b .bub-ic{ box-shadow:inset 0 0 0 1px rgba(51,230,166,.35), 0 6px 18px rgba(51,230,166,.2); }
+.pain .bub{ transform:translate3d(0, var(--py, 0px), 0); }
+.bubbles.in .bub{ animation:pop .9s var(--ease) both, floaty var(--fd, 7s) ease-in-out infinite; }
+/* entrée de la face verte avec un léger dépassement (ressort) */
+.bubbles.is-flip .bub-b{ transition-timing-function:ease-out, cubic-bezier(.34,1.56,.64,1), ease-out; }
+/* particules de l'éclat (créées en JS) */
+.bub-p{ position:absolute; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; pointer-events:none; opacity:0; z-index:3; background:#ff6b7d; box-shadow:0 0 10px rgba(255,84,104,.8); }
+.bubbles.is-flip .bub-p{ animation:bubP .75s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--k) * 45ms); }
+@keyframes bubP{ 0%{ opacity:1; transform:translate(0,0) scale(1); } 60%{ background:#33e6a6; box-shadow:0 0 10px rgba(51,230,166,.8); } 100%{ opacity:0; transform:translate(var(--dx), var(--dy)) scale(.2); background:#33e6a6; } }
+
+/* 02 — la fenêtre de démo se redresse en entrant (perspective liée au défilement, JS --wr) */
+.sol .win{ transform:perspective(1600px) rotateX(calc(var(--wr, 0) * 16deg)) scale(calc(1 - var(--wr, 0) * .07)); transform-origin:50% 0; will-change:transform; }
+
+/* rubans : grain et reflet pour ne pas faire « aplat » */
+.brk-r--a{ background:linear-gradient(90deg, #fc1283, #ff5b6e 50%, #f9a45e); box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.25), 0 30px 80px rgba(252,18,131,.35); }
+.brk-r--b{ box-shadow:inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.08), 0 20px 60px rgba(0,0,0,.6); }
+
+@media (prefers-reduced-motion:reduce){
+  .pain .bub{ transform:none; } .bubbles.is-flip .bub-p{ animation:none; } .sol .win{ transform:none; }
+}

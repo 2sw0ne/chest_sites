@@ -117,11 +117,70 @@
     titles.forEach((t) => tio.observe(t));
   }
 
+  // ---------- rubans 01 → 02 : défilent en continu, plus vite quand on fait défiler la page ----------
+  const ribbons = [...document.querySelectorAll('.brk-r > div')];
+  if (ribbons.length) {
+    let last = performance.now(), lastY = window.scrollY, boost = 0;
+    const off = ribbons.map(() => 0);
+    const run = (t) => {
+      const dt = Math.min(64, t - last); last = t;
+      const y = window.scrollY, dy = y - lastY; lastY = y;
+      boost += (dy * 0.9 - boost) * 0.12; // élan qui retombe doucement
+      ribbons.forEach((el, i) => {
+        const half = el.scrollWidth / 2, dir = i % 2 ? 1 : -1;
+        if (!half) return;
+        off[i] = (off[i] + dir * ((reduce ? 0 : 0.045 * dt) + Math.abs(boost) * 0.6)) % half;
+        el.style.transform = `translate3d(${(dir < 0 ? off[i] : off[i] - half).toFixed(1)}px, 0, 0)`;
+      });
+      requestAnimationFrame(run);
+    };
+    requestAnimationFrame(run);
+  }
+
+  // ---------- 02 : la fenêtre de démo arrive inclinée et se redresse en montant vers le centre ----------
+  if (!reduce) {
+    let raf4 = 0;
+    const tilt = () => {
+      raf4 = 0;
+      const w = document.querySelector('.sol .win'); if (!w) return;
+      const r = w.getBoundingClientRect(), vh = window.innerHeight;
+      const k = Math.min(1, Math.max(0, (r.top - vh * 0.12) / (vh * 0.75)));
+      w.style.setProperty('--wr', k.toFixed(3));
+    };
+    window.addEventListener('scroll', () => { if (!raf4) raf4 = requestAnimationFrame(tilt); }, { passive: true });
+    tilt();
+  }
+
   // ---------- 01 — Le problème : à mi-course de la scène fixe, les bulles passent du rouge au vert ----------
   const pain = document.querySelector('.pain');
   const painBub = pain && pain.querySelector('.bubbles');
   if (pain && painBub) {
     let raf = 0;
+    // chaque bulle : une profondeur, une durée de flottement, et 8 particules pour l'éclat (tirées au hasard une fois)
+    const bubs = [...painBub.querySelectorAll('.bub')];
+    bubs.forEach((b) => {
+      b._z = 0.45 + Math.random() * 0.9;
+      b.style.setProperty('--fd', (6 + Math.random() * 4).toFixed(1) + 's');
+      for (let i = 0; i < 8; i++) {
+        const q = document.createElement('i'); q.className = 'bub-p'; q.setAttribute('aria-hidden', 'true');
+        const a = (i / 8) * Math.PI * 2 + Math.random() * 0.5, d = 70 + Math.random() * 70;
+        q.style.setProperty('--dx', (Math.cos(a) * d * 1.6).toFixed(0) + 'px');
+        q.style.setProperty('--dy', (Math.sin(a) * d * 0.7).toFixed(0) + 'px');
+        b.appendChild(q);
+      }
+    });
+    // 90 → 10 : le chiffre vert décompte au moment de la bascule
+    const n10 = painBub.querySelector('.n10');
+    const countDown = () => {
+      if (!n10 || reduce) return;
+      const t0 = performance.now(), D = 700;
+      const step = (t) => {
+        const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3);
+        n10.textContent = Math.round(90 - 80 * e) + ' %';
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
     const tick = () => {
       raf = 0;
       const r = pain.getBoundingClientRect(), vh = window.innerHeight;
@@ -129,7 +188,10 @@
       // scène fixe : bascule à 45 % de la course ; sans scène fixe (mobile) : quand la section a bien défilé
       const p = r.height > vh * 1.5 ? -r.top / run : (vh * 0.55 - r.top) / r.height;
       const flip = p > 0.45;
+      // profondeur : chaque bulle glisse à sa vitesse pendant la scène fixe
+      if (!reduce && r.height > vh * 1.5) bubs.forEach((b) => b.style.setProperty('--py', ((0.5 - Math.min(1, Math.max(0, p))) * 140 * b._z).toFixed(1) + 'px'));
       if (flip !== painBub.classList.contains('is-flip')) {
+        if (flip) countDown();
         painBub.classList.toggle('is-flip', flip);
         painBub.querySelector('.core-a').setAttribute('aria-hidden', String(flip));
         painBub.querySelector('.core-b').setAttribute('aria-hidden', String(!flip));
