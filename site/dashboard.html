@@ -263,6 +263,22 @@
   .objective-row .check.ko{ background:rgba(255,77,94,.16); color:var(--red); }
   .objective-row__wrap{ display:flex; align-items:center; }
 
+  /* 05 — Performance par jour (CHEST 2.0, 2026-11-03) */
+  .d2-perf{ display:flex; flex-direction:column; padding-top:6px; }
+  .d2-perf .mini-cal__totals{ margin:0 0 12px; }
+  .d2-perf .mini-cal__head{ margin-bottom:12px; }
+  .d2-perf .mini-cal__range{ flex-basis:auto; margin-left:auto; color:#7a7a82; font-family:"JetBrains Mono", ui-monospace, monospace; font-size:10.5px; }
+  .d2-perf .day-nav__btn{ width:28px; height:28px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:#c9c9ce; }
+  .d2-perf .day-nav__btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .d2-perf .day-nav__today{ height:28px; padding:0 12px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:#9b9ba1; font-size:12px; }
+  .d2-perf .day-nav__today.is-active{ background:#f6f6f7; color:#050505; border-color:#f6f6f7; }
+  .d2-perf .mini-cal__grid{ gap:6px; }
+  .d2-perf .mini-cal__cell{ border-radius:10px; background:rgba(255,255,255,.025); border-color:rgba(255,255,255,.06); padding:6px 7px; }
+  .d2-perf .mini-cal__cell .p{ font-size:10.5px; }
+  .d2-calset{ margin-left:auto; width:28px; height:28px; display:grid; place-items:center; border-radius:9px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:#9b9ba1; cursor:pointer; }
+  .d2-calset[hidden]{ display:none; }
+  .d2-calset svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.6; }
+  .d2-calset:hover{ color:#f6f6f7; }
   .mini-cal{ }
   .mini-cal__head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:10px; }
   .mini-cal__range{ font-size:11px; color:var(--faint); flex-basis:100%; }
@@ -792,15 +808,22 @@
       <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px;">
         <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0px;">
           <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;">
-            <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">05 — Derniers trades</span>
-            <a href="journal.html" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);">Journal →</a>
+            <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">05 — Performance par jour</span>
+            <button type="button" class="d2-calset" id="miniCalSettingsBtn" title="Période affichée" aria-label="Période affichée" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
           </div>
-          <div style="overflow-x: auto;">
-            <div id="d2Trades" style="min-width: 420px; display: flex; flex-direction: column;">
-              <div style="display: grid; grid-template-columns: 1.2fr 0.8fr 1fr 0.7fr 1fr; gap: 10px; padding: 8px; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: rgb(122, 122, 130); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
-                <span>Paire</span><span>Sens</span><span>Ouvert</span><span>R</span><span style="text-align: right;">Résultat</span>
-              </div><div id="d2TradeRows" style="display: contents;"></div>
+          <!-- Retour utilisateur 2026-11-03 : « Performance par jour » de l'ancien Dashboard à la place des derniers trades -->
+          <div class="d2-perf">
+            <div class="mini-cal__totals" id="calWeeks"></div>
+            <div class="mini-cal__head">
+              <div class="day-nav">
+                <button type="button" id="calPrev" class="day-nav__btn" aria-label="Fenêtre précédente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+                <button type="button" id="calToday" class="day-nav__today is-active">Aujourd’hui</button>
+                <button type="button" id="calNext" class="day-nav__btn" aria-label="Fenêtre suivante" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+              </div>
+              <span class="mini-cal__range" id="calRange"></span>
             </div>
+            <div class="mini-cal__grid" id="miniCalGrid"></div>
+            <div id="d2TradeRows" hidden></div>
           </div>
         </div>
 
@@ -829,9 +852,6 @@
     <span id="kpiRR"></span><span id="kpiWinrate"></span><span id="kpiWinrateSub"></span><span id="kpiDD"></span><span id="kpiDDSub"></span>
     <span id="kpiTradedDays"></span><span id="kpiTradedDaysSub"></span>
     <button type="button" id="editObjectivesBtn"></button><div id="objectivesList"></div>
-    <button type="button" id="miniCalSettingsBtn" hidden></button><div id="calWeeks"></div>
-    <button type="button" id="calPrev"></button><button type="button" id="calToday"></button><button type="button" id="calNext"></button>
-    <span id="calRange"></span><div id="miniCalGrid"></div>
     <button type="button" id="toolsToggle"></button><div id="toolsPanel"><div id="currencyStrength"></div></div>
   </div>
 
@@ -956,7 +976,7 @@ CHESTTour.init([
   { selector: '.d2-band', title: 'Ton solde et tes indicateurs', text: 'Le solde du compte, le résultat de la période, le taux de réussite, le profit factor et le drawdown utilisé.' },
   { selector: '.d2-chart', title: 'Courbe d’equity', text: 'L’évolution de ton compte, construite à partir de tes vraies positions synchronisées.' },
   { selector: '.d2-today', title: 'Aujourd’hui', text: 'Les sessions ouvertes en ce moment, les annonces du jour et la force des devises en H4.' },
-  { selector: '.d2-bottom', title: 'Trades et signaux', text: 'Tes derniers trades et les derniers signaux des scanners sur les paires que tu suis.' }
+  { selector: '.d2-bottom', title: 'Performance et signaux', text: 'Le résultat de chaque jour de trading avec les totaux par semaine, et les derniers signaux des scanners sur les paires que tu suis.' }
 ]);
 </script>
 <script src="js/v2.js?v=5"></script>

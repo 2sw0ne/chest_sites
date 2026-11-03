@@ -2393,9 +2393,12 @@ CHESTTour.init([
   }
 
   loadAndRender();
+  // Passer d'un journal à l'autre sans recharger la page (retour utilisateur 2026-11-03, comme le Backtesting)
+  window.CHESTJournalGo = (id) => { history.pushState(null, '', `journal.html?acc=${encodeURIComponent(id)}`); loadAndRender(); };
+  window.addEventListener('popstate', () => loadAndRender());
 })();
 </script>
-<script src="js/journal-2.js?v=5"></script>
+<script src="js/journal-2.js?v=6"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>

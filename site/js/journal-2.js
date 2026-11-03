@@ -351,7 +351,7 @@
     if (!state) return;
     const t = e.target.closest('#jr2 [data-jr2], #jr2 [data-acc], #jr2 [data-filter], #jr2 [data-edit], #jr2 [data-all]');
     if (!t) return;
-    if (t.dataset.acc) { if (t.dataset.acc !== state.acc.id) location.href = 'journal.html?acc=' + encodeURIComponent(t.dataset.acc); return; }
+    if (t.dataset.acc) { if (t.dataset.acc !== state.acc.id) { if (window.CHESTJournalGo) window.CHESTJournalGo(t.dataset.acc); else location.href = 'journal.html?acc=' + encodeURIComponent(t.dataset.acc); } return; }
     if (t.dataset.filter) { filter = t.dataset.filter; paintPositions(state.rows); return; }
     if (t.dataset.edit) { if (state.openForm) state.openForm(t.dataset.edit); return; }
     if (t.dataset.all !== undefined) {
