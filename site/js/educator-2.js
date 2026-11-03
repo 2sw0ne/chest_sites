@@ -83,3 +83,4 @@
   });
   document.addEventListener('chest:edu-render', (e) => { render(e.detail); members2(e.detail.D); });
 })();
+window.addEventListener('load', () => setTimeout(() => { const n = document.querySelector('#edNav [aria-selected="true"]'); try { const c = window.parent !== window && window.parent.document.getElementById('crumbPage'); if (c && n && n.dataset.view !== 'overview') c.textContent = n.textContent.replace(/\d+/g, '').trim(); } catch (e) { /* autre origine */ } }, 120));

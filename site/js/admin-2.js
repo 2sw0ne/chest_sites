@@ -69,3 +69,5 @@
   if (period) mo.observe(period, { subtree: true, attributes: true, attributeFilter: ['class', 'data-off'] });
   paint();
 })();
+// le shell réécrit le titre de la barre du haut au chargement de la page : on repasse après lui
+window.addEventListener('load', () => setTimeout(() => { const n = document.querySelector('#amNav [aria-selected="true"]'); try { const c = window.parent !== window && window.parent.document.getElementById('crumbPage'); if (c && n) c.textContent = n.textContent.replace(/\d+/g, '').trim(); } catch (e) { /* autre origine */ } }, 120));

@@ -245,3 +245,11 @@ html.am2v .am2-members .am2-list{ flex-basis:100%; }
 .am-sw > span::after{ top:3px; left:3px; width:14px; height:14px; }
 .am-sw input:checked + span{ background:linear-gradient(135deg,#fc1283,#f9a45e); }
 .am-sw input:checked + span::after{ transform:translateX(14px); }
+/* Rangs / Engagement : le grand titre de la vue suffit (maquettes) */
+html.am2v .am-view[data-panel="ranks"] > .am2-sec:first-child, html.am2v .am-view[data-panel="engagement"] > .am2-sec:first-child{ display:none; }
+/* Offrir un Privilège (maquette Admin-Privilege) : en-tête centré, bouton bleu du Privilège */
+#amGift .am-modal__win{ text-align:left; }
+#amGift .am-modal__badge, #amGift #amGiftT, #amGift .am-modal__lead{ margin-left:auto; margin-right:auto; text-align:center; }
+#amGift .am-modal__badge{ display:flex; justify-content:center; }
+#amGift .am-field > label, #amGift .am-sub{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; }
+#amGift button[type="submit"]{ background:linear-gradient(135deg,#5b8cff,#8fb5ff) !important; box-shadow:0 12px 34px rgba(91,140,255,.35) !important; color:#fff !important; }
