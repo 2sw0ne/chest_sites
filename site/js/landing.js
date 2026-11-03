@@ -83,30 +83,38 @@
   }
 
   // ---------- Bulles du problème ----------
-  // ---------- aurore des côtés, de « 03 — Une nouvelle façon de trader » jusqu'aux offres ----------
-  // La piste couvre ces sections ; la scène reste collée à l'écran pendant qu'on la parcourt (comme les 90 %),
-  // l'aurore descend avec le défilement puis s'estompe en arrivant sur les prix.
-  const track = document.querySelector('.aur-track');
-  const nwSec = document.getElementById('automatisation'), offSec = document.getElementById('offres');
-  if (track && nwSec && offSec) {
-    const stage = track.querySelector('.aur-stage');
-    const place = () => {
-      track.style.top = nwSec.offsetTop + 'px';
-      track.style.height = (offSec.offsetTop + offSec.offsetHeight - nwSec.offsetTop) + 'px';
+  // ---------- titres : chaque lettre arrive d'un flou, un peu plus bas, l'une après l'autre ----------
+  // (esprit duocase.lol). Les mots restent insécables ; un passage en dégradé (.gt) arrive d'un bloc pour garder son dégradé.
+  const splitTitle = (el) => {
+    let n = 0;
+    const walk = (node) => {
+      [...node.childNodes].forEach((c) => {
+        if (c.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          c.textContent.split(/(\s+)/).forEach((w) => {
+            if (!w) return;
+            if (/^\s+$/.test(w)) { frag.appendChild(document.createTextNode(w)); return; }
+            const word = document.createElement('span'); word.className = 'tw';
+            [...w].forEach((ch) => { const s = document.createElement('span'); s.className = 'tc'; s.style.setProperty('--i', n++); s.textContent = ch; word.appendChild(s); });
+            frag.appendChild(word);
+          });
+          c.replaceWith(frag);
+        } else if (c.nodeType === 1) {
+          if (c.classList.contains('gt') || c.tagName === 'BR') { if (c.tagName !== 'BR') { c.classList.add('tc', 'tc--blk'); c.style.setProperty('--i', n); n += 6; } }
+          else walk(c);
+        }
+      });
     };
-    let raf3 = 0;
-    const move = () => {
-      raf3 = 0;
-      const r = track.getBoundingClientRect(), vh = window.innerHeight;
-      const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - vh)));
-      const fadeIn = Math.min(1, Math.max(0, (vh - r.top) / (vh * 0.6)));
-      stage.style.setProperty('--y', (p * 70).toFixed(2) + 'vh');
-      stage.style.opacity = (fadeIn * (p < 0.7 ? 1 : Math.max(0, 1 - (p - 0.7) / 0.3))).toFixed(3);
-    };
-    place(); move();
-    window.addEventListener('resize', () => { place(); move(); });
-    window.addEventListener('load', () => { place(); move(); });
-    window.addEventListener('scroll', () => { if (!raf3) raf3 = requestAnimationFrame(move); }, { passive: true });
+    el.setAttribute('aria-label', el.textContent.replace(/\s+/g, ' ').trim());
+    walk(el);
+    [...el.querySelectorAll('.tw, .tc--blk')].forEach((x) => x.setAttribute('aria-hidden', 'true'));
+    el.classList.add('t-split');
+  };
+  if (!reduce && 'IntersectionObserver' in window) {
+    const titles = [...document.querySelectorAll('.hero .h1, .h2, .end-t')];
+    titles.forEach(splitTitle);
+    const tio = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('t-in'); tio.unobserve(e.target); } }), { threshold: 0.35 });
+    titles.forEach((t) => tio.observe(t));
   }
 
   // ---------- 01 — Le problème : à mi-course de la scène fixe, les bulles passent du rouge au vert ----------
