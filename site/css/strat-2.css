@@ -69,3 +69,6 @@ body[data-page="strategies"] #alrPanel .alr-last__head::before{ content:'Derniè
 body[data-page="strategies"] #alrPanel .alr-last__badge{ height:auto !important; padding:0 !important; border:0 !important; background:none !important; font-size:12.5px !important; letter-spacing:0 !important; text-transform:none !important; }
 body[data-page="strategies"] #alrPanel .alr-last__badge i{ display:none; }
 body[data-page="strategies"] #alrPanel .alr-last__time{ font-size:12.5px; color:#9b9ba1; }
+/* fenêtre du graphique : le graphique seul, sans cadre ni légende (2026-11-03) */
+body[data-page="strategies"] .scnr-media.card{ padding:0 !important; border:0 !important; border-radius:14px !important; background:transparent !important; box-shadow:none !important; }
+body[data-page="strategies"] .scnr-media.card::before, body[data-page="strategies"] .scnr-media.card::after{ display:none !important; }

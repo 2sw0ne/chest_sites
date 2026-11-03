@@ -37,3 +37,9 @@ body[data-page="educator"] .ed-bar--b{ background:linear-gradient(180deg,#f9a45e
 .ed2m__seg button{ height:28px; padding:0 11px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12px; cursor:pointer; }
 .ed2m__seg button[aria-pressed="true"]{ background:#f6f6f7; color:#050505; font-weight:600; }
 #edMembers [hidden]{ display:none !important; }
+/* étapes d'un retrait (maquette Edu-Portefeuille.html) */
+.ed2-steps{ list-style:none; display:grid; grid-template-columns:repeat(3,1fr); margin:12px 0 0; padding:0; border-radius:12px; border:1px solid rgba(255,255,255,.08); overflow:hidden; }
+.ed2-steps li{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:10px 6px; text-align:center; }
+.ed2-steps li + li{ border-left:1px solid rgba(255,255,255,.08); }
+.ed2-steps span{ font-size:10.5px; color:#7a7a82; }
+.ed2-steps b{ font-size:12px; font-weight:600; }

@@ -3,7 +3,7 @@
    La vue est posée par js/school-hub.js (styles en ligne de la maquette) ; ici ce que le site ajoute.
    ===================================================================== */
 #scHome.is-sh2 .sc-hero{ display:none !important; }
-#scHome.is-sh2 #scHub{ max-width:1180px; padding:34px 36px 0; box-sizing:border-box; }
+#scHome.is-sh2 #scHub{ max-width:1180px; margin:0 auto; padding:34px 36px 0; box-sizing:border-box; }
 .sh2 .row-h{ transition:background .18s cubic-bezier(.16,1,.3,1); }
 .sh2 .row-h:hover{ background:rgba(255,255,255,.025) !important; }
 .sh2 .tile{ transition:border-color .2s cubic-bezier(.16,1,.3,1); }

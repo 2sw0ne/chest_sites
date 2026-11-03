@@ -128,3 +128,11 @@ html.is-embedded body.chest-root[data-page]::after{ display:none !important; }
 .chestconfirm-modal .btn{ height:38px; padding:0 18px !important; border-radius:999px !important; font-size:13px !important; font-weight:600 !important; }
 .chestconfirm-modal .btn-ghost{ background:transparent !important; border:1px solid rgba(255,255,255,.14) !important; color:#c9c9ce !important; }
 .chestconfirm-modal .btn-primary{ border:0 !important; color:#fff !important; background:linear-gradient(135deg,#fc1283,#f9a45e) !important; box-shadow:0 10px 30px rgba(252,18,131,.3) !important; }
+
+/* ---------- Centrage des pages (2026-11-03) : contenu au milieu, au plus 1520 px, vide de chaque côté ---------- */
+html.is-embedded .chest-main > main, html.is-embedded .br-page{ margin-left:auto !important; margin-right:auto !important; }
+html.is-embedded .chest-main [style*="max-width: 1180px"], html.is-embedded .chest-main [style*="max-width: 1040px"],
+html.is-embedded .chest-main [style*="max-width: 1240px"]{ margin-left:auto !important; margin-right:auto !important; }
+html.is-embedded body[data-page="backtesting"] .chest-main > main,
+html.is-embedded body[data-page="strategies"] .chest-main > main{ width:100%; max-width:1520px !important; box-sizing:border-box; }
+html.is-embedded body[data-page="school"] .chest-main > main{ width:100%; max-width:1180px; box-sizing:border-box; }
