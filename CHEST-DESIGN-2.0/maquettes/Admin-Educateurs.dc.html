@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Admin · Éducateurs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+a{color:inherit;text-decoration:none}
+.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
+.sb-tog:hover{color:#f6f6f7}
+.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
+.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i:active{transform:scale(.98)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
+.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.adm .ic{stroke:url(#sba)}
+.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc__id{display:flex;flex-direction:column;min-width:0}
+.sb-acc__id b{font-size:12.5px;line-height:1.25}
+.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
+.sbT:checked ~ .sb .sb-txt{display:none}
+.sbT:checked ~ .sb .sb-tog .chev{transform:none}
+.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
+.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
+.sbT:checked ~ .sb .sb-nav{padding:0 11px}
+.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
+.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
+.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
+.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+
+.lb{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7a7a82}
+.mono{font-family:'JetBrains Mono',monospace}
+.num{font-variant-numeric:tabular-nums}
+.m{color:#9b9ba1}.mm{color:#7a7a82}.g{color:#7ff3ca}.r{color:#ff94a0}.a{color:#f4d07a}.b{color:#9dbcff}.p{color:#ffa6cf}
+.grad{background:linear-gradient(90deg,#fc1283,#f9a45e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.glass{position:relative;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(160deg,rgba(17,17,20,.8),rgba(9,9,11,.92));box-shadow:0 18px 44px rgba(0,0,0,.35),inset 1.5px 1.5px 0 rgba(255,255,255,.1),inset -1.5px -1.5px 0 rgba(255,255,255,.03)}
+.glass::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);pointer-events:none}
+.pad{padding:20px 22px}
+.ph{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.ph h2{margin:0;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.ph .meta{margin-left:auto;font-size:12px;color:#7a7a82}
+.ph .lnk{margin-left:auto;font-size:12.5px;font-weight:600;color:#f9a45e}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.025)}
+.tab{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;color:#9b9ba1;white-space:nowrap;transition:color .2s,background .2s}
+.tab:hover{color:#f6f6f7}
+.tab small{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.08);color:#c9c9ce}
+.tab small.hot{background:linear-gradient(135deg,#fc1283,#f9a45e);color:#fff}
+.tab.on{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(252,18,131,.45),0 6px 20px -8px rgba(252,18,131,.5);color:#f6f6f7;font-weight:600}
+.seg{display:flex;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.025)}
+.seg span{height:28px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;font-size:12px;color:#9b9ba1}
+.seg .on{background:#f6f6f7;color:#050505;font-weight:700}
+.btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;border:0;color:#fff;font:inherit;font-size:13.5px;font-weight:700;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 10px 28px -8px rgba(252,18,131,.6),inset 0 1px 0 rgba(255,255,255,.3);white-space:nowrap}
+.btn2{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 15px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.035);color:#f6f6f7;font:inherit;font-size:13px;font-weight:600;white-space:nowrap;transition:border-color .2s,box-shadow .2s}
+.btn2:hover{border-color:rgba(249,164,94,.55);box-shadow:0 8px 26px rgba(252,18,131,.16)}
+.mini{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);font-size:12px;font-weight:600;color:#e4e4e7;white-space:nowrap}
+.rchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 5px;border-radius:999px;font-size:11.5px;font-weight:600;color:#f6f6f7;background:color-mix(in srgb,var(--c1) 13%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c1) 30%,transparent);white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.pill.ok{color:#7ff3ca;background:rgba(51,230,166,.12)}.pill.warn{color:#f4d07a;background:rgba(232,179,57,.14)}.pill.bad{color:#ff94a0;background:rgba(255,77,94,.12)}.pill.info{color:#9dbcff;background:rgba(77,141,255,.14)}.pill.off{color:#9b9ba1;background:rgba(255,255,255,.06)}.pill.pk{color:#ffa6cf;background:rgba(252,18,131,.13)}
+.av{display:inline-grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;font-size:13px;font-weight:700;color:#050505}
+.av.sm{width:28px;height:28px;border-radius:9px;font-size:11px}
+.av.lg{width:58px;height:58px;border-radius:18px;font-size:22px}
+.trk{position:relative;height:6px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+.trk i{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.rowh{transition:background .18s}
+.rowh:hover{background:rgba(255,255,255,.03)}
+.kpi{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:18px 20px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,rgba(17,17,20,.8),rgba(9,9,11,.92));box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.09)}
+.kpi .k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;display:flex;align-items:center;gap:8px}
+.kpi .v{font-size:32px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1.05}
+.kpi .n{font-size:12px;color:#9b9ba1}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:9px 18px;margin:0;font-size:13px}
+.dl dt{color:#7a7a82}.dl dd{margin:0;text-align:right;font-weight:600}
+.field{display:flex;flex-direction:column;gap:7px}
+.field > span:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82}
+.inp{display:flex;align-items:center;gap:10px;height:42px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:#f6f6f7;font-size:13.5px;box-sizing:border-box}
+.inp.focus{border-color:rgba(252,18,131,.6);box-shadow:0 0 0 3px rgba(252,18,131,.15)}
+.sw{position:relative;display:inline-block;width:38px;height:22px;border-radius:999px;background:rgba(255,255,255,.12);flex:none}
+.sw i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:999px;background:#c9c9ce;transition:left .2s}
+.sw.on{background:linear-gradient(135deg,#fc1283,#f9a45e)}.sw.on i{left:19px;background:#fff}
+.note{margin:0;font-size:12px;line-height:1.55;color:#7a7a82}
+.ghost{position:absolute;left:50%;top:-30px;transform:translateX(-50%);z-index:-1;pointer-events:none;white-space:nowrap;font-size:200px;font-weight:700;letter-spacing:-.06em;line-height:1;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 78%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.opt{display:flex;flex-direction:column;gap:5px;padding:13px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.02);font-size:12px;color:#9b9ba1;line-height:1.4}
+.opt b{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#f6f6f7}
+.opt.on{border-color:rgba(249,164,94,.55);background:linear-gradient(160deg,rgba(252,18,131,.12),rgba(249,164,94,.04));box-shadow:0 10px 30px -14px rgba(252,18,131,.6)}
+.dur{display:flex;flex-wrap:wrap;gap:6px}
+.dur span{height:32px;display:inline-flex;align-items:center;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);font-size:12.5px;color:#c9c9ce}
+.dur .on{border-color:transparent;background:#f6f6f7;color:#050505;font-weight:700}
+
+
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.sb-tog{display:none}.stack{grid-template-columns:1fr!important}.stack > *{grid-column:auto!important;grid-row:auto!important}.scroll-x{overflow-x:auto}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</helmet>
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, sans-serif; font-size:13.5px; overflow:hidden; ">
+  <!-- ================= SIDEBAR (ancien volet CHEST, repliable) ================= -->
+  <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside class="sb">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"></stop><stop offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient id="sba" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a1f"></stop><stop offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+    </label>
+    <a href="Main.dc.html" class="sb-brand">
+      <img src="assets/logo-chest-new.webp" alt="CHEST">
+      <span class="sb-txt">CHEST</span>
+    </a>
+    <div class="sb-label"><span class="sb-txt">Navigation</span></div>
+    <nav class="sb-nav" aria-label="Navigation principale">
+        <a href="Main.dc.html" class="nav-i" title="Dashboard">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span class="sb-txt">Dashboard</span>
+        </a>
+        <a href="Backtesting.dc.html" class="nav-i" title="Backtesting">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 6-8"></path><path d="M3 21h18"></path></svg>
+          <span class="sb-txt">Backtesting</span>
+        </a>
+        <a href="Journal.dc.html" class="nav-i" title="Journal">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span class="sb-txt">Journal</span>
+        </a>
+        <a href="Strategies.dc.html" class="nav-i" title="Stratégies">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span class="sb-txt">Stratégies</span>
+        </a>
+        <a href="Calendrier.dc.html" class="nav-i" title="Calendrier">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span class="sb-txt">Calendrier</span>
+        </a>
+        <a href="Berich.dc.html" class="nav-i" title="BERICH">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span class="sb-txt">BERICH</span>
+        </a>
+        <a href="School.dc.html" class="nav-i" title="School">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path d="M22 9.5V15"></path></svg>
+          <span class="sb-txt">School</span>
+        </a>
+        <span class="sb-sep" aria-hidden="true"></span>
+        <a href="Admin.dc.html" class="nav-i on adm" aria-current="page" title="Admin">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span class="sb-txt">Admin</span>
+        </a>
+    </nav>
+    <div class="sb-acc">
+      <div class="sb-acc__label sb-txt">Compte</div>
+      <a href="Compte.dc.html" class="sb-acc__row">
+        <span class="sb-acc__av">M</span>
+        <span class="sb-txt sb-acc__id"><b>Morgan</b><span>morgan@exemple.fr</span></span>
+      </a>
+      <button type="button" class="sb-out" title="Se déconnecter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span class="sb-txt">Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+  <a href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
+  </a>
+  <main style="position:relative; z-index:1; flex:999 1 560px; min-width:0; display:flex; flex-direction:column">
+    <header style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; min-height:64px; padding:10px 36px; box-sizing:border-box; border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px"><span class="lb">Admin</span><span style="color:#3a3a40">/</span><b>Éducateurs</b></div>
+      <span style="margin-left:auto; display:inline-flex; align-items:center; gap:8px; height:30px; padding:0 12px; border-radius:999px; background:rgba(51,230,166,.08); box-shadow:inset 0 0 0 1px rgba(51,230,166,.25); font-size:12px"><i style="width:7px; height:7px; border-radius:999px; background:#33e6a6; box-shadow:0 0 10px #33e6a6"></i><b class="num">7</b> en ligne maintenant</span>
+      <span class="seg" role="group" aria-label="Période des statistiques"><span>7 j</span><span class="on">30 j</span><span>90 j</span><span>1 an</span></span>
+    </header>
+    <div style="position:relative; isolation:isolate; display:flex; flex-direction:column; gap:22px; padding:30px 36px 64px; max-width:1240px; width:100%; box-sizing:border-box">
+      <section style="position:relative; isolation:isolate; display:flex; flex-wrap:wrap; align-items:flex-end; gap:16px; padding-top:18px">
+        <div class="ghost" aria-hidden="true" style="left:auto; right:0; transform:none; top:-30px; font-size:150px">Éducateurs</div>
+        <div style="display:flex; flex-direction:column; gap:8px"><span class="lb">06 — Espace membres</span>
+          <h1 style="margin:0; font-size:44px; line-height:1; font-weight:700; letter-spacing:-.045em">Éducateurs</h1>
+          <p class="m" style="margin:0; font-size:14px">Taux, liens d’invitation et demandes de retrait.</p></div>
+      </section>
+      <nav style="display:flex; flex-wrap:wrap; align-items:center; gap:10px" aria-label="Vues de l’espace admin">
+        <div class="tabs" role="tablist"><a class="tab" href="Admin.dc.html">Vue d’ensemble</a><a class="tab" href="Admin-Membres.dc.html">Membres <small class=''>208</small></a><a class="tab" href="Admin-Rangs.dc.html">Rangs</a><a class="tab" href="Admin-Engagement.dc.html">Engagement</a><a class="tab" href="Admin-Ventes.dc.html">Ventes</a><a class="tab on" href="Admin-Educateurs.dc.html">Éducateurs <small class='hot'>2</small></a><a class="tab" href="Admin-Systeme.dc.html">Système <small class=''>Éco</small></a></div>
+        <span style="margin-left:auto; display:flex; flex-wrap:wrap; gap:8px">
+          <a class="btn2" href="Admin-Membres.dc.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg><span>Rechercher</span><kbd class="mono" style="padding:1px 6px; border-radius:6px; background:rgba(255,255,255,.08); font-size:10.5px; color:#9b9ba1">/</kbd></a>
+          <a class="btn2" href="Offres.dc.html">Prix<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M7 17L17 7M9 7h8v8"></path></svg></a>
+          <a class="btn" href="Admin-Privilege.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="3.5" y="8.5" width="17" height="4" rx="1"></rect><path d="M5 12.5v7.5h14v-7.5M12 8.5V20M12 8.5c-1.6 0-4.5-.6-4.5-2.6 0-1.4 1.2-2.1 2.3-1.7C11.3 4.8 12 6.5 12 8.5zM12 8.5c1.6 0 4.5-.6 4.5-2.6 0-1.4-1.2-2.1-2.3-1.7-1.5.6-2.2 2.3-2.2 4.3z"></path></svg><span>Offrir un Privilège</span></a>
+        </span>
+      </nav>
+      <article class="glass pad">
+        <div class="ph"><h2>Demandes de retrait</h2><span class="pill warn" style="margin-left:auto">2 à traiter</span></div>
+        <div style="display:grid; grid-template-columns:1.3fr .7fr 1.6fr auto; align-items:center; gap:16px; padding:14px 16px; margin-top:8px; border-radius:16px; border:1px solid rgba(249,164,94,.35); background:linear-gradient(135deg,rgba(252,18,131,.08),rgba(249,164,94,.03))">
+            <span style="display:flex; align-items:center; gap:12px"><span class="av " style="background:#b79bff">S</span><span><b style="display:block">Sarah Benali</b><span class="mm mono" style="display:block; font-size:10.5px">30 oct. · 19:12</span></span></span>
+            <b class="num" style="font-size:22px; letter-spacing:-.02em">850,00 €</b>
+            <span><span style="display:block; font-size:12.5px">Sarah Benali</span><code class="mono m" style="font-size:11px">IBAN FR76 •••• •••• •••• 4821 · BIC BNPAFRPP</code></span>
+            <span style="display:flex; align-items:center; gap:8px; justify-content:flex-end"><span class="btn" style="height:34px; font-size:12.5px">Marquer comme versé</span><span class="btn2" style="height:34px; font-size:12.5px">Refuser</span></span></div><div style="display:grid; grid-template-columns:1.3fr .7fr 1.6fr auto; align-items:center; gap:16px; padding:14px 16px; margin-top:8px; border-radius:16px; border:1px solid rgba(249,164,94,.35); background:linear-gradient(135deg,rgba(252,18,131,.08),rgba(249,164,94,.03))">
+            <span style="display:flex; align-items:center; gap:12px"><span class="av " style="background:#ffa6cf">K</span><span><b style="display:block">Karim Diallo</b><span class="mm mono" style="display:block; font-size:10.5px">29 oct. · 08:40</span></span></span>
+            <b class="num" style="font-size:22px; letter-spacing:-.02em">120,00 €</b>
+            <span><span style="display:block; font-size:12.5px">Karim Diallo</span><code class="mono m" style="font-size:11px">USDT (TRC-20) · TQ9x…f2Lk</code></span>
+            <span style="display:flex; align-items:center; gap:8px; justify-content:flex-end"><span class="btn" style="height:34px; font-size:12.5px">Marquer comme versé</span><span class="btn2" style="height:34px; font-size:12.5px">Refuser</span></span></div><div style="display:grid; grid-template-columns:1.3fr .7fr 1.6fr auto; align-items:center; gap:16px; padding:14px 16px; margin-top:8px; border-radius:16px; border:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.015)">
+            <span style="display:flex; align-items:center; gap:12px"><span class="av " style="background:#b79bff">S</span><span><b style="display:block">Sarah Benali</b><span class="mm mono" style="display:block; font-size:10.5px">2 oct. · 14:05</span><span class="mm mono" style="display:block; font-size:10.5px">traité 3 oct. · 10:20</span></span></span>
+            <b class="num" style="font-size:22px; letter-spacing:-.02em">1 000,00 €</b>
+            <span><span style="display:block; font-size:12.5px">Sarah Benali</span><code class="mono m" style="font-size:11px">IBAN FR76 •••• •••• •••• 4821</code></span>
+            <span style="display:flex; align-items:center; gap:8px; justify-content:flex-end"><span class="pill ok">versé</span><span class="mm" style="font-size:11.5px">Virement du 3 oct.</span></span></div><div style="display:grid; grid-template-columns:1.3fr .7fr 1.6fr auto; align-items:center; gap:16px; padding:14px 16px; margin-top:8px; border-radius:16px; border:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.015)">
+            <span style="display:flex; align-items:center; gap:12px"><span class="av " style="background:#ffa6cf">K</span><span><b style="display:block">Karim Diallo</b><span class="mm mono" style="display:block; font-size:10.5px">20 sept. · 11:52</span><span class="mm mono" style="display:block; font-size:10.5px">traité 21 sept. · 09:01</span></span></span>
+            <b class="num" style="font-size:22px; letter-spacing:-.02em">40,00 €</b>
+            <span><span style="display:block; font-size:12.5px">Karim Diallo</span><code class="mono m" style="font-size:11px">USDT (TRC-20) · TQ9x…f2Lk</code></span>
+            <span style="display:flex; align-items:center; gap:8px; justify-content:flex-end"><span class="pill bad">refusé</span><span class="mm" style="font-size:11.5px">Minimum de retrait : 50 €</span></span></div>
+      </article>
+      <article class="glass pad">
+        <div class="ph"><h2>Éducateurs</h2><span class="meta">un compte devient éducateur depuis sa fiche (Membres → Rôle)</span></div>
+        <div style="display:grid; grid-template-columns:1.05fr 1.75fr 86px 2.5fr auto; align-items:center; gap:16px; padding:16px 0; border-top:1px solid rgba(255,255,255,.06)">
+            <span style="display:flex; align-items:center; gap:12px"><span class="av " style="background:#b79bff">S</span><span><b style="display:block">Sarah Benali</b><span class="mm" style="font-size:11.5px">sarah@exemple.fr</span></span></span>
+            <span><span style="display:flex; align-items:center; gap:8px"><span class="mono" style="padding:3px 8px; border-radius:7px; font-size:11.5px; font-weight:700; color:#050505; background:linear-gradient(135deg,#fc1283,#f9a45e)">SARAH</span><code class="mono m" style="font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">ch3st.app/rejoindre/SARAH</code><span class="mini"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="8" y="8" width="12" height="12" rx="2.5"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg> Copier</span></span></span>
+            <span class="inp" style="height:36px; width:86px; padding:0 10px; justify-content:space-between"><b class="num">33,3</b><em class="mm" style="font-style:normal">%</em></span>
+            <span style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; font-size:11.5px"><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">23</b><span class="mm">membres</span></span><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">9 500 €</b><span class="mm">ventes</span></span><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">3 166,67 €</b><span class="mm">commissions</span></span><span style="white-space:nowrap"><b class="num g" style="display:block; font-size:14px">1 833,34 €</b><span class="mm">dispo</span></span></span>
+            <a class="mini" href="Educateur.dc.html">Voir son espace<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M7 17L17 7M9 7h8v8"></path></svg></a></div><div style="display:grid; grid-template-columns:1.05fr 1.75fr 86px 2.5fr auto; align-items:center; gap:16px; padding:16px 0; border-top:1px solid rgba(255,255,255,.06)">
+            <span style="display:flex; align-items:center; gap:12px"><span class="av " style="background:#ffa6cf">K</span><span><b style="display:block">Karim Diallo</b><span class="mm" style="font-size:11.5px">karim@exemple.fr</span></span></span>
+            <span><span style="display:flex; align-items:center; gap:8px"><span class="mono" style="padding:3px 8px; border-radius:7px; font-size:11.5px; font-weight:700; color:#050505; background:linear-gradient(135deg,#fc1283,#f9a45e)">KARIM</span><code class="mono m" style="font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">ch3st.app/rejoindre/KARIM</code><span class="mini"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="8" y="8" width="12" height="12" rx="2.5"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg> Copier</span></span></span>
+            <span class="inp" style="height:36px; width:86px; padding:0 10px; justify-content:space-between"><b class="num">25</b><em class="mm" style="font-style:normal">%</em></span>
+            <span style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; font-size:11.5px"><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">9</b><span class="mm">membres</span></span><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">5 250 €</b><span class="mm">ventes</span></span><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">1 312,50 €</b><span class="mm">commissions</span></span><span style="white-space:nowrap"><b class="num g" style="display:block; font-size:14px">479,17 €</b><span class="mm">dispo</span></span></span>
+            <a class="mini" href="Educateur.dc.html">Voir son espace<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M7 17L17 7M9 7h8v8"></path></svg></a></div><div style="display:grid; grid-template-columns:1.05fr 1.75fr 86px 2.5fr auto; align-items:center; gap:16px; padding:16px 0; border-top:1px solid rgba(255,255,255,.06)">
+            <span style="display:flex; align-items:center; gap:12px"><span class="av " style="background:#7ce3f5">N</span><span><b style="display:block">Nadia Perrin</b><span class="mm" style="font-size:11.5px">nadia@exemple.fr</span></span></span>
+            <span><span class="pill off">Code pas encore choisi par l’éducateur</span></span>
+            <span class="inp" style="height:36px; width:86px; padding:0 10px; justify-content:space-between"><b class="num">33,3</b><em class="mm" style="font-style:normal">%</em></span>
+            <span style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; font-size:11.5px"><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">0</b><span class="mm">membres</span></span><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">0 €</b><span class="mm">ventes</span></span><span style="white-space:nowrap"><b class="num " style="display:block; font-size:14px">0,00 €</b><span class="mm">commissions</span></span><span style="white-space:nowrap"><b class="num g" style="display:block; font-size:14px">0,00 €</b><span class="mm">dispo</span></span></span>
+            <a class="mini" href="Educateur.dc.html">Voir son espace<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M7 17L17 7M9 7h8v8"></path></svg></a></div>
+      </article>
+      <p class="note">Le portefeuille d’un éducateur est un affichage indicatif : les versements se font hors du site, par virement de la société. « Marquer comme versé » une fois le virement fait.</p>
+    </div>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

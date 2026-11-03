@@ -18,24 +18,17 @@ faut pour l'appliquer au vrai site (`site/` du dépôt `chest_sites`).
 | `maquettes/assets/` | Les logos utilisés (copies réduites des fichiers de `site/assets/`). |
 | `maquettes/canvas.json` | Disposition des planches sur le canvas (titres, tailles). |
 
-## Les planches
+## Les planches (38, sur 4 pages du canvas)
 
-| Planche | Page du site | Capture |
-| --- | --- | --- |
-| `Main.dc.html` | Dashboard (`dashboard.html`) | `captures/Main.png` |
-| `Calendrier.dc.html` | Calendrier (`calendar.html`) | `captures/Calendrier.png` |
-| `Backtesting.dc.html` | Backtesting (`backtesting.html`) | `captures/Backtesting.png` |
-| `Journal.dc.html` | Journal (`journal.html`) | `captures/Journal.png` |
-| `Strategies.dc.html` | Stratégies (`strategies.html`) | `captures/Strategies.png` |
-| `Berich.dc.html` | BERICH (`berich.html`) | `captures/Berich.png` |
-| `School.dc.html` | School (`school.html`) | `captures/School.png` |
-| `Compte.dc.html` | Compte (`account.html`) | `captures/Compte.png` |
-| `Educateur.dc.html` | Espace éducateur (`educator.html`) | `captures/Educateur.png` |
-| `Admin.dc.html` | Admin membres (`admin-members.html`) | `captures/Admin.png` |
-| `Offres.dc.html` | Offres (`offres.html`) | `captures/Offres.png` |
-| `Connexion.dc.html` | Connexion (`app.html`, écran connecté-déconnecté) | `captures/Connexion.png` |
-| `Elements.dc.html` | Calculatrice de lot, menu replié, volets, notifications, confirmation, message court, quiz BERICH | `captures/Elements.png` |
-| `Pack-DA.dc.html` | Planche de la DA (référence) | `captures/Pack-DA.png` |
+**Page 1 · CHEST 2.0** : `Main` (Dashboard), `Calendrier`, `Backtesting`, `Pack-DA`, `Journal`, `Strategies`, `Berich`, `School`, `Compte`.
+
+**Page 2 · Transitions et offres** : `Connexion`, `T-Inscription`, `T-Questionnaire`, `Offres`, `T-Paiement`, `T-Validation`, `T-Welcome`, `T-Conditions`, `T-Verrou`, `T-Maintenance`, `T-Rejoindre`, `Elements`.
+
+**Page 3 · Admin** : `Admin`, `Admin-Membres`, `Admin-Fiche`, `Admin-Fiche-Acces`, `Admin-Fiche-Activite`, `Admin-Rangs`, `Admin-Engagement`, `Admin-Ventes`, `Admin-Educateurs`, `Admin-Systeme`, `Admin-Privilege`.
+
+**Page 4 · Espace éducateur** : `Educateur`, `Edu-Membres`, `Edu-Fiche`, `Edu-Notes`, `Edu-Portefeuille`, `Edu-Accueil`.
+
+Chaque planche `X` existe en trois formes : `maquettes/X.dc.html` (source), `captures/X.png` (référence), `html-exact/X.html` (HTML statique à copier). La correspondance planche ↔ fichier du site est dans `INTEGRATION.md` (§ 9, 10, 11 pour les nouvelles).
 
 ## Ouvrir les maquettes
 

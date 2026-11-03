@@ -13,12 +13,11 @@
   const pair = (s) => { s = String(s || '').toUpperCase(); return /^[A-Z]{6}$/.test(s) ? s.slice(0, 3) + '/' + s.slice(3) : s; };
   const ago = (t) => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); if (m < 60) return m < 1 ? 'à l’instant' : `il y a ${m} min`; const h = Math.round(m / 60); return h < 24 ? `il y a ${h} h` : `il y a ${Math.round(h / 24)} j`; };
 
-  // ---------- Onglets Graphique / À propos dans la carte du graphique ----------
-  const card = $('scnrMediaCard'), tabs = $('scnrTabs');
-  if (card && tabs) {
+  // ---------- Légende en tête de la carte du graphique (les onglets Graphique / À propos restent sous le titre) ----------
+  const card = $('scnrMediaCard');
+  if (card) {
     const head = document.createElement('div');
     head.className = 's2-head';
-    head.appendChild(tabs);
     head.insertAdjacentHTML('beforeend', `<div class="s2-legend" aria-hidden="true">
         <span><span style="width: 16px; height: 2px; background: rgb(249, 164, 94); box-shadow: rgba(249, 164, 94, 0.9) 0px 0px 8px;"></span>Biais</span>
         <span><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1L9 9H1z" fill="#33e6a6"></path></svg>Signal</span>

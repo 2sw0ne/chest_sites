@@ -1,51 +1,508 @@
 {
-  "v": 3,
-  "createdOnFiles": {
-    "v": 1,
-    "at": "2026-11-02T13:50:00Z"
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-11-02T13:50:00Z"
+ },
+ "title": "CHEST 2.0 — Prototype visuel",
+ "launch": {
+  "view": "canvas",
+  "page": "t"
+ },
+ "pages": [
+  {
+   "id": "v2",
+   "name": "1 · CHEST 2.0"
   },
-  "title": "CHEST 2.0 — Prototype visuel",
-  "launch": {
-    "view": "canvas"
+  {
+   "id": "t",
+   "name": "2 · Transitions et offres"
   },
-  "pages": [],
-  "boards": {
-    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 1680, "title": "Dashboard 2.0", "expand": "fill"},
-    "Calendrier.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 3000, "title": "Calendrier 2.0", "expand": "fill", "is_interactive": true},
-    "Backtesting.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 2160, "title": "Backtesting 2.0", "expand": "fill", "is_interactive": true},
-    "Pack-DA.dc.html": {"x": 4560, "y": 0, "w": 1440, "h": 1560, "title": "Pack de design 2.0"},
-    "Journal.dc.html": {"x": 0, "y": 3480, "w": 1440, "h": 2250, "title": "Journal 2.0", "expand": "fill", "is_interactive": true},
-    "Strategies.dc.html": {"x": 1520, "y": 3480, "w": 1440, "h": 1860, "title": "Stratégies 2.0", "expand": "fill", "is_interactive": true},
-    "Berich.dc.html": {"x": 3040, "y": 3480, "w": 1440, "h": 3300, "title": "BERICH 2.0", "expand": "fill", "is_interactive": true},
-    "School.dc.html": {"x": 4560, "y": 3480, "w": 1440, "h": 1760, "title": "School 2.0", "expand": "fill"},
-    "Compte.dc.html": {"x": 0, "y": 7260, "w": 1440, "h": 1640, "title": "Compte 2.0", "expand": "fill"},
-    "Educateur.dc.html": {"x": 1520, "y": 7260, "w": 1440, "h": 1640, "title": "Espace éducateur 2.0", "expand": "fill"},
-    "Admin.dc.html": {"x": 3040, "y": 7260, "w": 1440, "h": 1560, "title": "Admin membres 2.0", "expand": "fill"},
-    "Offres.dc.html": {"x": 4560, "y": 7260, "w": 1440, "h": 1300, "title": "Offres 2.0", "expand": "fill", "is_interactive": true},
-    "Connexion.dc.html": {"x": 0, "y": 9380, "w": 1440, "h": 900, "title": "Connexion 2.0", "expand": "fill"},
-    "Elements.dc.html": {"x": 1520, "y": 9380, "w": 1600, "h": 1640, "title": "Éléments intermédiaires"}
+  {
+   "id": "adm",
+   "name": "3 · Admin"
   },
-  "order": [
-    "Main.dc.html",
-    "Calendrier.dc.html",
-    "Backtesting.dc.html",
-    "Pack-DA.dc.html",
-    "Journal.dc.html",
-    "Strategies.dc.html",
-    "Berich.dc.html",
-    "School.dc.html",
-    "Compte.dc.html",
-    "Educateur.dc.html",
-    "Admin.dc.html",
-    "Offres.dc.html",
-    "Connexion.dc.html",
-    "Elements.dc.html"
-  ],
-  "notes": {
-    "titre": {"x": 0, "y": -300, "text": "CHEST 2.0 — épuré, une seule lumière", "kind": "title1", "maxW": 6000},
-    "row2": {"x": 0, "y": 3220, "text": "Suivi, scanners, exécution, formation", "kind": "title1", "maxW": 6000},
-    "row3": {"x": 0, "y": 7000, "text": "Compte, équipe, offres", "kind": "title1", "maxW": 6000},
-    "row4": {"x": 0, "y": 9120, "text": "Entrée et éléments intermédiaires", "kind": "title1", "maxW": 3120}
+  {
+   "id": "edu",
+   "name": "4 · Espace éducateur"
+  }
+ ],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1680,
+   "title": "Dashboard 2.0",
+   "expand": "fill",
+   "page": "v2"
   },
-  "designSystems": []
+  "Calendrier.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 3000,
+   "title": "Calendrier 2.0",
+   "expand": "fill",
+   "is_interactive": true,
+   "page": "v2"
+  },
+  "Backtesting.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 2160,
+   "title": "Backtesting 2.0",
+   "expand": "fill",
+   "is_interactive": true,
+   "page": "v2"
+  },
+  "Pack-DA.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 1560,
+   "title": "Pack de design 2.0",
+   "page": "v2"
+  },
+  "Journal.dc.html": {
+   "x": 0,
+   "y": 3480,
+   "w": 1440,
+   "h": 2250,
+   "title": "Journal 2.0",
+   "expand": "fill",
+   "is_interactive": true,
+   "page": "v2"
+  },
+  "Strategies.dc.html": {
+   "x": 1520,
+   "y": 3480,
+   "w": 1440,
+   "h": 1860,
+   "title": "Stratégies 2.0",
+   "expand": "fill",
+   "is_interactive": true,
+   "page": "v2"
+  },
+  "Berich.dc.html": {
+   "x": 3040,
+   "y": 3480,
+   "w": 1440,
+   "h": 3300,
+   "title": "BERICH 2.0",
+   "expand": "fill",
+   "is_interactive": true,
+   "page": "v2"
+  },
+  "School.dc.html": {
+   "x": 4560,
+   "y": 3480,
+   "w": 1440,
+   "h": 1760,
+   "title": "School 2.0",
+   "expand": "fill",
+   "page": "v2"
+  },
+  "Compte.dc.html": {
+   "x": 0,
+   "y": 7260,
+   "w": 1440,
+   "h": 1640,
+   "title": "Compte 2.0",
+   "expand": "fill",
+   "page": "v2"
+  },
+  "Educateur.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1468,
+   "title": "Éducateur · Vue d’ensemble",
+   "page": "edu",
+   "expand": "fill"
+  },
+  "Admin.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1421,
+   "title": "Admin · Vue d’ensemble",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Offres.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 1102,
+   "title": "Offres",
+   "page": "t",
+   "expand": "fill"
+  },
+  "Connexion.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Connexion",
+   "page": "t",
+   "expand": "fill"
+  },
+  "Elements.dc.html": {
+   "x": 4560,
+   "y": 3684,
+   "w": 1600,
+   "h": 1640,
+   "title": "Éléments intermédiaires",
+   "page": "t"
+  },
+  "T-Inscription.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 996,
+   "title": "Inscription",
+   "page": "t",
+   "expand": "fill"
+  },
+  "T-Questionnaire.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Questionnaire d’accueil",
+   "page": "t",
+   "expand": "fill"
+  },
+  "T-Paiement.dc.html": {
+   "x": 0,
+   "y": 1522,
+   "w": 1440,
+   "h": 1102,
+   "title": "Avant le paiement",
+   "page": "t",
+   "expand": "fill"
+  },
+  "T-Validation.dc.html": {
+   "x": 1520,
+   "y": 1522,
+   "w": 1440,
+   "h": 900,
+   "title": "Paiement validé",
+   "page": "t",
+   "expand": "fill"
+  },
+  "T-Welcome.dc.html": {
+   "x": 3040,
+   "y": 1522,
+   "w": 1440,
+   "h": 1742,
+   "title": "Welcome",
+   "page": "t",
+   "expand": "fill"
+  },
+  "T-Conditions.dc.html": {
+   "x": 4560,
+   "y": 1522,
+   "w": 1440,
+   "h": 900,
+   "title": "Nouvelles conditions",
+   "page": "t",
+   "expand": "fill"
+  },
+  "T-Verrou.dc.html": {
+   "x": 0,
+   "y": 3684,
+   "w": 1440,
+   "h": 900,
+   "title": "Verrou Premium (BERICH)",
+   "page": "t",
+   "expand": "fill"
+  },
+  "T-Maintenance.dc.html": {
+   "x": 1520,
+   "y": 3684,
+   "w": 1440,
+   "h": 900,
+   "title": "Page en maintenance",
+   "page": "t",
+   "expand": "fill"
+  },
+  "T-Rejoindre.dc.html": {
+   "x": 3040,
+   "y": 3684,
+   "w": 1440,
+   "h": 2420,
+   "title": "Invitation éducateur (/rejoindre)",
+   "page": "t",
+   "expand": "fill"
+  },
+  "Admin-Membres.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1380,
+   "title": "Admin · Membres",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Fiche.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 1380,
+   "title": "Admin · Fiche (Aperçu)",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Fiche-Acces.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 1380,
+   "title": "Admin · Fiche (Rôle et accès)",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Fiche-Activite.dc.html": {
+   "x": 0,
+   "y": 1841,
+   "w": 1440,
+   "h": 1380,
+   "title": "Admin · Fiche (Activité, Historique)",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Rangs.dc.html": {
+   "x": 1520,
+   "y": 1841,
+   "w": 1440,
+   "h": 1878,
+   "title": "Admin · Rangs",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Engagement.dc.html": {
+   "x": 3040,
+   "y": 1841,
+   "w": 1440,
+   "h": 1122,
+   "title": "Admin · Engagement",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Ventes.dc.html": {
+   "x": 4560,
+   "y": 1841,
+   "w": 1440,
+   "h": 1339,
+   "title": "Admin · Ventes",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Educateurs.dc.html": {
+   "x": 0,
+   "y": 4139,
+   "w": 1440,
+   "h": 1119,
+   "title": "Admin · Éducateurs",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Systeme.dc.html": {
+   "x": 1520,
+   "y": 4139,
+   "w": 1440,
+   "h": 1044,
+   "title": "Admin · Système",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Admin-Privilege.dc.html": {
+   "x": 3040,
+   "y": 4139,
+   "w": 1440,
+   "h": 1421,
+   "title": "Admin · Offrir un Privilège",
+   "page": "adm",
+   "expand": "fill"
+  },
+  "Edu-Membres.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1089,
+   "title": "Éducateur · Mes membres",
+   "page": "edu",
+   "expand": "fill"
+  },
+  "Edu-Fiche.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 1631,
+   "title": "Éducateur · Fiche membre",
+   "page": "edu",
+   "expand": "fill"
+  },
+  "Edu-Notes.dc.html": {
+   "x": 0,
+   "y": 2051,
+   "w": 1440,
+   "h": 900,
+   "title": "Éducateur · Notes",
+   "page": "edu",
+   "expand": "fill"
+  },
+  "Edu-Portefeuille.dc.html": {
+   "x": 1520,
+   "y": 2051,
+   "w": 1440,
+   "h": 1369,
+   "title": "Éducateur · Portefeuille",
+   "page": "edu",
+   "expand": "fill"
+  },
+  "Edu-Accueil.dc.html": {
+   "x": 3040,
+   "y": 2051,
+   "w": 1440,
+   "h": 1302,
+   "title": "Éducateur · Première ouverture",
+   "page": "edu",
+   "expand": "fill"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Calendrier.dc.html",
+  "Backtesting.dc.html",
+  "Pack-DA.dc.html",
+  "Journal.dc.html",
+  "Strategies.dc.html",
+  "Berich.dc.html",
+  "School.dc.html",
+  "Compte.dc.html",
+  "Connexion.dc.html",
+  "T-Inscription.dc.html",
+  "T-Questionnaire.dc.html",
+  "Offres.dc.html",
+  "T-Paiement.dc.html",
+  "T-Validation.dc.html",
+  "T-Welcome.dc.html",
+  "T-Conditions.dc.html",
+  "T-Verrou.dc.html",
+  "T-Maintenance.dc.html",
+  "T-Rejoindre.dc.html",
+  "Elements.dc.html",
+  "Admin.dc.html",
+  "Admin-Membres.dc.html",
+  "Admin-Fiche.dc.html",
+  "Admin-Fiche-Acces.dc.html",
+  "Admin-Fiche-Activite.dc.html",
+  "Admin-Rangs.dc.html",
+  "Admin-Engagement.dc.html",
+  "Admin-Ventes.dc.html",
+  "Admin-Educateurs.dc.html",
+  "Admin-Systeme.dc.html",
+  "Admin-Privilege.dc.html",
+  "Educateur.dc.html",
+  "Edu-Membres.dc.html",
+  "Edu-Fiche.dc.html",
+  "Edu-Notes.dc.html",
+  "Edu-Portefeuille.dc.html",
+  "Edu-Accueil.dc.html"
+ ],
+ "notes": {
+  "titre": {
+   "x": 0,
+   "y": -300,
+   "text": "CHEST 2.0 — épuré, une seule lumière",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "v2"
+  },
+  "row2": {
+   "x": 0,
+   "y": 3220,
+   "text": "Suivi, scanners, exécution, formation",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "v2"
+  },
+  "row3": {
+   "x": 0,
+   "y": 7000,
+   "text": "Compte",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "v2"
+  },
+  "t0": {
+   "x": 0,
+   "y": -260,
+   "text": "Entrée : connexion, inscription, questionnaire, offres",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "t"
+  },
+  "t1": {
+   "x": 0,
+   "y": 1262,
+   "text": "Paiement, bienvenue et accords",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "t"
+  },
+  "t2": {
+   "x": 0,
+   "y": 3424,
+   "text": "Accès, maintenance, invitation et éléments",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "t"
+  },
+  "adm0": {
+   "x": 0,
+   "y": -260,
+   "text": "Vue d’ensemble, membres et fiche",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "adm"
+  },
+  "adm1": {
+   "x": 0,
+   "y": 1581,
+   "text": "Activité, rangs, engagement, ventes",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "adm"
+  },
+  "adm2": {
+   "x": 0,
+   "y": 3879,
+   "text": "Éducateurs, système, Privilège",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "adm"
+  },
+  "edu0": {
+   "x": 0,
+   "y": -260,
+   "text": "Vue d’ensemble, membres et fiche membre",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "edu"
+  },
+  "edu1": {
+   "x": 0,
+   "y": 1791,
+   "text": "Notes, portefeuille, première ouverture",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "edu"
+  }
+ },
+ "designSystems": []
 }

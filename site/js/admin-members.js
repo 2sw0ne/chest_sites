@@ -769,7 +769,7 @@
       </div>`).join('') : `<p class="am-empty">Aucune vente ${periodWord()}.</p>`;
   }
 
-  const RENDER = { overview: () => { renderOverview(); renderRanks(); renderEngagement(); }, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, sales: renderSales, educators: renderEducators, system: renderSystem };
+  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, sales: renderSales, educators: renderEducators, system: renderSystem };
   function placeIndicator() {
     const tabs = document.querySelector('.am-nav__tabs');
     let ind = tabs.querySelector('.am-nav__ind');
@@ -778,14 +778,13 @@
     ind.style.width = (b.offsetWidth - 28) + 'px';
     ind.style.transform = `translateX(${b.offsetLeft + 14}px)`;
   }
-  const VIEW_LABEL = { overview: 'Vue d’ensemble', members: 'Membres', sales: 'Ventes', educators: 'Éducateurs', system: 'Système' };
+  const VIEW_LABEL = { overview: 'Vue d’ensemble', members: 'Membres', ranks: 'Rangs', engagement: 'Engagement', sales: 'Ventes', educators: 'Éducateurs', system: 'Système' };
   function setView(v, opts) {
-    if (v === 'ranks' || v === 'engagement') v = 'overview';
     S.view = v;
     $('amCrumb').textContent = VIEW_LABEL[v] || 'Membres';
     store('chest_admin_view', v);
     document.querySelectorAll('#amNav [data-view]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === v)));
-    document.querySelectorAll('.am-view').forEach((p) => { p.hidden = !(p.dataset.panel === v || (v === 'overview' && ['ranks', 'engagement'].includes(p.dataset.panel))); });
+    document.querySelectorAll('.am-view').forEach((p) => { p.hidden = !(p.dataset.panel === v || false); });
     const usesPeriod = v === 'overview' || v === 'engagement' || v === 'sales';
     if (usesPeriod) $('amPeriod').removeAttribute('data-off'); else $('amPeriod').setAttribute('data-off', '');
     document.querySelector('.am2-period-row').hidden = !usesPeriod;

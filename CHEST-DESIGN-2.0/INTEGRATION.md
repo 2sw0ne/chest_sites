@@ -94,17 +94,58 @@ Maquette `School.dc.html`. Héros centré (« Prêt pour jeudi ? », éducateur,
 
 Maquette `Compte.dc.html`. Reprend **la page actuelle** : héros centré (« Ton espace », avatar, nom, e-mail + rang, 4 faits), 01 — Comptes de trading (une ligne par compte), 02 — Réglages par groupes. **Lignes plus serrées** : 50 px de haut, titre et valeur sur la même ligne, boutons 32 px. Le volet de réglage existant (`.drawer`) prend le style de `Elements.dc.html` §05.
 
-## 9. Espace éducateur — `educator.html`, `js/educator.js`, `js/edu-notes.js`
+## 9. Espace éducateur — `educator.html`, `js/educator.js`, `js/edu-notes.js`, `js/consent.js`
 
-Maquette `Educateur.dc.html`. Héros centré : commission du mois en 100 px ; carte CHEST Wallet (inclinaison `data-tilt` existante) + 3 tuiles ; lien d'invitation ; tableau des membres. Onglets Vue d'ensemble / Membres / Notes / Retraits.
+**Même structure, mêmes données que la page actuelle** ; seul l'habillage change. Maquettes (page 4 du canvas) :
 
-## 10. Admin membres — `admin-members.html`, `js/admin-members.js`
+| Maquette | Ce qu'elle montre | Code existant |
+| --- | --- | --- |
+| `Educateur.dc.html` | Vue d'ensemble : commission du mois en héros, `#edRate`, alerte BERICH `#edAlert`, 4 `#edKpis`, lien `#edInvite`, 12 mois `#edMonths`, `#edRecent` | `render()` |
+| `Edu-Membres.dc.html` | `#edMembers` (+ colonne « Prochain appel » si la donnée `mentor.next` est servie, sinon la retirer) | `render()` |
+| `Edu-Fiche.dc.html` | Fiche `#edSheet`, sections 01 Rang → 06 Paiements, connexion BERICH clé en main | `renderSheet()` |
+| `Edu-Notes.dc.html` | `#edNotes` (liste + éditeur) | `js/edu-notes.js` |
+| `Edu-Portefeuille.dc.html` | `#edCard` (Wallet), `#edWithdraw`, `#edPay`, `#edTx` | `render()` |
+| `Edu-Accueil.dc.html` | Choix du code de référent (`#edCodeForm`) + fenêtre de la Charte | `render()`, `CHESTConsent.ensureEducator()` |
 
-Maquette `Admin.dc.html`. Héros centré « 208 membres » + compteurs, recherche + filtres, liste + volet latéral de la fiche membre (date d'accès éditable, actions). Les autres vues (Vue d'ensemble, Ventes, Éducateurs, Système) prennent la même DA.
+[NOUVEAU / à valider] les 3 étapes « Demande · Vérification sous 48 h · Virement » sous le formulaire de retrait.
 
-## 11. Offres — `offres.html` / Connexion — `app.html`
+## 10. Admin — `admin-members.html`, `js/admin-members.js`, `css/admin-members.css`
 
-Maquettes `Offres.dc.html` (onglets Premium / Essentiel, 3 rangs, Premium III recommandée, prix de l'éditeur admin) et `Connexion.dc.html` (carte verre, logo en débord, champ actif cerclé de rose, Apple/Google/Discord désactivés, liens légaux sous la carte).
+**Même structure que l'admin actuel** (7 vues, volet latéral, fenêtre Privilège), mêmes données ; seul l'habillage change. Maquettes (page 3) :
+
+| Maquette | Vue / élément | Code existant |
+| --- | --- | --- |
+| `Admin.dc.html` | Vue d'ensemble : `#amKpis`, `#amChart` + `#amMetrics`, `#amWatch`, `#amMix`, `#amFunnel`, `#amPages` | `renderOverview()` |
+| `Admin-Membres.dc.html` | `#amChips`, `#amFilter`, `#amRows` | `renderMembers()`, `rowHtml()` |
+| `Admin-Fiche.dc.html` · `-Acces` · `-Activite` | `#amDrawer`, onglets Aperçu / Rôle et accès / Activité + Historique | `renderDrawer()` |
+| `Admin-Rangs.dc.html` | `#amSpectrum`, `#amRanks` | `renderRanks()` |
+| `Admin-Engagement.dc.html` | `#amSteps`, `#amArrivals`, `#amTop`, `#amNudge`, `#amGhost` | `renderEngagement()` |
+| `Admin-Ventes.dc.html` | `#amSalesKpis`, `#amSalesEdu`, `#amSalesList` | `renderSales()` |
+| `Admin-Educateurs.dc.html` | `#amPayouts`, `#amEdu` | `renderEducators()` |
+| `Admin-Systeme.dc.html` | `#amOpsMode`, `#amOpsPages`, `#amOpsMsg`, `#amOpsSave` | `renderSystem()` |
+| `Admin-Privilege.dc.html` | `#amGift` | `openGift()` |
+
+Badges de rang : toujours `js/rank-badge.js` (`CHESTRank`), couleurs de `TIERS`.
+
+## 11. Pages d'entrée et de transition (page 2 du canvas)
+
+**Fond : la vraie aurore de `js/hero-bg.js`** (shader + neige, celle de la connexion et du Welcome). Dans les maquettes c'est une image fixe du rendu (`assets/aurora-chest.webp`) ; sur le site, garder le canvas animé `CHESTHeroBg.init(...)` et ne pas le remplacer par l'image.
+
+| Maquette | Page du site |
+| --- | --- |
+| `Connexion.dc.html` | `login.html` / `/connexion` (et la connexion intégrée à `app.html`) |
+| `T-Inscription.dc.html` | `signup.html` / `/inscription` (code de référent verrouillé via `?ref=`, case de consentement) |
+| `T-Questionnaire.dc.html` | `offres.html`, étape 01 (questionnaire `Q`, rail `#ofSteps`) |
+| `Offres.dc.html` | `offres.html`, étape 02 (onglets Premium / Essentiel, 3 rangs, essai 7 jours) |
+| `T-Paiement.dc.html` | `CHESTConsent.purchase()` (`js/consent.js`) |
+| `T-Validation.dc.html` | `offres.html`, étape 03 (`#ofWaitTitle` : en cours / validé / trop long) |
+| `T-Welcome.dc.html` | `#chestWelcome` dans `app.html` (`js/welcome.js`, `css/welcome.css`) |
+| `T-Conditions.dc.html` | `CHESTConsent.ensureTerms()` |
+| `T-Verrou.dc.html` | `CHESTPlan.lock()` (`js/plan-gate.js`) |
+| `T-Maintenance.dc.html` | `#chestMaint` + `#chestMaintPill` dans `app.html` |
+| `T-Rejoindre.dc.html` | `join.html` / `/rejoindre/<CODE>` |
+
+[NOUVEAU / à valider] : bandeau « on te conseille Premium » au-dessus des offres, 3 cartes « Ton éducatrice / BERICH clé en main / School complet » après paiement, pastilles d'état sur la page de maintenance, contenus de la newsletter (repris des cartes actuelles).
 
 ## 12. Éléments intermédiaires — `Elements.dc.html`
 

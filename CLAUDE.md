@@ -58,10 +58,11 @@ Plateforme de trading CHEST (ch3st.app), accès privé payant. Site statique HTM
 
 - **Relief au survol** (2026-10-29, `js/tilt.js`) : tout élément `[data-tilt="N"]` s'incline vers la souris (N degrés max) et reçoit `--rx/--ry/--px/--py/--mx/--my` pour reflet et parallaxe en CSS (souris seulement, rien en reduced-motion). Utilisé sur la carte CHEST Wallet (11°) et les tuiles chiffrées de l'espace éducateur (5°) ; règles dans `css/educator.css`.
 
-## CHEST 2.0 (branche v3, local, 2026-11-02)
+## CHEST 2.0 (en ligne depuis le 2026-11-03)
 - Pages refaites d’après `CHEST-DESIGN-2.0/html-exact/` : rendu dans `js/<page>-2.js` (cal-2, journal-2, strat-2, educator-2, admin-2, dash-2) branché sur un événement de la page d’origine (`chest:cal-render`, `chest:jr-render`, `chest:scnr-opps`, `chest:edu-render`, `chest:dash-render`) ; habillage seul pour BERICH, Compte, Offres, Backtesting (`css/<page>-2.css`).
 - Barre du haut : une page pose ses actions avec `parent.CHESTTopbar.set(window, html)` (la recherche laisse sa place), retirées au changement de page ; lumière du fond par page dans `js/shell-2.js`.
 - Verre liquide des volets : `js/liquid-glass.js` (filtre SVG de réfraction de « Nimbus » sur Chrome/Edge, flou ailleurs, reflet qui suit la souris).
+- Pack de maquettes : `CHEST-DESIGN-2.0/` (html-exact = référence au pixel, `INTEGRATION.md` = page par page). Admin : grand titre par vue + onglets dessous (Rangs et Engagement séparés), « en ligne » et période dans la barre du haut. Connexion/inscription : `css/auth-2.css`.
 
 ## DA CHEST (obligatoire pour toute nouvelle fenêtre/page)
 Fond `#050505`, encres `#f6f6f7`/`#9b9ba1`/`#5c5c63`, accent `#fc1283 → #f9a45e`, vert `#33e6a6`, rouge `#ff4d5e`, ambre `#e8b339`, Instrument Sans, chiffres tabulaires. Fenêtres en verre (bordure blanche 12-14 %, rayon 16-20, flou), étiquettes « 01 — Titre » 10px/.24em, champs 42px rayon 12 avec anneau rose au focus, `.chest-btn` / `.chest-btn-2` / `.chest-seg`. Mouvement court (.2s, `cubic-bezier(.16,1,.3,1)`), `prefers-reduced-motion`. Pas d'emoji comme icône ni drapeau (SVG / flag-icons). Sources : `site/css/chest-da.css`, `patch-chest-da.css`, `v2.css`.

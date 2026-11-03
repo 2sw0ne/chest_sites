@@ -59,7 +59,12 @@ Correspondance pages ↔ captures ↔ adresses :
 | educator.html | `/educator` | `captures/Educateur.png` | `html-exact/Educateur.html` |
 | admin-members.html | `/admin-members` | `captures/Admin.png` | `html-exact/Admin.html` |
 | offres.html | `/offres` | `captures/Offres.png` | `html-exact/Offres.html` |
-| connexion (app.html) | `/connexion` | `captures/Connexion.png` | `html-exact/Connexion.html` |
+| connexion (login.html) | `/connexion` | `captures/Connexion.png` | `html-exact/Connexion.html` |
+| inscription (signup.html) | `/inscription` | `captures/T-Inscription.png` | `html-exact/T-Inscription.html` |
+| Welcome (app.html) | `/` après connexion | `captures/T-Welcome.png` | `html-exact/T-Welcome.html` |
+| invitation (join.html) | `/rejoindre/CODE` | `captures/T-Rejoindre.png` | `html-exact/T-Rejoindre.html` |
+
+Les autres planches (vues Admin, volets éducateur, fenêtres et étapes) se comparent sur la même page du site une fois la vue ouverte : voir les tableaux de `INTEGRATION.md`. Pour le fond aurore, l'écart sera forcément visible (animation) : comparer seulement la carte et les textes.
 
 ## Pièges qui font perdre la ressemblance
 

@@ -2,20 +2,16 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>CHEST 2.0 — Admin membres</title>
+<title>Admin · Vue d’ensemble</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#050506}
-a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
-.row-h{transition:background .18s cubic-bezier(.16,1,.3,1)}
-.row-h:hover{background:rgba(255,255,255,.03)}
-.btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
-.btn2:hover{background:linear-gradient(#0b0b0e,#0b0b0e) padding-box,linear-gradient(135deg,#fc1283,#f9a45e) border-box!important;box-shadow:0 8px 26px rgba(252,18,131,.18)}
+a{color:inherit;text-decoration:none}
 .sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
 .sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
 .sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
@@ -64,15 +60,70 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
 .sbT:checked ~ .sb .sb-out{width:38px;padding:0}
 .calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
 .calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
-@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.lb{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7a7a82}
+.mono{font-family:'JetBrains Mono',monospace}
+.num{font-variant-numeric:tabular-nums}
+.m{color:#9b9ba1}.mm{color:#7a7a82}.g{color:#7ff3ca}.r{color:#ff94a0}.a{color:#f4d07a}.b{color:#9dbcff}.p{color:#ffa6cf}
+.grad{background:linear-gradient(90deg,#fc1283,#f9a45e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.glass{position:relative;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(160deg,rgba(17,17,20,.8),rgba(9,9,11,.92));box-shadow:0 18px 44px rgba(0,0,0,.35),inset 1.5px 1.5px 0 rgba(255,255,255,.1),inset -1.5px -1.5px 0 rgba(255,255,255,.03)}
+.glass::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);pointer-events:none}
+.pad{padding:20px 22px}
+.ph{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.ph h2{margin:0;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.ph .meta{margin-left:auto;font-size:12px;color:#7a7a82}
+.ph .lnk{margin-left:auto;font-size:12.5px;font-weight:600;color:#f9a45e}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.025)}
+.tab{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;color:#9b9ba1;white-space:nowrap;transition:color .2s,background .2s}
+.tab:hover{color:#f6f6f7}
+.tab small{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.08);color:#c9c9ce}
+.tab small.hot{background:linear-gradient(135deg,#fc1283,#f9a45e);color:#fff}
+.tab.on{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(252,18,131,.45),0 6px 20px -8px rgba(252,18,131,.5);color:#f6f6f7;font-weight:600}
+.seg{display:flex;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.025)}
+.seg span{height:28px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;font-size:12px;color:#9b9ba1}
+.seg .on{background:#f6f6f7;color:#050505;font-weight:700}
+.btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;border:0;color:#fff;font:inherit;font-size:13.5px;font-weight:700;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 10px 28px -8px rgba(252,18,131,.6),inset 0 1px 0 rgba(255,255,255,.3);white-space:nowrap}
+.btn2{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 15px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.035);color:#f6f6f7;font:inherit;font-size:13px;font-weight:600;white-space:nowrap;transition:border-color .2s,box-shadow .2s}
+.btn2:hover{border-color:rgba(249,164,94,.55);box-shadow:0 8px 26px rgba(252,18,131,.16)}
+.mini{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);font-size:12px;font-weight:600;color:#e4e4e7;white-space:nowrap}
+.rchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 5px;border-radius:999px;font-size:11.5px;font-weight:600;color:#f6f6f7;background:color-mix(in srgb,var(--c1) 13%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c1) 30%,transparent);white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.pill.ok{color:#7ff3ca;background:rgba(51,230,166,.12)}.pill.warn{color:#f4d07a;background:rgba(232,179,57,.14)}.pill.bad{color:#ff94a0;background:rgba(255,77,94,.12)}.pill.info{color:#9dbcff;background:rgba(77,141,255,.14)}.pill.off{color:#9b9ba1;background:rgba(255,255,255,.06)}.pill.pk{color:#ffa6cf;background:rgba(252,18,131,.13)}
+.av{display:inline-grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;font-size:13px;font-weight:700;color:#050505}
+.av.sm{width:28px;height:28px;border-radius:9px;font-size:11px}
+.av.lg{width:58px;height:58px;border-radius:18px;font-size:22px}
+.trk{position:relative;height:6px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+.trk i{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.rowh{transition:background .18s}
+.rowh:hover{background:rgba(255,255,255,.03)}
+.kpi{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:18px 20px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,rgba(17,17,20,.8),rgba(9,9,11,.92));box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.09)}
+.kpi .k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;display:flex;align-items:center;gap:8px}
+.kpi .v{font-size:32px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1.05}
+.kpi .n{font-size:12px;color:#9b9ba1}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:9px 18px;margin:0;font-size:13px}
+.dl dt{color:#7a7a82}.dl dd{margin:0;text-align:right;font-weight:600}
+.field{display:flex;flex-direction:column;gap:7px}
+.field > span:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82}
+.inp{display:flex;align-items:center;gap:10px;height:42px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:#f6f6f7;font-size:13.5px;box-sizing:border-box}
+.inp.focus{border-color:rgba(252,18,131,.6);box-shadow:0 0 0 3px rgba(252,18,131,.15)}
+.sw{position:relative;display:inline-block;width:38px;height:22px;border-radius:999px;background:rgba(255,255,255,.12);flex:none}
+.sw i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:999px;background:#c9c9ce;transition:left .2s}
+.sw.on{background:linear-gradient(135deg,#fc1283,#f9a45e)}.sw.on i{left:19px;background:#fff}
+.note{margin:0;font-size:12px;line-height:1.55;color:#7a7a82}
+.ghost{position:absolute;left:50%;top:-30px;transform:translateX(-50%);z-index:-1;pointer-events:none;white-space:nowrap;font-size:200px;font-weight:700;letter-spacing:-.06em;line-height:1;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 78%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.opt{display:flex;flex-direction:column;gap:5px;padding:13px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.02);font-size:12px;color:#9b9ba1;line-height:1.4}
+.opt b{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#f6f6f7}
+.opt.on{border-color:rgba(249,164,94,.55);background:linear-gradient(160deg,rgba(252,18,131,.12),rgba(249,164,94,.04));box-shadow:0 10px 30px -14px rgba(252,18,131,.6)}
+.dur{display:flex;flex-wrap:wrap;gap:6px}
+.dur span{height:32px;display:inline-flex;align-items:center;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);font-size:12.5px;color:#c9c9ce}
+.dur .on{border-color:transparent;background:#f6f6f7;color:#050505;font-weight:700}
+
+
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.sb-tog{display:none}.stack{grid-template-columns:1fr!important}.stack > *{grid-column:auto!important;grid-row:auto!important}.scroll-x{overflow-x:auto}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </helmet>
-
-<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size:13.5px; overflow:hidden">
-  <div aria-hidden="true" style="position:absolute; left:160px; top:-300px; width:900px; height:640px; pointer-events:none; filter:blur(110px); background:radial-gradient(42% 46% at 40% 50%, rgba(249,164,94,.14), transparent 72%), radial-gradient(34% 40% at 66% 44%, rgba(252,18,131,.09), transparent 74%)"></div>
-  <div aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.05; background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:180px 180px"></div>
-
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, sans-serif; font-size:13.5px; overflow:hidden; ">
   <!-- ================= SIDEBAR (ancien volet CHEST, repliable) ================= -->
   <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
   <aside class="sb">
@@ -136,141 +187,133 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
   <a href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"></rect><path d="M8.5 6.5h7"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
   </a>
-
-  <!-- ================= CONTENU ================= -->
   <main style="position:relative; z-index:1; flex:999 1 560px; min-width:0; display:flex; flex-direction:column">
     <header style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; min-height:64px; padding:10px 36px; box-sizing:border-box; border-bottom:1px solid rgba(255,255,255,.06)">
-      <div style="display:flex; align-items:center; gap:8px; font-size:13px">
-        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Admin</span>
-        <span style="color:#3a3a40">/</span>
-        <span style="font-weight:600">Membres</span>
-      </div>
-      <div role="tablist" aria-label="Vues admin" style="margin-left:auto; display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.025)">
-        <button type="button" role="tab" aria-selected="false" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Vue d'ensemble</button>
-        <button type="button" role="tab" aria-selected="true" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:rgba(255,255,255,.08); box-shadow:inset 0 0 0 1px rgba(252,18,131,.45); color:#f6f6f7; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Membres</button>
-        <button type="button" role="tab" aria-selected="false" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Ventes</button>
-        <button type="button" role="tab" aria-selected="false" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Éducateurs</button>
-        <button type="button" role="tab" aria-selected="false" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Système</button>
-      </div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px"><span class="lb">Admin</span><span style="color:#3a3a40">/</span><b>Vue d’ensemble</b></div>
+      <span style="margin-left:auto; display:inline-flex; align-items:center; gap:8px; height:30px; padding:0 12px; border-radius:999px; background:rgba(51,230,166,.08); box-shadow:inset 0 0 0 1px rgba(51,230,166,.25); font-size:12px"><i style="width:7px; height:7px; border-radius:999px; background:#33e6a6; box-shadow:0 0 10px #33e6a6"></i><b class="num">7</b> en ligne maintenant</span>
+      <span class="seg" role="group" aria-label="Période des statistiques"><span>7 j</span><span class="on">30 j</span><span>90 j</span><span>1 an</span></span>
     </header>
-
-    <div style="display:flex; flex-direction:column; gap:26px; padding:34px 36px 64px; max-width:1180px; width:100%; box-sizing:border-box">
-
-      <!-- Titre + compteurs en bandeau -->
-      <section style="position:relative; isolation:isolate; display:flex; flex-direction:column; align-items:center; gap:14px; padding:14px 0 28px; text-align:center; border-bottom:1px solid rgba(255,255,255,.07)">
-        <div class="ghost" aria-hidden="true" style="position:absolute; left:50%; top:-26px; transform:translateX(-50%); z-index:-1; pointer-events:none; white-space:nowrap; font-size:210px; font-weight:700; letter-spacing:-.06em; line-height:1; background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent">Admin</div>
-        <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:#7a7a82">01 — Gestion des membres</span>
-        <h1 style="margin:0; font-size:96px; line-height:1; font-weight:700; letter-spacing:-.055em; font-variant-numeric:tabular-nums">208 <span style="font-size:40px; letter-spacing:-.03em; color:#9b9ba1">membres</span></h1>
-        <div style="margin-top:10px; display:flex; flex-wrap:wrap; justify-content:center">
-          <sc-for list="{{counts}}" as="c" hint-placeholder-count="4">
-            <div style="display:flex; flex-direction:column; gap:6px; padding:0 24px; border-left:{{c.border}}">
-              <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">{{c.label}}</span>
-              <span style="font-size:28px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:{{c.ink}}; text-shadow:{{c.glow}}">{{c.value}}</span>
-            </div>
-          </sc-for>
-        </div>
+    <div style="position:relative; isolation:isolate; display:flex; flex-direction:column; gap:22px; padding:30px 36px 64px; max-width:1240px; width:100%; box-sizing:border-box">
+      <section style="position:relative; isolation:isolate; display:flex; flex-wrap:wrap; align-items:flex-end; gap:16px; padding-top:18px">
+        <div class="ghost" aria-hidden="true" style="left:auto; right:0; transform:none; top:-30px; font-size:150px">Vue d’ensemble</div>
+        <div style="display:flex; flex-direction:column; gap:8px"><span class="lb">01 — Espace membres</span>
+          <h1 style="margin:0; font-size:44px; line-height:1; font-weight:700; letter-spacing:-.045em">Vue d’ensemble</h1>
+          <p class="m" style="margin:0; font-size:14px">Les chiffres de CHEST et ce qui demande ton attention.</p></div>
       </section>
-
-      <!-- Filtres -->
-      <section style="display:flex; flex-wrap:wrap; align-items:center; gap:10px">
-        <label style="display:flex; align-items:center; gap:10px; height:40px; flex:1 1 260px; max-width:360px; padding:0 12px; box-sizing:border-box; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.025); color:#7a7a82">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-          <input type="search" placeholder="Nom, e-mail, code de référent…" style="flex:1; min-width:0; background:transparent; border:0; outline:0; color:#f6f6f7; font:inherit; font-size:13px">
-        </label>
-        <div role="group" aria-label="État" style="display:flex; gap:2px; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.025)">
-          <button type="button" aria-pressed="true" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:#f6f6f7; color:#050505; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Tous</button>
-          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Essai</button>
-          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Expirent bientôt</button>
-          <button type="button" style="height:32px; padding:0 13px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer">Bloqués</button>
+      <nav style="display:flex; flex-wrap:wrap; align-items:center; gap:10px" aria-label="Vues de l’espace admin">
+        <div class="tabs" role="tablist"><a class="tab on" href="Admin.dc.html">Vue d’ensemble</a><a class="tab" href="Admin-Membres.dc.html">Membres <small class=''>208</small></a><a class="tab" href="Admin-Rangs.dc.html">Rangs</a><a class="tab" href="Admin-Engagement.dc.html">Engagement</a><a class="tab" href="Admin-Ventes.dc.html">Ventes</a><a class="tab" href="Admin-Educateurs.dc.html">Éducateurs <small class='hot'>2</small></a><a class="tab" href="Admin-Systeme.dc.html">Système <small class=''>Éco</small></a></div>
+        <span style="margin-left:auto; display:flex; flex-wrap:wrap; gap:8px">
+          <a class="btn2" href="Admin-Membres.dc.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg><span>Rechercher</span><kbd class="mono" style="padding:1px 6px; border-radius:6px; background:rgba(255,255,255,.08); font-size:10.5px; color:#9b9ba1">/</kbd></a>
+          <a class="btn2" href="Offres.dc.html">Prix<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M7 17L17 7M9 7h8v8"></path></svg></a>
+          <a class="btn" href="Admin-Privilege.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="3.5" y="8.5" width="17" height="4" rx="1"></rect><path d="M5 12.5v7.5h14v-7.5M12 8.5V20M12 8.5c-1.6 0-4.5-.6-4.5-2.6 0-1.4 1.2-2.1 2.3-1.7C11.3 4.8 12 6.5 12 8.5zM12 8.5c1.6 0 4.5-.6 4.5-2.6 0-1.4-1.2-2.1-2.3-1.7-1.5.6-2.2 2.3-2.2 4.3z"></path></svg><span>Offrir un Privilège</span></a>
+        </span>
+      </nav>
+      <div class="stack" style="display:grid; grid-template-columns:1.45fr 1fr 1fr 1fr; gap:12px">
+        <div class="kpi" style="border-color:rgba(249,164,94,.35); background:radial-gradient(120% 90% at 0% 0%, rgba(252,18,131,.2), transparent 55%), linear-gradient(160deg,rgba(20,14,18,.9),rgba(9,9,11,.94)); box-shadow:0 20px 50px -20px rgba(252,18,131,.45), inset 1.5px 1.5px 0 rgba(255,255,255,.14)">
+          <span class="k">Revenu mensuel récurrent</span>
+          <span class="v" style="font-size:44px">18 750 €</span>
+          <span class="n">103 abonnés payants · <b style="color:#f6f6f7">225 000 €</b> sur un an</span>
+          <div style="display:flex; height:9px; gap:2px; margin-top:10px; border-radius:999px; overflow:hidden"><i style="flex:22 1 0; height:100%; background:linear-gradient(180deg,#ffb36b,#ff3d1f)"></i><i style="flex:18 1 0; height:100%; background:linear-gradient(180deg,#e9a57d,#cc5a41)"></i><i style="flex:14 1 0; height:100%; background:linear-gradient(180deg,#c3a594,#8f5f50)"></i><i style="flex:20 1 0; height:100%; background:linear-gradient(180deg,#5cffc4,#00b377)"></i><i style="flex:16 1 0; height:100%; background:linear-gradient(180deg,#80d7b7,#2b9372)"></i><i style="flex:13 1 0; height:100%; background:linear-gradient(180deg,#a3c4b8,#557f70)"></i></div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:4px"><span style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#c9c9ce"><i style="width:7px; height:7px; border-radius:2px; background:#ffb36b"></i>Premium III <b>22</b></span><span style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#c9c9ce"><i style="width:7px; height:7px; border-radius:2px; background:#e9a57d"></i>Premium II <b>18</b></span><span style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#c9c9ce"><i style="width:7px; height:7px; border-radius:2px; background:#c3a594"></i>Premium I <b>14</b></span><span style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#c9c9ce"><i style="width:7px; height:7px; border-radius:2px; background:#5cffc4"></i>Essentiel III <b>20</b></span><span style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#c9c9ce"><i style="width:7px; height:7px; border-radius:2px; background:#80d7b7"></i>Essentiel II <b>16</b></span><span style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#c9c9ce"><i style="width:7px; height:7px; border-radius:2px; background:#a3c4b8"></i>Essentiel I <b>13</b></span></div>
         </div>
-      </section>
-
-      <!-- Liste + volet -->
-      <section style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start">
-        <div style="flex:2 1 520px; min-width:0; display:flex; flex-direction:column; border-top:1px solid rgba(255,255,255,.07)">
-          <sc-for list="{{members}}" as="m" hint-placeholder-count="8">
-            <div class="row-h" style="display:flex; align-items:center; gap:14px; padding:13px 10px; border-bottom:1px solid rgba(255,255,255,.055); border-radius:{{m.radius}}; background:{{m.bg}}; box-shadow:{{m.ring}}">
-              <span style="width:36px; height:36px; flex:0 0 36px; border-radius:11px; display:grid; place-items:center; font-weight:700; color:#050505; background:{{m.av}}">{{m.i}}</span>
-              <span style="flex:1; display:flex; flex-direction:column; gap:2px; min-width:0">
-                <span style="font-weight:600">{{m.name}}</span>
-                <span style="font-size:11.5px; color:#7a7a82; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{m.mail}}</span>
-              </span>
-              <span class="hide-sm" style="width:120px; font-size:12.5px; color:#c9c9ce">{{m.rank}}</span>
-              <span class="hide-sm" style="width:90px; font-size:12px; color:#7a7a82">{{m.edu}}</span>
-              <span style="width:112px; text-align:right"><span style="font-size:10.5px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; color:{{m.stInk}}; background:{{m.stBg}}">{{m.state}}</span></span>
-              <button type="button" aria-label="Actions pour {{m.name}}" style="width:32px; height:32px; border-radius:9px; border:0; background:transparent; color:#7a7a82; cursor:pointer; display:grid; place-items:center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r=".6"></circle><circle cx="12" cy="12" r=".6"></circle><circle cx="19" cy="12" r=".6"></circle></svg>
-              </button>
-            </div>
-          </sc-for>
-        </div>
-
-        <!-- Volet latéral -->
-        <aside aria-label="Fiche du membre" style="flex:1 1 300px; min-width:0; position:relative; overflow:hidden; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(160deg, rgba(14,14,17,.8), rgba(9,9,11,.92)); box-shadow:0 18px 44px rgba(0,0,0,.45), inset 1.5px 1.5px 0 rgba(255,255,255,.14), inset -1.5px -1.5px 0 rgba(255,255,255,.04); padding:22px; display:flex; flex-direction:column; gap:18px">
-          <div aria-hidden="true" style="position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent)"></div>
-          <div style="display:flex; align-items:center; gap:14px">
-            <span style="width:52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:20px; font-weight:700; color:#050505; background:#9dbcff">I</span>
-            <span style="display:flex; flex-direction:column; gap:3px">
-              <span style="font-size:19px; font-weight:700; letter-spacing:-.02em">Inès</span>
-              <span style="font-size:12px; color:#7a7a82">ines@exemple.fr · inscrite le 14 oct.</span>
-            </span>
+        <div class="kpi"><span class="k">Encaissé <span class="pill ok" style="height:19px; font-size:10px">▲ 24 %</span></span><span class="v">18 250 €</span><span class="n">sur 30 jours · 14 750 € avant</span><div style="margin-top:auto"><svg width="100%" height="46" viewBox="0 0 200 46" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="ka33e6a6" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#33e6a6" stop-opacity=".3"></stop><stop offset="1" stop-color="#33e6a6" stop-opacity="0"></stop></linearGradient></defs><path d="M0.0,43.0 L6.9,43.0 L13.8,40.7 L20.7,40.7 L27.6,40.1 L34.5,40.1 L41.4,40.1 L48.3,36.6 L55.2,36.6 L62.1,35.5 L69.0,35.5 L75.9,28.5 L82.8,28.5 L89.7,28.5 L96.6,27.9 L103.4,25.6 L110.3,25.6 L117.2,25.6 L124.1,24.4 L131.0,24.4 L137.9,17.5 L144.8,17.5 L151.7,15.2 L158.6,14.6 L165.5,14.6 L172.4,11.1 L179.3,11.1 L186.2,10.0 L193.1,10.0 L200.0,3.0 L200,46 L0,46 Z" fill="url(#ka33e6a6)"></path><path d="M0.0,43.0 L6.9,43.0 L13.8,40.7 L20.7,40.7 L27.6,40.1 L34.5,40.1 L41.4,40.1 L48.3,36.6 L55.2,36.6 L62.1,35.5 L69.0,35.5 L75.9,28.5 L82.8,28.5 L89.7,28.5 L96.6,27.9 L103.4,25.6 L110.3,25.6 L117.2,25.6 L124.1,24.4 L131.0,24.4 L137.9,17.5 L144.8,17.5 L151.7,15.2 L158.6,14.6 L165.5,14.6 L172.4,11.1 L179.3,11.1 L186.2,10.0 L193.1,10.0 L200.0,3.0" fill="none" stroke="#33e6a6" stroke-width="1.8" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 6px #33e6a688)"></path></svg></div></div>
+        <div class="kpi"><span class="k">Nouveaux membres <span class="pill ok" style="height:19px; font-size:10px">▲ 12 %</span></span><span class="v">37</span><span class="n">sur 30 jours · 33 avant</span><div style="margin-top:auto"><svg width="100%" height="46" viewBox="0 0 100 46" preserveAspectRatio="none" aria-hidden="true"><rect x="0.00" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="3.37" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="6.75" y="15.33" width="2.17" height="30.67" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="10.12" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="13.49" y="44.80" width="2.17" height="1.20" rx="1.09" fill="#fc1283" opacity="0.25"></rect><rect x="16.87" y="44.80" width="2.17" height="1.20" rx="1.09" fill="#fc1283" opacity="0.25"></rect><rect x="20.24" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="23.61" y="15.33" width="2.17" height="30.67" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="26.99" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="30.36" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="33.73" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="37.11" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="40.48" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="43.85" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="47.23" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="50.60" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="53.97" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="57.35" y="44.80" width="2.17" height="1.20" rx="1.09" fill="#fc1283" opacity="0.25"></rect><rect x="60.72" y="44.80" width="2.17" height="1.20" rx="1.09" fill="#fc1283" opacity="0.25"></rect><rect x="64.09" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="67.47" y="44.80" width="2.17" height="1.20" rx="1.09" fill="#fc1283" opacity="0.25"></rect><rect x="70.84" y="15.33" width="2.17" height="30.67" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="74.21" y="44.80" width="2.17" height="1.20" rx="1.09" fill="#fc1283" opacity="0.25"></rect><rect x="77.59" y="15.33" width="2.17" height="30.67" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="80.96" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="84.33" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="87.71" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="91.08" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="94.45" y="0.00" width="2.17" height="46.00" rx="1.09" fill="#fc1283" opacity="1"></rect><rect x="97.83" y="30.67" width="2.17" height="15.33" rx="1.09" fill="#fc1283" opacity="1"></rect></svg></div></div>
+        <div class="kpi"><span class="k">Actifs cette semaine</span><span class="v">96</span><span class="n">31 aujourd’hui · 142 sur 30 jours</span><div style="margin-top:auto"><svg width="100%" height="46" viewBox="0 0 200 46" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="kaf9a45e" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f9a45e" stop-opacity=".3"></stop><stop offset="1" stop-color="#f9a45e" stop-opacity="0"></stop></linearGradient></defs><path d="M0.0,22.1 L6.9,23.9 L13.8,20.4 L20.7,13.4 L27.6,3.0 L34.5,10.0 L41.4,8.2 L48.3,8.2 L55.2,16.9 L62.1,18.7 L69.0,20.4 L75.9,30.8 L82.8,36.0 L89.7,34.3 L96.6,37.8 L103.4,43.0 L110.3,37.8 L117.2,41.3 L124.1,29.1 L131.0,27.3 L137.9,16.9 L144.8,6.5 L151.7,15.2 L158.6,10.0 L165.5,8.2 L172.4,10.0 L179.3,18.7 L186.2,22.1 L193.1,18.7 L200.0,23.9 L200,46 L0,46 Z" fill="url(#kaf9a45e)"></path><path d="M0.0,22.1 L6.9,23.9 L13.8,20.4 L20.7,13.4 L27.6,3.0 L34.5,10.0 L41.4,8.2 L48.3,8.2 L55.2,16.9 L62.1,18.7 L69.0,20.4 L75.9,30.8 L82.8,36.0 L89.7,34.3 L96.6,37.8 L103.4,43.0 L110.3,37.8 L117.2,41.3 L124.1,29.1 L131.0,27.3 L137.9,16.9 L144.8,6.5 L151.7,15.2 L158.6,10.0 L165.5,8.2 L172.4,10.0 L179.3,18.7 L186.2,22.1 L193.1,18.7 L200.0,23.9" fill="none" stroke="#f9a45e" stroke-width="1.8" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 6px #f9a45e88)"></path></svg></div></div>
+      </div>
+      <div class="stack" style="display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); gap:12px">
+        <article class="glass pad" style="grid-column:span 8">
+          <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px">
+            <div><span class="lb">Encaissé</span><div style="display:flex; align-items:baseline; gap:10px; margin-top:6px"><b class="num" style="font-size:34px; letter-spacing:-.04em">18 250 €</b><span class="pill ok" style="height:19px; font-size:10px">▲ 24 %</span><span class="mm" style="font-size:12px">sur 30 jours</span></div></div>
+            <div class="tabs" style="margin-left:auto" role="tablist" aria-label="Indicateur du graphique"><span class="tab on" style="height:30px">Encaissé</span><span class="tab" style="height:30px">Arrivées</span><span class="tab" style="height:30px">Actifs</span><span class="tab" style="height:30px">Pages vues</span></div>
           </div>
-          <div style="display:flex; flex-direction:column">
-            <sc-for list="{{detail}}" as="d" hint-placeholder-count="6">
-              <div style="display:flex; align-items:baseline; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.055)">
-                <span style="color:#9b9ba1">{{d.l}}</span>
-                <span style="margin-left:auto; font-weight:600; text-align:right; color:{{d.ink}}">{{d.v}}</span>
-              </div>
-            </sc-for>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:8px">
-            <span style="font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82">Accès jusqu'au</span>
-            <div style="display:flex; gap:8px">
-              <input type="text" value="14/10/2027" aria-label="Date de fin d'accès" style="flex:1; min-width:0; height:42px; padding:0 14px; border-radius:12px; border:1px solid rgba(252,18,131,.55); box-shadow:0 0 0 3px rgba(252,18,131,.15); background:rgba(255,255,255,.03); color:#f6f6f7; font:inherit; font-variant-numeric:tabular-nums; outline:0">
-              <button type="button" style="height:42px; padding:0 16px; border-radius:12px; border:0; color:#fff; font:inherit; font-weight:600; cursor:pointer; background:linear-gradient(135deg,#fc1283,#f9a45e)">Enregistrer</button>
+          <div style="position:relative; margin-top:12px">
+            <svg width="100%" height="260" viewBox="0 0 760 260" preserveAspectRatio="none" role="img" aria-label="Encaissé cumulé sur 30 jours">
+              <defs><linearGradient id="ovA" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#33e6a6" stop-opacity=".3"></stop><stop offset="1" stop-color="#33e6a6" stop-opacity="0"></stop></linearGradient></defs>
+              <line x1="54" x2="754" y1="232.0" y2="232.0" stroke="rgba(255,255,255,.06)"></line><text x="44" y="235.5" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">0 k€</text><line x1="54" x2="754" y1="177.0" y2="177.0" stroke="rgba(255,255,255,.06)"></line><text x="44" y="180.5" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">5 k€</text><line x1="54" x2="754" y1="122.0" y2="122.0" stroke="rgba(255,255,255,.06)"></line><text x="44" y="125.5" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">10 k€</text><line x1="54" x2="754" y1="67.0" y2="67.0" stroke="rgba(255,255,255,.06)"></line><text x="44" y="70.5" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">15 k€</text><line x1="54" x2="754" y1="12.0" y2="12.0" stroke="rgba(255,255,255,.06)"></line><text x="44" y="15.5" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">20 k€</text>
+              <path d="M54.0,232.0 L78.1,232.0 L102.3,221.0 L126.4,221.0 L150.6,218.2 L174.7,218.2 L198.8,218.2 L223.0,201.8 L247.1,201.8 L271.2,196.2 L295.4,196.2 L319.5,163.2 L343.7,163.2 L367.8,163.2 L391.9,160.5 L416.1,149.5 L440.2,149.5 L464.3,149.5 L488.5,144.0 L512.6,144.0 L536.8,111.0 L560.9,111.0 L585.0,100.0 L609.2,97.2 L633.3,97.2 L657.4,80.8 L681.6,80.8 L705.7,75.2 L729.9,75.2 L754.0,42.2 L754.0,232 L54,232 Z" fill="url(#ovA)"></path>
+              <path d="M54.0,232.0 L78.1,232.0 L102.3,221.0 L126.4,221.0 L150.6,218.2 L174.7,218.2 L198.8,218.2 L223.0,201.8 L247.1,201.8 L271.2,196.2 L295.4,196.2 L319.5,163.2 L343.7,163.2 L367.8,163.2 L391.9,160.5 L416.1,149.5 L440.2,149.5 L464.3,149.5 L488.5,144.0 L512.6,144.0 L536.8,111.0 L560.9,111.0 L585.0,100.0 L609.2,97.2 L633.3,97.2 L657.4,80.8 L681.6,80.8 L705.7,75.2 L729.9,75.2 L754.0,42.2" fill="none" stroke="#33e6a6" stroke-width="2.2" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px rgba(51,230,166,.55))"></path>
+              <line x1="536.8" x2="536.8" y1="12" y2="232" stroke="rgba(255,255,255,.25)" stroke-dasharray="3 3"></line>
+              <circle cx="536.8" cy="111.0" r="5" fill="#33e6a6" stroke="#0b0b0d" stroke-width="2.5"></circle>
+              <text x="54.0" y="254" text-anchor="start" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">4 oct.</text><text x="198.8" y="254" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">10 oct.</text><text x="343.7" y="254" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">16 oct.</text><text x="488.5" y="254" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">22 oct.</text><text x="633.3" y="254" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">28 oct.</text><text x="754.0" y="254" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a7a82">2 nov.</text>
+            </svg>
+            <div style="position:absolute; left:72.1%; top:41px; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(12,12,15,.94); box-shadow:0 14px 34px rgba(0,0,0,.5); font-size:12px; white-space:nowrap">
+              <span class="mm" style="display:block; font-size:11px">samedi 24 octobre</span><b class="num" style="font-size:16px">3 000 €</b><span class="mm" style="display:block; font-size:11px; margin-top:3px">cumul 11 000 €</span>
             </div>
           </div>
-          <div style="display:flex; flex-wrap:wrap; gap:8px">
-            <button type="button" class="btn2" style="height:36px; padding:0 14px; border-radius:999px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.14)) border-box; color:#f6f6f7; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Changer le rang</button>
-            <button type="button" class="btn2" style="height:36px; padding:0 14px; border-radius:999px; border:1px solid transparent; background:linear-gradient(#0b0b0e,#0b0b0e) padding-box, linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.14)) border-box; color:#f6f6f7; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Réinitialiser le mot de passe</button>
-            <button type="button" style="height:36px; padding:0 14px; border-radius:999px; border:1px solid rgba(255,77,94,.35); background:rgba(255,77,94,.06); color:#ff94a0; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer">Bloquer</button>
+        </article>
+        <article class="glass pad" style="grid-column:span 4">
+          <div class="ph"><h2>À surveiller</h2><span class="meta">mis à jour à l’instant</span></div>
+          <div style="display:flex; flex-direction:column; gap:2px"><a href="Admin-Membres.dc.html" class="rowh" style="display:grid; grid-template-columns:34px 1fr auto 14px; align-items:center; gap:12px; padding:10px 8px; margin:0 -8px; border-radius:12px">
+            <span style="width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#7ce3f5; background:color-mix(in srgb,#7ce3f5 13%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,#7ce3f5 28%,transparent)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l2.5 1.5"></path></svg></span>
+            <span><b style="display:block; font-size:13px">Essais qui se terminent</b><span class="mm" style="font-size:11.5px">dans 3 jours ou moins</span></span>
+            <b class="num" style="font-size:20px; color:#7ce3f5; text-shadow:0 0 16px color-mix(in srgb,#7ce3f5 50%,transparent)">4</b><span class="mm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg></span></a><a href="Admin-Membres.dc.html" class="rowh" style="display:grid; grid-template-columns:34px 1fr auto 14px; align-items:center; gap:12px; padding:10px 8px; margin:0 -8px; border-radius:12px">
+            <span style="width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#ff4d5e; background:color-mix(in srgb,#ff4d5e 13%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,#ff4d5e 28%,transparent)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 10h18M7 15h3"></path></svg></span>
+            <span><b style="display:block; font-size:13px">Paiements en retard</b><span class="mm" style="font-size:11.5px">le prélèvement a échoué</span></span>
+            <b class="num" style="font-size:20px; color:#ff4d5e; text-shadow:0 0 16px color-mix(in srgb,#ff4d5e 50%,transparent)">1</b><span class="mm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg></span></a><a href="Admin-Membres.dc.html" class="rowh" style="display:grid; grid-template-columns:34px 1fr auto 14px; align-items:center; gap:12px; padding:10px 8px; margin:0 -8px; border-radius:12px">
+            <span style="width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#f9a45e; background:color-mix(in srgb,#f9a45e 13%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,#f9a45e 28%,transparent)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M5 20V5a1 1 0 0 1 1-1h9l4 2v14"></path><path d="M3 20h18M12 12h.01"></path></svg></span>
+            <span><b style="display:block; font-size:13px">Résiliations programmées</b><span class="mm" style="font-size:11.5px">accès gardé jusqu’à l’échéance</span></span>
+            <b class="num" style="font-size:20px; color:#f9a45e; text-shadow:0 0 16px color-mix(in srgb,#f9a45e 50%,transparent)">2</b><span class="mm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg></span></a><a href="Admin-Membres.dc.html" class="rowh" style="display:grid; grid-template-columns:34px 1fr auto 14px; align-items:center; gap:12px; padding:10px 8px; margin:0 -8px; border-radius:12px">
+            <span style="width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#9dbcff; background:color-mix(in srgb,#9dbcff 13%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,#9dbcff 28%,transparent)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="3.5" y="8.5" width="17" height="4" rx="1"></rect><path d="M5 12.5v7.5h14v-7.5M12 8.5V20M12 8.5c-1.6 0-4.5-.6-4.5-2.6 0-1.4 1.2-2.1 2.3-1.7C11.3 4.8 12 6.5 12 8.5zM12 8.5c1.6 0 4.5-.6 4.5-2.6 0-1.4-1.2-2.1-2.3-1.7-1.5.6-2.2 2.3-2.2 4.3z"></path></svg></span>
+            <span><b style="display:block; font-size:13px">Privilèges qui expirent</b><span class="mm" style="font-size:11.5px">dans 14 jours ou moins</span></span>
+            <b class="num" style="font-size:20px; color:#9dbcff; text-shadow:0 0 16px color-mix(in srgb,#9dbcff 50%,transparent)">1</b><span class="mm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg></span></a><a href="Admin-Membres.dc.html" class="rowh" style="display:grid; grid-template-columns:34px 1fr auto 14px; align-items:center; gap:12px; padding:10px 8px; margin:0 -8px; border-radius:12px">
+            <span style="width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#fc1283; background:color-mix(in srgb,#fc1283 13%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,#fc1283 28%,transparent)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"></path><path d="M10 20a2 2 0 0 0 4 0"></path></svg></span>
+            <span><b style="display:block; font-size:13px">À relancer</b><span class="mm" style="font-size:11.5px">accès actif, aucune visite depuis 7 jours</span></span>
+            <b class="num" style="font-size:20px; color:#fc1283; text-shadow:0 0 16px color-mix(in srgb,#fc1283 50%,transparent)">6</b><span class="mm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg></span></a><a href="Admin-Membres.dc.html" class="rowh" style="display:grid; grid-template-columns:34px 1fr auto 14px; align-items:center; gap:12px; padding:10px 8px; margin:0 -8px; border-radius:12px">
+            <span style="width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#a0a0a8; background:color-mix(in srgb,#a0a0a8 13%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,#a0a0a8 28%,transparent)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M6 20V10a6 6 0 1 1 12 0v10l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5z"></path><path d="M10 10h.01M14 10h.01"></path></svg></span>
+            <span><b style="display:block; font-size:13px">Jamais revenus</b><span class="mm" style="font-size:11.5px">inscrits, aucune visite</span></span>
+            <b class="num" style="font-size:20px; color:#a0a0a8; text-shadow:0 0 16px color-mix(in srgb,#a0a0a8 50%,transparent)">3</b><span class="mm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg></span></a></div>
+        </article>
+        <article class="glass pad" style="grid-column:span 4">
+          <div class="ph"><h2>Composition</h2><a class="lnk" href="Admin-Rangs.dc.html">Voir les rangs</a></div>
+          <div style="display:flex; height:12px; gap:2px; border-radius:999px; overflow:hidden"><i title="Admin" style="flex:1 1 0; height:100%; background:linear-gradient(180deg,#fc1283,#f9a45e)"></i><i title="Manageur" style="flex:1 1 0; height:100%; background:linear-gradient(180deg,#ffd23f,#ff8a1f)"></i><i title="Éducateur" style="flex:4 1 0; height:100%; background:linear-gradient(180deg,#b79bff,#6b4dff)"></i><i title="Privilège" style="flex:4 1 0; height:100%; background:linear-gradient(180deg,#9dbcff,#3f7bff)"></i><i title="Premium III" style="flex:22 1 0; height:100%; background:linear-gradient(180deg,#ffb36b,#ff3d1f)"></i><i title="Premium II" style="flex:18 1 0; height:100%; background:linear-gradient(180deg,#e9a57d,#cc5a41)"></i><i title="Premium I" style="flex:14 1 0; height:100%; background:linear-gradient(180deg,#c3a594,#8f5f50)"></i><i title="Essentiel III" style="flex:20 1 0; height:100%; background:linear-gradient(180deg,#5cffc4,#00b377)"></i><i title="Essentiel II" style="flex:16 1 0; height:100%; background:linear-gradient(180deg,#80d7b7,#2b9372)"></i><i title="Essentiel I" style="flex:13 1 0; height:100%; background:linear-gradient(180deg,#a3c4b8,#557f70)"></i><i title="Essai" style="flex:12 1 0; height:100%; background:linear-gradient(180deg,#7ce3f5,#0f93ad)"></i><i title="Ancien" style="flex:54 1 0; height:100%; background:linear-gradient(180deg,#ff8f9a,#a8253a)"></i><i title="Sans accès" style="flex:29 1 0; height:100%; background:linear-gradient(180deg,#a0a0a8,#4a4a52)"></i></div>
+          <div style="display:flex; flex-direction:column; margin-top:12px"><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #ffb36b55)"><defs><linearGradient id="rk1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb36b"></stop><stop offset="1" stop-color="#ff3d1f"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk1)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Premium III</span><b class="num">22</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">11 %</span></a><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #e9a57d55)"><defs><linearGradient id="rk2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9a57d"></stop><stop offset="1" stop-color="#cc5a41"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk2)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Premium II</span><b class="num">18</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">9 %</span></a><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #c3a59455)"><defs><linearGradient id="rk3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c3a594"></stop><stop offset="1" stop-color="#8f5f50"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk3)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Premium I</span><b class="num">14</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">7 %</span></a><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #5cffc455)"><defs><linearGradient id="rk4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cffc4"></stop><stop offset="1" stop-color="#00b377"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk4)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M7.8 12.4l2.8 2.8 5.6-6" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Essentiel III</span><b class="num">20</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">10 %</span></a><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #80d7b755)"><defs><linearGradient id="rk5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#80d7b7"></stop><stop offset="1" stop-color="#2b9372"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk5)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M7.8 12.4l2.8 2.8 5.6-6" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Essentiel II</span><b class="num">16</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">8 %</span></a><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #a3c4b855)"><defs><linearGradient id="rk6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a3c4b8"></stop><stop offset="1" stop-color="#557f70"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk6)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M7.8 12.4l2.8 2.8 5.6-6" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Essentiel I</span><b class="num">13</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">6 %</span></a><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #7ce3f555)"><defs><linearGradient id="rk7" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7ce3f5"></stop><stop offset="1" stop-color="#0f93ad"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk7)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M8.6 6.5h6.8M8.6 17.5h6.8M9.3 6.5c0 3.4 5.4 3.6 5.4 5.5s-5.4 2.1-5.4 5.5M14.7 6.5c0 3.4-5.4 3.6-5.4 5.5s5.4 2.1 5.4 5.5" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Essai</span><b class="num">12</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">6 %</span></a><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #ff8f9a55)"><defs><linearGradient id="rk8" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8f9a"></stop><stop offset="1" stop-color="#a8253a"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk8)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M12 7.4a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2zM12 9.6V12l1.7 1.2" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Ancien</span><b class="num">54</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">26 %</span></a><a href="Admin-Rangs.dc.html" class="rowh" style="display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:10px; padding:6px 6px; margin:0 -6px; border-radius:9px; font-size:12.5px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="flex:none; filter:drop-shadow(0 0 5px #a0a0a855)"><defs><linearGradient id="rk9" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a0a0a8"></stop><stop offset="1" stop-color="#4a4a52"></stop></linearGradient></defs><path d="M12 1.6 20.9 6.8v10.4L12 22.4 3.1 17.2V6.8z" fill="url(#rk9)" stroke="rgba(255,255,255,.35)" stroke-width=".8" stroke-linejoin="round"></path><path d="M12 2.6 20 7.2v3.2C15.5 8.6 8.5 8.6 4 10.4V7.2z" fill="rgba(255,255,255,.16)"></path><path d="M8.5 12h7" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Sans accès</span><b class="num">29</b><span class="mm num" style="width:34px; text-align:right; font-size:11px">14 %</span></a></div>
+        </article>
+        <article class="glass pad" style="grid-column:span 4">
+          <div class="ph"><h2>Parcours des arrivées</h2><span class="meta">sur 30 jours</span></div>
+          <div style="display:grid; grid-template-columns:110px 1fr 70px; align-items:center; gap:12px; padding:7px 0">
+            <span class="m" style="font-size:12.5px">Inscrits</span>
+            <span style="position:relative; height:26px; border-radius:8px; background:rgba(255,255,255,.04); overflow:hidden"><i style="position:absolute; left:0; top:0; bottom:0; width:100%; border-radius:8px; background:linear-gradient(90deg, rgba(252,18,131,0.90), rgba(249,164,94,0.85)); box-shadow:0 0 18px -4px rgba(252,18,131,.6)"></i></span>
+            <b class="num" style="text-align:right">37</b></div><div style="display:grid; grid-template-columns:110px 1fr 70px; align-items:center; gap:12px; padding:7px 0">
+            <span class="m" style="font-size:12.5px">Questionnaire</span>
+            <span style="position:relative; height:26px; border-radius:8px; background:rgba(255,255,255,.04); overflow:hidden"><i style="position:absolute; left:0; top:0; bottom:0; width:78%; border-radius:8px; background:linear-gradient(90deg, rgba(252,18,131,0.73), rgba(249,164,94,0.68)); box-shadow:0 0 18px -4px rgba(252,18,131,.6)"></i></span>
+            <b class="num" style="text-align:right">29 <small class='mm' style='font-weight:500; font-size:11px'>78 %</small></b></div><div style="display:grid; grid-template-columns:110px 1fr 70px; align-items:center; gap:12px; padding:7px 0">
+            <span class="m" style="font-size:12.5px">Essai</span>
+            <span style="position:relative; height:26px; border-radius:8px; background:rgba(255,255,255,.04); overflow:hidden"><i style="position:absolute; left:0; top:0; bottom:0; width:49%; border-radius:8px; background:linear-gradient(90deg, rgba(252,18,131,0.56), rgba(249,164,94,0.51)); box-shadow:0 0 18px -4px rgba(252,18,131,.6)"></i></span>
+            <b class="num" style="text-align:right">18 <small class='mm' style='font-weight:500; font-size:11px'>49 %</small></b></div><div style="display:grid; grid-template-columns:110px 1fr 70px; align-items:center; gap:12px; padding:7px 0">
+            <span class="m" style="font-size:12.5px">Abonnés</span>
+            <span style="position:relative; height:26px; border-radius:8px; background:rgba(255,255,255,.04); overflow:hidden"><i style="position:absolute; left:0; top:0; bottom:0; width:24%; border-radius:8px; background:linear-gradient(90deg, rgba(252,18,131,0.39), rgba(249,164,94,0.34)); box-shadow:0 0 18px -4px rgba(252,18,131,.6)"></i></span>
+            <b class="num" style="text-align:right">9 <small class='mm' style='font-weight:500; font-size:11px'>24 %</small></b></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px">
+            <div style="padding:10px 12px; border-radius:12px; background:rgba(51,230,166,.06)"><b class="num g" style="font-size:20px">46 %</b><span class="mm" style="display:block; font-size:11.5px">essais convertis (total)</span></div>
+            <div style="padding:10px 12px; border-radius:12px; background:rgba(255,77,94,.06)"><b class="num r" style="font-size:20px">2</b><span class="mm" style="display:block; font-size:11.5px">résiliations sur 30 jours</span></div>
           </div>
-        </aside>
-      </section>
+        </article>
+        <article class="glass pad" style="grid-column:span 4">
+          <div class="ph"><h2>Ce qu’ils utilisent</h2><span class="meta">pages vues</span></div>
+          <div style="position:relative; display:flex; align-items:center; justify-content:space-between; height:34px; padding:0 12px; margin-bottom:5px; border-radius:10px; overflow:hidden; font-size:12.5px">
+            <i style="position:absolute; left:0; top:0; bottom:0; width:100%; border-radius:10px; background:linear-gradient(90deg, rgba(157,188,255,.2), rgba(157,188,255,.05))"></i>
+            <span style="position:relative">Dashboard</span><b class="num" style="position:relative">1 840</b></div><div style="position:relative; display:flex; align-items:center; justify-content:space-between; height:34px; padding:0 12px; margin-bottom:5px; border-radius:10px; overflow:hidden; font-size:12.5px">
+            <i style="position:absolute; left:0; top:0; bottom:0; width:71%; border-radius:10px; background:linear-gradient(90deg, rgba(157,188,255,.2), rgba(157,188,255,.05))"></i>
+            <span style="position:relative">Stratégies</span><b class="num" style="position:relative">1 310</b></div><div style="position:relative; display:flex; align-items:center; justify-content:space-between; height:34px; padding:0 12px; margin-bottom:5px; border-radius:10px; overflow:hidden; font-size:12.5px">
+            <i style="position:absolute; left:0; top:0; bottom:0; width:54%; border-radius:10px; background:linear-gradient(90deg, rgba(157,188,255,.2), rgba(157,188,255,.05))"></i>
+            <span style="position:relative">Journal</span><b class="num" style="position:relative">986</b></div><div style="position:relative; display:flex; align-items:center; justify-content:space-between; height:34px; padding:0 12px; margin-bottom:5px; border-radius:10px; overflow:hidden; font-size:12.5px">
+            <i style="position:absolute; left:0; top:0; bottom:0; width:40%; border-radius:10px; background:linear-gradient(90deg, rgba(157,188,255,.2), rgba(157,188,255,.05))"></i>
+            <span style="position:relative">Calendrier</span><b class="num" style="position:relative">742</b></div><div style="position:relative; display:flex; align-items:center; justify-content:space-between; height:34px; padding:0 12px; margin-bottom:5px; border-radius:10px; overflow:hidden; font-size:12.5px">
+            <i style="position:absolute; left:0; top:0; bottom:0; width:28%; border-radius:10px; background:linear-gradient(90deg, rgba(157,188,255,.2), rgba(157,188,255,.05))"></i>
+            <span style="position:relative">School</span><b class="num" style="position:relative">510</b></div><div style="position:relative; display:flex; align-items:center; justify-content:space-between; height:34px; padding:0 12px; margin-bottom:5px; border-radius:10px; overflow:hidden; font-size:12.5px">
+            <i style="position:absolute; left:0; top:0; bottom:0; width:21%; border-radius:10px; background:linear-gradient(90deg, rgba(157,188,255,.2), rgba(157,188,255,.05))"></i>
+            <span style="position:relative">BERICH</span><b class="num" style="position:relative">388</b></div>
+        </article>
+      </div>
     </div>
+
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1560}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    const counts = [
-      { label: 'En essai', value: '12', ink: '#f4d07a', glow: 'none', border: '0' },
-      { label: 'Actifs', value: '184', ink: '#7ff3ca', glow: '0 0 18px rgba(51,230,166,.35)', border: '1px solid rgba(255,255,255,.09)' },
-      { label: 'Expirent < 7 j', value: '9', ink: '#f6f6f7', glow: 'none', border: '1px solid rgba(255,255,255,.09)' },
-      { label: 'Bloqués', value: '3', ink: '#ff94a0', glow: 'none', border: '1px solid rgba(255,255,255,.09)' }
-    ];
-    const S = { 'Actif': ['#7ff3ca', 'rgba(51,230,166,.12)'], 'Essai · 4 j': ['#f4d07a', 'rgba(232,179,57,.14)'], 'Expire dans 6 j': ['#f4d07a', 'rgba(232,179,57,.14)'], 'Bloqué': ['#ff94a0', 'rgba(255,77,94,.12)'], 'Privilège': ['#9dbcff', 'rgba(77,141,255,.14)'] };
-    const mb = (name, mail, rank, edu, state, av, sel) => ({ name, i: name[0], mail, rank, edu, state, av, stInk: S[state][0], stBg: S[state][1], bg: sel ? 'linear-gradient(135deg, rgba(252,18,131,.1), rgba(249,164,94,.06))' : 'transparent', ring: sel ? 'inset 0 0 0 1px rgba(249,164,94,.4)' : 'none', radius: sel ? '12px' : '0' });
-    const members = [
-      mb('Inès', 'ines@exemple.fr', 'Premium III', 'Sarah', 'Actif', '#9dbcff', true),
-      mb('Yanis', 'yanis@exemple.fr', 'Premium II', 'Sarah', 'Actif', '#f4d07a'),
-      mb('Camille', 'camille@exemple.fr', 'Essai', 'Karim', 'Essai · 4 j', '#c9c9ce'),
-      mb('Léa', 'lea@exemple.fr', 'Essentiel III', 'Sarah', 'Actif', '#7ff3ca'),
-      mb('Nora', 'nora@exemple.fr', 'Essentiel I', 'Sarah', 'Expire dans 6 j', '#ff94a0'),
-      mb('Théo', 'theo@exemple.fr', 'Offert', '—', 'Privilège', 'linear-gradient(135deg,#fc1283,#f9a45e)'),
-      mb('Adam', 'adam@exemple.fr', 'Premium I', 'Karim', 'Bloqué', '#5c5c63'),
-      mb('Jade', 'jade@exemple.fr', 'Premium III', 'Karim', 'Actif', '#e8b339')
-    ];
-    const detail = [
-      { l: 'Rang', v: 'CHEST Premium III', ink: '#f9a45e' },
-      { l: 'Éducatrice', v: 'Sarah (code SARAH)', ink: '#f6f6f7' },
-      { l: 'Payé', v: '3 000 € · 14 oct.', ink: '#f6f6f7' },
-      { l: 'BERICH', v: 'Clé en main à connecter', ink: '#f4d07a' },
-      { l: 'Dernière connexion', v: 'il y a 2 h · Paris', ink: '#f6f6f7' },
-      { l: 'Alertes', v: 'aucune', ink: '#7ff3ca' }
-    ];
-    return { counts, members, detail };
+    return {};
   }
 }
 </script>

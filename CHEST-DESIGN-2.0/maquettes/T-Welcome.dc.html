@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Welcome</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+a{color:inherit;text-decoration:none}
+
+.lb{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7a7a82}
+.mono{font-family:'JetBrains Mono',monospace}
+.num{font-variant-numeric:tabular-nums}
+.m{color:#9b9ba1}.mm{color:#7a7a82}.g{color:#7ff3ca}.r{color:#ff94a0}.a{color:#f4d07a}.b{color:#9dbcff}.p{color:#ffa6cf}
+.grad{background:linear-gradient(90deg,#fc1283,#f9a45e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.glass{position:relative;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(160deg,rgba(17,17,20,.8),rgba(9,9,11,.92));box-shadow:0 18px 44px rgba(0,0,0,.35),inset 1.5px 1.5px 0 rgba(255,255,255,.1),inset -1.5px -1.5px 0 rgba(255,255,255,.03)}
+.glass::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);pointer-events:none}
+.pad{padding:20px 22px}
+.ph{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.ph h2{margin:0;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.ph .meta{margin-left:auto;font-size:12px;color:#7a7a82}
+.ph .lnk{margin-left:auto;font-size:12.5px;font-weight:600;color:#f9a45e}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.025)}
+.tab{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;color:#9b9ba1;white-space:nowrap;transition:color .2s,background .2s}
+.tab:hover{color:#f6f6f7}
+.tab small{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.08);color:#c9c9ce}
+.tab small.hot{background:linear-gradient(135deg,#fc1283,#f9a45e);color:#fff}
+.tab.on{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(252,18,131,.45),0 6px 20px -8px rgba(252,18,131,.5);color:#f6f6f7;font-weight:600}
+.seg{display:flex;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.025)}
+.seg span{height:28px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;font-size:12px;color:#9b9ba1}
+.seg .on{background:#f6f6f7;color:#050505;font-weight:700}
+.btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;border:0;color:#fff;font:inherit;font-size:13.5px;font-weight:700;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 10px 28px -8px rgba(252,18,131,.6),inset 0 1px 0 rgba(255,255,255,.3);white-space:nowrap}
+.btn2{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 15px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.035);color:#f6f6f7;font:inherit;font-size:13px;font-weight:600;white-space:nowrap;transition:border-color .2s,box-shadow .2s}
+.btn2:hover{border-color:rgba(249,164,94,.55);box-shadow:0 8px 26px rgba(252,18,131,.16)}
+.mini{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);font-size:12px;font-weight:600;color:#e4e4e7;white-space:nowrap}
+.rchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 5px;border-radius:999px;font-size:11.5px;font-weight:600;color:#f6f6f7;background:color-mix(in srgb,var(--c1) 13%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c1) 30%,transparent);white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.pill.ok{color:#7ff3ca;background:rgba(51,230,166,.12)}.pill.warn{color:#f4d07a;background:rgba(232,179,57,.14)}.pill.bad{color:#ff94a0;background:rgba(255,77,94,.12)}.pill.info{color:#9dbcff;background:rgba(77,141,255,.14)}.pill.off{color:#9b9ba1;background:rgba(255,255,255,.06)}.pill.pk{color:#ffa6cf;background:rgba(252,18,131,.13)}
+.av{display:inline-grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;font-size:13px;font-weight:700;color:#050505}
+.av.sm{width:28px;height:28px;border-radius:9px;font-size:11px}
+.av.lg{width:58px;height:58px;border-radius:18px;font-size:22px}
+.trk{position:relative;height:6px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+.trk i{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.rowh{transition:background .18s}
+.rowh:hover{background:rgba(255,255,255,.03)}
+.kpi{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:18px 20px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,rgba(17,17,20,.8),rgba(9,9,11,.92));box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.09)}
+.kpi .k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;display:flex;align-items:center;gap:8px}
+.kpi .v{font-size:32px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1.05}
+.kpi .n{font-size:12px;color:#9b9ba1}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:9px 18px;margin:0;font-size:13px}
+.dl dt{color:#7a7a82}.dl dd{margin:0;text-align:right;font-weight:600}
+.field{display:flex;flex-direction:column;gap:7px}
+.field > span:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82}
+.inp{display:flex;align-items:center;gap:10px;height:42px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:#f6f6f7;font-size:13.5px;box-sizing:border-box}
+.inp.focus{border-color:rgba(252,18,131,.6);box-shadow:0 0 0 3px rgba(252,18,131,.15)}
+.sw{position:relative;display:inline-block;width:38px;height:22px;border-radius:999px;background:rgba(255,255,255,.12);flex:none}
+.sw i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:999px;background:#c9c9ce;transition:left .2s}
+.sw.on{background:linear-gradient(135deg,#fc1283,#f9a45e)}.sw.on i{left:19px;background:#fff}
+.note{margin:0;font-size:12px;line-height:1.55;color:#7a7a82}
+.ghost{position:absolute;left:50%;top:-30px;transform:translateX(-50%);z-index:-1;pointer-events:none;white-space:nowrap;font-size:200px;font-weight:700;letter-spacing:-.06em;line-height:1;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 78%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.opt{display:flex;flex-direction:column;gap:5px;padding:13px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.02);font-size:12px;color:#9b9ba1;line-height:1.4}
+.opt b{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#f6f6f7}
+.opt.on{border-color:rgba(249,164,94,.55);background:linear-gradient(160deg,rgba(252,18,131,.12),rgba(249,164,94,.04));box-shadow:0 10px 30px -14px rgba(252,18,131,.6)}
+.dur{display:flex;flex-wrap:wrap;gap:6px}
+.dur span{height:32px;display:inline-flex;align-items:center;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);font-size:12.5px;color:#c9c9ce}
+.dur .on{border-color:transparent;background:#f6f6f7;color:#050505;font-weight:700}
+
+
+.card{position:relative;box-sizing:border-box;border-radius:24px;border:1px solid rgba(255,255,255,.14);background:linear-gradient(160deg,rgba(18,16,20,.72),rgba(9,9,11,.86));backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2);box-shadow:0 30px 80px rgba(0,0,0,.55),inset 1.5px 1.5px 0 rgba(255,255,255,.18),inset -1.5px -1.5px 0 rgba(255,255,255,.05)}
+.card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent)}
+.cbx{width:18px;height:18px;flex:none;border-radius:6px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 4px 12px -2px rgba(252,18,131,.6)}
+.cbx.off{background:transparent;border:1.5px solid rgba(255,255,255,.3);box-shadow:none}
+.aur{position:absolute;left:0;right:0;top:0;pointer-events:none;background:#050506 url(assets/aurora-chest.webp) center top/100% 900px no-repeat}
+h1,h2,p,.lb{text-shadow:0 2px 22px rgba(5,5,6,.6)}
+.legal{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;font-size:11.5px;color:#7a7a82}
+
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.sb-tog{display:none}.stack{grid-template-columns:1fr!important}.stack > *{grid-column:auto!important;grid-row:auto!important}.scroll-x{overflow-x:auto}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</helmet>
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, sans-serif; font-size:13.5px; overflow:hidden; ">
+
+<div style="position:relative; flex:1 1 100%; min-height:100vh; box-sizing:border-box; display:flex; flex-direction:column; align-items:center">
+  <div class="aur" aria-hidden="true" style="height:900px"></div>
+  <div aria-hidden="true" style="position:absolute; left:0; right:0; top:640px; height:260px; pointer-events:none; background:linear-gradient(180deg, transparent, #050506)"></div>
+  <section style="position:relative; z-index:1; width:100%; height:900px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center">
+    <img src="assets/logo-chest-hero.webp" alt="CHEST" style="width:96px; height:96px; object-fit:contain; filter:drop-shadow(0 18px 40px rgba(252,18,131,.55))">
+    <h1 style="margin:0; display:flex; align-items:baseline; gap:22px; font-size:118px; line-height:1; font-weight:700; letter-spacing:-.055em; text-shadow:0 10px 50px rgba(5,5,5,.45)">Welcome<em style="font-family:'Instrument Serif', Georgia, serif; font-style:italic; font-weight:400; letter-spacing:-.02em; padding-right:.08em; background:linear-gradient(102deg,#fff 10%,#ffd9b0 55%,#f9a45e 95%); -webkit-background-clip:text; background-clip:text; color:transparent">Inès</em></h1>
+    <p style="margin:0; font-size:16px; line-height:1.55; color:rgba(255,255,255,.78)">Dernière heure de la séance américaine.<br>Passe faire le point sur tes comptes.</p>
+    <div style="display:flex; gap:10px; margin-top:12px">
+      <span class="btn2" style="position:relative; height:46px; padding:0 22px; border-radius:999px; background:rgba(10,8,12,.55); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px)">Newsletter<span class="pill" style="position:absolute; right:-8px; top:-8px; height:20px; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e)">+1</span></span>
+      <a href="Main.dc.html" class="btn" style="height:46px; padding:0 26px; border-radius:999px; color:#050505; background:#f6f6f7; box-shadow:0 12px 36px -10px rgba(255,255,255,.5)">Start</a>
+    </div>
+    <span style="position:absolute; bottom:30px; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; color:rgba(255,255,255,.5)">Newsletter<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"></path></svg></span>
+  </section>
+  <section style="position:relative; z-index:1; width:1160px; max-width:calc(100% - 40px); padding:40px 0 70px; display:flex; flex-direction:column; gap:22px">
+    <div style="text-align:center"><span class="lb" style="color:#fc1283">Nouveautés</span><h2 style="margin:8px 0 0; font-size:60px; letter-spacing:-.05em">Newsletter</h2></div>
+    <div class="stack" style="display:grid; grid-template-columns:1.65fr 1fr; grid-auto-rows:300px; gap:14px">
+      <article class="glass" style="position:relative; overflow:hidden; border-radius:22px; "><b style="position:absolute; z-index:1; left:22px; top:18px; font-size:24px; letter-spacing:-.02em">Chest Is Here</b><img src="assets/wel-chest-here.webp" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover"><span aria-hidden="true" style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(5,5,6,.55), transparent 35%)"></span></article>
+      <article class="glass" style="position:relative; overflow:hidden; border-radius:22px; "><img src="assets/wel-scanner.webp" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover"><span aria-hidden="true" style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(5,5,6,.6), transparent 40%)"></span><b style="position:absolute; left:22px; top:18px; font-size:24px; letter-spacing:-.02em">Scanner</b><span class="pill" style="position:absolute; right:16px; top:18px; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e)">+1</span></article>
+      <article class="glass" style="position:relative; overflow:hidden; border-radius:22px; "><b style="position:absolute; z-index:1; left:22px; top:18px; font-size:24px; letter-spacing:-.02em">Founder</b><img src="assets/wel-founder-phone.webp" alt="" style="position:absolute; left:50%; bottom:-40px; width:300px; transform:translateX(-50%); filter:drop-shadow(0 20px 40px rgba(0,0,0,.6))"></article>
+      <article class="glass" style="position:relative; overflow:hidden; border-radius:22px; background:radial-gradient(120% 120% at 100% 0%, rgba(107,77,255,.35), transparent 60%), linear-gradient(160deg,rgba(17,14,24,.9),rgba(9,9,11,.95))"><b style="position:absolute; left:22px; top:18px; font-size:24px; letter-spacing:-.02em">Menu</b><div style="position:absolute; left:22px; right:22px; bottom:22px; padding:22px; border-radius:18px; background:linear-gradient(135deg,rgba(107,77,255,.25),rgba(252,18,131,.1)); border:1px solid rgba(183,155,255,.3)"><span class="pill" style="color:#cbbcff; background:rgba(107,77,255,.2)">DES SYSTÈMES</span><b style="display:block; margin-top:12px; font-size:30px; letter-spacing:-.03em">Pas de <span style="color:#b79bff">hasard</span>.</b></div></article>
+    </div>
+  </section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

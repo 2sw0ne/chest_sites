@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Inscription</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#050506}
+a{color:inherit;text-decoration:none}
+
+.lb{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7a7a82}
+.mono{font-family:'JetBrains Mono',monospace}
+.num{font-variant-numeric:tabular-nums}
+.m{color:#9b9ba1}.mm{color:#7a7a82}.g{color:#7ff3ca}.r{color:#ff94a0}.a{color:#f4d07a}.b{color:#9dbcff}.p{color:#ffa6cf}
+.grad{background:linear-gradient(90deg,#fc1283,#f9a45e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.glass{position:relative;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(160deg,rgba(17,17,20,.8),rgba(9,9,11,.92));box-shadow:0 18px 44px rgba(0,0,0,.35),inset 1.5px 1.5px 0 rgba(255,255,255,.1),inset -1.5px -1.5px 0 rgba(255,255,255,.03)}
+.glass::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);pointer-events:none}
+.pad{padding:20px 22px}
+.ph{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.ph h2{margin:0;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.ph .meta{margin-left:auto;font-size:12px;color:#7a7a82}
+.ph .lnk{margin-left:auto;font-size:12.5px;font-weight:600;color:#f9a45e}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.025)}
+.tab{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;color:#9b9ba1;white-space:nowrap;transition:color .2s,background .2s}
+.tab:hover{color:#f6f6f7}
+.tab small{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.08);color:#c9c9ce}
+.tab small.hot{background:linear-gradient(135deg,#fc1283,#f9a45e);color:#fff}
+.tab.on{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(252,18,131,.45),0 6px 20px -8px rgba(252,18,131,.5);color:#f6f6f7;font-weight:600}
+.seg{display:flex;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.025)}
+.seg span{height:28px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;font-size:12px;color:#9b9ba1}
+.seg .on{background:#f6f6f7;color:#050505;font-weight:700}
+.btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;border:0;color:#fff;font:inherit;font-size:13.5px;font-weight:700;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 10px 28px -8px rgba(252,18,131,.6),inset 0 1px 0 rgba(255,255,255,.3);white-space:nowrap}
+.btn2{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 15px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.035);color:#f6f6f7;font:inherit;font-size:13px;font-weight:600;white-space:nowrap;transition:border-color .2s,box-shadow .2s}
+.btn2:hover{border-color:rgba(249,164,94,.55);box-shadow:0 8px 26px rgba(252,18,131,.16)}
+.mini{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);font-size:12px;font-weight:600;color:#e4e4e7;white-space:nowrap}
+.rchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 5px;border-radius:999px;font-size:11.5px;font-weight:600;color:#f6f6f7;background:color-mix(in srgb,var(--c1) 13%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c1) 30%,transparent);white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.pill.ok{color:#7ff3ca;background:rgba(51,230,166,.12)}.pill.warn{color:#f4d07a;background:rgba(232,179,57,.14)}.pill.bad{color:#ff94a0;background:rgba(255,77,94,.12)}.pill.info{color:#9dbcff;background:rgba(77,141,255,.14)}.pill.off{color:#9b9ba1;background:rgba(255,255,255,.06)}.pill.pk{color:#ffa6cf;background:rgba(252,18,131,.13)}
+.av{display:inline-grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;font-size:13px;font-weight:700;color:#050505}
+.av.sm{width:28px;height:28px;border-radius:9px;font-size:11px}
+.av.lg{width:58px;height:58px;border-radius:18px;font-size:22px}
+.trk{position:relative;height:6px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+.trk i{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.rowh{transition:background .18s}
+.rowh:hover{background:rgba(255,255,255,.03)}
+.kpi{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:18px 20px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,rgba(17,17,20,.8),rgba(9,9,11,.92));box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.09)}
+.kpi .k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;display:flex;align-items:center;gap:8px}
+.kpi .v{font-size:32px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1.05}
+.kpi .n{font-size:12px;color:#9b9ba1}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:9px 18px;margin:0;font-size:13px}
+.dl dt{color:#7a7a82}.dl dd{margin:0;text-align:right;font-weight:600}
+.field{display:flex;flex-direction:column;gap:7px}
+.field > span:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82}
+.inp{display:flex;align-items:center;gap:10px;height:42px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:#f6f6f7;font-size:13.5px;box-sizing:border-box}
+.inp.focus{border-color:rgba(252,18,131,.6);box-shadow:0 0 0 3px rgba(252,18,131,.15)}
+.sw{position:relative;display:inline-block;width:38px;height:22px;border-radius:999px;background:rgba(255,255,255,.12);flex:none}
+.sw i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:999px;background:#c9c9ce;transition:left .2s}
+.sw.on{background:linear-gradient(135deg,#fc1283,#f9a45e)}.sw.on i{left:19px;background:#fff}
+.note{margin:0;font-size:12px;line-height:1.55;color:#7a7a82}
+.ghost{position:absolute;left:50%;top:-30px;transform:translateX(-50%);z-index:-1;pointer-events:none;white-space:nowrap;font-size:200px;font-weight:700;letter-spacing:-.06em;line-height:1;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 78%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.opt{display:flex;flex-direction:column;gap:5px;padding:13px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.02);font-size:12px;color:#9b9ba1;line-height:1.4}
+.opt b{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#f6f6f7}
+.opt.on{border-color:rgba(249,164,94,.55);background:linear-gradient(160deg,rgba(252,18,131,.12),rgba(249,164,94,.04));box-shadow:0 10px 30px -14px rgba(252,18,131,.6)}
+.dur{display:flex;flex-wrap:wrap;gap:6px}
+.dur span{height:32px;display:inline-flex;align-items:center;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);font-size:12.5px;color:#c9c9ce}
+.dur .on{border-color:transparent;background:#f6f6f7;color:#050505;font-weight:700}
+
+
+.card{position:relative;box-sizing:border-box;border-radius:24px;border:1px solid rgba(255,255,255,.14);background:linear-gradient(160deg,rgba(18,16,20,.72),rgba(9,9,11,.86));backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2);box-shadow:0 30px 80px rgba(0,0,0,.55),inset 1.5px 1.5px 0 rgba(255,255,255,.18),inset -1.5px -1.5px 0 rgba(255,255,255,.05)}
+.card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent)}
+.cbx{width:18px;height:18px;flex:none;border-radius:6px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 4px 12px -2px rgba(252,18,131,.6)}
+.cbx.off{background:transparent;border:1.5px solid rgba(255,255,255,.3);box-shadow:none}
+.aur{position:absolute;left:0;right:0;top:0;pointer-events:none;background:#050506 url(assets/aurora-chest.webp) center top/100% 900px no-repeat}
+h1,h2,p,.lb{text-shadow:0 2px 22px rgba(5,5,6,.6)}
+.legal{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;font-size:11.5px;color:#7a7a82}
+
+@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.sb-tog{display:none}.stack{grid-template-columns:1fr!important}.stack > *{grid-column:auto!important;grid-row:auto!important}.scroll-x{overflow-x:auto}.ghost{font-size:90px!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</helmet>
+<div style="position:relative; min-height:100vh; display:flex; flex-wrap:wrap; background:#050506; color:#f6f6f7; font-family:'Instrument Sans', system-ui, sans-serif; font-size:13.5px; overflow:hidden; ">
+
+<div style="position:relative; flex:1 1 100%; min-height:100vh; box-sizing:border-box; display:flex; flex-direction:column; align-items:center">
+  <div class="aur" aria-hidden="true" style="height:900px"></div>
+  <div aria-hidden="true" style="position:absolute; left:0; right:0; top:640px; height:260px; pointer-events:none; background:linear-gradient(180deg, transparent, #050506)"></div>
+  <header style="position:relative; z-index:2; width:100%; max-width:1240px; box-sizing:border-box; display:flex; align-items:center; gap:10px; padding:22px 32px">
+    <img src="assets/logo-chest-new.webp" alt="" style="width:28px; height:28px; filter:drop-shadow(0 0 10px rgba(252,18,131,.55))"><b style="font-size:16px; letter-spacing:-.02em">CHEST</b>
+    <span style="margin-left:auto"><a href="Connexion.dc.html" class="btn2">Se connecter</a></span>
+  </header>
+  <div style="position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:18px; padding:30px 20px 40px">
+    <div style="display:flex; gap:18px; padding:8px 16px; border-radius:999px; background:rgba(10,8,12,.55); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,.1)"><span style="display:flex; align-items:center; gap:8px; font-size:12px; color:#f6f6f7"><i class="mono" style="width:20px; height:20px; border-radius:999px; display:grid; place-items:center; font-style:normal; font-size:10px; font-weight:700; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e)">1</i>Ton compte</span><span style="display:flex; align-items:center; gap:8px; font-size:12px; color:#7a7a82"><i class="mono" style="width:20px; height:20px; border-radius:999px; display:grid; place-items:center; font-style:normal; font-size:10px; font-weight:700; border:1px solid rgba(255,255,255,.2)">2</i>5 questions</span><span style="display:flex; align-items:center; gap:8px; font-size:12px; color:#7a7a82"><i class="mono" style="width:20px; height:20px; border-radius:999px; display:grid; place-items:center; font-style:normal; font-size:10px; font-weight:700; border:1px solid rgba(255,255,255,.2)">3</i>Ton accès</span></div>
+    <div class="card" style="width:460px; max-width:100%; margin-top:34px; padding:58px 34px 30px; display:flex; flex-direction:column; gap:14px">
+      <img src="assets/logo-chest-new.webp" alt="CHEST" style="position:absolute; left:50%; top:-38px; width:76px; height:76px; margin-left:-38px; filter:drop-shadow(0 14px 30px rgba(252,18,131,.55))">
+      <div style="text-align:center"><h1 style="margin:0; font-size:27px; letter-spacing:-.03em">Créer un compte</h1><p class="m" style="margin:6px 0 0; font-size:13.5px; line-height:1.5">Ensuite, 5 questions pour te conseiller la bonne offre.<br>Essai gratuit de 7 jours.</p></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px"><label class="field"><span>Prénom</span><span class="inp focus" style="height:46px"><span style="flex:1; color:#f6f6f7">Inès</span></span></label><label class="field"><span>Nom</span><span class="inp" style="height:46px"><span style="flex:1; color:#f6f6f7">Moreau</span></span></label></div>
+      <small class="m" style="margin-top:-6px; font-size:11.5px">Ton prénom s’affichera sur ta page d’accueil, sous « Welcome ».</small>
+      <label class="field"><span>E-mail</span><span class="inp" style="height:46px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a7a82" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="m4 7 8 6 8-6"></path></svg><span style="flex:1; color:#f6f6f7">ines@exemple.fr</span></span></label>
+      <label class="field"><span>Mot de passe</span><span class="inp" style="height:46px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a7a82" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="5" y="10.5" width="14" height="10" rx="2.5"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg><span style="flex:1; color:#f6f6f7">••••••••••</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a7a82" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="2.8"></circle></svg></span><small class="m" style="font-size:11.5px; line-height:1.45">8 caractères minimum.</small></label>
+      <label class="field"><span>Code de référent</span><span class="inp mono" style="height:46px; border-color:rgba(183,155,255,.4); background:rgba(107,77,255,.07)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b79bff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="9" cy="8" r="3.2"></circle><path d="M2.5 19.5a6.5 6.5 0 0 1 13 0"></path><path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2M17 13.2a5.5 5.5 0 0 1 4.5 6.3"></path></svg><b style="flex:1; letter-spacing:.12em">SARAH</b><span class="pill" style="color:#b79bff; background:rgba(107,77,255,.16)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="5" y="10.5" width="14" height="10" rx="2.5"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg> verrouillé</span></span><small style="font-size:11.5px; color:#cbbcff">Ton éducatrice : Sarah Benali. Ton compte sera relié à son espace.</small></label>
+      <label style="display:flex; gap:12px; padding:12px 14px; border-radius:14px; border:1px solid rgba(249,164,94,.3); background:rgba(252,18,131,.05); font-size:12.5px; line-height:1.5; color:#c9c9ce"><span class="cbx"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M5 12.5l4.2 4.2L19 7"></path></svg></span><span>J’ai 18 ans ou plus et j’accepte les <a href="#" style="color:#f9a45e">conditions d’utilisation</a>, la <a href="#" style="color:#f9a45e">politique de confidentialité</a> et l’<a href="#" style="color:#f9a45e">avertissement sur les risques</a> du trading.</span></label>
+      <a href="T-Questionnaire.dc.html" class="btn" style="height:50px; border-radius:999px; font-size:15px">Créer mon compte <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg></a>
+      <p class="m" style="margin:0; text-align:center; font-size:13px">Déjà un compte ? <a href="Connexion.dc.html" style="color:#f9a45e; font-weight:600">Se connecter</a></p>
+    </div>
+    <nav class="legal" aria-label="Documents légaux"><a href="#">Mentions légales</a><a href="#">CGU</a><a href="#">CGV</a><a href="#">Confidentialité</a><a href="#">Risques</a></nav>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
