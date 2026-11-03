@@ -83,23 +83,30 @@
   }
 
   // ---------- Bulles du problème ----------
-  // ---------- lumières des bords : chaque trait descend avec le défilement, à sa propre vitesse, et reboucle ----------
-  const edges = [...document.querySelectorAll('.edge-fx i')];
-  if (edges.length && !reduce) {
-    const SPEED = [0.32, 0.5, 0.75], OFFSET = [0.1, 0.45, 0.8];
-    let raf2 = 0;
-    const paint = () => {
-      raf2 = 0;
-      const vh = window.innerHeight, y = window.scrollY;
-      edges.forEach((el, i) => {
-        const k = i % 3, span = vh + el.offsetHeight;
-        const pos = ((y * SPEED[k] + (OFFSET[k] + (i >= 3 ? 0.5 : 0)) * span) % span) - el.offsetHeight;
-        el.style.transform = `translate3d(0, ${pos.toFixed(1)}px, 0)`;
-      });
+  // ---------- aurore des côtés, de « 03 — Une nouvelle façon de trader » jusqu'aux offres ----------
+  // La piste couvre ces sections ; la scène reste collée à l'écran pendant qu'on la parcourt (comme les 90 %),
+  // l'aurore descend avec le défilement puis s'estompe en arrivant sur les prix.
+  const track = document.querySelector('.aur-track');
+  const nwSec = document.getElementById('automatisation'), offSec = document.getElementById('offres');
+  if (track && nwSec && offSec) {
+    const stage = track.querySelector('.aur-stage');
+    const place = () => {
+      track.style.top = nwSec.offsetTop + 'px';
+      track.style.height = (offSec.offsetTop + offSec.offsetHeight - nwSec.offsetTop) + 'px';
     };
-    window.addEventListener('scroll', () => { if (!raf2) raf2 = requestAnimationFrame(paint); }, { passive: true });
-    window.addEventListener('resize', paint);
-    paint();
+    let raf3 = 0;
+    const move = () => {
+      raf3 = 0;
+      const r = track.getBoundingClientRect(), vh = window.innerHeight;
+      const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - vh)));
+      const fadeIn = Math.min(1, Math.max(0, (vh - r.top) / (vh * 0.6)));
+      stage.style.setProperty('--y', (p * 70).toFixed(2) + 'vh');
+      stage.style.opacity = (fadeIn * (p < 0.7 ? 1 : Math.max(0, 1 - (p - 0.7) / 0.3))).toFixed(3);
+    };
+    place(); move();
+    window.addEventListener('resize', () => { place(); move(); });
+    window.addEventListener('load', () => { place(); move(); });
+    window.addEventListener('scroll', () => { if (!raf3) raf3 = requestAnimationFrame(move); }, { passive: true });
   }
 
   // ---------- 01 — Le problème : à mi-course de la scène fixe, les bulles passent du rouge au vert ----------

@@ -871,14 +871,19 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 .nw-flow b{ font-size:15px; margin-top:4px; }
 .nw-flow p{ font-size:12.5px; }
 
-/* Lumières qui descendent le long des bords au fil du défilement (js/landing.js, edgeFx) */
-.edge-fx{ position:fixed; top:0; bottom:0; z-index:1; width:1px; pointer-events:none; background:linear-gradient(transparent, rgba(255,255,255,.05) 15%, rgba(255,255,255,.05) 85%, transparent); }
-.edge-fx--l{ left:clamp(14px, 2vw, 32px); } .edge-fx--r{ right:clamp(14px, 2vw, 32px); }
-.edge-fx i{ position:absolute; left:-1px; width:3px; height:130px; border-radius:3px; top:0;
-  background:linear-gradient(transparent, #fc1283 40%, #f9a45e 80%, transparent); box-shadow:0 0 14px rgba(252,18,131,.55); opacity:.55; will-change:transform; }
-.edge-fx i:nth-child(2){ height:70px; opacity:.35; }
-.edge-fx i:nth-child(3){ height:40px; opacity:.25; }
-@media (max-width:900px){ .edge-fx{ display:none; } }
+/* Aurore des côtés (2026-11-03) : de 03 aux offres, derrière le contenu ; js/landing.js règle --y (descente) et l'opacité (fondu) */
+.aur-track{ position:absolute; left:0; right:0; z-index:0; pointer-events:none; }
+.aur-stage{ position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; opacity:0; --y:0vh; }
+.aur{ position:absolute; top:-30vh; width:min(34vw, 560px); height:120vh; transform:translateY(var(--y)); filter:blur(48px) saturate(1.2); mix-blend-mode:screen; }
+.aur--l{ left:-12vw; } .aur--r{ right:-12vw; }
+.aur i{ position:absolute; inset:0; border-radius:50%; opacity:.5; transform-origin:50% 0; animation:aurWave 14s ease-in-out infinite; }
+.aur i:nth-child(1){ background:radial-gradient(40% 60% at 60% 40%, rgba(252,18,131,.55), transparent 70%); }
+.aur i:nth-child(2){ background:radial-gradient(30% 55% at 45% 55%, rgba(249,164,94,.45), transparent 70%); animation-duration:18s; animation-delay:-5s; }
+.aur i:nth-child(3){ background:radial-gradient(28% 50% at 55% 70%, rgba(150,60,255,.35), transparent 70%); animation-duration:22s; animation-delay:-9s; }
+.aur--r i{ animation-direction:reverse; }
+@keyframes aurWave{ 0%,100%{ transform:skewX(-8deg) scaleY(1) translateX(0); } 50%{ transform:skewX(9deg) scaleY(1.12) translateX(4%); } }
+.nw, .mob, .offers{ position:relative; z-index:1; background:transparent; }
+@media (prefers-reduced-motion:reduce){ .aur i{ animation:none; } }
 .nw{ padding:64px 0 60px; }
 .nw .h2{ font-size:clamp(34px, 3.6vw, 54px); }
 .nw-grid{ margin-top:26px; }
@@ -892,3 +897,6 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 .nw-pts{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px 14px; margin-top:12px; font-size:12.5px; }
 .nw-flow{ padding:12px 20px; }
 .nw-flow p{ margin-top:2px; }
+
+/* bulles plus éloignées du centre, réparties de façon irrégulière, sans toucher les bords */
+.pain .bubbles{ max-width:1480px; }
