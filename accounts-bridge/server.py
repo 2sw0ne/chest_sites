@@ -1798,7 +1798,7 @@ TRIAL_DAYS = 7
 LEVEL_MONTHS = {1: 3, 2: 6, 3: 12}
 PRICING_KEYS = ("essentiel1", "essentiel2", "essentiel3", "premium1", "premium2", "premium3")
 _ESS_FEATS = [[1, "Tous les scanners et leurs alertes"], [1, "Backtesting et rapports complets"], [1, "Journal de trading"],
-              [1, "Dashboard et comptes reliés"], [1, "Calendrier économique"], [1, "2 cours School offerts"],
+              [1, "Dashboard et comptes reliés"], [1, "Calendrier économique"],
               [0, "School complet et cours vidéo"], [0, "BERICH et suivi des positions"], [0, "Accompagnement personnalisé"]]
 _PRE_FEATS = [[1, "Tout CHEST Essentiel"], [1, "School complet : cours écrits et vidéo"], [1, "BERICH et suivi des positions"],
               [1, "Accompagnement personnalisé par ton éducateur"]]
