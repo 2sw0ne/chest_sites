@@ -967,8 +967,11 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 }
 
 /* ===== 2026-11-03 : fin de page en caractères, tailles uniformisées, arête des rubans ===== */
-.asc{ position:relative; height:min(46vh, 460px); margin-top:90px; overflow:hidden;
-  -webkit-mask-image:linear-gradient(transparent, #000 18%, #000 85%, transparent); mask-image:linear-gradient(transparent, #000 18%, #000 85%, transparent); }
+.pg{ position:relative; z-index:1; }
+.asc-gap{ height:min(62vh, 560px); pointer-events:none; }
+.asc{ position:fixed; z-index:0; left:0; right:0; bottom:0; height:min(62vh, 560px); overflow:hidden; visibility:hidden; background:#050505;
+  -webkit-mask-image:linear-gradient(transparent, #000 14%); mask-image:linear-gradient(transparent, #000 14%); }
+.asc.is-on{ visibility:visible; }
 .asc pre{ position:absolute; inset:0; margin:0; font:500 11px/12px ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace; letter-spacing:0; white-space:pre; overflow:hidden; text-align:left; user-select:none; }
 .asc-f{ color:rgba(255,255,255,.09); }
 .asc-m{ background:linear-gradient(90deg, #fc1283, #ff5b6e 45%, #f9a45e); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; filter:drop-shadow(0 0 18px rgba(252,18,131,.35)); }
@@ -987,3 +990,10 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 
 /* les rubans ne coupent plus leur lueur : plus d'arête nette en dessous */
 .brk{ overflow:visible; overflow-x:clip; }
+
+/* contour animé de la fenêtre de démo : n'est plus rogné (le bord dépasse d'1 px) */
+.win--live{ overflow:visible; }
+.win--live .app-live{ border-radius:0 0 22px 22px; }
+@media (max-width:640px){ .win--live .app-live{ border-radius:0 0 16px 16px; } }
+/* rubans : lueur rose plus discrète */
+.brk-r--a{ box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.25), 0 18px 50px rgba(252,18,131,.14); opacity:.92; }

@@ -178,9 +178,9 @@
     let open = reduce ? 1 : 0;
     const frame = (t) => {
       if (!live) return;
-      const r = asc.getBoundingClientRect(), vh = window.innerHeight;
-      // s'ouvre entre le moment où le haut entre à l'écran et le bas de la page
-      const target = reduce ? 1 : Math.min(1, Math.max(0, (vh - r.top) / (r.height * 0.95)));
+      // la fenêtre s'ouvre à mesure que l'espace du bas apparaît sous la page
+      const g = gap.getBoundingClientRect(), vh = window.innerHeight;
+      const target = reduce ? 1 : Math.min(1, Math.max(0, (vh - g.top) / g.height));
       open += (target - open) * 0.08;
       const T = reduce ? 0 : t / 1000;
       let f = '', m = '';
@@ -198,7 +198,8 @@
       requestAnimationFrame(frame);
     };
     const start = () => { if (!mask) build(); if (!live) { live = true; requestAnimationFrame(frame); } };
-    if ('IntersectionObserver' in window) new IntersectionObserver((es) => { if (es[0].isIntersecting) start(); else live = false; }).observe(asc);
+    const gap = document.querySelector('.asc-gap');
+    if ('IntersectionObserver' in window) new IntersectionObserver((es) => { const on = es[0].isIntersecting; asc.classList.toggle('is-on', on); if (on) start(); else live = false; }).observe(gap);
     else start();
     window.addEventListener('resize', () => { mask = null; if (live) build(); });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { mask = null; if (live) build(); });
