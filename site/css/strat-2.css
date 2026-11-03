@@ -75,4 +75,4 @@ body[data-page="strategies"] .scnr-media.card::before, body[data-page="strategie
 /* fenêtre du graphique : un contour fin, toujours rien d'autre que le graphique ; onglets remontés sous le titre (2026-11-03) */
 body[data-page="strategies"] .scnr-media.card{ padding:10px !important; border:1px solid rgba(255,255,255,.12) !important; border-radius:18px !important;
   background:linear-gradient(160deg, rgba(14,14,17,.72), rgba(9,9,11,.86)) !important; box-shadow:0 18px 44px rgba(0,0,0,.45), inset 1.5px 1.5px 0 rgba(255,255,255,.12) !important; }
-body[data-page="strategies"] .scnr-hero .scnr-media__tabs{ margin-top:4px !important; margin-bottom:-6px; }
+body[data-page="strategies"] .scnr-hero .scnr-media__tabs{ margin-top:4px !important; margin-bottom:22px; position:relative; z-index:2; }

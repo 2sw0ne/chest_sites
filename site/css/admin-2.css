@@ -231,3 +231,4 @@ html.am2v .am2-bar{ position:static; display:flex; flex-wrap:wrap; align-items:c
 html.am2v #amQuick, html.am2v #amGiftBtn, html.am2v .am2-btn2[href*="offres"]{ display:none !important; }
 html.is-embedded.am2v .am2-crumb, html.is-embedded.am2v #amLive, html.is-embedded.am2v .am2-period-row{ display:none !important; }
 @media (max-width:900px){ .am2v-ghost{ font-size:80px; } .am2v-txt h1{ font-size:34px; } .am2v-tools{ margin-left:0; } }
+html.am2v .am2-bar{ margin-bottom:22px; }

@@ -34,3 +34,15 @@ html.is-embedded body.chest-root[data-page="school"]::before{ display:none !impo
 #scHome.is-staff .sh-day__list{ gap:6px; padding:0 8px 10px; }
 #scHome.is-staff .sh-ev{ border-radius:11px; }
 #scHome.is-staff .sh-ev__fly{ display:none; }
+
+/* Équipe alignée sur la vue membre (2026-11-03) : en-tête centré, grand « School » fantôme, onglets centrés */
+#scHome.is-staff .sh-head{ display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; padding:14px 0 26px; margin-bottom:26px; border-bottom:1px solid rgba(255,255,255,.07); }
+#scHome.is-staff .sh-head > div:first-child{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+#scHome.is-staff .sh-head::before{ right:auto; left:50%; top:-26px; transform:translateX(-50%); font-size:210px; white-space:nowrap; }
+#scHome.is-staff .sh-head .chest-step{ letter-spacing:.24em; text-transform:uppercase; }
+#scHome.is-staff .sh-head h1{ margin:0; font-size:64px; line-height:1; font-weight:700; letter-spacing:-.05em; }
+#scHome.is-staff .sh-head p{ margin:0; max-width:560px; }
+#scHome.is-staff .sh-head__acts{ display:flex; justify-content:center; gap:8px; }
+#scHome.is-staff .sh-tabs{ display:flex; width:fit-content; margin:0 auto 22px; }
+@media (max-width:900px){ #scHome.is-staff .sh-head::before{ font-size:90px; } #scHome.is-staff .sh-head h1{ font-size:44px; } }
+#scHome.is-staff .sh-facts{ justify-content:center; }

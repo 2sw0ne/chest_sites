@@ -316,11 +316,12 @@
   function render(st, opts) {
     opts = opts || {};
     const zone = document.querySelector('main');
-    if (schoolLimited() && !freeState(st)) {
+    // School entier fermé hors Premium, comme BERICH (demande utilisateur 2026-11-03) : plus de cours offerts à l'Essentiel
+    if (schoolLimited()) {
       renderView(st, opts);
       CHESTPlan.lock(zone, {
-        title: 'School complet fait partie de CHEST Premium',
-        text: 'Ton offre inclut 2 cours : Ressources Trading et Psychologie & Money Management. Premium ouvre tous les cours écrits, les vidéos et l’accompagnement.',
+        title: 'School fait partie de CHEST Premium',
+        text: 'Les cours écrits, les vidéos, les appels collectifs et le suivi avec ton éducateur sont inclus dans Premium.',
         points: ['Tous les cours écrits et les vidéos', 'Appels collectifs et suivi avec un éducateur', 'BERICH et le suivi de tes positions'],
         cta: 'Passer à Premium',
       });
