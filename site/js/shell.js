@@ -129,6 +129,11 @@
     const alt = ['dashboard', 'journal', 'backtesting', 'strategies', 'calendar'].find((p) => p !== navOf(name) && !blocked(p));
     back.hidden = !alt;
     if (alt) { back.setAttribute('href', '#/' + alt); back.textContent = 'Aller sur ' + PAGES[alt].label; }
+    // CHEST 2.0 (maquette T-Maintenance.html) : nom de la page et état des autres pages en pastilles
+    const nm = PAGES[navOf(name)] ? PAGES[navOf(name)].label : 'CHEST';
+    document.getElementById('chestMaintK').textContent = OPS.mode === 'off' ? 'CHEST · Maintenance' : nm + ' · Maintenance';
+    document.getElementById('chestMaintPills').innerHTML = ['dashboard', 'journal', 'backtesting', 'strategies', 'calendar', 'berich', 'school'].filter((p) => PAGES[p])
+      .map((p) => `<span class="${blocked(p) ? 'is-off' : 'is-on'}">${PAGES[p].label} ${blocked(p) ? 'en pause' : 'disponible'}</span>`).join('');
     maintEl.hidden = false;
     maintPill.hidden = true;
     shell.classList.remove('is-navigating');

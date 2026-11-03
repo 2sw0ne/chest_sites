@@ -71,7 +71,7 @@
 <script src="js/pwa.js?v=6"></script>
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
-<link rel="stylesheet" href="css/chest-2-site.css?v=5">
+<link rel="stylesheet" href="css/chest-2-site.css?v=6">
 <link rel="stylesheet" href="css/auth-2.css?v=2">
 <link rel="stylesheet" href="css/shell-2.css?v=5">
 <!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
@@ -97,7 +97,6 @@
      ce même document bascule vers le VRAI Welcome une fois connecté (CHESTWelcome.show(), script en bas).
      ══════════════════════════════════════════════════════════════ -->
 <div class="auth-overlay" id="authOverlay" aria-hidden="true">
-  <header class="auth-top"><a class="auth-top__brand" href="/"><img src="assets/logo-chest.png" alt=""><span>CHEST</span></a><a class="auth-top__btn" href="/inscription">Créer un compte</a></header>
   <div class="auth-stage" id="authStage">
     <div class="auth-card">
       <img class="auth-card__logo" src="assets/logo-chest-hero.webp" alt="CHEST">
@@ -379,9 +378,10 @@
       <section class="chest-maint" id="chestMaint" role="status" aria-live="polite" hidden>
         <div class="chest-maint__card">
           <span class="chest-maint__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L4 16.7 7.3 20l5.3-5.3a4 4 0 0 0 5.1-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></span>
-          <span class="chest-maint__k">01 — Maintenance</span>
+          <span class="chest-maint__k" id="chestMaintK">Maintenance</span>
           <h2 class="chest-maint__t" id="chestMaintTitle">On améliore cette partie de CHEST.</h2>
           <p class="chest-maint__p" id="chestMaintText">Elle revient très vite. Tes données sont en sécurité.</p>
+          <div class="chest-maint__pills" id="chestMaintPills"></div>
           <a class="chest-btn-2 chest-maint__back" id="chestMaintBack" href="#/dashboard" hidden>Retour au Dashboard</a>
         </div>
       </section>
@@ -391,7 +391,7 @@
 </div>
 
 <script src="js/nav.js?v=11"></script>
-<script src="js/shell.js?v=11"></script>
+<script src="js/shell.js?v=12"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/welcome.js?v=60"></script>
 <script src="js/tuto.js?v=2"></script>

@@ -321,6 +321,7 @@
       CHESTPlan.lock(zone, {
         title: 'School complet fait partie de CHEST Premium',
         text: 'Ton offre inclut 2 cours : Ressources Trading et Psychologie & Money Management. Premium ouvre tous les cours écrits, les vidéos et l’accompagnement.',
+        points: ['Tous les cours écrits et les vidéos', 'Appels collectifs et suivi avec un éducateur', 'BERICH et le suivi de tes positions'],
         cta: 'Passer à Premium',
       });
       return;

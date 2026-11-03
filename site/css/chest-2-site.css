@@ -137,3 +137,19 @@ html.is-embedded body[data-page="backtesting"] .chest-main > main,
 html.is-embedded body[data-page="strategies"] .chest-main > main,
 html.is-embedded body[data-page="journal"] .chest-main > main{ width:100%; max-width:1520px !important; box-sizing:border-box; }
 html.is-embedded body[data-page="school"] .chest-main > main{ width:100%; max-width:1180px; box-sizing:border-box; }
+
+/* ---------- Écran de maintenance (maquette T-Maintenance.html) : sans carte, anneau, pastilles d'état ---------- */
+#chestShell .chest-maint__card{ background:none !important; border:0 !important; box-shadow:none !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important; max-width:560px; }
+#chestShell .chest-maint__ic{ position:relative; width:64px !important; height:64px !important; border-radius:999px !important; color:#f4d07a !important;
+  background:radial-gradient(circle, rgba(232,179,57,.18), rgba(10,10,12,.9) 70%) !important; box-shadow:0 0 0 1px rgba(232,179,57,.35), 0 0 0 12px rgba(255,255,255,.025), 0 0 40px rgba(232,179,57,.25) !important; }
+#chestShell .chest-maint__ic::after{ content:''; position:absolute; inset:-13px; border-radius:999px; border:2px solid transparent; border-top-color:#ff8a5c; border-right-color:#fc1283;
+  animation:c2MaintSpin 2.4s linear infinite; }
+@keyframes c2MaintSpin{ to{ transform:rotate(360deg); } }
+#chestShell .chest-maint__k{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82; margin-top:22px; }
+#chestShell .chest-maint__t{ font-size:30px; letter-spacing:-.035em; }
+#chestShell .chest-maint__pills{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:18px 0 20px; }
+#chestShell .chest-maint__pills span{ padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600; }
+#chestShell .chest-maint__pills .is-on{ color:#7ff3ca; background:rgba(51,230,166,.1); }
+#chestShell .chest-maint__pills .is-off{ color:#f4d07a; background:rgba(232,179,57,.12); }
+#chestShell .chest-maint__back{ border-radius:999px !important; background:rgba(255,255,255,.04) !important; border:1px solid rgba(255,255,255,.14) !important; }
+@media (prefers-reduced-motion:reduce){ #chestShell .chest-maint__ic::after{ animation:none; } }
