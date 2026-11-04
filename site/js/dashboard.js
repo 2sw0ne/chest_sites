@@ -1739,6 +1739,21 @@
   }
 
 
+  // Aucun compte (2026-11-04) : le Dashboard s'affiche quand même, à vide (zéros, courbe plate, calendrier vierge),
+  // estompé derrière la carte « Ajoute ton premier compte ».
+  function renderBlank() {
+    try {
+      const a = { id: '__empty', name: 'Ton compte', history: [], trades: [], positions: [], balance: 0, equity: 0, pnl: 0,
+        startCapital: 0, objectives: null, dailyHistory: [], today: 0, isPropfirm: false };
+      a.periods = computeAllPeriods([], 0, [], [], 0, 0);
+      activeAccountData = a;
+      renderAccountHeader(a);
+      renderOpenPositions(a);
+      renderMiniCalendar(a);
+      render('month');
+    } catch (e) { console.warn('Dashboard vide :', e); }
+  }
+
   async function renderAll() {
     const raw = currentAccount();
     // Etat vide : aucun compte ni famille (2026-09-23, plus de comptes de
@@ -1746,7 +1761,7 @@
     // compte" et saute tout le rendu qui suppose un compte actif valide.
     document.getElementById('dashMain').classList.toggle('is-empty', !raw);
     document.getElementById('dashEmptyState').hidden = !!raw;
-    if (!raw) return;
+    if (!raw) { renderBlank(); return; }
     renderAccountMenu(loadAccounts(), raw);
     if (raw.myfxbook && !activeAccountData) renderAccountHeader({ ...raw, loading: true });
     await refreshActiveAccount();

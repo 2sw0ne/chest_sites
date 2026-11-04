@@ -452,12 +452,13 @@
     const t = TIER[cat(m)] || TIER.none;
     const [st, tone] = stateOf(m);
     const isMe = me().id === m.id;
-    const edu = m.educator ? m.educator.name.split(' ')[0] : '—';
+    // origine (2026-11-04) : « via Pierre » si le membre est arrivé par le lien d'un éducateur, sinon « Direct »
+    const edu = m.educator ? `<span class="am2-origin" title="Arrivé par ${esc(m.educator.name)}${m.educator.code ? ` (code ${esc(m.educator.code)})` : ''}">via ${esc(m.educator.name.split(' ')[0])}</span>` : '<span class="am2-origin is-direct" title="Inscrit sans code de référent">Direct</span>';
     return `<div class="am2-row am-row${S.sel === m.id ? ' is-sel' : ''}" role="listitem" tabindex="0" data-id="${m.id}" aria-current="${S.sel === m.id}">
       <span class="am2-av" style="--c1:${t.c1};--c2:${t.c2}">${esc(initials(m)[0])}</span>
       <span class="am2-who"><b>${esc(fullName(m))}${isMe ? '<span class="am-tag">toi</span>' : ''}</b><small>${esc(m.email)}</small></span>
       <span class="am2-rank">${esc(rankName(m))}</span>
-      <span class="am2-edu">${esc(edu)}</span>
+      <span class="am2-edu">${edu}</span>
       <span class="am2-st"><span class="am2-pill is-${tone}">${esc(st)}</span></span>
       <button type="button" class="am2-more" data-full="${m.id}" aria-label="Fiche complète de ${esc(fullName(m))}" title="Fiche complète">${DOTS}</button>
     </div>`;
@@ -677,7 +678,7 @@
     $('amEdu').innerHTML = EDU.educators.length ? EDU.educators.map((e) => {
       const link = e.invite ? `${origin}/inscription?ref=${e.invite}` : '';
       return `<div class="am-edu" data-edu="${e.id}">
-        <div class="am-edu__who"><b>${esc(e.name)}</b><small>${esc(e.email)}</small></div>
+        <div class="am-edu__who"><b>${esc(e.name)}</b><small>${esc(e.email)}</small>${(() => { const sc = e.scanner && window.CHESTScanners && CHESTScanners.list().find((x) => x.id === e.scanner); return `<span class="am-edu__disc${sc ? '' : ' is-none'}">${sc ? `${sc.logo ? `<img src="${esc(sc.logo)}" alt="">` : ''}Discipline : ${esc(sc.name)}` : 'Discipline pas encore choisie'}</span>`; })()}</div>
         <div class="am-edu__link">${link ? `<span class="am-edu__code">${esc(e.invite)}</span><code>${esc(link)}</code><button type="button" class="am-mini" data-edu-copy="${esc(link)}">Copier</button>` : '<span class="am-edu__none">Code pas encore choisi par l’éducateur</span>'}</div>
         <label class="am-edu__rate">Taux<input type="text" inputmode="decimal" value="${pctOf(e.rate)}" data-edu-rate="${e.id}" aria-label="Taux de commission de ${esc(e.name)}"><em>%</em></label>
         <div class="am-edu__stats"><span><b>${e.totals.members}</b> membres</span><span><b>${esc(euro(e.totals.sales, 0))}</b> ventes</span><span><b>${esc(euro(e.wallet.earned))}</b> commissions</span><span><b>${esc(euro(e.wallet.available))}</b> dispo</span></div>

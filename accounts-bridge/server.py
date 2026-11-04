@@ -545,7 +545,9 @@ def init_db():
                     # Code de référent choisi par l'éducateur (2026-10-28) : une seule fois, 8 caractères max
                     ("edu_code", "TEXT"),
                     # Documents légaux (2026-10-30) : version des CGU acceptée, et des règles du programme éducateur
-                    ("terms_version", "TEXT"), ("edu_terms_version", "TEXT")]
+                    ("terms_version", "TEXT"), ("edu_terms_version", "TEXT"),
+                    # Discipline de l'éducateur (2026-11-04) : le scanner auquel il est affilié
+                    ("edu_scanner", "TEXT")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -1909,7 +1911,8 @@ def plan_for_amount(amount):
     amount = int(amount or 0)
     for o in get_pricing().get("offers", []):
         price = o.get("price")
-        if price and o.get("group") in PLANS and int(round(float(price) * 100)) == amount:
+        pct = get_promo()["pct"]
+        if price and o.get("group") in PLANS and amount in (int(round(float(price) * 100)), int(round(float(price) * (100 - pct)))):
             return {"plan": o["group"], "level": o.get("level"), "months": o.get("months") or LEVEL_MONTHS.get(o.get("level"), 1)}
     legacy = PLAN_AMOUNTS.get(amount)
     if legacy:
@@ -2262,7 +2265,7 @@ def edu_report(db, educator, full=False):
     inv = {"code": chosen} if chosen else db.execute("SELECT code FROM edu_invites WHERE educator_id = ? AND active = 1 ORDER BY created_at DESC", (educator["id"],)).fetchone()
     earned_c = round(earned)
     return {
-        "educator": {"id": educator["id"], "name": f"{educator['first_name']} {educator['last_name']}"},
+        "educator": {"id": educator["id"], "name": f"{educator['first_name']} {educator['last_name']}", "scanner": _col(educator, "edu_scanner")},
         "rate": rate, "invite": inv["code"] if inv else None, "codeChosen": bool(chosen), "minPayout": EDU_MIN_PAYOUT,
         "members": out_members,
         "totals": {"members": len(out_members), "active": sum(1 for m in out_members if m["active"]),
@@ -2706,7 +2709,7 @@ def mentor_educators():
         def one(sql, *extra):
             return db.execute(sql.replace("(IDS)", f"({q})"), (*ids, *extra)).fetchone()[0] if ids else 0
         nxt = one("SELECT MIN(starts_at) FROM mentor_events WHERE member_id IN (IDS) AND starts_at >= ? AND status IN ('proposed', 'confirmed')", now_s)
-        out.append({**_person(e), "code": _col(e, "edu_code"), "students": len(ids), "active": sum(1 for r in studs if access_of(r)["active"]),
+        out.append({**_person(e), "code": _col(e, "edu_code"), "scanner": _col(e, "edu_scanner"), "students": len(ids), "active": sum(1 for r in studs if access_of(r)["active"]),
                     "calls": one("SELECT COUNT(*) FROM mentor_events WHERE member_id IN (IDS) AND starts_at >= ? AND starts_at <= ? AND status IN ('proposed', 'confirmed')", now_s, week_s),
                     "held30": one("SELECT COUNT(*) FROM mentor_events WHERE member_id IN (IDS) AND starts_at >= ? AND starts_at < ? AND status IN ('confirmed', 'done')", month_s, now_s),
                     "late": one("SELECT COUNT(*) FROM mentor_tasks WHERE member_id IN (IDS) AND done_at IS NULL AND due_at < ?", now_s),
@@ -3533,6 +3536,29 @@ def edu_choose_code():
     return jsonify(edu_report(db, db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()))
 
 
+@app.route("/edu/scanner", methods=["POST"])
+def edu_choose_scanner():
+    """Discipline de l'éducateur = le scanner auquel il est affilié (modifiable). Un admin peut la fixer pour
+    un éducateur : {scanner, educator}."""
+    user = current_user()
+    if not user or not (is_educator(user) or user["is_admin"]):
+        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    body = request.get_json(silent=True) or {}
+    sid = str(body.get("scanner") or "").strip().lower()
+    if sid and not re.fullmatch(r"[a-z0-9_-]{1,32}", sid):
+        return jsonify({"error": "Scanner inconnu."}), 400
+    db = get_db()
+    target = user
+    if user["is_admin"] and str(body.get("educator") or "").isdigit():
+        target = db.execute("SELECT * FROM users WHERE id = ?", (int(body["educator"]),)).fetchone()
+        if not target or not is_educator(target):
+            return jsonify({"error": "Éducateur introuvable."}), 404
+    with db_lock:
+        db.execute("UPDATE users SET edu_scanner = ? WHERE id = ?", (sid or None, target["id"]))
+        db.commit()
+    return jsonify({"ok": True, "scanner": sid or None})
+
+
 @app.route("/ref/<code>")
 def ref_lookup(code):
     """Vérifie un code de référent pour la page d'inscription (prénom + initiale de l'éducateur seulement)."""
@@ -3624,7 +3650,7 @@ def admin_educators():
     out = []
     for e in db.execute("SELECT * FROM users WHERE role = 'educator' ORDER BY first_name").fetchall():
         r = edu_report(db, e)
-        out.append({"id": e["id"], "name": f"{e['first_name']} {e['last_name']}", "email": e["email"], "rate": r["rate"],
+        out.append({"id": e["id"], "name": f"{e['first_name']} {e['last_name']}", "email": e["email"], "scanner": _col(e, "edu_scanner"), "rate": r["rate"],
                     "invite": r["invite"], "codeChosen": r["codeChosen"], "totals": r["totals"], "wallet": r["wallet"],
                     "pendingPayouts": sum(1 for t in r["transactions"] if t["kind"] == "payout" and t.get("status") == "pending")})
     return jsonify({"educators": out, "defaultRate": EDU_DEFAULT_RATE})
@@ -3705,12 +3731,48 @@ def admin_payout_update(pid):
     return jsonify({"ok": True})
 
 
+# Réduction affichée sur la landing et les offres (2026-11-04) : activée par l'admin (Admin → Système),
+# un pourcentage et un code (NOVE10 par défaut). Le code tapé au paiement baisse le prix envoyé à Stripe.
+def get_promo():
+    try:
+        p = json.loads(get_setting("promo") or "{}")
+    except ValueError:
+        p = {}
+    pct = int(p.get("pct") or 10)
+    return {"on": bool(p.get("on")), "pct": max(1, min(90, pct)), "code": str(p.get("code") or "NOVE10").upper()[:16]}
+
+
+def promo_for(code):
+    p = get_promo()
+    return p["pct"] if p["on"] and code and str(code).strip().upper() == p["code"] else 0
+
+
+@app.route("/promo", methods=["PUT"])
+def promo_put():
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    body = request.get_json(silent=True) or {}
+    code = str(body.get("code") or "NOVE10").strip().upper()
+    if not re.fullmatch(r"[A-Z0-9]{3,16}", code):
+        return jsonify({"error": "Code : 3 à 16 lettres ou chiffres."}), 400
+    try:
+        pct = int(body.get("pct") or 10)
+    except (TypeError, ValueError):
+        pct = 0
+    if not 1 <= pct <= 90:
+        return jsonify({"error": "La réduction va de 1 à 90 %."}), 400
+    set_setting("promo", json.dumps({"on": bool(body.get("on")), "pct": pct, "code": code}))
+    log_event(get_db(), "admin.promo", admin["id"], f"Réduction {'activée' if body.get('on') else 'désactivée'} : {pct} % · {code}")
+    return jsonify(get_promo())
+
+
 @app.route("/pricing", methods=["GET", "PUT"])
 def pricing():
     if request.method == "GET":
         data = get_pricing()
         return jsonify({"offers": data["offers"], "updatedAt": get_setting("pricing_updated_at"),
-                        "checkout": "auto" if STRIPE_SECRET_KEY else "liens"})
+                        "checkout": "auto" if STRIPE_SECRET_KEY else "liens", "promo": get_promo()})
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
@@ -3735,7 +3797,9 @@ def billing_checkout():
     user = current_user()
     if not user:
         return jsonify({"error": "Connecte-toi pour choisir une offre."}), 401
-    key = str((request.get_json(silent=True) or {}).get("offer") or "")
+    body = request.get_json(silent=True) or {}
+    key = str(body.get("offer") or "")
+    pct = promo_for(body.get("code"))
     o = next((x for x in get_pricing()["offers"] if x.get("key") == key), None)
     if not o or not o.get("enabled") or o.get("soon") or not o.get("price"):
         return jsonify({"error": "Cette offre n'est pas disponible."}), 400
@@ -3748,13 +3812,14 @@ def billing_checkout():
     db = get_db()
     edu = db.execute("SELECT * FROM users WHERE id = ?", (_col(user, "referred_by"),)).fetchone() if _col(user, "referred_by") else None
     edu = edu if is_educator(edu) else None
-    cents = int(round(float(o["price"]) * 100))
+    cents = int(round(float(o["price"]) * (100 - pct)))
     rate = edu_rate(edu) if edu else 0.0
     label, who = _offer_label(o), f"{user['first_name']} {(user['last_name'] or '')[:1]}.".strip()
     edu_name = f"{edu['first_name']} {edu['last_name'] or ''}".strip() if edu else "aucun (vente directe CHEST)"
     meta = {"offer": key, "amount": str(cents), "member_id": str(user["id"]), "member": who,
             "educator_id": str(edu["id"]) if edu else "", "educator": edu_name,
-            "commission_rate": f"{rate:.2f} %", "commission": f"{cents * rate / 10000:.2f} EUR"}
+            "commission_rate": f"{rate:.2f} %", "commission": f"{cents * rate / 10000:.2f} EUR",
+            "promo": f"{get_promo()['code']} -{pct} %" if pct else ""}
     fields = [("mode", "payment"), ("locale", "fr"), ("client_reference_id", f"u{user['id']}"),
               ("success_url", f"{CHECKOUT_SITE}/offres?paiement=ok"), ("cancel_url", f"{CHECKOUT_SITE}/offres"),
               ("line_items[0][quantity]", "1"), ("line_items[0][price_data][currency]", "eur"),
@@ -3772,7 +3837,7 @@ def billing_checkout():
     except RuntimeError as e:
         log_event(db, "paiement.erreur", user["id"], f"{label} : {e}", "warn")
         return jsonify({"error": f"Le paiement n'a pas pu s'ouvrir : {e}"}), 502
-    log_event(db, "paiement.ouvert", user["id"], f"{label} · {o['price']} € · éducateur : {edu_name}")
+    log_event(db, "paiement.ouvert", user["id"], f"{label} · {cents / 100:g} €{f' (code -{pct} %)' if pct else ''} · éducateur : {edu_name}")
     return jsonify({"url": session.get("url"), "mode": "auto"})
 
 
@@ -3895,10 +3960,10 @@ def _admin_member(db, row):
     out["amount"] = _col(row, "plan_amount")
     out["category"] = member_category(row)
     # Fiche Admin 2.0 (2026-11-02) : éducateur, état BERICH et alertes du journal sur 30 jours.
-    edu = db.execute("SELECT id, first_name, last_name, edu_code FROM users WHERE id = ?",
+    edu = db.execute("SELECT id, first_name, last_name, edu_code, edu_scanner FROM users WHERE id = ?",
                      (_col(row, "referred_by"),)).fetchone() if _col(row, "referred_by") else None
     out["educator"] = {"id": edu["id"], "name": f"{edu['first_name']} {edu['last_name'] or ''}".strip(),
-                       "code": _col(edu, "edu_code")} if edu else None
+                       "code": _col(edu, "edu_code"), "scanner": _col(edu, "edu_scanner")} if edu else None
     plan = db.execute("SELECT attached_at FROM berich_plans WHERE user_id = ?", (row["id"],)).fetchone()
     req = db.execute("SELECT status FROM berich_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1", (row["id"],)).fetchone()
     out["berich"] = {"plan": bool(plan), "attached": bool(plan and plan["attached_at"]), "request": req["status"] if req else None}

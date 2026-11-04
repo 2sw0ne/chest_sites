@@ -1,7 +1,7 @@
 // CHEST 2.0 (2026-11-03) — Admin d'après CHEST-DESIGN-2.0/html-exact/Admin*.html :
 //  - en tête de chaque vue : étiquette, grand titre, phrase, mot fantôme ; les onglets restent dessous, avec
-//    « Rechercher », « Prix » et « Offrir un Privilège » à droite ;
-//  - dans la barre du haut du shell : « N en ligne maintenant » et la période (7 j / 30 j / 90 j / 1 an).
+//    « Rechercher » (vue Membres) et « Prix » (vue Système) à droite ;
+//  - dans la barre du haut du shell : « N en ligne », les onglets, puis la période (7 j / 30 j / 90 j / 1 an).
 // Toute la logique reste dans js/admin-members.js : ces boutons actionnent les commandes d'origine.
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -26,37 +26,57 @@
   bar.parentNode.insertBefore(hero, bar);
   const tools = document.createElement('span');
   tools.className = 'am2v-tools';
-  tools.innerHTML = `<button type="button" class="am2v-btn2" data-am2="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg><span>Rechercher</span><kbd>/</kbd></button>
-    <a class="am2v-btn2" href="/offres?edit=1" target="_top" title="Modifier les offres et les prix">Prix<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg></a>
-    <button type="button" class="am2v-btn" data-am2="gift"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8.5" width="17" height="4" rx="1"></rect><path d="M5 12.5v7.5h14v-7.5M12 8.5V20M12 8.5c-1.5-3-5-3-5-1s3 1 5 1zm0 0c1.5-3 5-3 5-1s-3 1-5 1z"></path></svg>Offrir un Privilège</button>`;
+  // « Rechercher » seulement sur Membres, « Prix » seulement sur Système (2026-11-04) ; plus de « Offrir un Privilège » ici
+  tools.innerHTML = `<a class="am2v-btn2" href="/offres?edit=1" target="_top" title="Modifier les offres et les prix" data-only="system">Prix<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg></a>`;
   bar.appendChild(tools);
   tools.addEventListener('click', (e) => {
     const t = e.target.closest('[data-am2]');
-    if (!t) return;
-    if (t.dataset.am2 === 'search') { const q = $('amQuick'); if (q) q.click(); }
-    if (t.dataset.am2 === 'gift') { const g = $('amGiftBtn'); if (g) g.click(); }
+    if (t && t.dataset.am2 === 'search') { const q = $('amSearch'); if (q) q.focus(); }
   });
+  // période des statistiques : à droite du grand titre (la barre du haut garde « en ligne » + onglets)
+  function periodHtml() {
+    if (!period || period.hasAttribute('data-off')) return '';
+    const days = [...period.querySelectorAll('[data-days]')];
+    return `<span class="am2v-period" role="group" aria-label="Période des statistiques">${days.map((b) => { const on = b.classList.contains('is-active'); return `<button type="button" data-am2-days="${b.dataset.days}" aria-pressed="${on}" class="${on ? 'is-on' : ''}">${esc(b.textContent.trim())}</button>`; }).join('')}</span>`;
+  }
   function paintHero() {
     const [title, sub] = HEAD[current()] || HEAD.overview;
+    tools.querySelectorAll('[data-only]').forEach((x) => { x.hidden = x.dataset.only !== current(); });
     const num = String(Object.keys(HEAD).indexOf(current()) + 1 || 1).padStart(2, '0');
     try { const c = window.parent.document.getElementById('crumbPage'); if (c && window.parent !== window) c.textContent = title; } catch (e) { /* autre origine */ }
     hero.innerHTML = `<div class="am2v-ghost" aria-hidden="true">${esc(title)}</div>
-      <div class="am2v-txt"><span class="am2v-lb">${num} — Espace membres</span><h1>${esc(title)}</h1><p>${esc(sub)}</p></div>`;
+      <div class="am2v-txt"><span class="am2v-lb">${num} — Espace membres</span><h1>${esc(title)}</h1><p>${esc(sub)}</p></div>${periodHtml()}`;
+    hero.querySelectorAll('[data-am2-days]').forEach((b) => b.addEventListener('click', () => {
+      const t = period.querySelector(`[data-days="${b.dataset.am2Days}"]`);
+      if (t) t.click();
+    }));
   }
 
   // ---------- barre du haut du shell : en ligne + période ----------
   const T = window.parent !== window && window.parent.CHESTTopbar;
   const live = $('amLive'), period = $('amPeriod');
+  // Comme l'espace éducateur (2026-11-04) : « N en ligne » puis les onglets de l'admin dans la barre du haut,
+  // la période à droite. Les onglets d'origine (#amNav) restent dans la page, cachés, et sont actionnés d'ici.
+  const PILL = 'height: 30px; padding: 0px 10px; border: 0px; border-radius: 999px; font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap;';
   function paintTop() {
     if (!T) return;
+    document.documentElement.classList.add('am2v-top');
     const n = ((live && live.textContent) || '').match(/\d+/);
-    const days = period ? [...period.querySelectorAll('[data-days]')] : [];
-    const usesPeriod = period && !period.hasAttribute('data-off');
-    const slot = T.set(window, `${n ? `<span style="display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0px 12px; border-radius: 999px; background: rgba(51, 230, 166, 0.08); box-shadow: rgba(51, 230, 166, 0.25) 0px 0px 0px 1px inset; font-size: 12px; color: rgb(201, 201, 206);"><i style="width: 7px; height: 7px; border-radius: 999px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.8) 0px 0px 8px;"></i><b style="color: rgb(246, 246, 247);">${n[0]}</b> en ligne maintenant</span>` : ''}
-      ${usesPeriod ? `<span role="group" aria-label="Période des statistiques" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">${days.map((b) => { const on = b.classList.contains('is-active'); return `<button type="button" data-am2-days="${b.dataset.days}" aria-pressed="${on}" style="height: 28px; padding: 0px 11px; border: 0px; border-radius: 999px; background: ${on ? 'rgb(246, 246, 247)' : 'transparent'}; color: ${on ? 'rgb(5, 5, 5)' : 'rgb(155, 155, 161)'}; font: inherit; font-size: 12px; font-weight: ${on ? 600 : 400}; cursor: pointer;">${esc(b.textContent.trim())}</button>`; }).join('')}</span>` : ''}`);
+    const cur = current();
+    const tabs = [...nav.querySelectorAll('[data-view]')].map((b) => {
+      const on = b.dataset.view === cur;
+      const small = b.querySelector('small');
+      const extra = small && small.textContent.trim();
+      const label = b.childNodes[0].textContent.trim();
+      return `<button type="button" role="tab" data-am2-view="${b.dataset.view}" aria-selected="${on}" style="${PILL} background: ${on ? 'rgba(255, 255, 255, 0.08)' : 'transparent'}; box-shadow: ${on ? 'rgba(252, 18, 131, 0.45) 0px 0px 0px 1px inset' : 'none'}; color: ${on ? 'rgb(246, 246, 247)' : 'rgb(155, 155, 161)'}; font-weight: ${on ? 600 : 400};">${esc(label)}${extra ? ` <small style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);">${esc(extra)}</small>` : ''}</button>`;
+    }).join('');
+    const slot = T.set(window, `<span style="display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; min-width: 0;">
+      ${n ? `<span title="${n[0]} en ligne maintenant" style="display: inline-flex; flex: none; align-items: center; gap: 7px; height: 36px; padding: 0px 11px; border-radius: 999px; background: rgba(51, 230, 166, 0.08); box-shadow: rgba(51, 230, 166, 0.25) 0px 0px 0px 1px inset; font-size: 12px; color: rgb(201, 201, 206); white-space: nowrap;"><i style="width: 7px; height: 7px; border-radius: 999px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.8) 0px 0px 8px;"></i><b style="color: rgb(246, 246, 247);">${n[0]}</b><span class="am2t-lbl" style="color: rgb(155, 155, 161);">en ligne</span></span>` : ''}
+      <span role="tablist" aria-label="Vues de l'admin" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">${tabs}</span>
+    </span>`);
     if (!slot) return;
-    slot.querySelectorAll('[data-am2-days]').forEach((b) => b.addEventListener('click', () => {
-      const t = period.querySelector(`[data-days="${b.dataset.am2Days}"]`);
+    slot.querySelectorAll('[data-am2-view]').forEach((b) => b.addEventListener('click', () => {
+      const t = nav.querySelector(`[data-view="${b.dataset.am2View}"]`);
       if (t) t.click();
     }));
   }
@@ -64,7 +84,7 @@
   function paint() { paintHero(); paintTop(); }
   document.documentElement.classList.add('am2v');
   const mo = new MutationObserver(paint);
-  mo.observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-selected'] });
+  mo.observe(nav, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-selected'] });
   if (live) mo.observe(live, { childList: true, characterData: true, subtree: true });
   if (period) mo.observe(period, { subtree: true, attributes: true, attributeFilter: ['class', 'data-off'] });
   paint();

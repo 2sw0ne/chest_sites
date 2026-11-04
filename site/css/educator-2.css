@@ -51,3 +51,19 @@ body[data-page="educator"] .ed-bar--b{ background:linear-gradient(180deg,#f9a45e
 .ed-sheet__win{ height:auto; max-height:calc(100dvh - 48px); border:1px solid rgba(255,255,255,.13); border-radius:20px;
   background:linear-gradient(180deg, rgba(24,18,24,.96), rgba(10,10,12,.98)); box-shadow:0 40px 120px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.1); }
 @media (prefers-reduced-motion:reduce){ .ed-sheet[open]{ animation:none; } }
+
+/* Discipline de l'éducateur (2026-11-04) : le scanner auquel il est affilié */
+.ed2-disc{ display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; }
+.ed2-disc__h{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+.ed2-disc__k{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:#7a7a82; }
+.ed2-disc__h p{ max-width:540px; margin:0; font-size:13px; line-height:1.6; color:#9b9ba1; }
+.ed2-disc__h b{ color:#f6f6f7; }
+.ed2-disc__list{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:900px; }
+.ed2-disc__s{ display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 14px 0 8px; border-radius:999px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.025); color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer; transition:border-color .2s cubic-bezier(.16,1,.3,1), background .2s cubic-bezier(.16,1,.3,1), color .2s; }
+.ed2-disc__s img, .ed2-disc__s i{ width:22px; height:22px; border-radius:7px; object-fit:cover; flex:none; }
+.ed2-disc__s i{ display:grid; place-items:center; font-style:normal; font-size:9px; font-weight:700; color:#fff; }
+.ed2-disc__s:hover:not(:disabled){ border-color:rgba(255,255,255,.22); color:#f6f6f7; }
+.ed2-disc__s:active:not(:disabled){ transform:scale(.97); }
+.ed2-disc__s.is-on{ color:#f6f6f7; background:rgba(252,18,131,.08); border-color:rgba(252,18,131,.5); box-shadow:0 0 0 3px rgba(252,18,131,.12); }
+.ed2-disc__s:disabled{ cursor:default; }
+.ed2-disc__s:disabled:not(.is-on){ opacity:.45; }

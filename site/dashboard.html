@@ -29,8 +29,7 @@
   [hidden]{ display:none !important; }
 
   /* ---------- Etat vide : aucun compte (2026-09-23, retour utilisateur
-     "retire les faux comptes qu'on parte de 0") ---------- */
-  main.is-empty > *:not(#dashEmptyState){ display:none !important; }
+  /* 2026-11-04 : le Dashboard vide reste affiché (estompé), voir css/dash-2.css */
   #dashEmptyState .chest-glass{
     max-width:460px; margin:88px auto; padding:44px 38px; text-align:center;
   }
@@ -619,7 +618,7 @@
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
 <link rel="stylesheet" href="css/chest-2-site.css?v=14">
 <link rel="stylesheet" href="css/shell-2.css?v=5">
-<link rel="stylesheet" href="css/dash-2.css?v=4">
+<link rel="stylesheet" href="css/dash-2.css?v=7">
 </head>
 <body data-page="dashboard" class="chest-root">
 
@@ -965,7 +964,7 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=14"></script>
-<script src="js/live-sim.js?v=5"></script><script src="js/dashboard.js?v=61"></script>
+<script src="js/live-sim.js?v=5"></script><script src="js/dashboard.js?v=62"></script>
 <script src="js/session-timeline.js?v=6"></script>
 <script src="js/currency-strength.js?v=2"></script>
 <script src="js/page-tour.js"></script>

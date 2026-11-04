@@ -30,7 +30,8 @@
     const pending = s.pending ? `<span class="mh-tag mh-tag--ask">${s.pending} appel${s.pending > 1 ? 's' : ''} à confirmer</span>` : '';
     return `<button type="button" class="mh-card${s.active === false ? ' is-off' : ''}" data-mh-open="${s.id}" style="--c1:${info.c1};--c2:${info.c2}">
       <span class="mh-card__top"><span class="mh-av">${esc(initials(s.name))}</span>
-        <span class="mh-card__who"><b>${esc(s.name)}</b><small>${s.educator !== undefined && (A.getUser() || {}).isAdmin ? (s.educator ? `Avec ${esc(s.educator)} · ` : 'Sans éducateur · ') : ''}${s.active === false ? 'Accès terminé' : s.endsAt ? `jusqu’au ${new Date(s.endsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : esc(s.plan)}</small></span></span>
+        <span class="mh-card__who"><b>${esc(s.name)}</b><small>${s.active === false ? 'Accès terminé' : s.endsAt ? `jusqu’au ${new Date(s.endsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : esc(s.plan)}</small></span></span>
+      ${s.educator !== undefined && (A.getUser() || {}).isAdmin ? `<span class="mh-origin${s.educator ? '' : ' is-direct'}">${s.educator ? `via ${esc(s.educator)}` : 'Direct'}</span>` : ''}
       <span class="mh-card__rank">${R ? R.chip(s.planKey, s.level, s.price, s.active !== false) : esc(s.plan)}</span>
       <span class="mh-card__next">${CAL}${s.next ? `<b>${esc(rel(s.next.starts_at))}</b>${s.next.status === 'proposed' ? '<span class="mh-tag mh-tag--ask">à confirmer</span>' : '<span class="mh-tag mh-tag--ok">confirmé</span>'}` : '<span class="mh-muted">Aucun appel prévu</span>'}</span>
       <span class="mh-card__tasks"><span class="mh-bar"><i style="transform:scaleX(${t.total ? (t.done / t.total).toFixed(3) : 0})"></i></span>
@@ -56,11 +57,22 @@
     const facts = [[list.length, list.length > 1 ? 'élèves' : 'élève'], [calls, calls > 1 ? 'appels cette semaine' : 'appel cette semaine'], [pend, pend > 1 ? 'demandes à confirmer' : 'demande à confirmer', pend ? 'ask' : ''], [late, late > 1 ? 'missions en retard' : 'mission en retard', late ? 'late' : '']];
     box.innerHTML = `${o.head || ''}
       ${o.compact ? '' : `<div class="mh-facts">${facts.map(([n, l, c]) => `<span class="${c ? 'is-' + c : ''}"><b>${n}</b>${l}</span>`).join('')}</div>`}
-      ${list.length ? `<div class="mh-grid">${list.map(card).join('')}</div>`
+      ${list.length ? `<label class="mh-search"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" data-mh-q placeholder="Rechercher un ${(A.getUser() || {}).isAdmin ? 'membre, un éducateur…' : 'élève…'}" autocomplete="off" aria-label="Rechercher"><span class="mh-search__n" data-mh-n></span></label>` : ''}
+      ${list.length ? `<div class="mh-grid">${list.map(card).join('')}</div><p class="mh-empty" data-mh-none hidden>Personne ne correspond à cette recherche.</p>`
         : '<div class="mh-empty"><b>Aucun élève pour le moment</b>Ils apparaissent ici dès qu’ils s’inscrivent avec ton code de référent (Espace éducateur).</div>'}`;
     if (!box.dataset.mhWired) {
       box.dataset.mhWired = '1';
       box.addEventListener('click', (e) => { const b = e.target.closest('[data-mh-open]'); if (b) open(b.dataset.mhOpen); });
+      // recherche (2026-11-04) : nom, éducateur d'origine, rang ; filtre les cartes sur place
+      const norm = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      box.addEventListener('input', (e) => {
+        if (!e.target.matches('[data-mh-q]')) return;
+        const q = norm(e.target.value).trim();
+        let n = 0;
+        box.querySelectorAll('[data-mh-open]').forEach((c) => { const ok = !q || norm(c.textContent).includes(q); c.hidden = !ok; n += ok; });
+        const none = box.querySelector('[data-mh-none]'); if (none) none.hidden = n > 0;
+        const cnt = box.querySelector('[data-mh-n]'); if (cnt) cnt.textContent = q ? `${n}` : '';
+      });
     }
     return list;
   }

@@ -31,7 +31,38 @@
   document.addEventListener('click', (e) => { if (e.target.closest('#edNav [data-view], [data-goto]')) setTimeout(paintTabs, 0); });
 
   // ---------- vue d'ensemble : héros de la commission du mois (le reste = blocs d'origine de educator.js) ----------
-  function render({ D }) {
+  // ---------- discipline : le scanner auquel l'éducateur est affilié (POST /edu/scanner) ----------
+  function discipline(D, readOnly) {
+    const list = window.CHESTScanners ? CHESTScanners.list() : [];
+    if (!list.length) return '';
+    const cur = (D.educator && D.educator.scanner) || '';
+    const on = list.find((x) => x.id === cur);
+    return `<section class="ed2-disc" aria-label="Ta discipline">
+      <div class="ed2-disc__h"><span class="ed2-disc__k">02 — Ta discipline</span>
+        <p>${on ? `Tu es affilié à <b>${esc(on.name)}</b> : c’est le scanner que tu enseignes et que tes membres suivent avec toi.` : 'Choisis le scanner que tu enseignes : il apparaît à côté de ton nom pour l’équipe et tes membres.'}</p></div>
+      <div class="ed2-disc__list" role="radiogroup" aria-label="Scanner affilié">${list.map((x) => `<button type="button" role="radio" class="ed2-disc__s${x.id === cur ? ' is-on' : ''}" data-ed2-scanner="${esc(x.id)}" aria-checked="${x.id === cur}"${readOnly ? ' disabled' : ''}>${x.logo ? `<img src="${esc(x.logo)}" alt="" width="22" height="22">` : `<i style="background:${esc(x.logoColor || '#333')}">${esc(x.logoInitials || '')}</i>`}<span>${esc(x.name)}</span></button>`).join('')}</div>
+    </section>`;
+  }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-ed2-scanner]');
+    if (!b || b.disabled) return;
+    const box = b.parentNode, prev = box.querySelector('.is-on');
+    const sid = b.classList.contains('is-on') ? '' : b.dataset.ed2Scanner;
+    box.querySelectorAll('[data-ed2-scanner]').forEach((x) => { const v = x.dataset.ed2Scanner === sid; x.classList.toggle('is-on', v); x.setAttribute('aria-checked', v); });
+    try {
+      const A = window.CHESTAccounts;
+      const r = await fetch(A.apiBase() + '/edu/scanner', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ scanner: sid }) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Enregistrement impossible.');
+      const on = (window.CHESTScanners.list() || []).find((x) => x.id === sid);
+      const p = box.parentNode.querySelector('.ed2-disc__h p');
+      if (p) p.innerHTML = on ? `Tu es affilié à <b>${esc(on.name)}</b> : c’est le scanner que tu enseignes et que tes membres suivent avec toi.` : 'Choisis le scanner que tu enseignes : il apparaît à côté de ton nom pour l’équipe et tes membres.';
+    } catch (err) {
+      box.querySelectorAll('[data-ed2-scanner]').forEach((x) => { const v = x === prev; x.classList.toggle('is-on', v); x.setAttribute('aria-checked', v); });
+      if (window.CHESTAlert) CHESTAlert(err.message); else alert(err.message);
+    }
+  });
+
+  function render({ D, readOnly }) {
     const w = D.wallet, now = new Date();
     const mk = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const m = (D.monthly || []).find((x) => x.month === mk) || { signups: 0, commission: 0 };
@@ -44,7 +75,7 @@
         <span style="font-size: 96px; line-height: 1; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, #ffffff 10%, #ffd9c2 50%, #f9a45e); -webkit-background-clip: text; background-clip: text; color: transparent;">${eur(m.commission)}</span>
         <p style="max-width: 560px; margin: 4px 0px 0px; font-size: 13px; line-height: 1.6; color: rgb(155, 155, 161);">${rateTxt(D.rate)} des ventes encaissées grâce à tes membres${m.signups ? ` · <b style="color: rgb(246, 246, 247);">${m.signups}</b> nouveau${m.signups > 1 ? 'x' : ''} ce mois` : ''}. Retirable ${hold} jours après chaque paiement.</p>
         <span style="margin-top: 6px; display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.03); font-size: 12px; color: rgb(155, 155, 161);">Ta commission <b style="font-size: 14px; background: linear-gradient(135deg, #fc1283, #f9a45e); -webkit-background-clip: text; background-clip: text; color: transparent;">${rate} %</b> des ventes de tes membres</span>
-      </section>`;
+      </section>${discipline(D, readOnly)}`;
     document.body.classList.add('ed2-on');
     paintTabs();
   }

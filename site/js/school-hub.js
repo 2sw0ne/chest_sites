@@ -492,7 +492,7 @@
     if (!E.length) return colorsHtml() + '<p class="sh-empty">Aucun éducateur pour le moment. Donne le rôle Éducateur à un membre depuis Admin → Membres.</p>';
     return `${colorsHtml()}<div class="sh-sub sh-sub--top"><span class="chest-step">Éducateurs</span></div><div class="sh-edus">${E.map((e) => `<button type="button" class="sh-edu" data-edu="${e.id}">
       <span class="sh-av">${esc(initials(e.name))}</span>
-      <span class="sh-edu__who"><b>${esc(e.name)}</b><small>${e.code ? `Code ${esc(e.code)}` : 'Code pas encore choisi'}</small></span>
+      <span class="sh-edu__who"><b>${esc(e.name)}</b><small>${e.code ? `Code ${esc(e.code)}` : 'Code pas encore choisi'}${(() => { const sc = e.scanner && scannerList().find((x) => x.id === e.scanner); return sc ? ` · ${esc(sc.name)}` : ''; })()}</small></span>
       <span class="sh-edu__n"><b>${e.students}</b>${e.students > 1 ? 'élèves' : 'élève'}</span>
       <span class="sh-edu__n"><b>${e.calls}</b>appels 7 j</span>
       <span class="sh-edu__n"><b>${e.notes30}</b>notes 30 j</span>

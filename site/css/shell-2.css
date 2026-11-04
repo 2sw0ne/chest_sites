@@ -170,3 +170,5 @@ html.plan-no-berich .nav-i[data-page="berich"]::after{
   #chestShell.c2-shell .chest-view iframe{ inset:auto; left:0; top:0; width:calc(100% / .88) !important; height:calc(100% / .88) !important; transform:scale(.88); transform-origin:0 0; }
   #chestShell.c2-shell.is-navigating .chest-view iframe, .chest-shell.is-navigating .chest-view iframe{ transform:translateY(8px) scale(.88); }
 }
+/* Admin (2026-11-04) : onglets dans la barre du haut ; sur un écran étroit, « en ligne » ne garde que le chiffre */
+@media (max-width:1380px){ #c2PageActions .am2t-lbl{ display:none; } #c2PageActions [data-am2-view]{ padding:0 8px !important; } }

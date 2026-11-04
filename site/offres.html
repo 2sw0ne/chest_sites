@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="css/patch-chest-da.css?v=18">
 <link rel="stylesheet" href="css/connect-da.css?v=1">
 <link rel="stylesheet" href="css/offres-da.css?v=4">
-<link rel="stylesheet" href="css/offres-2.css?v=5">
+<link rel="stylesheet" href="css/offres-2.css?v=6">
 <script src="js/theme.js?v=5"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -159,10 +159,43 @@
       if (res.ok && Array.isArray(data.offers) && data.offers.length === 6) OFFERS = data.offers; // School entier réservé à Premium depuis le 2026-11-03 : l'ancienne ligne « 2 cours School offerts » disparaît
       OFFERS.forEach((o) => { if (Array.isArray(o.feats)) o.feats = o.feats.filter((f) => !/cours School offerts/i.test(f[1] || '')); });
       if (res.ok) CHECKOUT = data.checkout || 'liens';
+      if (res.ok && data.promo) PROMO = data.promo;
     } catch (e) { /* hors ligne : offres de secours ci-dessus */ }
   }
   // 'auto' : le serveur ouvre le paiement Stripe au prix affiché (clé Stripe sur Railway) ; 'liens' : liens de l'éditeur
   let CHECKOUT = 'liens';
+  // Réduction (2026-11-04, Admin → Système) : active → champ « Code de réduction » au-dessus des offres ; le bon code
+  // barre le prix des cartes, et il part avec le paiement (le serveur le revérifie et baisse le prix envoyé à Stripe).
+  let PROMO = { on: false, pct: 0, code: '' };
+  const PROMO_KEY = 'chest_promo_code';
+  let promoCode = '';
+  try { promoCode = (new URLSearchParams(location.search).get('code') || localStorage.getItem(PROMO_KEY) || '').toUpperCase(); } catch (e) { /* rien */ }
+  const promoOk = () => PROMO.on && promoCode && promoCode === String(PROMO.code).toUpperCase();
+  const promoPrice = (p) => Math.round(p * (100 - PROMO.pct)) / 100;
+  function priceBlock(o) {
+    if (!promoOk()) return `<div class="cx-plan__price"><b>${eur0(o.price)}</b><span>€</span></div>`;
+    return `<div class="of-promo-price"><s>${eur0(o.price)} €</s><div class="cx-plan__price"><b>${eur0(promoPrice(o.price))}</b><span>€</span></div><span class="of-promo-chip">−${PROMO.pct} %</span></div>`;
+  }
+  function promoBar() {
+    let el = document.getElementById('ofPromo');
+    if (!PROMO.on || editing || currentKey()) { if (el) el.hidden = true; return; }
+    if (!el) {
+      el = document.createElement('form'); el.id = 'ofPromo'; el.className = 'of-promo'; el.noValidate = true;
+      $('#ofPlans').parentNode.insertBefore(el, $('#ofPlans'));
+      el.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const v = el.querySelector('input').value.trim().toUpperCase();
+        promoCode = v;
+        try { localStorage.setItem(PROMO_KEY, v); } catch (err) { /* tant pis */ }
+        renderPlans();
+        if (v && !promoOk()) { const m = document.querySelector('#ofPromo .of-promo__msg'); if (m) { m.textContent = 'Ce code n’existe pas.'; m.classList.add('is-err'); } }
+      });
+    }
+    el.hidden = false;
+    el.innerHTML = `<label class="of-promo__f"><span class="of-promo__lb">Code de réduction</span><input type="text" value="${esc(promoCode)}" placeholder="Donné par ton référent" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Code de réduction"></label>
+      <button type="submit" class="chest-btn-2">Appliquer</button>
+      <span class="of-promo__msg ${promoOk() ? 'is-ok' : ''}" aria-live="polite">${promoOk() ? `Code <b>${esc(PROMO.code)}</b> appliqué · −${PROMO.pct} % sur toutes les offres` : `−${PROMO.pct} % sur toutes les offres avec le code de ton référent`}</span>`;
+  }
   let billing = 'premium'; // onglet affiché : 'premium' | 'essentiel'
   let reco = null;
   let answers = null;
@@ -199,7 +232,7 @@
     return `<article class="cx-plan of-card ${hl ? 'is-reco' : ''} ${o.soon ? 'is-soon' : ''} ${cur === o.key ? 'is-current' : ''}" aria-label="Offre ${esc(rankName(o))}">
         <span class="cx-plan__badge">${reco ? 'Conseillée pour toi' : 'La plus recommandée'}</span>${tag}
         <div class="of-card__head"><span class="of-card__rank">${rankBadge(o, 40)}</span><div><div class="cx-plan__name">${esc(rankName(o))}</div><span class="of-card__dur">${durTxt(o.months)} d’accès</span></div></div>
-        <div class="of-card__price"><div class="cx-plan__price"><b>${eur0(o.price)}</b><span>€</span></div><span class="of-card__pm">soit ${eur0(Math.round(o.price / o.months))} € / mois</span></div>
+        <div class="of-card__price">${priceBlock(o)}<span class="of-card__pm">soit ${eur0(Math.round((promoOk() ? promoPrice(o.price) : o.price) / o.months))} € / mois</span></div>
         <p class="of-card__once">Payé une fois · aucun renouvellement automatique</p>
         <ul class="cx-feats">${o.feats.map(([on, t]) => `<li class="${on ? '' : 'is-off'}"><span class="cx-check" aria-hidden="true">${on ? CHECK : DASH}</span><span><span class="cx-sr">${on ? 'Inclus : ' : 'Non inclus : '}</span>${esc(t)}</span></li>`).join('')}</ul>
         <div class="cx-plan__cta"><button type="button" class="cx-pill" data-plan="${o.key}" ${c.off ? 'disabled aria-disabled="true"' : ''}>${esc(c.t)}</button></div>
@@ -209,13 +242,14 @@
     const c = ctaOf(o, cur);
     return `<div class="of-row ${cur === o.key ? 'is-current' : ''}"><span class="of-row__rank">${rankBadge(o, 28)}</span>
         <span class="of-row__n"><b>${esc(rankName(o))}</b><small>${durTxt(o.months)} d’accès · ${eur0(Math.round(o.price / o.months))} €/mois</small></span>
-        <b class="of-row__p">${eur0(o.price)} €</b>
+        <b class="of-row__p">${promoOk() ? `<s>${eur0(o.price)} €</s> ${eur0(promoPrice(o.price))} €` : `${eur0(o.price)} €`}</b>
         <button type="button" class="of-row__go" data-plan="${o.key}" ${c.off ? 'disabled aria-disabled="true"' : ''}>${cur === o.key ? 'Aller sur CHEST' : o.soon ? 'Bientôt' : 'Choisir'}</button></div>`;
   }
   function renderPlans() {
     const seg = document.querySelector('.of-billing');
     if (seg) seg.hidden = !editing;
     $('#ofPlans').classList.toggle('of-duo', !editing);
+    promoBar();
     if (editing) { renderEditor(); return; }
     const cur = currentKey();
     const top = reco || 'premium';
@@ -283,7 +317,7 @@
       b.disabled = true;
       notice('Ouverture du paiement sécurisé…');
       try {
-        const res = await fetch(A.apiBase() + '/billing/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ offer: key }) });
+        const res = await fetch(A.apiBase() + '/billing/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ offer: key, code: promoOk() ? promoCode : '' }) });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.url) throw new Error(data.error || 'Le paiement n’a pas pu s’ouvrir. Réessaie dans un instant.');
         window.location.href = data.url;
