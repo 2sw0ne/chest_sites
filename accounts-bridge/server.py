@@ -5545,6 +5545,13 @@ def _send_push_to_subscriptions(subs, title, body_text, url=None, icon=None, tab
                 data=payload,
                 vapid_private_key=VAPID_PRIVATE_KEY,
                 vapid_claims={"sub": VAPID_CLAIM_EMAIL},
+                # BUG RÉEL (2026-11-04, « envoyée depuis mon PC, rien sur le téléphone ») : sans ttl, pywebpush envoie
+                # TTL: 0 = « à livrer tout de suite ou à jeter ». Un téléphone en veille n'est pas joignable à cet
+                # instant : Apple et Google jetaient le message. Gardé 12 h par le service de push, et marqué urgent
+                # pour réveiller l'appareil (sinon Android peut le retenir jusqu'à la sortie de veille).
+                ttl=12 * 3600,
+                headers={"Urgency": "high"},
+                timeout=15,
             )
             sent += 1
         except WebPushException as e:
