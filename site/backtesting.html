@@ -182,7 +182,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/sync-store.js?v=17"></script>
+<script src="js/sync-store.js?v=18"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
@@ -305,7 +305,7 @@
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/backtest-store.js?v=2"></script>
+<script src="js/backtest-store.js?v=3"></script>
 <script src="js/backtest-share.js?v=3"></script>
 <script src="js/backtest-engine.js?v=21"></script>
 <script src="js/backtest-compare.js?v=2"></script>
@@ -399,10 +399,16 @@
   }
   function hasPfConfig(b) { return !!(b.pf && b.pf.mode); }
   function capitalFor(b) { return hasPfConfig(b) ? (b.pfCapital || b.capital) : b.capital; }
+  // Un rapport par backtest et par version (2026-11-04) : la page le demandait jusqu'à 5 fois par backtest
+  // (bandeau, à la une, tri, cartes). Une modification crée un nouvel objet, donc un nouveau calcul.
+  const reportCache = new WeakMap();
   function reportFor(b) {
-    if (hasPfConfig(b)) return CHESTBacktestEngine.computeReport(b.trades || [], capitalFor(b), b.pf);
-    const cfg = (b.cp && b.cp.mode) ? b.cp : { risk: 1, tiers: [] };
-    return CHESTBacktestEngine.computeReport(b.trades || [], b.capital, cfg);
+    if (reportCache.has(b)) return reportCache.get(b);
+    let r;
+    if (hasPfConfig(b)) r = CHESTBacktestEngine.computeReport(b.trades || [], capitalFor(b), b.pf);
+    else r = CHESTBacktestEngine.computeReport(b.trades || [], b.capital, (b.cp && b.cp.mode) ? b.cp : { risk: 1, tiers: [] });
+    reportCache.set(b, r);
+    return r;
   }
 
   function renderKpis(items) {
@@ -685,9 +691,14 @@
     runAttachJournalImport(acc.id, bt);
   });
 
-  renderCards();
-  // Backtests envoyés par d'autres membres : récupérés à l'ouverture du hub, puis la liste est redessinée.
-  if (window.CHESTShare) window.CHESTShare.pullInbox().then((n) => { if (n) renderCards(); }).catch(() => {});
+  // Backtests rangés dans IndexedDB et sur le serveur (2026-11-04, js/backtest-store.js) : dessinés dès qu'ils
+  // sont chargés, puis redessinés si un autre appareil a changé la liste.
+  window.CHESTBacktests.onChange(renderCards);
+  window.CHESTBacktests.ready().then(() => {
+    renderCards();
+    // Backtests envoyés par d'autres membres : récupérés à l'ouverture du hub, puis la liste est redessinée.
+    if (window.CHESTShare) window.CHESTShare.pullInbox().then((n) => { if (n) renderCards(); }).catch(() => {});
+  });
 })();
 </script>
 <script src="js/page-tour.js"></script>

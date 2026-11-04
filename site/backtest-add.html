@@ -202,7 +202,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/sync-store.js?v=17"></script>
+<script src="js/sync-store.js?v=18"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
@@ -415,7 +415,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/lot-calculator.js?v=6"></script>
 <script src="js/liquid-glass.js?v=1"></script>
-<script src="js/backtest-store.js?v=2"></script>
+<script src="js/backtest-store.js?v=3"></script>
 <script src="js/backtest-engine.js?v=21"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js?v=2"></script>
@@ -949,8 +949,8 @@ CHESTTour.init([
   // ---- Mode édition (?edit=<id>) ----
   let editingRecord = null;
   const editId = new URLSearchParams(window.location.search).get('edit');
-  if (editId) {
-    editingRecord = window.CHESTBacktests.get(editId);
+  if (editId) window.CHESTBacktests.ensure(editId).then((rec) => {
+    editingRecord = rec;
     if (editingRecord) {
       document.getElementById('pageTitle').textContent = 'Modifier le backtest';
       document.getElementById('pageSubtitle').textContent = "Modifie les informations de ce backtest. Le fichier déjà importé reste utilisé sauf si tu en glisses un nouveau.";
@@ -977,7 +977,7 @@ CHESTTour.init([
       }
       document.getElementById('generateBtn').textContent = 'Enregistrer les modifications';
     }
-  }
+  });
 
   function readRiskConfig(account) {
     const toggle = document.querySelector(`.mode-toggle[data-target="${account}"]`);
@@ -1042,6 +1042,7 @@ CHESTTour.init([
     }
     // Attendre que le serveur ait reçu le backtest avant de changer de page (même course que
     // journal.html, voir CHESTSync.flushNow dans js/sync-store.js).
+    try { await window.CHESTBacktests.flush(); } catch (e) { /* tant pis : il est sur l'appareil et repartira */ }
     try { if (window.CHESTSync) await window.CHESTSync.flushNow(); } catch (e) { /* tant pis, on part quand meme */ }
     window.location.href = `backtest-view.html?id=${encodeURIComponent(targetId)}`;
   });

@@ -33,7 +33,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     'chest_accounts', 'chest_active_account', 'chest_account_families', 'chest_live_account',
     'chest_dashboard_simple_mode', 'chest_mfx_last_login', 'chest_myfxbook_daily_history',
     'chest_minical_range', 'chest_payout_sim_settings', 'chest_payout_view_mode',
-    'chest_backtests', 'chest_chart_visuals',
+    // chest_backtests : plus synchronisé ici depuis le 2026-11-04 (un par un, js/backtest-store.js + /btstore)
+    'chest_chart_visuals',
     'chest_journal', 'chest_journal_tags', 'chest_journal_fav_pairs', 'chest_journal_accounts',
     'chest_journal_active_account', 'chest_journal_ext', 'chest_journal_hidden',
     'chest_berich_connection', 'chest_berich_taken', 'chest_berich_last_risk_choice', 'chest_berich_linked_account',
@@ -370,6 +371,9 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach((k) => { if (k && k.indexOf('chest_') === 0 && DEVICE_KEYS.indexOf(k) === -1) localStorage.removeItem(k); });
       localStorage.removeItem(OWNER_KEY);
+      // Backtests (IndexedDB, js/backtest-store.js) : la base est vidée à la prochaine ouverture si elle appartient
+      // à un autre compte ; on tente aussi de la supprimer tout de suite.
+      try { indexedDB.deleteDatabase('chest_backtests_db'); } catch (e) { /* tant pis */ }
     } catch (e) { /* tant pis */ }
   }
   // Propriétaire des données du navigateur (id du membre). Filet de sécurité indépendant de login()/logout() :

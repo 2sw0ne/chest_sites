@@ -248,7 +248,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/sync-store.js?v=17"></script>
+<script src="js/sync-store.js?v=18"></script>
 <script src="js/pwa.js?v=7"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
@@ -337,7 +337,7 @@
       role.hidden = !u.isAdmin; role.textContent = u.role === 'manager' ? 'Manageur' : 'Admin';
       const accs = read('chest_accounts', '[]').filter((a) => a.id !== 'live-swann');
       const jr = read('chest_journal_accounts', '[]');
-      const bt = read('chest_backtests', '[]');
+      const bt = read('chest_bt_index', '[]'); // backtests dans IndexedDB (js/backtest-store.js), résumé ici
       const plan = accs.some((a) => a.vps) ? 'Pro · VPS' : accs.some((a) => a.myfxbook && a.myfxbook.plan === 'live') ? 'Live' : accs.some((a) => a.myfxbook) ? 'Essentiel' : '—';
       document.getElementById('acchAcc').textContent = String(accs.length);
       document.getElementById('acchJr').textContent = String(jr.length);
@@ -1267,7 +1267,7 @@ CHESTTour.init([
   });
 
   // ---------- Sauvegardes (2026-10-24 : GET /sync/history, POST /sync/restore) ----------
-  const BK_KEYS = [['chest_accounts', 'Comptes du Dashboard'], ['chest_journal_accounts', 'Journaux'], ['chest_journal', 'Trades du journal'], ['chest_backtests', 'Backtests'], ['chest_account_families', 'Familles de comptes']];
+  const BK_KEYS = [['chest_accounts', 'Comptes du Dashboard'], ['chest_journal_accounts', 'Journaux'], ['chest_journal', 'Trades du journal'], ['chest_account_families', 'Familles de comptes']];
   const bkWhen = (iso) => { try { return new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
   const bkCount = (n) => (n == null ? '' : n === 0 ? 'vide' : n + (n > 1 ? ' éléments' : ' élément'));
   async function renderBackups() {

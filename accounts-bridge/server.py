@@ -329,6 +329,19 @@ def init_db():
             )
         """)
         db.execute("CREATE INDEX IF NOT EXISTS idx_user_files_user ON user_files (user_id)")
+        # Backtests un par un (2026-11-04) : plus un seul gros bloc chest_backtests dans user_data, mais une ligne
+        # par backtest (valeur rangée dans le bucket au-delà de 64 Ko, voir ud_put). Le navigateur les garde dans
+        # IndexedDB (js/backtest-store.js) : plus de limite de 5 Mo, seule compte l'espace du membre.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_backtests (
+                user_id INTEGER NOT NULL,
+                id TEXT NOT NULL,
+                value TEXT NOT NULL,
+                size INTEGER NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, id)
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS user_data_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1726,6 +1739,7 @@ def _purge_user(db, member_id):
     db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM user_files WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM user_backtests WHERE user_id = ?", (member_id,))
     threading.Thread(target=_bucket_drop_prefix, args=(f"data/u{int(member_id)}/",), daemon=True).start()
     db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
     db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
@@ -4438,8 +4452,8 @@ def ud_forget(db, v):
     """Efface l'objet du bucket si plus aucune donnée ni sauvegarde ne le référence."""
     if not ud_is_ref(v):
         return
-    n = db.execute("SELECT (SELECT COUNT(*) FROM user_data WHERE value = ?) + (SELECT COUNT(*) FROM user_data_history WHERE value = ?)",
-                   (v, v)).fetchone()[0]
+    n = db.execute("SELECT (SELECT COUNT(*) FROM user_data WHERE value = ?) + (SELECT COUNT(*) FROM user_data_history WHERE value = ?)"
+                   " + (SELECT COUNT(*) FROM user_backtests WHERE value = ?)", (v, v, v)).fetchone()[0]
     c = s3()
     if n == 0 and c:
         key = v.split(":", 2)[2]
@@ -4513,6 +4527,7 @@ def storage_info(db, row):
     data = db.execute("SELECT COALESCE(SUM(LENGTH(key) + CASE WHEN value LIKE '@@bucket:%' "
                       "THEN CAST(substr(value, 10, instr(substr(value, 10), ':') - 1) AS INTEGER) "
                       "ELSE LENGTH(CAST(value AS BLOB)) END), 0) FROM user_data WHERE user_id = ?", (row["id"],)).fetchone()[0]
+    data += db.execute("SELECT COALESCE(SUM(size), 0) FROM user_backtests WHERE user_id = ?", (row["id"],)).fetchone()[0]
     q = storage_quota_mb(row)
     return {"used": files + data, "files": files, "data": data, "quota": q * 1024 * 1024,
             "custom": _col(row, "storage_quota_mb") is not None, "tier": storage_tier(row)}
@@ -5341,6 +5356,104 @@ def sync_post():
                 ud_forget(db, old["value"])  # gardée en sauvegarde si elle avait du contenu, sinon effacée
         db.commit()
     return jsonify({"ok": True, "stamp": now})
+
+
+# ---------------------------------------------------------------- Backtests un par un (2026-11-04)
+_BT_ID = re.compile(r"[A-Za-z0-9_.-]{1,80}")
+
+
+def _bt_user():
+    user = approved_user()
+    if not user:
+        return None, (jsonify({"error": "Non connecté."}), 401)
+    if not access_of(user)["sync"]:
+        return None, (jsonify({"error": "Pendant l'essai, tes backtests restent sur ton appareil.", "local": True}), 403)
+    return user, None
+
+
+def _bt_migrate_legacy(db, user_id):
+    """Ancien bloc chest_backtests (user_data) : chaque backtest absent de la table y est ajouté, puis le bloc est
+    retiré (il reste dans les sauvegardes du membre)."""
+    row = db.execute("SELECT value FROM user_data WHERE user_id = ? AND key = 'chest_backtests'", (user_id,)).fetchone()
+    if not row:
+        return
+    try:
+        items = json.loads(ud_get(row["value"]) or "[]")
+    except (TypeError, ValueError):
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    have = {r[0] for r in db.execute("SELECT id FROM user_backtests WHERE user_id = ?", (user_id,)).fetchall()}
+    for it in items if isinstance(items, list) else []:
+        bid = str((it or {}).get("id") or "")
+        if not _BT_ID.fullmatch(bid) or bid in have:
+            continue
+        raw = json.dumps(it, ensure_ascii=False, separators=(",", ":"))
+        db.execute("INSERT OR IGNORE INTO user_backtests (user_id, id, value, size, updated_at) VALUES (?, ?, ?, ?, ?)",
+                   (user_id, bid, ud_put(user_id, raw), len(raw.encode("utf-8")), now))
+    _keep_history(db, user_id, "chest_backtests", "", now)
+    db.execute("DELETE FROM user_data WHERE user_id = ? AND key = 'chest_backtests'", (user_id,))
+    db.commit()
+
+
+@app.route("/btstore")
+def btstore_list():
+    user, err = _bt_user()
+    if err:
+        return err
+    db = get_db()
+    with db_lock:
+        _bt_migrate_legacy(db, user["id"])
+    rows = db.execute("SELECT id, size, updated_at FROM user_backtests WHERE user_id = ?", (user["id"],)).fetchall()
+    return jsonify({"items": [{"id": r["id"], "size": r["size"], "updatedAt": r["updated_at"]} for r in rows]})
+
+
+@app.route("/btstore/<bid>", methods=["GET", "PUT", "DELETE"])
+def btstore_item(bid):
+    user, err = _bt_user()
+    if err:
+        return err
+    if not _BT_ID.fullmatch(bid):
+        return jsonify({"error": "Identifiant invalide."}), 400
+    db = get_db()
+    row = db.execute("SELECT value, size, updated_at FROM user_backtests WHERE user_id = ? AND id = ?", (user["id"], bid)).fetchone()
+    if request.method == "GET":
+        if not row:
+            return jsonify({"error": "Backtest introuvable."}), 404
+        value = ud_get(row["value"])
+        if value is None:
+            return jsonify({"error": "Backtest momentanément illisible, réessaie."}), 503
+        resp = app.response_class(value, mimetype="application/json")
+        resp.headers["X-Updated-At"] = row["updated_at"]
+        return resp
+    if request.method == "DELETE":
+        if row:
+            with db_lock:
+                db.execute("DELETE FROM user_backtests WHERE user_id = ? AND id = ?", (user["id"], bid))
+                db.commit()
+                ud_forget(db, row["value"])
+        return jsonify({"ok": True})
+    raw = request.get_data(as_text=True) or ""
+    try:
+        obj = json.loads(raw)
+    except ValueError:
+        return jsonify({"error": "Backtest illisible."}), 400
+    if not isinstance(obj, dict) or str(obj.get("id")) != bid:
+        return jsonify({"error": "Backtest illisible."}), 400
+    size = len(raw.encode("utf-8"))
+    st = storage_info(db, user)
+    grow = size - (row["size"] if row else 0)
+    if grow > 64 * 1024 and st["used"] + grow > st["quota"]:
+        return jsonify({"error": f"Espace de stockage plein : {_gb(st['used'])} utilisés sur {_gb(st['quota'])}.", "storageFull": True}), 413
+    stored = ud_put(user["id"], raw)
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db.execute("INSERT INTO user_backtests (user_id, id, value, size, updated_at) VALUES (?, ?, ?, ?, ?) "
+                   "ON CONFLICT(user_id, id) DO UPDATE SET value = excluded.value, size = excluded.size, updated_at = excluded.updated_at",
+                   (user["id"], bid, stored, size, now))
+        db.commit()
+        if row and row["value"] != stored:
+            ud_forget(db, row["value"])
+    return jsonify({"ok": True, "updatedAt": now})
 
 
 # ---------------------------------------------------------------- Notifications push
