@@ -49,6 +49,8 @@
       const j = await res.json().catch(() => ({}));
       throw new Error(j.error || "Le serveur n'a pas enregistré cet appareil (erreur " + res.status + ').');
     }
+    // retenu pour la déconnexion : /logout retire cet appareil avant de fermer la session (js/accounts-auth.js)
+    setLs('chest_push_ep', sub.endpoint);
   }
   function subscribe(reg) {
     // La clé publique vit dans config.js (voir son commentaire : par nature non secrète) -
@@ -141,5 +143,21 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) resync(); });
   }
 
-  window.CHESTPwa = { notificationStatus, enableNotifications, disableNotifications, resync };
+  // Envoie une notification de test sur les appareils de ce compte (serveur : POST /push/test).
+  async function sendTest() {
+    const res = await fetch(apiBase() + '/push/test', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()) });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(j.error || 'Le test n’a pas pu partir (erreur ' + res.status + ').');
+    return j;
+  }
+
+  const api = { notificationStatus, enableNotifications, disableNotifications, resync, sendTest };
+  // Dans une page affichée par l'app (cadre), tout passe par la fenêtre principale : iPhone n'autorise la permission
+  // et l'abonnement aux notifications que pour elle (2026-11-04). Repli sur la page elle-même si besoin.
+  let topApi = null;
+  try { if (window.top !== window && window.top.location.origin === location.origin) topApi = () => window.top.CHESTPwa; } catch (e) { topApi = null; }
+  window.CHESTPwa = topApi ? Object.fromEntries(Object.keys(api).map((k) => [k, (...a) => {
+    const t = topApi();
+    return t && t !== window.CHESTPwa && t[k] ? t[k](...a) : api[k](...a);
+  }])) : api;
 })();

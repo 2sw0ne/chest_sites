@@ -237,9 +237,9 @@
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
-<script src="js/accounts-auth.js?v=10"></script>
+<script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=16"></script>
-<script src="js/pwa.js?v=6"></script>
+<script src="js/pwa.js?v=7"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
@@ -881,6 +881,19 @@ CHESTTour.init([
     // l'autorisation n'est jamais retirée d'ici (2026-10-31) ; on/off se règle par type juste en dessous.
     notifBtn.hidden = status !== 'disabled';
     notifBtn.textContent = 'Activer';
+    // une fois activées : bouton « Envoyer un test » (2026-11-04)
+    let t = document.getElementById('notifTestBtn');
+    if (!t) {
+      t = document.createElement('button'); t.type = 'button'; t.id = 'notifTestBtn'; t.className = 'chest-btn-2'; t.textContent = 'Envoyer un test';
+      notifBtn.after(t);
+      t.addEventListener('click', async () => {
+        t.disabled = true;
+        try { const r = await CHESTPwa.sendTest(); showToast(`Notification envoyée (${r.sent} appareil${r.sent > 1 ? 's' : ''}).`); }
+        catch (e) { showToast(e.message); }
+        t.disabled = false;
+      });
+    }
+    t.hidden = status !== 'enabled';
   }
   notifBtn.addEventListener('click', async () => {
     notifBtn.disabled = true;

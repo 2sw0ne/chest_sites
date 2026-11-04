@@ -176,6 +176,8 @@ window.CHESTAccounts = (() => {
 
   function logout() {
     const headers = authHeaders();
+    // l'appareil retenu à l'abonnement (js/pwa.js), lu avant que le nettoyage local ne l'efface
+    let endpoint = null; try { endpoint = localStorage.getItem('chest_push_ep'); localStorage.removeItem('chest_push_ep'); } catch (e) { /* tant pis */ }
     unsubscribePush(headers);
     try {
       localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY);
@@ -183,7 +185,8 @@ window.CHESTAccounts = (() => {
     } catch (e) { /* tant pis */ }
     try { window.CHESTSync && window.CHESTSync.clearLocalData && window.CHESTSync.clearLocalData(); } catch (e) { /* tant pis */ }
     if (headers.Authorization) {
-      fetch(`${apiBase()}/logout`, { method: 'POST', headers }).catch(() => {});
+      // /logout retire lui-même cet appareil des notifications, avant de fermer la session
+      fetch(`${apiBase()}/logout`, { method: 'POST', keepalive: true, headers: Object.assign({ 'Content-Type': 'application/json' }, headers), body: JSON.stringify({ endpoint }) }).catch(() => {});
     }
   }
 

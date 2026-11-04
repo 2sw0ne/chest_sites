@@ -1353,7 +1353,14 @@ def logout():
     if auth.startswith("Bearer "):
         token = auth[len("Bearer "):].strip()
         db = get_db()
+        # L'appareil qui se déconnecte est retiré des notifications AVANT la fermeture de la session (2026-11-04) :
+        # avant, /push/unsubscribe arrivait après la session supprimée (401) et l'abonnement restait sur le compte.
+        endpoint = (request.get_json(silent=True) or {}).get("endpoint")
         with db_lock:
+            if endpoint:
+                row = db.execute("SELECT user_id FROM sessions WHERE token = ?", (token,)).fetchone()
+                if row:
+                    db.execute("DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?", (endpoint, row["user_id"]))
             db.execute("DELETE FROM sessions WHERE token = ?", (token,))
             db.commit()
     return jsonify({"ok": True})
@@ -5323,6 +5330,26 @@ def digest_loop():
             import traceback
             traceback.print_exc()
         time.sleep(300)
+
+
+_PUSH_TEST_LAST = {}
+
+
+@app.route("/push/test", methods=["POST"])
+def push_test():
+    # Chaque membre peut s'envoyer une notification de test sur SES appareils (Compte → Notifications), 2026-11-04.
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    now = time.time()
+    if now - _PUSH_TEST_LAST.get(user["id"], 0) < 20:
+        return jsonify({"error": "Patiente quelques secondes avant un nouveau test."}), 429
+    _PUSH_TEST_LAST[user["id"]] = now
+    result = send_push_to_user(user["id"], "Notifications activées", "Cet appareil reçoit bien les alertes CHEST.", "/account")
+    if not result.get("sent"):
+        result.setdefault("error", "Aucun appareil enregistré pour ce compte : active les notifications sur cet appareil.")
+        return jsonify(result), 400
+    return jsonify(result)
 
 
 @app.route("/push/send", methods=["POST"])
