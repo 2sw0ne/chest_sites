@@ -3831,10 +3831,8 @@ def billing_checkout():
         link = str(o.get("link") or "").strip()
         if not link:
             return jsonify({"error": "Le paiement en ligne de cette offre ouvre très bientôt."}), 503
-        q = {"client_reference_id": f"u{user['id']}", "prefilled_email": user["email"], "locale": "fr"}
-        if pct:  # le code du référent est pré-rempli sur la page Stripe (code promo du même nom dans Stripe)
-            q["prefilled_promo_code"] = get_promo()["code"]
-        q = urllib.parse.urlencode(q)
+        # Le code de réduction n'est jamais pré-rempli : le membre le tape lui-même sur la page Stripe.
+        q = urllib.parse.urlencode({"client_reference_id": f"u{user['id']}", "prefilled_email": user["email"], "locale": "fr"})
         return jsonify({"url": f"{link}{'&' if '?' in link else '?'}{q}", "mode": "liens"})
     db = get_db()
     edu = db.execute("SELECT * FROM users WHERE id = ?", (_col(user, "referred_by"),)).fetchone() if _col(user, "referred_by") else None
