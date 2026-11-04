@@ -1725,6 +1725,8 @@ def _purge_user(db, member_id):
     db.execute("DELETE FROM sessions WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM user_data WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM user_data_history WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM user_files WHERE user_id = ?", (member_id,))
+    threading.Thread(target=_bucket_drop_prefix, args=(f"data/u{int(member_id)}/",), daemon=True).start()
     db.execute("DELETE FROM edu_invites WHERE educator_id = ?", (member_id,))
     db.execute("DELETE FROM berich_requests WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM berich_plans WHERE user_id = ?", (member_id,))
@@ -4367,6 +4369,119 @@ def bucket_usage():
     return files
 
 
+# Données synchronisées dans le bucket (2026-11-04) : une valeur de user_data (backtests, journal…) de plus de
+# 64 Ko part dans le bucket sous data/u<id>/<sha256>.json ; la base ne garde qu'une référence
+# « @@bucket:<octets>:<clé> ». Même contenu = même référence, donc l'historique (30 versions) pointe sur les mêmes
+# objets sans les recopier ; un objet est effacé quand plus aucune ligne ne le référence (ud_forget).
+UD_INLINE_MAX = 64 * 1024
+UD_PREFIX = "@@bucket:"
+_ud_cache = {}
+_ud_cache_size = [0]
+
+
+def ud_is_ref(v):
+    return isinstance(v, str) and v.startswith(UD_PREFIX)
+
+
+def ud_size(v):
+    if ud_is_ref(v):
+        return int(v[len(UD_PREFIX):].split(":", 1)[0])
+    return len((v or "").encode("utf-8"))
+
+
+def _ud_remember(key, value):
+    if _ud_cache_size[0] > 64 * 1024 * 1024:
+        _ud_cache.clear()
+        _ud_cache_size[0] = 0
+    if key not in _ud_cache:
+        _ud_cache[key] = value
+        _ud_cache_size[0] += len(value)
+
+
+def ud_put(user_id, value):
+    """Forme stockée d'une valeur : elle-même si petite (ou bucket absent), sinon une référence vers le bucket."""
+    c = s3()
+    if not c or not isinstance(value, str) or len(value) <= UD_INLINE_MAX or ud_is_ref(value):
+        return value
+    raw = value.encode("utf-8")
+    key = f"data/u{int(user_id)}/{hashlib.sha256(raw).hexdigest()}.json"
+    if key not in _ud_cache:
+        try:
+            c.put_object(Bucket=BUCKET, Key=key, Body=raw, ContentType="application/json")
+        except Exception as e:  # bucket injoignable : la valeur reste dans la base, rien n'est perdu
+            print(f"[bucket] données de u{user_id} gardées dans la base : {e}", flush=True)
+            return value
+        _ud_remember(key, value)
+    return f"{UD_PREFIX}{len(raw)}:{key}"
+
+
+def ud_get(v):
+    """Valeur réelle (lit le bucket si c'est une référence). None si le bucket ne répond pas."""
+    if not ud_is_ref(v):
+        return v
+    key = v.split(":", 2)[2]
+    if key in _ud_cache:
+        return _ud_cache[key]
+    c = s3()
+    if not c:
+        return None
+    try:
+        body = c.get_object(Bucket=BUCKET, Key=key)["Body"].read().decode("utf-8")
+    except Exception as e:
+        print(f"[bucket] lecture impossible de {key} : {e}", flush=True)
+        return None
+    _ud_remember(key, body)
+    return body
+
+
+def ud_forget(db, v):
+    """Efface l'objet du bucket si plus aucune donnée ni sauvegarde ne le référence."""
+    if not ud_is_ref(v):
+        return
+    n = db.execute("SELECT (SELECT COUNT(*) FROM user_data WHERE value = ?) + (SELECT COUNT(*) FROM user_data_history WHERE value = ?)",
+                   (v, v)).fetchone()[0]
+    c = s3()
+    if n == 0 and c:
+        key = v.split(":", 2)[2]
+        try:
+            c.delete_object(Bucket=BUCKET, Key=key)
+        except Exception as e:
+            print(f"[bucket] suppression impossible de {key} : {e}", flush=True)
+        _ud_cache.pop(key, None)
+
+
+def _bucket_drop_prefix(prefix):
+    c = s3()
+    if not c:
+        return
+    try:
+        for page in c.get_paginator("list_objects_v2").paginate(Bucket=BUCKET, Prefix=prefix):
+            keys = [{"Key": o["Key"]} for o in page.get("Contents", [])]
+            if keys:
+                c.delete_objects(Bucket=BUCKET, Delete={"Objects": keys})
+    except Exception as e:
+        print(f"[bucket] nettoyage impossible de {prefix} : {e}", flush=True)
+
+
+def ud_migrate():
+    """Range dans le bucket les grosses valeurs encore dans la base (données et sauvegardes)."""
+    if not s3():
+        return
+    moved = 0
+    with sqlite3.connect(DB_PATH) as db:
+        for table, pk in (("user_data", "rowid"), ("user_data_history", "id")):
+            rows = db.execute(f"SELECT {pk}, user_id, value FROM {table} WHERE LENGTH(value) > ? AND value NOT LIKE '@@bucket:%'",
+                              (UD_INLINE_MAX,)).fetchall()
+            for rid, uid, value in rows:
+                ref = ud_put(uid, value)
+                if ref != value:
+                    with db_lock:
+                        db.execute(f"UPDATE {table} SET value = ? WHERE {pk} = ?", (ref, rid))
+                        db.commit()
+                    moved += 1
+    print(f"[bucket] {moved} données synchronisées rangées dans le bucket", flush=True)
+
+
 class StorageFull(Exception):
     pass
 
@@ -4395,7 +4510,9 @@ def storage_quota_mb(row):
 def storage_info(db, row):
     # Utilisé = fichiers envoyés + données synchronisées du membre (backtests, journal, comptes, réglages : table user_data).
     files = db.execute("SELECT COALESCE(SUM(size), 0) FROM user_files WHERE user_id = ?", (row["id"],)).fetchone()[0]
-    data = db.execute("SELECT COALESCE(SUM(LENGTH(CAST(value AS BLOB)) + LENGTH(key)), 0) FROM user_data WHERE user_id = ?", (row["id"],)).fetchone()[0]
+    data = db.execute("SELECT COALESCE(SUM(LENGTH(key) + CASE WHEN value LIKE '@@bucket:%' "
+                      "THEN CAST(substr(value, 10, instr(substr(value, 10), ':') - 1) AS INTEGER) "
+                      "ELSE LENGTH(CAST(value AS BLOB)) END), 0) FROM user_data WHERE user_id = ?", (row["id"],)).fetchone()[0]
     q = storage_quota_mb(row)
     return {"used": files + data, "files": files, "data": data, "quota": q * 1024 * 1024,
             "custom": _col(row, "storage_quota_mb") is not None, "tier": storage_tier(row)}
@@ -5100,8 +5217,23 @@ def sync_get():
     if not access_of(user)["sync"]:
         return jsonify({"data": {}, "local": True})
     db = get_db()
-    rows = db.execute("SELECT key, value FROM user_data WHERE user_id = ?", (user["id"],)).fetchall()
-    return jsonify({"data": {r["key"]: r["value"] for r in rows}})
+    # Versions (2026-11-04) : l'appareil dit quelle version de chaque clé il a déjà (`have` = {clé: updated_at}) ;
+    # seules les clés changées depuis repartent. Sans ça, chaque page retéléchargeait tout (jusqu'à des dizaines de Mo).
+    try:
+        have = json.loads(request.args.get("have") or "{}")
+        have = have if isinstance(have, dict) else {}
+    except ValueError:
+        have = {}
+    rows = db.execute("SELECT key, value, updated_at FROM user_data WHERE user_id = ?", (user["id"],)).fetchall()
+    out, stamps = {}, {}
+    for r in rows:
+        stamps[r["key"]] = r["updated_at"]
+        if have.get(r["key"]) == r["updated_at"]:
+            continue
+        v = ud_get(r["value"])
+        if v is not None:  # bucket muet : la clé est omise, l'appareil garde sa copie locale
+            out[r["key"]] = v
+    return jsonify({"data": out, "stamps": stamps})
 
 
 HISTORY_KEEP = 30
@@ -5115,9 +5247,13 @@ def _keep_history(db, user_id, key, new_value, now):
         return
     db.execute("INSERT INTO user_data_history (user_id, key, value, saved_at) VALUES (?, ?, ?, ?)",
                (user_id, key, old["value"], now))
-    db.execute("DELETE FROM user_data_history WHERE user_id = ? AND key = ? AND id NOT IN "
-               "(SELECT id FROM user_data_history WHERE user_id = ? AND key = ? ORDER BY id DESC LIMIT ?)",
+    keep = "SELECT id FROM user_data_history WHERE user_id = ? AND key = ? ORDER BY id DESC LIMIT ?"
+    gone = [r[0] for r in db.execute(f"SELECT value FROM user_data_history WHERE user_id = ? AND key = ? AND id NOT IN ({keep})",
+                                     (user_id, key, user_id, key, HISTORY_KEEP)).fetchall()]
+    db.execute(f"DELETE FROM user_data_history WHERE user_id = ? AND key = ? AND id NOT IN ({keep})",
                (user_id, key, user_id, key, HISTORY_KEEP))
+    for v in gone:
+        ud_forget(db, v)
 
 
 def _items_of(value):
@@ -5139,8 +5275,8 @@ def sync_history():
                       (user["id"], key)).fetchall()
     cur = db.execute("SELECT value, updated_at FROM user_data WHERE user_id = ? AND key = ?", (user["id"], key)).fetchone()
     return jsonify({
-        "current": {"items": _items_of(cur["value"]), "updatedAt": cur["updated_at"]} if cur else None,
-        "versions": [{"id": r["id"], "savedAt": r["saved_at"], "items": _items_of(r["value"]), "size": len(r["value"])} for r in rows],
+        "current": {"items": _items_of(ud_get(cur["value"])), "updatedAt": cur["updated_at"]} if cur else None,
+        "versions": [{"id": r["id"], "savedAt": r["saved_at"], "items": _items_of(ud_get(r["value"])), "size": ud_size(r["value"])} for r in rows],
     })
 
 
@@ -5161,7 +5297,10 @@ def sync_restore():
                    "ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
                    (user["id"], row["key"], row["value"], now))
         db.commit()
-    return jsonify({"key": row["key"], "value": row["value"]})
+    value = ud_get(row["value"])
+    if value is None:
+        return jsonify({"error": "Sauvegarde momentanément illisible, réessaie dans un instant."}), 503
+    return jsonify({"key": row["key"], "value": value})
 
 
 @app.route("/sync", methods=["POST"])
@@ -5176,19 +5315,32 @@ def sync_post():
     if not isinstance(data, dict):
         return jsonify({"error": "JSON invalide."}), 400
     now = datetime.now(timezone.utc).isoformat()
+    items = {k: v for k, v in data.items() if isinstance(k, str) and isinstance(v, str) and len(k) <= 128}
+    # Envoi au bucket hors du verrou (réseau) ; la base ne reçoit que la référence.
+    stored = {k: ud_put(user["id"], v) for k, v in items.items()}
+    db = get_db()
+    # Seule limite : l'espace du membre (fichiers + données). Refus seulement si l'envoi fait grossir le total de
+    # plus de 64 Ko (un réglage ou une petite note passent toujours, même plein).
+    st = storage_info(db, user)
+    olds = {r["key"]: ud_size(r["value"]) for r in db.execute("SELECT key, value FROM user_data WHERE user_id = ?", (user["id"],)).fetchall()}
+    grow = sum(ud_size(v) - olds.get(k, 0) for k, v in stored.items())
+    if grow > 64 * 1024 and st["used"] + grow > st["quota"]:
+        for v in stored.values():
+            ud_forget(db, v)
+        return jsonify({"error": f"Espace de stockage plein : {_gb(st['used'])} utilisés sur {_gb(st['quota'])}.", "storageFull": True}), 413
     with db_lock:
-        db = get_db()
-        for key, value in data.items():
-            if not isinstance(key, str) or not isinstance(value, str) or len(key) > 128:
-                continue
+        for key, value in stored.items():
             _keep_history(db, user["id"], key, value, now)
+            old = db.execute("SELECT value FROM user_data WHERE user_id = ? AND key = ?", (user["id"], key)).fetchone()
             db.execute(
                 "INSERT INTO user_data (user_id, key, value, updated_at) VALUES (?, ?, ?, ?) "
                 "ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
                 (user["id"], key, value, now),
             )
+            if old and old["value"] != value:
+                ud_forget(db, old["value"])  # gardée en sauvegarde si elle avait du contenu, sinon effacée
         db.commit()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "stamp": now})
 
 
 # ---------------------------------------------------------------- Notifications push
@@ -5347,7 +5499,7 @@ def _user_json(db, user_id, key, default):
     if not row:
         return default
     try:
-        val = json.loads(row["value"])
+        val = json.loads(ud_get(row["value"]))
     except (ValueError, TypeError):
         return default
     return val if val is not None else default
@@ -5715,6 +5867,7 @@ if __name__ == "__main__":
     init_db()
     threading.Thread(target=digest_loop, daemon=True).start()
     threading.Thread(target=bucket_migrate, daemon=True).start()
+    threading.Thread(target=ud_migrate, daemon=True).start()
     # threaded=True : threaded=False bloquait TOUTES les requetes suivantes
     # des qu'un client (navigateur avec keep-alive) laissait une connexion
     # ouverte - constate en direct le 2026-09-15, meme avec NoKeepAliveHandler

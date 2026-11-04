@@ -1,3 +1,6 @@
+// lz-string 1.5.0 (MIT, pieroxy) : compression des gros blocs (backtests, journal) dans le navigateur.
+var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
+
 // CHEST · Synchro multi-appareils (2026-09-26, demande utilisateur : "quand je me connecte avec
 // mon téléphone [...] mes infos sont pas stockées dans mon compte"). Jusqu'ici, comptes, familles,
 // backtests, journal etc. ne vivaient QUE dans le localStorage du navigateur - jamais liés au
@@ -60,8 +63,63 @@
   // souvent coupes par la navigation = 499) mais seulement celles qui ont change.
   const DIRTY_KEY = 'chest_sync_dirty';
   const BASE_KEY = 'chest_sync_base';
+  // Version serveur (updated_at) de chaque clé déjà reçue ou envoyée : le serveur ne renvoie que ce qui a changé.
+  const STAMP_KEY = 'chest_sync_stamps';
   const origSetItem = Storage.prototype.setItem;
-  const rawSet = (k, v) => origSetItem.call(localStorage, k, v);
+  const origGetItem = Storage.prototype.getItem;
+  const origRemoveItem = Storage.prototype.removeItem;
+  const origClear = Storage.prototype.clear;
+
+  // Gros blocs compressés (2026-11-04, demande utilisateur : « plus de limite de stockage de backtesting ») :
+  // le navigateur n'accepte qu'environ 5 Mo par site, vite atteints par les backtests et le journal. Ces clés
+  // sont rangées compressées (lz-string, ~5 à 10 fois plus petites) et rendues décompressées à la lecture :
+  // aucune page ne change, elles lisent et écrivent localStorage comme avant. Une lecture décompressée est
+  // gardée en mémoire (memo) jusqu'à la prochaine écriture, ici ou dans un autre onglet (événement storage).
+  // Le serveur reçoit toujours le JSON en clair ; au-delà de 64 Ko il le range dans le bucket.
+  const BIG_KEYS = ['chest_backtests', 'chest_journal', 'chest_journal_ext', 'chest_myfxbook_daily_history'];
+  const LZ_MARK = '\u0001lz:';
+  const memo = {};
+  const isBig = (st, k) => st === localStorage && BIG_KEYS.indexOf(k) !== -1;
+  const lzOk = typeof LZString === 'object' && LZString;
+  function pack(v) { return lzOk ? LZ_MARK + LZString.compressToUTF16(String(v)) : String(v); }
+  function unpack(raw) {
+    if (raw == null || raw.indexOf(LZ_MARK) !== 0) return raw;
+    const v = lzOk ? LZString.decompressFromUTF16(raw.slice(LZ_MARK.length)) : null;
+    return v == null ? null : v;
+  }
+  function bigSet(key, value) {
+    const v = String(value);
+    origSetItem.call(localStorage, key, pack(v)); // lève l'erreur « plein » comme avant si ça ne tient pas
+    memo[key] = v;
+  }
+  Storage.prototype.getItem = function (key) {
+    if (!isBig(this, key)) return origGetItem.call(this, key);
+    if (Object.prototype.hasOwnProperty.call(memo, key)) return memo[key];
+    const v = unpack(origGetItem.call(this, key));
+    memo[key] = v;
+    return v;
+  };
+  Storage.prototype.removeItem = function (key) {
+    if (isBig(this, key)) delete memo[key];
+    return origRemoveItem.call(this, key);
+  };
+  Storage.prototype.clear = function () {
+    if (this === localStorage) Object.keys(memo).forEach((k) => { delete memo[k]; });
+    return origClear.call(this);
+  };
+  window.addEventListener('storage', (e) => {
+    if (!e.key) Object.keys(memo).forEach((k) => { delete memo[k]; });
+    else delete memo[e.key];
+  });
+  // Une fois par navigateur : les blocs encore en clair sont recompressés (sans être renvoyés au serveur).
+  if (lzOk) BIG_KEYS.forEach((k) => {
+    try {
+      const raw = origGetItem.call(localStorage, k);
+      if (raw != null && raw.indexOf(LZ_MARK) !== 0) { origSetItem.call(localStorage, k, pack(raw)); delete memo[k]; }
+    } catch (e) { /* tant pis : la valeur reste en clair, toujours lisible */ }
+  });
+
+  const rawSet = (k, v) => (BIG_KEYS.indexOf(k) !== -1 ? bigSet(k, v) : origSetItem.call(localStorage, k, v));
   let flushTimer = null;
   const OWNER_KEY = 'chest_data_owner';
   const DEVICE_KEYS = [
@@ -130,12 +188,12 @@
   function markDirty(key) { const d = loadMap(DIRTY_KEY); d[key] = Date.now(); saveMap(DIRTY_KEY, d); }
   // Le serveur a confirme avoir recu `sent` : retire le marquage et memorise l'empreinte, sauf si la cle a
   // encore change depuis l'envoi.
-  function markSynced(sent) {
-    const d = loadMap(DIRTY_KEY), b = loadMap(BASE_KEY);
+  function markSynced(sent, stamp) {
+    const d = loadMap(DIRTY_KEY), b = loadMap(BASE_KEY), st = loadMap(STAMP_KEY);
     Object.keys(sent).forEach((key) => {
-      if (syncVal(localStorage.getItem(key)) === sent[key]) { delete d[key]; b[key] = hashStr(sent[key]); }
+      if (syncVal(localStorage.getItem(key)) === sent[key]) { delete d[key]; b[key] = hashStr(sent[key]); if (stamp) st[key] = stamp; }
     });
-    saveMap(DIRTY_KEY, d); saveMap(BASE_KEY, b);
+    saveMap(DIRTY_KEY, d); saveMap(BASE_KEY, b); saveMap(STAMP_KEY, st);
   }
   // Cles suivies modifiees ici depuis la derniere synchro confirmee (ou jamais synchronisees).
   function collectChanged() {
@@ -174,9 +232,23 @@
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ data }),
       signal: ctrl ? ctrl.signal : undefined,
-    }).then((res) => { if (res.ok) markSynced(data); })
+    }).then((res) => {
+      if (res.ok) { return res.json().catch(() => ({})).then((body) => markSynced(data, body && body.stamp)); }
+      if (res.status === 413) storageFull();
+    })
       .catch(() => { /* reste "non synchronisee" : repartira au prochain envoi ou chargement de page */ })
       .finally(() => { if (timer) clearTimeout(timer); });
+  }
+
+  // Espace du membre plein (2026-11-04) : ses données restent sur l'appareil (« à envoyer ») et on le prévient
+  // une fois par session ; elles repartent seules dès qu'il libère de la place ou que l'admin agrandit son espace.
+  function storageFull() {
+    try {
+      if (sessionStorage.getItem('chest_storage_full_seen')) return;
+      sessionStorage.setItem('chest_storage_full_seen', '1');
+    } catch (e) { /* tant pis */ }
+    const msg = 'Ton espace de stockage CHEST est plein : tes dernières modifications restent sur cet appareil et ne sont pas encore sauvegardées sur ton compte. Libère de la place (Compte) ou demande plus d’espace.';
+    setTimeout(() => { if (window.CHESTAlert) window.CHESTAlert(msg); else console.warn(msg); }, 0);
   }
 
   // Envoie ce qui a change localement (voir collectChanged) - et seulement cela.
@@ -199,10 +271,12 @@
     if (!token || localOnly()) return;
     const wasEmpty = !hadAnyLocalData();
     try {
-      const res = await fetch(apiBase() + '/sync', { headers: { Authorization: 'Bearer ' + token } });
+      const known = loadMap(STAMP_KEY);
+      const res = await fetch(apiBase() + '/sync?have=' + encodeURIComponent(JSON.stringify(known)), { headers: { Authorization: 'Bearer ' + token } });
       if (!res.ok) return;
       const body = await res.json();
       const data = (body && body.data) || {};
+      const stamps = (body && body.stamps) || {};
       let changed = false, firstApplied = false;
       const dirty = loadMap(DIRTY_KEY);
       const base = loadMap(BASE_KEY);
@@ -235,6 +309,9 @@
       });
       saveMap(BASE_KEY, base);
       saveMap(DIRTY_KEY, dirty);
+      // Version retenue seulement pour les clés reçues et acceptées telles quelles (empreinte = celle du serveur).
+      Object.keys(data).forEach((key) => { if (stamps[key] && base[key] === hashStr(data[key])) known[key] = stamps[key]; });
+      saveMap(STAMP_KEY, known);
       // Nouvel appareil (ou première synchro de ces clés ici) qui vient de recevoir de vraies données : un seul
       // rechargement pour que la page déjà affichée (rendue vide/par défaut) les reflète. Pas de boucle : une
       // fois l'empreinte posée, la clé n'est plus « jamais synchronisée ».
@@ -263,7 +340,7 @@
   }
 
   Storage.prototype.setItem = function (key, value) {
-    origSetItem.call(this, key, value);
+    if (isBig(this, key)) bigSet(key, value); else origSetItem.call(this, key, value);
     if (this === localStorage && SYNCED_KEYS.indexOf(key) !== -1) {
       markDirty(key);
       if (!flushTimer) flushTimer = setTimeout(flush, 600);
