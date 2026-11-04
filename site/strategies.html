@@ -151,6 +151,21 @@
   .scnr-hero[data-scanner="stars"]{ --glow: rgba(255,194,26,.5); }
   .scnr-hero[data-scanner="pivot"]{ --glow: rgba(51,230,166,.5); }
   .scnr-hero[data-scanner="supernova"]{ --glow: rgba(59,123,255,.5); }
+  /* Fond de la page Scanner (2026-11-04, demande utilisateur) : plus de lueurs bleue et rose ; seulement la lueur
+     derrière le scanner (ci-dessus) et une discrète en bas à gauche, de la même couleur que le scanner affiché
+     (body::before de css/v2.css, 3e tache --v2-d3). */
+  html body[data-page="strategies"]{ --v2-d1: transparent; --v2-d2: transparent; --v2-d3: rgba(140,140,160,.10); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="wolfx"]){ --v2-d3: rgba(84,112,194,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="algomni"]){ --v2-d3: rgba(249,164,94,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="swyper-v6"]){ --v2-d3: rgba(132,45,255,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="nexus"]){ --v2-d3: rgba(255,122,26,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="harmonics"]){ --v2-d3: rgba(0,230,138,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="blood"]){ --v2-d3: rgba(255,45,45,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="pulse"]){ --v2-d3: rgba(45,123,255,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="wave"]){ --v2-d3: rgba(255,45,45,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="stars"]){ --v2-d3: rgba(255,194,26,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="pivot"]){ --v2-d3: rgba(51,230,166,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="supernova"]){ --v2-d3: rgba(59,123,255,.14); }
   .scnr-hero__inner{ position:relative; max-width:520px; margin:0 auto; }
   .scnr-hero__logo-wrap{ display:inline-flex; margin-bottom:22px; }
   /* Pas de cadre ni de rayon : le logo occupe toute la case, son propre contour
