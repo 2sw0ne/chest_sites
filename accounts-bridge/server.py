@@ -4393,9 +4393,12 @@ def storage_quota_mb(row):
 
 
 def storage_info(db, row):
-    used = db.execute("SELECT COALESCE(SUM(size), 0) FROM user_files WHERE user_id = ?", (row["id"],)).fetchone()[0]
+    # Utilisé = fichiers envoyés + données synchronisées du membre (backtests, journal, comptes, réglages : table user_data).
+    files = db.execute("SELECT COALESCE(SUM(size), 0) FROM user_files WHERE user_id = ?", (row["id"],)).fetchone()[0]
+    data = db.execute("SELECT COALESCE(SUM(LENGTH(CAST(value AS BLOB)) + LENGTH(key)), 0) FROM user_data WHERE user_id = ?", (row["id"],)).fetchone()[0]
     q = storage_quota_mb(row)
-    return {"used": used, "quota": q * 1024 * 1024, "custom": _col(row, "storage_quota_mb") is not None, "tier": storage_tier(row)}
+    return {"used": files + data, "files": files, "data": data, "quota": q * 1024 * 1024,
+            "custom": _col(row, "storage_quota_mb") is not None, "tier": storage_tier(row)}
 
 
 def _gb(n):

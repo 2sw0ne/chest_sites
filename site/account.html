@@ -345,7 +345,7 @@
       document.getElementById('acchPlan').textContent = plan;
     }
     // Stockage (2026-11-04) : fichiers envoyés sur CHEST, comptés sur le quota de l'offre (ou celui choisi par l'admin).
-    const size = (b) => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace('.0', '').replace('.', ',')} Go` : `${Math.round(b / 1024 ** 2)} Mo`;
+    const size = (b) => { const f = (n, d) => { let t = n.toFixed(d); if (t.includes('.')) t = t.replace(/0+$/, '').replace(/\.$/, ''); return t.replace('.', ','); }; if (!b) return '0 Mo'; if (b < 1024 ** 2) return `${Math.max(1, Math.round(b / 1024))} Ko`; if (b < 1024 ** 3) return `${f(b / 1024 ** 2, b < 10 * 1024 ** 2 ? 1 : 0)} Mo`; return `${f(b / 1024 ** 3, 2)} Go`; };
     async function store() {
       const A = window.CHESTAccounts; if (!A || !A.getToken()) return;
       try {
@@ -354,7 +354,7 @@
         const box = document.getElementById('acchStore'), bar = document.getElementById('acchStoreBar');
         const pct = st.quota ? Math.min(100, (st.used / st.quota) * 100) : 0;
         document.getElementById('acchStoreTxt').textContent = st.quota ? `${size(st.used)} sur ${size(st.quota)}` : 'aucun espace';
-        document.getElementById('acchStoreSub').textContent = pct >= 90 ? 'Presque plein : supprime des fichiers, ou mets tes vidéos sur YouTube et colle le lien.' : 'Fichiers et images envoyés sur CHEST. Les vidéos YouTube collées en lien ne comptent pas.';
+        document.getElementById('acchStoreSub').textContent = pct >= 90 ? 'Presque plein : supprime des fichiers, ou mets tes vidéos sur YouTube et colle le lien.' : `Données ${size(st.data || 0)} (backtests, journal, comptes) · fichiers ${size(st.files || 0)}. Les vidéos YouTube collées en lien ne comptent pas.`;
         bar.setAttribute('aria-valuenow', String(Math.round(pct)));
         box.classList.toggle('is-full', pct >= 90);
         box.hidden = false;

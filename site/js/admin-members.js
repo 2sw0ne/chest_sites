@@ -538,7 +538,7 @@
   let storeSrv = null;
   const STORE_TIERS = [['admin', 'Admin'], ['manager', 'Manageur'], ['educator', 'Éducateur'], ['premium', 'Premium'], ['essentiel', 'Essentiel']];
   const usd = (n) => n > 0 && n < 0.01 ? '< 0,01 $' : `${n.toFixed(2).replace('.', ',')} $`;
-  const goTxt = (b) => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace('.0', '').replace('.', ',')} Go` : b ? `${Math.max(1, Math.round(b / 1024 ** 2))} Mo` : '0 Go';
+  const goTxt = (b) => { const f = (n, d) => { let t = n.toFixed(d); if (t.includes('.')) t = t.replace(/0+$/, '').replace(/\.$/, ''); return t.replace('.', ','); }; if (!b) return '0 Mo'; if (b < 1024 ** 2) return `${Math.max(1, Math.round(b / 1024))} Ko`; if (b < 1024 ** 3) return `${f(b / 1024 ** 2, b < 10 * 1024 ** 2 ? 1 : 0)} Mo`; return `${f(b / 1024 ** 3, 2)} Go`; };
   async function renderStorage(force) {
     const box = $('amStore');
     if (!storeSrv || force === true) {
@@ -551,7 +551,8 @@
     const left = S.members.length - pool.length;
     const cap = pool.reduce((t, m) => t + m.storage.quota, 0);
     const tracked = S.members.reduce((t, m) => t + ((m.storage || {}).used || 0), 0);
-    const total = storeSrv.total != null ? Math.max(storeSrv.total, tracked) : tracked;
+    const filesTracked = S.members.reduce((t, m) => t + ((m.storage || {}).files || 0), 0), dataAll = tracked - filesTracked;
+    const total = (storeSrv.total != null ? Math.max(storeSrv.total, filesTracked) : filesTracked) + dataAll; // fichiers (bucket) + données synchronisées
     const fill = cap ? Math.min(100, (total / cap) * 100) : 0;
     const tiers = STORE_TIERS.map(([k, l]) => {
       const ms = pool.filter((m) => m.storage.tier === k);
@@ -585,7 +586,7 @@
       <article class="am-panel am-st__panel">
         <header class="am-panel__head"><h2 class="am-panel__t">Chaque compte</h2><span class="am-panel__meta">clique un compte pour changer son espace</span></header>
         <div class="am-st__list">${rows.map((m) => { const st = m.storage, pc = st.quota ? Math.min(100, st.used / st.quota * 100) : 0; return `<button type="button" class="am-st__row${pc >= 90 ? ' is-full' : ''}" data-st-open="${m.id}">
-            <span class="am-st__who"><b>${esc(fullName(m))}</b><small>${esc((STORE_TIERS.find(([k]) => k === st.tier) || [])[1] || '')}${st.custom ? ' · espace choisi' : ''}</small></span>
+            <span class="am-st__who"><b>${esc(fullName(m))}</b><small>${esc((STORE_TIERS.find(([k]) => k === st.tier) || [])[1] || '')}${st.custom ? ' · espace choisi' : ''}${st.used ? ` · données ${goTxt(st.data || 0)} · fichiers ${goTxt(st.files || 0)}` : ''}</small></span>
             <span class="am-st__bar"><i style="--p:${st.quota ? Math.max(pc / 100, st.used ? .01 : 0) : 0}"></i></span>
             <span class="am-st__num">${st.quota ? `${goTxt(st.used)} / ${goTxt(st.quota)}` : 'aucun espace'}</span>
             <span class="am-st__num"><b>${usd((st.quota / GB) * price)}</b></span>
@@ -596,7 +597,7 @@
   $('amStore').addEventListener('click', (e) => { const b = e.target.closest('[data-st-open]'); if (b) openDrawer(Number(b.dataset.stOpen), 'access'); });
 
   // Stockage (2026-11-04) : jauge + espace choisi par l'admin (vide = celui de son offre).
-  const gbTxt = (b) => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace('.0', '').replace('.', ',')} Go` : `${Math.round(b / 1024 ** 2)} Mo`;
+  const gbTxt = (b) => goTxt(b);
   function storeBlock(m, inDrawer) {
     const st = m.storage; if (!st) return '';
     const pct = st.quota ? Math.min(100, (st.used / st.quota) * 100) : 0;
@@ -609,7 +610,7 @@
           <input type="text" inputmode="decimal" data-store-gb value="${st.custom ? cur : ''}" placeholder="${esc(hint)}" aria-label="Espace en Go (vide = celui de son offre)">
           <button type="submit" class="am2-btn">Enregistrer</button>
         </div>
-        <p class="am-msg" data-store-msg role="status">En Go. Vide = l’espace de son offre.</p>
+        <p class="am-msg" data-store-msg role="status">Données ${goTxt(st.data || 0)} (backtests, journal, comptes) · fichiers ${goTxt(st.files || 0)}. En Go, vide = l’espace de son offre.</p>
       </form>`;
   }
   function renderMembers() { renderChips(); renderRows(); }
