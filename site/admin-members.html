@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="css/chest-da-2.css?v=1">
 <link rel="stylesheet" href="css/chest-2-site.css?v=14">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="css/admin-2.css?v=11">
+<link rel="stylesheet" href="css/admin-2.css?v=12">
 </head>
 <body data-page="admin-members" class="chest-root">
 
@@ -88,6 +88,7 @@
             <button type="button" role="tab" data-view="sales">Ventes</button>
             <button type="button" role="tab" data-view="educators">Éducateurs <small id="amEduBadge"></small></button>
             <button type="button" role="tab" data-view="system">Système <small id="amOpsBadge"></small></button>
+            <button type="button" role="tab" data-view="storage">Stockage</button>
           </div>
         </nav>
         <button type="button" class="am2-quick" id="amQuick" aria-label="Rechercher un membre" title="Rechercher un membre (/)">
@@ -247,6 +248,11 @@
         </div>
         <div class="am-sys__save"><span class="am-msg" id="amOpsState" aria-live="polite"></span><button type="button" class="chest-btn" id="amOpsSave" disabled>Enregistrer</button></div>
       </section>
+
+      <!-- Stockage (2026-11-04) : capacité de chacun, coût si tout le monde est plein (référence) et coût réel (GET /admin/storage). -->
+      <section class="am-view" data-panel="storage" aria-label="Stockage" hidden>
+        <div id="amStore"></div>
+      </section>
     </main>
   </div>
 </div>
@@ -322,8 +328,8 @@ CHESTTour.init([
 </script>
 <script src="js/rank-badge.js?v=3"></script>
 <script src="js/scanner-store.js?v=27"></script>
-<script src="js/admin-members.js?v=18"></script>
-<script src="js/admin-2.js?v=8"></script>
+<script src="js/admin-members.js?v=19"></script>
+<script src="js/admin-2.js?v=9"></script>
 <script src="js/admin-promo.js?v=1"></script>
 <script src="js/liquid-glass.js?v=1"></script>
 <script src="js/lot-calculator.js?v=6"></script>

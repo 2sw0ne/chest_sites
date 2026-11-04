@@ -152,7 +152,7 @@
   const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* tant pis */ } };
   const read = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   { const d = Number(read('chest_admin_days')); if ([7, 30, 90, 365].includes(d)) S.days = d; }
-  { const v = read('chest_admin_view'); if (['overview', 'members', 'ranks', 'engagement', 'sales', 'educators', 'system'].includes(v)) S.view = v; }
+  { const v = read('chest_admin_view'); if (['overview', 'members', 'ranks', 'engagement', 'sales', 'educators', 'system', 'storage'].includes(v)) S.view = v; }
   { const m = read('chest_admin_metric'); if (['revenue', 'signups', 'users', 'views'].includes(m)) S.metric = m; }
   const periodWord = () => ({ 7: 'sur 7 jours', 30: 'sur 30 jours', 90: 'sur 90 jours', 365: 'sur 12 mois' }[S.days]);
 
@@ -532,15 +532,78 @@
         <button type="button" class="am2-link" data-full="${m.id}">Fiche complète</button>
       </div>`;
   }
+  // ------------------------------------------------------------ Stockage (2026-11-04)
+  // Référence = capacité maximale : ce que coûterait le bucket si chaque compte remplissait tout son espace.
+  // Comptés : l'équipe et les membres avec un accès en cours (les autres ne peuvent rien envoyer).
+  let storeSrv = null;
+  const STORE_TIERS = [['admin', 'Admin'], ['manager', 'Manageur'], ['educator', 'Éducateur'], ['premium', 'Premium'], ['essentiel', 'Essentiel']];
+  const usd = (n) => n > 0 && n < 0.01 ? '< 0,01 $' : `${n.toFixed(2).replace('.', ',')} $`;
+  const goTxt = (b) => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace('.0', '').replace('.', ',')} Go` : b ? `${Math.max(1, Math.round(b / 1024 ** 2))} Mo` : '0 Go';
+  async function renderStorage(force) {
+    const box = $('amStore');
+    if (!storeSrv || force === true) {
+      if (!storeSrv) box.innerHTML = '<p class="am-empty">Chargement…</p>';
+      try { const r = await fetch(A.apiBase() + '/admin/storage', { headers: { Authorization: 'Bearer ' + A.getToken() } }); storeSrv = r.ok ? await r.json() : {}; } catch (e) { storeSrv = {}; }
+      if (S.view !== 'storage') return;
+    }
+    const GB = 1024 ** 3, price = storeSrv.pricePerGb || 0.015;
+    const pool = S.members.filter((m) => m.storage && m.status !== 'blocked' && (isTeam(m) || (m.access || {}).active));
+    const left = S.members.length - pool.length;
+    const cap = pool.reduce((t, m) => t + m.storage.quota, 0);
+    const tracked = S.members.reduce((t, m) => t + ((m.storage || {}).used || 0), 0);
+    const total = storeSrv.total != null ? Math.max(storeSrv.total, tracked) : tracked;
+    const fill = cap ? Math.min(100, (total / cap) * 100) : 0;
+    const tiers = STORE_TIERS.map(([k, l]) => {
+      const ms = pool.filter((m) => m.storage.tier === k);
+      const c = ms.reduce((t, m) => t + m.storage.quota, 0);
+      return { k, l, n: ms.length, def: ((storeSrv.quotasMb || {})[k] ?? null), cap: c, used: ms.reduce((t, m) => t + m.storage.used, 0), custom: ms.filter((m) => m.storage.custom).length };
+    });
+    const rows = pool.slice().sort((a, b) => b.storage.quota - a.storage.quota || b.storage.used - a.storage.used);
+    box.innerHTML = `<div class="am-st">
+      <div class="am-st__hero">
+        <article class="am-st__ref">
+          <span class="am-sub">Coût à capacité maximale</span>
+          <b>${usd((cap / GB) * price)}<small>/ mois</small></b>
+          <p>Si chaque compte remplissait tout son espace : ${goTxt(cap)} au total · ${usd((cap / GB) * price * 12)} par an.</p>
+        </article>
+        <div class="am-st__side">
+          <div class="am-fact"><span>Coût réel aujourd’hui</span><b>${usd((total / GB) * price)} <small>/ mois</small></b></div>
+          <div class="am-fact"><span>Stocké aujourd’hui</span><b>${goTxt(total)} <small>sur ${goTxt(cap)}</small></b></div>
+          <div class="am-st__fill" role="progressbar" aria-label="Capacité utilisée" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(fill)}"><i style="--p:${total ? Math.max(fill / 100, .006) : 0}"></i><span>${fill < 1 && total ? '< 1' : Math.round(fill)} % de la capacité maximale</span></div>
+        </div>
+      </div>
+      <article class="am-panel am-st__panel">
+        <header class="am-panel__head"><h2 class="am-panel__t">Par rang</h2><span class="am-panel__meta">${String(price).replace('.', ',')} $ par Go et par mois · lecture gratuite</span></header>
+        <div class="am-st__tiers" role="table" aria-label="Capacité par rang">
+          <div class="am-st__th" role="row"><span role="columnheader">Rang</span><span role="columnheader">Comptes</span><span role="columnheader">Espace chacun</span><span role="columnheader">Capacité max</span><span role="columnheader">Coût max / mois</span><span role="columnheader">Utilisé</span></div>
+          ${tiers.map((t) => `<div class="am-st__tr${t.n ? '' : ' is-zero'}" role="row"><span role="cell"><b>${t.l}</b></span><span role="cell">${t.n}</span><span role="cell">${t.def == null ? '—' : goTxt(t.def * 1024 ** 2)}${t.custom ? ` <em>· ${t.custom} réglé${t.custom > 1 ? 's' : ''} à la main</em>` : ''}</span><span role="cell">${goTxt(t.cap)}</span><span role="cell"><b>${usd((t.cap / GB) * price)}</b></span><span role="cell">${goTxt(t.used)}</span></div>`).join('')}
+          <div class="am-st__tr is-total" role="row"><span role="cell"><b>Total</b></span><span role="cell">${pool.length}</span><span role="cell"></span><span role="cell">${goTxt(cap)}</span><span role="cell"><b>${usd((cap / GB) * price)}</b></span><span role="cell">${goTxt(tracked)}</span></div>
+        </div>
+        ${storeSrv.untracked ? `<p class="am-note">${goTxt(storeSrv.untracked)} de fichiers envoyés avant le 4 novembre n’ont pas d’auteur connu (surtout le contenu School) : ils comptent dans le coût réel, pas dans l’espace d’un membre.</p>` : ''}
+        ${left ? `<p class="am-note">${left} compte${left > 1 ? 's' : ''} sans accès en cours ou bloqué${left > 1 ? 's' : ''} : pas comptés, ils ne peuvent rien envoyer.</p>` : ''}
+      </article>
+      <article class="am-panel am-st__panel">
+        <header class="am-panel__head"><h2 class="am-panel__t">Chaque compte</h2><span class="am-panel__meta">clique un compte pour changer son espace</span></header>
+        <div class="am-st__list">${rows.map((m) => { const st = m.storage, pc = st.quota ? Math.min(100, st.used / st.quota * 100) : 0; return `<button type="button" class="am-st__row${pc >= 90 ? ' is-full' : ''}" data-st-open="${m.id}">
+            <span class="am-st__who"><b>${esc(fullName(m))}</b><small>${esc((STORE_TIERS.find(([k]) => k === st.tier) || [])[1] || '')}${st.custom ? ' · espace choisi' : ''}</small></span>
+            <span class="am-st__bar"><i style="--p:${st.quota ? Math.max(pc / 100, st.used ? .01 : 0) : 0}"></i></span>
+            <span class="am-st__num">${st.quota ? `${goTxt(st.used)} / ${goTxt(st.quota)}` : 'aucun espace'}</span>
+            <span class="am-st__num"><b>${usd((st.quota / GB) * price)}</b></span>
+          </button>`; }).join('') || '<p class="am-empty">Aucun compte pour l’instant.</p>'}</div>
+      </article>
+    </div>`;
+  }
+  $('amStore').addEventListener('click', (e) => { const b = e.target.closest('[data-st-open]'); if (b) openDrawer(Number(b.dataset.stOpen), 'access'); });
+
   // Stockage (2026-11-04) : jauge + espace choisi par l'admin (vide = celui de son offre).
   const gbTxt = (b) => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace('.0', '').replace('.', ',')} Go` : `${Math.round(b / 1024 ** 2)} Mo`;
   function storeBlock(m, inDrawer) {
     const st = m.storage; if (!st) return '';
     const pct = st.quota ? Math.min(100, (st.used / st.quota) * 100) : 0;
-    const cur = st.quota ? String(Math.round((st.quota / 1024 ** 3) * 10) / 10).replace('.', ',') : '';
-    const hint = st.custom ? 'par défaut de son offre' : st.quota ? `offre : ${cur} Go` : 'sans limite';
+    const cur = String(Math.round((st.quota / 1024 ** 3) * 10) / 10).replace('.', ',');
+    const hint = st.custom ? 'par défaut de son offre' : `offre : ${cur} Go`;
     return `<form class="am2-access am2-store${pct >= 90 ? ' is-full' : ''}" data-sheet-store>
-        <span class="am2-store__top"><span class="am2-mono">${inDrawer ? 'Utilisé' : 'Stockage'}</span><b>${st.quota ? `${gbTxt(st.used)} sur ${gbTxt(st.quota)}` : `${gbTxt(st.used)} · sans limite`}${st.custom ? ' · choisi' : ''}</b></span>
+        <span class="am2-store__top"><span class="am2-mono">${inDrawer ? 'Utilisé' : 'Stockage'}</span><b>${st.quota ? `${gbTxt(st.used)} sur ${gbTxt(st.quota)}` : 'aucun espace'}${st.custom ? ' · choisi' : ''}</b></span>
         <span class="am2-store__bar" role="progressbar" aria-label="Stockage utilisé" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="--p:${st.quota ? Math.max(pct / 100, st.used ? .01 : 0) : 0}"></i></span>
         <div class="am2-access__row">
           <input type="text" inputmode="decimal" data-store-gb value="${st.custom ? cur : ''}" placeholder="${esc(hint)}" aria-label="Espace en Go (vide = celui de son offre)">
@@ -788,7 +851,7 @@
       </div>`).join('') : `<p class="am-empty">Aucune vente ${periodWord()}.</p>`;
   }
 
-  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, sales: renderSales, educators: renderEducators, system: renderSystem };
+  const RENDER = { overview: renderOverview, members: renderMembers, ranks: renderRanks, engagement: renderEngagement, sales: renderSales, educators: renderEducators, system: renderSystem, storage: renderStorage };
   function placeIndicator() {
     const tabs = document.querySelector('.am-nav__tabs');
     let ind = tabs.querySelector('.am-nav__ind');
@@ -797,7 +860,7 @@
     ind.style.width = (b.offsetWidth - 28) + 'px';
     ind.style.transform = `translateX(${b.offsetLeft + 14}px)`;
   }
-  const VIEW_LABEL = { overview: 'Vue d’ensemble', members: 'Membres', ranks: 'Rangs', engagement: 'Engagement', sales: 'Ventes', educators: 'Éducateurs', system: 'Système' };
+  const VIEW_LABEL = { overview: 'Vue d’ensemble', members: 'Membres', ranks: 'Rangs', engagement: 'Engagement', sales: 'Ventes', educators: 'Éducateurs', system: 'Système', storage: 'Stockage' };
   function setView(v, opts) {
     S.view = v;
     $('amCrumb').textContent = VIEW_LABEL[v] || 'Membres';
@@ -904,7 +967,7 @@
         <dt>Dernier montant</dt><dd>${eurCents(m.amount)}</dd>
       </dl></div>
     </div>`;
-    const access = `<div class="am-dpane" data-dpane="access" ${S.dtab === 'access' ? '' : 'hidden'}>${isMe ? '<p class="am-muted">C’est ton compte : ton rôle et ton accès ne se modifient pas d’ici.</p>' : `
+    const access = `<div class="am-dpane" data-dpane="access" ${S.dtab === 'access' ? '' : 'hidden'}>${isMe ? '<div class="am-block"><p class="am-muted">C’est ton compte : ton rôle et ton accès ne se modifient pas d’ici. Ton espace de stockage, si.</p></div>' : `
       <div class="am-block"><h3 class="am-sub">Rôle</h3>
         <div class="am-opt">${[['member', 'Membre', 'Droits selon son offre'], ['educator', 'Éducateur', 'Accès complet, School bientôt'], ['manager', 'Manageur', 'Pouvoirs admin, sans HQ'], ['admin', 'Admin', 'Tous les droits']].filter(([k]) => k !== 'admin' || me().role !== 'manager').map(([k, l, s]) => `<button type="button" data-role="${k}" aria-pressed="${role === k}"><b>${badge(k === 'member' ? (['admin', 'manager', 'educator'].includes(c) ? 'none' : c) : k, 18)}${l}</b><small>${s}</small></button>`).join('')}</div>
         <p class="am-msg" data-role-msg role="status" style="margin-top:10px"></p>
@@ -921,11 +984,11 @@
         <div class="am-row-ctl"><button type="submit" class="chest-btn">Appliquer</button><p class="am-msg" data-access-msg role="status"></p></div>
         ${role !== 'member' ? '<p class="am-hint">Son rôle lui donne déjà tout : l’accès ne comptera que s’il redevient Membre.</p>' : ''}
       </form>
-      <div class="am-block"><h3 class="am-sub">Stockage</h3>${storeBlock(m, true)}</div>
       <div class="am-block"><h3 class="am-sub">Compte</h3>
         <div class="am-danger">${m.status === 'blocked' ? '<button type="button" data-unblock>Débloquer</button>' : '<button type="button" data-block>Bloquer</button>'}<button type="button" data-del>Supprimer définitivement</button></div>
         <p class="am-hint">Bloquer coupe l’accès tout de suite, sans rien effacer. Supprimer efface le compte et toutes ses données.</p>
       </div>`}
+      <div class="am-block"><h3 class="am-sub">Stockage</h3>${storeBlock(m, true)}</div>
     </div>`;
     const activity = `<div class="am-dpane" data-dpane="activity" ${S.dtab === 'activity' ? '' : 'hidden'}>
       <div class="am-block"><div class="am-facts" style="grid-template-columns:repeat(3,minmax(0,1fr))">
@@ -1154,6 +1217,7 @@
       if (!r.ok) throw new Error(d.error || 'Enregistrement impossible.');
       m.storage = d.storage;
       if (scope === '#amSheet') renderSheet(); else { renderSheet(); renderDrawer(); }
+      if (S.view === 'storage') renderStorage();
       const nm = document.querySelector(`${scope} [data-store-msg]`); if (nm) say(nm, 'Espace mis à jour.', 'ok');
     } catch (err) { say(smsg, err.message, 'err'); sb.disabled = false; }
   }

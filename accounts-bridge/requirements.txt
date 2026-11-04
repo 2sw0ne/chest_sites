@@ -2,3 +2,4 @@ flask
 pywebpush
 tzdata
 cryptography
+boto3

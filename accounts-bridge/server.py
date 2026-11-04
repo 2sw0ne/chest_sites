@@ -45,7 +45,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
 
-from flask import Flask, g, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, redirect, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.serving import WSGIRequestHandler
@@ -1403,8 +1403,8 @@ def member_storage(member_id):
             mb = int(round(float(str(gb).replace(",", ".")) * 1024))
         except (TypeError, ValueError):
             return jsonify({"error": "Indique un nombre de Go."}), 400
-        if not 100 <= mb <= 1024 * 1024:
-            return jsonify({"error": "Entre 0,1 et 1 024 Go."}), 400
+        if not 0 <= mb <= 1024 * 1024:
+            return jsonify({"error": "Entre 0 et 1 024 Go."}), 400
     db = get_db()
     with db_lock:
         if not db.execute("SELECT 1 FROM users WHERE id = ?", (member_id,)).fetchone():
@@ -1413,6 +1413,20 @@ def member_storage(member_id):
         db.commit()
     row = db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()
     return jsonify({"storage": storage_info(db, row)})
+
+
+@app.route("/admin/storage")
+def admin_storage():
+    """Vue Stockage de l'admin : total réellement stocké (bucket + disque), part sans auteur connu, prix au Go."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    files = bucket_usage()
+    db = get_db()
+    tracked = {r["key"] for r in db.execute("SELECT key FROM user_files").fetchall()}
+    return jsonify({"total": sum(files.values()), "files": len(files),
+                    "untracked": sum(v for k, v in files.items() if k not in tracked),
+                    "pricePerGb": STORAGE_PRICE_USD_GB, "bucket": bool(s3()), "quotasMb": STORAGE_MB})
 
 
 @app.route("/me/profile", methods=["POST"])
@@ -4265,10 +4279,92 @@ def entry_public(row):
 
 
 # Stockage par membre (2026-11-04) : chaque fichier envoyé est compté à celui qui l'envoie (table user_files).
-# Quota de l'offre : Essentiel (et tout le reste) 1 Go, Premium 2 Go, éducateur 5 Go, admin sans limite ;
+# Quota de l'offre : Essentiel (et tout le reste) 1 Go, Premium 2 Go, éducateur 5 Go, admin 10 Go, manageur 0 ;
 # l'admin peut en choisir un autre pour un membre (users.storage_quota_mb). Les fichiers d'avant le 2026-11-04
 # n'ont pas d'auteur connu et ne comptent pour personne.
-STORAGE_MB = {"essentiel": 1024, "premium": 2048, "educator": 5120}
+STORAGE_MB = {"essentiel": 1024, "premium": 2048, "educator": 5120, "admin": 10240, "manager": 0}
+STORAGE_PRICE_USD_GB = 0.015  # Railway Buckets, par Go et par mois (lecture et téléchargements gratuits)
+
+# Bucket Railway « chest-files » (2026-11-04) : les fichiers envoyés y sont rangés sous files/<clé>, le disque
+# ne sert plus que de passage. Variables BUCKET_* = références Railway vers le bucket (jamais dans le code).
+# Les fichiers d'avant restent sur le disque et sont copiés dans le bucket au démarrage ; ils sont servis depuis
+# le disque tant que BUCKET_PURGE_LOCAL n'est pas à 1 (on efface le disque seulement une fois la copie vérifiée).
+BUCKET = os.environ.get("BUCKET_NAME") or ""
+_s3_client = None
+
+
+def s3():
+    global _s3_client
+    if not BUCKET:
+        return None
+    if _s3_client is None:
+        import boto3
+        from botocore.config import Config
+        _s3_client = boto3.client(
+            "s3", endpoint_url=os.environ.get("BUCKET_ENDPOINT"), region_name=os.environ.get("BUCKET_REGION") or "auto",
+            aws_access_key_id=os.environ.get("BUCKET_ACCESS_KEY_ID"), aws_secret_access_key=os.environ.get("BUCKET_SECRET_ACCESS_KEY"),
+            config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}))
+    return _s3_client
+
+
+def _obj(key):
+    return "files/" + os.path.basename(key)
+
+
+def bucket_migrate():
+    """Copie dans le bucket les fichiers restés sur le disque ; efface la copie locale si BUCKET_PURGE_LOCAL=1."""
+    c = s3()
+    if not c or not os.path.isdir(FILES_DIR):
+        return
+    purge = os.environ.get("BUCKET_PURGE_LOCAL") == "1"
+    done = copied = purged = 0
+    for name in os.listdir(FILES_DIR):
+        path = os.path.join(FILES_DIR, name)
+        if not os.path.isfile(path):
+            continue
+        size = os.path.getsize(path)
+        try:
+            try:
+                same = c.head_object(Bucket=BUCKET, Key=_obj(name)).get("ContentLength") == size
+            except Exception:
+                same = False
+            if not same:
+                import mimetypes
+                c.upload_file(path, BUCKET, _obj(name), ExtraArgs={"ContentType": mimetypes.guess_type(name)[0] or "application/octet-stream"})
+                copied += 1
+                same = c.head_object(Bucket=BUCKET, Key=_obj(name)).get("ContentLength") == size
+            if same and purge:
+                os.remove(path)
+                purged += 1
+            done += 1
+        except Exception as e:
+            print(f"[bucket] copie impossible de {name} : {e}", flush=True)
+    print(f"[bucket] {done} fichiers vérifiés, {copied} copiés, {purged} effacés du disque", flush=True)
+
+
+_bucket_stats = {"at": 0, "data": None}
+
+
+def bucket_usage():
+    """Tous les fichiers stockés (bucket + disque non encore copié) : {clé: taille}. Mis en cache 5 minutes."""
+    if _bucket_stats["data"] is not None and time.time() - _bucket_stats["at"] < 300:
+        return _bucket_stats["data"]
+    files = {}
+    if os.path.isdir(FILES_DIR):
+        for name in os.listdir(FILES_DIR):
+            path = os.path.join(FILES_DIR, name)
+            if os.path.isfile(path):
+                files[name] = os.path.getsize(path)
+    c = s3()
+    if c:
+        try:
+            for page in c.get_paginator("list_objects_v2").paginate(Bucket=BUCKET, Prefix="files/"):
+                for o in page.get("Contents", []):
+                    files[o["Key"][len("files/"):]] = o["Size"]
+        except Exception as e:
+            print(f"[bucket] liste impossible : {e}", flush=True)
+    _bucket_stats.update(at=time.time(), data=files)
+    return files
 
 
 class StorageFull(Exception):
@@ -4280,22 +4376,26 @@ def _storage_full(e):
     return jsonify({"error": str(e), "storageFull": True}), 413
 
 
+def storage_tier(row):
+    if row["is_admin"]:
+        return "manager" if _col(row, "role") == "manager" else "admin"
+    if is_educator(row):
+        return "educator"
+    a = access_of(row)
+    return "premium" if a.get("active") and a.get("plan") == "premium" else "essentiel"
+
+
 def storage_quota_mb(row):
     q = _col(row, "storage_quota_mb")
     if q is not None:
         return int(q)
-    if row["is_admin"]:
-        return None
-    if is_educator(row):
-        return STORAGE_MB["educator"]
-    a = access_of(row)
-    return STORAGE_MB["premium"] if a.get("active") and a.get("plan") == "premium" else STORAGE_MB["essentiel"]
+    return STORAGE_MB[storage_tier(row)]
 
 
 def storage_info(db, row):
     used = db.execute("SELECT COALESCE(SUM(size), 0) FROM user_files WHERE user_id = ?", (row["id"],)).fetchone()[0]
     q = storage_quota_mb(row)
-    return {"used": used, "quota": None if q is None else q * 1024 * 1024, "custom": _col(row, "storage_quota_mb") is not None}
+    return {"used": used, "quota": q * 1024 * 1024, "custom": _col(row, "storage_quota_mb") is not None, "tier": storage_tier(row)}
 
 
 def _gb(n):
@@ -4314,7 +4414,9 @@ def save_upload(field, entry_id):
     db = get_db()
     st = storage_info(db, owner) if owner else None
     full_msg = lambda: f"Espace de stockage plein : {_gb(st['used'])} utilisés sur {_gb(st['quota'])}. Supprime des fichiers ou mets la vidéo sur YouTube et colle le lien."
-    if st and st["quota"] is not None and st["used"] + (request.content_length or 0) > st["quota"] + 64 * 1024:
+    if st and st["quota"] == 0:
+        raise StorageFull("Ton compte n'a pas d'espace de stockage. Demande à l'admin, ou mets la vidéo sur YouTube et colle le lien.")
+    if st and st["used"] + (request.content_length or 0) > st["quota"] + 64 * 1024:
         raise StorageFull(full_msg())
     os.makedirs(FILES_DIR, exist_ok=True)
     ext = os.path.splitext(secure_filename(f.filename))[1][:12].lower()
@@ -4322,9 +4424,17 @@ def save_upload(field, entry_id):
     path = os.path.join(FILES_DIR, key)
     f.save(path)
     size = os.path.getsize(path)
-    if st and st["quota"] is not None and st["used"] + size > st["quota"]:
+    if st and st["used"] + size > st["quota"]:
         os.remove(path)
         raise StorageFull(full_msg())
+    c = s3()
+    if c:
+        try:
+            c.upload_file(path, BUCKET, _obj(key), ExtraArgs={"ContentType": f.mimetype or "application/octet-stream"})
+            os.remove(path)
+        except Exception as e:  # le bucket ne répond pas : le fichier reste sur le disque, recopié au prochain démarrage
+            print(f"[bucket] envoi impossible de {key} : {e}", flush=True)
+    _bucket_stats["data"] = None
     if owner:
         db.execute("INSERT INTO user_files (key, user_id, size, created_at) VALUES (?, ?, ?, ?)",
                    (key, owner["id"], size, datetime.now(timezone.utc).isoformat()))
@@ -4339,6 +4449,13 @@ def delete_file(info):
             os.remove(os.path.join(FILES_DIR, key))
         except OSError:
             pass
+        c = s3()
+        if c:
+            try:
+                c.delete_object(Bucket=BUCKET, Key=_obj(key))
+            except Exception as e:
+                print(f"[bucket] suppression impossible de {key} : {e}", flush=True)
+        _bucket_stats["data"] = None
         try:
             db = get_db()
             db.execute("DELETE FROM user_files WHERE key = ?", (key,))
@@ -4458,7 +4575,14 @@ def school_seed():
 @app.route("/school/files/<key>")
 def school_file(key):
     # Noms aléatoires impossibles à deviner : la liste des fichiers n'est visible que des membres connectés.
-    return send_from_directory(FILES_DIR, os.path.basename(key), conditional=True, max_age=3600)
+    key = os.path.basename(key)
+    c = s3()
+    if c and not os.path.isfile(os.path.join(FILES_DIR, key)):
+        url = c.generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": _obj(key)}, ExpiresIn=6 * 3600)
+        resp = redirect(url, code=302)
+        resp.headers["Cache-Control"] = "private, max-age=3000"
+        return resp
+    return send_from_directory(FILES_DIR, key, conditional=True, max_age=3600)
 
 
 # Les 5 vitrines fixes de la Newsletter (welcome.js/app.html, data-bento-id) -
@@ -5587,6 +5711,7 @@ class NoKeepAliveHandler(WSGIRequestHandler):
 if __name__ == "__main__":
     init_db()
     threading.Thread(target=digest_loop, daemon=True).start()
+    threading.Thread(target=bucket_migrate, daemon=True).start()
     # threaded=True : threaded=False bloquait TOUTES les requetes suivantes
     # des qu'un client (navigateur avec keep-alive) laissait une connexion
     # ouverte - constate en direct le 2026-09-15, meme avec NoKeepAliveHandler

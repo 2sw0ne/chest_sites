@@ -16,6 +16,7 @@
     sales: ['Ventes', 'Qui a acheté quoi, quel éducateur l’a amené, ce que reçoit CHEST.'],
     educators: ['Éducateurs', 'Taux, liens d’invitation et demandes de retrait.'],
     system: ['Système', 'Mode de fonctionnement des services et pages en maintenance.'],
+    storage: ['Stockage', 'L’espace de chaque compte, ce qu’il coûterait plein et ce qu’il coûte vraiment.'],
   };
   const current = () => { const b = nav.querySelector('[aria-selected="true"]'); return b ? b.dataset.view : 'overview'; };
 

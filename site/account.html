@@ -353,7 +353,7 @@
         const st = r.ok && (await r.json()).storage; if (!st) return;
         const box = document.getElementById('acchStore'), bar = document.getElementById('acchStoreBar');
         const pct = st.quota ? Math.min(100, (st.used / st.quota) * 100) : 0;
-        document.getElementById('acchStoreTxt').textContent = st.quota ? `${size(st.used)} sur ${size(st.quota)}` : `${size(st.used)} · sans limite`;
+        document.getElementById('acchStoreTxt').textContent = st.quota ? `${size(st.used)} sur ${size(st.quota)}` : 'aucun espace';
         document.getElementById('acchStoreSub').textContent = pct >= 90 ? 'Presque plein : supprime des fichiers, ou mets tes vidéos sur YouTube et colle le lien.' : 'Fichiers et images envoyés sur CHEST. Les vidéos YouTube collées en lien ne comptent pas.';
         bar.setAttribute('aria-valuenow', String(Math.round(pct)));
         box.classList.toggle('is-full', pct >= 90);
