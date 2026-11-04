@@ -168,23 +168,23 @@ html.is-embedded body[data-page="school"] .chest-main > main{ width:100%; max-wi
   html.is-embedded [style*="font-size: 72px"]{ font-size:42px !important; }
   html.is-embedded h1[style*="font-size: 64px"], html.is-embedded [style*="font-size: 64px"]:not(.ghost){ font-size:38px !important; }
   html.is-embedded .sc-door__n{ font-size:44px !important; }
-  html.is-embedded .ghost, html.is-embedded [class*="ghost"]{ max-width:100vw; overflow:hidden; }
+  html.is-embedded .ghost, html.is-embedded [class*="ghost"]{ max-width:100%; overflow:hidden; }
 }
 @media (max-width:600px){
   /* Calendrier : le contenu reprend la largeur de l'écran (jauge et textes à largeur fixe) */
-  html.is-embedded #calMain{ width:100% !important; max-width:100vw; box-sizing:border-box; overflow-x:hidden; }
+  html.is-embedded #calMain{ width:100% !important; max-width:100%; box-sizing:border-box; overflow-x:hidden; }
   html.is-embedded #calMain > section{ max-width:100%; box-sizing:border-box; padding-left:16px !important; padding-right:16px !important; }
   html.is-embedded #c2CalGauge, html.is-embedded #c2CalGauge > div, html.is-embedded #c2CalPast, html.is-embedded #c2CalText, html.is-embedded #c2CalLock{ width:100% !important; max-width:100% !important; box-sizing:border-box; }
   html.is-embedded #c2CalLock{ white-space:normal !important; text-align:center; }
   /* BERICH : la page tient dans l'écran */
-  html.is-embedded .br-page{ max-width:100vw !important; box-sizing:border-box; overflow-x:hidden; }
+  html.is-embedded .br-page{ max-width:100% !important; box-sizing:border-box; overflow-x:hidden; }
   html.is-embedded .br-top, html.is-embedded .br-top__right{ flex-wrap:wrap !important; min-width:0 !important; max-width:100%; }
   html.is-embedded .br-planchip{ white-space:normal !important; max-width:100%; height:auto !important; min-height:32px; text-align:left; }
   html.is-embedded .br-watch > span{ white-space:normal !important; }
 }
 @media (max-width:600px){
   /* Admin et Éducateur : la page tient dans l'écran, les onglets défilent */
-  html.is-embedded main.am{ width:100% !important; max-width:100vw !important; min-width:0 !important; box-sizing:border-box; overflow-x:hidden; padding-left:16px !important; padding-right:16px !important; }
+  html.is-embedded main.am{ width:100% !important; max-width:100% !important; min-width:0 !important; box-sizing:border-box; overflow-x:hidden; padding-left:16px !important; padding-right:16px !important; }
   html.is-embedded main.am > *, html.is-embedded main.am .am-view, html.is-embedded main.am .am-grid > *, html.is-embedded main.am .am-kpis > *{ min-width:0 !important; max-width:100%; }
   html.is-embedded main.am .am-nav, html.is-embedded main.am .am-nav__tabs{ max-width:100%; overflow-x:auto; flex-wrap:nowrap !important; scrollbar-width:none; }
   html.is-embedded main.am .am-nav__tabs::-webkit-scrollbar{ display:none; }
@@ -193,10 +193,10 @@ html.is-embedded body[data-page="school"] .chest-main > main{ width:100%; max-wi
   html.is-embedded .ed-alert{ flex-wrap:wrap; max-width:100%; box-sizing:border-box; }
   html.is-embedded main.am p, html.is-embedded main.am section{ max-width:100%; }
 }
-@media (max-width:600px){ html.is-embedded #chestShell, html.is-embedded #chestShell > .chest-main{ width:100% !important; max-width:100vw !important; min-width:0 !important; overflow-x:hidden; } }
+@media (max-width:600px){ html.is-embedded #chestShell, html.is-embedded #chestShell > .chest-main{ width:100% !important; max-width:100% !important; min-width:0 !important; overflow-x:hidden; } }
 /* Téléphone : toutes les pages un peu plus petites (88 %) pour respirer — multiplie le réglage « Taille de l'affichage » du membre */
 @media (max-width:600px){
-  html.is-embedded body.chest-root{ zoom:calc(var(--chest-ui-scale, 1) * .88); }
+  /* (réduction à 88 % faite par la coque sur le cadre de la page : css/shell-2.css) */
   html.is-embedded .br-planchip > :first-child, html.is-embedded .br-plan-line b, html.is-embedded .br-plan-line strong{ white-space:nowrap; }
   html.is-embedded .br-hero{ row-gap:14px; }
   html.is-embedded .br-watch, html.is-embedded #brPlanLine{ margin-bottom:10px !important; }
