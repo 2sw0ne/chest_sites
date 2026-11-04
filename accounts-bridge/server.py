@@ -1847,7 +1847,31 @@ def get_pricing():
         data = None
     ok = isinstance(data, dict) and isinstance(data.get("offers"), list) and \
         [o.get("key") for o in data["offers"] if isinstance(o, dict)] == list(PRICING_KEYS)
-    return data if ok else PRICING_DEFAULT  # ancien format (mensuel / annuel) : on repart des nouvelles offres
+    data = data if ok else PRICING_DEFAULT  # ancien format (mensuel / annuel) : on repart des nouvelles offres
+    # Liens de paiement Stripe créés le 2026-11-04 (paiement unique, TVA comprise, codes promo autorisés,
+    # retour sur /offres?paiement=ok) : ils remplissent une offre sans lien tant que son prix n'a pas changé.
+    out = []
+    for o in data["offers"]:
+        o = dict(o)
+        dl = STRIPE_DEFAULT_LINKS.get(o.get("key"))
+        if dl and not str(o.get("link") or "").strip() and o.get("price") == dl[0]:
+            o["link"] = dl[1]
+        out.append(o)
+    return {**data, "offers": out}
+
+
+# Le webhook reconnaît l'offre au lien utilisé (payment_link) : Essentiel 3 et Premium 1 ont le même prix.
+STRIPE_LINK_IDS = {"plink_1UY5H0AN6r524EGXbWu4sSOT": "essentiel1", "plink_1UY5IIAN6r524EGX0k4uMR5R": "essentiel2",
+                   "plink_1UY5JdAN6r524EGXjhKQqPtm": "essentiel3", "plink_1UY5KdAN6r524EGXB57rK2OX": "premium1",
+                   "plink_1UY5LUAN6r524EGX4QzeF4F7": "premium2", "plink_1UY5MMAN6r524EGXhMQJyfIN": "premium3"}
+STRIPE_DEFAULT_LINKS = {  # offre -> (prix TTC, lien de paiement Stripe)
+    "essentiel1": (250, "https://buy.stripe.com/9B6dR8erN34307idDt2B204"),
+    "essentiel2": (500, "https://buy.stripe.com/bJebJ0abx0VVdY8dDt2B205"),
+    "essentiel3": (1000, "https://buy.stripe.com/3cI28qabxdIH5rCgPF2B206"),
+    "premium1": (1000, "https://buy.stripe.com/aFa3cu5Vh0VVdY89nd2B207"),
+    "premium2": (1500, "https://buy.stripe.com/aFa14mcjFcED2fqeHx2B208"),
+    "premium3": (3000, "https://buy.stripe.com/7sY7sKfvR9srcU4dDt2B209"),
+}
 
 
 def _clean_text(v, limit):
@@ -3807,7 +3831,10 @@ def billing_checkout():
         link = str(o.get("link") or "").strip()
         if not link:
             return jsonify({"error": "Le paiement en ligne de cette offre ouvre très bientôt."}), 503
-        q = urllib.parse.urlencode({"client_reference_id": f"u{user['id']}", "prefilled_email": user["email"], "locale": "fr"})
+        q = {"client_reference_id": f"u{user['id']}", "prefilled_email": user["email"], "locale": "fr"}
+        if pct:  # le code du référent est pré-rempli sur la page Stripe (code promo du même nom dans Stripe)
+            q["prefilled_promo_code"] = get_promo()["code"]
+        q = urllib.parse.urlencode(q)
         return jsonify({"url": f"{link}{'&' if '?' in link else '?'}{q}", "mode": "liens"})
     db = get_db()
     edu = db.execute("SELECT * FROM users WHERE id = ?", (_col(user, "referred_by"),)).fetchone() if _col(user, "referred_by") else None
@@ -3869,6 +3896,11 @@ def billing_webhook():
             if meta.get("offer") in PRICING_KEYS and str(meta.get("amount") or "") == str(amount):
                 lvl = int(meta["offer"][-1])
                 plan = {"plan": meta["offer"][:-1], "level": lvl, "months": LEVEL_MONTHS[lvl]}
+            pl = obj.get("payment_link")
+            pl_key = STRIPE_LINK_IDS.get(pl.get("id") if isinstance(pl, dict) else pl)
+            if not plan and pl_key and str(STRIPE_DEFAULT_LINKS[pl_key][0] * 100) == str(amount):
+                lvl = int(pl_key[-1])
+                plan = {"plan": pl_key[:-1], "level": lvl, "months": LEVEL_MONTHS[lvl]}
             plan = plan or plan_for_amount(amount)
             paid = obj.get("payment_status") in ("paid", "no_payment_required")
             if user and plan and paid:
