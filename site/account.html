@@ -223,6 +223,16 @@
   .chest-root .acch__role[hidden]{ display:none; }
   .chest-root .acch__facts{ margin-top:30px; }
   .chest-root .acch__sub{ max-width:520px; margin:26px auto 0; font-size:13px; line-height:1.6; color:var(--chest-ink-3); }
+  /* Stockage (2026-11-04) : jauge de l'espace utilisé par les fichiers envoyés */
+  .chest-root .acch-store{ max-width:420px; margin:28px auto 0; text-align:left; }
+  .chest-root .acch-store[hidden]{ display:none; }
+  .chest-root .acch-store__top{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:12.5px; color:var(--chest-ink-2); }
+  .chest-root .acch-store__top b{ color:var(--chest-ink); font-weight:600; font-variant-numeric:tabular-nums; }
+  .chest-root .acch-store__bar{ position:relative; height:8px; margin-top:10px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.07); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }
+  .chest-root .acch-store__bar i{ position:absolute; inset:0; border-radius:inherit; background:var(--chest-grad); transform-origin:left; transform:scaleX(var(--p,0)); transition:transform .9s cubic-bezier(.23,1,.32,1); }
+  .chest-root .acch-store.is-full .acch-store__bar i{ background:#ff4d5e; }
+  .chest-root .acch-store small{ display:block; margin-top:9px; font-size:12px; line-height:1.5; color:var(--chest-ink-3); }
+  @media (prefers-reduced-motion:reduce){ .chest-root .acch-store__bar i{ transition:none; } }
   /* Sauvegardes (2026-10-24) */
   .bk-group{ padding:14px 0; border-bottom:1px solid var(--line, rgba(255,255,255,.08)); }
   .bk-group:last-child{ border-bottom:0; }
@@ -306,6 +316,11 @@
       <div><dt>Backtests</dt><dd id="acchBt">0</dd></div>
       <div><dt>Meilleure formule</dt><dd id="acchPlan">—</dd></div>
     </dl>
+    <div class="acch-store" id="acchStore" hidden>
+      <div class="acch-store__top"><span>Stockage</span><b id="acchStoreTxt"></b></div>
+      <div class="acch-store__bar" id="acchStoreBar" role="progressbar" aria-label="Stockage utilisé" aria-valuemin="0" aria-valuemax="100"><i></i></div>
+      <small id="acchStoreSub"></small>
+    </div>
     <p class="acch__sub">Tes comptes de trading reliés à CHEST, puis les réglages de ton espace : chaque ligne montre l'état actuel.</p>
   </section>
   <script>
@@ -329,7 +344,24 @@
       document.getElementById('acchBt').textContent = String(bt.length);
       document.getElementById('acchPlan').textContent = plan;
     }
-    window.addEventListener('load', () => setTimeout(fill, 60));
+    // Stockage (2026-11-04) : fichiers envoyés sur CHEST, comptés sur le quota de l'offre (ou celui choisi par l'admin).
+    const size = (b) => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace('.0', '').replace('.', ',')} Go` : `${Math.round(b / 1024 ** 2)} Mo`;
+    async function store() {
+      const A = window.CHESTAccounts; if (!A || !A.getToken()) return;
+      try {
+        const r = await fetch(A.apiBase() + '/me', { headers: { Authorization: 'Bearer ' + A.getToken() } });
+        const st = r.ok && (await r.json()).storage; if (!st) return;
+        const box = document.getElementById('acchStore'), bar = document.getElementById('acchStoreBar');
+        const pct = st.quota ? Math.min(100, (st.used / st.quota) * 100) : 0;
+        document.getElementById('acchStoreTxt').textContent = st.quota ? `${size(st.used)} sur ${size(st.quota)}` : `${size(st.used)} · sans limite`;
+        document.getElementById('acchStoreSub').textContent = pct >= 90 ? 'Presque plein : supprime des fichiers, ou mets tes vidéos sur YouTube et colle le lien.' : 'Fichiers et images envoyés sur CHEST. Les vidéos YouTube collées en lien ne comptent pas.';
+        bar.setAttribute('aria-valuenow', String(Math.round(pct)));
+        box.classList.toggle('is-full', pct >= 90);
+        box.hidden = false;
+        requestAnimationFrame(() => requestAnimationFrame(() => bar.firstElementChild.style.setProperty('--p', String(st.quota ? Math.max(pct / 100, st.used ? .01 : 0) : 0))));
+      } catch (e) { /* hors ligne : pas de jauge */ }
+    }
+    window.addEventListener('load', () => setTimeout(() => { fill(); store(); }, 60));
   })();
   </script>
 

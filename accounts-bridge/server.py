@@ -321,6 +321,15 @@ def init_db():
         # Sauvegardes (2026-10-24, demande utilisateur : « une fois configuré il ne doit pas pouvoir partir ») :
         # chaque valeur synchronisée remplacée est gardée ici (30 dernières par donnée), restaurable depuis Compte.
         db.execute("""
+            CREATE TABLE IF NOT EXISTS user_files (
+                key TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                size INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_user_files_user ON user_files (user_id)")
+        db.execute("""
             CREATE TABLE IF NOT EXISTS user_data_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -547,7 +556,9 @@ def init_db():
                     # Documents légaux (2026-10-30) : version des CGU acceptée, et des règles du programme éducateur
                     ("terms_version", "TEXT"), ("edu_terms_version", "TEXT"),
                     # Discipline de l'éducateur (2026-11-04) : le scanner auquel il est affilié
-                    ("edu_scanner", "TEXT")]
+                    ("edu_scanner", "TEXT"),
+                    # Stockage (2026-11-04) : quota choisi par l'admin pour ce membre, en Mo (vide = quota de son offre)
+                    ("storage_quota_mb", "INTEGER")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -1373,7 +1384,35 @@ def me():
     user = current_user()
     if not user:
         return jsonify({"error": "Non connecté."}), 401
-    return jsonify(user_public(user))
+    return jsonify({**user_public(user), "storage": storage_info(get_db(), user)})
+
+
+@app.route("/members/<int:member_id>/storage", methods=["POST"])
+def member_storage(member_id):
+    """L'admin choisit l'espace d'un membre, en Go (vide = celui de son offre)."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    denied = guard_principal(admin, member_id)
+    if denied:
+        return denied
+    gb = (request.get_json(silent=True) or {}).get("gb")
+    mb = None
+    if gb not in (None, ""):
+        try:
+            mb = int(round(float(str(gb).replace(",", ".")) * 1024))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Indique un nombre de Go."}), 400
+        if not 100 <= mb <= 1024 * 1024:
+            return jsonify({"error": "Entre 0,1 et 1 024 Go."}), 400
+    db = get_db()
+    with db_lock:
+        if not db.execute("SELECT 1 FROM users WHERE id = ?", (member_id,)).fetchone():
+            return jsonify({"error": "Compte introuvable."}), 404
+        db.execute("UPDATE users SET storage_quota_mb = ? WHERE id = ?", (mb, member_id))
+        db.commit()
+    row = db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()
+    return jsonify({"storage": storage_info(db, row)})
 
 
 @app.route("/me/profile", methods=["POST"])
@@ -3957,6 +3996,7 @@ def billing_webhook():
 
 def _admin_member(db, row):
     out = user_public(row)
+    out["storage"] = storage_info(db, row)
     since = (datetime.now(timezone.utc) - timedelta(days=30)).date().isoformat()
     acts = db.execute("SELECT day, page, views FROM user_activity WHERE user_id = ? AND day >= ?", (row["id"], since)).fetchall()
     pages = {}
@@ -4224,23 +4264,86 @@ def entry_public(row):
     return d
 
 
+# Stockage par membre (2026-11-04) : chaque fichier envoyé est compté à celui qui l'envoie (table user_files).
+# Quota de l'offre : Essentiel (et tout le reste) 1 Go, Premium 2 Go, éducateur 5 Go, admin sans limite ;
+# l'admin peut en choisir un autre pour un membre (users.storage_quota_mb). Les fichiers d'avant le 2026-11-04
+# n'ont pas d'auteur connu et ne comptent pour personne.
+STORAGE_MB = {"essentiel": 1024, "premium": 2048, "educator": 5120}
+
+
+class StorageFull(Exception):
+    pass
+
+
+@app.errorhandler(StorageFull)
+def _storage_full(e):
+    return jsonify({"error": str(e), "storageFull": True}), 413
+
+
+def storage_quota_mb(row):
+    q = _col(row, "storage_quota_mb")
+    if q is not None:
+        return int(q)
+    if row["is_admin"]:
+        return None
+    if is_educator(row):
+        return STORAGE_MB["educator"]
+    a = access_of(row)
+    return STORAGE_MB["premium"] if a.get("active") and a.get("plan") == "premium" else STORAGE_MB["essentiel"]
+
+
+def storage_info(db, row):
+    used = db.execute("SELECT COALESCE(SUM(size), 0) FROM user_files WHERE user_id = ?", (row["id"],)).fetchone()[0]
+    q = storage_quota_mb(row)
+    return {"used": used, "quota": None if q is None else q * 1024 * 1024, "custom": _col(row, "storage_quota_mb") is not None}
+
+
+def _gb(n):
+    if n < 1024 ** 3:
+        return f"{round(n / 1024 ** 2)} Mo"
+    return f"{n / 1024 ** 3:.1f}".rstrip("0").rstrip(".").replace(".", ",") + " Go"
+
+
 def save_upload(field, entry_id):
-    """Enregistre le fichier du champ multipart `field` sous un nom aléatoire. Renvoie un dict ou None."""
+    """Enregistre le fichier du champ multipart `field` sous un nom aléatoire. Renvoie un dict ou None.
+    Lève StorageFull (→ 413) si le fichier dépasse l'espace restant de celui qui l'envoie."""
     f = request.files.get(field)
     if not f or not f.filename:
         return None
+    owner = current_user()
+    db = get_db()
+    st = storage_info(db, owner) if owner else None
+    full_msg = lambda: f"Espace de stockage plein : {_gb(st['used'])} utilisés sur {_gb(st['quota'])}. Supprime des fichiers ou mets la vidéo sur YouTube et colle le lien."
+    if st and st["quota"] is not None and st["used"] + (request.content_length or 0) > st["quota"] + 64 * 1024:
+        raise StorageFull(full_msg())
     os.makedirs(FILES_DIR, exist_ok=True)
     ext = os.path.splitext(secure_filename(f.filename))[1][:12].lower()
     key = secrets.token_urlsafe(12).replace("-", "a").replace("_", "b") + ext
-    f.save(os.path.join(FILES_DIR, key))
-    return {"key": key, "name": f.filename, "size": os.path.getsize(os.path.join(FILES_DIR, key)), "mime": f.mimetype or ""}
+    path = os.path.join(FILES_DIR, key)
+    f.save(path)
+    size = os.path.getsize(path)
+    if st and st["quota"] is not None and st["used"] + size > st["quota"]:
+        os.remove(path)
+        raise StorageFull(full_msg())
+    if owner:
+        db.execute("INSERT INTO user_files (key, user_id, size, created_at) VALUES (?, ?, ?, ?)",
+                   (key, owner["id"], size, datetime.now(timezone.utc).isoformat()))
+        db.commit()
+    return {"key": key, "name": f.filename, "size": size, "mime": f.mimetype or ""}
 
 
 def delete_file(info):
     if info and info.get("key"):
+        key = os.path.basename(info["key"])
         try:
-            os.remove(os.path.join(FILES_DIR, os.path.basename(info["key"])))
+            os.remove(os.path.join(FILES_DIR, key))
         except OSError:
+            pass
+        try:
+            db = get_db()
+            db.execute("DELETE FROM user_files WHERE key = ?", (key,))
+            db.commit()
+        except Exception:
             pass
 
 

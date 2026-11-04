@@ -524,12 +524,30 @@
         </div>
         <p class="am-msg" id="amSheetMsg" role="status">${isMe ? 'C’est ton compte.' : team ? 'Son rôle lui donne déjà tout l’accès.' : ''}</p>
       </form>
+      ${storeBlock(m)}
       <div class="am2-sheet__acts">
         <button type="button" class="am2-btn2" data-sheet-rank ${isMe ? 'disabled' : ''}>Changer le rang</button>
         <button type="button" class="am2-btn2" data-sheet-reset ${isMe ? 'disabled' : ''}>Réinitialiser le mot de passe</button>
         ${m.status === 'blocked' ? `<button type="button" class="am2-btn2" data-sheet-block="0" ${isMe ? 'disabled' : ''}>Débloquer</button>` : `<button type="button" class="am2-danger" data-sheet-block="1" ${isMe ? 'disabled' : ''}>Bloquer</button>`}
         <button type="button" class="am2-link" data-full="${m.id}">Fiche complète</button>
       </div>`;
+  }
+  // Stockage (2026-11-04) : jauge + espace choisi par l'admin (vide = celui de son offre).
+  const gbTxt = (b) => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace('.0', '').replace('.', ',')} Go` : `${Math.round(b / 1024 ** 2)} Mo`;
+  function storeBlock(m, inDrawer) {
+    const st = m.storage; if (!st) return '';
+    const pct = st.quota ? Math.min(100, (st.used / st.quota) * 100) : 0;
+    const cur = st.quota ? String(Math.round((st.quota / 1024 ** 3) * 10) / 10).replace('.', ',') : '';
+    const hint = st.custom ? 'par défaut de son offre' : st.quota ? `offre : ${cur} Go` : 'sans limite';
+    return `<form class="am2-access am2-store${pct >= 90 ? ' is-full' : ''}" data-sheet-store>
+        <span class="am2-store__top"><span class="am2-mono">${inDrawer ? 'Utilisé' : 'Stockage'}</span><b>${st.quota ? `${gbTxt(st.used)} sur ${gbTxt(st.quota)}` : `${gbTxt(st.used)} · sans limite`}${st.custom ? ' · choisi' : ''}</b></span>
+        <span class="am2-store__bar" role="progressbar" aria-label="Stockage utilisé" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="--p:${st.quota ? Math.max(pct / 100, st.used ? .01 : 0) : 0}"></i></span>
+        <div class="am2-access__row">
+          <input type="text" inputmode="decimal" data-store-gb value="${st.custom ? cur : ''}" placeholder="${esc(hint)}" aria-label="Espace en Go (vide = celui de son offre)">
+          <button type="submit" class="am2-btn">Enregistrer</button>
+        </div>
+        <p class="am-msg" data-store-msg role="status">En Go. Vide = l’espace de son offre.</p>
+      </form>`;
   }
   function renderMembers() { renderChips(); renderRows(); }
 
@@ -903,6 +921,7 @@
         <div class="am-row-ctl"><button type="submit" class="chest-btn">Appliquer</button><p class="am-msg" data-access-msg role="status"></p></div>
         ${role !== 'member' ? '<p class="am-hint">Son rôle lui donne déjà tout : l’accès ne comptera que s’il redevient Membre.</p>' : ''}
       </form>
+      <div class="am-block"><h3 class="am-sub">Stockage</h3>${storeBlock(m, true)}</div>
       <div class="am-block"><h3 class="am-sub">Compte</h3>
         <div class="am-danger">${m.status === 'blocked' ? '<button type="button" data-unblock>Débloquer</button>' : '<button type="button" data-block>Bloquer</button>'}<button type="button" data-del>Supprimer définitivement</button></div>
         <p class="am-hint">Bloquer coupe l’accès tout de suite, sans rien effacer. Supprimer efface le compte et toutes ses données.</p>
@@ -1013,6 +1032,7 @@
   $('amSheet').addEventListener('submit', async (e) => {
     e.preventDefault();
     const m = S.members.find((x) => x.id === S.sel); if (!m) return;
+    if (e.target.closest('[data-sheet-store]')) { saveStore(e.target.closest('[data-sheet-store]'), m, '#amSheet'); return; }
     const msg = $('amSheetMsg'), until = $('amSheetEnd').value;
     if (!until) { say(msg, 'Choisis une date de fin.', 'err'); return; }
     const c = cat(m), fam = base(c);
@@ -1123,7 +1143,23 @@
       try { await A.deleteMember(id); closeDrawer(); await reload(); } catch (err) { await CHESTAlert(err.message); }
     }
   });
+  // Espace de stockage choisi par l'admin (fiche latérale ou volet du membre).
+  async function saveStore(f, m, scope) {
+    const smsg = f.querySelector('[data-store-msg]'), sb = f.querySelector('[type="submit"]');
+    const v = f.querySelector('[data-store-gb]').value.trim();
+    sb.disabled = true; say(smsg, 'Enregistrement…');
+    try {
+      const r = await fetch(A.apiBase() + `/members/${m.id}/storage`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ gb: v || null }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'Enregistrement impossible.');
+      m.storage = d.storage;
+      if (scope === '#amSheet') renderSheet(); else { renderSheet(); renderDrawer(); }
+      const nm = document.querySelector(`${scope} [data-store-msg]`); if (nm) say(nm, 'Espace mis à jour.', 'ok');
+    } catch (err) { say(smsg, err.message, 'err'); sb.disabled = false; }
+  }
   $('amDrawer').addEventListener('submit', async (e) => {
+    const sf = e.target.closest('[data-sheet-store]');
+    if (sf) { e.preventDefault(); const m = S.members.find((x) => x.id === S.current); if (m) saveStore(sf, m, '#amDrawer'); return; }
     const form = e.target.closest('[data-access-form]');
     if (!form) return;
     e.preventDefault();

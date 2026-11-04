@@ -300,3 +300,11 @@ html.am2v-top .am2-bar:not(:has(.am2v-tools > :not([hidden]))){ display:none; }
 .am2v-period button{ height:30px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:#9b9ba1; font:inherit; font-size:12.5px; cursor:pointer; transition:background .2s cubic-bezier(.16,1,.3,1), color .2s; }
 .am2v-period button:hover{ color:#f6f6f7; }
 .am2v-period button.is-on{ background:#f6f6f7; color:#050505; font-weight:600; }
+
+/* Stockage d'un membre (2026-11-04, fiche latérale) */
+.am2-store{ margin-top:4px; }
+.am2-store__top{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+.am2-store__top b{ font-size:12.5px; font-weight:600; color:#f6f6f7; font-variant-numeric:tabular-nums; }
+.am2-store__bar{ position:relative; display:block; height:6px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.07); }
+.am2-store__bar i{ position:absolute; inset:0; border-radius:inherit; background:linear-gradient(135deg,#fc1283,#f9a45e); transform-origin:left; transform:scaleX(var(--p,0)); }
+.am2-store.is-full .am2-store__bar i{ background:#ff4d5e; }
