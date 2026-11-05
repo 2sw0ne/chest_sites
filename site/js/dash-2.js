@@ -107,24 +107,31 @@
     const eq = (d.equity || []).filter((v) => isFinite(v));
     const diff = d.diff != null ? d.diff : num(d.profitDollar) || 0;
     $('d2ChartTitle').textContent = `${usd(diff)} ${PERIOD_SUB[period] || ''}`;
-    if (eq.length < 2) { ['d2Area', 'd2Line', 'd2Bt'].forEach((id) => $(id).setAttribute('d', '')); $('d2Y').innerHTML = ''; $('d2X').innerHTML = ''; $('d2Dot').hidden = true; $('d2DotLbl').hidden = true; return; }
+    if (eq.length < 2) { ['d2Area', 'd2Line', 'd2LineDn', 'd2Bt'].forEach((id) => $(id).setAttribute('d', '')); $('d2Y').innerHTML = ''; $('d2X').innerHTML = ''; $('d2Dot').hidden = true; $('d2DotLbl').hidden = true; return; }
     let lo = Math.min(...eq), hi = Math.max(...eq);
     const pad = (hi - lo) * 0.08 || Math.abs(hi) * 0.002 || 1;
     lo -= pad; hi += pad;
     const W = 1000, H = 270;
     const pts = eq.map((v, i) => [i / (eq.length - 1) * W, H - (v - lo) / (hi - lo) * H]);
     const line = smooth(pts);
+    // Solde de départ de la période (2026-11-05) : la ligne et sa lueur sont vertes au-dessus, rouges dès qu'elle
+    // passe en dessous ; la zone colorée s'arrête à ce niveau (plus de rouge jusqu'en bas du graphique).
+    const yb = Math.max(0, Math.min(H, H - (eq[0] - lo) / (hi - lo) * H));
     $('d2Line').setAttribute('d', line);
-    $('d2Area').setAttribute('d', line + ' L' + W + ',' + H + ' L0,' + H + ' Z');
+    $('d2LineDn').setAttribute('d', line);
+    $('eqClipUpR').setAttribute('height', String(yb + 60));
+    $('eqClipDnR').setAttribute('y', String(yb));
+    $('eqClipDnR').setAttribute('height', String(H - yb + 60));
+    $('d2Area').setAttribute('d', line + ' L' + W + ',' + yb.toFixed(1) + ' L0,' + yb.toFixed(1) + ' Z');
     $('d2Bt').setAttribute('d', '');
     // vert au-dessus du solde de départ de la période, rouge en dessous (demande utilisateur 2026-11-03)
     const t = Math.max(0, Math.min(1, (H - (eq[0] - lo) / (hi - lo) * H) / H)).toFixed(4);
     const grad = (id, stops) => { const g = document.getElementById(id); if (!g) return; ['x1', 'y1', 'x2'].forEach((k) => g.setAttribute(k, '0')); g.setAttribute('y2', String(H)); g.setAttribute('gradientUnits', 'userSpaceOnUse');
       g.innerHTML = stops.map(([o, c, a]) => `<stop offset="${o}" stop-color="${c}" stop-opacity="${a}"></stop>`).join(''); };
-    grad('eqLine', [[0, '#6ef2c9', 1], [t, '#33e6a6', 1], [t, '#ff4d5e', 1], [1, '#ff4d5e', 1]]);
-    grad('eqFill', [[0, '#33e6a6', 0.3], [t, '#33e6a6', 0.02], [t, '#ff4d5e', 0.02], [1, '#ff4d5e', 0.3]]);
+    // Intensité calée sur les extrêmes de la courbe : la zone rouge reste visible même peu profonde.
+    const yTop = Math.min(...pts.map((q) => q[1])) / H, yBot = Math.max(...pts.map((q) => q[1])) / H;
+    grad('eqFill', [[Math.min(yTop, t).toFixed(4), '#33e6a6', 0.3], [t, '#33e6a6', 0.03], [t, '#ff4d5e', 0.03], [Math.max(yBot, t).toFixed(4), '#ff4d5e', 0.28], [1, '#ff4d5e', 0.28]]);
     const up = eq[eq.length - 1] >= eq[0];
-    $('d2Line').style.filter = up ? 'drop-shadow(rgba(51, 230, 166, 0.65) 0px 0px 8px)' : 'drop-shadow(rgba(255, 77, 94, 0.65) 0px 0px 8px)';
     $('d2Dot').style.borderColor = up ? 'rgb(110, 242, 201)' : 'rgb(255, 120, 135)';
     $('d2Dot').style.boxShadow = up ? 'rgba(51, 230, 166, 0.9) 0px 0px 14px' : 'rgba(255, 77, 94, 0.9) 0px 0px 14px';
     const last = pts[pts.length - 1];

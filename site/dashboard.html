@@ -687,7 +687,7 @@
           <p id="d2Date" style="margin: 0px; font-size: 14px; color: rgb(155, 155, 161);">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
         </div>
         <div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-          <div class="acc-switcher" id="accSwitcher" style="position: relative;"><button type="button" class="btn2" id="accSwitcherBtn" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0px 14px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)) border-box border-box; color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-weight: 600; cursor: pointer;">
+          <div class="acc-switcher" id="accSwitcher" style="position: relative;"><button type="button" class="btn2" id="accSwitcherBtn" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.024); -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-weight: 600; cursor: pointer;">
             <span id="d2AccDot" style="width: 7px; height: 7px; border-radius: 999px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.8) 0px 0px 10px;"></span>
             <span id="d2AccLabel">—</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9ba1" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
@@ -739,6 +739,8 @@
                     <stop offset="0" stop-color="#33e6a6" stop-opacity=".32"></stop>
                     <stop offset="1" stop-color="#33e6a6" stop-opacity="0"></stop>
                   </linearGradient>
+                  <clipPath id="eqClipUp"><rect id="eqClipUpR" x="-20" y="-60" width="1040" height="330"></rect></clipPath>
+                  <clipPath id="eqClipDn"><rect id="eqClipDnR" x="-20" y="270" width="1040" height="60"></rect></clipPath>
                   <linearGradient id="eqLine" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0" stop-color="#dcdce0"></stop>
                     <stop offset=".35" stop-color="#33e6a6"></stop>
@@ -752,7 +754,9 @@
                 <line x1="0" x2="1000" y1="269.5" y2="269.5" stroke="rgba(255,255,255,.08)" vector-effect="non-scaling-stroke"></line>
                 <path id="d2Area" d="" fill="url(#eqFill)"></path>
                 <path id="d2Bt" d="" fill="none" stroke="#e8b339" stroke-width="1.5" stroke-dasharray="5 6" opacity=".75" vector-effect="non-scaling-stroke"></path>
-                <path id="d2Line" d="" fill="none" stroke="url(#eqLine)" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.65) 0px 0px 8px);"></path>
+                <!-- Au-dessus du solde de départ : ligne et lueur vertes ; en dessous : rouges (2026-11-05) -->
+                <g clip-path="url(#eqClipUp)"><path id="d2Line" d="" fill="none" stroke="#33e6a6" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.65) 0px 0px 8px);"></path></g>
+                <g clip-path="url(#eqClipDn)"><path id="d2LineDn" d="" fill="none" stroke="#ff4d5e" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(255, 77, 94, 0.65) 0px 0px 8px);"></path></g>
               </svg>
               <div id="d2Dot" style="position: absolute; left: 100%; top: 18px; width: 11px; height: 11px; margin: -5.5px 0px 0px -5.5px; border-radius: 999px; background: rgb(5, 5, 6); border: 2px solid rgb(110, 242, 201); box-shadow: rgba(51, 230, 166, 0.9) 0px 0px 14px;"></div>
               <div id="d2DotLbl" style="position: absolute; left: 100%; top: 18px; transform: translate(-100%, -150%); padding: 6px 10px; border-radius: 10px; background: rgba(5, 5, 6, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); font-size: 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums;">—</div>
@@ -980,6 +984,6 @@ CHESTTour.init([
 </script>
 <script src="js/v2.js?v=5"></script>
 <script src="js/scanner-store.js"></script>
-<script src="js/dash-2.js?v=5"></script>
+<script src="js/dash-2.js?v=6"></script>
 </body>
 </html>
