@@ -113,3 +113,11 @@ body[data-page="strategies"] .viz-tab{ border:1px solid rgba(255,255,255,.11) !i
 body[data-page="strategies"] .scnr-combo__trigger .chev{ margin-left:auto; width:14px; height:14px; flex:0 0 14px; font-size:0; color:#9b9ba1; background:currentColor;
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat;
           mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat; }
+/* Cadrage (2026-11-05, « le volet des scanners doit passer au-dessus, flèches et logo pas centrés ») */
+body[data-page="strategies"] .scnr-topbar.card{ position:relative !important; z-index:60 !important; }
+body[data-page="strategies"] .scnr-media.card{ position:relative; z-index:1; }
+body[data-page="strategies"] .scnr-topbar .scnr-field select{ background-position:right 14px center !important; background-size:10px 6px !important; padding-right:36px !important; line-height:42px; }
+body[data-page="strategies"] .scnr-combo__trigger{ display:flex !important; align-items:center !important; gap:10px; padding:0 14px 0 7px !important; }
+body[data-page="strategies"] #scnrTriggerLabel, body[data-page="strategies"] .scnr-trigger-inner{ display:flex !important; align-items:center !important; gap:10px; min-width:0; height:100%; line-height:1; }
+body[data-page="strategies"] .scnr-trigger-inner img{ display:block; flex:0 0 30px; width:30px !important; height:30px !important; border-radius:9px; }
+body[data-page="strategies"] .scnr-trigger-inner span{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
