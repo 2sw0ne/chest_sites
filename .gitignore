@@ -50,3 +50,6 @@ scanner-server/package-lock.json
 # School : fichiers déposés par l admin (documents, vidéos, miniatures), propres à chaque serveur
 accounts-bridge/school_files/
 comparaison/
+
+# Adresse du webhook BERICH avec sa clé secrète (2026-11-05) - jamais dans le dépôt public
+berich-bridge/WEBHOOK_URL.local.txt

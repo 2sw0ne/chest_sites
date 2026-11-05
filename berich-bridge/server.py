@@ -90,9 +90,21 @@ def _compute_tp(signal: str, entry: float, sl: float, rr: float = RR) -> float:
     return round(tp, 5)
 
 
+# Clé du webhook (2026-11-05, audit) : sans elle, n'importe qui connaissant l'adresse pouvait envoyer de faux signaux
+# affichés à tous les membres BERICH. Variable Railway WEBHOOK_KEY ; la clé arrive dans l'adresse de l'alerte
+# TradingView (…/webhook?key=…) ou dans le JSON (« key »). Variable vide = contrôle désactivé (transition).
+WEBHOOK_KEY = os.environ.get("WEBHOOK_KEY", "")
+
+
 @app.post("/webhook")
 def webhook():
     payload = request.get_json(force=True, silent=True) or {}
+    if WEBHOOK_KEY:
+        import hmac
+        given = str(request.args.get("key") or payload.get("key") or "")
+        if not hmac.compare_digest(given, WEBHOOK_KEY):
+            return jsonify({"error": "clé invalide"}), 403
+    payload.pop("key", None)
     if "id" not in payload:
         return jsonify({"error": "champ manquant: id"}), 400
 
