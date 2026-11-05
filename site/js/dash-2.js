@@ -73,7 +73,9 @@
     const winPct = num(d.winrate);
     const win90 = P['90d'] ? num(P['90d'].winrate) : null;
     const pf = d.pf;
-    const dd = Math.abs(num(d.dd) || 0);
+    // Avec une règle de perte max (propfirm) : la perte mesurée par l'objectif (depuis le capital de départ), pas le
+    // recul de la seule période affichée (2026-11-05 : 4,6 % affichés sur un compte cramé à −10 %).
+    const dd = lim && lim.cur != null && !isNaN(lim.cur) ? Math.abs(lim.cur) : Math.abs(num(d.dd) || 0);
     const used = lim && lim.tgt ? dd / Math.abs(lim.tgt) : null;
     const pos = diff >= 0;
     $('d2Kpis').innerHTML =
@@ -347,4 +349,60 @@
   loadNews();
   loadStrength();
   loadSignals();
+})();
+
+// Barre du haut du Dashboard (2026-11-05, demande utilisateur : « met lui quelque chose comme la session en cours ») :
+// sessions de marché ouvertes (Sydney, Tokyo, Londres, New York, heures locales de chaque place, donc heure d'été
+// comprise) et temps restant avant la fin de la session (ou avant l'ouverture de la suivante).
+(function () {
+  const T = window.parent !== window && window.parent.CHESTTopbar;
+  if (!T) return;
+  const SESS = [
+    { k: 'Sydney', tz: 'Australia/Sydney', o: 7, c: 16 },
+    { k: 'Tokyo', tz: 'Asia/Tokyo', o: 9, c: 18 },
+    { k: 'Londres', tz: 'Europe/London', o: 8, c: 17 },
+    { k: 'New York', tz: 'America/New_York', o: 8, c: 17 },
+  ];
+  const fmts = {};
+  function local(tz, d) { // heure locale décimale + jour de semaine de la place
+    const f = fmts[tz] || (fmts[tz] = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', hourCycle: 'h23' }));
+    const p = Object.fromEntries(f.formatToParts(d).map((x) => [x.type, x.value]));
+    return { h: +p.hour + p.minute / 60 + p.second / 3600, wd: p.weekday };
+  }
+  function weekendClosed(d) { // forex : fermé du vendredi 17 h au dimanche 17 h (New York)
+    const n = local('America/New_York', d);
+    return (n.wd === 'Fri' && n.h >= 17) || n.wd === 'Sat' || (n.wd === 'Sun' && n.h < 17);
+  }
+  function openNow(s, d) { const l = local(s.tz, d); return !weekendClosed(d) && !['Sat', 'Sun'].includes(l.wd) && l.h >= s.o && l.h < s.c; }
+  function nextChange(d, pred) { // minutes avant que pred(d) change (pas de 1 min, 3 jours max)
+    const cur = pred(d);
+    for (let m = 1; m <= 4320; m++) { if (pred(new Date(d.getTime() + m * 60000)) !== cur) return m; }
+    return null;
+  }
+  const dur = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`);
+  let last = '';
+  function tick() {
+    const d = new Date();
+    const open = SESS.filter((s) => openNow(s, d));
+    let dot = 'rgb(122, 122, 130)', halo = 'rgba(255, 255, 255, 0.08)', txt;
+    if (weekendClosed(d)) {
+      const m = nextChange(d, weekendClosed);
+      txt = `Marché fermé · ouvre dans ${m ? dur(m) : '—'}`;
+    } else if (!open.length) {
+      const m = nextChange(d, (x) => SESS.some((s) => openNow(s, x)));
+      txt = `Entre deux sessions · prochaine dans ${m ? dur(m) : '—'}`;
+    } else {
+      dot = 'rgb(51, 230, 166)'; halo = 'rgba(51, 230, 166, 0.16)';
+      const names = open.map((s) => s.k).join(' + ');
+      const m = nextChange(d, (x) => SESS.filter((s) => openNow(s, x)).map((s) => s.k).join());
+      txt = `Session ${names}${open.length > 1 ? ' · chevauchement' : ''}${m ? ` · change dans ${dur(m)}` : ''}`;
+    }
+    if (txt === last) return;
+    last = txt;
+    T.set(window, `<span style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 12px; color: rgb(155, 155, 161); font-variant-numeric: tabular-nums; white-space: nowrap;" title="Sessions du marché des changes, heures locales de chaque place">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: ${dot}; box-shadow: ${halo} 0px 0px 0px 3px;"></span>${txt}
+      </span>`);
+  }
+  tick();
+  setInterval(tick, 15000);
 })();

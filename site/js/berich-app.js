@@ -192,7 +192,8 @@
 
   // ================= Plan =================
   // Plan v2 (diversifié) : une ou plusieurs « jambes » { algo, cfg } sur le même compte ; un plan v1 n'en a qu'une.
-  const legsOf = (pl) => (pl ? (pl.legs && pl.legs.length ? pl.legs : [{ algo: pl.algo, cfg: pl.cfg }]) : []);
+  // Plan incomplet (sans réglage) : ignoré au lieu de faire planter la page (diagnostic 2026-11-05).
+  const legsOf = (pl) => (pl ? (pl.legs && pl.legs.length ? pl.legs : [{ algo: pl.algo, cfg: pl.cfg }]) : []).filter((l) => l && l.cfg);
   const planLegs = () => legsOf(S.plan).filter((l) => prepOf(l.algo));
   const planName = () => legsOf(S.plan).map((l) => nameOf(l.algo)).join(' + ');
   const planTotal = () => legsOf(S.plan).reduce((s, l) => s + l.cfg.risk, 0);
@@ -482,7 +483,7 @@
       $('brKpis').innerHTML = kpi('Performance', signedPct(perf), `${eur(cap)} → ${eur(r.final)}`, tone(perf))
         + kpi('Recul max', r.maxDd ? '−' + pctTxt(r.maxDd, 1) : '0 %', 'depuis un plus haut', r.maxDd ? 'is-neg-txt' : '')
         + kpi('Pire série', r.worst ? `${r.worst} stops` : '—', L.length > 1 ? 'd’un algorithme' : 'd’affilée')
-        + kpi('Risque', rk(planTotal()) + ' %', L.length > 1 ? L.map((l) => `${nameOf(l.algo)} ${rk(l.cfg.risk)} %`).join(' · ') : S.plan.cfg.afterSl ? `${rk(S.plan.cfg.newRisk)} % après ${S.plan.cfg.afterSl} stops` : 'par position')
+        + kpi('Risque', rk(planTotal()) + ' %', L.length > 1 ? L.map((l) => `${nameOf(l.algo)} ${rk(l.cfg.risk)} %`).join(' · ') : L[0] && L[0].cfg.afterSl ? `${rk(L[0].cfg.newRisk)} % après ${L[0].cfg.afterSl} stops` : 'par position')
         + kpi('Positions', String(sc.n), 'rejouées');
     } else {
       const st = stats(sc.list, sc.val);
@@ -677,7 +678,7 @@
     const plans = S.plans || [];
     const todo = plans.filter((x) => !x.plan.attachedAt).length;
     const planRow = (x) => { const L = legsOf(x.plan), at = x.plan.attachedAt;
-      return `<li><b>${esc(x.name)}</b><span>${esc(L.length > 1 ? P.describe(L, nameOf) : `${nameOf(L[0].algo)} · ${P.describeCfg(L[0].cfg)}`)} · ${x.plan.answers ? `${eur(x.plan.answers.capital)} → ${eur(x.plan.answers.target)}${x.plan.answers.account === 'propfirm' ? ' · propfirm' : ''}` : ''}
+      return `<li><b>${esc(x.name)}</b><span>${esc(!L.length ? 'plan incomplet' : L.length > 1 ? P.describe(L, nameOf) : `${nameOf(L[0].algo)} · ${P.describeCfg(L[0].cfg)}`)} · ${x.plan.answers ? `${eur(x.plan.answers.capital)} → ${eur(x.plan.answers.target)}${x.plan.answers.account === 'propfirm' ? ' · propfirm' : ''}` : ''}
         <br><small>${at ? `rattaché le ${dateLong(new Date(at).getTime())}` : `plan du ${dateLong(new Date(x.plan.savedAt).getTime())} · à rattacher`}</small></span>
         <button type="button" class="br-btn ${at ? 'br-btn--ghost ' : ''}br-btn--sm" data-attach="${x.userId}" data-on="${at ? '0' : '1'}">${at ? 'Détacher' : 'Marquer rattaché'}</button></li>`; };
     $('brAdminBody').innerHTML = `<h4 class="br-adm__h">Plans des membres${todo ? ` · <em>${todo} à rattacher</em>` : ''}</h4>

@@ -82,7 +82,7 @@
           <path d="${line}" fill="none" stroke="url(#jL)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(${col}, 0.5) 0px 0px 8px);"></path>` : ''}
         </svg>
         ${pts.length ? `<span class="pulse" style="position: absolute; left: 94%; top: ${(yEnd / 260 * 100).toFixed(2)}%; width: 11px; height: 11px; margin: -5.5px 0px 0px -5.5px; border-radius: 999px; background: rgb(255, 255, 255); box-shadow: rgba(${col}, 0.25) 0px 0px 0px 4px, rgba(${col}, 0.9) 0px 0px 22px;"></span>` : ''}
-        <span style="position: absolute; left: 36px; bottom: 8px; font-size: 10.5px; color: rgb(122, 122, 130);">${pts.length ? `1 ${short} → ${endDay} ${short} · échelle en dollars` : `Pas encore de position clôturée en ${MONTHS[M.m]}.`}</span>
+        <span style="position: absolute; left: 36px; bottom: 8px; font-size: 10.5px; color: rgb(122, 122, 130);">${pts.length ? '' : `Pas encore de position clôturée en ${MONTHS[M.m]}.`}</span>
       </div>`;
   }
 

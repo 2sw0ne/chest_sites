@@ -138,16 +138,23 @@ window.CHESTTopbar = (function () {
     journal: 'display: none;', strategies: 'display: none;', berich: 'display: none;', backtesting: 'display: none;',
   };
   function light(page) { if (lightEl) lightEl.setAttribute('style', LIGHTS[page] || BASE); }
+  // BUG RÉEL (2026-11-05, « j'ouvre Calendrier puis Dashboard : la paire suivie et la prochaine annonce restent et
+  // buguent ») : l'iframe garde le même objet fenêtre d'une page à l'autre, donc `owner !== win` restait faux et les
+  // actions de la page précédente n'étaient jamais retirées. On compare le DOCUMENT, qui change à chaque page.
+  function docOf(win) { try { return win.document; } catch (e) { return null; } }
   function clear() { owner = null; if (!slot) return; slot.innerHTML = ''; slot.hidden = true; if (search) search.hidden = false; }
   return {
     set(win, html) {
       if (!slot) return null;
-      owner = win; slot.innerHTML = html; slot.hidden = false; if (search) search.hidden = true;
+      const d = docOf(win);
+      const live = document.getElementById('chestView');
+      if (live && live.contentWindow === win && docOf(live.contentWindow) !== d) return null; // page déjà quittée
+      owner = d; slot.innerHTML = html; slot.hidden = false; if (search) search.hidden = true;
       return slot;
     },
     clear,
     sync(win) {
-      if (owner && owner !== win) clear();
+      if (owner && owner !== docOf(win)) clear();
       let page = '';
       try { page = (win.document.body && win.document.body.dataset.page) || ''; } catch (e) { /* autre origine */ }
       light(page);

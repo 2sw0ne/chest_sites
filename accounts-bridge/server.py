@@ -786,6 +786,22 @@ def user_public(row):
     }
 
 
+# Taille des envois (audit 2026-11-05) : la limite globale de 2 Go (vidéos) valait pour TOUTES les routes, y compris
+# publiques (/signup, /login) : un envoi JSON énorme était chargé en mémoire par get_json() et pouvait faire tomber le
+# service. Les fichiers (multipart, écrits sur disque par morceaux) gardent 2 Go ; la synchro et les backtests 256 Mo ;
+# le reste 4 Mo.
+@app.before_request
+def _body_limit():
+    n = request.content_length or 0
+    if n <= 4 * 1024 * 1024 or request.mimetype == "multipart/form-data":
+        return None
+    p = request.path
+    lim = 256 * 1024 * 1024 if (p == "/sync" or p.startswith("/btstore/") or p.startswith("/backtests/")) else 32 * 1024 * 1024 if (p.startswith("/vps/") or p.startswith("/hq/")) else 4 * 1024 * 1024
+    if n > lim:
+        return jsonify({"error": "Envoi trop volumineux."}), 413
+    return None
+
+
 @app.after_request
 def add_cors_headers(resp):
     # Donnees de comptes prives (mdp haches, jetons) mais la protection

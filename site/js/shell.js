@@ -157,10 +157,24 @@
   }
   setInterval(refreshOps, 5 * 60 * 1000);
 
+  // Écran de chargement (2026-11-05, « mes pages de chargement sont super classiques, juste la bande ») : la molette
+  // du coffre CHEST et le nom de la page qui s'ouvre. Visible seulement si la page tarde (> 0,3 s, voir shell-2.css).
+  const loader = (() => {
+    const view = frame && frame.parentElement;
+    if (!view) return null;
+    const el = document.createElement('div');
+    el.className = 'chest-loader';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '<div class="cl"><div class="cl-dial"><span class="cl-ticks"></span><span class="cl-arc"></span><span class="cl-core"><img src="assets/icon-192.png" alt="" width="40" height="40"></span></div>'
+      + '<div class="cl-txt"><b class="cl-name"></b><span class="cl-sub">Ouverture de ton espace</span></div></div>';
+    view.appendChild(el);
+    return el;
+  })();
   function navigate(file) {
     const target = splitFile(file);
     if (blocked(target.name)) { showMaint(target.name, target.search); return; }
     hideMaint();
+    if (loader) loader.querySelector('.cl-name').textContent = (PAGES[target.name] && PAGES[target.name].label) || 'CHEST';
     requestedKey = file.replace(/\.html/, '');
     shell.classList.remove('is-done');
     shell.classList.add('is-navigating');

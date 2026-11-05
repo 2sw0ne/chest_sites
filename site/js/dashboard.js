@@ -593,13 +593,22 @@
     return {
       profitPct: (capital / 100 - 1) * 100,
       maxDD: maxDrawdownPct(curve),
+      lowPct: 100 - Math.min.apply(null, curve), // plus bas atteint sous le capital du départ (en %)
       tradingDays,
       todayPct: todayEntry ? (todayEntry.pct || 0) : 0,
     };
   }
-  function evaluateChallengeObjectivesFromHistory(cfg, dailyHistory, resetAtIso) {
+  // BUG RÉEL (2026-11-05, « compte de 100k cramé à 90k en dépassant 10 %, affiché 4,6 % de DD utilisé ») : la perte
+  // max d'une propfirm se mesure depuis le capital de DÉPART (statique), pas seulement de pic à creux sur l'historique
+  // jour par jour disponible. On garde la plus grande des trois mesures : pic → creux, plus bas atteint sous le
+  // capital de départ, et solde actuel sous le capital de départ (ce que la propfirm regarde).
+  function evaluateChallengeObjectivesFromHistory(cfg, dailyHistory, resetAtIso, ctx) {
     if (!cfg) return null;
-    const { profitPct, maxDD, tradingDays, todayPct } = objectivesStatsFromHistory(dailyHistory, resetAtIso);
+    const st = objectivesStatsFromHistory(dailyHistory, resetAtIso);
+    const { profitPct, tradingDays, todayPct } = st;
+    let maxDD = Math.abs(st.maxDD);
+    maxDD = Math.max(maxDD, st.lowPct > 0 ? st.lowPct : 0);
+    if (ctx && ctx.startCapital > 0 && ctx.balance != null && !resetAtIso) maxDD = Math.max(maxDD, (ctx.startCapital - ctx.balance) / ctx.startCapital * 100);
     return [
       { label: 'Minimum Trading Days', target: `${cfg.minTradingDays} jours`, current: `${tradingDays} jours`, ok: tradingDays >= cfg.minTradingDays },
       { label: 'Max Daily Loss', target: `-${cfg.maxDailyLossPct}%`, current: `${todayPct >= 0 ? '+' : ''}${todayPct.toFixed(2)}%`, ok: todayPct >= -cfg.maxDailyLossPct },
@@ -1520,7 +1529,8 @@
         activeAccountData.startCapital, activeAccountData.today);
       if (activeAccountData.challengeObjectives) {
         activeAccountData.objectives = evaluateChallengeObjectivesFromHistory(
-          activeAccountData.challengeObjectives, activeAccountData.dailyHistory, activeAccountData.objectivesResetAt);
+          activeAccountData.challengeObjectives, activeAccountData.dailyHistory, activeAccountData.objectivesResetAt,
+          { startCapital: activeAccountData.startCapital, balance: live.balance });
       }
     }
   }
