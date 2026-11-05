@@ -46,7 +46,8 @@ def notify(ntype: str, signal: dict, fallback: str) -> None:
     `event` ; `fallback` ne sert que si accounts-bridge n'est pas encore a jour."""
     if not ACCOUNTS_BRIDGE_URL or not INTERNAL_PUSH_SECRET:
         return
-    event = {k: signal.get(k) for k in ("id", "symbol", "side", "entry", "sl", "tp", "result")}
+    event = {k: signal.get(k) for k in ("id", "symbol", "side", "entry", "sl", "tp", "result", "algo")}
+    event["algo"] = event.get("algo") or "berich1"  # sert aux alertes BERICH I / II choisies par les membres
     event["side"] = str(event.get("side") or "").upper()
     try:
         req = urllib.request.Request(

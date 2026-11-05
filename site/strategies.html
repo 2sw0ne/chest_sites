@@ -219,6 +219,7 @@
   .alr__group > label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px; }
   .alr__chips{ display:flex; flex-wrap:wrap; gap:6px; }
   .alr__chip{ height:30px; padding:0 11px; border-radius:999px; border:1px solid var(--line2); background:var(--bg); color:var(--muted); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+  .alr__chip--algo{ border-color:rgba(249,164,94,.4); }
   .alr__chip.is-on{ color:#fff; border-color:transparent; background:linear-gradient(135deg,var(--acc),var(--acc2)); }
   .alr__actions{ display:flex; gap:8px; justify-content:flex-end; }
   .alr__err{ font-size:12px; color:#ff6b78; min-height:16px; margin:8px 0 0; }
@@ -836,6 +837,11 @@ CHESTTour.init([
   }
   let alrRules = [];
   let alrEditing = null;
+  // BERICH I / II dans les notifications (2026-11-05) : toutes leurs positions (ouverture puis résultat), sans paire
+  // ni unité de temps — elles arrivent du webhook BERICH, pas des scanners.
+  const ALR_ALGOS = { berich1: 'BERICH I', berich2: 'BERICH II' };
+  const isAlgo = (id) => Object.prototype.hasOwnProperty.call(ALR_ALGOS, id);
+  const alrName = (id) => ALR_ALGOS[id] || (CHESTScanners.get(id) || { name: id }).name;
   async function loadRules() {
     const box = document.getElementById('alrRules');
     try {
@@ -844,8 +850,11 @@ CHESTTour.init([
     } catch (e) { alrRules = []; }
     if (!alrRules.length) { box.innerHTML = '<div class="alr__empty">Aucune notification configurée.</div>'; return; }
     box.innerHTML = alrRules.map((r) => {
-      const names = r.scanners.map((id) => (CHESTScanners.get(id) || { name: id }).name).join(', ');
-      return `<div class="alr-rule"><div class="alr-rule__text"><b>${r.pairs.join(', ')}</b> · ${r.timeframes.map((t) => TF_LABELS[t] || t).join(', ')}<br>${names}</div>
+      const scs = r.scanners.filter((id) => !isAlgo(id)), algos = r.scanners.filter(isAlgo);
+      const lines = [];
+      if (scs.length) lines.push(`<b>${r.pairs.join(', ')}</b> · ${r.timeframes.map((t) => TF_LABELS[t] || t).join(', ')}<br>${scs.map(alrName).join(', ')}`);
+      if (algos.length) lines.push(`<b>${algos.map(alrName).join(', ')}</b> · toutes les positions`);
+      return `<div class="alr-rule"><div class="alr-rule__text">${lines.join('<br>')}</div>
         <div class="alr-rule__tools"><button type="button" class="alr__btn" data-edit="${r.id}">Modifier</button><button type="button" class="alr__btn alr__btn--danger" data-del="${r.id}">Supprimer</button></div></div>`;
     }).join('');
     box.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openForm(alrRules.find((r) => r.id === Number(b.dataset.edit)))));
@@ -881,7 +890,8 @@ CHESTTour.init([
     pairsEl.innerHTML = Object.values(MARKETS).flatMap((m) => m.pairs.map(([code]) => code))
       .map((code) => `<button type="button" class="alr__chip" data-pair="${code}">${code}</button>`).join('');
     tfsEl.innerHTML = ALERT_TFS.map((tf) => `<button type="button" class="alr__chip" data-tf="${tf}">${TF_LABELS[tf]}</button>`).join('');
-    scEl.innerHTML = CHESTScanners.list().map((s) => `<button type="button" class="alr__chip" data-scanner="${s.id}">${s.name}</button>`).join('');
+    scEl.innerHTML = CHESTScanners.list().map((s) => `<button type="button" class="alr__chip" data-scanner="${s.id}">${s.name}</button>`).join('')
+      + Object.entries(ALR_ALGOS).map(([id, name]) => `<button type="button" class="alr__chip alr__chip--algo" data-scanner="${id}" title="Toutes les positions de ${name}, sans paire ni unité de temps">${name}</button>`).join('');
     document.querySelectorAll('.alr-dd').forEach((dd) => {
       dd.querySelector('.alr-dd__trigger').addEventListener('click', (e) => {
         e.stopPropagation();

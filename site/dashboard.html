@@ -683,11 +683,32 @@
       <section style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px;">
         <div style="position: relative; display: flex; flex-direction: column; gap: 10px;">
           <!-- Titre à deux plans (2026-11-05) : « Dashboard » en filigrane derrière, le prénom du membre devant -->
-          <span aria-hidden="true" style="position: absolute; left: -4px; top: 50%; transform: translateY(-58%); z-index: 0; pointer-events: none; white-space: nowrap; font-size: 88px; line-height: 1; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 82%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">Dashboard</span>
+          <span aria-hidden="true" style="position: absolute; left: -4px; bottom: -14px; z-index: 0; pointer-events: none; white-space: nowrap; font-size: 88px; line-height: 1; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 82%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">Dashboard</span>
           <span style="position: relative; z-index: 1; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Vue d'ensemble</span>
-          <h1 id="d2Hello" style="position: relative; z-index: 1; margin: 0px; font-size: 40px; line-height: 1.06; font-weight: 700; letter-spacing: -0.04em;">Dashboard</h1>
-          <script>(function () { try { const u = (window.CHESTAccounts && CHESTAccounts.getUser && CHESTAccounts.getUser()) || JSON.parse(localStorage.getItem('chest_account_user') || 'null') || {}; const n = String(u.firstName || '').trim(); if (n) document.getElementById('d2Hello').textContent = n; } catch (e) { /* garde « Dashboard » */ } })();</script>
-          <p id="d2Date" style="position: relative; z-index: 1; margin: 0px; font-size: 14px; color: rgb(155, 155, 161);">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
+          <h1 id="d2Hello" aria-label="Mon espace" style="position: relative; z-index: 1; margin: 0px; font-size: 40px; line-height: 1.06; font-weight: 700; letter-spacing: -0.04em; min-height: 1.06em;"><span id="d2HelloTxt">Dashboard</span><span class="d2-caret" aria-hidden="true"></span></h1>
+          <style>
+            .d2-caret{ display:inline-block; width:3px; height:.82em; margin-left:4px; vertical-align:-0.06em; border-radius:2px; background:linear-gradient(180deg,#fc1283,#f9a45e); animation:d2Caret 1s steps(1) infinite; }
+            .d2-caret.is-typing{ animation:none; }
+            @keyframes d2Caret{ 50%{ opacity:0; } }
+            @media (prefers-reduced-motion: reduce){ .d2-caret{ display:none; } }
+          </style>
+          <script>
+          // Titre tapé au clavier (2026-11-05) : « Bonjour <prénom> » à l'arrivée, puis 15 s plus tard il s'efface lettre
+          // par lettre et « Mon espace » s'écrit à la place. Mouvement réduit : le texte final directement.
+          (function () {
+            const el = document.getElementById('d2HelloTxt'), caret = document.querySelector('#d2Hello .d2-caret');
+            let name = '';
+            try { const u = (window.CHESTAccounts && CHESTAccounts.getUser && CHESTAccounts.getUser()) || JSON.parse(localStorage.getItem('chest_account_user') || 'null') || {}; name = String(u.firstName || '').trim(); } catch (e) { /* sans prénom */ }
+            const hello = name ? 'Bonjour ' + name : 'Bonjour';
+            if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = hello; return; }
+            const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+            async function type(txt) { caret.classList.add('is-typing'); for (let i = 1; i <= txt.length; i++) { el.textContent = txt.slice(0, i); await wait(55 + Math.random() * 70); } caret.classList.remove('is-typing'); }
+            async function erase() { caret.classList.add('is-typing'); while (el.textContent.length) { el.textContent = el.textContent.slice(0, -1); await wait(32 + Math.random() * 25); } caret.classList.remove('is-typing'); }
+            el.textContent = '';
+            (async () => { await wait(450); await type(hello); await wait(15000); await erase(); await wait(380); await type('Mon espace'); })();
+          })();
+          </script>
+          <p id="d2Date" hidden style="display: none; position: relative; z-index: 1; margin: 0px; font-size: 14px; color: rgb(155, 155, 161);">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
         </div>
         <div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
           <div class="acc-switcher" id="accSwitcher" style="position: relative;"><button type="button" class="btn2" id="accSwitcherBtn" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.024); -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-weight: 600; cursor: pointer;">

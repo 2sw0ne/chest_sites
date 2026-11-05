@@ -4905,6 +4905,9 @@ ALERT_SCANNERS = {
     "stars": ("Stars", "assets/logo-stars.webp"),
     "supernova": ("Supernova", "assets/logo-supernova.webp"),
 }
+# BERICH dans les notifications de scanners (2026-11-05) : toutes les positions de l'algorithme (ouverture puis
+# résultat), sans paire ni unité de temps ; envoyées depuis /push/broadcast quand berich-bridge reçoit un signal.
+ALERT_ALGOS = {"berich1": ("BERICH I", "assets/logo-berich.png"), "berich2": ("BERICH II", "assets/logo-berich.png")}
 ALERT_TF_LABEL = {"1": "M1", "5": "M5", "15": "M15", "30": "M30", "60": "H1", "240": "H4", "D": "D1"}
 SITE_URL = os.environ.get("SITE_URL", "https://your-chest.vercel.app").rstrip("/")
 
@@ -4958,9 +4961,14 @@ def alerts_rules_save():
     body = request.get_json(silent=True) or {}
     pairs = [p for p in (body.get("pairs") or []) if isinstance(p, str) and re.fullmatch(r"[A-Z]{6}", p)]
     tfs = [t for t in (body.get("timeframes") or []) if t in ALERT_TF_LABEL]
-    scanners = [sc for sc in (body.get("scanners") or []) if sc in ALERT_SCANNERS]
-    if not pairs or not tfs or not scanners:
-        return jsonify({"error": "Choisis au moins une paire, une unité de temps et un scanner."}), 400
+    scanners = [sc for sc in (body.get("scanners") or []) if sc in ALERT_SCANNERS or sc in ALERT_ALGOS]
+    real = [sc for sc in scanners if sc in ALERT_SCANNERS]
+    if not scanners:
+        return jsonify({"error": "Choisis au moins un scanner ou BERICH."}), 400
+    if real and (not pairs or not tfs):
+        return jsonify({"error": "Pour un scanner, choisis au moins une paire et une unité de temps."}), 400
+    if not real:
+        pairs, tfs = [], []  # BERICH seul : ni paire ni unité de temps
     pairs, tfs, scanners = sorted(set(pairs)), sorted(set(tfs)), sorted(set(scanners))
     db = get_db()
     rid = body.get("id")
@@ -4976,7 +4984,8 @@ def alerts_rules_save():
             rid = cur.lastrowid
         db.commit()
     try:
-        _scanner_call("/watch", "POST", {"combos": [{"symbol": p, "tf": t} for p in pairs for t in tfs]})
+        if pairs and tfs:
+            _scanner_call("/watch", "POST", {"combos": [{"symbol": p, "tf": t} for p in pairs for t in tfs]})
     except Exception:
         pass  # le suivi se remettra en place au prochain enregistrement
     row = db.execute("SELECT * FROM alert_rules WHERE id = ?", (rid,)).fetchone()
@@ -5743,8 +5752,42 @@ def _render_position_open(db, user_id, prefs, event):
     return f"{_family_name(db, user_id)} - Vous avez pris un {side} {arrow}"
 
 
+def _berich_rule_alerts(ntype, event):
+    """Notification « scanner » aux membres qui ont coché BERICH I / II dans leurs alertes. Renvoie leurs ids (ils ne
+    reçoivent pas en plus le message de position habituel)."""
+    algo = event.get("algo") or "berich1"
+    if algo not in ALERT_ALGOS:
+        return set()
+    name, logo = ALERT_ALGOS[algo]
+    side = str(event.get("side") or "").upper()
+    symbol = str(event.get("symbol") or "")
+    if ntype == "position_open":
+        if side not in ("BUY", "SELL"):
+            return set()
+        body_text = f"{'📈' if side == 'BUY' else '📉'} {side} sur {symbol}"
+    else:
+        result = event.get("result")
+        if result not in ("TP", "SL", "BE"):
+            return set()
+        r = _signal_rr(event) if result == "TP" else -1.0 if result == "SL" else 0.0
+        body_text = {"TP": f"TP✔️ +{r:g}R", "SL": "SL❌ -1R", "BE": "BE ➖ 0R"}[result] + f" sur {symbol}"
+    db = get_db()
+    done = set()
+    for rule in db.execute("SELECT * FROM alert_rules").fetchall():
+        if algo not in json.loads(rule["scanners"]) or rule["user_id"] in done:
+            continue
+        subs = db.execute("SELECT * FROM push_subscriptions WHERE user_id = ?", (rule["user_id"],)).fetchall()
+        if not subs:
+            continue
+        _send_push_to_subscriptions(subs, name, body_text, url="/berich", icon=f"{SITE_URL}/{logo}")
+        done.add(rule["user_id"])
+    return done
+
+
 def _render_position_close(db, user_id, prefs, event):
     result = event.get("result")
+    if result == "BE":  # sortie à break-even (BERICH II) : jusqu'ici aucune notification
+        return f"{_family_name(db, user_id)} - BE ➖ 0"
     if result not in ("TP", "SL"):
         return None
     r = _signal_rr(event) if result == "TP" else -1.0
@@ -5800,10 +5843,12 @@ def push_broadcast():
     ntype = body.get("type")
     url = body.get("url") or "/dashboard"
     event = body.get("event") if isinstance(body.get("event"), dict) else None
-    if ntype == "position_open" and event:
-        return jsonify(send_typed_push(ntype, url, lambda db, uid, p: _render_position_open(db, uid, p, event)))
-    if ntype == "position_close" and event:
-        return jsonify(send_typed_push(ntype, url, lambda db, uid, p: _render_position_close(db, uid, p, event)))
+    if ntype in ("position_open", "position_close") and event:
+        alerted = _berich_rule_alerts(ntype, event)
+        render = _render_position_open if ntype == "position_open" else _render_position_close
+        res = send_typed_push(ntype, url, lambda db, uid, p: None if uid in alerted else render(db, uid, p, event))
+        res["alerted"] = len(alerted)
+        return jsonify(res)
     title = (body.get("title") or "").strip()
     text = (body.get("body") or "").strip()
     if ntype in NOTIF_TYPES:
