@@ -126,3 +126,17 @@
   tick();
   setInterval(tick, 1000);
 })();
+
+// Couleur du scanner affiché (2026-11-05) : --sc sur la page, lue dans le logo (scanner-store.js, logoColor) ;
+// la barre de réglages, la cloche et l'unité de temps active la suivent quand on change de scanner.
+(function () {
+  const hero = document.querySelector('.scnr-hero');
+  if (!hero) return;
+  const paint = () => {
+    const id = hero.dataset.scanner;
+    const s = id && window.CHESTScanners && CHESTScanners.get(id);
+    if (s && s.logoColor) document.body.style.setProperty('--sc', s.logoColor);
+  };
+  new MutationObserver(paint).observe(hero, { attributes: true, attributeFilter: ['data-scanner'] });
+  paint();
+})();
