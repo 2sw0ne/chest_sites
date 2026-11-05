@@ -91,6 +91,14 @@
   // Journal (js/journal-store.js) remplace entierement l'ancien systeme de "familles" de comptes :
   // plus de regroupement/agregation cote Dashboard, chaque compte reste individuel et affiche
   // simplement le nom du journal auquel il est rattache (voir journalNameFor/accountRowHtml).
+  // Solde de départ / plus bas connu de la phase en cours (Journal → segment actif de la propfirm), pour la perte max.
+  function stageSegOf(account) {
+    if (!account || !account.journalAccountId || !window.CHESTJournal || !window.CHESTJournal.activeStageSegment) return null;
+    const j = window.CHESTJournal.listAccounts().find((x) => x.id === account.journalAccountId);
+    return j ? window.CHESTJournal.activeStageSegment(j) : null;
+  }
+  function stageStartOf(account) { const s = stageSegOf(account); return s && s.startBalance > 0 ? s.startBalance : null; }
+  function stageLowOf(account) { const s = stageSegOf(account); return s && s.lowBalance > 0 ? s.lowBalance : null; }
   function journalNameFor(account) {
     if (!account || !account.journalAccountId || !window.CHESTJournal) return null;
     const j = window.CHESTJournal.listAccounts().find((x) => x.id === account.journalAccountId);
@@ -608,7 +616,12 @@
     const { profitPct, tradingDays, todayPct } = st;
     let maxDD = Math.abs(st.maxDD);
     maxDD = Math.max(maxDD, st.lowPct > 0 ? st.lowPct : 0);
-    if (ctx && ctx.startCapital > 0 && ctx.balance != null && !resetAtIso) maxDD = Math.max(maxDD, (ctx.startCapital - ctx.balance) / ctx.startCapital * 100);
+    // 2e passe (2026-11-05, toujours 4,6 % affichés) : une remise à zéro des objectifs (retrait, objectifs modifiés)
+    // coupait l'historique ET écartait le capital de départ. La perte max d'une propfirm reste mesurée depuis le solde
+    // de départ de la PHASE (Journal, segment actif), sinon le capital déposé, quelle que soit la remise à zéro.
+    const base = ctx && (ctx.stageStart > 0 ? ctx.stageStart : ctx.startCapital > 0 ? ctx.startCapital : null);
+    if (base && ctx.balance != null) maxDD = Math.max(maxDD, (base - ctx.balance) / base * 100);
+    if (base && ctx.lowBalance != null) maxDD = Math.max(maxDD, (base - ctx.lowBalance) / base * 100);
     return [
       { label: 'Minimum Trading Days', target: `${cfg.minTradingDays} jours`, current: `${tradingDays} jours`, ok: tradingDays >= cfg.minTradingDays },
       { label: 'Max Daily Loss', target: `-${cfg.maxDailyLossPct}%`, current: `${todayPct >= 0 ? '+' : ''}${todayPct.toFixed(2)}%`, ok: todayPct >= -cfg.maxDailyLossPct },
@@ -1530,7 +1543,8 @@
       if (activeAccountData.challengeObjectives) {
         activeAccountData.objectives = evaluateChallengeObjectivesFromHistory(
           activeAccountData.challengeObjectives, activeAccountData.dailyHistory, activeAccountData.objectivesResetAt,
-          { startCapital: activeAccountData.startCapital, balance: live.balance });
+          { startCapital: activeAccountData.startCapital, balance: live.balance, stageStart: stageStartOf(activeAccountData),
+            lowBalance: stageLowOf(activeAccountData) });
       }
     }
   }
