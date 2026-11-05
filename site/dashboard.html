@@ -681,10 +681,13 @@
 
       
       <section style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px;">
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Vue d'ensemble</span>
-          <h1 style="margin: 0px; font-size: 40px; line-height: 1.06; font-weight: 700; letter-spacing: -0.04em;">Dashboard</h1>
-          <p id="d2Date" style="margin: 0px; font-size: 14px; color: rgb(155, 155, 161);">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
+        <div style="position: relative; display: flex; flex-direction: column; gap: 10px;">
+          <!-- Titre à deux plans (2026-11-05) : « Dashboard » en filigrane derrière, le prénom du membre devant -->
+          <span aria-hidden="true" style="position: absolute; left: -4px; top: 50%; transform: translateY(-58%); z-index: 0; pointer-events: none; white-space: nowrap; font-size: 88px; line-height: 1; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 82%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">Dashboard</span>
+          <span style="position: relative; z-index: 1; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Vue d'ensemble</span>
+          <h1 id="d2Hello" style="position: relative; z-index: 1; margin: 0px; font-size: 40px; line-height: 1.06; font-weight: 700; letter-spacing: -0.04em;">Dashboard</h1>
+          <script>(function () { try { const u = (window.CHESTAccounts && CHESTAccounts.getUser && CHESTAccounts.getUser()) || JSON.parse(localStorage.getItem('chest_account_user') || 'null') || {}; const n = String(u.firstName || '').trim(); if (n) document.getElementById('d2Hello').textContent = n; } catch (e) { /* garde « Dashboard » */ } })();</script>
+          <p id="d2Date" style="position: relative; z-index: 1; margin: 0px; font-size: 14px; color: rgb(155, 155, 161);">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
         </div>
         <div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
           <div class="acc-switcher" id="accSwitcher" style="position: relative;"><button type="button" class="btn2" id="accSwitcherBtn" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.024); -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-weight: 600; cursor: pointer;">
