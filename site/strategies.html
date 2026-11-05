@@ -219,6 +219,8 @@
   .alr__group > label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px; }
   .alr__chips{ display:flex; flex-wrap:wrap; gap:6px; }
   .alr__chip{ height:30px; padding:0 11px; border-radius:999px; border:1px solid var(--line2); background:var(--bg); color:var(--muted); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+  .lotcalc-row[hidden]{ display:none !important; }
+  .alr-algo-note{ margin:8px 0 0; font-size:12px; line-height:1.5; color:var(--muted); }
   .alr__chip--algo{ border-color:rgba(249,164,94,.4); }
   .alr__chip.is-on{ color:#fff; border-color:transparent; background:linear-gradient(135deg,var(--acc),var(--acc2)); }
   .alr__actions{ display:flex; gap:8px; justify-content:flex-end; }
@@ -406,6 +408,7 @@
       <label>Scanner</label>
       <div class="alr-dd"><button type="button" class="alr-dd__trigger"><span class="alr-dd__value">Choisir</span><span class="alr-dd__chev">▾</span></button>
         <div class="alr-dd__menu" id="alrScanners"></div></div>
+      <p id="alrAlgoNote" class="alr-algo-note" hidden>BERICH envoie toutes ses positions depuis son webhook : pas de paire ni d’unité de temps à choisir.</p>
     </div>
     <div class="lotcalc-row">
       <label>Paires</label>
@@ -754,8 +757,18 @@ CHESTTour.init([
     el.querySelectorAll('.alr__chip').forEach((b) => b.classList.toggle('is-on', values.includes(b.dataset[attr])));
     updateDd(el.closest('.alr-dd'));
   }
+  // BERICH seul coché : les cases Paires et Unité de temps n'ont pas de sens (signaux du webhook) → masquées.
+  function syncAlgoRows() {
+    const sc = document.getElementById('alrScanners');
+    if (!sc) return;
+    const sel = [...sc.querySelectorAll('.alr__chip.is-on')].map((b) => b.dataset.scanner);
+    const onlyAlgo = sel.length > 0 && sel.every((id) => id === 'berich1' || id === 'berich2');
+    ['alrPairs', 'alrTfs'].forEach((id) => { const row = document.getElementById(id).closest('.lotcalc-row'); if (row) row.hidden = onlyAlgo; });
+    const note = document.getElementById('alrAlgoNote'); if (note) note.hidden = !onlyAlgo;
+  }
   function updateDd(dd) {
     if (!dd) return;
+    if (dd.querySelector('#alrScanners')) syncAlgoRows();
     const on = [...dd.querySelectorAll('.alr__chip.is-on')].map((b) => b.textContent.trim());
     dd.querySelector('.alr-dd__value').textContent = !on.length ? 'Choisir' : on.length <= 2 ? on.join(', ') : on.length + ' sélectionnés';
   }
@@ -881,6 +894,7 @@ CHESTTour.init([
     setChips(document.getElementById('alrPairs'), 'pair', rule ? rule.pairs : [currentSymbol]);
     setChips(document.getElementById('alrTfs'), 'tf', rule ? rule.timeframes : [currentTimeframe]);
     setChips(document.getElementById('alrScanners'), 'scanner', rule ? rule.scanners : [currentScannerId].filter(Boolean));
+    syncAlgoRows();
     document.getElementById('alrErr').textContent = '';
   }
   function buildChips() {
