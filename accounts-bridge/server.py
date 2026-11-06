@@ -4922,6 +4922,27 @@ def _scanner_call(path, method="GET", body=None):
         return json.loads(resp.read().decode("utf-8"))
 
 
+_BERICH_BARS = {"at": 0, "body": None}
+
+
+@app.route("/berich/candles")
+def berich_candles():
+    """Bougies M5 de XAU/USD pour le mini-graphique de la position BERICH (cache partagé 60 s, puis scanner-server)."""
+    if not approved_user():
+        return jsonify({"error": "Non connecté."}), 401
+    if not SCANNER_SERVER_URL:
+        return jsonify({"error": "Service de calcul non configuré."}), 503
+    if _BERICH_BARS["body"] is None or time.time() - _BERICH_BARS["at"] > 60:
+        try:
+            url = SCANNER_SERVER_URL.rstrip("/") + "/bars?" + urllib.parse.urlencode({"symbol": "XAUUSD", "tf": "5", "n": 96})
+            with urllib.request.urlopen(url, timeout=30) as resp:
+                _BERICH_BARS.update(at=time.time(), body=resp.read())
+        except Exception:
+            if _BERICH_BARS["body"] is None:
+                return jsonify({"error": "Bougies indisponibles."}), 503
+    return app.response_class(_BERICH_BARS["body"], mimetype="application/json")
+
+
 @app.route("/scanners/board")
 def scanners_board():
     # Volet « Force du marché » de Pulse (2026-10-18) : tendance EMA 500 et score Pulse par marché, calculés en

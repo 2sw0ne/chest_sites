@@ -86,6 +86,10 @@
     return merged.sort((a, b) => b.time - a.time);
   }
   const allLive = () => [].concat(...Object.keys(BUILTIN).map(livePositions)).sort((a, b) => b.time - a.time);
+  // Positions des algorithmes du plan (2026-11-05, « je suis sur BERICH II et je vois les trades de BERICH I ») :
+  // le signal en cours et la ligne d'état ne montrent que ce que le plan du membre suit ; sans plan, tout.
+  const planAlgos = () => { const L = legsOf(S.plan).map((l) => l.algo); return L.length ? L : null; };
+  const myLive = () => { const A = planAlgos(); return A ? allLive().filter((p) => A.includes(p.algo)) : allLive(); };
 
   // ================= Algorithmes =================
   const ROMAN_NAME = { berich1: 'BERICH I', berich2: 'BERICH II', berich3: 'BERICH III' };
@@ -234,7 +238,7 @@
 
   // ================= Ligne d'état =================
   function renderTop() {
-    const last = allLive()[0];
+    const last = myLive()[0];
     $('brStatus').innerHTML = S.feedOk === false
       ? '<span class="br-dot is-neg"></span><span>Flux injoignable</span>'
       : S.feedOk == null ? '<span class="br-dot"></span><span>Connexion au flux…</span>'
@@ -250,7 +254,9 @@
   function saveInvalidated() { try { localStorage.setItem(INVALIDATED_KEY, JSON.stringify([...invalidated])); } catch (e) { /* tant pis */ } }
   function activePosition() {
     const taken = takenMap();
-    const open = allLive().filter((p) => !p.closed && p.entry != null);
+    const open = myLive().filter((p) => !p.closed && p.entry != null);
+    // VPS relié : BERICH prend la position lui-même, elle reste affichée jusqu'à sa clôture.
+    if (connState().ok) return open[0] || null;
     const pick = open.find((p) => taken.has(p.id)) || open.find((p) => !invalidated.has(p.id)) || null;
     // Signal non pris dont le prix s'est éloigné de plus de 5 $ de l'entrée : il ne correspond plus au setup.
     if (pick && !taken.has(pick.id) && S.price != null && Math.abs(S.price - pick.entry) > PRICE_INVALIDATE) {
@@ -273,13 +279,55 @@
         <span class="br-rail__lbl is-last">OBJECTIF<b>${nf(p.tp, 2)}</b></span>
       </div>`;
   }
+  // Mini-graphique de la position (2026-11-05) : les dernières bougies M5 de l'or, redessinées à chaque nouvelle
+  // bougie (5 min), la zone rouge entrée → stop et verte entrée → objectif depuis l'ouverture, et les niveaux à droite.
+  let miniBars = null, miniAt = 0;
+  async function loadMini(force) {
+    if (document.hidden || (!force && Date.now() - miniAt < 4.5 * 60000)) return;
+    miniAt = Date.now();
+    try { const d = await api('/berich/candles'); if (Array.isArray(d.bars) && d.bars.length) miniBars = d.bars; } catch (e) { /* on garde les dernières */ }
+    const el = $('brMini'); const p = activePosition();
+    if (el && p) el.innerHTML = miniHtml(p, S.price);
+  }
+  function miniHtml(p, price) {
+    if (!miniBars) return '<div class="br-mini__wait">Chargement du graphique…</div>';
+    const TF = 300000, bars = miniBars.slice(-72);
+    const t0 = bars[0][0], tEnd = bars[bars.length - 1][0] + TF;
+    const W = 1000, H = 230, padR = 0.2, cw = (W * (1 - padR)) / bars.length;
+    const xOf = (t) => (Math.max(t0, Math.min(tEnd, t)) - t0) / TF * cw;
+    const vals = [p.sl, p.tp, p.entry].concat(price != null ? [price] : []);
+    bars.forEach((b) => { vals.push(b[2], b[3]); });
+    let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+    const y = (v) => (hi - v) / (hi - lo) * H;
+    const xs = p.time < t0 ? 0 : xOf(Math.floor(p.time / TF) * TF), xe = W;
+    const candles = bars.map((b, i) => {
+      const x = i * cw + cw / 2, up = b[4] >= b[1], c = up ? '#33e6a6' : '#ff4d5e';
+      const yo = y(b[1]), yc = y(b[4]), top = Math.min(yo, yc), hgt = Math.max(1, Math.abs(yc - yo));
+      return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(b[2]).toFixed(1)}" y2="${y(b[3]).toFixed(1)}" stroke="${c}" stroke-opacity=".55" vector-effect="non-scaling-stroke"/>`
+        + `<rect x="${(x - cw * 0.34).toFixed(1)}" y="${top.toFixed(1)}" width="${(cw * 0.68).toFixed(1)}" height="${hgt.toFixed(1)}" fill="${c}" fill-opacity="${up ? '.85' : '.8'}"/>`;
+    }).join('');
+    const zone = (a, b, col) => `<rect x="${xs.toFixed(1)}" y="${Math.min(y(a), y(b)).toFixed(1)}" width="${(xe - xs).toFixed(1)}" height="${Math.abs(y(a) - y(b)).toFixed(1)}" fill="${col}"/>`;
+    const lvl = (v, cls, txt) => `<span class="br-mini__lvl ${cls}" style="top:${(y(v) / H * 100).toFixed(2)}%">${txt} ${nf(v, 2)}</span>`;
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+        ${zone(p.entry, p.sl, 'rgba(255,77,94,.16)')}${zone(p.entry, p.tp, 'rgba(51,230,166,.12)')}
+        <line x1="${xs.toFixed(1)}" x2="${W}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,.55)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
+        ${candles}
+        ${price != null ? `<line x1="0" x2="${W}" y1="${y(price).toFixed(1)}" y2="${y(price).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>` : ''}
+      </svg>
+      <div class="br-mini__lvls" aria-label="Niveaux de la position">${lvl(p.sl, 'is-sl', 'SL')}${lvl(p.entry, 'is-pe', 'PE')}${lvl(p.tp, 'is-tp', 'TP')}${price != null ? lvl(price, 'is-px', 'Prix') : ''}</div>
+      <span class="br-mini__tf">XAU/USD · M5 · une bougie toutes les 5 min</span>`;
+  }
+  setInterval(() => { if (activePosition()) loadMini(); }, 60000);
   let riskChoiceIdx = null;
   function renderSignal() {
     const el = $('brSignal');
     const p = activePosition();
     if (!p) { el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
-    const taken = takenMap().get(p.id);
+    if (!miniBars) loadMini(true);
+    const auto = connState().ok;
+    const leg = legsOf(S.plan).find((l) => l.algo === p.algo);
+    const taken = takenMap().get(p.id) || (auto ? { riskPercent: leg ? leg.cfg.risk : null, riskSource: 'plan', auto: true } : null);
     const isSell = p.side === 'sell';
     el.classList.toggle('is-sell', isSell);
     const floatR = S.price != null && (p.entry - p.sl) ? (S.price - p.entry) / (p.entry - p.sl) : null;
@@ -295,22 +343,23 @@
     const la = linkedAccount();
     const balance = la ? la.balance : null;
     const info = taken ? { risk: taken.riskPercent, source: taken.riskSource } : CHESTBerich.effectiveRisk(conn, history, choices[riskChoiceIdx]);
-    const amount = taken ? taken.riskAmount : (balance != null && info && info.risk != null ? balance * info.risk / 100 : null);
-    const floatMoney = taken && taken.riskAmount != null && floatR != null ? taken.riskAmount * floatR : null;
+    const amount = taken ? (taken.riskAmount != null ? taken.riskAmount : (balance != null && taken.riskPercent != null ? balance * taken.riskPercent / 100 : null)) : (balance != null && info && info.risk != null ? balance * info.risk / 100 : null);
+    const floatMoney = taken && amount != null && floatR != null ? amount * floatR : null;
     el.innerHTML = `
       <div class="br-signal__row">
         <div>
-          <span class="br-signal__kicker"><span class="br-dot is-live"></span>${taken ? 'Position prise' : 'Signal à confirmer'} · ${esc(nameOf(p.algo))}</span>
+          <span class="br-signal__kicker"><span class="br-dot is-live"></span>${taken && taken.auto ? 'Position prise par ton VPS' : taken ? 'Position prise' : 'Signal à confirmer'} · ${esc(nameOf(p.algo))}</span>
           <h2>${isSell ? 'Vente' : 'Achat'} XAU/USD</h2>
           <div class="br-signal__meta">Ouvert il y a ${ago(Date.now() - p.time)} · session ${sessionOf(p.time)} · objectif ${rrTarget != null ? '+' + nf(rrTarget, rrTarget % 1 ? 1 : 0) + ' R' : '—'}</div>
         </div>
         <div class="br-signal__r"><b class="${tone(floatR)}">${floatR == null ? '—' : signedR(floatR)}</b><small>${floatMoney != null ? signedMoney(floatMoney) + ' latent' : 'résultat latent'}</small></div>
       </div>
+      <div class="br-mini" id="brMini">${miniHtml(p, S.price)}</div>
       ${railHtml(p, S.price)}
       <div class="br-signal__foot">
         ${taken ? `
-          <span class="br-done">${CHECK}Position confirmée</span>
-          <span class="br-signal__risk">Risque <b>${info.risk != null ? nf(info.risk, 2) + ' %' : '—'}</b>${amount != null ? ` → <b>${money(amount)}</b>` : ''} · enregistrée dans ton Journal.</span>`
+          <span class="br-done">${CHECK}${taken.auto ? 'Exécutée par ton VPS' : 'Position confirmée'}</span>
+          <span class="br-signal__risk">Risque <b>${info.risk != null ? nf(info.risk, 2) + ' %' : '—'}</b>${amount != null ? ` → <b>${money(amount)}</b>` : ''}${taken.auto ? ' · selon ton plan' : ' · enregistrée dans ton Journal'}.</span>`
         : `
           <div class="br-tabs" role="group" aria-label="Risque" id="brRiskTabs">${choices.map((c, i) => `<button type="button" data-i="${i}" aria-pressed="${i === riskChoiceIdx}">${esc(c.label)}</button>`).join('')}</div>
           <span class="br-signal__risk">${info && info.risk != null ? `Risque <b>${nf(info.risk, 2)} %</b>${amount != null ? ` → <b>${money(amount)}</b> sur ce trade` : ' — <a class="br-link" href="connect.html?plan=pro&from=berich" data-br-connect>relie un compte</a> pour le montant en $'}` : ''}</span>

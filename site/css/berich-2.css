@@ -73,3 +73,20 @@ body[data-page="berich"] .br-depth{ opacity:.55; }
   body[data-page="berich"] .br-planchip > span:not(.br-planchip__a):not(.br-planchip__e){ display:none !important; }
   body[data-page="berich"] .br-planchip{ justify-content:space-between; gap:12px; width:auto !important; margin-left:auto; margin-right:auto; }
 }
+
+/* 2026-11-05 : icône de la coche (rond noir sans style), emplacement vide du plan, mini-graphique de la position */
+.chest-root .br-done svg{ width:22px; height:22px; flex:0 0 22px; padding:4px; box-sizing:border-box; border-radius:999px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;
+  background:rgba(51,230,166,.14); box-shadow:inset 0 0 0 1px rgba(51,230,166,.35); }
+.chest-root #brWatch:empty{ display:none; }
+.chest-root .br-mini{ position:relative; height:230px; margin:22px 0 6px; padding-right:112px; border-radius:16px; overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.008)); box-shadow:inset 0 0 0 1px rgba(255,255,255,.07); }
+.chest-root .br-mini svg{ display:block; width:100%; height:100%; }
+.chest-root .br-mini__wait{ display:grid; place-items:center; height:100%; font-size:12.5px; color:#5c5c63; }
+.chest-root .br-mini__lvls{ position:absolute; top:0; right:10px; bottom:0; width:96px; }
+.chest-root .br-mini__lvl{ position:absolute; right:0; transform:translateY(-50%); padding:3px 8px; border-radius:7px; font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; background:rgba(10,10,12,.92); box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); }
+.chest-root .br-mini__lvl.is-sl{ color:#ff94a0; box-shadow:inset 0 0 0 1px rgba(255,77,94,.45); }
+.chest-root .br-mini__lvl.is-tp{ color:#7ff3ca; box-shadow:inset 0 0 0 1px rgba(51,230,166,.45); }
+.chest-root .br-mini__lvl.is-pe{ color:#f6f6f7; }
+.chest-root .br-mini__lvl.is-px{ color:#9b9ba1; font-weight:600; right:auto; left:-4px; transform:translate(-100%, -50%); }
+.chest-root .br-mini__tf{ position:absolute; left:14px; top:10px; font-size:11px; color:#5c5c63; }
+@media (max-width:700px){ .chest-root .br-mini{ height:190px; padding-right:96px; } .chest-root .br-mini__lvl.is-px{ display:none; } }

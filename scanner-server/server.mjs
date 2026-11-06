@@ -440,6 +440,17 @@ createServer(async (req, res) => {
       return send(200, BOARD.snapshot());
     }
 
+    // Bougies seules (2026-11-05, mini-graphique de la page BERICH) : même cache que les scanners, aucun crédit en plus
+    // tant qu'une lecture de moins de 5 min existe ; seulement les dernières bougies fermées.
+    if (url.pathname === "/bars" && req.method === "GET") {
+      const code = (url.searchParams.get("symbol") || "XAUUSD").toUpperCase();
+      const tf = url.searchParams.get("tf") || "5";
+      if (!validCode(code) || !TF_INTERVAL[tf]) return send(400, { error: "paramètres invalides" });
+      const n = Math.max(20, Math.min(300, Number(url.searchParams.get("n")) || 120));
+      const { all } = await getCandles(code, tf, "view");
+      return send(200, { bars: all.slice(-n).map((c) => [c.time, c.open, c.high, c.low, c.close]) });
+    }
+
     if (url.pathname === "/data" && req.method === "GET") {
       const name = url.searchParams.get("script") || "";
       const code = (url.searchParams.get("symbol") || "XAUUSD").toUpperCase();
