@@ -47,7 +47,7 @@
 .cs-note{ margin:14px 0 0; font-size:11.5px; line-height:1.5; color:#5c5c63; text-align:center; }
 /* CHEST 2.0 (maquettes T-Paiement, T-Conditions, Edu-Accueil, 2026-11-03) */
 .cs-box{ border-radius:20px; border-color:rgba(255,255,255,.13); background:linear-gradient(170deg, rgba(30,20,28,.92), rgba(10,10,12,.96)); box-shadow:0 40px 120px rgba(0,0,0,.7), inset 1.5px 1.5px 0 rgba(255,255,255,.1); }
-.cs-k{ font-family:"JetBrains Mono", ui-monospace, monospace; font-size:9.5px; font-weight:500; letter-spacing:.2em; color:#f9a45e; }
+.cs-k{ font-family:"Fragment Mono", ui-monospace, monospace; font-size:9.5px; font-weight:500; letter-spacing:.2em; color:#f9a45e; }
 .cs-box h2{ margin-top:6px; font-size:22px; }
 .cs-head{ display:flex; align-items:center; gap:14px; }
 .cs-head__ic{ flex:none; display:inline-flex; }

@@ -157,19 +157,32 @@
   }
   setInterval(refreshOps, 5 * 60 * 1000);
 
-  // Écran de chargement (2026-11-05, « mes pages de chargement sont super classiques, juste la bande ») : la molette
-  // du coffre CHEST et le nom de la page qui s'ouvre. Visible seulement si la page tarde (> 0,3 s, voir shell-2.css).
+  // Écran de chargement (2026-11-08) : plein écran, mini-jeu de course devant le logo CHEST (tout en CSS, voir
+  // shell-2.css) et le nom de la page qui s'ouvre. Visible seulement si la page tarde (> 0,3 s). Le score défile.
   const loader = (() => {
     const view = frame && frame.parentElement;
     if (!view) return null;
     const el = document.createElement('div');
     el.className = 'chest-loader';
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<div class="cl"><div class="cl-dial"><span class="cl-ticks"></span><span class="cl-arc"></span><span class="cl-core"><img src="assets/icon-192.png" alt="" width="40" height="40"></span></div>'
-      + '<div class="cl-txt"><b class="cl-name"></b><span class="cl-sub">Ouverture de ton espace</span></div></div>';
-    view.appendChild(el);
+    el.innerHTML = '<div class="cl"><span class="cl-logo"></span>'
+      + '<div class="cl-stage"><span class="cl-score">00000</span><span class="cl-ground"></span><span class="cl-shadow"></span>'
+      + '<span class="cl-run"><svg viewBox="0 0 12 14" aria-hidden="true"><defs><linearGradient id="clG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"/><stop offset="1" stop-color="#f9a45e"/></linearGradient></defs><rect x="4" y="0" width="6" height="1" fill="url(#clG)"/><rect x="3" y="1" width="8" height="4" fill="url(#clG)"/><rect x="3" y="5" width="5" height="1" fill="url(#clG)"/><rect x="2" y="6" width="8" height="4" fill="url(#clG)"/><rect x="1" y="7" width="1" height="2" fill="url(#clG)"/><rect x="10" y="7" width="1" height="2" fill="url(#clG)"/><rect x="8" y="2" width="1" height="1" fill="#050505"/><g class="f1"><rect x="3" y="10" width="2" height="2" fill="url(#clG)"/><rect x="2" y="12" width="2" height="2" fill="url(#clG)"/><rect x="7" y="10" width="2" height="1" fill="url(#clG)"/><rect x="8" y="11" width="2" height="1" fill="url(#clG)"/></g><g class="f2"><rect x="4" y="10" width="2" height="1" fill="url(#clG)"/><rect x="5" y="11" width="2" height="1" fill="url(#clG)"/><rect x="7" y="10" width="2" height="2" fill="url(#clG)"/><rect x="8" y="12" width="2" height="2" fill="url(#clG)"/></g></svg></span>'
+      + '<span class="cl-candle c1"><i></i><b></b></span><span class="cl-candle c2"><i></i><b></b></span></div>'
+      + '<div class="cl-txt"><b class="cl-name"></b><span class="cl-sub">Ouverture de ton espace</span><span class="cl-bar"></span></div></div>';
+    (shell || view).appendChild(el); // dans le shell : position fixe au-dessus de la barre latérale
     return el;
   })();
+  let scoreT = 0;
+  function loaderScore() {
+    if (!loader) return;
+    const out = loader.querySelector('.cl-score'), t0 = Date.now();
+    clearInterval(scoreT);
+    scoreT = setInterval(() => {
+      if (!shell.classList.contains('is-navigating')) { clearInterval(scoreT); return; }
+      out.textContent = String(Math.floor((Date.now() - t0) / 40)).padStart(5, '0');
+    }, 80);
+  }
   function navigate(file) {
     const target = splitFile(file);
     if (blocked(target.name)) { showMaint(target.name, target.search); return; }
@@ -178,6 +191,7 @@
     requestedKey = file.replace(/\.html/, '');
     shell.classList.remove('is-done');
     shell.classList.add('is-navigating');
+    loaderScore();
     try { frame.contentWindow.location.href = file; } catch (e) { frame.src = file; }
   }
 

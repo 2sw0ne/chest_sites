@@ -8,7 +8,7 @@ body[data-page="berich"] .br-page{ max-width:1180px; padding:0 36px 64px !import
 body[data-page="berich"] .br-rule{ display:none !important; }
 body[data-page="berich"] .br-section__head{ margin-top:40px !important; }
 body[data-page="berich"] .br-section__head h3{ font-size:22px !important; letter-spacing:-.025em; }
-body[data-page="berich"] .br-label{ font-family:var(--c2-mono,'JetBrains Mono',ui-monospace,monospace) !important; font-size:10.5px !important; letter-spacing:.2em !important; color:#7a7a82 !important; }
+body[data-page="berich"] .br-label{ font-family:var(--c2-mono,'Fragment Mono',ui-monospace,monospace) !important; font-size:10.5px !important; letter-spacing:.2em !important; color:#7a7a82 !important; }
 
 /* ---------- En-tête : logo et états au centre, mot BERICH en fantôme derrière le héros ---------- */
 body[data-page="berich"] .br-top{ justify-content:center; padding-top:22px !important; gap:10px; }

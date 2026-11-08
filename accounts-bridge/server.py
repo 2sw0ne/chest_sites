@@ -425,8 +425,9 @@ def init_db():
                 scope TEXT, pinned INTEGER NOT NULL DEFAULT 0, author_id INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
             )
         """)
-        if "format" not in [c[1] for c in db.execute("PRAGMA table_info(school_posts)").fetchall()]:
-            db.execute("ALTER TABLE school_posts ADD COLUMN format TEXT")
+        for name in ("format", "idea", "status"):
+            if name not in [c[1] for c in db.execute("PRAGMA table_info(school_posts)").fetchall()]:
+                db.execute(f"ALTER TABLE school_posts ADD COLUMN {name} TEXT")
         for name in ("body", "flyer"):
             if name not in [c[1] for c in db.execute("PRAGMA table_info(mentor_events)").fetchall()]:
                 db.execute(f"ALTER TABLE mentor_events ADD COLUMN {name} TEXT")
@@ -3210,7 +3211,74 @@ def _post_public(db, r, who):
     return {"id": r["id"], "title": r["title"], "body": r["body"] or "", "image": json.loads(r["image"]) if r["image"] else None,
             "audience": r["audience"], "scope": _scope_of(r), "audienceLabel": _audience_label(db, r["audience"], _scope_of(r)),
             "pinned": bool(r["pinned"]), "format": r["format"] if "format" in r.keys() and r["format"] else "landscape",
+            "idea": json.loads(r["idea"]) if "idea" in r.keys() and r["idea"] else None,
+            "status": (r["status"] if "status" in r.keys() and r["status"] in IDEA_STATUS else "zone"),
             "author": who(r["author_id"]), "authorId": r["author_id"], "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
+
+
+# IDEA (2026-11-08) : une info de School = une idée de trade de l'équipe. Position facultative {pair, side, pe, sl, tps[]},
+# statut zone (zone d'action) | encours (position en cours) | inactive (rangée dans « Inactives »). Seuls éducateurs et
+# admins publient (_school_writer) ; l'auteur ou un admin change le statut.
+IDEA_STATUS = ("zone", "encours", "inactive")
+
+
+def _idea_from(b):
+    """Position d'une IDEA lue dans le formulaire : None si aucun niveau, sinon dict validé (ou ValueError)."""
+    raw = b.get("idea") if isinstance(b.get("idea"), dict) else None
+    if not raw:
+        return None
+    def num(v):
+        v = str(v if v is not None else "").replace(",", ".").replace(" ", "").strip()
+        if not v:
+            return None
+        x = float(v)
+        if not (x == x) or abs(x) > 1e9:
+            raise ValueError
+        return x
+    try:
+        pe, sl = num(raw.get("pe")), num(raw.get("sl"))
+        tps = [t for t in (num(x) for x in (raw.get("tps") or [])[:8]) if t is not None]
+    except (TypeError, ValueError):
+        raise ValueError("Les niveaux de la position doivent être des nombres.")
+    pair = re.sub(r"[^A-Z0-9/.]", "", str(raw.get("pair") or "").upper())[:16]
+    if pe is None and sl is None and not tps and not pair:
+        return None
+    if not pair or pe is None or sl is None or not tps:
+        raise ValueError("Pour une position : la paire, le PE, le SL et au moins le TP 1.")
+    side = "sell" if raw.get("side") == "sell" else "buy"
+    if (side == "buy" and not sl < pe) or (side == "sell" and not sl > pe):
+        raise ValueError("Le SL doit être sous le PE à l'achat, au-dessus à la vente.")
+    return {"pair": pair, "side": side, "pe": pe, "sl": sl, "tps": tps}
+
+
+@app.route("/school/posts/unread")
+def school_posts_unread():
+    """Nombre d'IDEA visibles publiées après ?since= (pastille « +N » de la barre latérale)."""
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    since = str(request.args.get("since") or "")[:40]
+    db = get_db()
+    rows = db.execute("SELECT * FROM school_posts WHERE created_at > ? AND author_id != ?", (since, user["id"])).fetchall()
+    return jsonify({"n": sum(1 for r in rows if _school_visible(r, user) and (r["status"] if "status" in r.keys() else None) != "inactive")})
+
+
+@app.route("/school/posts/<int:pid>/status", methods=["POST"])
+def school_post_status(pid):
+    user, err = _school_writer()
+    if err:
+        return err
+    st = str((request.get_json(silent=True) or {}).get("status") or "")
+    if st not in IDEA_STATUS:
+        return jsonify({"error": "Statut inconnu."}), 400
+    db = get_db()
+    r = db.execute("SELECT * FROM school_posts WHERE id = ?", (pid,)).fetchone()
+    if not r or not (user["is_admin"] or r["author_id"] == user["id"]):
+        return jsonify({"error": "IDEA introuvable."}), 404
+    with db_lock:
+        db.execute("UPDATE school_posts SET status = ?, updated_at = ? WHERE id = ?", (st, datetime.now(timezone.utc).isoformat(), pid))
+        db.commit()
+    return school_posts()
 
 
 @app.route("/school/posts")
@@ -3220,7 +3288,7 @@ def school_posts():
         return jsonify({"error": "Non connecté."}), 401
     db = get_db()
     who = _names(db)
-    rows = db.execute("SELECT * FROM school_posts ORDER BY pinned DESC, created_at DESC").fetchall()
+    rows = db.execute("SELECT * FROM school_posts ORDER BY created_at DESC").fetchall()
     return jsonify({"posts": [_post_public(db, r, who) for r in rows if _school_visible(r, user)][:60]})
 
 
@@ -3234,8 +3302,14 @@ def school_post_save():
         return jsonify({"error": "Données invalides."}), 400
     title = re.sub(r"\s+", " ", str(b.get("title") or "")).strip()[:140]
     body = str(b.get("body") or "").strip()[:8000]
+    try:
+        idea = _idea_from(b)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    if not title and idea:
+        title = f"{idea['pair']} · {'Vente' if idea['side'] == 'sell' else 'Achat'}"
     if not title:
-        return jsonify({"error": "Donne un titre à l'info."}), 400
+        return jsonify({"error": "Donne un titre à l'IDEA."}), 400
     aud, scope = _school_target(user, b)
     if not aud:
         return jsonify({"error": "Choisis au moins un éducateur."}), 400
@@ -3245,6 +3319,7 @@ def school_post_save():
         return jsonify({"error": "L'illustration doit être une image."}), 400
     pinned = 1 if b.get("pinned") and user["is_admin"] else 0
     fmt = "portrait" if b.get("format") == "portrait" else "landscape"
+    idea_js = json.dumps(idea) if idea else None
     db = get_db()
     now = datetime.now(timezone.utc).isoformat()
     with db_lock:
@@ -3256,11 +3331,11 @@ def school_post_save():
             if up or b.get("removeImage"):
                 delete_file(json.loads(image) if image else None)
                 image = json.dumps(up) if up else None
-            db.execute("UPDATE school_posts SET title = ?, body = ?, image = ?, audience = ?, scope = ?, pinned = ?, format = ?, updated_at = ? WHERE id = ?",
-                       (title, body, image, aud, json.dumps(scope), pinned, fmt, now, r["id"]))
+            db.execute("UPDATE school_posts SET title = ?, body = ?, image = ?, audience = ?, scope = ?, pinned = ?, format = ?, idea = ?, updated_at = ? WHERE id = ?",
+                       (title, body, image, aud, json.dumps(scope), pinned, fmt, idea_js, now, r["id"]))
         else:
-            db.execute("INSERT INTO school_posts (title, body, image, audience, scope, pinned, format, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                       (title, body, json.dumps(up) if up else None, aud, json.dumps(scope), pinned, fmt, user["id"], now, now))
+            db.execute("INSERT INTO school_posts (title, body, image, audience, scope, pinned, format, idea, status, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                       (title, body, json.dumps(up) if up else None, aud, json.dumps(scope), pinned, fmt, idea_js, "zone", user["id"], now, now))
         db.commit()
     return school_posts()
 

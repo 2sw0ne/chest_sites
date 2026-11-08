@@ -5,7 +5,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const MONO = "font-family: 'JetBrains Mono', ui-monospace, monospace;";
+  const MONO = "font-family: 'Fragment Mono', ui-monospace, monospace;";
   // montants en centimes et taux en pourcentage, comme GET /edu/overview (js/educator.js)
   const eur = (v, d) => (Number(v || 0) / 100).toLocaleString('fr-FR', { minimumFractionDigits: d == null ? 0 : d, maximumFractionDigits: d == null ? 0 : d }) + ' €';
   const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];

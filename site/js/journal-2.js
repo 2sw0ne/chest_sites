@@ -5,7 +5,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const MONO = "font-family: 'JetBrains Mono', ui-monospace, monospace;";
+  const MONO = "font-family: 'Fragment Mono', ui-monospace, monospace;";
   const LABEL = MONO + ' font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);';
   const COLORS = ['#fc1283', '#9dbcff', '#e8b339', '#33e6a6', '#b46bff', '#f9a45e'];
   const POS = 'rgb(127, 243, 202)', NEG = 'rgb(255, 148, 160)';

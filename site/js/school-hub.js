@@ -69,7 +69,7 @@
   };
 
   const S = {
-    week: mondayOf(new Date()), agenda: null, posts: [], missions: [], mentor: null, people: null, educators: null,
+    week: mondayOf(new Date()), agenda: null, posts: [], ideaTab: 'on', newIds: null, missions: [], mentor: null, people: null, educators: null,
     tab: null, member: null, // filtre éducateur/admin : un seul élève dans le planning
   };
 
@@ -177,28 +177,68 @@
   }
 
   // ---------------------------------------------------------------- infos
-  // Fil des infos, façon Instagram : chaque info garde son format (vertical 4:5, horizontal 16:9 sur deux colonnes),
-  // l'auteur en tête, le titre et le début du texte dessous. Sans image : carte « texte » en grand.
+  // IDEA (2026-11-08) : les idées de trade de l'équipe, en fil façon Instagram. Chaque IDEA garde son format d'image
+  // (vertical 4:5, horizontal 16:9 sur deux colonnes), peut porter une position (paire, sens, PE, SL, TP 1…n) et un
+  // statut : zone d'action / en cours (onglet Actives) ou inactive (onglet Inactives). Seule l'équipe publie.
   const fmtOf = (p) => (p.format === 'portrait' ? 'portrait' : 'landscape');
+  const STATUS = { zone: ['Zone d’action', 'zone'], encours: ['En cours', 'run'], inactive: ['Inactive', 'off'] };
+  const stOf = (p) => (STATUS[p.status] ? p.status : 'zone');
+  const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  function ideaWhen(d) {
+    const t = new Date(d);
+    const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / DAY);
+    const hm = t.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    if (days <= 0) return `Aujourd’hui · ${hm}`;
+    if (days === 1) return `Hier · ${hm}`;
+    if (days < 7) return cap1(fr(d, { weekday: 'long', day: 'numeric', month: 'short' }));
+    return fr(d, t.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  // prix au format des plateformes (point décimal), même nombre de décimales pour tous les niveaux d'une IDEA
+  const decOf = (I) => Math.min(5, Math.max(0, ...[I.pe, I.sl, ...I.tps].map((v) => (String(v).split('.')[1] || '').length)));
+  const fmtN = (x, d) => Number(x).toFixed(d);
+  const rrOf = (I, tp) => { const risk = Math.abs(I.pe - I.sl); return risk ? Math.abs(tp - I.pe) / risk : 0; };
+  function posHtml(I, compact) {
+    if (!I) return '';
+    const buy = I.side !== 'sell';
+    const tps = compact ? I.tps.slice(0, 1) : I.tps;
+    const d = decOf(I);
+    const row = (k, v, cls, extra) => `<div class="sh-pos__r ${cls}"><span>${k}</span><b>${fmtN(v, d)}</b>${extra ? `<small>${extra}</small>` : ''}</div>`;
+    return `<div class="sh-pos sh-pos--${buy ? 'buy' : 'sell'}${compact ? ' is-compact' : ''}">
+      <div class="sh-pos__h"><b>${esc(I.pair)}</b><span class="sh-pos__side">${buy ? 'Achat' : 'Vente'}</span></div>
+      <div class="sh-pos__g">${row('PE', I.pe, 'is-pe')}${row('SL', I.sl, 'is-sl')}${tps.map((t, k) => row(`TP ${k + 1}`, t, 'is-tp', `RR ${rrOf(I, t).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}`)).join('')}${compact && I.tps.length > 1 ? `<div class="sh-pos__r is-more"><span>+${I.tps.length - 1} TP</span></div>` : ''}</div>
+    </div>`;
+  }
+  const isNew = (p) => S.newIds && S.newIds.has(p.id);
   function postCard(p) {
     const staff = ROLE !== 'member';
-    const who = p.chest ? 'CHEST' : String(p.author || 'Équipe');
+    const who = String(p.author || 'Équipe');
     const body = String(p.body || '');
-    return `<article class="sh-fc sh-fc--${p.image ? fmtOf(p) : 'text'}${p.pinned ? ' is-pinned' : ''}">
-      <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir « ${esc(p.title)} »"></button>
-      <header class="sh-fc__h"><span class="sh-fc__av${p.chest ? ' is-chest' : ''}">${p.chest ? 'C' : esc(initials(who))}</span>
-        <span class="sh-fc__who"><b>${esc(who)}</b><small>${esc(relDay(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
-        ${p.pinned ? `<span class="sh-pin">${ic('pin')}Épinglé</span>` : ''}</header>
-      ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
-      <div class="sh-fc__b">${p.image ? `<h3>${esc(p.title)}</h3>` : ''}${body ? `<p>${esc(body.slice(0, 180))}${body.length > 180 ? '…' : ''}</p>` : ''}<span class="sh-fc__more">Lire${ic('go')}</span></div>
+    const st = STATUS[stOf(p)];
+    return `<article class="sh-fc sh-fc--${p.image ? fmtOf(p) : p.idea ? 'pos' : 'text'}${isNew(p) ? ' is-new' : ''} is-${st[1]}">
+      <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir l’IDEA « ${esc(p.title)} »"></button>
+      <header class="sh-fc__h"><span class="sh-fc__av">${esc(initials(who))}</span>
+        <span class="sh-fc__who"><b>${esc(who)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
+        ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : ''}</header>
+      ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : p.idea ? '' : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
+      <div class="sh-fc__b"><span class="sh-st sh-st--${st[1]}">${st[0]}</span>${p.image || p.idea ? `<h3>${esc(p.title)}</h3>` : ''}${posHtml(p.idea, true)}${body ? `<p>${esc(body.slice(0, 180))}${body.length > 180 ? '…' : ''}</p>` : ''}<span class="sh-fc__more">Voir l’IDEA${ic('go')}</span></div>
     </article>`;
   }
-  const postsHtml = (list, empty) => (list.length ? `<div class="sh-feed">${list.map((p) => postCard(p)).join('')}</div>` : `<p class="sh-empty">${empty}</p>`);
+  const ideaTabs = (list) => {
+    const on = list.filter((p) => stOf(p) !== 'inactive').length, off = list.length - on;
+    return `<div class="chest-seg sh-seg sh-itabs" role="tablist" aria-label="IDEA actives ou inactives">${[['on', 'Actives', on], ['off', 'Inactives', off]].map(([k, l, n]) => `<button type="button" role="tab" data-idea-tab="${k}" aria-selected="${S.ideaTab === k}" class="${S.ideaTab === k ? 'is-active' : ''}">${l} <small>${n}</small></button>`).join('')}</div>`;
+  };
+  function postsHtml(list, empty) {
+    const shown = list.filter((p) => (S.ideaTab === 'off') === (stOf(p) === 'inactive'));
+    return shown.length ? `<div class="sh-feed">${shown.map((p) => postCard(p)).join('')}</div>`
+      : `<p class="sh-empty">${S.ideaTab === 'off' ? 'Aucune IDEA inactive pour l’instant.' : empty}</p>`;
+  }
+  const newBadge = () => (S.newIds && S.newIds.size ? `<span class="sh-plus" aria-label="${S.newIds.size} nouvelle${S.newIds.size > 1 ? 's' : ''}">+${S.newIds.size}</span>` : '');
   function feed2() {
     const list = S.posts || [];
-    return `<section class="sh-feedsec" aria-labelledby="shFeedT"><div class="sh-feedsec__h"><span class="chest-step">Infos & idées</span><h2 id="shFeedT">Ce que l’équipe partage</h2>${list.length ? `<span class="sh-feedsec__n">${plural(list.length, 'info', 'infos')}</span>` : ''}</div>
-      ${postsHtml(list, 'Pas d’info de l’équipe pour l’instant. Les idées de trade, analyses et annonces arrivent ici.')}</section>`;
+    return `<section class="sh-feedsec" id="shIdeas" aria-labelledby="shFeedT"><div class="sh-feedsec__h"><span class="chest-step">IDEA</span><h2 id="shFeedT">Les idées de l’équipe</h2>${newBadge()}${ideaTabs(list)}</div>
+      ${postsHtml(list, 'Pas d’IDEA active pour l’instant. Les idées de trade de l’équipe arrivent ici.')}</section>`;
   }
+
 
   // ---------------------------------------------------------------- suivi du membre (missions + notes)
 
@@ -281,7 +321,7 @@
   // Mise en page de CHEST-DESIGN-2.0/html-exact/School.html : héros « prochain appel », semaine, trois cartes
   // (prochain appel, missions, infos), scanner de référence + « avant de trader ». Mêmes données et mêmes
   // actions que la vue v3 (data-task, data-post, data-ref-*, data-trade, data-suivi).
-  const MONO2 = "font-family: 'JetBrains Mono', ui-monospace, monospace;";
+  const MONO2 = "font-family: 'Fragment Mono', ui-monospace, monospace;";
   const LBL2 = MONO2 + ' font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);';
   const TILE2 = 'border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column;';
   const GRAD2 = 'background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); -webkit-background-clip: text; background-clip: text; color: transparent;';
@@ -436,8 +476,8 @@
   }
 
   const TABS = {
-    educator: [['planning', 'Planning'], ['people', 'Élèves'], ['infos', 'Infos & missions']],
-    admin: [['planning', 'Planning'], ['people', 'Membres'], ['educators', 'Éducateurs'], ['infos', 'Infos & missions'], ['content', 'Contenu des cours']],
+    educator: [['planning', 'Planning'], ['people', 'Élèves'], ['ideas', 'IDEA'], ['missions', 'Missions']],
+    admin: [['planning', 'Planning'], ['people', 'Membres'], ['educators', 'Éducateurs'], ['ideas', 'IDEA'], ['missions', 'Missions'], ['content', 'Contenu des cours']],
   };
 
   function staffFacts() {
@@ -459,7 +499,7 @@
       ? ['School · Admin', 'Toute l’école', 'Le planning de chacun, les membres et leurs éducateurs, et ce que tu publies : pour tout le monde, les membres ou l’équipe.']
       : ['School · Éducateur', 'Tes élèves', 'Leur semaine, leurs missions et leurs notes. Pose un appel ou une mission chez un élève, ou chez tous.'];
     root.innerHTML = `<header class="sh-head"><div><div class="chest-step">${head[0]}</div><h1>${head[1]}</h1><p>${head[2]}</p></div>
-        <div class="sh-head__acts"><button type="button" class="chest-btn-2" data-compose="post">${ic('info')}Info</button><button type="button" class="chest-btn-2" data-compose="task">${ic('flag')}Mission</button><button type="button" class="chest-btn" data-compose="event">${ic('cal')}Appel</button></div></header>
+        <div class="sh-head__acts"><button type="button" class="chest-btn-2" data-compose="post">${ic('info')}IDEA</button><button type="button" class="chest-btn-2" data-compose="task">${ic('flag')}Mission</button><button type="button" class="chest-btn" data-compose="event">${ic('cal')}Appel</button></div></header>
       ${staffFacts()}
       <nav class="sh-tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${l}</button>`).join('')}</nav>
       <div class="sh-panel" id="shPanel"></div>`;
@@ -477,7 +517,8 @@
       return;
     }
     if (S.tab === 'educators') { box.innerHTML = educatorsHtml(); return; }
-    if (S.tab === 'infos') { box.innerHTML = infosHtml(); return; }
+    if (S.tab === 'ideas') { box.innerHTML = ideasHtml(); return; }
+    if (S.tab === 'missions') { box.innerHTML = missionsHtml(); return; }
     if (S.tab === 'content') {
       box.innerHTML = `<div class="sh-content">
         <button type="button" class="sh-door" data-go="written">${ic('book')}<span><b>Cours écrits</b><small>Trading, UGC, Psychologie, Autres ressources : ajoute, modifie ou retire un élément (menu ⋮ sur chaque carte).</small></span><span class="sh-go">Gérer ${ic('go')}</span></button>
@@ -511,11 +552,14 @@
       <span class="sh-go">Ses élèves ${ic('go')}</span></button>`).join('')}</div>`;
   }
 
-  function infosHtml() {
+  function ideasHtml() {
+    return `<div class="sh-feedsec"><div class="sh-feedsec__h"><span class="chest-step">IDEA publiées</span><h2>Les idées de l’équipe</h2>${newBadge()}${ideaTabs(S.posts || [])}<button type="button" class="chest-btn sh-feedsec__add" data-compose="post">+ Nouvelle IDEA</button></div>
+      ${postsHtml(S.posts || [], 'Aucune IDEA active. Une IDEA apparaît dans School chez tous ceux que tu vises.')}</div>`;
+  }
+  // Missions : le suivi personnalisé (copiées chez chaque membre visé), à ne pas confondre avec les IDEA
+  function missionsHtml() {
     const M = S.missions;
-    return `<div class="sh-two">
-      <div><div class="sh-sub"><span class="chest-step">Infos publiées</span><button type="button" class="sh-link" data-compose="post">+ Nouvelle info</button></div>
-        ${postsHtml(S.posts, 'Aucune info pour l’instant. Une info apparaît dans School chez tous ceux que tu vises.')}</div>
+    return `<div class="sh-missions">
       <div><div class="sh-sub"><span class="chest-step">Missions de groupe</span><button type="button" class="sh-link" data-compose="task">+ Nouvelle mission</button></div>
         ${M.length ? `<ul class="sh-mlist">${M.map((m) => `<li><span class="sh-mlist__main"><b>${esc(m.title)}</b><small>${esc(m.audienceLabel)} · ${m.dueAt ? `pour le ${fr(m.dueAt, { day: 'numeric', month: 'short' })}` : 'sans date'}${ROLE === 'admin' ? ` · ${esc(m.author)}` : ''}</small></span>
           <span class="sh-mlist__n"><b>${m.done}/${m.members}</b>faites</span><span class="sh-bar sh-bar--sm"><i style="transform:scaleX(${m.members ? (m.done / m.members).toFixed(3) : 0})"></i></span>
@@ -588,10 +632,12 @@
     openDlg(`<div class="sh-detail sh-detail--post sh-pd sh-pd--${fmtOf(p)}">
       ${src ? `<button type="button" class="sh-pd__media" data-post-zoom="${esc(src)}" aria-label="Voir l’image en grand"><img src="${esc(src)}" alt="${esc(p.title)}"><span class="sh-pd__zoom">${ic('expand')}Plein écran</span></button>` : ''}
       <div class="sh-detail__main">
-        <div class="sh-detail__k">${p.pinned ? `<span class="sh-badge">${ic('pin')}Épinglé</span>` : ''}${ROLE !== 'member' ? `<span class="sh-badge sh-badge--group">${esc(p.audienceLabel)}</span>` : ''}</div>
+        <div class="sh-detail__k"><span class="sh-st sh-st--${STATUS[stOf(p)][1]}">${STATUS[stOf(p)][0]}</span>${p.pinned ? `<span class="sh-badge">${ic('pin')}Épinglé</span>` : ''}${ROLE !== 'member' ? `<span class="sh-badge sh-badge--group">${esc(p.audienceLabel)}</span>` : ''}</div>
         <h2>${esc(p.title)}</h2>
-        <p class="sh-detail__by">${esc(p.author)} · ${fr(p.createdAt, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        <div class="sh-read">${textToHtml(p.body)}</div>
+        <p class="sh-detail__by">Par ${esc(p.author)} · ${esc(ideaWhen(p.createdAt))}</p>
+        ${posHtml(p.idea, false)}
+        ${p.body ? `<div class="sh-read">${textToHtml(p.body)}</div>` : ''}
+        ${can ? `<div class="sh-stset"><span>Statut</span>${seg('ideaStatus', Object.entries(STATUS).map(([k, x]) => [k, x[0]]), stOf(p)).replace(/data-v="(\w+)"/g, `data-idea-status="$1" data-idea-id="${p.id}" data-v="$1"`)}</div>` : ''}
         <div class="sh-acts"><button type="button" class="chest-btn-2" data-share-post="${p.id}">${ic('share')}Partager</button>${src ? `<a class="chest-btn-2" href="${esc(src)}" target="_blank" rel="noopener" download>${ic('image')}Image</a>` : ''}
           ${can ? `<button type="button" class="chest-btn-2" data-edit-post="${p.id}">Modifier</button><button type="button" class="sh-link sh-link--red" data-del-post="${p.id}">Supprimer</button>` : ''}</div>
       </div></div>`, false);
@@ -618,13 +664,23 @@
     } catch (e) { if (e && e.name !== 'AbortError') toast(url); }
   }
 
+  async function setIdeaStatus(id, st) {
+    try {
+      const d = await postJson(`/school/posts/${id}/status`, { status: st });
+      S.posts = d.posts;
+      toast(st === 'inactive' ? 'IDEA rangée dans les Inactives.' : st === 'encours' ? 'IDEA passée en cours.' : 'IDEA en zone d’action.');
+      if (ROLE === 'member') renderMember(); else renderTab();
+      const x = S.posts.find((p) => p.id === id); if (x) postDetail(x);
+    } catch (e) { toast(e.message); }
+  }
+
   function noteDetail(n) {
     openDlg(`<div class="sh-detail sh-detail--post"><div class="sh-detail__main"><span class="chest-step">Note · ${esc(n.author)}</span><h2>${esc(n.title || 'Note')}</h2>
       <p class="sh-detail__by">${fr(n.createdAt, { day: 'numeric', month: 'long', year: 'numeric' })}</p><div class="sh-read">${textToHtml(n.body)}</div></div></div>`);
   }
 
   // Composer : Appel / Mission / Info, et pour qui.
-  const C = { kind: 'event', target: 'all', scope: [], member: '', flyer: null, editing: null, format: 'landscape' };
+  const C = { kind: 'event', target: 'all', scope: [], member: '', flyer: null, editing: null, format: 'landscape', side: 'buy', tps: 1 };
   function targetsFor(kind) {
     if (ROLE === 'educator') return kind === 'post' ? [['students', 'Tous mes élèves']] : [['students', 'Tous mes élèves'], ['one', 'Un élève']];
     const t = [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Équipe'], ['students', 'Élèves de…'], ['one', 'Un membre']];
@@ -648,7 +704,7 @@
         <input type="file" id="cFile" accept="image/*" aria-label="${label}">
         ${C.flyer ? `<img src="${esc(URL.createObjectURL(C.flyer))}" alt="">` : ed && (ed.flyer || ed.image) ? `<img src="${esc(fileUrl(ed.flyer || ed.image))}" alt="">` : ''}
         <span class="sh-drop__t">${ic('image')}<b>${C.flyer || (ed && (ed.flyer || ed.image)) ? 'Changer l’image' : 'Choisir une image'}</b><small>${k === 'post' ? 'Capture de graphique, analyse, annonce · JPG ou PNG' : 'JPG ou PNG · format affiche ou carré'}</small></span></div></div>`;
-    const title = ed ? (k === 'event' ? 'Modifier l’appel' : 'Modifier l’info') : 'Ajouter au School';
+    const title = ed ? (k === 'event' ? 'Modifier l’appel' : 'Modifier l’IDEA') : 'Ajouter au School';
     let body = '';
     if (k === 'event') {
       body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="${C.target === 'one' ? 'Point sur tes trades de la semaine' : 'Live : revue du marché'}">`, true)}
@@ -663,18 +719,26 @@
       body = `${field('Mission', `<input type="text" id="cTitle" maxlength="200" placeholder="Remplir ton journal chaque soir">`, true)}
         ${field('À faire pour le', `<input type="date" id="cDue" value="${ymd(due)}">`)}`;
     } else {
-      body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="Nouveau cours disponible">`, true)}
-        ${field('Texte', `<textarea id="cBody" rows="6" maxlength="8000" placeholder="L’info en quelques lignes.">${esc(ed ? ed.body : '')}</textarea>`, true)}
+      const I = (ed && ed.idea) || {};
+      const tpIn = Array.from({ length: C.tps }, (_, n) => field(`TP ${n + 1}${n ? ' <i>(facultatif)</i>' : ''}`, `<input type="text" inputmode="decimal" id="cTp${n + 1}" value="${I.tps && I.tps[n] != null ? esc(I.tps[n]) : ''}" placeholder="${n ? '' : '2 676'}">`)).join('');
+      body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="Or : retest de la zone des 2 640">`, true)}
+        <div class="sh-f sh-f--wide sh-posf"><span>Position <i>(facultatif)</i></span>
+          <div class="sh-grid">${field('Paire', `<input type="text" id="cPair" list="cPairs" maxlength="16" autocapitalize="characters" value="${esc(I.pair || '')}" placeholder="XAUUSD"><datalist id="cPairs">${['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD', 'GBPJPY', 'EURJPY', 'NAS100', 'US30', 'SPX500', 'GER40', 'BTCUSD', 'ETHUSD'].map((x) => `<option value="${x}">`).join('')}</datalist>`)}
+            <div class="sh-f"><span>Sens</span>${seg('side', [['buy', 'Achat'], ['sell', 'Vente']], C.side)}</div>
+            ${field('PE', `<input type="text" inputmode="decimal" id="cPe" value="${I.pe != null ? esc(I.pe) : ''}" placeholder="2 640">`)}${field('SL', `<input type="text" inputmode="decimal" id="cSl" value="${I.sl != null ? esc(I.sl) : ''}" placeholder="2 628">`)}
+            ${tpIn}
+            <div class="sh-f sh-f--wide sh-tpacts"><button type="button" class="sh-link" data-add-tp ${C.tps >= 8 ? 'disabled' : ''}>+ Ajouter un TP</button>${C.tps > 1 ? '<button type="button" class="sh-link sh-link--red" data-del-tp>Retirer le dernier TP</button>' : ''}</div></div></div>
+        ${field('Texte', `<textarea id="cBody" rows="5" maxlength="8000" placeholder="Le contexte, ce qui invalide l’idée, la gestion…">${esc(ed ? ed.body : '')}</textarea>`, true)}
         <div class="sh-f sh-f--wide"><span>Format de l’image</span>${seg('format', [['portrait', 'Vertical · 4:5'], ['landscape', 'Horizontal · 16:9']], C.format)}</div>
         ${flyerHtml('Image')}
         ${ROLE === 'admin' ? `<label class="sh-tick"><input type="checkbox" id="cPin" ${ed && ed.pinned ? 'checked' : ''}><span>Épingler en tête</span></label>` : ''}`;
     }
     const hint = C.target === 'one' ? (k === 'event' ? 'Posé directement dans son planning, déjà confirmé. Il le retrouve dans School et dans son suivi.' : 'Ajoutée à ses missions : il la coche quand c’est fait.')
-      : k === 'task' ? 'Copiée chez chaque membre visé ; chacun coche la sienne, tu vois l’avancement dans Infos & missions.'
-      : k === 'event' ? 'Un seul rendez-vous, visible dans le planning de chacun de ceux que tu vises.' : 'Visible dans School chez tous ceux que tu vises.';
+      : k === 'task' ? 'Copiée chez chaque membre visé ; chacun coche la sienne, tu vois l’avancement dans Missions.'
+      : k === 'event' ? 'Un seul rendez-vous, visible dans le planning de chacun de ceux que tu vises.' : 'L’IDEA apparaît dans School chez tous ceux que tu vises, dans les Actives (zone d’action). Tu la passes en cours ou inactive depuis sa fiche.';
     return `<div class="sh-comp">
       <header class="sh-comp__h"><span class="chest-step">${ROLE === 'admin' ? 'Admin' : 'Éducateur'}</span><h2>${title}</h2></header>
-      ${ed ? '' : `<div class="sh-f sh-f--wide"><span>Quoi</span>${seg('kind', [['event', 'Appel'], ['task', 'Mission'], ['post', 'Info']], k)}</div>`}
+      ${ed ? '' : `<div class="sh-f sh-f--wide"><span>Quoi</span>${seg('kind', [['event', 'Appel'], ['task', 'Mission'], ['post', 'IDEA']], k)}</div>`}
       <div class="sh-f sh-f--wide"><span>Pour</span>${seg('target', T, C.target)}</div>
       ${scopeHtml}${oneHtml}
       <div class="sh-grid">${body}</div>
@@ -685,7 +749,7 @@
   }
 
   function keepValues(fn) {
-    const ids = ['cTitle', 'cDate', 'cTime', 'cMin', 'cWeeks', 'cLink', 'cBody', 'cDue', 'cMember'];
+    const ids = [...document.querySelectorAll('#shDlgIn input[id^="c"], #shDlgIn select[id^="c"], #shDlgIn textarea[id^="c"]')].filter((el) => el.type !== 'file' && el.type !== 'checkbox').map((el) => el.id);
     const kept = {};
     ids.forEach((id) => { const el = document.getElementById(id); if (el) kept[id] = el.value; });
     fn();
@@ -696,7 +760,8 @@
   async function openComposer(kind, editing) {
     await ensurePeople();
     if (ROLE === 'admin' && !S.educators) await loadEducators().catch(() => {});
-    Object.assign(C, { kind: kind || 'event', editing: editing || null, flyer: null, format: editing && editing.format === 'portrait' ? 'portrait' : 'landscape' });
+    const I0 = (editing && editing.idea) || null;
+    Object.assign(C, { kind: kind || 'event', editing: editing || null, flyer: null, format: editing && editing.format === 'portrait' ? 'portrait' : 'landscape', side: I0 && I0.side === 'sell' ? 'sell' : 'buy', tps: I0 ? Math.max(1, I0.tps.length) : 1 });
     if (editing) {
       C.target = editing.audience === 'students' ? 'students' : editing.audience;
       C.scope = (editing.scope || []).slice();
@@ -726,11 +791,16 @@
       if (name === 'kind') { C.kind = sg.dataset.v; return refreshComposer(); }
       if (name === 'target') { C.target = sg.dataset.v; return refreshComposer(); }
       if (name === 'format') { C.format = sg.dataset.v; return refreshComposer(); }
+      if (name === 'side') C.side = sg.dataset.v;
       sg.parentElement.querySelectorAll('[data-v]').forEach((b) => { b.classList.toggle('is-active', b === sg); b.setAttribute('aria-checked', String(b === sg)); });
       return;
     }
     const zm = t.closest('[data-post-zoom]'); if (zm) return lightbox(zm.dataset.postZoom);
     const sh = t.closest('[data-share-post]'); if (sh) return sharePost(S.posts.find((p) => p.id === Number(sh.dataset.sharePost)));
+    if (t.closest('[data-add-tp]')) { C.tps = Math.min(8, C.tps + 1); return refreshComposer(); }
+    if (t.closest('[data-del-tp]')) { C.tps = Math.max(1, C.tps - 1); return refreshComposer(); }
+    const ist = t.closest('[data-idea-status]');
+    if (ist) return setIdeaStatus(Number(ist.dataset.ideaId), ist.dataset.ideaStatus);
     const sc = t.closest('[data-scope]');
     if (sc) { const id = Number(sc.dataset.scope); C.scope = C.scope.includes(id) ? C.scope.filter((x) => x !== id) : C.scope.concat(id); return refreshComposer(); }
     const eev = t.closest('[data-edit-ev]');
@@ -748,7 +818,8 @@
   async function submitComposer() {
     const v = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
     const segVal = (n) => { const b = dlg.querySelector(`[data-seg="${n}"] .is-active`); return b ? b.dataset.v : ''; };
-    const title = v('cTitle');
+    const idea = C.kind === 'post' ? { pair: v('cPair'), side: C.side, pe: v('cPe'), sl: v('cSl'), tps: Array.from({ length: C.tps }, (_, n) => v(`cTp${n + 1}`)) } : null;
+    const title = v('cTitle') || (idea && idea.pair ? `${idea.pair.toUpperCase()} · ${idea.side === 'sell' ? 'Vente' : 'Achat'}` : '');
     if (!title) throw new Error(C.kind === 'task' ? 'Décris la mission.' : 'Donne un titre.');
     const one = C.target === 'one';
     const member = one ? v('cMember') : '';
@@ -768,9 +839,9 @@
       else { const r = await postJson('/school/missions', Object.assign({ title, dueAt }, target)); toast(`Mission ajoutée chez ${plural(r.members, 'membre', 'membres')}.`); }
     } else {
       const pin = document.getElementById('cPin');
-      await postForm('/school/posts', Object.assign({ id: C.editing && C.editing.id, title, body: v('cBody'), pinned: !!(pin && pin.checked), format: C.format }, target), { image: C.flyer });
+      await postForm('/school/posts', Object.assign({ id: C.editing && C.editing.id, title, body: v('cBody'), pinned: !!(pin && pin.checked), format: C.format, idea }, target), { image: C.flyer });
     }
-    if (C.kind !== 'task' || one) toast(C.editing ? 'Enregistré.' : C.kind === 'post' ? 'Info publiée.' : C.kind === 'event' ? 'Ajouté au planning.' : 'Mission ajoutée.');
+    if (C.kind !== 'task' || one) toast(C.editing ? 'Enregistré.' : C.kind === 'post' ? 'IDEA publiée.' : C.kind === 'event' ? 'Ajouté au planning.' : 'Mission ajoutée.');
     await refresh();
   }
 
@@ -800,8 +871,16 @@
   async function loadEducators() { const d = await api('/mentor/educators'); S.educators = d.educators; }
 
   // ---------------------------------------------------------------- chargement
+  function markSeen() {
+    if (S.newIds) return;
+    let seen = '';
+    try { seen = localStorage.getItem('chest_idea_seen') || ''; } catch (e) {}
+    if (!seen) seen = new Date(Date.now() - 3 * DAY).toISOString();
+    S.newIds = new Set((S.posts || []).filter((p) => p.createdAt > seen && p.authorId !== U.id && stOf(p) !== 'inactive').map((p) => p.id));
+    try { localStorage.setItem('chest_idea_seen', new Date().toISOString()); } catch (e) {}
+  }
   async function refresh() {
-    const jobs = [loadAgenda(), api('/school/posts').then((d) => { S.posts = d.posts; })];
+    const jobs = [loadAgenda(), api('/school/posts').then((d) => { S.posts = d.posts; markSeen(); })];
     jobs.push(api('/school/scanner').then((d) => { S.ref = d; }).catch(() => { S.ref = null; }));
     if (ROLE === 'member') jobs.push(api('/mentor').then((d) => { S.mentor = d; }).catch(() => { S.mentor = null; }));
     else {
@@ -826,6 +905,7 @@
     const wk = t.closest('[data-week]');
     if (wk) { const d = Number(wk.dataset.week); S.week = d === 0 ? mondayOf(new Date()) : new Date(S.week.getTime() + d * 7 * DAY); return reloadWeek(); }
     const ev = t.closest('[data-ev]'); if (ev) { const x = findEvent(ev.dataset.ev); if (x) eventDetail(x); return; }
+    const it = t.closest('[data-idea-tab]'); if (it) { S.ideaTab = it.dataset.ideaTab; if (ROLE === 'member') { const sec = document.getElementById('shIdeas'); if (sec) sec.outerHTML = feed2(); } else renderTab(); return; }
     const po = t.closest('[data-post]'); if (po) { const x = S.posts.find((p) => p.id === Number(po.dataset.post)); if (x) postDetail(x); return; }
     const nr = t.closest('[data-note-read]'); if (nr) { const x = S.mentor && S.mentor.notes.find((n) => n.id === Number(nr.dataset.noteRead)); if (x) noteDetail(x); return; }
     const cp = t.closest('[data-compose]'); if (cp) return openComposer(cp.dataset.compose);

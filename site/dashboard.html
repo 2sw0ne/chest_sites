@@ -266,7 +266,7 @@
   .d2-perf{ display:flex; flex-direction:column; padding-top:6px; }
   .d2-perf .mini-cal__totals{ margin:0 0 12px; }
   .d2-perf .mini-cal__head{ margin-bottom:12px; }
-  .d2-perf .mini-cal__range{ flex-basis:auto; margin-left:auto; color:#7a7a82; font-family:"JetBrains Mono", ui-monospace, monospace; font-size:10.5px; }
+  .d2-perf .mini-cal__range{ flex-basis:auto; margin-left:auto; color:#7a7a82; font-family:"Fragment Mono", ui-monospace, monospace; font-size:10.5px; }
   .d2-perf .day-nav__btn{ width:28px; height:28px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:#c9c9ce; }
   .d2-perf .day-nav__btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
   .d2-perf .day-nav__today{ height:28px; padding:0 12px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:#9b9ba1; font-size:12px; }
@@ -615,8 +615,8 @@
 <script src="js/sync-store.js?v=18"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=16">
-<link rel="stylesheet" href="css/chest-da-2.css?v=1">
-<link rel="stylesheet" href="css/chest-2-site.css?v=14">
+<link rel="stylesheet" href="css/chest-da-2.css?v=2">
+<link rel="stylesheet" href="css/chest-2-site.css?v=15">
 <link rel="stylesheet" href="css/shell-2.css?v=5">
 <link rel="stylesheet" href="css/dash-2.css?v=7">
 </head>
@@ -684,7 +684,7 @@
         <div style="position: relative; display: flex; flex-direction: column; gap: 10px;">
           <!-- Titre à deux plans (2026-11-05) : « Dashboard » en filigrane derrière, le prénom du membre devant -->
           <span aria-hidden="true" style="position: absolute; left: -4px; bottom: -14px; z-index: 0; pointer-events: none; white-space: nowrap; font-size: 88px; line-height: 1; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 82%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">Dashboard</span>
-          <span style="position: relative; z-index: 1; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Vue d'ensemble</span>
+          <span style="position: relative; z-index: 1; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Vue d'ensemble</span>
           <h1 id="d2Hello" aria-label="Mon espace" style="position: relative; z-index: 1; margin: 0px; font-size: 40px; line-height: 1.06; font-weight: 700; letter-spacing: -0.04em; min-height: 1.06em;"><span id="d2HelloTxt">Dashboard</span><span class="d2-caret" aria-hidden="true"></span></h1>
           <style>
             .d2-caret{ display:inline-block; width:3px; height:.82em; margin-left:4px; vertical-align:-0.06em; border-radius:2px; background:linear-gradient(180deg,#fc1283,#f9a45e); animation:d2Caret 1s steps(1) infinite; }
@@ -728,7 +728,7 @@
       
       <section style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 0px; padding: 26px 0px 30px; border-top: 1px solid rgba(255, 255, 255, 0.07); border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
         <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 10px; padding-right: 32px;">
-          <span id="d2BalLabel" style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Solde</span>
+          <span id="d2BalLabel" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Solde</span>
           <span id="d2Bal" style="font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; font-variant-numeric: tabular-nums;">—</span>
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <span id="d2Chip" style="font-size: 13px; font-weight: 700; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12); padding: 4px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; text-shadow: rgba(51, 230, 166, 0.45) 0px 0px 14px;">+740 $ · +0,74 %</span>
@@ -746,7 +746,7 @@
           <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
             <div style="display: flex; flex-direction: column; gap: 4px;">
-              <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — Courbe d'equity</span>
+              <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — Courbe d'equity</span>
               <span id="d2ChartTitle" style="font-size: 19px; font-weight: 700; letter-spacing: -0.025em;">—</span>
             </div>
             <div style="margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 12px; color: rgb(155, 155, 161);">
@@ -755,7 +755,7 @@
             </div>
           </div>
           <div style="display: flex; gap: 12px; min-width: 0px;">
-            <div id="d2Y" style="display: flex; flex-direction: column; justify-content: space-between; height: 270px; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130); text-align: right; font-variant-numeric: tabular-nums;"></div>
+            <div id="d2Y" style="display: flex; flex-direction: column; justify-content: space-between; height: 270px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130); text-align: right; font-variant-numeric: tabular-nums;"></div>
             <div style="position: relative; flex: 1 1 0%; min-width: 0px; height: 270px;">
               <svg width="100%" height="270" viewBox="0 0 1000 270" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
                 <defs>
@@ -786,7 +786,7 @@
               <div id="d2DotLbl" style="position: absolute; left: 100%; top: 18px; transform: translate(-100%, -150%); padding: 6px 10px; border-radius: 10px; background: rgba(5, 5, 6, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); font-size: 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums;">—</div>
             </div>
           </div>
-          <div id="d2X" style="display: flex; justify-content: space-between; padding-left: 54px; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"></div>
+          <div id="d2X" style="display: flex; justify-content: space-between; padding-left: 54px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"></div>
         </div>
 
       </section>
@@ -794,7 +794,7 @@
       <section id="openPosSection" hidden style="position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(14, 14, 17, 0.72), rgba(9, 9, 11, 0.86)); box-shadow: rgba(0, 0, 0, 0.45) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 12px;">
         <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">03 — Positions ouvertes · en direct</span>
+          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">03 — Positions ouvertes · en direct</span>
           <span id="openPosMeta" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);"></span>
         </div>
         <div class="openpos" id="openPosList"></div>
@@ -803,7 +803,7 @@
       
       <section style="display: flex; flex-direction: column; gap: 14px;">
         <div style="display: flex; align-items: baseline; gap: 12px;">
-          <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">04 — Aujourd'hui</span>
+          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">04 — Aujourd'hui</span>
           <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
@@ -824,7 +824,7 @@
           <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;">Force des devises</span>
-              <span style="margin-left: auto; font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(155, 155, 161);">H4</span>
+              <span style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(155, 155, 161);">H4</span>
             </div>
             <div id="d2Str" style="display: flex; flex-direction: column; gap: 7px;"></div>
           </div>
@@ -835,7 +835,7 @@
       <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px;">
         <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0px;">
           <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;">
-            <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">05 — Performance par jour</span>
+            <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">05 — Performance par jour</span>
             <button type="button" class="d2-calset" id="miniCalSettingsBtn" title="Période affichée" aria-label="Période affichée" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
           </div>
           <!-- Retour utilisateur 2026-11-03 : « Performance par jour » de l'ancien Dashboard à la place des derniers trades -->
@@ -856,7 +856,7 @@
 
         <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0px;">
           <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;">
-            <span style="font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">06 — Signaux des scanners</span>
+            <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">06 — Signaux des scanners</span>
             <a href="strategies.html" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);">Stratégies →</a>
           </div><div id="d2Sig" style="display: contents;"></div>
         </div>
@@ -1008,6 +1008,6 @@ CHESTTour.init([
 </script>
 <script src="js/v2.js?v=5"></script>
 <script src="js/scanner-store.js"></script>
-<script src="js/dash-2.js?v=6"></script>
+<script src="js/dash-2.js?v=7"></script>
 </body>
 </html>

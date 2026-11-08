@@ -5,7 +5,7 @@
 
 .am{ position:relative; isolation:isolate; }
 /* lumière : le halo unique de la page vient de css/chest-2-site.css (DA 2.0) */
-.am2-mono{ font-family:'JetBrains Mono', ui-monospace, Menlo, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; font-weight:500; }
+.am2-mono{ font-family:'Fragment Mono', ui-monospace, Menlo, monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; font-weight:500; }
 .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
 /* ---------- Barre : fil d'Ariane + vues ---------- */
@@ -218,7 +218,7 @@ html.is-embedded .am2-bar .am-head__live{ margin-left:0; }
 .am2v-ghost{ position:absolute; right:0; top:-30px; z-index:-1; pointer-events:none; white-space:nowrap; font-size:150px; font-weight:700; letter-spacing:-.06em; line-height:1;
   background:linear-gradient(rgba(255,255,255,.07), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent; }
 .am2v-txt{ display:flex; flex-direction:column; gap:8px; }
-.am2v-lb{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82; }
+.am2v-lb{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82; }
 .am2v-txt h1{ margin:0; font-size:44px; line-height:1; font-weight:700; letter-spacing:-.045em; }
 .am2v-txt p{ margin:0; font-size:14px; color:#9b9ba1; }
 html.am2v .am2-bar{ position:static; display:flex; flex-wrap:wrap; align-items:center; gap:10px; min-height:0; padding:0; border:0; background:none; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; }
@@ -226,7 +226,7 @@ html.am2v .am2-bar{ position:static; display:flex; flex-wrap:wrap; align-items:c
 .am2v-btn2, .am2v-btn{ display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 14px; border-radius:12px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; text-decoration:none; }
 .am2v-btn2{ color:#f6f6f7; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); }
 .am2v-btn2:hover{ border-color:rgba(255,255,255,.24); color:#fff; }
-.am2v-btn2 kbd{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#9b9ba1; border:1px solid rgba(255,255,255,.12); padding:1px 6px; border-radius:6px; }
+.am2v-btn2 kbd{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; color:#9b9ba1; border:1px solid rgba(255,255,255,.12); padding:1px 6px; border-radius:6px; }
 .am2v-btn{ border:0; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 10px 26px rgba(252,18,131,.28); }
 html.am2v #amQuick, html.am2v #amGiftBtn, html.am2v .am2-btn2[href*="offres"]{ display:none !important; }
 html.is-embedded.am2v .am2-crumb, html.is-embedded.am2v #amLive, html.is-embedded.am2v .am2-period-row{ display:none !important; }
@@ -251,7 +251,7 @@ html.am2v .am-view[data-panel="ranks"] > .am2-sec:first-child, html.am2v .am-vie
 #amGift .am-modal__win{ text-align:left; }
 #amGift .am-modal__badge, #amGift #amGiftT, #amGift .am-modal__lead{ margin-left:auto; margin-right:auto; text-align:center; }
 #amGift .am-modal__badge{ display:flex; justify-content:center; }
-#amGift .am-field > label, #amGift .am-sub{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; }
+#amGift .am-field > label, #amGift .am-sub{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; }
 #amGift button[type="submit"]{ background:linear-gradient(135deg,#5b8cff,#8fb5ff) !important; box-shadow:0 12px 34px rgba(91,140,255,.35) !important; color:#fff !important; }
 
 /* Onglets de l'admin dans la barre du haut (2026-11-04) : ceux de la page restent pour la logique, cachés */
@@ -289,7 +289,7 @@ html.am2v-top .am2-bar:not(:has(.am2v-tools > :not([hidden]))){ display:none; }
 .am-promo__code:focus{ border-color:rgba(252,18,131,.55); box-shadow:0 0 0 3px rgba(252,18,131,.14); }
 .am-promo__prev{ position:relative; display:flex; flex-direction:column; justify-content:center; gap:4px; padding:20px 22px; border-radius:18px; border:1px solid rgba(255,255,255,.1); background:radial-gradient(80% 90% at 100% 0%, rgba(252,18,131,.14), transparent 60%), rgba(255,255,255,.02); transition:opacity .2s, filter .2s; }
 .am-promo__prev.is-off{ opacity:.45; filter:grayscale(.8); }
-.am-promo__pk{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82; }
+.am-promo__pk{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82; }
 .am-promo__chip{ position:absolute; top:18px; right:18px; height:24px; padding:0 9px; display:inline-flex; align-items:center; border-radius:999px; font-size:12px; font-weight:700; color:#050505; background:linear-gradient(135deg,#fc1283,#f9a45e); }
 .am-promo__prev s{ margin-top:10px; font-size:16px; color:#5c5c63; text-decoration-color:#fc1283; text-decoration-thickness:2px; }
 .am-promo__prev b{ font-size:40px; font-weight:700; letter-spacing:-.04em; line-height:1; font-variant-numeric:tabular-nums; }

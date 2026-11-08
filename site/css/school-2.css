@@ -17,7 +17,7 @@ html.is-embedded body.chest-root[data-page="school"]::before{ display:none !impo
 #scHome.is-staff .sh-head{ position:relative; isolation:isolate; padding-top:18px; }
 #scHome.is-staff .sh-head::before{ content:'School'; position:absolute; right:0; top:-34px; z-index:-1; pointer-events:none; font-size:150px; font-weight:700; letter-spacing:-.06em; line-height:1;
   background:linear-gradient(rgba(255,255,255,.07), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent; }
-#scHome.is-staff .sh-head .chest-step{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; color:#7a7a82; }
+#scHome.is-staff .sh-head .chest-step{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.2em; color:#7a7a82; }
 #scHome.is-staff .sh-head h1{ font-size:44px; }
 #scHome.is-staff .sh-head p{ font-size:14px; color:#9b9ba1; }
 #scHome.is-staff .sh-head__acts .chest-btn, #scHome.is-staff .sh-head__acts .chest-btn-2{ height:36px; border-radius:12px; font-size:12.5px; }

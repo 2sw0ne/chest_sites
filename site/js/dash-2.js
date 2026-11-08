@@ -12,7 +12,7 @@
   const sign = (v) => (v > 0 ? '+' : v < 0 ? '−' : '');
   const usd = (v) => `${sign(v)}${nfr(Math.abs(v), Math.abs(v) >= 1000 || Number.isInteger(Math.round(v * 100) / 100) ? 0 : 2)} $`;
   const pair = (s) => { const u = String(s || '').toUpperCase(); return /^[A-Z]{6}$/.test(u) ? `${u.slice(0, 3)}/${u.slice(3)}` : u; };
-  const MONO = 'font-family: &quot;JetBrains Mono&quot;, ui-monospace, monospace;';
+  const MONO = 'font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace;';
   const EMPTY = (t) => `<p style="margin: 6px 0px 0px; padding: 18px 14px; border: 1px dashed rgba(255, 255, 255, 0.16); border-radius: 14px; font-size: 11.5px; color: rgb(122, 122, 130); text-align: center;">${t}</p>`;
   const PERIOD_SUB = { week: 'sur 7 jours', '30d': 'sur 30 jours', '90d': 'sur 90 jours', full: 'depuis le début' };
   const PERIOD_KPI = { week: 'P&amp;L · 7 jours', '30d': 'P&amp;L · 30 jours', '90d': 'P&amp;L · 3 mois', full: 'P&amp;L · tout' };

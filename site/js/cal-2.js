@@ -5,7 +5,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const MONO = "font-family: 'JetBrains Mono', ui-monospace, monospace;";
+  const MONO = "font-family: 'Fragment Mono', ui-monospace, monospace;";
   const C = () => window.CHESTCalendar;
   const CCY = { US: 'USD', EU: 'EUR', UK: 'GBP', JP: 'JPY', CH: 'CHF', AU: 'AUD', CA: 'CAD', NZ: 'NZD', CN: 'CNY', DE: 'EUR', FR: 'EUR', IT: 'EUR', ES: 'EUR' };
   const CCY_NAME = { USD: 'le dollar', EUR: 'l’euro', GBP: 'la livre', JPY: 'le yen' };
@@ -217,7 +217,7 @@
       const e = d.ev, tag = tagOf(e);
       return `
             <button type="button" class="tile" data-open="${esc(evId(e))}" style="position: relative; overflow: hidden; text-align: left; cursor: pointer; font: inherit; color: inherit; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.1); background: linear-gradient(160deg, rgba(16, 16, 19, 0.75), rgba(9, 9, 11, 0.9)); box-shadow: rgba(255, 255, 255, 0.12) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
-              <div aria-hidden="true" style="position: absolute; right: -70px; top: -90px; width: 240px; height: 220px; pointer-events: none; background: radial-gradient(closest-side, rgba(252, 18, 131, 0.18), transparent);"></div>
+              <div aria-hidden="true" style="position: absolute; right: -70px; top: -90px; width: 240px; height: 220px; pointer-events: none; background: radial-gradient(closest-side, ${d.tone === 'pos' ? 'rgba(51, 230, 166, 0.11)' : d.tone === 'neg' ? 'rgba(255, 77, 94, 0.11)' : 'rgba(255, 255, 255, 0.035)'}, transparent);"></div>
               <div style="position: relative; display: flex; align-items: center; gap: 10px;">
                 <span style="${MONO} font-size: 10.5px; font-weight: 600; color: rgb(201, 201, 206); border: 1px solid rgba(255, 255, 255, 0.12); padding: 3px 7px; border-radius: 6px;">${esc(ccyOf(e))}</span>
                 <span style="${MONO} font-size: 11px; color: rgb(155, 155, 161);">${esc(whenOf(e))}</span>
@@ -256,12 +256,17 @@
     $('c2CalShown').textContent = `${shown} annonce${shown > 1 ? 's' : ''} affichée${shown > 1 ? 's' : ''} · la bibliothèque suit le filtre`;
   }
   const evColor = (n) => n === 3 ? 'rgb(255, 77, 94)' : n === 2 ? 'rgb(232, 179, 57)' : 'rgba(255, 255, 255, 0.3)';
+  const WEEK_CAP = 8;
+  let weekOpen = false;
   function paintWeek() {
     const today = isoOf(new Date()), hm = nowHm();
+    let hidden = 0;
     $('c2CalWeek').innerHTML = weekDays().map((day, di) => {
       const isToday = day.iso === today;
-      const evs = model.weekEvents.filter((e) => e.date === day.iso && model.filter.includes(e.importance || 'high'))
+      const all = model.weekEvents.filter((e) => e.date === day.iso && model.filter.includes(e.importance || 'high'))
         .sort((a, b) => String(a.time).localeCompare(String(b.time)));
+      const evs = weekOpen ? all : all.slice(0, WEEK_CAP);
+      hidden += all.length - evs.length;
       let nowPlaced = !isToday;
       const rows = evs.map((e) => {
         const n = evN(e), m = mine(e), id = evId(e);
@@ -300,6 +305,12 @@
                 <span style="padding: 8px 6px; font-size: 11.5px; color: rgb(92, 92, 99);">Rien à cette force.</span>`}
               </div>`;
     }).join('');
+    const more = $('c2CalWeekMore');
+    if (more) {
+      more.hidden = !hidden && !weekOpen;
+      more.innerHTML = weekOpen ? 'Replier la semaine' : `Voir toute la semaine <span>+${hidden} annonce${hidden > 1 ? 's' : ''}</span>`;
+      more.setAttribute('aria-expanded', String(weekOpen));
+    }
   }
 
   // ---------- 03 — Bibliothèque ----------
@@ -319,32 +330,28 @@
                         <span style="position: relative; flex: 1 1 0%; display: flex; align-items: center; justify-content: center; padding: 10px 0px; min-height: 0px; overflow: hidden;">
                           <span style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; font-size: ${n === 3 ? '12px' : n === 2 ? '10.5px' : '9px'}; font-weight: ${n === 3 ? 700 : 600}; letter-spacing: 0.01em; color: ${n === 1 ? 'rgb(155, 155, 161)' : 'rgb(246, 246, 247)'};">${esc(shortName(e, n === 3 ? 15 : n === 2 ? 15 : 17))}</span>
                         </span>
-                        <span style="position: relative; margin-bottom: 10px; ${MONO} font-size: 9px; color: ${n === 1 ? 'rgb(92, 92, 99)' : 'rgb(155, 155, 161)'};">${esc(e.time || '')}</span>
+                        <span style="position: relative; margin-bottom: 9px; ${MONO} font-size: ${n === 1 ? '6.5px' : n === 2 ? '7.5px' : '8.5px'}; letter-spacing: -0.03em; white-space: nowrap; color: ${n === 1 ? 'rgb(122, 122, 130)' : 'rgb(155, 155, 161)'};">${esc(e.time || '')}</span>
                       </button>`;
   }
   function libraryEvents() { return model.weekEvents.filter((e) => mine(e) && model.filter.includes(e.importance || 'high')); }
+  // Les livres s'enchaînent d'un jour à l'autre et remplissent chaque étage ; un serre-livre marque le
+  // changement de jour, avec le jour écrit discrètement au-dessus. Chaque ligne repose sur sa planche.
+  const SHELF_H = 196, PLANK = 12;
   function paintShelf() {
     $('c2CalLibTitle').textContent = `03 — Bibliothèque ${model.code}`;
     const today = isoOf(new Date()), lib = libraryEvents();
-    $('c2CalShelf').innerHTML = weekDays().map((day) => {
+    const parts = [];
+    weekDays().forEach((day) => {
       const books = lib.filter((e) => e.date === day.iso).sort((a, b) => String(a.time).localeCompare(String(b.time)));
-      const count = books.length + (books.length > 1 ? ' livres' : ' livre');
-      return `
-            <div style="display: grid; grid-template-columns: 118px 1fr; align-items: end; gap: 16px; padding-top: 18px;">
-              <div style="display: flex; flex-direction: column; gap: 3px; padding-bottom: 16px;">
-                <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: ${day.iso === today ? 'rgb(249, 164, 94)' : 'rgb(122, 122, 130)'};">${day.name}</span>
-                <span style="${MONO} font-size: 10px; color: rgb(122, 122, 130);">${dateShort(day.d)} · ${count}</span>
-              </div>
-              <div style="display: flex; flex-direction: column; min-width: 0px;">
-                <div style="overflow-x: auto;">
-                  <div style="display: flex; align-items: flex-end; gap: 4px; height: 178px; padding: 0px 12px; min-width: max-content;">
-                    ${books.length ? books.map((e, k) => bookHtml(e, k, day.short)).join('') : '<span style="align-self: center; font-size: 11.5px; color: rgb(92, 92, 99);">Aucun livre à cette force ce jour-là.</span>'}
-                  </div>
-                </div>
-                <div aria-hidden="true" style="height: 10px; border-radius: 2px; background: linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)); border-top: 1px solid rgba(255, 255, 255, 0.3); box-shadow: rgba(0, 0, 0, 0.6) 0px 12px 26px;"></div>
-              </div>
-            </div>`;
-    }).join('');
+      if (!books.length) return;
+      const first = !parts.length;
+      parts.push(`
+            <span class="c2-slot c2-slot--day${first ? ' is-first' : ''}${day.iso === today ? ' is-today' : ''}" aria-hidden="true"><span class="c2-shelf__day"><i>${day.name} ${day.d.getDate()}</i></span></span>`);
+      books.forEach((e, k) => parts.push(`<span class="c2-slot">${bookHtml(e, k, day.short)}</span>`));
+    });
+    $('c2CalShelf').innerHTML = parts.length
+      ? `<div class="c2-lib" style="--sh:${SHELF_H}px; --pl:${PLANK}px;">${parts.join('')}<span class="c2-slot c2-slot--fill" aria-hidden="true"></span></div>`
+      : '<p style="margin: 0px; padding: 40px 0px; text-align: center; font-size: 12px; color: rgb(92, 92, 99);">Aucun livre à cette force cette semaine.</p>';
   }
 
   // Livre ouvert : la fiche de l'annonce (chiffres du calendrier, effet sur la paire, publications passées)
@@ -355,7 +362,7 @@
       .map((x) => { const a = num(x.actual), c = num(x.consensus); return { d: new Date(x.date + 'T12:00:00'), v: a == null || c == null ? null : a - c }; })
       .filter((x) => x.v != null);
   }
-  const LABEL = 'font-family: \'JetBrains Mono\', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);';
+  const LABEL = 'font-family: \'Fragment Mono\', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);';
   function paintBook() {
     const box = $('c2CalBook');
     const lib = libraryEvents();
@@ -475,6 +482,7 @@
   document.addEventListener('click', (e) => {
     const imp = e.target.closest('#c2CalStars [data-imp]');
     if (imp) { C().toggleImportance(imp.dataset.imp); return; }
+    if (e.target.closest('#c2CalWeekMore')) { const top = $('c2CalWeek').getBoundingClientRect().top; weekOpen = !weekOpen; paintWeek(); if (!weekOpen && top < 0) $('c2CalWeek').scrollIntoView({ block: 'start' }); return; }
     if (e.target.closest('#c2CalBook [data-close]')) { open = null; paintWeek(); paintShelf(); paintBook(); return; }
     const o = e.target.closest('#calMain [data-open]');
     if (o) choose(o.dataset.open);

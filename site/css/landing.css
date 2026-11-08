@@ -5,7 +5,7 @@ body{ margin:0; background:#050505; }
 a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 .pg{ --bg:#050505; --ink:#f6f6f7; --ink2:#a3a3aa; --ink3:#8a8a92; --rule:rgba(255,255,255,.08); --rule2:rgba(255,255,255,.14);
   --green:#33e6a6; --red:#ff5468; --teal:#2be4c0; --grad:linear-gradient(120deg,var(--acc),var(--acc2));
-  --ease:cubic-bezier(.16,1,.3,1); --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --serif:"Instrument Serif",Georgia,"Times New Roman",serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --ease:cubic-bezier(.16,1,.3,1); --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --serif:"Instrument Serif",Georgia,"Times New Roman",serif; --mono:"Fragment Mono",ui-monospace,Menlo,monospace;
   position:relative; overflow:hidden; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; -webkit-font-smoothing:antialiased; }
 .pg *{ box-sizing:border-box; }
 .pg img{ display:block; max-width:100%; }
@@ -972,7 +972,7 @@ a{ color:#f6f6f7; } a:hover{ color:#ffffff; }
 .asc{ position:fixed; z-index:0; left:0; right:0; bottom:0; height:min(62vh, 560px); overflow:hidden; visibility:hidden; background:#050505;
   -webkit-mask-image:linear-gradient(transparent, #000 14%); mask-image:linear-gradient(transparent, #000 14%); }
 .asc.is-on{ visibility:visible; }
-.asc pre{ position:absolute; inset:0; margin:0; font:500 11px/12px ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace; letter-spacing:0; white-space:pre; overflow:hidden; text-align:left; user-select:none; }
+.asc pre{ position:absolute; inset:0; margin:0; font:500 11px/12px ui-monospace, "SF Mono", "Fragment Mono", Menlo, monospace; letter-spacing:0; white-space:pre; overflow:hidden; text-align:left; user-select:none; }
 .asc-f{ color:rgba(255,255,255,.09); }
 .asc-m{ background:linear-gradient(90deg, #fc1283, #ff5b6e 45%, #f9a45e); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; filter:drop-shadow(0 0 18px rgba(252,18,131,.35)); }
 

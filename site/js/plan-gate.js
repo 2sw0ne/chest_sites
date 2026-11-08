@@ -15,7 +15,7 @@
   .pg-ic{ width:66px; height:66px; margin:0 auto 16px; border-radius:20px; display:flex; align-items:center; justify-content:center; color:#fff;
     background:linear-gradient(135deg,#ffb36b,#ff3d1f); box-shadow:0 16px 44px rgba(255,92,40,.45), inset 0 1px 0 rgba(255,255,255,.35); }
   .pg-ic svg{ width:22px; height:22px; }
-  .pg-k{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:#ffb36b; }
+  .pg-k{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:#ffb36b; }
   .pg-card h2{ margin:10px 0 8px; font-size:24px; line-height:1.18; font-weight:700; letter-spacing:-.035em; }
   .pg-card p{ margin:0 auto 22px; max-width:360px; font-size:13.5px; line-height:1.65; color:#9b9ba1; }
   .pg-pts{ list-style:none; display:flex; flex-direction:column; gap:6px; margin:0 0 20px; padding:0; text-align:left; }

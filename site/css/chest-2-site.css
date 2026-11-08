@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fragment+Mono&display=swap');
 /* =====================================================================
    CHEST 2.0 — branchement du socle sur le site (2026-11-02).
    Chargé après css/chest-da-2.css (copie de CHEST-DESIGN-2.0/css/chest-da-2.css,
@@ -145,7 +145,7 @@ html.is-embedded body[data-page="school"] .chest-main > main{ width:100%; max-wi
 #chestShell .chest-maint__ic::after{ content:''; position:absolute; inset:-13px; border-radius:999px; border:2px solid transparent; border-top-color:#ff8a5c; border-right-color:#fc1283;
   animation:c2MaintSpin 2.4s linear infinite; }
 @keyframes c2MaintSpin{ to{ transform:rotate(360deg); } }
-#chestShell .chest-maint__k{ font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82; margin-top:22px; }
+#chestShell .chest-maint__k{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:#7a7a82; margin-top:22px; }
 #chestShell .chest-maint__t{ font-size:30px; letter-spacing:-.035em; }
 #chestShell .chest-maint__pills{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:18px 0 20px; }
 #chestShell .chest-maint__pills span{ padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600; }

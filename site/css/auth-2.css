@@ -15,7 +15,7 @@
 
 /* étiquettes au-dessus des champs */
 .auth-card .auth-field{ margin-top:24px; }
-.auth-card .auth-field::before{ position:absolute; left:2px; top:-19px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; }
+.auth-card .auth-field::before{ position:absolute; left:2px; top:-19px; font-family:'Fragment Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7a82; }
 .auth-card .auth-field:has(#email)::before{ content:'E-mail'; }
 .auth-card .auth-field:has(#password)::before{ content:'Mot de passe'; }
 .auth-card .auth-field:has(#firstName)::before{ content:'Prénom'; }

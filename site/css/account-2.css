@@ -29,5 +29,5 @@ body[data-page="account"] .acc-del__form[hidden]{ display:none !important; }
 .acc-notifs__it{ display:grid; grid-template-columns:1fr auto; gap:2px 12px; padding:9px 10px; border-radius:10px; font-size:12.5px; }
 .acc-notifs__it.is-new{ background:rgba(252,18,131,.06); }
 .acc-notifs__it b{ font-weight:600; } .acc-notifs__it span{ grid-column:1; color:#9b9ba1; font-size:12px; }
-.acc-notifs__it time{ grid-column:2; grid-row:1; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:10px; color:#7a7a82; }
+.acc-notifs__it time{ grid-column:2; grid-row:1; font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; color:#7a7a82; }
 .acc-notifs__empty{ margin:0; padding:10px; font-size:12.5px; color:#7a7a82; }
