@@ -53,3 +53,5 @@ comparaison/
 
 # Adresse du webhook BERICH avec sa clé secrète (2026-11-05) - jamais dans le dépôt public
 berich-bridge/WEBHOOK_URL.local.txt
+# Scripts Pine (jamais dans le dépôt public)
+*.local.pine

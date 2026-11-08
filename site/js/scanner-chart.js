@@ -288,6 +288,7 @@
       { key: 'lines', label: 'Lignes des niveaux', hint: 'Pivots, extensions, S0 / R8', def: true, lines: everything },
       { key: 'tags', label: 'Étiquettes des niveaux', def: true, labels: textIs(/^(R|S|P|\+|-)\S*( \(Weekly\))?$/) },
       { key: 'zones', label: 'Zones R8 / S0', def: true, boxes: everything },
+      { key: 'rsi', label: 'RSI Pivot', hint: 'Panneau du bas', def: true, pane: true },
     ],
     harmonics: [
       { key: 'pattern', label: 'Figure X A B C D', def: true, polylines: everything, lines: (el) => !flat(el), labels: textIs(/^[XABCD]$/) },
@@ -338,9 +339,6 @@
   // Indicateurs ajoutables : proposés seulement s'ils ne font pas déjà partie du script du scanner.
   const ADDONS = [
     { key: 'ichimoku', label: 'Nuage Ichimoku', hint: 'Leading Span A / B', def: false },
-    { key: 'rsi', label: 'RSI', hint: '14', def: false, native: 'rsi' },
-    { key: 'macd', label: 'MACD', hint: '12 · 26 · 9', def: false, native: 'macd' },
-    { key: 'stoch', label: 'Stochastique', hint: '14 · 1 · 3', def: false, native: 'stochastic' },
   ];
   // Déjà présents dans le script : RSI (Pulse, Pivot), MACD (panneau « MACD BLOOD », Wolf Attack de Wolfx).
   const NATIVE_ADDONS = { pulse: ['rsi'], pivot: ['rsi'], blood: ['macd'], wolfx: ['macd'] };
@@ -452,6 +450,8 @@
       try { localStorage.setItem(VISUALS_KEY, JSON.stringify(all)); } catch (e) { /* sans stockage */ }
       if (!live || live.scannerId !== scannerId) return;
       const rule = (VISUAL_RULES[scannerId] || []).find((r) => r.key === key);
+      // Panneau entier du script (RSI de Pivot) : affiché / masqué tel quel.
+      if (rule && rule.pane) { live.handles.forEach((h, i) => { if (live.models[i] && !live.models[i].overlay) { try { h.setVisible(!!on); } catch (e) { /* tant pis */ } } }); return; }
       // Seul le calque qui contient l'élément est redessiné (les autres panneaux ne clignotent pas).
       if (rule) live.handles.forEach((h, i) => { if (touches(live.models[i], rule)) queueRerun(h); });
       else applyAddons();
@@ -470,11 +470,13 @@
   // ---- Mode distant (2026-10-06) : le script Pine ne vit pas dans le navigateur. Le serveur de
   // comptes relaie le modèle calculé par le service de calcul (bougies + sorties de chaque script).
   // Vela affiche ces sorties à l'identique via un moteur qui lit le modèle au lieu d'exécuter le code.
-  function remoteEngine(models, scannerId, bars) {
+  function remoteEngine(models, scannerId, bars, extra) {
     return class {
       language = 'pine';
       capabilities = { streaming: false, visibleRange: false, inputs: false, props: false };
       async prepare(source, instanceId) {
+        const ext = (source.match(/\/\/extra:(\w+)/) || [])[1];
+        if (ext && extra[ext]) return { language: 'pine', inputs: [], props: undefined, meta: { title: extra[ext].title || 'RSI Pivot', overlay: false }, reactsToViewport: false, token: { instanceId, ext } };
         const addon = (source.match(/\/\/addon:(\w+)/) || [])[1];
         if (addon) return { language: 'pine', inputs: [], props: undefined, meta: { title: 'Ichimoku', overlay: true }, reactsToViewport: false, token: { instanceId, addon } };
         const idx = Number((source.match(/\/\/idx:(\d+)/) || [])[1] || 0);
@@ -484,7 +486,7 @@
       execute(req, handlers) {
         const tok = req.prepared.token;
         // Le filtre est relu à chaque exécution : masquer/afficher un élément = relancer l'indicateur.
-        const model = tok.addon === 'ichimoku' ? ichimokuModel(bars) : filterModel(models[tok.idx], scannerId);
+        const model = tok.ext ? extra[tok.ext] : tok.addon === 'ichimoku' ? ichimokuModel(bars) : filterModel(models[tok.idx], scannerId);
         setTimeout(() => { handlers.onModel(model); handlers.onDone && handlers.onDone(); }, 0);
         return { stop() {}, update() {}, setVisibleRange() {}, notifyBars() {} };
       }
@@ -527,13 +529,19 @@
       drawings: true,
       volume: false, // légende "Volume 0.00" jamais utile ici (pas de vraie donnée de volume)
     });
-    chart.registerEngine('pine', new (remoteEngine(body.models, scannerId, bars))());
+    const extra = {};
+    chart.registerEngine('pine', new (remoteEngine(body.models, scannerId, bars, extra))());
     const handles = [];
     for (let i = 0; i < body.models.length; i++) {
       handles.push(await chart.addIndicator(`//@version=5\n//idx:${i}\nindicator("remote-${i}")`));
     }
-    live = { chart, scannerId, bars, models: body.models, handles, addons: {} };
+    live = { chart, scannerId, bars, models: body.models, handles, addons: {}, extra, user: [], symbol: symbolDisplay, tf: timeframe };
+    // RSI de Pivot masqué par le membre : son panneau ne s'affiche pas.
+    const paneRule = (VISUAL_RULES[scannerId] || []).find((r) => r.pane);
+    if (paneRule && !visualOn(scannerId, paneRule)) handles.forEach((h, i) => { if (body.models[i] && !body.models[i].overlay) { try { h.setVisible(false); } catch (e) { /* tant pis */ } } });
     await applyAddons();
+    await userInd.restore();
+    keepDrawings(chart, scannerId, symbolDisplay, timeframe);
     // heure de Paris (DST géré automatiquement) : s'applique via applyConfig, pas via les options du constructeur
     try { chart.renderer.applyConfig({ candles: candles || DEFAULT_CANDLES, timeScale: { timezone: 'Europe/Paris' } }); } catch (e) { console.warn('Scanner: couleurs de bougies non appliquees', e); }
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -615,24 +623,136 @@
     showLastBars(chart, candleData, 150);
     if (fixedScale) freezeScaleToCandles(chart, candleData.slice(-150));
 
-    // ---- Restauration + sauvegarde automatique des dessins ----
-    if (scannerId) {
-      const storeKey = drawingsStoreKey(scannerId, symbolDisplay, timeframe);
-      const saved = loadAllDrawings()[storeKey];
-      if (saved) { try { chart.drawings.fromJSON(saved); } catch (e) { console.warn('Scanner: restauration des dessins impossible', e); } }
-
-      let saveTimer = null;
-      const scheduleSave = () => {
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => saveDrawingsFor(storeKey, chart.drawings.toJSON()), 400);
-      };
-      chart.on('drawing:created', scheduleSave);
-      chart.on('drawing:edited', scheduleSave);
-      chart.on('drawing:removed', scheduleSave);
-    }
-
+    keepDrawings(chart, scannerId, symbolDisplay, timeframe);
     return chart;
   }
 
-  window.CHESTScannerChart = { render, visuals };
+  // ---- Restauration + sauvegarde automatique des dessins (mode local ET distant depuis le 2026-11-08 : en distant,
+  // celui de la production, les dessins disparaissaient au changement de page) ----
+  function keepDrawings(chart, scannerId, symbolDisplay, timeframe) {
+    if (!scannerId) return;
+    const storeKey = drawingsStoreKey(scannerId, symbolDisplay, timeframe);
+    const saved = loadAllDrawings()[storeKey];
+    if (saved) { try { chart.drawings.fromJSON(saved); } catch (e) { console.warn('Scanner: restauration des dessins impossible', e); } }
+    let saveTimer = null;
+    const scheduleSave = () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveDrawingsFor(storeKey, chart.drawings.toJSON()), 400);
+    };
+    chart.on('drawing:created', scheduleSave);
+    chart.on('drawing:edited', scheduleSave);
+    chart.on('drawing:removed', scheduleSave);
+  }
+
+  // ---- Indicateurs ajoutés par le membre (2026-11-08, « comme les indicateurs TradingView ») ----
+  // Catalogue complet de Vela (76 indicateurs natifs, chacun avec ses réglages : longueurs, couleurs…) + le RSI de
+  // Pivot, ajoutable sur tous les scanners. La liste et les réglages sont gardés pour la prochaine visite (tous
+  // scanners confondus, comme TradingView). Les indicateurs des scanners restent verrouillés.
+  const USER_IND_KEY = 'chest_chart_indicators';
+  const userInd = (() => {
+    const read = () => { try { const v = JSON.parse(localStorage.getItem(USER_IND_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+    const write = (v) => { try { localStorage.setItem(USER_IND_KEY, JSON.stringify(v)); } catch (e) { /* sans stockage */ } };
+    const listeners = new Set();
+    const emit = () => listeners.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
+    let lastSnap = '';
+    function snapshot() {
+      if (!live || !live.userReady) return; // jamais pendant la restauration (sinon une liste partielle écrasait la vraie)
+      const v = live.user.map((u) => {
+        let inputs = null; try { inputs = u.h && u.h.inputValues ? u.h.inputValues() : null; } catch (e) { inputs = null; }
+        return { type: u.type, inputs, hidden: !!(u.h && u.h.visible === false) };
+      });
+      const j = JSON.stringify(v);
+      if (j !== lastSnap) { lastSnap = j; write(v); }
+    }
+    setInterval(snapshot, 3000);
+    window.addEventListener('pagehide', snapshot);
+    async function pivotPanes() {
+      if (!live) return [];
+      const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
+      const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
+      const qs = new URLSearchParams({ script: 'pivot', symbol: live.symbol, tf: live.tf });
+      const res = await fetch(`${base}/scanners/model?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+      const body = await res.json();
+      return (body.models || []).filter((m) => m && !m.overlay);
+    }
+    async function addOne(type, inputs, hidden) {
+      const cur = live;
+      if (!cur) return null;
+      let h = null;
+      if (type === 'pivotrsi') {
+        if (cur.scannerId === 'pivot') { visuals.set('pivot', 'rsi', true); return null; } // déjà dans le script
+        const panes = await pivotPanes();
+        if (!panes.length || cur !== live) return null;
+        const k = 'p' + Object.keys(cur.extra).length;
+        cur.extra[k] = Object.assign({}, panes[0], { title: 'RSI Pivot' });
+        h = await cur.chart.addIndicator('//@version=5\n//extra:' + k + '\nindicator("RSI Pivot")');
+      } else {
+        h = cur.chart.addNativeIndicator(type, inputs && Object.keys(inputs).length ? { inputs } : undefined);
+      }
+      if (!h || cur !== live) return null;
+      if (hidden) { try { h.setVisible(false); } catch (e) { /* tant pis */ } }
+      cur.user.push({ type, h });
+      legend();
+      return h;
+    }
+    // Ligne de légende de chaque indicateur ajouté : réglages, masquer / afficher, retirer.
+    function legend() {
+      if (!live) return;
+      const cur = live;
+      try {
+        cur.chart.renderer.setLegendActions((id) => {
+          const u = cur.user.find((x) => x.h && x.h.id === id);
+          if (!u) return [];
+          const out = [];
+          if (u.type !== 'pivotrsi') out.push({ id: 'cfg', icon: 'pen', tooltip: 'Réglages', run: () => api.settings(id) });
+          out.push({ id: 'eye', icon: u.h.visible === false ? 'eye-off' : 'eye', tooltip: u.h.visible === false ? 'Afficher' : 'Masquer', run: () => api.toggle(id) });
+          out.push({ id: 'del', icon: 'trash', tooltip: 'Retirer', run: () => api.remove(id) });
+          return out;
+        });
+      } catch (e) { console.warn('Scanner: actions de légende indisponibles', e); }
+      emit();
+    }
+    const api = {
+      async catalog() { return live ? live.chart.availableNativeIndicators() : []; },
+      list() {
+        if (!live) return [];
+        const out = live.user.map((u) => ({ id: u.h.id, type: u.type, title: u.type === 'pivotrsi' ? 'RSI Pivot' : u.h.title, visible: u.h.visible !== false }));
+        if (live.scannerId === 'pivot' && visualOn('pivot', VISUAL_RULES.pivot.find((r) => r.pane))) out.unshift({ id: 'pivot-own-rsi', type: 'pivotrsi', title: 'RSI Pivot (dans le scanner)', visible: true, own: true });
+        return out;
+      },
+      async add(type) { const h = await addOne(type); if (live) live.userReady = true; snapshot(); emit(); return h; },
+      remove(id) {
+        if (id === 'pivot-own-rsi') { visuals.set('pivot', 'rsi', false); emit(); return; }
+        if (!live) return;
+        const i = live.user.findIndex((x) => x.h && x.h.id === id);
+        if (i < 0) return;
+        try { live.user[i].h.remove(); } catch (e) { /* déjà retiré */ }
+        live.user.splice(i, 1);
+        snapshot(); legend();
+      },
+      toggle(id) {
+        const u = live && live.user.find((x) => x.h && x.h.id === id);
+        if (!u) return;
+        try { u.h.setVisible(u.h.visible === false); } catch (e) { /* tant pis */ }
+        snapshot(); legend();
+      },
+      settings(id) { try { live.chart.renderer.openIndicatorSettings(id); } catch (e) { console.warn('Scanner: réglages indisponibles', e); } },
+      async restore() {
+        const cur = live, saved = read();
+        if (!cur) return;
+        for (const it of saved) {
+          if (cur !== live) return; // graphique remplacé entre-temps (le graphique se dessine parfois deux fois au chargement)
+          try { await addOne(it.type, it.inputs, it.hidden); } catch (e) { console.warn('Scanner: indicateur non rétabli', it.type, e); }
+        }
+        if (cur !== live) return;
+        cur.userReady = true;
+        lastSnap = JSON.stringify(saved);
+        legend();
+      },
+      onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+    };
+    return api;
+  })();
+
+  window.CHESTScannerChart = { render, visuals, indicators: userInd, current: () => live };
 })();
