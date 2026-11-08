@@ -111,14 +111,14 @@
     const tabs = others.map((o) => `
           <button type="button" role="tab" data-acc="${esc(o.a.id)}" aria-selected="${o.a.id === acc.id}" style="position: relative; padding: 8px 0px; border: 0px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: ${o.a.id === acc.id ? 'rgb(246, 246, 247)' : 'rgb(122, 122, 130)'}; cursor: pointer;">
             ${esc(o.a.name || 'Journal')}
-            <span aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.55) 0px 0px 10px; opacity: ${o.a.id === acc.id ? 1 : 0};"></span>
+            <span aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.55) 0px 0px 10px; opacity: ${o.a.id === acc.id ? 1 : 0};"></span>
           </button>`).join('');
     const legend = legendHtml(acc, others, M);
     $('jr2Hero').innerHTML = `
-      <div aria-hidden="true" style="position: absolute; left: 50%; top: 0px; width: 900px; height: 520px; margin-left: -450px; z-index: -2; pointer-events: none; filter: blur(100px); background: radial-gradient(40% 46% at 42% 42%, rgba(51, 230, 166, 0.16), transparent 72%), radial-gradient(34% 40% at 64% 36%, rgba(252, 18, 131, 0.12), transparent 74%);"></div>
+      <div aria-hidden="true" style="position: absolute; left: 50%; top: 0px; width: 900px; height: 520px; margin-left: -450px; z-index: -2; pointer-events: none; filter: blur(100px); background: radial-gradient(40% 46% at 42% 42%, rgba(51, 230, 166, 0.16), transparent 72%), radial-gradient(34% 40% at 64% 36%, rgba(var(--a1-rgb, 252, 18, 131), 0.12), transparent 74%);"></div>
       <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 16px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 78%) text; color: transparent;">Journal</div>
       <div role="tablist" aria-label="Tes journaux" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 24px;">${tabs}
-        <button type="button" data-jr2="new" style="padding: 8px 0px; border: 0px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(249, 164, 94); cursor: pointer;">+ Nouveau journal</button>
+        <button type="button" data-jr2="new" style="padding: 8px 0px; border: 0px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(var(--a2-rgb, 249, 164, 94)); cursor: pointer;">+ Nouveau journal</button>
       </div>
       <h1 style="margin: 18px 0px 0px; font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -0.05em;">${esc(acc.name || 'Journal')}</h1>
       <div style="margin-top: 8px; font-size: 13px; color: rgb(155, 155, 161);">${esc(state.subtitle)}</div>
@@ -126,7 +126,7 @@
       <div style="margin-top: 12px; font-size: 100px; line-height: 0.98; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; background: ${grad}; color: transparent; filter: drop-shadow(${glow} 0px 0px 36px);">${money(tot, 2)}</div>
       <p style="max-width: 520px; margin: 12px auto 0px; font-size: 13px; line-height: 1.6; color: rgb(155, 155, 161);">${esc(bits.join(' · '))}</p>
       <div style="margin-top: 24px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-        ${$('jrAddBtn') && !$('jrAddBtn').hidden ? `<button type="button" data-jr2="add" style="display: flex; align-items: center; height: 44px; padding: 0px 22px; border-radius: 999px; border: 0px; color: rgb(255, 255, 255); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.3) 0px 10px 30px;">+ Ajouter un trade</button>` : ''}
+        ${$('jrAddBtn') && !$('jrAddBtn').hidden ? `<button type="button" data-jr2="add" style="display: flex; align-items: center; height: 44px; padding: 0px 22px; border-radius: 999px; border: 0px; color: rgb(255, 255, 255); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.3) 0px 10px 30px;">+ Ajouter un trade</button>` : ''}
         <button type="button" class="btn2" data-jr2="edit" style="display: flex; align-items: center; height: 44px; padding: 0px 20px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.14)) border-box border-box; color: rgb(246, 246, 247); font: inherit; font-weight: 600; cursor: pointer;">Modifier ce compte</button>
       </div>
       <div id="jr2Legend" style="margin: 28px auto 0px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px;">${legend}
@@ -193,7 +193,7 @@
     if (R.profitTargetPct) {
       const goal = bal * R.profitTargetPct / 100, done = total / bal * 100;
       items.push(row(`Objectif de profit ${fmtP(R.profitTargetPct)} %`, total >= goal ? `${pct(done)} atteint · objectif validé` : `${pct(done)} atteint · encore ${nf(goal - total, 0)} $`,
-        total / goal, 'linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94))', total >= goal ? 'ok' : 'wait'));
+        total / goal, 'linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)))', total >= goal ? 'ok' : 'wait'));
     }
     if (R.dailyLossPct) {
       const lim = bal * R.dailyLossPct / 100;

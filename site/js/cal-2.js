@@ -229,7 +229,7 @@
                   <span style="font-size: 11px; color: rgb(122, 122, 130);">${e.released ? 'Réel' : 'Prévu'}</span>
                   <span style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">${esc((e.released ? e.actual : e.consensus) || '—')}</span>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(249, 164, 94, 0.5);">
+                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(var(--a2-rgb, 249, 164, 94), 0.5);">
                   <span style="font-size: 11px; color: rgb(122, 122, 130);">Précédent</span>
                   <span style="font-size: 17px; font-weight: 600; color: rgb(155, 155, 161); font-variant-numeric: tabular-nums; padding-top: 5px;">${esc(e.previous || '—')}</span>
                 </div>
@@ -275,8 +275,8 @@
           nowPlaced = true;
           nowLine = `
                       <div style="display: flex; align-items: center; gap: 6px; padding: 4px 6px;">
-                        <span style="${MONO} font-size: 9.5px; color: rgb(252, 18, 131);">${hm}</span>
-                        <span style="flex: 1 1 0%; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.8) 0px 0px 10px;"></span>
+                        <span style="${MONO} font-size: 9.5px; color: rgb(var(--a1-rgb, 252, 18, 131));">${hm}</span>
+                        <span style="flex: 1 1 0%; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.8) 0px 0px 10px;"></span>
                       </div>`;
         }
         const past = day.iso < today || (isToday && String(e.time) < hm);
@@ -292,15 +292,15 @@
                   </div>`;
       }).join('') + (nowPlaced || !evs.length ? '' : `
                   <div style="display: flex; align-items: center; gap: 6px; padding: 4px 6px;">
-                    <span style="${MONO} font-size: 9.5px; color: rgb(252, 18, 131);">${hm}</span>
-                    <span style="flex: 1 1 0%; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.8) 0px 0px 10px;"></span>
+                    <span style="${MONO} font-size: 9.5px; color: rgb(var(--a1-rgb, 252, 18, 131));">${hm}</span>
+                    <span style="flex: 1 1 0%; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.8) 0px 0px 10px;"></span>
                   </div>`);
       return `
-              <div style="position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 300px; padding: 16px 10px; border-left: ${di === 0 ? '0px' : '1px solid rgba(255, 255, 255, 0.06)'}; background: ${isToday ? 'linear-gradient(rgba(252, 18, 131, 0.07), rgba(249, 164, 94, 0.02) 60%, transparent)' : 'transparent'};">
+              <div style="position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 300px; padding: 16px 10px; border-left: ${di === 0 ? '0px' : '1px solid rgba(255, 255, 255, 0.06)'}; background: ${isToday ? 'linear-gradient(rgba(var(--a1-rgb, 252, 18, 131), 0.07), rgba(var(--a2-rgb, 249, 164, 94), 0.02) 60%, transparent)' : 'transparent'};">
                 <div style="display: flex; align-items: baseline; gap: 8px; padding: 0px 6px 10px;">
                   <span style="font-size: 13px; font-weight: 700; color: ${isToday ? 'rgb(246, 246, 247)' : 'rgb(201, 201, 206)'};">${day.name}</span>
                   <span style="${MONO} font-size: 11px; color: rgb(122, 122, 130);">${dateShort(day.d)}</span>
-                  ${isToday ? `<span style="margin-left: auto; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); padding: 2px 7px; border-radius: 999px;">Aujourd'hui</span>` : ''}
+                  ${isToday ? `<span style="margin-left: auto; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); padding: 2px 7px; border-radius: 999px;">Aujourd'hui</span>` : ''}
                 </div>${rows || `
                 <span style="padding: 8px 6px; font-size: 11.5px; color: rgb(92, 92, 99);">Rien à cette force.</span>`}
               </div>`;
@@ -319,8 +319,8 @@
     const w = n === 3 ? 48 : n === 2 ? 32 : 22;
     const h = [0, 128, 146, 168][n] - (k % 2) * 8;
     const bg = n === 3 ? 'linear-gradient(rgb(61, 13, 39) 0%, rgb(42, 15, 31) 45%, rgb(43, 24, 16) 100%)' : n === 2 ? 'linear-gradient(rgb(43, 35, 18), rgb(28, 23, 13))' : 'linear-gradient(rgb(27, 27, 32), rgb(20, 20, 24))';
-    const band = n === 3 ? 'linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94))' : n === 2 ? 'rgba(232, 179, 57, 0.7)' : 'rgba(255, 255, 255, 0.18)';
-    const shadow = isOpen ? 'rgba(249, 164, 94, 0.7) 0px 0px 0px 1px, rgba(252, 18, 131, 0.35) 0px 18px 40px' : n === 3 ? 'rgba(252, 18, 131, 0.22) 0px 0px 0px 1px, rgba(252, 18, 131, 0.12) 0px 10px 26px' : 'rgba(255, 255, 255, 0.06) 0px 0px 0px 1px';
+    const band = n === 3 ? 'linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)))' : n === 2 ? 'rgba(232, 179, 57, 0.7)' : 'rgba(255, 255, 255, 0.18)';
+    const shadow = isOpen ? 'rgba(var(--a2-rgb, 249, 164, 94), 0.7) 0px 0px 0px 1px, rgba(var(--a1-rgb, 252, 18, 131), 0.35) 0px 18px 40px' : n === 3 ? 'rgba(var(--a1-rgb, 252, 18, 131), 0.22) 0px 0px 0px 1px, rgba(var(--a1-rgb, 252, 18, 131), 0.12) 0px 10px 26px' : 'rgba(255, 255, 255, 0.06) 0px 0px 0px 1px';
     return `
                       <button type="button" class="book" data-open="${esc(id)}" aria-label="Ouvrir : ${esc(shortName(e))}, ${dayShort} ${esc(e.time || '')}" aria-pressed="${isOpen}" style="position: relative; width: ${w}px; height: ${h}px; padding: 0px; border: 0px; border-radius: 4px 4px 2px 2px; cursor: pointer; color: rgb(246, 246, 247); font: inherit; background: ${bg}; box-shadow: ${shadow}; transform: ${isOpen ? 'translateY(-22px)' : 'none'}; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden;">
                         <span aria-hidden="true" style="position: absolute; inset: 0px; background: linear-gradient(90deg, rgba(0, 0, 0, 0.45), rgba(255, 255, 255, 0.07) 22%, transparent 45%, transparent 70%, rgba(0, 0, 0, 0.5));"></span>
@@ -417,7 +417,7 @@
                   <span style="font-size: 11.5px; color: rgb(122, 122, 130);">Prévu</span>
                   <span style="font-size: 32px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums;">${esc(e.consensus || '—')}</span>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 6px; padding: 0px 16px; border-left: 1px solid rgba(249, 164, 94, 0.5);">
+                <div style="display: flex; flex-direction: column; gap: 6px; padding: 0px 16px; border-left: 1px solid rgba(var(--a2-rgb, 249, 164, 94), 0.5);">
                   <span style="font-size: 11.5px; color: rgb(122, 122, 130);">Réel</span>
                   <span style="font-size: 32px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: ${reel === '—' ? 'rgb(92, 92, 99)' : 'rgb(246, 246, 247)'};">${esc(reel)}</span>
                 </div>

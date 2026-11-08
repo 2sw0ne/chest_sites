@@ -14,10 +14,10 @@
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=19">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
+<link rel="stylesheet" href="css/tokens.css?v=3">
+<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/chest-da.css?v=20">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : une regle de classe qui fixe elle-meme `display`
@@ -131,7 +131,7 @@
     cursor:pointer; font:inherit; font-size:10.5px; font-weight:600; color:var(--ink); text-align:center; transition:.15s;
   }
   .broker-card-sm:hover{ border-color:var(--acc); }
-  .broker-card-sm.is-selected{ border-color:var(--acc); background:rgba(252,18,131,.06); }
+  .broker-card-sm.is-selected{ border-color:var(--acc); background:rgba(var(--a1-rgb, 252, 18, 131),.06); }
   .broker-card-sm img{ width:22px; height:22px; border-radius:5px; }
   .broker-card-sm__icon{ width:22px; height:22px; border-radius:5px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; font-size:11px; }
 
@@ -195,7 +195,7 @@
     cursor:pointer; font:inherit; color:var(--ink); text-align:left; width:100%; transition:.15s;
   }
   .mfx-account-row:hover{ border-color:var(--acc); }
-  .mfx-account-row.is-selected{ border-color:var(--acc); background:rgba(252,18,131,.06); }
+  .mfx-account-row.is-selected{ border-color:var(--acc); background:rgba(var(--a1-rgb, 252, 18, 131),.06); }
   .mfx-account-row strong{ display:block; font-size:13px; }
   .mfx-account-row span{ display:block; font-size:11px; color:var(--muted); }
   .mfx-account-row b{ font-size:13px; font-variant-numeric:tabular-nums; }
@@ -448,7 +448,7 @@
   .sesstl-vibe{ display:flex; align-items:center; gap:7px; font-size:12.5px; margin-top:14px; }
   .sesstl-vibe__dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
   .sesstl-vibe__dot.level-high{ background:var(--red); box-shadow:0 0 0 3px rgba(255,77,94,.18); }
-  .sesstl-vibe__dot.level-medium{ background:var(--acc2); box-shadow:0 0 0 3px rgba(249,164,94,.18); }
+  .sesstl-vibe__dot.level-medium{ background:var(--acc2); box-shadow:0 0 0 3px rgba(var(--a2-rgb, 249, 164, 94),.18); }
   .sesstl-vibe__dot.level-low{ background:var(--green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
   .sesstl-vibe__level{ font-weight:700; color:var(--ink); }
   .sesstl-vibe__sep{ color:var(--faint); }
@@ -473,10 +473,10 @@
   .chest-root .dv2-hero::before{
     content:''; position:absolute; left:50%; top:96px; width:min(760px,92%); height:280px; transform:translateX(-50%);
     pointer-events:none; border-radius:50%; filter:blur(40px); opacity:.9; transition:background .6s var(--v2-ease);
-    background:radial-gradient(closest-side, rgba(252,18,131,.2), rgba(249,164,94,.06) 60%, transparent);
+    background:radial-gradient(closest-side, rgba(var(--a1-rgb, 252, 18, 131),.2), rgba(var(--a2-rgb, 249, 164, 94),.06) 60%, transparent);
   }
-  .chest-root .dv2-hero[data-sign="pos"]::before{ background:radial-gradient(closest-side, rgba(51,230,166,.16), rgba(252,18,131,.08) 62%, transparent); }
-  .chest-root .dv2-hero[data-sign="neg"]::before{ background:radial-gradient(closest-side, rgba(255,77,94,.17), rgba(252,18,131,.06) 62%, transparent); }
+  .chest-root .dv2-hero[data-sign="pos"]::before{ background:radial-gradient(closest-side, rgba(51,230,166,.16), rgba(var(--a1-rgb, 252, 18, 131),.08) 62%, transparent); }
+  .chest-root .dv2-hero[data-sign="neg"]::before{ background:radial-gradient(closest-side, rgba(255,77,94,.17), rgba(var(--a1-rgb, 252, 18, 131),.06) 62%, transparent); }
   .chest-root .dv2-hero__top{ display:flex; align-items:center; justify-content:center; gap:8px 16px; flex-wrap:wrap; font-size:11px; color:var(--chest-ink-3); }
   .chest-root .dv2-hero__kind{ display:inline-flex; align-items:center; gap:6px; }
   .chest-root .dv2-hero__acc{ margin-top:18px; display:flex; justify-content:center; }
@@ -486,7 +486,7 @@
     transition:border-color .2s var(--v2-ease), background-color .2s var(--v2-ease), transform .16s var(--v2-ease);
   }
   .chest-root .dv2-hero .acc-switcher__btn:active{ transform:scale(.97); }
-  @media (hover:hover) and (pointer:fine){ .chest-root .dv2-hero .acc-switcher__btn:hover{ border-color:rgba(249,164,94,.45); background:rgba(255,255,255,.055); } }
+  @media (hover:hover) and (pointer:fine){ .chest-root .dv2-hero .acc-switcher__btn:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.45); background:rgba(255,255,255,.055); } }
   .chest-root .dv2-hero .acc-switcher__btn .avatar{ border-radius:50%; }
   .chest-root .dv2-hero .acc-menu{ left:50%; transform:translateX(-50%); text-align:left; }
   .chest-root .dv2-hero__num{ margin-top:22px; }
@@ -513,7 +513,7 @@
   }
   .chest-root .dv2-hero .chest-seg > button::after{
     content:''; position:absolute; left:0; right:0; bottom:0; height:2px; border-radius:2px;
-    background:var(--chest-grad); box-shadow:0 0 10px rgba(252,18,131,.55);
+    background:var(--chest-grad); box-shadow:0 0 10px rgba(var(--a1-rgb, 252, 18, 131),.55);
     transform:scaleX(0); transition:transform .26s var(--v2-ease);
   }
   .chest-root .dv2-hero .chest-seg > button.is-active{ color:var(--chest-ink) !important; }
@@ -553,19 +553,19 @@
   .chest-root .tools-bar{
     position:relative; width:100%; display:flex; align-items:center; gap:18px; padding:18px 20px; text-align:left; cursor:pointer;
     font:inherit; color:var(--chest-ink); border-radius:18px; border:1px solid rgba(255,255,255,.1);
-    background:radial-gradient(120% 140% at 0% 0%, rgba(252,18,131,.12), transparent 55%), linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+    background:radial-gradient(120% 140% at 0% 0%, rgba(var(--a1-rgb, 252, 18, 131),.12), transparent 55%), linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 24px 50px -30px rgba(0,0,0,.8);
     transition:border-color .25s cubic-bezier(.23,1,.32,1), box-shadow .25s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1);
   }
   .chest-root .tools-bar:active{ transform:scale(.99); }
-  .chest-root .tools-bar:focus-visible{ outline:2px solid rgba(249,164,94,.85); outline-offset:3px; }
+  .chest-root .tools-bar:focus-visible{ outline:2px solid rgba(var(--a2-rgb, 249, 164, 94),.85); outline-offset:3px; }
   @media (hover:hover) and (pointer:fine){
-    .chest-root .tools-bar:hover{ border-color:rgba(249,164,94,.55); box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(249,164,94,.25), 0 0 34px rgba(252,18,131,.18); }
-    .chest-root .tools-bar:hover .tools-bar__cta{ background:var(--chest-grad); color:#fff; border-color:transparent; box-shadow:0 10px 26px rgba(252,18,131,.35); }
+    .chest-root .tools-bar:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.55); box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.25), 0 0 34px rgba(var(--a1-rgb, 252, 18, 131),.18); }
+    .chest-root .tools-bar:hover .tools-bar__cta{ background:var(--chest-grad); color:#fff; border-color:transparent; box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.35); }
   }
   .chest-root .tools-bar__ic{
     width:46px; height:46px; flex-shrink:0; border-radius:14px; display:grid; place-items:center; color:#fff;
-    background:var(--chest-grad); box-shadow:0 10px 26px rgba(252,18,131,.35), inset 0 1px 0 rgba(255,255,255,.3);
+    background:var(--chest-grad); box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(255,255,255,.3);
   }
   .chest-root .tools-bar__ic svg{ width:22px; height:22px; }
   .chest-root .tools-bar__text{ display:flex; flex-direction:column; gap:5px; min-width:0; flex:1; }
@@ -582,7 +582,7 @@
   .chest-root .tools-bar.is-open .tools-bar__open{ display:none; }
   .chest-root .tools-bar.is-open .tools-bar__close{ display:inline; }
   .chest-root .tools-bar.is-open .chev{ transform:rotate(180deg); }
-  .chest-root .tools-bar.is-open{ border-color:rgba(249,164,94,.4); }
+  .chest-root .tools-bar.is-open{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.4); }
   @media (max-width:640px){
     .chest-root .tools-bar{ flex-wrap:wrap; padding:16px; gap:14px; }
     .chest-root .tools-bar__cta{ width:100%; justify-content:center; }
@@ -593,7 +593,7 @@
   .chest-root .v2obj__bar{ flex-basis:100%; height:5px; border-radius:5px; background:rgba(255,255,255,.06); overflow:hidden; }
   .chest-root .v2obj__bar i{ display:block; height:100%; border-radius:inherit; transform-origin:left; transform:scaleX(var(--p)); animation:v2objIn 1s cubic-bezier(.23,1,.32,1) both; }
   @keyframes v2objIn{ from{ transform:scaleX(0); } }
-  .chest-root .v2obj__bar.is-progress i{ background:linear-gradient(90deg, rgba(252,18,131,.7), #f9a45e); box-shadow:0 0 12px rgba(249,164,94,.5); }
+  .chest-root .v2obj__bar.is-progress i{ background:linear-gradient(90deg, rgba(var(--a1-rgb, 252, 18, 131),.7), var(--a2, #f9a45e)); box-shadow:0 0 12px rgba(var(--a2-rgb, 249, 164, 94),.5); }
   .chest-root .v2obj__bar.is-done i{ background:linear-gradient(90deg, #1fbd88, #33e6a6); box-shadow:0 0 12px rgba(51,230,166,.55); }
   .chest-root .v2obj__bar.is-safe i{ background:linear-gradient(90deg, rgba(51,230,166,.5), #33e6a6); }
   .chest-root .v2obj__bar.is-warn i{ background:linear-gradient(90deg, #e8b339, #f4d07a); box-shadow:0 0 12px rgba(232,179,57,.5); }
@@ -607,18 +607,18 @@
     mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 94%) !important; -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 94%) !important; }
   .chest-root .mini-cal__cell.is-future{ opacity:.35; background:transparent !important; border-style:dashed; }
 </style>
-<script src="js/theme.js?v=5"></script>
+<script src="js/theme.js?v=6"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/sync-store.js?v=18"></script>
+<script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=16">
-<link rel="stylesheet" href="css/chest-da-2.css?v=2">
-<link rel="stylesheet" href="css/chest-2-site.css?v=15">
-<link rel="stylesheet" href="css/shell-2.css?v=5">
-<link rel="stylesheet" href="css/dash-2.css?v=7">
+<link rel="stylesheet" href="css/v2.css?v=17">
+<link rel="stylesheet" href="css/chest-da-2.css?v=3">
+<link rel="stylesheet" href="css/chest-2-site.css?v=16">
+<link rel="stylesheet" href="css/shell-2.css?v=6">
+<link rel="stylesheet" href="css/dash-2.css?v=8">
 </head>
 <body data-page="dashboard" class="chest-root">
 
@@ -687,7 +687,7 @@
           <span style="position: relative; z-index: 1; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Vue d'ensemble</span>
           <h1 id="d2Hello" aria-label="Mon espace" style="position: relative; z-index: 1; margin: 0px; font-size: 40px; line-height: 1.06; font-weight: 700; letter-spacing: -0.04em; min-height: 1.06em;"><span id="d2HelloTxt">Dashboard</span><span class="d2-caret" aria-hidden="true"></span></h1>
           <style>
-            .d2-caret{ display:inline-block; width:3px; height:.82em; margin-left:4px; vertical-align:-0.06em; border-radius:2px; background:linear-gradient(180deg,#fc1283,#f9a45e); animation:d2Caret 1s steps(1) infinite; }
+            .d2-caret{ display:inline-block; width:3px; height:.82em; margin-left:4px; vertical-align:-0.06em; border-radius:2px; background:linear-gradient(180deg,var(--a1, #fc1283),var(--a2, #f9a45e)); animation:d2Caret 1s steps(1) infinite; }
             .d2-caret.is-typing{ animation:none; }
             @keyframes d2Caret{ 50%{ opacity:0; } }
             @media (prefers-reduced-motion: reduce){ .d2-caret{ display:none; } }
@@ -978,8 +978,8 @@
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/lot-calculator.js?v=6"></script>
-<script src="js/liquid-glass.js?v=1"></script>
+<script src="js/lot-calculator.js?v=7"></script>
+<script src="js/liquid-glass.js?v=2"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/myfxbook-store.js?v=7"></script>
@@ -1008,6 +1008,6 @@ CHESTTour.init([
 </script>
 <script src="js/v2.js?v=5"></script>
 <script src="js/scanner-store.js"></script>
-<script src="js/dash-2.js?v=7"></script>
+<script src="js/dash-2.js?v=8"></script>
 </body>
 </html>

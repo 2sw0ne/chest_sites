@@ -14,11 +14,11 @@
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=19">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
-<link rel="stylesheet" href="css/calendar-da.css?v=5">
+<link rel="stylesheet" href="css/tokens.css?v=3">
+<link rel="stylesheet" href="css/layout.css?v=4">
+<link rel="stylesheet" href="css/chest-da.css?v=20">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
+<link rel="stylesheet" href="css/calendar-da.css?v=6">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : sans ca, une regle de classe qui fixe elle-meme
@@ -47,7 +47,7 @@
   .c2-ticker{ position:relative; width:100vw; max-width:none; min-width:0; margin-left:calc(50% - 50vw); overflow:hidden; contain:inline-size;
     border-bottom:1px solid rgba(255,255,255,.07); background:linear-gradient(rgba(255,255,255,.025), rgba(255,255,255,0)), rgba(6,6,8,.6);
     -webkit-mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
-  .c2-ticker::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px; pointer-events:none; background:linear-gradient(90deg, transparent, rgba(252,18,131,.35) 30%, rgba(249,164,94,.35) 70%, transparent); }
+  .c2-ticker::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px; pointer-events:none; background:linear-gradient(90deg, transparent, rgba(var(--a1-rgb, 252, 18, 131),.35) 30%, rgba(var(--a2-rgb, 249, 164, 94),.35) 70%, transparent); }
   .c2-ticker .ticker-item{ align-items:center; gap:10px; padding:12px 26px; border-right:1px solid rgba(255,255,255,.05); font-family:"Instrument Sans", system-ui, sans-serif; font-size:12.5px; }
   .c2-ticker .ticker-item b{ color:#f6f6f7; font-weight:600; letter-spacing:-.005em; }
   .c2-ticker .ticker-item .px{ color:#9b9ba1; font-variant-numeric:tabular-nums; }
@@ -65,11 +65,11 @@
   .c2-slot--day.is-first .c2-shelf__day{ width:0; }
   .c2-shelf__day i{ position:absolute; left:8px; top:-22px; white-space:nowrap; font-style:normal; font-size:10.5px; font-weight:500; letter-spacing:.02em; color:rgba(155,155,161,.55); }
   .c2-slot--day.is-first .c2-shelf__day i{ left:0; }
-  .c2-slot--day.is-today .c2-shelf__day i{ color:rgba(249,164,94,.75); }
+  .c2-slot--day.is-today .c2-shelf__day i{ color:rgba(var(--a2-rgb, 249, 164, 94),.75); }
   /* semaine repliable */
   .c2-more{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:44px; margin-top:10px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.02); color:#c9c9ce; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; transition:background .2s ease, border-color .2s ease, color .2s ease; }
   .c2-more:hover{ background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.16); color:#f6f6f7; }
-  .c2-more:focus-visible{ outline:0; box-shadow:0 0 0 3px rgba(252,18,131,.3); }
+  .c2-more:focus-visible{ outline:0; box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.3); }
   .c2-more span{ font-weight:500; color:#7a7a82; }
   .c2-more[hidden]{ display:none; }
   .c2-ticker .ticker-meta{ border-left:0; background:none; color:#7a7a82; }
@@ -105,7 +105,7 @@
   .bubble__stats span{ color:var(--faint); font-size:10px; text-transform:uppercase; letter-spacing:.06em; }
   .bubble__stats b{ font-variant-numeric:tabular-nums; }
   .bubble__badge{ font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
-  .bubble__badge.pending{ background:rgba(252,18,131,.14); color:var(--acc); }
+  .bubble__badge.pending{ background:rgba(var(--a1-rgb, 252, 18, 131),.14); color:var(--acc); }
   .bubble__badge.released{ background:rgba(51,230,166,.14); color:var(--green); }
 
   .bubble__detail{ max-height:0; overflow:hidden; transition:max-height .35s var(--ease); }
@@ -137,8 +137,8 @@
   /* Repere "maintenant" : la ligne de l'annonce en attente (ou, si tout est
      deja passe, la derniere publiee) - un trait net en haut de la ligne,
      seulement pertinent sur la journee d'AUJOURD'HUI. */
-  .day-row.is-now{ background:rgba(252,18,131,.07); }
-  .day-row.is-now::before{ content:''; position:absolute; left:0; right:0; top:-1px; height:2px; background:var(--acc); box-shadow:0 0 8px rgba(252,18,131,.6); }
+  .day-row.is-now{ background:rgba(var(--a1-rgb, 252, 18, 131),.07); }
+  .day-row.is-now::before{ content:''; position:absolute; left:0; right:0; top:-1px; height:2px; background:var(--acc); box-shadow:0 0 8px rgba(var(--a1-rgb, 252, 18, 131),.6); }
   .upcoming-row{ /* alias conserve pour compat visuelle - meme regles que .day-row */
     display:grid; grid-template-columns:70px 50px 1fr 110px; gap:12px; align-items:center;
     padding:11px 16px; border-bottom:1px solid var(--line); font-size:13px;
@@ -181,7 +181,7 @@
   }
   .imp-pill .stars{ letter-spacing:-1px; opacity:.55; color:var(--amber); }
   .imp-pill:hover{ border-color:var(--acc); }
-  .imp-pill.is-active{ background:rgba(252,18,131,.1); border-color:var(--acc); color:var(--ink); }
+  .imp-pill.is-active{ background:rgba(var(--a1-rgb, 252, 18, 131),.1); border-color:var(--acc); color:var(--ink); }
   .imp-pill.is-active .stars{ opacity:1; }
   .imp-dot{ font-size:10px; letter-spacing:-1px; color:var(--amber); opacity:.85; margin-left:4px; }
 
@@ -200,7 +200,7 @@
   }
   .sentiment-hero::before{
     content:''; position:absolute; inset:0; pointer-events:none;
-    background:radial-gradient(ellipse 55% 65% at 50% 18%, var(--glow, rgba(252,18,131,.32)), transparent 72%);
+    background:radial-gradient(ellipse 55% 65% at 50% 18%, var(--glow, rgba(var(--a1-rgb, 252, 18, 131),.32)), transparent 72%);
     transition:background .5s;
   }
   .sentiment-hero[data-tone="pos"]{ --glow: rgba(51,230,166,.45); }
@@ -321,7 +321,7 @@
      en ecriture verticale, comme demande - le flex-shrink des voisines
      absorbe naturellement la place prise (pas de decalage brutal). */
   .driver-tab:hover{ flex-basis:64px; transform:translateY(-5px); background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.3); z-index:3; }
-  .driver-tab.is-active{ flex-basis:64px; background:rgba(252,18,131,.09); border-color:var(--acc); box-shadow:0 10px 26px rgba(252,18,131,.22); z-index:2; }
+  .driver-tab.is-active{ flex-basis:64px; background:rgba(var(--a1-rgb, 252, 18, 131),.09); border-color:var(--acc); box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.22); z-index:2; }
   .driver-tab .flag-ic{ width:18px; height:13px; flex-shrink:0; }
   .driver-tab__name{
     flex:1; min-height:0; writing-mode:vertical-rl; text-orientation:mixed; white-space:nowrap;
@@ -373,15 +373,15 @@
   /* ---------- Compte a rebours (evenements sans donnee chiffree) ---------- */
   .countdown{ font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; background:var(--panel-2); color:var(--muted); font-variant-numeric:tabular-nums; }
 </style>
-<script src="js/theme.js?v=5"></script>
+<script src="js/theme.js?v=6"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/sync-store.js?v=18"></script>
+<script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=16">
-<link rel="stylesheet" href="css/chest-da-2.css?v=2">
-<link rel="stylesheet" href="css/chest-2-site.css?v=15">
-<link rel="stylesheet" href="css/cal-2.css?v=1">
+<link rel="stylesheet" href="css/v2.css?v=17">
+<link rel="stylesheet" href="css/chest-da-2.css?v=3">
+<link rel="stylesheet" href="css/chest-2-site.css?v=16">
+<link rel="stylesheet" href="css/cal-2.css?v=2">
 </head>
 <body data-page="calendar" class="chest-root">
 
@@ -508,7 +508,7 @@
         </div>
 
         
-        <div id="c2CalShelf" style="position: relative; padding: 12px 22px 18px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.07); background: radial-gradient(80% 60% at 50% 100%, rgba(249, 164, 94, 0.06), transparent 70%), linear-gradient(rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.03)); box-shadow: rgba(0, 0, 0, 0.25) 0px 0px 0px 6px inset;">
+        <div id="c2CalShelf" style="position: relative; padding: 12px 22px 18px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.07); background: radial-gradient(80% 60% at 50% 100%, rgba(var(--a2-rgb, 249, 164, 94), 0.06), transparent 70%), linear-gradient(rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.03)); box-shadow: rgba(0, 0, 0, 0.25) 0px 0px 0px 6px inset;">
         </div>
 
         <div id="c2CalBook"></div>
@@ -658,13 +658,13 @@
 
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/lot-calculator.js?v=6"></script>
-<script src="js/liquid-glass.js?v=1"></script>
+<script src="js/lot-calculator.js?v=7"></script>
+<script src="js/liquid-glass.js?v=2"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/crypto-movers.js"></script>
 <script src="js/calendar.js?v=26"></script>
-<script src="js/cal-2.js?v=4"></script>
+<script src="js/cal-2.js?v=5"></script>
 <script src="js/page-tour.js"></script>
 <script>
 CHESTTour.init([

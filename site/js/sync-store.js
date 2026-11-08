@@ -39,7 +39,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     'chest_journal_active_account', 'chest_journal_ext', 'chest_journal_hidden',
     'chest_berich_connection', 'chest_berich_taken', 'chest_berich_last_risk_choice', 'chest_berich_linked_account',
     'chest_sentiment_pair', 'chest_timezone', 'chest_profile',
-    'chest_scanner_drawings', 'chest_theme', 'chest_admin_preview_mode', 'chest_ui_scale',
+    'chest_scanner_drawings', 'chest_theme', 'chest_accent', 'chest_admin_preview_mode', 'chest_ui_scale',
     'chest_notif_prefs',
     // 2026-10-14 : propres à chaque membre, désormais rattachées à son compte (plus perdues au changement de compte)
     'chest_bt_spot', 'chest_notifications', 'chest_school_vvs_check', 'chest_news_seen',

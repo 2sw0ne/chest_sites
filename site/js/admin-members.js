@@ -622,21 +622,34 @@
     $('amSpectrum').innerHTML = `<div class="am-spectrum__bar">${present.map((t, i) => `<button type="button" data-tier="${t.key}" style="${tierStyle(t.key)};--f:${c[t.key]};animation-delay:${i * 50}ms" title="${t.name} : ${c[t.key]}" aria-label="${t.name} : ${c[t.key]} membres">${c[t.key] / total >= .06 ? `<span>${c[t.key]}</span>` : ''}</button>`).join('')}</div>
       <div class="am-spectrum__legend"><span>Sommet de la hiérarchie</span><span>${plural(S.members.length, 'membre', 'membres')}</span><span>Base</span></div>`;
     const bySeen = (a, b) => (seenOf(b) || 0) - (seenOf(a) || 0);
-    $('amRanks').innerHTML = GROUPS.map((g) => {
-      const tiers = TIERS.filter((t) => t.group === g.key && !(t.legacy && !c[t.key]));
-      const n = tiers.reduce((a, t) => a + (c[t.key] || 0), 0);
-      return `<section class="am-group" aria-label="${g.name}">
-        <div class="am-group__h"><h2>${g.name}</h2><span>${g.desc}</span><em>${plural(n, 'membre', 'membres')}</em></div>
-        <div class="am-group__grid">${tiers.map((t) => {
-          const people = S.members.filter((m) => cat(m) === t.key).sort(bySeen);
-          const k = people.length;
-          return `<article class="am-rank${k ? '' : ' is-zero'}" style="${tierStyle(t.key)}">
-            <div class="am-rank__top">${badge(t.key, 46)}<div class="am-rank__name"><b>${t.name}</b><small>${pct(k, total)} % des membres</small></div><span class="am-rank__n">${k}</span></div>
+    // Rangs 3 par 3 (2026-11-08) : Équipe, Premium III→I, Essentiel III→I, puis Inactif · Privilège · Essai ;
+    // « Inactif » réunit les accès terminés et les inscrits sans offre. Anciens formats seulement s'ils ont des membres.
+    const INACTIVE = { key: 'inactive', name: 'Inactif', rights: 'Accès terminé (abonnement, Privilège ou essai) ou inscrit sans offre.', of: ['expired', 'none'], look: 'expired' };
+    const ROWS = [
+      ['Équipe', 'Ceux qui font CHEST.', ['admin', 'manager', 'educator']],
+      ['Premium', 'CHEST complet : School, BERICH, scanners. De la plus longue durée à la plus courte.', ['premium3', 'premium2', 'premium1']],
+      ['Essentiel', 'Toute la plateforme, hors School et BERICH.', ['essentiel3', 'essentiel2', 'essentiel1']],
+      ['Autres', 'Accès terminés, offerts ou à l’essai.', ['inactive', 'privilege', 'trial']],
+    ];
+    const legacy = ['allstar', 'premium', 'essentiel'].filter((k) => c[k]);
+    if (legacy.length) ROWS.push(['Anciens formats', 'Abonnements d’avant les offres actuelles.', legacy]);
+    const card = (key) => {
+      const t = key === 'inactive' ? INACTIVE : TIER[key];
+      const look = t.look || key;
+      const people = S.members.filter((m) => (t.of || [key]).includes(cat(m))).sort(bySeen);
+      const k = people.length;
+      return `<article class="am-rank${k ? '' : ' is-zero'}" style="${tierStyle(look)}">
+            <div class="am-rank__top">${badge(look, 46)}<div class="am-rank__name"><b>${t.name}</b><small>${pct(k, total)} % des membres</small></div><span class="am-rank__n">${k}</span></div>
             <p class="am-rank__rights">${t.rights}</p>
-            <div class="am-faces">${people.slice(0, 6).map((m) => `<span class="am-av am-av--sm" style="${tierStyle(t.key)}" title="${esc(fullName(m))}">${esc(initials(m))}</span>`).join('')}${k > 6 ? `<em>+${k - 6}</em>` : k ? '' : '<em>Personne pour l’instant</em>'}</div>
-            <div class="am-rank__foot">${k ? `<button type="button" class="am-rank__go" data-tier="${t.key}">Voir les membres</button>` : '<span></span>'}${t.key === 'privilege' ? '<button type="button" class="am-rank__gift" data-gift>＋ Offrir</button>' : ''}</div>
+            <div class="am-faces">${people.slice(0, 6).map((m) => `<span class="am-av am-av--sm" style="${tierStyle(look)}" title="${esc(fullName(m))}">${esc(initials(m))}</span>`).join('')}${k > 6 ? `<em>+${k - 6}</em>` : k ? '' : '<em>Personne pour l’instant</em>'}</div>
+            <div class="am-rank__foot">${k ? `<button type="button" class="am-rank__go" data-tier="${(t.of || [key])[0]}">Voir les membres</button>` : '<span></span>'}${key === 'privilege' ? '<button type="button" class="am-rank__gift" data-gift>＋ Offrir</button>' : ''}</div>
           </article>`;
-        }).join('')}</div>
+    };
+    $('amRanks').innerHTML = ROWS.map(([name, desc, keys]) => {
+      const n = keys.reduce((a, k) => a + (k === 'inactive' ? (c.expired || 0) + (c.none || 0) : (c[k] || 0)), 0);
+      return `<section class="am-group" aria-label="${name}">
+        <div class="am-group__h"><h2>${name}</h2><span>${desc}</span><em>${plural(n, 'membre', 'membres')}</em></div>
+        <div class="am-group__grid am-group__grid--3">${keys.map(card).join('')}</div>
       </section>`;
     }).join('');
   }

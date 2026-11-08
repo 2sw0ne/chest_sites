@@ -16,7 +16,7 @@
   font-family:"Instrument Sans", system-ui, sans-serif; color:#f6f6f7; animation:csFade .2s cubic-bezier(.16,1,.3,1); }
 @keyframes csFade{ from{ opacity:0; } }
 .cs-box{ width:min(520px,100%); max-height:calc(100dvh - 32px); overflow:auto; padding:26px; border-radius:24px; border:1px solid rgba(255,255,255,.1);
-  background:linear-gradient(170deg, rgba(22,12,18,.96), rgba(8,8,10,.98)); box-shadow:0 40px 120px rgba(0,0,0,.7), 0 0 60px rgba(252,18,131,.08);
+  background:linear-gradient(170deg, rgba(22,12,18,.96), rgba(8,8,10,.98)); box-shadow:0 40px 120px rgba(0,0,0,.7), 0 0 60px rgba(var(--a1-rgb, 252, 18, 131),.08);
   animation:csIn .3s cubic-bezier(.16,1,.3,1); }
 @keyframes csIn{ from{ opacity:0; transform:translateY(10px) scale(.985); } }
 .cs-k{ font-size:10px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:#5c5c63; }
@@ -29,17 +29,17 @@
 .cs-check input{ position:absolute; opacity:0; width:1px; height:1px; }
 .cs-box__b{ flex-shrink:0; width:20px; height:20px; margin-top:1px; border-radius:6px; border:1.5px solid rgba(255,255,255,.28); display:grid; place-items:center; transition:background .18s, border-color .18s; }
 .cs-box__b svg{ width:12px; height:12px; fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; opacity:0; transform:scale(.6); transition:opacity .18s, transform .18s cubic-bezier(.16,1,.3,1); }
-.cs-check input:checked + .cs-box__b{ background:linear-gradient(135deg,#fc1283,#f9a45e); border-color:transparent; }
+.cs-check input:checked + .cs-box__b{ background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); border-color:transparent; }
 .cs-check input:checked + .cs-box__b svg{ opacity:1; transform:none; }
-.cs-check input:focus-visible + .cs-box__b{ outline:2px solid rgba(252,18,131,.6); outline-offset:2px; }
-.cs-check:has(input:checked){ border-color:rgba(252,18,131,.35); background:rgba(252,18,131,.05); }
-.cs-check a{ color:#f6f6f7; text-decoration:underline; text-decoration-color:rgba(252,18,131,.5); text-underline-offset:2px; }
+.cs-check input:focus-visible + .cs-box__b{ outline:2px solid rgba(var(--a1-rgb, 252, 18, 131),.6); outline-offset:2px; }
+.cs-check:has(input:checked){ border-color:rgba(var(--a1-rgb, 252, 18, 131),.35); background:rgba(var(--a1-rgb, 252, 18, 131),.05); }
+.cs-check a{ color:#f6f6f7; text-decoration:underline; text-decoration-color:rgba(var(--a1-rgb, 252, 18, 131),.5); text-underline-offset:2px; }
 .cs-check b{ color:#f6f6f7; font-weight:600; }
 .cs-err{ min-height:1em; margin:12px 0 0; font-size:12.5px; color:#ff4d5e; }
 .cs-err:empty{ display:none; }
 .cs-foot{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:20px; }
 .cs-cta{ font:inherit; flex:1; min-height:48px; padding:0 22px; border:none; border-radius:999px; cursor:pointer; font-size:14.5px; font-weight:600; color:#fff;
-  background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 14px 40px rgba(252,18,131,.3); transition:transform .16s cubic-bezier(.16,1,.3,1), opacity .2s, box-shadow .2s; }
+  background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.3); transition:transform .16s cubic-bezier(.16,1,.3,1), opacity .2s, box-shadow .2s; }
 .cs-cta:active{ transform:scale(.98); }
 .cs-cta:disabled{ opacity:.35; cursor:not-allowed; box-shadow:none; transform:none; }
 .cs-alt{ font:inherit; background:none; border:none; padding:10px 4px; font-size:13px; color:#9b9ba1; cursor:pointer; text-decoration:none; }
@@ -47,7 +47,7 @@
 .cs-note{ margin:14px 0 0; font-size:11.5px; line-height:1.5; color:#5c5c63; text-align:center; }
 /* CHEST 2.0 (maquettes T-Paiement, T-Conditions, Edu-Accueil, 2026-11-03) */
 .cs-box{ border-radius:20px; border-color:rgba(255,255,255,.13); background:linear-gradient(170deg, rgba(30,20,28,.92), rgba(10,10,12,.96)); box-shadow:0 40px 120px rgba(0,0,0,.7), inset 1.5px 1.5px 0 rgba(255,255,255,.1); }
-.cs-k{ font-family:"Fragment Mono", ui-monospace, monospace; font-size:9.5px; font-weight:500; letter-spacing:.2em; color:#f9a45e; }
+.cs-k{ font-family:"Fragment Mono", ui-monospace, monospace; font-size:9.5px; font-weight:500; letter-spacing:.2em; color:var(--a2, #f9a45e); }
 .cs-box h2{ margin-top:6px; font-size:22px; }
 .cs-head{ display:flex; align-items:center; gap:14px; }
 .cs-head__ic{ flex:none; display:inline-flex; }
@@ -55,9 +55,9 @@
 .cs-box.is-center{ text-align:center; }
 .cs-box.is-center .cs-head{ flex-direction:column; gap:12px; }
 .cs-box.is-center h2{ font-size:26px; margin-top:4px; }
-.cs-tile{ width:52px; height:52px; border-radius:16px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 14px 40px rgba(252,18,131,.35), inset 0 1px 0 rgba(255,255,255,.35); }
+.cs-tile{ width:52px; height:52px; border-radius:16px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(255,255,255,.35); }
 .cs-tile svg{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.cs-check a{ color:#f9a45e; text-decoration:none; }
+.cs-check a{ color:var(--a2, #f9a45e); text-decoration:none; }
 .cs-check a:hover{ text-decoration:underline; text-underline-offset:2px; }
 .cs-alt.is-btn{ min-height:44px; padding:0 18px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:#f6f6f7; font-weight:600; }
 .cs-alt.is-btn:hover{ background:rgba(255,255,255,.08); }

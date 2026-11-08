@@ -197,15 +197,18 @@
   const decOf = (I) => Math.min(5, Math.max(0, ...[I.pe, I.sl, ...I.tps].map((v) => (String(v).split('.')[1] || '').length)));
   const fmtN = (x, d) => Number(x).toFixed(d);
   const rrOf = (I, tp) => { const risk = Math.abs(I.pe - I.sl); return risk ? Math.abs(tp - I.pe) / risk : 0; };
+  // Position d'une IDEA, sur le modèle de la carte « Signal en cours » : sens en grand (néon vert / rouge), paire,
+  // puis Entrée (gris) · Stop (rouge) · TP (vert) avec leur R:R. Version compacte dans le fil : TP 1 seulement.
   function posHtml(I, compact) {
     if (!I) return '';
-    const buy = I.side !== 'sell';
+    const buy = I.side !== 'sell', d = decOf(I);
     const tps = compact ? I.tps.slice(0, 1) : I.tps;
-    const d = decOf(I);
-    const row = (k, v, cls, extra) => `<div class="sh-pos__r ${cls}"><span>${k}</span><b>${fmtN(v, d)}</b>${extra ? `<small>${extra}</small>` : ''}</div>`;
+    const pair = /^[A-Z]{6}$/.test(I.pair) ? `${I.pair.slice(0, 3)}/${I.pair.slice(3)}` : I.pair;
+    const rr = (t) => rrOf(I, t).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+    const cell = (k, v, cls, sub) => `<div class="sh-pos__c ${cls}"><span>${k}</span><b>${fmtN(v, d)}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
     return `<div class="sh-pos sh-pos--${buy ? 'buy' : 'sell'}${compact ? ' is-compact' : ''}">
-      <div class="sh-pos__h"><b>${esc(I.pair)}</b><span class="sh-pos__side">${buy ? 'Achat' : 'Vente'}</span></div>
-      <div class="sh-pos__g">${row('PE', I.pe, 'is-pe')}${row('SL', I.sl, 'is-sl')}${tps.map((t, k) => row(`TP ${k + 1}`, t, 'is-tp', `RR ${rrOf(I, t).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}`)).join('')}${compact && I.tps.length > 1 ? `<div class="sh-pos__r is-more"><span>+${I.tps.length - 1} TP</span></div>` : ''}</div>
+      <div class="sh-pos__h"><b class="sh-pos__side">${buy ? 'Achat' : 'Vente'}</b><span class="sh-pos__pair">${esc(pair)}</span>${compact && I.tps.length > 1 ? `<span class="sh-pos__more">+${I.tps.length - 1} TP</span>` : ''}</div>
+      <div class="sh-pos__g">${cell('Entrée', I.pe, 'is-pe')}${cell('Stop', I.sl, 'is-sl')}${tps.map((t, k) => cell(I.tps.length > 1 ? `Objectif ${k + 1}` : 'Objectif', t, 'is-tp', `R:R ${rr(t)}`)).join('')}</div>
     </div>`;
   }
   const isNew = (p) => S.newIds && S.newIds.has(p.id);
@@ -216,7 +219,7 @@
     const st = STATUS[stOf(p)];
     return `<article class="sh-fc sh-fc--${p.image ? fmtOf(p) : p.idea ? 'pos' : 'text'}${isNew(p) ? ' is-new' : ''} is-${st[1]}">
       <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir l’IDEA « ${esc(p.title)} »"></button>
-      <header class="sh-fc__h"><span class="sh-fc__av">${esc(initials(who))}</span>
+      <header class="sh-fc__h"><span class="sh-fc__av${p.authorAvatar ? ' has-photo' : ''}"${p.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: p.authorAvatar }))}')"` : ''}>${p.authorAvatar ? '' : esc(initials(who))}</span>
         <span class="sh-fc__who"><b>${esc(who)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
         ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : ''}</header>
       ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : p.idea ? '' : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
@@ -324,7 +327,7 @@
   const MONO2 = "font-family: 'Fragment Mono', ui-monospace, monospace;";
   const LBL2 = MONO2 + ' font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);';
   const TILE2 = 'border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column;';
-  const GRAD2 = 'background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); -webkit-background-clip: text; background-clip: text; color: transparent;';
+  const GRAD2 = 'background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); -webkit-background-clip: text; background-clip: text; color: transparent;';
   function nextCall2() {
     const M = S.mentor || {};
     const mine = (M.events || []).filter((e) => (e.status === 'confirmed' || e.status === 'proposed') && Date.parse(e.startsAt) + e.minutes * 60000 >= Date.now());
@@ -364,12 +367,12 @@
     const cols = days.map((d, i) => {
       const evs = D.events.filter((e) => sameDay(e.startsAt, d)).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
       const today = sameDay(d, new Date());
-      return `<div style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: ${i ? '1px solid rgba(255, 255, 255, 0.06)' : '0px'}; background: ${today ? 'linear-gradient(rgba(252, 18, 131, 0.07), transparent 70%)' : 'transparent'};">
+      return `<div style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: ${i ? '1px solid rgba(255, 255, 255, 0.06)' : '0px'}; background: ${today ? 'linear-gradient(rgba(var(--a1-rgb, 252, 18, 131), 0.07), transparent 70%)' : 'transparent'};">
           <div style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;"><span style="font-size: 12.5px; font-weight: 700; color: ${today ? 'rgb(246, 246, 247)' : 'rgb(201, 201, 206)'};">${fr(d, { weekday: 'short' }).replace('.', '').replace(/^./, (c) => c.toUpperCase())}</span><span style="${MONO2} font-size: 10.5px; color: rgb(122, 122, 130);">${d.getDate()}</span></div>
           ${evs.map((e) => {
             const chest = e.chest || e.type !== 'personal';
             const who = e.chest ? 'CHEST' : e.type === 'personal' ? (ownerOf(e) ? ownerOf(e).first : 'Appel') : kindOf(e).label;
-            const c = chest ? ['rgba(249, 164, 94, 0.3)', 'linear-gradient(160deg, rgba(252, 18, 131, 0.1), rgba(249, 164, 94, 0.04))', 'rgb(249, 164, 94)'] : ['rgba(51, 230, 166, 0.3)', 'linear-gradient(160deg, rgba(51, 230, 166, 0.1), rgba(51, 230, 166, 0.03))', 'rgb(127, 243, 202)'];
+            const c = chest ? ['rgba(249, 164, 94, 0.3)', 'linear-gradient(160deg, rgba(var(--a1-rgb, 252, 18, 131), 0.1), rgba(var(--a2-rgb, 249, 164, 94), 0.04))', 'rgb(249, 164, 94)'] : ['rgba(51, 230, 166, 0.3)', 'linear-gradient(160deg, rgba(51, 230, 166, 0.1), rgba(51, 230, 166, 0.03))', 'rgb(127, 243, 202)'];
             const past = Date.parse(e.startsAt) + e.minutes * 60000 < Date.now();
             return `<button type="button" data-ev="${esc(e.id)}" style="display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 11px; border: 1px solid ${c[0]}; background: ${c[1]}; color: rgb(246, 246, 247); font: inherit; text-align: left; cursor: pointer; opacity: ${past ? 0.55 : 1};">
               <span style="${MONO2} font-size: 10px; color: ${c[2]};">${hm(e.startsAt)} · ${esc(who)}</span>
@@ -392,7 +395,7 @@
     const tasks = (M.tasks || []).slice().sort((a, b) => (!!a.doneAt - !!b.doneAt) || (Date.parse(a.dueAt || 0) - Date.parse(b.dueAt || 0)));
     const done = tasks.filter((t) => t.doneAt).length;
     const call = nx ? `<div style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(16, 16, 19, 0.75), rgba(9, 9, 11, 0.9)); box-shadow: rgba(255, 255, 255, 0.12) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
-          <div aria-hidden="true" style="position: absolute; right: -80px; top: -90px; width: 260px; height: 240px; background: radial-gradient(closest-side, rgba(252, 18, 131, 0.22), transparent);"></div>
+          <div aria-hidden="true" style="position: absolute; right: -80px; top: -90px; width: 260px; height: 240px; background: radial-gradient(closest-side, rgba(var(--a1-rgb, 252, 18, 131), 0.22), transparent);"></div>
           <span style="position: relative; ${LBL2}">Prochain appel${nx.status === 'proposed' ? ' · à confirmer' : ''}</span>
           <span style="position: relative; font-size: 22px; font-weight: 700; letter-spacing: -0.025em;">${esc(nx.title || 'Appel')}</span>
           <div style="position: relative; display: flex; align-items: baseline; gap: 10px;">
@@ -400,17 +403,17 @@
             <span style="color: rgb(155, 155, 161);">${esc(fr(nx.startsAt, { weekday: 'long', day: 'numeric', month: 'short' }))} · ${hm(nx.startsAt)}</span>
           </div>
           <div style="position: relative; display: flex; gap: 10px; margin-top: auto;">
-            <a href="${icsHref(nx)}" download="appel-chest.ics" style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; color: rgb(255, 255, 255); font-weight: 600; text-decoration: none; background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.28) 0px 10px 30px;">Ajouter à mon agenda</a>
+            <a href="${icsHref(nx)}" download="appel-chest.ics" style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; color: rgb(255, 255, 255); font-weight: 600; text-decoration: none; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.28) 0px 10px 30px;">Ajouter à mon agenda</a>
             <a href="suivi.html" data-suivi style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.14); color: rgb(201, 201, 206); text-decoration: none;">Déplacer</a>
           </div>
         </div>` : `<div class="tile" style="${TILE2} gap: 14px;"><span style="${LBL2}">Prochain appel</span><p style="margin: 0px; font-size: 13px; line-height: 1.6; color: rgb(155, 155, 161);">${M.educator ? `Pas d’appel prévu pour l’instant avec ${esc(M.educator.first)}.` : 'Pas encore d’éducateur rattaché à ton compte.'}</p>${M.educator ? '<a href="suivi.html" data-suivi class="sh-link" style="align-self: flex-start;">Ouvrir ton espace →</a>' : ''}</div>`;
     const missions = `<div class="tile" style="${TILE2} gap: 6px;">
-          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;"><span style="${LBL2}">Avant le prochain appel</span>${tasks.length ? `<span style="margin-left: auto; font-size: 12px; font-weight: 600; color: rgb(249, 164, 94);">${done} / ${tasks.length}</span>` : ''}</div>
+          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;"><span style="${LBL2}">Avant le prochain appel</span>${tasks.length ? `<span style="margin-left: auto; font-size: 12px; font-weight: 600; color: rgb(var(--a2-rgb, 249, 164, 94));">${done} / ${tasks.length}</span>` : ''}</div>
           ${tasks.length ? tasks.slice(0, 5).map((t) => {
             const late = !t.doneAt && t.dueAt && Date.parse(t.dueAt) < Date.now();
             const sub = t.doneAt ? `fait le ${fr(t.doneAt, { day: 'numeric', month: 'short' })}` : t.dueAt ? `${late ? 'en retard · ' : 'avant '}${fr(t.dueAt, { weekday: 'long', day: 'numeric', month: 'short' })}` : 'sans date';
             return `<button type="button" data-task="${t.id}" role="checkbox" aria-checked="${!!t.doneAt}" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 0px; border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.055); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;">
-              <span aria-hidden="true" style="width: 18px; height: 18px; flex: 0 0 18px; margin-top: 1px; border-radius: 4px; display: grid; place-items: center; ${t.doneAt ? 'background: rgb(252, 18, 131);' : 'border: 1.5px solid rgba(255, 255, 255, 0.5);'} color: #fff; font-size: 12px; font-weight: 700;">${t.doneAt ? '✓' : ''}</span>
+              <span aria-hidden="true" style="width: 18px; height: 18px; flex: 0 0 18px; margin-top: 1px; border-radius: 4px; display: grid; place-items: center; ${t.doneAt ? 'background: rgb(var(--a1-rgb, 252, 18, 131));' : 'border: 1.5px solid rgba(255, 255, 255, 0.5);'} color: #fff; font-size: 12px; font-weight: 700;">${t.doneAt ? '✓' : ''}</span>
               <span style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 13px; color: ${t.doneAt ? 'rgb(122, 122, 130)' : 'rgb(246, 246, 247)'}; text-decoration: ${t.doneAt ? 'line-through' : 'none'};">${esc(t.title)}</span>
               <span style="${MONO2} font-size: 10.5px; color: ${late ? 'rgb(255, 148, 160)' : 'rgb(122, 122, 130)'};">${esc(sub)}</span></span></button>`;
           }).join('') : `<p style="margin: 0px; font-size: 13px; color: rgb(155, 155, 161);">Rien à préparer pour l’instant.</p>`}
@@ -418,7 +421,7 @@
     const posts = (S.posts || []).slice(0, 2);
     const infos = `<div class="tile" style="${TILE2} gap: 14px;"><span style="${LBL2}">Infos</span>
           ${posts.length ? posts.map((p) => `<button type="button" data-post="${p.id}" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 0px 14px; border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.055); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;">
-              <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; color: rgb(5, 5, 5); background: ${p.chest ? 'linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94))' : 'rgb(127, 243, 202)'};">${p.chest ? 'CHEST' : esc(String(p.author || 'Équipe').split(' ')[0])}</span><span style="${MONO2} font-size: 10.5px; color: rgb(122, 122, 130);">${esc(relDay(p.createdAt).toLowerCase())}</span></span>
+              <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; color: rgb(5, 5, 5); background: ${p.chest ? 'linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)))' : 'rgb(127, 243, 202)'};">${p.chest ? 'CHEST' : esc(String(p.author || 'Équipe').split(' ')[0])}</span><span style="${MONO2} font-size: 10.5px; color: rgb(122, 122, 130);">${esc(relDay(p.createdAt).toLowerCase())}</span></span>
               <span style="font-weight: 600;">${esc(p.title)}</span>
               <span style="font-size: 12.5px; line-height: 1.55; color: rgb(155, 155, 161);">${esc(String(p.body || '').slice(0, 120))}${String(p.body || '').length > 120 ? '…' : ''}</span></button>`).join('') : '<p style="margin: 0px; font-size: 13px; color: rgb(155, 155, 161);">Pas d’info de l’équipe pour l’instant.</p>'}
         </div>`;

@@ -70,7 +70,7 @@
             <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.07);"><span style="font-size: 11px; color: rgb(122, 122, 130);">Objectif</span><span style="font-weight: 700; color: ${POS}; font-variant-numeric: tabular-nums;">${price(tps[tps.length - 1])}</span></div>
             <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.07);"><span style="font-size: 11px; color: rgb(122, 122, 130);">R:R</span><span style="font-weight: 700; font-variant-numeric: tabular-nums;">${rr == null ? '—' : '1 : ' + nf(rr, 1)}</span></div>
           </div>
-          <button type="button" data-s2-lot style="align-self: flex-start; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0px 16px; border: 0px; border-radius: 999px; color: rgb(255, 255, 255); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.28) 0px 10px 30px;">Calculer mon lot</button>
+          <button type="button" data-s2-lot style="align-self: flex-start; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0px 16px; border: 0px; border-radius: 999px; color: rgb(255, 255, 255); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.28) 0px 10px 30px;">Calculer mon lot</button>
         </div>`;
     }
     const rows = mine.slice(0, 5);

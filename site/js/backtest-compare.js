@@ -165,7 +165,7 @@
   .btc-slot::after{ content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(120% 90% at 0% 0%, rgba(var(--rgb),.1), transparent 60%); }
   .btc-slot__lbl{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--c); font-weight:700; }
   .btc-slot select{ position:relative; z-index:1; width:100%; height:42px; border-radius:12px; padding:0 12px; font:inherit; font-size:15px; font-weight:600; color:var(--chest-ink,#f6f6f7); background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.12); outline:none; }
-  .btc-slot select:focus{ border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.18); }
+  .btc-slot select:focus{ border-color:rgba(var(--a1-rgb, 252, 18, 131),.6); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.18); }
   .btc-slot option{ background:#121215; }
   .btc-seg{ position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; padding:3px; gap:2px; border-radius:12px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.2); }
   .btc-seg button{ font:inherit; font-size:12.5px; font-weight:600; height:32px; border-radius:9px; border:0; cursor:pointer; background:none; color:var(--chest-ink-2,#9b9ba1); transition:background .2s, color .2s; }

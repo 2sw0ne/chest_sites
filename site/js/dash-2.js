@@ -42,7 +42,7 @@
     if (/Loss/.test(label) && tgt > 0) tgt = -tgt;
     return { cur: pct(o.current), tgt, ok: o.ok };
   }
-  const G = 'linear-gradient(90deg, rgb(252, 18, 131), rgb(249, 164, 94))';
+  const G = 'linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)))';
   function kpi(label, value, color, glow, bar, barBg, note) {
     return `
             <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 22px; border-left: 1px solid rgba(255, 255, 255, 0.08);">

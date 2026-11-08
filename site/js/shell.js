@@ -170,7 +170,7 @@
       + '<span class="cl-run"><svg viewBox="0 0 12 14" aria-hidden="true"><defs><linearGradient id="clG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"/><stop offset="1" stop-color="#f9a45e"/></linearGradient></defs><rect x="4" y="0" width="6" height="1" fill="url(#clG)"/><rect x="3" y="1" width="8" height="4" fill="url(#clG)"/><rect x="3" y="5" width="5" height="1" fill="url(#clG)"/><rect x="2" y="6" width="8" height="4" fill="url(#clG)"/><rect x="1" y="7" width="1" height="2" fill="url(#clG)"/><rect x="10" y="7" width="1" height="2" fill="url(#clG)"/><rect x="8" y="2" width="1" height="1" fill="#050505"/><g class="f1"><rect x="3" y="10" width="2" height="2" fill="url(#clG)"/><rect x="2" y="12" width="2" height="2" fill="url(#clG)"/><rect x="7" y="10" width="2" height="1" fill="url(#clG)"/><rect x="8" y="11" width="2" height="1" fill="url(#clG)"/></g><g class="f2"><rect x="4" y="10" width="2" height="1" fill="url(#clG)"/><rect x="5" y="11" width="2" height="1" fill="url(#clG)"/><rect x="7" y="10" width="2" height="2" fill="url(#clG)"/><rect x="8" y="12" width="2" height="2" fill="url(#clG)"/></g></svg></span>'
       + '<span class="cl-candle c1"><i></i><b></b></span><span class="cl-candle c2"><i></i><b></b></span></div>'
       + '<div class="cl-txt"><b class="cl-name"></b><span class="cl-sub">Ouverture de ton espace</span><span class="cl-bar"></span></div></div>';
-    (shell || view).appendChild(el); // dans le shell : position fixe au-dessus de la barre latérale
+    view.appendChild(el); // toute la zone de la page ; barre du haut et menu restent visibles
     return el;
   })();
   let scoreT = 0;

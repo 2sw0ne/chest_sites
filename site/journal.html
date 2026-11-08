@@ -14,10 +14,10 @@
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=19">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
+<link rel="stylesheet" href="css/tokens.css?v=3">
+<link rel="stylesheet" href="css/layout.css?v=4">
+<link rel="stylesheet" href="css/chest-da.css?v=20">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
 <style>
   /* Filet de sécurité : sans ça, une règle de classe qui fixe elle-même
      `display` (ex. .jr-empty-view{display:flex}) a la même spécificité que
@@ -130,7 +130,7 @@
     min-height:250px; padding:24px; border:1px dashed rgba(255,255,255,.18); border-radius:18px; text-decoration:none;
     color:inherit; transition:border-color .2s, background .2s;
   }
-  .bt-card__add:hover{ border-color:rgba(249,164,94,.5); background:linear-gradient(135deg,rgba(252,18,131,.07),rgba(249,164,94,.05)); }
+  .bt-card__add:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.5); background:linear-gradient(135deg,rgba(var(--a1-rgb, 252, 18, 131),.07),rgba(var(--a2-rgb, 249, 164, 94),.05)); }
   .bt-card__add-icon{ width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:17px; color:var(--chest-ink-2); }
   .bt-card__add-title{ font-size:15px; font-weight:700; color:var(--chest-ink); }
   .bt-card__add-desc{ font-size:12px; color:var(--chest-ink-3); line-height:1.5; max-width:210px; }
@@ -144,7 +144,7 @@
   .jr-cell input::placeholder{ color:var(--faint); font-style:italic; }
   .jr-sizes{ display:flex; flex-wrap:wrap; gap:6px; }
   .jr-sizes button{ height:32px; padding:0 13px; border-radius:999px; border:1px solid var(--line2); background:var(--bg); color:var(--muted); font:inherit; font-size:12px; font-weight:700; cursor:pointer; transition:.15s; }
-  .jr-sizes button:hover{ border-color:rgba(249,164,94,.55); color:var(--ink); }
+  .jr-sizes button:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.55); color:var(--ink); }
   .jr-sizes button.is-active{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; border-color:transparent; }
   .acc-menu__family-head{
     display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; cursor:pointer;
@@ -214,11 +214,11 @@
   .jr-modal ol{ margin:10px 0 16px; padding-left:18px; font-size:12.5px; line-height:1.65; color:var(--muted); }
   .jr-modal label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin:12px 0 5px; }
   .jr-modal input{ width:100%; height:40px; border:1px solid var(--line2); border-radius:10px; background:var(--bg); color:var(--ink); font:inherit; font-size:13.5px; padding:0 12px; }
-  .jr-modal input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(252,18,131,.14); }
+  .jr-modal input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.14); }
   .jr-modal__err{ color:var(--red); font-size:12.5px; margin:10px 0 0; }
   .jr-modal__foot{ margin-top:18px; display:flex; gap:10px; }
   .jr-mfx-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; padding:12px 14px; border-radius:12px; border:1px solid var(--line2); background:rgba(255,255,255,.03); color:var(--ink); font:inherit; cursor:pointer; margin-bottom:8px; }
-  .jr-mfx-row:hover{ border-color:rgba(249,164,94,.55); }
+  .jr-mfx-row:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.55); }
   .jr-mfx-row[disabled]{ opacity:.5; cursor:default; }
   .jr-mfx-row small{ display:block; color:var(--muted); font-size:11.5px; }
   .jr-form{ padding:22px 24px; margin:0 auto 20px; width:100%; max-width:760px; }
@@ -229,7 +229,7 @@
   .jr-rules-card{ margin:2px 0 14px; padding:16px 18px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); }
   .jr-rules-card__head{ display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 12px; margin-bottom:12px; }
   .jr-rules-card__head b{ font-size:14px; letter-spacing:-.01em; }
-  .jr-rules-card__head span{ font-size:12px; color:var(--acc2, #f9a45e); font-weight:700; }
+  .jr-rules-card__head span{ font-size:12px; color:var(--acc2, var(--a2, #f9a45e)); font-weight:700; }
   .jr-rules-card__head em{ font-style:normal; font-size:11px; color:var(--muted); margin-left:auto; }
   .jr-rules-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px 22px; }
   @media (max-width:640px){ .jr-rules-grid{ grid-template-columns:1fr; } }
@@ -245,7 +245,7 @@
   .jr-form__actions{ display:flex; align-items:center; gap:10px; margin-top:20px; }
 
   .jr-cell input{ width:100%; height:38px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px; padding:0 11px; transition:border-color .15s, box-shadow .15s; }
-  .jr-cell input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(252,18,131,.14); }
+  .jr-cell input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.14); }
   .jr-readonly{ height:38px; display:flex; align-items:center; padding:0 11px; border:1px solid var(--line2); border-radius:9px; background:var(--bg); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; transition:box-shadow .2s, border-color .2s; }
   .jr-readonly.pos{ color:var(--green); border-color:rgba(51,230,166,.35); box-shadow:0 0 16px rgba(51,230,166,.12) inset; }
   .jr-readonly.neg{ color:var(--red); border-color:rgba(255,77,94,.35); box-shadow:0 0 16px rgba(255,77,94,.12) inset; }
@@ -335,7 +335,7 @@
   .jr-date-cell:not(:disabled):hover{ background:var(--panel-2); }
   .jr-date-cell.is-muted{ color:var(--faint); cursor:default; }
   .jr-date-cell.is-today{ box-shadow:inset 0 0 0 1px var(--line2); }
-  .jr-date-cell.is-selected{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; font-weight:700; box-shadow:0 0 14px rgba(252,18,131,.35); }
+  .jr-date-cell.is-selected{ background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; font-weight:700; box-shadow:0 0 14px rgba(var(--a1-rgb, 252, 18, 131),.35); }
 
   /* ================= Sélecteur d'heure façon roue iPhone ================= */
   .jr-time-panel{
@@ -350,7 +350,7 @@
   .jr-wheel__item{ height:36px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center; font-size:15px; color:var(--faint); font-variant-numeric:tabular-nums; transition:color .15s, font-size .15s; cursor:pointer; }
   .jr-wheel__item.is-active{ color:var(--ink); font-size:19px; font-weight:700; }
   .jr-time-panel__colon{ font-size:18px; font-weight:700; color:var(--ink); flex-shrink:0; }
-  .jr-time-panel__sep{ position:absolute; left:4px; right:4px; top:72px; height:36px; pointer-events:none; border-top:1px solid var(--line2); border-bottom:1px solid var(--line2); background:rgba(252,18,131,.05); border-radius:8px; }
+  .jr-time-panel__sep{ position:absolute; left:4px; right:4px; top:72px; height:36px; pointer-events:none; border-top:1px solid var(--line2); border-bottom:1px solid var(--line2); background:rgba(var(--a1-rgb, 252, 18, 131),.05); border-radius:8px; }
   .jr-time-ok{ width:100%; margin-top:10px; padding:8px; font-size:12px; }
 
   /* ================= Tableau ================= */
@@ -401,7 +401,7 @@
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06); transition:border-color .2s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1); }
   .chest-root .jr-acc-switcher__btn:active{ transform:scale(.97); }
   .chest-root .jr-acc-avatar{ border-radius:50%; }
-  @media (hover:hover) and (pointer:fine){ .chest-root .jr-acc-switcher__btn:hover{ border-color:rgba(249,164,94,.45); } }
+  @media (hover:hover) and (pointer:fine){ .chest-root .jr-acc-switcher__btn:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.45); } }
   .chest-root .jr-live-bar{ border:0; border-radius:0; background:none; padding:14px 0; position:relative; }
   .chest-root .jr-live-bar::before, .chest-root .jr-live-bar::after{ content:''; position:absolute; left:0; right:0; height:1px;
     background:linear-gradient(90deg, transparent, rgba(255,255,255,.1) 14%, rgba(255,255,255,.1) 86%, transparent); }
@@ -459,17 +459,17 @@
   .chest-root #jrLiveBar{ margin-top:14px; }
   @media (max-width:640px){ .chest-root .jrd__top{ grid-template-columns:auto 1fr; } .chest-root .jrd__spacer{ display:none; } .chest-root .jrd__top .chest-step{ justify-self:end; } }
 </style>
-<script src="js/theme.js?v=5"></script>
+<script src="js/theme.js?v=6"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/sync-store.js?v=18"></script>
+<script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=16">
-<link rel="stylesheet" href="css/chest-da-2.css?v=2">
-<link rel="stylesheet" href="css/chest-2-site.css?v=15">
-<link rel="stylesheet" href="css/journal-2.css?v=1">
+<link rel="stylesheet" href="css/v2.css?v=17">
+<link rel="stylesheet" href="css/chest-da-2.css?v=3">
+<link rel="stylesheet" href="css/chest-2-site.css?v=16">
+<link rel="stylesheet" href="css/journal-2.css?v=2">
 </head>
 <body data-page="journal" class="chest-root">
 
@@ -980,8 +980,8 @@
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/lot-calculator.js?v=6"></script>
-<script src="js/liquid-glass.js?v=1"></script>
+<script src="js/lot-calculator.js?v=7"></script>
+<script src="js/liquid-glass.js?v=2"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/myfxbook-store.js?v=7"></script>
@@ -2398,7 +2398,7 @@ CHESTTour.init([
   window.addEventListener('popstate', () => loadAndRender());
 })();
 </script>
-<script src="js/journal-2.js?v=8"></script>
+<script src="js/journal-2.js?v=9"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>

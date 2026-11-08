@@ -42,9 +42,9 @@ html.lg-refract .chestconfirm-modal, html.lg-refract .drawer, html.lg-refract .t
 }
 .lg-shine{ position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:0;
   background:radial-gradient(420px 260px at var(--lgx) var(--lgy), rgba(255,255,255,.10), rgba(255,255,255,0) 60%),
-    linear-gradient(115deg, rgba(252,18,131,.05), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(249,164,94,.05)); }
+    linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); }
 .lg-shine::after{ content:''; position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); }
-@media (prefers-reduced-motion:reduce){ .lg-shine{ background:linear-gradient(115deg, rgba(252,18,131,.05), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(249,164,94,.05)); } }`;
+@media (prefers-reduced-motion:reduce){ .lg-shine{ background:linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); } }`;
   function mountCss() {
     if (doc.getElementById('c2-lg-css')) return;
     const st = doc.createElement('style');

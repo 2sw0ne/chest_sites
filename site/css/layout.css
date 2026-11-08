@@ -8,8 +8,8 @@
   position:relative; width:32px; height:32px; flex-shrink:0;
   background:url("../assets/logo-chest.png") center/contain no-repeat;
   filter:
-    drop-shadow(0 0 7px rgba(252,18,131,.55))
-    drop-shadow(0 0 14px rgba(249,164,94,.35));
+    drop-shadow(0 0 7px rgba(var(--a1-rgb, 252, 18, 131),.55))
+    drop-shadow(0 0 14px rgba(var(--a2-rgb, 249, 164, 94),.35));
 }
 .brand span{ font-weight:700; letter-spacing:-.02em; font-size:16.5px; }
 
@@ -90,7 +90,7 @@
 }
 .gate__glow{
   position:absolute; left:50%; top:-10%; width:min(900px,120vw); height:520px; border-radius:50%;
-  filter:blur(120px); background:radial-gradient(ellipse,rgba(252,18,131,.4),rgba(249,164,94,.2) 45%,transparent 72%);
+  filter:blur(120px); background:radial-gradient(ellipse,rgba(var(--a1-rgb, 252, 18, 131),.4),rgba(var(--a2-rgb, 249, 164, 94),.2) 45%,transparent 72%);
   transform:translateX(-50%); pointer-events:none;
 }
 .gate__card{
@@ -102,8 +102,8 @@
   width:56px; height:56px; margin:0 auto 20px;
   background:url("../assets/logo-chest.png") center/contain no-repeat;
   filter:
-    drop-shadow(0 0 10px rgba(252,18,131,.55))
-    drop-shadow(0 0 20px rgba(249,164,94,.35));
+    drop-shadow(0 0 10px rgba(var(--a1-rgb, 252, 18, 131),.55))
+    drop-shadow(0 0 20px rgba(var(--a2-rgb, 249, 164, 94),.35));
 }
 .gate__card h1{ font-size:20px; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; }
 .gate__card p{ font-size:13.5px; color:var(--muted); margin:0 0 26px; line-height:1.55; }

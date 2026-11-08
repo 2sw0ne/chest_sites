@@ -14,10 +14,10 @@
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=19">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=18">
+<link rel="stylesheet" href="css/tokens.css?v=3">
+<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/chest-da.css?v=20">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Vrais drapeaux SVG - les emoji "indicateur regional" s'affichent en
@@ -34,7 +34,7 @@
   .ta-row{ display:grid; grid-template-columns:44px minmax(0,1.6fr) minmax(0,1.3fr) minmax(0,.9fr) 300px; gap:18px; align-items:center;
     padding:18px 0; border-top:1px solid var(--chest-rule); }
   .ta-av{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13.5px;
-    color:#fff; background:var(--chest-grad); box-shadow:0 10px 26px rgba(252,18,131,.25); }
+    color:#fff; background:var(--chest-grad); box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.25); }
   .ta-main{ min-width:0; }
   .ta-main b{ display:block; font-size:14.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .ta-main span{ display:block; font-size:12px; color:var(--chest-ink-3); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -177,9 +177,9 @@
     content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
     background:var(--chest-ink-2); transition:transform .2s cubic-bezier(.16,1,.3,1), background .2s;
   }
-  .notif-switch input:checked + span{ background:linear-gradient(90deg,#fc1283,#f9a45e); border-color:transparent; }
+  .notif-switch input:checked + span{ background:linear-gradient(90deg,var(--a1, #fc1283),var(--a2, #f9a45e)); border-color:transparent; }
   .notif-switch input:checked + span::after{ transform:translateX(16px); background:#fff; }
-  .notif-switch input:focus-visible + span{ box-shadow:0 0 0 3px rgba(252,18,131,.15); }
+  .notif-switch input:focus-visible + span{ box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.15); }
   .notif-opt[hidden]{ display:none; }
   @media (prefers-reduced-motion: reduce){ .notif-switch span, .notif-switch span::after{ transition:none; } }
 
@@ -211,15 +211,15 @@
     background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .chest-root .acch__avatar{ position:relative; width:92px; height:92px; margin:28px auto 0; border-radius:50%; display:grid; place-items:center;
     font-size:30px; font-weight:700; letter-spacing:-.02em; color:#fff; background:var(--chest-grad);
-    box-shadow:0 0 0 6px rgba(252,18,131,.1), 0 20px 60px rgba(252,18,131,.45), inset 0 2px 0 rgba(255,255,255,.35); }
+    box-shadow:0 0 0 6px rgba(var(--a1-rgb, 252, 18, 131),.1), 0 20px 60px rgba(var(--a1-rgb, 252, 18, 131),.45), inset 0 2px 0 rgba(255,255,255,.35); }
   .chest-root .acch__avatar::before{ content:''; position:absolute; inset:-14px; border-radius:50%; z-index:-1; pointer-events:none;
-    background:conic-gradient(from 0deg, transparent 0 15%, rgba(252,18,131,.6) 30%, transparent 45%, rgba(249,164,94,.5) 70%, transparent 85%);
+    background:conic-gradient(from 0deg, transparent 0 15%, rgba(var(--a1-rgb, 252, 18, 131),.6) 30%, transparent 45%, rgba(var(--a2-rgb, 249, 164, 94),.5) 70%, transparent 85%);
     filter:blur(14px); animation:acchSpin 14s linear infinite; }
   @keyframes acchSpin{ to{ transform:rotate(360deg); } }
   @media (prefers-reduced-motion:reduce){ .chest-root .acch__avatar::before{ animation:none; } }
   .chest-root .acch__name{ margin:22px 0 0; font-size:clamp(36px,5vw,58px); font-weight:700; letter-spacing:-.045em; line-height:1; }
   .chest-root .acch__mail{ margin-top:10px; display:flex; justify-content:center; align-items:center; gap:10px; font-size:13px; color:var(--chest-ink-2); }
-  .chest-root .acch__role{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; padding:4px 10px; border-radius:999px; color:#f9a45e; border:1px solid rgba(249,164,94,.4); background:rgba(249,164,94,.08); }
+  .chest-root .acch__role{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; padding:4px 10px; border-radius:999px; color:var(--a2, #f9a45e); border:1px solid rgba(var(--a2-rgb, 249, 164, 94),.4); background:rgba(var(--a2-rgb, 249, 164, 94),.08); }
   .chest-root .acch__role[hidden]{ display:none; }
   .chest-root .acch__facts{ margin-top:30px; }
   .chest-root .acch__sub{ max-width:520px; margin:26px auto 0; font-size:13px; line-height:1.6; color:var(--chest-ink-3); }
@@ -243,18 +243,18 @@
   .bk-group li em{ font-style:normal; margin-left:10px; color:var(--chest-ink-3, #5c5c63); }
   .bk-restore{ padding:6px 12px; font-size:12px; }
 </style>
-<script src="js/theme.js?v=5"></script>
+<script src="js/theme.js?v=6"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/sync-store.js?v=18"></script>
+<script src="js/sync-store.js?v=19"></script>
 <script src="js/pwa.js?v=7"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=16">
-<link rel="stylesheet" href="css/chest-da-2.css?v=2">
-<link rel="stylesheet" href="css/chest-2-site.css?v=15">
-<link rel="stylesheet" href="css/account-2.css?v=4">
+<link rel="stylesheet" href="css/v2.css?v=17">
+<link rel="stylesheet" href="css/chest-da-2.css?v=3">
+<link rel="stylesheet" href="css/chest-2-site.css?v=16">
+<link rel="stylesheet" href="css/account-2.css?v=5">
 </head>
 <body data-page="account" class="chest-root">
 
@@ -735,8 +735,8 @@
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js"></script>
-<script src="js/lot-calculator.js?v=6"></script>
-<script src="js/liquid-glass.js?v=1"></script>
+<script src="js/lot-calculator.js?v=7"></script>
+<script src="js/liquid-glass.js?v=2"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/propfirm-rules.js"></script>
@@ -1709,5 +1709,6 @@ CHESTTour.init([
   else offers.textContent = 'Choisir une offre';
 })();
 </script>
+<script src="js/account-3.js?v=3"></script>
 </body>
 </html>

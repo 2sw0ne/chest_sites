@@ -21,8 +21,8 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"></noscript>
-<link rel="stylesheet" href="css/tokens.css?v=2">
-<script src="js/theme.js?v=5"></script>
+<link rel="stylesheet" href="css/tokens.css?v=3">
+<script src="js/theme.js?v=6"></script>
 <!-- Préchargement d'app.html (retour utilisateur 2026-09-23 : « le fond s'arrête de bouger le temps du
      chargement, un petit freeze ») : une vraie continuité d'animation à travers une navigation entre deux
      documents est impossible (le contexte JS/WebGL de cette page s'arrête forcément quand elle se ferme),
@@ -30,14 +30,14 @@
      la connexion réussisse — son premier rendu (et sa 1re image de shader) devient alors quasi instantané au
      lieu d'attendre le réseau. `rel="prefetch"` = priorité basse, ne retarde rien sur CETTE page. -->
 <link rel="prefetch" href="app.html">
-<link rel="prefetch" href="css/tokens.css?v=2">
-<link rel="prefetch" href="css/layout.css?v=3">
-<link rel="prefetch" href="css/chest-da.css?v=19">
-<link rel="prefetch" href="css/patch-chest-da.css?v=18">
-<link rel="prefetch" href="css/welcome.css?v=34">
+<link rel="prefetch" href="css/tokens.css?v=3">
+<link rel="prefetch" href="css/layout.css?v=4">
+<link rel="prefetch" href="css/chest-da.css?v=20">
+<link rel="prefetch" href="css/patch-chest-da.css?v=19">
+<link rel="prefetch" href="css/welcome.css?v=35">
 <link rel="prefetch" href="js/config.js">
 <link rel="prefetch" href="js/accounts-auth.js?v=12">
-<link rel="prefetch" href="js/shell.js?v=3">
+<link rel="prefetch" href="js/shell.js?v=4">
 <link rel="prefetch" href="js/nav.js?v=9">
 <link rel="prefetch" href="js/welcome.js?v=56">
 <link rel="prefetch" href="assets/logo-chest-hero.webp">
@@ -78,7 +78,7 @@
   }
   .auth-card__logo{
     width:88px; height:88px; object-fit:contain; display:block; margin:-78px auto 16px;
-    filter:drop-shadow(0 14px 28px rgba(252,18,131,.4));
+    filter:drop-shadow(0 14px 28px rgba(var(--a1-rgb, 252, 18, 131),.4));
   }
   .auth-card h1{ font-size:20px; font-weight:700; letter-spacing:-.01em; margin:0 0 4px; }
   .auth-card__lead{ font-size:13.5px; color:var(--muted); margin:0 0 28px; }
@@ -119,10 +119,10 @@
     padding:14px; font:inherit; font-size:14.5px; font-weight:700; color:#fff; letter-spacing:-.005em;
     border:none; border-radius:13px; cursor:pointer;
     background:linear-gradient(90deg, var(--acc), var(--acc2));
-    box-shadow:0 14px 32px rgba(252,18,131,.28);
+    box-shadow:0 14px 32px rgba(var(--a1-rgb, 252, 18, 131),.28);
     transition:transform .15s, box-shadow .15s;
   }
-  .auth-submit:hover{ box-shadow:0 16px 38px rgba(252,18,131,.4); }
+  .auth-submit:hover{ box-shadow:0 16px 38px rgba(var(--a1-rgb, 252, 18, 131),.4); }
   .auth-submit:active{ transform:scale(.98); }
   .auth-submit:disabled{ opacity:.65; cursor:default; box-shadow:none; }
 
@@ -132,7 +132,7 @@
 
   @media (max-width:760px){ .auth-card{ max-width:380px; padding:36px 24px 28px; } }
 </style>
-<link rel="stylesheet" href="css/auth-2.css?v=6">
+<link rel="stylesheet" href="css/auth-2.css?v=7">
 </head>
 <body>
 

@@ -574,7 +574,9 @@ def init_db():
                     # Discipline de l'éducateur (2026-11-04) : le scanner auquel il est affilié
                     ("edu_scanner", "TEXT"),
                     # Stockage (2026-11-04) : quota choisi par l'admin pour ce membre, en Mo (vide = quota de son offre)
-                    ("storage_quota_mb", "INTEGER")]
+                    ("storage_quota_mb", "INTEGER"),
+                    # Photo de profil (2026-11-08) : fichier envoyé par le membre (dict de save_upload en JSON)
+                    ("avatar", "TEXT")]
         first_billing_migration = "plan" not in user_cols
         for name, kind in new_cols:
             if name not in user_cols:
@@ -786,7 +788,16 @@ def user_public(row):
                   "eduAccepted": _col(row, "edu_terms_version"), "eduCurrent": EDU_TERMS_VERSION},
         "access": access_of(row),
         "role": ("manager" if _col(row, "role") == "manager" else "admin") if row["is_admin"] else (_col(row, "role") or "member"),
+        "avatar": _avatar_key(_col(row, "avatar")),
     }
+
+
+def _avatar_key(raw):
+    """Clé du fichier de la photo de profil (servie par /school/files/<clé>), ou None."""
+    try:
+        return (json.loads(raw) or {}).get("key") if raw else None
+    except (ValueError, AttributeError):
+        return None
 
 
 # Taille des envois (audit 2026-11-05) : la limite globale de 2 Go (vidéos) valait pour TOUTES les routes, y compris
@@ -1747,6 +1758,12 @@ def block_member(member_id):
 def _purge_user(db, member_id):
     """Efface un compte et toutes ses données (admin ou le membre lui-même). Gardés : paiements (billing_events,
     obligations comptables) et preuves de consentement (user_consents)."""
+    av = db.execute("SELECT avatar FROM users WHERE id = ?", (member_id,)).fetchone()
+    if av and av["avatar"]:
+        try:
+            delete_file(json.loads(av["avatar"]))
+        except (ValueError, TypeError):
+            pass
     db.execute("DELETE FROM event_log WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM hq_devices WHERE user_id = ?", (member_id,))
     vps_ids = [r["id"] for r in db.execute("SELECT id FROM vps_accounts WHERE user_id = ?", (member_id,)).fetchall()]
@@ -2959,6 +2976,46 @@ def _when(v):
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
 
 
+def _avatars(db):
+    cache = {}
+    def pic(uid):
+        if uid not in cache:
+            r = db.execute("SELECT avatar FROM users WHERE id = ?", (uid,)).fetchone()
+            cache[uid] = _avatar_key(r["avatar"]) if r else None
+        return cache[uid]
+    return pic
+
+
+@app.route("/me/avatar", methods=["POST"])
+def me_avatar():
+    """Photo de profil : envoi (champ multipart `avatar`, image) ou retrait ({"remove": true})."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    old = db.execute("SELECT avatar FROM users WHERE id = ?", (user["id"],)).fetchone()["avatar"]
+    up = None
+    if request.files.get("avatar"):
+        if (request.content_length or 0) > 6 * 1024 * 1024:
+            return jsonify({"error": "Image trop lourde (6 Mo maximum)."}), 400
+        up = save_upload("avatar", "avatar")
+        if up and not (up.get("mime") or "").startswith("image/"):
+            delete_file(up)
+            return jsonify({"error": "La photo doit être une image."}), 400
+    elif not (request.get_json(silent=True) or {}).get("remove"):
+        return jsonify({"error": "Aucune image."}), 400
+    with db_lock:
+        db.execute("UPDATE users SET avatar = ? WHERE id = ?", (json.dumps(up) if up else None, user["id"]))
+        db.commit()
+    if old:
+        try:
+            delete_file(json.loads(old))
+        except (ValueError, TypeError):
+            pass
+    row = db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
+    return jsonify({"user": user_public(row)})
+
+
 def _names(db):
     cache = {}
     def who(uid):
@@ -3207,13 +3264,14 @@ def school_event_delete(eid):
     return jsonify({"ok": True})
 
 
-def _post_public(db, r, who):
+def _post_public(db, r, who, pic=None):
     return {"id": r["id"], "title": r["title"], "body": r["body"] or "", "image": json.loads(r["image"]) if r["image"] else None,
             "audience": r["audience"], "scope": _scope_of(r), "audienceLabel": _audience_label(db, r["audience"], _scope_of(r)),
             "pinned": bool(r["pinned"]), "format": r["format"] if "format" in r.keys() and r["format"] else "landscape",
             "idea": json.loads(r["idea"]) if "idea" in r.keys() and r["idea"] else None,
             "status": (r["status"] if "status" in r.keys() and r["status"] in IDEA_STATUS else "zone"),
-            "author": who(r["author_id"]), "authorId": r["author_id"], "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
+            "author": who(r["author_id"]), "authorId": r["author_id"], "authorAvatar": pic(r["author_id"]) if pic else None,
+            "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
 
 
 # IDEA (2026-11-08) : une info de School = une idée de trade de l'équipe. Position facultative {pair, side, pe, sl, tps[]},
@@ -3289,7 +3347,8 @@ def school_posts():
     db = get_db()
     who = _names(db)
     rows = db.execute("SELECT * FROM school_posts ORDER BY created_at DESC").fetchall()
-    return jsonify({"posts": [_post_public(db, r, who) for r in rows if _school_visible(r, user)][:60]})
+    pic = _avatars(db)
+    return jsonify({"posts": [_post_public(db, r, who, pic) for r in rows if _school_visible(r, user)][:60]})
 
 
 @app.route("/school/posts", methods=["POST"])

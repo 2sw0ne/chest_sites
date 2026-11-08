@@ -1,4 +1,4 @@
-/* Case HQ (admin) : mini aurore pixelisee aux couleurs CHEST (rose #fc1283 -> orange #f9a45e sur
+/* Case HQ (admin) : mini aurore pixelisee aux couleurs CHEST (rose var(--a1, #fc1283) -> orange var(--a2, #f9a45e) sur
    noir), rideaux qui ondulent comme sur la page Welcome. Clic : ouvre CHEST HQ (data-url).
    Canvas tres basse resolution agrandi en pixels nets (image-rendering:pixelated), cadence
    volontairement saccadee (~8 img/s, cote jeu video). Ne dessine que si la case est visible ;
@@ -14,7 +14,7 @@
   const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
   // memes teintes que le shader de welcome.js
   const ramp = (b, stops) => { let c = stops[0]; for (let i = 1; i < stops.length; i++) c = mix(c, stops[i][1], ss(stops[i][0][0], stops[i][0][1], b)); return c; };
-  // vraies couleurs CHEST : noir #050505, rose #fc1283 -> orange #f9a45e (degrade de marque)
+  // vraies couleurs CHEST : noir #050505, rose var(--a1, #fc1283) -> orange var(--a2, #f9a45e) (degrade de marque)
   const C = (r, g, b) => [r / 255, g / 255, b / 255];
   const PINK = [C(5, 5, 5), [[.04, .3], C(58, 4, 30)], [[.28, .62], C(168, 10, 86)], [[.55, .9], C(252, 18, 131)], [[.95, 1.3], C(255, 128, 184)]];
   const ORNG = [C(5, 5, 5), [[.04, .3], C(64, 22, 10)], [[.28, .62], C(186, 82, 40)], [[.55, .9], C(249, 164, 94)], [[.95, 1.3], C(255, 214, 170)]];

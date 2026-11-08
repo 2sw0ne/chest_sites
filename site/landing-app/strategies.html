@@ -57,13 +57,13 @@
 body{margin:0;background:#050506}
 a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
 .tile{transition:border-color .2s cubic-bezier(.16,1,.3,1)}
-.tile:hover{border-color:rgba(249,164,94,.32)}
+.tile:hover{border-color:rgba(var(--a2-rgb, 249, 164, 94),.32)}
 .sc{transition:background .2s cubic-bezier(.16,1,.3,1),border-color .2s cubic-bezier(.16,1,.3,1)}
-.sc:hover{border-color:rgba(249,164,94,.45)!important;background:linear-gradient(135deg,rgba(252,18,131,.1),rgba(249,164,94,.07))!important}
+.sc:hover{border-color:rgba(var(--a2-rgb, 249, 164, 94),.45)!important;background:linear-gradient(135deg,rgba(var(--a1-rgb, 252, 18, 131),.1),rgba(var(--a2-rgb, 249, 164, 94),.07))!important}
 .row-h:hover{background:rgba(255,255,255,.025)}
 .sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
 .sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
-.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(252,18,131,.09),transparent 75%)}
+.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(var(--a1-rgb, 252, 18, 131),.09),transparent 75%)}
 .sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
 .sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
 .sb-tog:hover{color:#f6f6f7}
@@ -72,7 +72,7 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
 .sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
 .sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
 .sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
-.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(252,18,131,.55))}
+.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(var(--a1-rgb, 252, 18, 131),.55))}
 .sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
 .sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
 .nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
@@ -80,17 +80,17 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
 .nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
 .nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
 .nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
-.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(252,18,131,.16),rgba(249,164,94,.05) 60%,transparent)}
-.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(252,18,131,.55))}
-.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#fc1283,#f9a45e);box-shadow:0 0 14px rgba(252,18,131,.8)}
+.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(var(--a1-rgb, 252, 18, 131),.16),rgba(var(--a2-rgb, 249, 164, 94),.05) 60%,transparent)}
+.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(var(--a1-rgb, 252, 18, 131),.55))}
+.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 0 14px rgba(var(--a1-rgb, 252, 18, 131),.8)}
 .nav-i.adm .ic{stroke:url(#sba)}
 .nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
 .sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
 .sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
 .sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
-.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(249,164,94,.45);background:rgba(252,18,131,.08);padding:6px;margin:-6px -6px 8px}
-.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e)}
+.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.45);background:rgba(var(--a1-rgb, 252, 18, 131),.08);padding:6px;margin:-6px -6px 8px}
+.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e))}
 .sb-acc__id{display:flex;flex-direction:column;min-width:0}
 .sb-acc__id b{font-size:12.5px;line-height:1.25}
 .sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
@@ -107,8 +107,8 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
 .sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
 .sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
 .sbT:checked ~ .sb .sb-out{width:38px;padding:0}
-.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#fc1283,#f9a45e);box-shadow:0 14px 40px rgba(252,18,131,.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
-.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(252,18,131,.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
 @media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
@@ -217,7 +217,7 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
       <section data-dc-tpl="108" aria-label="Réglages du graphique" style="position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 0px; padding: 16px 18px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.1); background: linear-gradient(rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.016)); box-shadow: rgba(255, 255, 255, 0.06) 0px 1px 0px inset;">
         <div data-dc-tpl="109" style="position: relative; z-index: 30; display: flex; flex-direction: column; gap: 7px; padding-right: 20px; min-width: 210px;">
           <span data-dc-tpl="110" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Scanner</span>
-          <button data-dc-tpl="111" type="button" aria-haspopup="listbox" aria-expanded="false" style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0px 12px 0px 6px; border-radius: 12px; border: 1px solid rgba(249, 164, 94, 0.4); background: linear-gradient(135deg, rgba(252, 18, 131, 0.1), rgba(249, 164, 94, 0.06)); color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 15px; font-weight: 700; cursor: pointer;">
+          <button data-dc-tpl="111" type="button" aria-haspopup="listbox" aria-expanded="false" style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0px 12px 0px 6px; border-radius: 12px; border: 1px solid rgba(var(--a2-rgb, 249, 164, 94), 0.4); background: linear-gradient(135deg, rgba(var(--a1-rgb, 252, 18, 131), 0.1), rgba(var(--a2-rgb, 249, 164, 94), 0.06)); color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 15px; font-weight: 700; cursor: pointer;">
             <img data-dc-tpl="112" src="assets/logo-swyper-v2.webp" alt="" style="width: 32px; height: 32px; border-radius: 9px; object-fit: cover;">
             SWYPER
             <svg data-dc-tpl="113" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9ba1" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="margin-left: auto; transform: none;"><path data-dc-tpl="114" d="M6 9l6 6 6-6"></path></svg>
@@ -263,7 +263,7 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
             <span data-dc-tpl="150" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Dernière alerte</span>
             <span data-dc-tpl="151" style="font-size: 12.5px;"><b data-dc-tpl="152" style="color: rgb(127, 243, 202);">Achat</b> XAU/USD 15m · il y a 12 min</span>
           </div>
-          <button data-dc-tpl="153" type="button" aria-label="Alertes du scanner : activées" style="position: relative; width: 44px; height: 44px; border-radius: 12px; border: 1px solid rgba(249, 164, 94, 0.45); background: linear-gradient(135deg, rgba(252, 18, 131, 0.14), rgba(249, 164, 94, 0.08)); color: rgb(249, 164, 94); display: grid; place-items: center; cursor: pointer;">
+          <button data-dc-tpl="153" type="button" aria-label="Alertes du scanner : activées" style="position: relative; width: 44px; height: 44px; border-radius: 12px; border: 1px solid rgba(var(--a2-rgb, 249, 164, 94), 0.45); background: linear-gradient(135deg, rgba(var(--a1-rgb, 252, 18, 131), 0.14), rgba(var(--a2-rgb, 249, 164, 94), 0.08)); color: rgb(var(--a2-rgb, 249, 164, 94)); display: grid; place-items: center; cursor: pointer;">
             <svg data-dc-tpl="154" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="155" d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path data-dc-tpl="156" d="M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg>
             <span data-dc-tpl="157" style="position: absolute; top: 9px; right: 10px; width: 7px; height: 7px; border-radius: 999px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.9) 0px 0px 8px;"></span>
           </button>
@@ -278,11 +278,11 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
         <div data-dc-tpl="165" aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
         <div data-dc-tpl="166" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
           <div data-dc-tpl="167" role="tablist" aria-label="Vue" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">
-            <button data-dc-tpl="168" type="button" role="tab" aria-selected="true" style="height: 30px; padding: 0px 14px; border: 0px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); box-shadow: rgba(252, 18, 131, 0.45) 0px 0px 0px 1px inset; color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Graphique</button>
+            <button data-dc-tpl="168" type="button" role="tab" aria-selected="true" style="height: 30px; padding: 0px 14px; border: 0px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.45) 0px 0px 0px 1px inset; color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Graphique</button>
             <button data-dc-tpl="169" type="button" role="tab" aria-selected="false" style="height: 30px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">À propos</button>
           </div>
           <div data-dc-tpl="170" style="margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 12px; color: rgb(155, 155, 161);">
-            <span data-dc-tpl="171" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="172" style="width: 16px; height: 2px; background: rgb(249, 164, 94); box-shadow: rgba(249, 164, 94, 0.9) 0px 0px 8px;"></span>Biais</span>
+            <span data-dc-tpl="171" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="172" style="width: 16px; height: 2px; background: rgb(var(--a2-rgb, 249, 164, 94)); box-shadow: rgba(var(--a2-rgb, 249, 164, 94), 0.9) 0px 0px 8px;"></span>Biais</span>
             <span data-dc-tpl="173" style="display: flex; align-items: center; gap: 7px;"><svg data-dc-tpl="174" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path data-dc-tpl="175" d="M5 1L9 9H1z" fill="#33e6a6"></path></svg>Signal</span>
             <span data-dc-tpl="176" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; color: rgb(127, 243, 202);">4 078,6 · +0,42 %</span>
           </div>
@@ -600,7 +600,7 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
                   <rect data-dc-tpl="192" x="986.7" y="196.7" width="10.0" height="22.0" fill="#33e6a6" rx="1"></rect>
                 </g>
               
-              <path data-dc-tpl="193" d="M8.3,211.8 L25.0,218.3 L41.7,226.7 L58.3,232.8 L75.0,236.2 L91.7,240.7 L108.3,244.3 L125.0,249.4 L141.7,255.3 L158.3,267.1 L175.0,277.2 L191.7,283.9 L208.3,290.1 L225.0,295.9 L241.7,302.2 L258.3,307.3 L275.0,310.3 L291.7,311.4 L308.3,311.4 L325.0,312.4 L341.7,313.6 L358.3,314.9 L375.0,316.8 L391.7,317.6 L408.3,320.1 L425.0,320.6 L441.7,320.2 L458.3,320.7 L475.0,321.0 L491.7,321.0 L508.3,321.7 L525.0,322.0 L541.7,321.0 L558.3,318.8 L575.0,316.3 L591.7,315.6 L608.3,312.0 L625.0,306.1 L641.7,302.7 L658.3,296.1 L675.0,289.4 L691.7,282.5 L708.3,276.5 L725.0,273.4 L741.7,268.6 L758.3,265.8 L775.0,266.1 L791.7,263.9 L808.3,262.2 L825.0,260.9 L841.7,261.2 L858.3,261.3 L875.0,260.1 L891.7,257.9 L908.3,255.7 L925.0,251.6 L941.7,248.6 L958.3,246.7 L975.0,243.2 L991.7,236.3" fill="none" stroke="#f9a45e" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(249, 164, 94, 0.85) 0px 0px 7px);"></path>
+              <path data-dc-tpl="193" d="M8.3,211.8 L25.0,218.3 L41.7,226.7 L58.3,232.8 L75.0,236.2 L91.7,240.7 L108.3,244.3 L125.0,249.4 L141.7,255.3 L158.3,267.1 L175.0,277.2 L191.7,283.9 L208.3,290.1 L225.0,295.9 L241.7,302.2 L258.3,307.3 L275.0,310.3 L291.7,311.4 L308.3,311.4 L325.0,312.4 L341.7,313.6 L358.3,314.9 L375.0,316.8 L391.7,317.6 L408.3,320.1 L425.0,320.6 L441.7,320.2 L458.3,320.7 L475.0,321.0 L491.7,321.0 L508.3,321.7 L525.0,322.0 L541.7,321.0 L558.3,318.8 L575.0,316.3 L591.7,315.6 L608.3,312.0 L625.0,306.1 L641.7,302.7 L658.3,296.1 L675.0,289.4 L691.7,282.5 L708.3,276.5 L725.0,273.4 L741.7,268.6 L758.3,265.8 L775.0,266.1 L791.7,263.9 L808.3,262.2 L825.0,260.9 L841.7,261.2 L858.3,261.3 L875.0,260.1 L891.7,257.9 L908.3,255.7 L925.0,251.6 L941.7,248.6 L958.3,246.7 L975.0,243.2 L991.7,236.3" fill="none" stroke="#f9a45e" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(var(--a2-rgb, 249, 164, 94), 0.85) 0px 0px 7px);"></path>
               
                 <path data-dc-tpl="195" d="M151.33333333333334,270.4599363902344 L158.33333333333334,282.4599363902344 L165.33333333333334,270.4599363902344 Z" fill="#ff4d5e" style="filter: drop-shadow(rgba(255, 77, 94, 0.9) 0px 0px 8px);"></path>
               
@@ -646,7 +646,7 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
             <div data-dc-tpl="226" style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.07);"><span data-dc-tpl="227" style="font-size: 11px; color: rgb(122, 122, 130);">Objectif</span><span data-dc-tpl="228" style="font-weight: 700; color: rgb(127, 243, 202); font-variant-numeric: tabular-nums;">4 095,0</span></div>
             <div data-dc-tpl="229" style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.07);"><span data-dc-tpl="230" style="font-size: 11px; color: rgb(122, 122, 130);">R:R</span><span data-dc-tpl="231" style="font-weight: 700; font-variant-numeric: tabular-nums;">1 : 4,7</span></div>
           </div>
-          <a data-dc-tpl="232" href="#" style="align-self: flex-start; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0px 16px; border-radius: 999px; color: rgb(255, 255, 255); font-weight: 600; background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.28) 0px 10px 30px;">Calculer mon lot</a>
+          <a data-dc-tpl="232" href="#" style="align-self: flex-start; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0px 16px; border-radius: 999px; color: rgb(255, 255, 255); font-weight: 600; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.28) 0px 10px 30px;">Calculer mon lot</a>
         </div>
 
         <div data-dc-tpl="233" class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 4px;">

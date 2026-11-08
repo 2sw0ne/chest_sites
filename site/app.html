@@ -58,22 +58,22 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap"></noscript>
-<link rel="stylesheet" href="css/tokens.css?v=2">
-<link rel="stylesheet" href="css/layout.css?v=3">
-<link rel="stylesheet" href="css/chest-da.css?v=19">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
-<link rel="stylesheet" href="css/welcome.css?v=41">
-<script src="js/theme.js?v=5"></script>
+<link rel="stylesheet" href="css/tokens.css?v=3">
+<link rel="stylesheet" href="css/layout.css?v=4">
+<link rel="stylesheet" href="css/chest-da.css?v=20">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=21">
+<link rel="stylesheet" href="css/welcome.css?v=42">
+<script src="js/theme.js?v=6"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/sync-store.js?v=18"></script>
+<script src="js/sync-store.js?v=19"></script>
 <script src="js/pwa.js?v=7"></script>
-<link rel="stylesheet" href="css/v2.css?v=16">
-<link rel="stylesheet" href="css/chest-da-2.css?v=2">
-<link rel="stylesheet" href="css/chest-2-site.css?v=15">
-<link rel="stylesheet" href="css/auth-2.css?v=6">
-<link rel="stylesheet" href="css/shell-2.css?v=16">
+<link rel="stylesheet" href="css/v2.css?v=17">
+<link rel="stylesheet" href="css/chest-da-2.css?v=3">
+<link rel="stylesheet" href="css/chest-2-site.css?v=16">
+<link rel="stylesheet" href="css/auth-2.css?v=7">
+<link rel="stylesheet" href="css/shell-2.css?v=17">
 <!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
 <style>
   html.plan-no-school .chest-nav__item[data-page="school"]::after,
@@ -279,7 +279,7 @@
      dans #chestView (voir js/shell.js), le volet des notifications et la recherche (js/shell-2.js). -->
 <div class="chest-shell is-app c2-shell" id="chestShell" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: rgb(5, 5, 6); color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
 
-  <div aria-hidden="true" class="c2-shell__light" style="position: absolute; right: -220px; top: -260px; width: 980px; height: 640px; pointer-events: none; filter: blur(110px); opacity: 0.9; background: radial-gradient(42% 46% at 58% 46%, rgba(252, 18, 131, 0.16), transparent 72%), radial-gradient(36% 40% at 34% 60%, rgba(249, 164, 94, 0.1), transparent 74%);"></div>
+  <div aria-hidden="true" class="c2-shell__light" style="position: absolute; right: -220px; top: -260px; width: 980px; height: 640px; pointer-events: none; filter: blur(110px); opacity: 0.9; background: radial-gradient(42% 46% at 58% 46%, rgba(var(--a1-rgb, 252, 18, 131), 0.16), transparent 72%), radial-gradient(36% 40% at 34% 60%, rgba(var(--a2-rgb, 249, 164, 94), 0.1), transparent 74%);"></div>
   <div aria-hidden="true" style="position: absolute; inset: 0px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.05; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size: 180px 180px;"></div>
 
   <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
@@ -367,9 +367,9 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4"></path></svg>
         </a>
         <!-- Espace éducateur : visible pour les comptes au rôle « éducateur » (nav.js), même bouton que la cloche. -->
-        <a href="#/educator" data-page="educator" data-educator-only hidden aria-label="Espace éducateur" title="Espace éducateur" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.25) 0px 8px 24px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.6v4.2c0 1 2.2 2.2 5 2.2s5-1.2 5-2.2v-4.2"/></svg>Éducateur</a>
+        <a href="#/educator" data-page="educator" data-educator-only hidden aria-label="Espace éducateur" title="Espace éducateur" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.6v4.2c0 1 2.2 2.2 5 2.2s5-1.2 5-2.2v-4.2"/></svg>Éducateur</a>
         <!-- HQ (admin principal) : ouvre CHEST HQ (js/hq.js, data-url). -->
-        <a href="#" id="chestHq" data-admin-only data-owner-only hidden data-url="https://chest-hq.vercel.app" aria-label="CHEST HQ" title="CHEST HQ" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.04em; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(252, 18, 131), rgb(249, 164, 94)); box-shadow: rgba(252, 18, 131, 0.25) 0px 8px 24px;">HQ<canvas class="chest-hq__sky" width="32" height="14" aria-hidden="true" hidden></canvas></a>
+        <a href="#" id="chestHq" data-admin-only data-owner-only hidden data-url="https://chest-hq.vercel.app" aria-label="CHEST HQ" title="CHEST HQ" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.04em; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;">HQ<canvas class="chest-hq__sky" width="32" height="14" aria-hidden="true" hidden></canvas></a>
       </div>
       <div class="chest-progress" id="viewProgress"></div>
     </header>
@@ -393,7 +393,7 @@
 </div>
 
 <script src="js/nav.js?v=11"></script>
-<script src="js/shell.js?v=14"></script>
+<script src="js/shell.js?v=15"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/welcome.js?v=60"></script>
 <script src="js/tuto.js?v=2"></script>
@@ -466,12 +466,13 @@
 })();
 </script>
 <script src="js/v2-shell.js?v=1"></script>
-<script src="js/hq.js?v=4"></script>
+<script src="js/hq.js?v=5"></script>
 <script src="js/idea-badge.js?v=1"></script>
-<script src="js/shell-2.js?v=6"></script>
-<script src="js/liquid-glass.js?v=1"></script>
+<script src="js/user-avatar.js?v=3"></script>
+<script src="js/shell-2.js?v=7"></script>
+<script src="js/liquid-glass.js?v=2"></script>
 <script src="js/legal-links.js?v=2"></script>
-<script src="js/consent.js?v=4"></script>
+<script src="js/consent.js?v=5"></script>
 <script>if (window.CHESTAccounts && CHESTAccounts.isLoggedIn()) CHESTConsent.ensureTerms();</script>
 </body>
 </html>
