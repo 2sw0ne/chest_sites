@@ -62,7 +62,7 @@ html, body{ background:var(--bg-0, #050505); }
 /* Essai gratuit */
 .chest-root .of-trial{ display:flex; align-items:center; gap:22px; margin:34px auto 0; max-width:900px; padding:22px 26px; border-radius:22px;
   border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); background:linear-gradient(165deg, rgba(var(--dk-rgb, 20, 20, 24),.55), rgba(var(--dk-rgb, 9, 9, 11),.7));
-  backdrop-filter:blur(26px); -webkit-backdrop-filter:blur(26px); box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06); }
+  backdrop-filter:blur(26px); -webkit-backdrop-filter:blur(26px); box-shadow:inset 0 1.5px 0 rgba(255, 255, 255, .06); }
 .chest-root .of-trial__ic{ width:48px; height:48px; flex-shrink:0; border-radius:14px; display:flex; align-items:center; justify-content:center; color:var(--chest-acc-2);
   background:rgba(var(--a2-rgb, 249, 164, 94),.08); border:1px solid rgba(var(--a2-rgb, 249, 164, 94),.22); }
 .chest-root .of-trial__txt{ flex:1; min-width:0; }

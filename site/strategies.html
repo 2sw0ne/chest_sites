@@ -16,7 +16,7 @@
   .alr-modal.is-open{ display:flex; }
   .alr-modal__card{ width:min(420px,100%); border-radius:20px; padding:24px; text-align:center;
     border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); background:linear-gradient(160deg,rgba(44,44,50,.92),rgba(var(--dk-rgb, 12, 12, 14),.94));
-    box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.12),0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); }
+    box-shadow:inset 0 1px 0 rgba(255, 255, 255, .12),0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); }
   .alr-modal__logo{ width:72px; height:72px; object-fit:contain; margin:0 auto 12px; display:block; }
   .alr-modal__side{ font-size:28px; font-weight:900; letter-spacing:.04em; margin-top:4px; }
   .alr-modal__side.is-buy{ color:var(--green, #33e6a6); text-shadow:0 0 22px rgba(var(--green-rgb, 51, 230, 166),.45); }
@@ -43,8 +43,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=4">
 <link rel="stylesheet" href="css/layout.css?v=5">
-<link rel="stylesheet" href="css/chest-da.css?v=21">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
+<link rel="stylesheet" href="css/chest-da.css?v=22">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=21">
 <style>
   [hidden]{ display:none !important; }
 
@@ -232,7 +232,7 @@
   .alr-rule__tools{ display:flex; gap:6px; flex-shrink:0; }
   .alr__status{ font-size:12px; color:var(--muted); margin-bottom:10px; }
 </style>
-<script src="js/theme.js?v=10"></script>
+<script src="js/theme.js?v=11"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
@@ -326,13 +326,13 @@
   .alr-dd__menu .alr__chip.is-on{ color:var(--ink); background:rgba(var(--a2-rgb, 249, 164, 94),.08); }
   .alr-dd__menu .alr__chip.is-on::after{ content:'✓'; color:var(--a2, #f9a45e); font-weight:800; }
 </style>
-<link rel="stylesheet" href="css/scanner-guide.css?v=6">
-<link rel="stylesheet" href="css/strength-board.css?v=5">
-<link rel="stylesheet" href="css/chart-visuals.css?v=6">
-<link rel="stylesheet" href="css/v2.css?v=18">
-<link rel="stylesheet" href="css/chest-da-2.css?v=6">
-<link rel="stylesheet" href="css/chest-2-site.css?v=17">
-<link rel="stylesheet" href="css/strat-2.css?v=14">
+<link rel="stylesheet" href="css/scanner-guide.css?v=7">
+<link rel="stylesheet" href="css/strength-board.css?v=6">
+<link rel="stylesheet" href="css/chart-visuals.css?v=7">
+<link rel="stylesheet" href="css/v2.css?v=19">
+<link rel="stylesheet" href="css/chest-da-2.css?v=7">
+<link rel="stylesheet" href="css/chest-2-site.css?v=18">
+<link rel="stylesheet" href="css/strat-2.css?v=15">
 </head>
 <body data-page="strategies" class="chest-root">
 
@@ -496,7 +496,7 @@
 
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/lot-calculator.js?v=10"></script>
+<script src="js/lot-calculator.js?v=11"></script>
 <script src="js/liquid-glass.js?v=3"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
@@ -1040,7 +1040,7 @@ CHESTTour.init([
     </div>
   </div>
 </div>
-<script src="js/strat-2.js?v=7"></script>
+<script src="js/strat-2.js?v=8"></script>
 <script src="js/chart-tools.js?v=1"></script>
 <script src="js/v2.js?v=5"></script>
 </body>

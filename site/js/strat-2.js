@@ -47,7 +47,7 @@
             <span style="${MONO} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">${label}</span>${right ? right.html : ''}</div>`;
     let left;
     if (!cur) {
-      left = `<div class="tile" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+      left = `<div class="tile" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
           ${head('Signal en cours')}
           <p style="margin: 0px; font-size: 13px; line-height: 1.6; color: var(--ink-2, rgb(155, 155, 161));">${detail && detail.error ? 'Signaux indisponibles pour le moment.' : `Pas de signal récent sur ${esc(pair(detail.symbol))} · ${esc(TF[detail.tf] || detail.tf)}. Active l’alerte pour être prévenu au prochain.`}</p>
         </div>`;
@@ -57,7 +57,7 @@
       const risk = lv.pe != null && lv.sl != null ? Math.abs(lv.pe - lv.sl) : 0;
       const rr = risk && tps.length ? Math.abs(tps[tps.length - 1] - lv.pe) / risk : null;
       const r = rOf(cur);
-      left = `<div class="tile" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(${tint}, 0.25); background: linear-gradient(160deg, rgba(${tint}, 0.08), rgba(var(--fg-rgb, 255, 255, 255), 0.01) 55%); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.06) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+      left = `<div class="tile" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(${tint}, 0.25); background: linear-gradient(160deg, rgba(${tint}, 0.08), rgba(var(--fg-rgb, 255, 255, 255), 0.01) 55%); box-shadow: rgba(255, 255, 255, 0.06) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
           ${head('Signal en cours', { html: `<span style="margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: ${tone};"><span style="width: 6px; height: 6px; border-radius: 999px; background: rgb(${tint}); box-shadow: rgba(${tint}, 0.9) 0px 0px 8px;"></span>${esc(ago(cur.time))}</span>` })}
           <div style="display: flex; align-items: baseline; gap: 12px;">
             <span style="font-size: 30px; font-weight: 700; letter-spacing: -0.03em; color: ${tone}; text-shadow: rgba(${tint}, 0.45) 0px 0px 22px;">${buy ? 'Achat' : 'Vente'}</span>
@@ -76,7 +76,7 @@
     const rows = mine.slice(0, 5);
     const oldest = mine.length ? mine[mine.length - 1].time : null;
     const span = oldest ? Math.max(1, Math.ceil((Date.now() - oldest) / 86400000)) : 0;
-    const right = `<div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 4px;">
+    const right = `<div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 4px;">
           ${head('Derniers signaux', { pb: true, html: `<span style="margin-left: auto; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">${mine.length ? `${span} jour${span > 1 ? 's' : ''} · ${mine.length} signa${mine.length > 1 ? 'ux' : 'l'}` : ''}</span>` })}
           ${rows.length ? rows.map((o) => {
             const d = new Date(o.time), buy = o.side === 'buy', r = rOf(o);

@@ -140,7 +140,7 @@
   -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   box-shadow:
     0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),
-    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, .2),
     inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06),
     inset 0 0 40px rgba(var(--fg-rgb, 255, 255, 255),.035) !important;
   position:relative;
@@ -208,7 +208,7 @@
   -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   box-shadow:
     0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),
-    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, .2),
     inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06) !important;
   position:relative;
 }
@@ -272,7 +272,7 @@
   -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   box-shadow:
     0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),
-    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, .2),
     inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06) !important;
   position:relative;
 }
@@ -311,7 +311,7 @@
   -webkit-backdrop-filter:blur(30px) saturate(1.1);
   box-shadow:
     0 30px 80px rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))),
-    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.14),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, .14),
     inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05) !important;
 }
 
@@ -472,7 +472,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   -webkit-backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
   box-shadow:
     0 14px 34px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))),
-    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.16),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, .16),
     inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05) !important;
   transition:transform .22s var(--chest-ease), border-color .22s, box-shadow .22s !important;
 }
@@ -480,7 +480,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   transform:translateY(-3px);
   border-color:rgba(var(--a2-rgb, 249, 164, 94),.45) !important;
   box-shadow:0 20px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), 0 0 34px rgba(var(--a1-rgb, 252, 18, 131),.18),
-             inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2) !important;
+             inset 1.5px 1.5px 0 rgba(255, 255, 255, .2) !important;
 }
 .bubble.is-open{ border-color:rgba(var(--a1-rgb, 252, 18, 131),.55) !important; }
 .bubble__badge.pending{ background:rgba(var(--amber-rgb, 232, 179, 57),.14) !important; color:var(--chest-amber) !important; }
@@ -513,7 +513,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   box-shadow:
     0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),
-    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, .2),
     inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06) !important;
   position:relative;
 }
@@ -605,7 +605,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.5), rgba(var(--dk-rgb, 9, 9, 11),.66)) !important;
   backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
   -webkit-backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
-  box-shadow:0 14px 34px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.16) !important;
+  box-shadow:0 14px 34px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .16) !important;
 }
 .mover-row{ border-bottom-color:var(--chest-rule-row) !important; }
 .mover-col__label{ font-size:10px !important; letter-spacing:.16em !important; color:var(--chest-ink-3) !important; }
@@ -647,7 +647,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   border:1px solid var(--chest-border) !important;
   border-radius:var(--chest-r) !important;
   background:var(--chest-surface) !important;
-  box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
+  box-shadow:inset 0 1px 0 rgba(255, 255, 255, .06);
 }
 
 

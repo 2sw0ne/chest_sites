@@ -148,7 +148,7 @@
   .btc{ position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:24px; background:rgba(var(--dk-rgb, 3, 3, 5),.66); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); animation:btcFade .2s ease-out both; }
   @keyframes btcFade{ from{ opacity:0; } }
   .btc__box{ position:relative; width:min(1080px,100%); max-height:calc(100dvh - 48px); overflow:auto; border-radius:22px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12);
-    background:linear-gradient(180deg, rgba(var(--dk-rgb, 22, 20, 24),.97), rgba(var(--dk-rgb, 12, 12, 15),.98)); box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.07);
+    background:linear-gradient(180deg, rgba(var(--dk-rgb, 22, 20, 24),.97), rgba(var(--dk-rgb, 12, 12, 15),.98)); box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), inset 0 1px 0 rgba(255, 255, 255, .07);
     color:var(--chest-ink,#f6f6f7); animation:btcIn .32s cubic-bezier(.16,1,.3,1) both; scrollbar-width:thin; }
   @keyframes btcIn{ from{ opacity:0; transform:translateY(12px) scale(.985); } }
   .btc__head{ position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 26px 16px;

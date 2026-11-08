@@ -326,7 +326,7 @@
   // actions que la vue v3 (data-task, data-post, data-ref-*, data-trade, data-suivi).
   const MONO2 = "font-family: 'Fragment Mono', ui-monospace, monospace;";
   const LBL2 = MONO2 + ' font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));';
-  const TILE2 = 'border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column;';
+  const TILE2 = 'border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column;';
   const GRAD2 = 'background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); -webkit-background-clip: text; background-clip: text; color: transparent;';
   function nextCall2() {
     const M = S.mentor || {};
@@ -394,7 +394,7 @@
     const M = S.mentor || {}, nx = nextCall2();
     const tasks = (M.tasks || []).slice().sort((a, b) => (!!a.doneAt - !!b.doneAt) || (Date.parse(a.dueAt || 0) - Date.parse(b.dueAt || 0)));
     const done = tasks.filter((t) => t.doneAt).length;
-    const call = nx ? `<div style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.75), rgba(var(--dk-rgb, 9, 9, 11), 0.9)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.12) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+    const call = nx ? `<div style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.75), rgba(var(--dk-rgb, 9, 9, 11), 0.9)); box-shadow: rgba(255, 255, 255, 0.12) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
           <div aria-hidden="true" style="position: absolute; right: -80px; top: -90px; width: 260px; height: 240px; background: radial-gradient(closest-side, rgba(var(--a1-rgb, 252, 18, 131), 0.22), transparent);"></div>
           <span style="position: relative; ${LBL2}">Prochain appel${nx.status === 'proposed' ? ' · à confirmer' : ''}</span>
           <span style="position: relative; font-size: 22px; font-weight: 700; letter-spacing: -0.025em;">${esc(nx.title || 'Appel')}</span>

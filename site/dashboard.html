@@ -16,8 +16,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=4">
 <link rel="stylesheet" href="css/layout.css?v=6">
-<link rel="stylesheet" href="css/chest-da.css?v=21">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
+<link rel="stylesheet" href="css/chest-da.css?v=22">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=21">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : une regle de classe qui fixe elle-meme `display`
@@ -482,7 +482,7 @@
   .chest-root .dv2-hero__acc{ margin-top:18px; display:flex; justify-content:center; }
   .chest-root .dv2-hero .acc-switcher__btn{
     border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.035); border-radius:999px; padding:6px 16px 6px 6px;
-    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:inset 0 1px 0 rgba(255, 255, 255, .06);
     transition:border-color .2s var(--v2-ease), background-color .2s var(--v2-ease), transform .16s var(--v2-ease);
   }
   .chest-root .dv2-hero .acc-switcher__btn:active{ transform:scale(.97); }
@@ -554,18 +554,18 @@
     position:relative; width:100%; display:flex; align-items:center; gap:18px; padding:18px 20px; text-align:left; cursor:pointer;
     font:inherit; color:var(--chest-ink); border-radius:18px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1);
     background:radial-gradient(120% 140% at 0% 0%, rgba(var(--a1-rgb, 252, 18, 131),.12), transparent 55%), linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.045), rgba(var(--fg-rgb, 255, 255, 255),.012));
-    box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.08), 0 24px 50px -30px rgba(0, 0, 0, calc(.8 * var(--sh-k, 1)));
+    box-shadow:inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 50px -30px rgba(0, 0, 0, calc(.8 * var(--sh-k, 1)));
     transition:border-color .25s cubic-bezier(.23,1,.32,1), box-shadow .25s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1);
   }
   .chest-root .tools-bar:active{ transform:scale(.99); }
   .chest-root .tools-bar:focus-visible{ outline:2px solid rgba(var(--a2-rgb, 249, 164, 94),.85); outline-offset:3px; }
   @media (hover:hover) and (pointer:fine){
-    .chest-root .tools-bar:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.55); box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.08), 0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.25), 0 0 34px rgba(var(--a1-rgb, 252, 18, 131),.18); }
+    .chest-root .tools-bar:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.55); box-shadow:inset 0 1px 0 rgba(255, 255, 255, .08), 0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.25), 0 0 34px rgba(var(--a1-rgb, 252, 18, 131),.18); }
     .chest-root .tools-bar:hover .tools-bar__cta{ background:var(--chest-grad); color:#fff; border-color:transparent; box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.35); }
   }
   .chest-root .tools-bar__ic{
     width:46px; height:46px; flex-shrink:0; border-radius:14px; display:grid; place-items:center; color:#fff;
-    background:var(--chest-grad); box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);
+    background:var(--chest-grad); box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(255, 255, 255, .3);
   }
   .chest-root .tools-bar__ic svg{ width:22px; height:22px; }
   .chest-root .tools-bar__text{ display:flex; flex-direction:column; gap:5px; min-width:0; flex:1; }
@@ -607,17 +607,17 @@
     mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 94%) !important; -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 94%) !important; }
   .chest-root .mini-cal__cell.is-future{ opacity:.35; background:transparent !important; border-style:dashed; }
 </style>
-<script src="js/theme.js?v=10"></script>
+<script src="js/theme.js?v=11"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=18">
-<link rel="stylesheet" href="css/chest-da-2.css?v=6">
-<link rel="stylesheet" href="css/chest-2-site.css?v=17">
-<link rel="stylesheet" href="css/shell-2.css?v=7">
+<link rel="stylesheet" href="css/v2.css?v=19">
+<link rel="stylesheet" href="css/chest-da-2.css?v=7">
+<link rel="stylesheet" href="css/chest-2-site.css?v=18">
+<link rel="stylesheet" href="css/shell-2.css?v=8">
 <link rel="stylesheet" href="css/dash-2.css?v=9">
 </head>
 <body data-page="dashboard" class="chest-root">
@@ -742,7 +742,7 @@
       <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px;">
 
         
-        <div style="grid-column: 1 / -1; position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.86)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="grid-column: 1 / -1; position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.86)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 16px;">
           <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255), 0.5), transparent);"></div>
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
             <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -791,7 +791,7 @@
 
       </section>
 
-      <section id="openPosSection" hidden style="position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.86)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 12px;">
+      <section id="openPosSection" hidden style="position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.86)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 12px;">
         <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255), 0.5), transparent);"></div>
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">03 — Positions ouvertes · en direct</span>
@@ -809,11 +809,11 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
 
           
-          <div class="tile" id="d2Sess" style="overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; display: flex; flex-direction: column;">
+          <div class="tile" id="d2Sess" style="overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; display: flex; flex-direction: column;">
           </div>
 
           
-          <div class="tile" id="d2NewsTile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px;">
+          <div class="tile" id="d2NewsTile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px;">
             <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;">
               <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;">Annonces du jour</span>
               <a href="calendar.html" style="margin-left: auto; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">Calendrier →</a>
@@ -821,7 +821,7 @@
           </div>
 
           
-          <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+          <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;">Force des devises</span>
               <span style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-2, rgb(155, 155, 161));">H4</span>
@@ -833,7 +833,7 @@
 
       
       <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px;">
-        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0px;">
+        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0px;">
           <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;">
             <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">05 — Performance par jour</span>
             <button type="button" class="d2-calset" id="miniCalSettingsBtn" title="Période affichée" aria-label="Période affichée" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -854,7 +854,7 @@
           </div>
         </div>
 
-        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0px;">
+        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0px;">
           <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;">
             <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">06 — Signaux des scanners</span>
             <a href="strategies.html" style="margin-left: auto; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">Stratégies →</a>
@@ -978,7 +978,7 @@
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js?v=3"></script>
-<script src="js/lot-calculator.js?v=10"></script>
+<script src="js/lot-calculator.js?v=11"></script>
 <script src="js/liquid-glass.js?v=3"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
@@ -1008,6 +1008,6 @@ CHESTTour.init([
 </script>
 <script src="js/v2.js?v=5"></script>
 <script src="js/scanner-store.js"></script>
-<script src="js/dash-2.js?v=10"></script>
+<script src="js/dash-2.js?v=11"></script>
 </body>
 </html>

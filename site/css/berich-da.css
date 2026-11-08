@@ -119,11 +119,11 @@
 /* ---------- Boutons ---------- */
 .chest-root .br-btn{ font:inherit; font-size:14px; font-weight:700; cursor:pointer; border:none; color:var(--br-deep);
   padding:14px 30px; border-radius:999px; background:var(--br-grad); min-height:46px; display:inline-flex; align-items:center; gap:8px; text-decoration:none;
-  box-shadow:0 16px 44px rgba(var(--green-rgb, 51, 230, 166),.32), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.55); transition:transform .2s var(--chest-ease), box-shadow .2s var(--chest-ease); }
-.chest-root .br-btn:hover{ transform:translateY(-1px); box-shadow:0 20px 54px rgba(var(--green-rgb, 51, 230, 166),.45), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.55); }
+  box-shadow:0 16px 44px rgba(var(--green-rgb, 51, 230, 166),.32), inset 0 1px 0 rgba(255, 255, 255, .55); transition:transform .2s var(--chest-ease), box-shadow .2s var(--chest-ease); }
+.chest-root .br-btn:hover{ transform:translateY(-1px); box-shadow:0 20px 54px rgba(var(--green-rgb, 51, 230, 166),.45), inset 0 1px 0 rgba(255, 255, 255, .55); }
 .chest-root .br-btn:active{ transform:scale(.98); }
 .chest-root .br-btn:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
-.chest-root .br-btn.is-sell{ background:linear-gradient(135deg,var(--red-hi, #ff94a0),var(--red, #ff4d5e) 60%,#e0364a); color:#fff; box-shadow:0 16px 44px rgba(var(--red-rgb, 255, 77, 94),.3), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.35); }
+.chest-root .br-btn.is-sell{ background:linear-gradient(135deg,var(--red-hi, #ff94a0),var(--red, #ff4d5e) 60%,#e0364a); color:#fff; box-shadow:0 16px 44px rgba(var(--red-rgb, 255, 77, 94),.3), inset 0 1px 0 rgba(255, 255, 255, .35); }
 .chest-root .br-done{ display:inline-flex; align-items:center; gap:8px; font-size:13.5px; font-weight:700; color:var(--br-mint); }
 .chest-root .br-link{ font:inherit; font-size:12.5px; font-weight:600; color:var(--br-mint); background:none; border:none; padding:0; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
 .chest-root .br-link:hover{ color:var(--br-ice); }

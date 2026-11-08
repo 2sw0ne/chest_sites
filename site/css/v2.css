@@ -63,11 +63,11 @@ body[data-page] hr{ height:1px; border:0; background:var(--v2-rule); }
 body[data-page] .card{
   border-color:rgba(var(--fg-rgb, 255, 255, 255),.07) !important;
   background:linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.035), rgba(var(--fg-rgb, 255, 255, 255),.008) 70%) !important;
-  box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.07), 0 24px 60px -30px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))) !important;
+  box-shadow:inset 0 1px 0 rgba(255, 255, 255, .07), 0 24px 60px -30px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))) !important;
 }
 body[data-page] .chest-glass{
   border-color:rgba(var(--fg-rgb, 255, 255, 255),.1);
-  box-shadow:0 30px 70px -28px rgba(0, 0, 0, calc(.75 * var(--sh-k, 1))), inset 1px 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.16), inset 0 0 40px rgba(var(--fg-rgb, 255, 255, 255),.025);
+  box-shadow:0 30px 70px -28px rgba(0, 0, 0, calc(.75 * var(--sh-k, 1))), inset 1px 1px 0 rgba(255, 255, 255, .16), inset 0 0 40px rgba(var(--fg-rgb, 255, 255, 255),.025);
 }
 body[data-page] .chest-glass--mini{ border-color:rgba(var(--fg-rgb, 255, 255, 255),.09); }
 
@@ -127,11 +127,11 @@ body[data-page] .chest-glass--mini{ border-color:rgba(var(--fg-rgb, 255, 255, 25
 }
 /* Bouton principal : un reflet en haut, comme une pièce de verre teintée */
 body[data-page] :is(.chest-btn, .btn-primary){
-  box-shadow:0 10px 30px rgba(var(--a1-rgb, 252, 18, 131),.28), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.28) !important;
+  box-shadow:0 10px 30px rgba(var(--a1-rgb, 252, 18, 131),.28), inset 0 1px 0 rgba(255, 255, 255, .28) !important;
 }
 @media (hover:hover) and (pointer:fine){
   body[data-page] :is(.chest-btn, .btn-primary):hover{
-    box-shadow:0 16px 44px rgba(var(--a1-rgb, 252, 18, 131),.42), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.32) !important;
+    box-shadow:0 16px 44px rgba(var(--a1-rgb, 252, 18, 131),.42), inset 0 1px 0 rgba(255, 255, 255, .32) !important;
   }
 }
 body[data-page] :is(.chest-btn, .btn-primary):disabled{ opacity:.45; box-shadow:none !important; transform:none !important; cursor:not-allowed; }
@@ -140,7 +140,7 @@ body[data-page] :is(.chest-btn, .btn-primary):disabled{ opacity:.45; box-shadow:
 body[data-page] :is(.chest-seg, .pill-group, .tabbar, .tabs){
   border-color:rgba(var(--fg-rgb, 255, 255, 255),.09) !important;
   background:rgba(var(--fg-rgb, 255, 255, 255),.025) !important;
-  box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.04);
+  box-shadow:inset 0 1px 0 rgba(255, 255, 255, .04);
 }
 
 /* ---------- 7. Champs ---------- */
@@ -204,7 +204,7 @@ body[data-page] .bt-card{
   background:
     linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.045), rgba(var(--fg-rgb, 255, 255, 255),.012) 50%, rgba(var(--fg-rgb, 255, 255, 255),.004)) !important;
   backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
-  box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.09), 0 34px 60px -38px rgba(0, 0, 0, calc(.85 * var(--sh-k, 1))) !important;
+  box-shadow:inset 0 1px 0 rgba(255, 255, 255, .09), 0 34px 60px -38px rgba(0, 0, 0, calc(.85 * var(--sh-k, 1))) !important;
   transition:transform .28s var(--v2-ease), border-color .28s var(--v2-ease), box-shadow .28s var(--v2-ease);
 }
 body[data-page] .bt-card::after{

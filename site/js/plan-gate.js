@@ -11,9 +11,9 @@
   .pg-card{ position:sticky; top:90px; width:min(460px,100%); text-align:center; padding:34px 30px 30px; border-radius:22px; color:var(--ink, #f6f6f7);
     border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); background:linear-gradient(165deg, rgba(26,14,22,.86), rgba(var(--dk-rgb, 9, 9, 11),.92));
     -webkit-backdrop-filter:blur(30px); backdrop-filter:blur(30px);
-    box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.08), 0 40px 90px -40px rgba(0, 0, 0, calc(.95 * var(--sh-k, 1))), 0 0 0 1px rgba(var(--a1-rgb, 252, 18, 131),.06); }
+    box-shadow:inset 0 1.5px 0 rgba(255, 255, 255, .08), 0 40px 90px -40px rgba(0, 0, 0, calc(.95 * var(--sh-k, 1))), 0 0 0 1px rgba(var(--a1-rgb, 252, 18, 131),.06); }
   .pg-ic{ width:66px; height:66px; margin:0 auto 16px; border-radius:20px; display:flex; align-items:center; justify-content:center; color:#fff;
-    background:linear-gradient(135deg,#ffb36b,#ff3d1f); box-shadow:0 16px 44px rgba(255,92,40,.45), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.35); }
+    background:linear-gradient(135deg,#ffb36b,#ff3d1f); box-shadow:0 16px 44px rgba(255,92,40,.45), inset 0 1px 0 rgba(255, 255, 255, .35); }
   .pg-ic svg{ width:22px; height:22px; }
   .pg-k{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:#ffb36b; }
   .pg-card h2{ margin:10px 0 8px; font-size:24px; line-height:1.18; font-weight:700; letter-spacing:-.035em; }

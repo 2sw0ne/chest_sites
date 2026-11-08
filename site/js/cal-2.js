@@ -84,14 +84,14 @@
     const red = nx && nx.importance === 'high';
     const pill = nx ? `<span style="display: flex; align-items: center; gap: 9px; height: 38px; padding: 0px 14px; border-radius: 12px; border: 1px solid ${red ? 'rgba(var(--red-rgb, 255, 77, 94), 0.25)' : 'rgba(var(--amber-rgb, 232, 179, 57), 0.25)'}; background: ${red ? 'rgba(var(--red-rgb, 255, 77, 94), 0.07)' : 'rgba(var(--amber-rgb, 232, 179, 57), 0.07)'}; font-size: 12.5px; color: var(--ink, rgb(246, 246, 247));">
           <span style="width: 7px; height: 7px; border-radius: 999px; background: ${red ? 'rgb(var(--red-rgb, 255, 77, 94))' : 'rgb(var(--amber-rgb, 232, 179, 57))'}; box-shadow: ${red ? 'rgba(var(--red-rgb, 255, 77, 94), 0.9)' : 'rgba(var(--amber-rgb, 232, 179, 57), 0.9)'} 0px 0px 10px;"></span>
-          Prochaine : <strong>${esc(shortName(nx))}</strong> <span style="${MONO} color: ${red ? 'var(--red-hi, rgb(255, 148, 160))' : 'rgb(244, 208, 122)'};">${esc(inLabel(nx))}</span>
+          Prochaine : <strong>${esc(shortName(nx))}</strong> <span style="${MONO} color: ${red ? 'var(--red-hi, rgb(255, 148, 160))' : 'var(--amber-hi, rgb(244, 208, 122))'};">${esc(inLabel(nx))}</span>
         </span>` : '';
     const slot = T.set(window, `${pill}<div style="position: relative;">
         <button type="button" class="btn2" data-cal-pair aria-haspopup="listbox" aria-expanded="false" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0px 14px; border-radius: 12px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); color: var(--ink, rgb(246, 246, 247)); font: inherit; font-weight: 600; cursor: pointer;">
           Paire suivie : ${esc(model.code)}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9ba1" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
         </button>
-        <div data-cal-pairs role="listbox" hidden style="position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: 260px; max-height: 380px; overflow-y: auto; padding: 6px; border-radius: 14px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.96), rgba(var(--dk-rgb, 9, 9, 11),.98)); box-shadow: 0 18px 44px rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.1);">
+        <div data-cal-pairs role="listbox" hidden style="position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: 260px; max-height: 380px; overflow-y: auto; padding: 6px; border-radius: 14px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.96), rgba(var(--dk-rgb, 9, 9, 11),.98)); box-shadow: 0 18px 44px rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .1);">
           ${C().pairs().map((p) => `<button type="button" role="option" data-key="${esc(p.key)}" aria-selected="${p.key === model.pairKey}" style="width: 100%; display: flex; align-items: baseline; gap: 10px; padding: 8px 10px; border: 0; border-radius: 10px; background: ${p.key === model.pairKey ? 'rgba(var(--fg-rgb, 255, 255, 255),.06)' : 'none'}; color: var(--ink, rgb(246, 246, 247)); font: inherit; font-size: 13px; text-align: left; cursor: pointer;"><b style="font-weight: 600; min-width: 74px;">${esc(p.code)}</b><small style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">${esc(p.label)}</small></button>`).join('')}
         </div>
       </div>`);
@@ -159,7 +159,7 @@
     $('c2CalPastPrev').textContent = prev == null ? '—' : fmtPct(prev);
     const r = $('c2CalPastReal');
     r.textContent = real == null ? (k1 ? 'indisponible' : '…') : fmtPct(real);
-    r.style.color = real == null ? 'rgb(122, 122, 130)' : real > 0 ? 'rgb(127, 243, 202)' : 'rgb(255, 148, 160)';
+    r.style.color = real == null ? 'rgb(122, 122, 130)' : real > 0 ? 'var(--green-hi, rgb(127, 243, 202))' : 'var(--red-hi, rgb(255, 148, 160))';
     $('c2CalPastMark').textContent = ok === null ? '' : ok ? ' ✓' : ' ✗';
     last.hidden = real == null;
     if (real != null) last.style.left = gaugePos(Math.max(-3, Math.min(3, real))) + '%';
@@ -216,7 +216,7 @@
     box.innerHTML = model.top3.map((d) => {
       const e = d.ev, tag = tagOf(e);
       return `
-            <button type="button" class="tile" data-open="${esc(evId(e))}" style="position: relative; overflow: hidden; text-align: left; cursor: pointer; font: inherit; color: inherit; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.75), rgba(var(--dk-rgb, 9, 9, 11), 0.9)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.12) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+            <button type="button" class="tile" data-open="${esc(evId(e))}" style="position: relative; overflow: hidden; text-align: left; cursor: pointer; font: inherit; color: inherit; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.75), rgba(var(--dk-rgb, 9, 9, 11), 0.9)); box-shadow: rgba(255, 255, 255, 0.12) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
               <div aria-hidden="true" style="position: absolute; right: -70px; top: -90px; width: 240px; height: 220px; pointer-events: none; background: radial-gradient(closest-side, ${d.tone === 'pos' ? 'rgba(var(--green-rgb, 51, 230, 166), 0.11)' : d.tone === 'neg' ? 'rgba(var(--red-rgb, 255, 77, 94), 0.11)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.035)'}, transparent);"></div>
               <div style="position: relative; display: flex; align-items: center; gap: 10px;">
                 <span style="${MONO} font-size: 10.5px; font-weight: 600; color: var(--ink-1, rgb(201, 201, 206)); border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); padding: 3px 7px; border-radius: 6px;">${esc(ccyOf(e))}</span>
@@ -248,7 +248,7 @@
       const on = model.filter.includes(k);
       return `
             <button type="button" data-imp="${k}" aria-pressed="${on}" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0px 14px; border-radius: 999px; border: 1px solid ${on ? 'rgba(var(--amber-rgb, 232, 179, 57), 0.45)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.1)'}; background: ${on ? 'rgba(var(--amber-rgb, 232, 179, 57), 0.1)' : 'transparent'}; color: ${on ? 'var(--ink, rgb(246, 246, 247))' : 'var(--ink-3, rgb(122, 122, 130))'}; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">
-              <span style="letter-spacing: 1px; color: ${on ? 'rgb(244, 208, 122)' : 'var(--ink-4, rgb(92, 92, 99))'}; text-shadow: ${on ? 'rgba(var(--amber-rgb, 232, 179, 57), 0.6) 0px 0px 10px' : 'none'};">${glyph}</span>${label}
+              <span style="letter-spacing: 1px; color: ${on ? 'var(--amber-hi, rgb(244, 208, 122))' : 'var(--ink-4, rgb(92, 92, 99))'}; text-shadow: ${on ? 'rgba(var(--amber-rgb, 232, 179, 57), 0.6) 0px 0px 10px' : 'none'};">${glyph}</span>${label}
               <span style="${MONO} font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));">${counts[k] || 0}</span>
             </button>`;
     }).join('');
@@ -391,7 +391,7 @@
               <div style="display: flex; align-items: center; gap: 10px;">
                 <span style="${MONO} font-size: 10.5px; font-weight: 600; color: var(--ink-1, rgb(201, 201, 206)); border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); padding: 3px 7px; border-radius: 6px;">${esc(ccy)}</span>
                 <span style="${MONO} font-size: 11px; letter-spacing: 0.06em; color: var(--ink-2, rgb(155, 155, 161));">${esc(dayLong)}${e.time ? ' · ' + esc(e.time) : ''}</span>
-                <span style="margin-left: auto; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; color: ${n === 3 ? 'var(--red-hi, rgb(255, 148, 160))' : n === 2 ? 'rgb(244, 208, 122)' : 'var(--ink-1, rgb(201, 201, 206))'}; background: ${n === 3 ? 'rgba(var(--red-rgb, 255, 77, 94), 0.14)' : n === 2 ? 'rgba(var(--amber-rgb, 232, 179, 57), 0.14)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.08)'};">Impact ${IMP_LABEL[n]}</span>
+                <span style="margin-left: auto; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; color: ${n === 3 ? 'var(--red-hi, rgb(255, 148, 160))' : n === 2 ? 'var(--amber-hi, rgb(244, 208, 122))' : 'var(--ink-1, rgb(201, 201, 206))'}; background: ${n === 3 ? 'rgba(var(--red-rgb, 255, 77, 94), 0.14)' : n === 2 ? 'rgba(var(--amber-rgb, 232, 179, 57), 0.14)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.08)'};">Impact ${IMP_LABEL[n]}</span>
               </div>
               <h3 style="margin: 0px; font-size: 34px; line-height: 1.08; font-weight: 700; letter-spacing: -0.035em;">${esc(String(e.event || '').replace(/\s+/g, ' ').trim())}</h3>
               <div style="display: flex; flex-direction: column; gap: 8px;">

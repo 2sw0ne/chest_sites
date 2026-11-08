@@ -178,7 +178,7 @@
     const row = (title, sub, ratio, bar, status) => {
       const st = status === 'ok' ? { t: '✓', c: POS, b: 'rgba(var(--green-rgb, 51, 230, 166), 0.16)', g: 'rgba(var(--green-rgb, 51, 230, 166), 0.25)' }
         : status === 'ko' ? { t: '✗', c: NEG, b: 'rgba(var(--red-rgb, 255, 77, 94), 0.16)', g: 'rgba(var(--red-rgb, 255, 77, 94), 0.25)' }
-        : { t: '…', c: 'rgb(244, 208, 122)', b: 'rgba(var(--amber-rgb, 232, 179, 57), 0.16)', g: 'rgba(var(--amber-rgb, 232, 179, 57), 0.2)' };
+        : { t: '…', c: 'var(--amber-hi, rgb(244, 208, 122))', b: 'rgba(var(--amber-rgb, 232, 179, 57), 0.16)', g: 'rgba(var(--amber-rgb, 232, 179, 57), 0.2)' };
       return `
             <div style="display: flex; align-items: center; gap: 14px; padding: 14px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);">
               <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 3px; min-width: 0px;">
@@ -297,7 +297,7 @@
       const tot = s.totalPnl || 0, col = tot < 0 ? 'var(--red, #ff4d5e)' : 'var(--green, #33e6a6)', glow = tot < 0 ? 'rgb(var(--red-rgb, 255, 77, 94))' : 'rgb(var(--green-rgb, 51, 230, 166))';
       const prop = o.a.type === 'propfirm';
       return `
-            <button type="button" data-acc="${esc(o.a.id)}" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 16px; text-align: left; font: inherit; color: var(--ink, rgb(246, 246, 247)); cursor: pointer; border-radius: 18px; border: 1px solid ${o.a.id === acc.id ? 'rgba(var(--a2-rgb, 249, 164, 94), 0.45)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.12)'}; background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.88)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset;">
+            <button type="button" data-acc="${esc(o.a.id)}" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 16px; text-align: left; font: inherit; color: var(--ink, rgb(246, 246, 247)); cursor: pointer; border-radius: 18px; border: 1px solid ${o.a.id === acc.id ? 'rgba(var(--a2-rgb, 249, 164, 94), 0.45)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.12)'}; background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.88)); box-shadow: rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset;">
               <span style="display: flex; align-items: center; gap: 8px; width: 100%;">
                 <span style="width: 7px; height: 7px; border-radius: 999px; background: ${o.color}; box-shadow: ${o.color} 0px 0px 8px;"></span>
                 <span style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;">${esc(o.a.name || 'Journal')}</span>

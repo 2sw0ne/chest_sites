@@ -78,10 +78,10 @@
 .c2-kpi__note{font-size:11.5px;color:var(--c2-ink-3)}
 
 /* ---------- Surfaces ---------- */
-.c2-tile{position:relative;overflow:hidden;border-radius:18px;border:1px solid var(--c2-rule);background:linear-gradient(180deg,rgba(var(--fg-rgb, 255, 255, 255),.035),rgba(var(--fg-rgb, 255, 255, 255),.012));box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.05);transition:border-color .2s var(--c2-ease)}
+.c2-tile{position:relative;overflow:hidden;border-radius:18px;border:1px solid var(--c2-rule);background:linear-gradient(180deg,rgba(var(--fg-rgb, 255, 255, 255),.035),rgba(var(--fg-rgb, 255, 255, 255),.012));box-shadow:inset 0 1px 0 rgba(255, 255, 255, .05);transition:border-color .2s var(--c2-ease)}
 .c2-tile:hover{border-color:rgba(var(--a2-rgb, 249, 164, 94),.32)}
 .c2-tile__halo{position:absolute;right:-80px;top:-80px;width:220px;height:220px;pointer-events:none;background:radial-gradient(circle,var(--halo,rgba(var(--a2-rgb, 249, 164, 94),.16)),transparent 68%)}
-.c2-glass{position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12);background:linear-gradient(160deg,rgba(var(--dk-rgb, 14, 14, 17),.72),rgba(var(--dk-rgb, 9, 9, 11),.86));box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.14),inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04)}
+.c2-glass{position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12);background:linear-gradient(160deg,rgba(var(--dk-rgb, 14, 14, 17),.72),rgba(var(--dk-rgb, 9, 9, 11),.86));box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),inset 1.5px 1.5px 0 rgba(255, 255, 255, .14),inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04)}
 .c2-glass::after{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.5),transparent);pointer-events:none}
 .c2-empty{border:1px dashed rgba(var(--fg-rgb, 255, 255, 255),.16);border-radius:18px;color:var(--c2-ink-3);font-size:11.5px}
 
@@ -138,7 +138,7 @@
 .sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
 
 /* ---------- Bouton de la calculatrice de lot ---------- */
-.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c2-grad);box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);transition:transform .2s var(--c2-ease)}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c2-grad);box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(255, 255, 255, .3);transition:transform .2s var(--c2-ease)}
 .calc-fab:hover{transform:translateY(-2px)}
 
 @media (prefers-reduced-motion:reduce){

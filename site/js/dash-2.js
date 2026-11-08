@@ -62,7 +62,7 @@
     const pct = d.profitPct != null ? d.profitPct : num(d.profit) || 0;
     const chip = $('d2Chip');
     chip.textContent = `${usd(diff)} · ${sign(pct)}${nfr(Math.abs(pct), 2)} %`;
-    chip.style.color = diff < 0 ? 'rgb(255, 148, 160)' : 'rgb(127, 243, 202)';
+    chip.style.color = diff < 0 ? 'var(--red-hi, rgb(255, 148, 160))' : 'var(--green-hi, rgb(127, 243, 202))';
     chip.style.background = diff < 0 ? 'rgba(var(--red-rgb, 255, 77, 94), 0.12)' : 'rgba(var(--green-rgb, 51, 230, 166), 0.12)';
     chip.style.textShadow = diff < 0 ? 'none' : 'rgba(var(--green-rgb, 51, 230, 166), 0.45) 0px 0px 14px';
     $('d2ChipSub').textContent = PERIOD_SUB[period] || '';

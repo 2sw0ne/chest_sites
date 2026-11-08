@@ -52,7 +52,7 @@
   backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
   -webkit-backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
   box-shadow:0 14px 34px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))),
-             inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.16),
+             inset 1.5px 1.5px 0 rgba(255, 255, 255, .16),
              inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05);
   transition:transform .22s var(--chest-ease), border-color .22s;
 }
@@ -242,7 +242,7 @@
   padding:24px 26px !important; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); border-radius:var(--chest-r-lg);
   background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.62), rgba(var(--dk-rgb, 9, 9, 11),.74));
   backdrop-filter:blur(34px) brightness(.34) saturate(1.05); -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
-  box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
+  box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .2), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
 }
 .chest-root .mover-col__label{ font-size:10px; font-weight:600; letter-spacing:.16em; color:var(--chest-ink-3); margin-bottom:6px; }
 .chest-root .mover-row{ border-bottom-color:var(--chest-rule-row); padding:11px 0; }

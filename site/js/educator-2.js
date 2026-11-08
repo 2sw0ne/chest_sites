@@ -90,7 +90,7 @@
     if (!top) { top = document.createElement('div'); top.id = 'ed2m'; top.className = 'ed2m'; box.parentNode.insertBefore(top, box); }
     const t = D.totals, pending = members.filter((x) => x.berichPending).length;
     const stat = (k, v, c) => `<div class="ed2m__s"><span>${k}</span><b${c ? ` style="color: ${c};"` : ''}>${v}</b></div>`;
-    top.innerHTML = `<div class="ed2m__stats">${stat('Membres', t.members)}${stat('Abonnés', t.active, 'var(--green-hi, rgb(127, 243, 202))')}${stat('En essai', t.trials, 'rgb(244, 208, 122)')}${stat('BERICH à connecter', pending, pending ? 'rgb(var(--a2-rgb, 249, 164, 94))' : '')}${stat('Ventes', eur(t.sales))}</div>
+    top.innerHTML = `<div class="ed2m__stats">${stat('Membres', t.members)}${stat('Abonnés', t.active, 'var(--green-hi, rgb(127, 243, 202))')}${stat('En essai', t.trials, 'var(--amber-hi, rgb(244, 208, 122))')}${stat('BERICH à connecter', pending, pending ? 'rgb(var(--a2-rgb, 249, 164, 94))' : '')}${stat('Ventes', eur(t.sales))}</div>
       <div class="ed2m__tools"><label class="ed2m__search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg><input type="search" id="ed2mQ" placeholder="Chercher un membre" value="${esc(query)}" aria-label="Chercher un membre"></label>
       <div class="ed2m__seg" role="group" aria-label="Filtre">${[['all', 'Tous'], ['active', 'Abonnés'], ['trial', 'Essai'], ['off', 'Inactifs']].map(([k, l]) => `<button type="button" data-ed2f="${k}" aria-pressed="${filter === k}">${l}</button>`).join('')}</div></div>`;
     applyFilter();

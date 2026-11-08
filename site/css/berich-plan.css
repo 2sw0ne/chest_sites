@@ -11,7 +11,7 @@
 
 /* ---------- Petits boutons ---------- */
 .chest-root .br-btn svg, .bq .br-btn svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-.chest-root .br-btn--sm{ min-height:38px; padding:9px 18px; font-size:13px; box-shadow:0 10px 30px rgba(var(--green-rgb, 51, 230, 166),.25), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.55); }
+.chest-root .br-btn--sm{ min-height:38px; padding:9px 18px; font-size:13px; box-shadow:0 10px 30px rgba(var(--green-rgb, 51, 230, 166),.25), inset 0 1px 0 rgba(255, 255, 255, .55); }
 .chest-root .br-btn--ghost{ background:rgba(var(--fg-rgb, 255, 255, 255),.04); color:var(--chest-ink); box-shadow:inset 0 0 0 1px rgba(127,245,214,.22); }
 .chest-root .br-btn--ghost:hover{ background:rgba(var(--green-rgb, 51, 230, 166),.08); box-shadow:inset 0 0 0 1px rgba(127,245,214,.4); }
 .chest-root .br-btn:disabled, .bq .br-btn:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
@@ -175,7 +175,7 @@ html.bq-open, html.bq-open body{ overflow:hidden; }
 @keyframes bqFade{ from{ opacity:0; } }
 .bq-box{ position:relative; width:min(760px,100%); max-height:calc(100dvh - 40px); display:flex; flex-direction:column; border-radius:28px; overflow:hidden;
   background:linear-gradient(170deg, rgba(10,24,20,.92), rgba(var(--dk-rgb, 5, 8, 8),.96)); border:1px solid rgba(127,245,214,.14);
-  box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), 0 0 80px rgba(var(--green-rgb, 51, 230, 166),.08), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.06); animation:bqIn .4s var(--bq-ease); }
+  box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), 0 0 80px rgba(var(--green-rgb, 51, 230, 166),.08), inset 0 1px 0 rgba(255, 255, 255, .06); animation:bqIn .4s var(--bq-ease); }
 @keyframes bqIn{ from{ opacity:0; transform:translateY(14px) scale(.985); } }
 .bq-head{ display:flex; align-items:center; gap:14px; padding:20px 22px 16px 26px; }
 .bq-brand{ display:inline-flex; align-items:center; gap:10px; font-size:11px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-2, #9b9ba1); }
@@ -251,7 +251,7 @@ html.bq-open, html.bq-open body{ overflow:hidden; }
 .bq-back svg{ width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .bq-back:hover{ color:var(--ink, #f6f6f7); }
 .bq .br-btn{ font:inherit; font-size:14px; font-weight:700; cursor:pointer; border:none; color:#03100c; padding:13px 26px; border-radius:999px; min-height:46px; display:inline-flex; align-items:center; gap:8px;
-  background:linear-gradient(135deg,#9bf7dd 0%,var(--green, #33e6a6) 42%,#14b8a6 100%); box-shadow:0 16px 44px rgba(var(--green-rgb, 51, 230, 166),.3), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.55); transition:transform .2s var(--bq-ease); }
+  background:linear-gradient(135deg,#9bf7dd 0%,var(--green, #33e6a6) 42%,#14b8a6 100%); box-shadow:0 16px 44px rgba(var(--green-rgb, 51, 230, 166),.3), inset 0 1px 0 rgba(255, 255, 255, .55); transition:transform .2s var(--bq-ease); }
 .bq .br-btn:hover{ transform:translateY(-1px); }
 .bq .br-btn:active{ transform:scale(.98); }
 .bq .br-label{ font-size:10px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-4, #5c5c63); }

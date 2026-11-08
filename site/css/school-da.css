@@ -347,7 +347,7 @@
   border-radius:12px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14);
   background:linear-gradient(160deg, rgba(var(--dk-rgb, 20, 20, 24),.96), rgba(var(--dk-rgb, 10, 10, 12),.96));
   backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
-  box-shadow:0 16px 36px rgba(0, 0, 0, calc(.5 * var(--sh-k, 1))), inset 1px 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
+  box-shadow:0 16px 36px rgba(0, 0, 0, calc(.5 * var(--sh-k, 1))), inset 1px 1px 0 rgba(255, 255, 255, .06);
   display:flex; flex-direction:column; gap:2px;
   animation:scToolsIn .15s var(--chest-ease, ease) both;
 }

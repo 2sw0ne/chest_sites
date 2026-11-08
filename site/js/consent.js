@@ -46,7 +46,7 @@
 .cs-alt:hover{ color:var(--ink, #f6f6f7); }
 .cs-note{ margin:14px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-4, #5c5c63); text-align:center; }
 /* CHEST 2.0 (maquettes T-Paiement, T-Conditions, Edu-Accueil, 2026-11-03) */
-.cs-box{ border-radius:20px; border-color:rgba(var(--fg-rgb, 255, 255, 255),.13); background:linear-gradient(170deg, rgba(var(--dk-rgb, 30, 20, 28),.92), rgba(var(--dk-rgb, 10, 10, 12),.96)); box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.1); }
+.cs-box{ border-radius:20px; border-color:rgba(var(--fg-rgb, 255, 255, 255),.13); background:linear-gradient(170deg, rgba(var(--dk-rgb, 30, 20, 28),.92), rgba(var(--dk-rgb, 10, 10, 12),.96)); box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .1); }
 .cs-k{ font-family:"Fragment Mono", ui-monospace, monospace; font-size:9.5px; font-weight:500; letter-spacing:.2em; color:var(--a2, #f9a45e); }
 .cs-box h2{ margin-top:6px; font-size:22px; }
 .cs-head{ display:flex; align-items:center; gap:14px; }
@@ -55,7 +55,7 @@
 .cs-box.is-center{ text-align:center; }
 .cs-box.is-center .cs-head{ flex-direction:column; gap:12px; }
 .cs-box.is-center h2{ font-size:26px; margin-top:4px; }
-.cs-tile{ width:52px; height:52px; border-radius:16px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.35); }
+.cs-tile{ width:52px; height:52px; border-radius:16px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(255, 255, 255, .35); }
 .cs-tile svg{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .cs-check a{ color:var(--a2, #f9a45e); text-decoration:none; }
 .cs-check a:hover{ text-decoration:underline; text-underline-offset:2px; }

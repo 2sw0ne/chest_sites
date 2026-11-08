@@ -234,7 +234,7 @@
 .chest-root .monthly-table{
   margin-bottom:0; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); border-radius:var(--chest-r-lg);
   background:linear-gradient(160deg,rgba(var(--dk-rgb, 9, 9, 11),.62),rgba(var(--dk-rgb, 9, 9, 11),.74));
-  box-shadow:0 18px 44px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.18), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05);
+  box-shadow:0 18px 44px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .18), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05);
 }
 .chest-root .monthly-row{ padding:13px 24px; border-bottom-color:var(--chest-rule-row); font-size:13px; transition:background .18s; }
 .chest-root .monthly-row:not(.head):hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.035); }
@@ -252,7 +252,7 @@
 .chest-root .journal-wrap{
   margin-bottom:0; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); border-radius:var(--chest-r-lg);
   background:linear-gradient(160deg,rgba(var(--dk-rgb, 9, 9, 11),.62),rgba(var(--dk-rgb, 9, 9, 11),.74));
-  box-shadow:0 18px 44px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.18), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05);
+  box-shadow:0 18px 44px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .18), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05);
 }
 .chest-root .journal-table th{
   background:rgba(var(--dk-rgb, 9, 9, 11),.9); font-size:10px; letter-spacing:.14em; color:var(--chest-ink-3); font-weight:600;
@@ -373,7 +373,7 @@
 .bt-loading__card{
   display:inline-flex; align-items:center; gap:14px; padding:14px 22px 14px 16px; border-radius:99px;
   border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); background:linear-gradient(180deg,rgba(var(--fg-rgb, 255, 255, 255),.07),rgba(var(--fg-rgb, 255, 255, 255),.02)), rgba(var(--dk-rgb, 12, 12, 14),.82);
-  box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.12), 0 18px 50px rgba(0, 0, 0, calc(.5 * var(--sh-k, 1))), 0 0 40px rgba(var(--a1-rgb, 252, 18, 131),.18);
+  box-shadow:inset 0 1.5px 0 rgba(255, 255, 255, .12), 0 18px 50px rgba(0, 0, 0, calc(.5 * var(--sh-k, 1))), 0 0 40px rgba(var(--a1-rgb, 252, 18, 131),.18);
   backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
 }
 .bt-loading__ring{
@@ -397,7 +397,7 @@
   color:rgba(var(--fg-rgb, 255, 255, 255),.7); background:rgba(var(--fg-rgb, 255, 255, 255),.06); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.16); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); transition:all .2s cubic-bezier(.16,1,.3,1); }
 .chest-root .bt-menu__btn:hover, .chest-root .bt-menu__btn[aria-expanded="true"]{ color:#fff; border-color:rgba(var(--a2-rgb, 249, 164, 94),.5); background:rgba(var(--a2-rgb, 249, 164, 94),.1); }
 .chest-root .bt-menu__list{ position:absolute; top:46px; right:0; min-width:220px; padding:6px; border-radius:14px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14);
-  background:linear-gradient(180deg,rgba(var(--fg-rgb, 255, 255, 255),.07),rgba(var(--fg-rgb, 255, 255, 255),.02)), rgba(var(--dk-rgb, 14, 14, 16),.94); box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.1), 0 22px 60px rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); }
+  background:linear-gradient(180deg,rgba(var(--fg-rgb, 255, 255, 255),.07),rgba(var(--fg-rgb, 255, 255, 255),.02)), rgba(var(--dk-rgb, 14, 14, 16),.94); box-shadow:inset 0 1.5px 0 rgba(255, 255, 255, .1), 0 22px 60px rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); }
 .chest-root .bt-menu__list[hidden]{ display:none; }
 .chest-root .bt-menu__list button{ display:block; width:100%; text-align:left; padding:10px 12px; border:0; border-radius:9px; background:none; cursor:pointer; font:inherit; font-size:13.5px; font-weight:500; color:var(--chest-ink,#f6f6f7); }
 .chest-root .bt-menu__list button:hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.07); }

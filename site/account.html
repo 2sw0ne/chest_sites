@@ -16,8 +16,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=4">
 <link rel="stylesheet" href="css/layout.css?v=6">
-<link rel="stylesheet" href="css/chest-da.css?v=21">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
+<link rel="stylesheet" href="css/chest-da.css?v=22">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=21">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Vrais drapeaux SVG - les emoji "indicateur regional" s'affichent en
@@ -211,7 +211,7 @@
     background:linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.07), rgba(var(--fg-rgb, 255, 255, 255),0) 78%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .chest-root .acch__avatar{ position:relative; width:92px; height:92px; margin:28px auto 0; border-radius:50%; display:grid; place-items:center;
     font-size:30px; font-weight:700; letter-spacing:-.02em; color:#fff; background:var(--chest-grad);
-    box-shadow:0 0 0 6px rgba(var(--a1-rgb, 252, 18, 131),.1), 0 20px 60px rgba(var(--a1-rgb, 252, 18, 131),.45), inset 0 2px 0 rgba(var(--fg-rgb, 255, 255, 255),.35); }
+    box-shadow:0 0 0 6px rgba(var(--a1-rgb, 252, 18, 131),.1), 0 20px 60px rgba(var(--a1-rgb, 252, 18, 131),.45), inset 0 2px 0 rgba(255, 255, 255, .35); }
   .chest-root .acch__avatar::before{ content:''; position:absolute; inset:-14px; border-radius:50%; z-index:-1; pointer-events:none;
     background:conic-gradient(from 0deg, transparent 0 15%, rgba(var(--a1-rgb, 252, 18, 131),.6) 30%, transparent 45%, rgba(var(--a2-rgb, 249, 164, 94),.5) 70%, transparent 85%);
     filter:blur(14px); animation:acchSpin 14s linear infinite; }
@@ -243,7 +243,7 @@
   .bk-group li em{ font-style:normal; margin-left:10px; color:var(--chest-ink-3, #5c5c63); }
   .bk-restore{ padding:6px 12px; font-size:12px; }
 </style>
-<script src="js/theme.js?v=10"></script>
+<script src="js/theme.js?v=11"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
@@ -251,10 +251,10 @@
 <script src="js/sync-store.js?v=19"></script>
 <script src="js/pwa.js?v=7"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=18">
-<link rel="stylesheet" href="css/chest-da-2.css?v=6">
-<link rel="stylesheet" href="css/chest-2-site.css?v=17">
-<link rel="stylesheet" href="css/account-2.css?v=7">
+<link rel="stylesheet" href="css/v2.css?v=19">
+<link rel="stylesheet" href="css/chest-da-2.css?v=7">
+<link rel="stylesheet" href="css/chest-2-site.css?v=18">
+<link rel="stylesheet" href="css/account-2.css?v=8">
 </head>
 <body data-page="account" class="chest-root">
 
@@ -735,7 +735,7 @@
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js?v=3"></script>
-<script src="js/lot-calculator.js?v=10"></script>
+<script src="js/lot-calculator.js?v=11"></script>
 <script src="js/liquid-glass.js?v=3"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>

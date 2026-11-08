@@ -46,7 +46,7 @@
   border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14);
   background:linear-gradient(165deg, rgba(var(--dk-rgb, 20, 20, 24),.62), rgba(var(--dk-rgb, 9, 9, 11),.72));
   backdrop-filter:blur(30px) saturate(1.1); -webkit-backdrop-filter:blur(30px) saturate(1.1);
-  box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.08), 0 40px 80px -50px rgba(0, 0, 0, calc(.9 * var(--sh-k, 1)));
+  box-shadow:inset 0 1.5px 0 rgba(255, 255, 255, .08), 0 40px 80px -50px rgba(0, 0, 0, calc(.9 * var(--sh-k, 1)));
   transition:transform .3s var(--chest-ease), border-color .3s var(--chest-ease), box-shadow .3s var(--chest-ease); }
 .chest-root .cx-plan::after{ content:''; position:absolute; top:0; left:12%; right:12%; height:1px; pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.5),transparent); }
@@ -54,7 +54,7 @@
 .chest-root .cx-plan.is-reco{ border-color:transparent; transform:translateY(-10px);
   background:linear-gradient(165deg, rgba(34,14,24,.7), rgba(var(--dk-rgb, 12, 9, 11),.78)) padding-box, linear-gradient(160deg, rgba(var(--a1-rgb, 252, 18, 131),.9), rgba(var(--a2-rgb, 249, 164, 94),.75) 60%, rgba(var(--fg-rgb, 255, 255, 255),.12)) border-box;
   border:1px solid transparent;
-  box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.1), 0 0 0 1px rgba(var(--a1-rgb, 252, 18, 131),.08), 0 30px 90px -30px rgba(var(--a1-rgb, 252, 18, 131),.55); }
+  box-shadow:inset 0 1.5px 0 rgba(255, 255, 255, .1), 0 0 0 1px rgba(var(--a1-rgb, 252, 18, 131),.08), 0 30px 90px -30px rgba(var(--a1-rgb, 252, 18, 131),.55); }
 @media (max-width:960px){ .chest-root .cx-plan.is-reco{ transform:none; } }
 .chest-root .cx-plan__badge{ position:absolute; top:-12px; left:26px; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
   padding:5px 11px; border-radius:var(--chest-r-pill); color:#fff; background:var(--chest-grad); box-shadow:0 8px 24px rgba(var(--a1-rgb, 252, 18, 131),.4);
@@ -102,7 +102,7 @@
 /* ---------- Parcours guidé ---------- */
 .chest-root .cx-flow{ display:grid; grid-template-columns:270px minmax(0,1fr); gap:0; margin-top:28px; border-radius:24px; overflow:hidden;
   border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.13); background:linear-gradient(165deg, rgba(var(--dk-rgb, 18, 18, 22),.66), rgba(var(--dk-rgb, 9, 9, 11),.76));
-  backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.07), 0 50px 100px -60px rgba(0, 0, 0, calc(.95 * var(--sh-k, 1))); }
+  backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); box-shadow:inset 0 1.5px 0 rgba(255, 255, 255, .07), 0 50px 100px -60px rgba(0, 0, 0, calc(.95 * var(--sh-k, 1))); }
 .chest-root .cx-flow[hidden]{ display:none; }
 @media (max-width:860px){ .chest-root .cx-flow{ grid-template-columns:1fr; } }
 .chest-root .cx-rail{ padding:26px 22px; border-right:1px solid var(--chest-rule); background:rgba(var(--fg-rgb, 255, 255, 255),.015); }

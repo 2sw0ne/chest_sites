@@ -154,7 +154,7 @@
 .am2-sheet{
   flex:1 1 300px; min-width:0; position:sticky; top:84px; overflow:hidden; border-radius:18px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12);
   background:linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.8), rgba(var(--dk-rgb, 9, 9, 11),.92));
-  box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.14), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04);
+  box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .14), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04);
   padding:22px; display:flex; flex-direction:column; gap:18px;
 }
 .am2-sheet::before{ content:''; position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.5), transparent); pointer-events:none; }

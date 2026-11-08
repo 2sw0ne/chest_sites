@@ -66,11 +66,11 @@
       position:fixed; right:28px; bottom:28px; z-index:260; width:54px; height:54px; border-radius:999px;
       border:none; cursor:pointer; display:grid; place-items:center; color:#fff;
       background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e));
-      box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);
+      box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(255, 255, 255, .3);
       transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s;
     }
     .lotcalc-fab svg{ width:20px; height:20px; }
-    .lotcalc-fab:hover{ transform:translateY(-2px); box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3); }
+    .lotcalc-fab:hover{ transform:translateY(-2px); box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(255, 255, 255, .3); }
     .lotcalc-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
     .lotcalc-overlay{
       position:fixed; inset:0; z-index:280; background:rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -82,7 +82,7 @@
       border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); border-radius:var(--chest-r-xl, 20px);
       background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.82), rgba(var(--dk-rgb, 9, 9, 11),.9));
       backdrop-filter:blur(34px) saturate(1.05); -webkit-backdrop-filter:blur(34px) saturate(1.05);
-      box-shadow:0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
+      box-shadow:0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .2), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
       padding:24px 24px 26px; color:var(--chest-ink, #f6f6f7);
       transform:translateY(12px) scale(.985); transition:transform .25s var(--chest-ease, cubic-bezier(.16,1,.3,1));
     }

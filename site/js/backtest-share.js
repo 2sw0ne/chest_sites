@@ -57,7 +57,7 @@
   .btsh[hidden]{ display:none; }
   .btsh__box{ width:min(440px,100%); border-radius:20px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); padding:22px; color:var(--ink, #f6f6f7);
     background:linear-gradient(180deg,rgba(var(--fg-rgb, 255, 255, 255),.07),rgba(var(--fg-rgb, 255, 255, 255),.02)), rgba(var(--dk-rgb, 14, 14, 16),.92);
-    box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.12), 0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); font-family:'Instrument Sans',system-ui,sans-serif; }
+    box-shadow:inset 0 1.5px 0 rgba(255, 255, 255, .12), 0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); font-family:'Instrument Sans',system-ui,sans-serif; }
   .btsh__k{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-4, #5c5c63); }
   .btsh__t{ margin:8px 0 4px; font-size:21px; font-weight:700; letter-spacing:-.03em; }
   .btsh__d{ margin:0 0 16px; font-size:12.5px; line-height:1.55; color:var(--ink-2, #9b9ba1); }

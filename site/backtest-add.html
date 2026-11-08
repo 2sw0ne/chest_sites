@@ -16,8 +16,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=4">
 <link rel="stylesheet" href="css/layout.css?v=5">
-<link rel="stylesheet" href="css/chest-da.css?v=21">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
+<link rel="stylesheet" href="css/chest-da.css?v=22">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=21">
 <style>
   .wizard{ display:flex; flex-direction:column; gap:20px; max-width:760px; width:100%; margin-left:auto; margin-right:auto; }
   /* Colonne centrée : lien de retour, titre et étapes partagent la même largeur */
@@ -79,7 +79,7 @@
   .si-wrap{ position:relative; display:inline-flex; }
   .si-btn{ height:30px; padding:0 12px; font-size:12.5px; border-radius:999px; }
   .si-pop{ max-height:min(62vh,440px); overflow-y:auto; position:absolute; top:calc(100% + 8px); left:0; z-index:40; min-width:250px; max-width:min(340px,86vw); padding:14px; border-radius:16px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14);
-    background:linear-gradient(180deg,rgba(var(--dk-rgb, 24, 24, 28),.97),rgba(var(--dk-rgb, 12, 12, 15),.98)); box-shadow:0 18px 50px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.12); }
+    background:linear-gradient(180deg,rgba(var(--dk-rgb, 24, 24, 28),.97),rgba(var(--dk-rgb, 12, 12, 15),.98)); box-shadow:0 18px 50px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))), inset 0 1px 0 rgba(255, 255, 255, .12); }
   .si-pop__title{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
   .si-pop__cat{ margin-bottom:12px; }
   .si-pop__cat:last-child{ margin-bottom:0; }
@@ -197,16 +197,16 @@
   .cap-pf__hint{ font-size:12px; color:var(--muted); margin:6px 0 0; }
   @media (prefers-reduced-motion: reduce){ .cap-toggle, .cap-toggle svg{ transition:none; } }
 </style>
-<script src="js/theme.js?v=10"></script>
+<script src="js/theme.js?v=11"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=18">
-<link rel="stylesheet" href="css/chest-da-2.css?v=6">
-<link rel="stylesheet" href="css/chest-2-site.css?v=17">
+<link rel="stylesheet" href="css/v2.css?v=19">
+<link rel="stylesheet" href="css/chest-da-2.css?v=7">
+<link rel="stylesheet" href="css/chest-2-site.css?v=18">
 </head>
 <body data-page="backtesting" class="chest-root">
 
@@ -413,7 +413,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/lot-calculator.js?v=10"></script>
+<script src="js/lot-calculator.js?v=11"></script>
 <script src="js/liquid-glass.js?v=3"></script>
 <script src="js/backtest-store.js?v=3"></script>
 <script src="js/backtest-engine.js?v=21"></script>

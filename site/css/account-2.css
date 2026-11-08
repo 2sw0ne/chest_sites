@@ -35,7 +35,7 @@ body[data-page="account"] .acc-del__form[hidden]{ display:none !important; }
 /* ---------- Compte v3 (2026-11-08, js/account-3.js) : cartes titrées, photo de profil, apparence ---------- */
 body[data-page="account"] .settings-list.is-cards{ display:flex; flex-direction:column; gap:16px; margin-top:14px !important; }
 .acc-card{ position:relative; border-radius:20px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.08); background:linear-gradient(160deg, rgba(var(--fg-rgb, 255, 255, 255),.035), rgba(var(--fg-rgb, 255, 255, 255),.01));
-  box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.06); padding:22px 24px 10px; }
+  box-shadow:inset 0 1px 0 rgba(255, 255, 255, .06); padding:22px 24px 10px; }
 .acc-card[hidden]{ display:none !important; }
 .acc-card__h{ display:flex; align-items:flex-start; gap:16px; padding-bottom:12px; }
 .acc-card__n{ flex:0 0 auto; min-width:34px; height:34px; padding:0 8px; border-radius:11px; display:grid; place-items:center; font-size:12px; font-weight:700; color:var(--bg-0, #050505);

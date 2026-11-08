@@ -23,7 +23,7 @@ body[data-page="strategies"] .scnr-hero .scnr-tabbar button.is-active{ backgroun
 
 /* ---------- Carte de réglages ---------- */
 body[data-page="strategies"] .scnr-topbar.card{ display:flex !important; flex-wrap:wrap; align-items:flex-end; gap:16px 0 !important; margin:0 !important; padding:16px 18px !important; border-radius:18px !important;
-  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1) !important; background:linear-gradient(rgba(var(--fg-rgb, 255, 255, 255),.04), rgba(var(--fg-rgb, 255, 255, 255),.016)) !important; box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.06) !important; backdrop-filter:none !important; }
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1) !important; background:linear-gradient(rgba(var(--fg-rgb, 255, 255, 255),.04), rgba(var(--fg-rgb, 255, 255, 255),.016)) !important; box-shadow:inset 0 1px 0 rgba(255, 255, 255, .06) !important; backdrop-filter:none !important; }
 body[data-page="strategies"] .scnr-topbar.card::before, body[data-page="strategies"] .scnr-topbar.card::after{ display:none !important; }
 body[data-page="strategies"] .scnr-topbar .scnr-field{ display:flex; flex-direction:column; gap:7px; min-width:0 !important; padding:0 20px !important; border-left:1px solid rgba(var(--fg-rgb, 255, 255, 255),.09) !important; flex:0 0 auto !important; }
 body[data-page="strategies"] .scnr-topbar .scnr-field:first-child{ padding-left:0 !important; border-left:0 !important; min-width:210px !important; position:relative; z-index:30; }
@@ -44,7 +44,7 @@ body[data-page="strategies"] .viz-tab{ border:1px solid rgba(var(--fg-rgb, 255, 
 
 /* ---------- Carte du graphique : onglets et légende en tête ---------- */
 body[data-page="strategies"] .scnr-media.card{ position:relative; overflow:hidden; margin:0 !important; padding:20px 18px 14px 20px !important; border-radius:18px !important; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12) !important;
-  background:linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.72), rgba(var(--dk-rgb, 9, 9, 11),.86)) !important; box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.14), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04) !important; }
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.72), rgba(var(--dk-rgb, 9, 9, 11),.86)) !important; box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .14), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04) !important; }
 .s2-head{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-bottom:14px; }
 .s2-head .scnr-tabbar{ display:flex; gap:2px; padding:3px !important; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); border-radius:999px; background:rgba(var(--fg-rgb, 255, 255, 255),.024) !important; }
 .s2-head .scnr-tabbar button{ height:30px; padding:0 14px !important; border-radius:999px; background:transparent !important; color:var(--ink-2, #9b9ba1) !important; font-size:12.5px !important; font-weight:400 !important; }
@@ -74,7 +74,7 @@ body[data-page="strategies"] .scnr-media.card{ padding:0 !important; border:0 !i
 body[data-page="strategies"] .scnr-media.card::before, body[data-page="strategies"] .scnr-media.card::after{ display:none !important; }
 /* fenêtre du graphique : un contour fin, toujours rien d'autre que le graphique ; onglets remontés sous le titre (2026-11-03) */
 body[data-page="strategies"] .scnr-media.card{ padding:10px !important; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12) !important; border-radius:18px !important;
-  background:linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.72), rgba(var(--dk-rgb, 9, 9, 11),.86)) !important; box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.12) !important; }
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.72), rgba(var(--dk-rgb, 9, 9, 11),.86)) !important; box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .12) !important; }
 body[data-page="strategies"] .scnr-hero .scnr-media__tabs{ margin-top:4px !important; margin-bottom:22px; position:relative; z-index:2; }
 
 /* ---------- Barre de réglages v3 (2026-11-05, « couleurs de son logo, liquid glass, plus propre, autre police ») ----------
@@ -84,25 +84,25 @@ body[data-page="strategies"] .scnr-topbar.card{ align-items:flex-end !important;
   border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12) !important;
   background:radial-gradient(90% 160% at 0% 0%, var(--sc-a), transparent 60%), linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.06), rgba(var(--fg-rgb, 255, 255, 255),.018)) !important;
   -webkit-backdrop-filter:blur(22px) saturate(160%) !important; backdrop-filter:blur(22px) saturate(160%) !important;
-  box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.14), inset 0 -1px 0 rgba(var(--fg-rgb, 255, 255, 255),.03), 0 22px 50px rgba(0, 0, 0, calc(.42 * var(--sh-k, 1))) !important;
+  box-shadow:inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 -1px 0 rgba(var(--fg-rgb, 255, 255, 255),.03), 0 22px 50px rgba(0, 0, 0, calc(.42 * var(--sh-k, 1))) !important;
   transition:background .5s ease, box-shadow .5s ease; }
 body[data-page="strategies"] .scnr-topbar .scnr-field{ gap:9px !important; padding:0 22px !important; border-left-color:rgba(var(--fg-rgb, 255, 255, 255),.07) !important; justify-content:flex-end; }
 body[data-page="strategies"] .scnr-topbar .scnr-field:first-child{ padding-left:0 !important; }
 body[data-page="strategies"] .scnr-topbar .scnr-field label{ font-family:inherit !important; font-size:12px !important; font-weight:500 !important; letter-spacing:0 !important; text-transform:none !important; color:var(--ink-2, #9b9ba1) !important; line-height:1; }
 body[data-page="strategies"] .scnr-combo__trigger{ border:1px solid var(--sc-b) !important; background:linear-gradient(135deg, var(--sc-a), rgba(var(--fg-rgb, 255, 255, 255),.025)) !important;
-  box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.1), 0 10px 26px var(--sc-a) !important; transition:border-color .4s ease, background .4s ease, box-shadow .4s ease; }
-body[data-page="strategies"] .scnr-topbar .scnr-field select{ border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.11) !important; background-color:rgba(var(--fg-rgb, 255, 255, 255),.04) !important; box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.07) !important; transition:border-color .2s ease; }
+  box-shadow:inset 0 1px 0 rgba(255, 255, 255, .1), 0 10px 26px var(--sc-a) !important; transition:border-color .4s ease, background .4s ease, box-shadow .4s ease; }
+body[data-page="strategies"] .scnr-topbar .scnr-field select{ border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.11) !important; background-color:rgba(var(--fg-rgb, 255, 255, 255),.04) !important; box-shadow:inset 0 1px 0 rgba(255, 255, 255, .07) !important; transition:border-color .2s ease; }
 body[data-page="strategies"] .scnr-topbar .scnr-field select:hover{ border-color:rgba(var(--fg-rgb, 255, 255, 255),.2) !important; }
 body[data-page="strategies"] .scnr-topbar .scnr-field select:focus-visible, body[data-page="strategies"] .scnr-combo__trigger:focus-visible{ outline:0; box-shadow:0 0 0 3px var(--sc-c) !important; }
-body[data-page="strategies"] .scnr-tf{ border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.11) !important; background:rgba(var(--fg-rgb, 255, 255, 255),.035) !important; box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.07); }
+body[data-page="strategies"] .scnr-tf{ border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.11) !important; background:rgba(var(--fg-rgb, 255, 255, 255),.035) !important; box-shadow:inset 0 1px 0 rgba(255, 255, 255, .07); }
 body[data-page="strategies"] .scnr-tf button{ transition:color .18s ease, background .25s ease; }
 body[data-page="strategies"] .scnr-tf button:hover{ color:var(--ink, #f6f6f7) !important; }
 body[data-page="strategies"] .scnr-tf button.is-active{ background:linear-gradient(180deg, var(--sc-c), var(--sc-a)) !important; color:#fff !important; font-weight:650 !important;
   box-shadow:inset 0 0 0 1px var(--sc-b), 0 0 18px var(--sc-a); }
 body[data-page="strategies"] #alrPanel.alr{ align-self:flex-end; }
 body[data-page="strategies"] #alrPanel .alr-last__head::before{ font-family:inherit; font-size:12px; letter-spacing:0; text-transform:none; color:var(--ink-2, #9b9ba1); }
-body[data-page="strategies"] .alr-bell{ border:1px solid var(--sc-b) !important; background:linear-gradient(135deg, var(--sc-a), rgba(var(--fg-rgb, 255, 255, 255),.025)) !important; color:var(--sc) !important; box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.1); transition:border-color .4s ease, color .4s ease; }
-body[data-page="strategies"] .viz-tab{ border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.11) !important; background:rgba(var(--fg-rgb, 255, 255, 255),.04) !important; box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.07); }
+body[data-page="strategies"] .alr-bell{ border:1px solid var(--sc-b) !important; background:linear-gradient(135deg, var(--sc-a), rgba(var(--fg-rgb, 255, 255, 255),.025)) !important; color:var(--sc) !important; box-shadow:inset 0 1px 0 rgba(255, 255, 255, .1); transition:border-color .4s ease, color .4s ease; }
+body[data-page="strategies"] .viz-tab{ border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.11) !important; background:rgba(var(--fg-rgb, 255, 255, 255),.04) !important; box-shadow:inset 0 1px 0 rgba(255, 255, 255, .07); }
 @media (prefers-reduced-motion: reduce){ body[data-page="strategies"] .scnr-topbar.card, body[data-page="strategies"] .scnr-combo__trigger, body[data-page="strategies"] .alr-bell{ transition:none; } }
 /* Tout sur une ligne sur grand écran (le bloc d'alerte passait seul en dessous : barre décentrée) */
 @media (min-width:1200px){
@@ -144,7 +144,7 @@ html.ct-lock, html.ct-lock body{ overflow:hidden; }
 .ct-modal[hidden]{ display:none; }
 .ct-modal__veil{ position:absolute; inset:0; background:rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
 .ct-modal__win{ position:relative; width:min(560px, 100%); max-height:min(78vh, 720px); display:flex; flex-direction:column; border-radius:20px; overflow:hidden;
-  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.13); background:linear-gradient(160deg, rgba(var(--dk-rgb, 24, 24, 28),.94), rgba(var(--dk-rgb, 10, 10, 12),.97)); box-shadow:0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.1);
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.13); background:linear-gradient(160deg, rgba(var(--dk-rgb, 24, 24, 28),.94), rgba(var(--dk-rgb, 10, 10, 12),.97)); box-shadow:0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))), inset 0 1px 0 rgba(255, 255, 255, .1);
   animation:ctIn .22s cubic-bezier(.16,1,.3,1); }
 @keyframes ctIn{ from{ opacity:0; transform:translateY(8px) scale(.98); } }
 @media (prefers-reduced-motion:reduce){ .ct-modal__win{ animation:none; } }

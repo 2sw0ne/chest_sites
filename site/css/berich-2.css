@@ -41,7 +41,7 @@ body[data-page="berich"] .br-flow{ counter-reset:brstep; grid-template-columns:r
 body[data-page="berich"] .br-flow::before, body[data-page="berich"] .br-flow.is-live::after{ display:none !important; }
 body[data-page="berich"] .br-node{ counter-increment:brstep; display:grid !important; grid-template-columns:30px 1fr auto; grid-template-areas:"i t n" "s s s" "x x x"; align-items:center; column-gap:12px; row-gap:8px;
   text-align:left !important; padding:18px !important; border-radius:18px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19),.72), rgba(var(--dk-rgb, 9, 9, 11),.88));
-  box-shadow:inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.12), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.03); }
+  box-shadow:inset 1.5px 1.5px 0 rgba(255, 255, 255, .12), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.03); }
 body[data-page="berich"] .br-node.is-ok{ border-color:rgba(var(--green-rgb, 51, 230, 166),.3); }
 body[data-page="berich"] .br-node::after{ content:'Étape ' counter(brstep); grid-area:n; font-size:10.5px; color:var(--ink-3, #7a7a82); }
 body[data-page="berich"] .br-node__i{ grid-area:i; width:30px !important; height:30px !important; margin:0 !important; }
@@ -55,7 +55,7 @@ body[data-page="berich"] .br-flow__note{ max-width:none !important; margin:16px 
 body[data-page="berich"] .br-proj,
 body[data-page="berich"] #brLedger,
 body[data-page="berich"] .br-cols > *{ position:relative; border-radius:18px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12);
-  background:linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.72), rgba(var(--dk-rgb, 9, 9, 11),.86)); box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.14), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04); }
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.72), rgba(var(--dk-rgb, 9, 9, 11),.86)); box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .14), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04); }
 body[data-page="berich"] .br-proj{ padding:22px !important; }
 body[data-page="berich"] #brLedger{ margin-top:40px; padding:22px; }
 body[data-page="berich"] #brLedger .br-section__head{ margin-top:0 !important; }
