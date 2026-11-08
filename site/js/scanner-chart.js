@@ -335,7 +335,8 @@
       { key: 'clock', label: 'Horloge de trading', def: true, tables: everything },
     ],
   };
-  const velaTheme = () => (window.CHESTTheme && CHESTTheme.current() === 'light' ? 'light' : 'dark');
+  // Le graphique reste en sombre dans les deux modes (demande du 2026-11-08) : sa fenêtre est une « île sombre » (js/theme.js).
+  const velaTheme = () => 'dark';
   const MODEL_KINDS = ['series', 'fills', 'labels', 'lines', 'boxes', 'polylines', 'backgrounds', 'tables'];
   // Indicateurs ajoutables : proposés seulement s'ils ne font pas déjà partie du script du scanner.
   const ADDONS = [
@@ -590,7 +591,7 @@
       symbol: symbolDisplay,
       timeframe: VELA_TIMEFRAME_MAP[timeframe] || '15m',
       data: candleData,
-      theme: velaTheme(), // graphique clair en mode clair (js/theme.js)
+      theme: velaTheme(), // toujours sombre, même en mode clair
       drawings: true,
       volume: false, // légende "Volume 0.00" jamais utile ici (pas de vraie donnée de volume)
     });

@@ -65,7 +65,9 @@
     + '--fg-rgb:18,18,30;--ink:#141419;--ink-1:#2c2c34;--ink-2:#565660;--ink-3:#787882;--ink-4:#9d9da6;'
     + '--bg-0:#f2f2f5;--bg0-rgb:242,242,245;--bg-1:#ffffff;--dk-rgb:255,255,255;--sh-k:.22;'
     + '--green:#0b9b69;--green-rgb:11,155,105;--green-hi:#08875b;--red:#dc3348;--red-rgb:220,51,72;--red-hi:#c62a3e;'
-    + '--amber:#c4860a;--amber-rgb:196,134,10;--amber-hi:#a46f00;}'
+    + '--amber:#c4860a;--amber-rgb:196,134,10;--amber-hi:#a46f00;--txt-top:#141419;--pos-mid:#0f7a55;--neg-mid:#b3263a;--brand-mid:#b9480f;}'
+    // îles sombres : les fenêtres de graphique gardent exactement le rendu du mode sombre (variables remises à leur repli)
+    + 'html[data-mode="light"] :is(#scnrMediaCard,.ct-modal,.chart-dark){color-scheme:dark;color:#f6f6f7;--fg-rgb:initial;--ink:initial;--ink-1:initial;--ink-2:initial;--ink-3:initial;--ink-4:initial;--bg-0:initial;--bg0-rgb:initial;--bg-1:initial;--dk-rgb:initial;--sh-k:initial;--green:initial;--green-rgb:initial;--green-hi:initial;--red:initial;--red-rgb:initial;--red-hi:initial;--amber:initial;--amber-rgb:initial;--amber-hi:initial;--txt-top:initial;--pos-mid:initial;--neg-mid:initial;--brand-mid:initial}'
     + 'html[data-mode="light"] body{background-color:#f2f2f5;}'
     + 'html[data-mode="light"] ::selection{background:rgba(var(--a1-rgb),.2);}';
   function accent() { let k = ''; try { k = localStorage.getItem(ACC_KEY) || ''; } catch (e) {} return ACCENTS[k] ? k : 'chest'; }

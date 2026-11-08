@@ -59,7 +59,7 @@
   .bt-hero-glow__badge .dot{ width:7px; height:7px; border-radius:50%; background:var(--acc); box-shadow:0 0 10px var(--acc); display:inline-block; }
   .bt-hero-glow__title{
     font-size:clamp(44px,9vw,104px); line-height:.95; font-weight:800; letter-spacing:-.03em; margin:0 0 18px; word-break:break-word;
-    background:linear-gradient(180deg,#fff,color-mix(in srgb,#fff 55%,var(--acc))); -webkit-background-clip:text; background-clip:text; color:transparent;
+    background:linear-gradient(180deg,var(--txt-top, #fff),color-mix(in srgb,var(--txt-top, #fff) 55%,var(--acc))); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .bt-hero-glow__desc{ font-size:15px; line-height:1.6; color:rgba(var(--fg-rgb, 255, 255, 255),.65); max-width:56ch; margin:0 auto 30px; }
   .bt-hero-glow__cta{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:20px; }
@@ -198,11 +198,11 @@
   @keyframes hcFade{ to{ opacity:1; } }
   @media (prefers-reduced-motion:reduce){ .bt-hero-curve__line{ animation:none; stroke-dasharray:none; stroke-dashoffset:0; } .bt-hero-curve__area{ animation:none; opacity:1; } }
   .bt-hero-glow__stats{ border-top:1px solid transparent !important; border-image:linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.14), transparent) 1; }
-  .bt-grade{ font-size:28px !important; line-height:1; background:linear-gradient(180deg,#fff,var(--a2, #f9a45e)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 16px rgba(var(--a2-rgb, 249, 164, 94),.55)); }
-  .bt-grade--s, .bt-grade--a{ background:linear-gradient(180deg,#fff,var(--green, #33e6a6)); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 18px rgba(var(--green-rgb, 51, 230, 166),.6)); }
-  .bt-grade--d, .bt-grade--e{ background:linear-gradient(180deg,#fff,var(--red, #ff4d5e)); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 16px rgba(var(--red-rgb, 255, 77, 94),.5)); }
+  .bt-grade{ font-size:28px !important; line-height:1; background:linear-gradient(180deg,var(--txt-top, #fff),var(--a2, #f9a45e)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 16px rgba(var(--a2-rgb, 249, 164, 94),.55)); }
+  .bt-grade--s, .bt-grade--a{ background:linear-gradient(180deg,var(--txt-top, #fff),var(--green, #33e6a6)); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 18px rgba(var(--green-rgb, 51, 230, 166),.6)); }
+  .bt-grade--d, .bt-grade--e{ background:linear-gradient(180deg,var(--txt-top, #fff),var(--red, #ff4d5e)); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 16px rgba(var(--red-rgb, 255, 77, 94),.5)); }
 </style>
-<script src="js/theme.js?v=7"></script>
+<script src="js/theme.js?v=8"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
@@ -210,7 +210,7 @@
 <script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/v2.css?v=18">
-<link rel="stylesheet" href="css/chest-da-2.css?v=4">
+<link rel="stylesheet" href="css/chest-da-2.css?v=5">
 <link rel="stylesheet" href="css/chest-2-site.css?v=17">
 </head>
 <body data-page="backtesting" class="chest-root">
@@ -384,10 +384,10 @@
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
 <script src="js/confirm-dialog.js?v=3"></script>
-<script src="js/lot-calculator.js?v=8"></script>
+<script src="js/lot-calculator.js?v=9"></script>
 <script src="js/liquid-glass.js?v=3"></script>
 <script src="js/backtest-store.js?v=3"></script>
-<script src="js/backtest-share.js?v=5"></script>
+<script src="js/backtest-share.js?v=6"></script>
 <script src="js/backtest-engine.js?v=21"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/propfirm-fit.js?v=10"></script>

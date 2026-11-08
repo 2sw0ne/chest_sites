@@ -151,9 +151,9 @@
 .chest-root .br-acc-line select:focus-visible{ outline:2px solid var(--br-mint); outline-offset:3px; border-radius:4px; }
 .chest-root .br-acc-line select option{ background:var(--bg-1, #0b0f0e); color:var(--chest-ink); }
 .chest-root .br-hero__num{ margin:18px 0 6px; font-size:clamp(64px,9vw,112px); font-weight:700; letter-spacing:-.06em; line-height:.92; font-variant-numeric:tabular-nums;
-  background:linear-gradient(180deg,#ffffff 15%, var(--br-ice) 55%, var(--br-mint)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  background:linear-gradient(180deg,var(--txt-top, #ffffff) 15%, var(--br-ice) 55%, var(--br-mint)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   filter:drop-shadow(0 0 34px rgba(var(--green-rgb, 51, 230, 166),.35)); padding-bottom:.06em; display:inline-block; }
-.chest-root .br-hero__num.is-neg{ background:linear-gradient(180deg,#ffffff 10%, #ffc2c9 50%, var(--chest-red)); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 34px rgba(var(--red-rgb, 255, 77, 94),.32)); }
+.chest-root .br-hero__num.is-neg{ background:linear-gradient(180deg,var(--txt-top, #ffffff) 10%, var(--neg-mid, #ffc2c9) 50%, var(--chest-red)); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 34px rgba(var(--red-rgb, 255, 77, 94),.32)); }
 .chest-root .br-hero__sub{ font-size:13px; color:var(--chest-ink-2); }
 .chest-root .br-hero__sub b{ color:var(--chest-ink); font-weight:600; font-variant-numeric:tabular-nums; }
 .chest-root .br-hero__controls{ display:flex; align-items:center; justify-content:center; gap:34px; flex-wrap:wrap; margin-top:22px; }

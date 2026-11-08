@@ -133,7 +133,7 @@
     .lotcalc-result.is-visible{ display:block; }
     .lotcalc-result__lot{
       font-size:38px; font-weight:700; letter-spacing:-.04em; line-height:1.1; margin-bottom:8px; padding-bottom:.06em;
-      background:linear-gradient(120deg,#fff 20%,var(--a2, #f9a45e) 95%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+      background:linear-gradient(120deg,var(--txt-top, #fff) 20%,var(--a2, #f9a45e) 95%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
       font-variant-numeric:tabular-nums;
     }
     .lotcalc-result__row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; font-size:12.5px; border-bottom:1px solid var(--chest-rule-row, rgba(255,255,255,.055)); color:var(--chest-ink-2, #9b9ba1); }

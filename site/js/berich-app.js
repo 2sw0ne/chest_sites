@@ -301,7 +301,7 @@
     const y = (v) => (hi - v) / (hi - lo) * H;
     const xs = p.time < t0 ? 0 : xOf(Math.floor(p.time / TF) * TF), xe = W;
     const candles = bars.map((b, i) => {
-      const x = i * cw + cw / 2, up = b[4] >= b[1], c = up ? 'var(--green, #33e6a6)' : 'var(--red, #ff4d5e)';
+      const x = i * cw + cw / 2, up = b[4] >= b[1], c = up ? '#33e6a6' : '#ff4d5e';
       const yo = y(b[1]), yc = y(b[4]), top = Math.min(yo, yc), hgt = Math.max(1, Math.abs(yc - yo));
       return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(b[2]).toFixed(1)}" y2="${y(b[3]).toFixed(1)}" stroke="${c}" stroke-opacity=".55" vector-effect="non-scaling-stroke"/>`
         + `<rect x="${(x - cw * 0.34).toFixed(1)}" y="${top.toFixed(1)}" width="${(cw * 0.68).toFixed(1)}" height="${hgt.toFixed(1)}" fill="${c}" fill-opacity="${up ? '.85' : '.8'}"/>`;
@@ -309,7 +309,7 @@
     const zone = (a, b, col) => `<rect x="${xs.toFixed(1)}" y="${Math.min(y(a), y(b)).toFixed(1)}" width="${(xe - xs).toFixed(1)}" height="${Math.abs(y(a) - y(b)).toFixed(1)}" fill="${col}"/>`;
     const lvl = (v, cls, txt) => `<span class="br-mini__lvl ${cls}" style="top:${(y(v) / H * 100).toFixed(2)}%">${txt} ${nf(v, 2)}</span>`;
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-        ${zone(p.entry, p.sl, 'rgba(var(--red-rgb, 255, 77, 94),.16)')}${zone(p.entry, p.tp, 'rgba(var(--green-rgb, 51, 230, 166),.12)')}
+        ${zone(p.entry, p.sl, 'rgba(255, 77, 94,.16)')}${zone(p.entry, p.tp, 'rgba(51, 230, 166,.12)')}
         <line x1="${xs.toFixed(1)}" x2="${W}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,.55)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
         ${candles}
         ${price != null ? `<line x1="0" x2="${W}" y1="${y(price).toFixed(1)}" y2="${y(price).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>` : ''}
@@ -504,12 +504,12 @@
         layout: { padding: { top: 8, right: 6 } },
         interaction: { mode: 'index', intersect: false },
         plugins: { legend: { display: false }, brGoal: sc.kind === 'plan' ? { value: sc.target, label: `Objectif ${eur(sc.target)}` } : {},
-          tooltip: { displayColors: false, backgroundColor: 'rgba(var(--dk-rgb, 5, 12, 10),.92)', borderColor: 'rgba(127,245,214,.25)', borderWidth: 1, padding: 10,
+          tooltip: { displayColors: false, backgroundColor: 'rgba(5, 12, 10,.92)', borderColor: 'rgba(127,245,214,.25)', borderWidth: 1, padding: 10,
             callbacks: { label: (i) => sc.fmt(i.parsed.y) } } },
         scales: {
-          y: { ...(sc.kind === 'plan' ? { grace: '6%' } : { min: lo - pad, max: hi + pad }), grid: { color: (c) => (Math.abs(c.tick.value - base) < 1e-9 ? 'rgba(var(--fg-rgb, 255, 255, 255),.16)' : 'rgba(var(--fg-rgb, 255, 255, 255),.045)') }, border: { display: false },
-            ticks: { color: 'var(--ink-4, #5c5c63)', maxTicksLimit: 5, padding: 10, callback: fmtY } },
-          x: { grid: { display: false }, border: { display: false }, ticks: { color: 'var(--ink-4, #5c5c63)', maxTicksLimit: 7, maxRotation: 0, padding: 8 } },
+          y: { ...(sc.kind === 'plan' ? { grace: '6%' } : { min: lo - pad, max: hi + pad }), grid: { color: (c) => (Math.abs(c.tick.value - base) < 1e-9 ? 'rgba(255, 255, 255,.16)' : 'rgba(255, 255, 255,.045)') }, border: { display: false },
+            ticks: { color: '#5c5c63', maxTicksLimit: 5, padding: 10, callback: fmtY } },
+          x: { grid: { display: false }, border: { display: false }, ticks: { color: '#5c5c63', maxTicksLimit: 7, maxRotation: 0, padding: 8 } },
         },
       },
       plugins: [glowPlugin, goalPlugin],
