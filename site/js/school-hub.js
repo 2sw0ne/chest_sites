@@ -202,7 +202,7 @@
   // Vue « Complet » (2026-11-08, équipe) : la semaine heure par heure, comme le calendrier de l'iPhone. Chaque rendez-vous
   // est placé à son horaire (hauteur = durée, côte à côte s'ils se chevauchent) ; les missions sont en haut du jour ;
   // un clic sur une zone vide ouvre « Nouveau rendez-vous » à ce jour et à ce quart d'heure. « Compact » = les cartes.
-  const HH = 52; // pixels par heure
+  const HH = 48; // pixels par heure : la journée entière (00 h – 24 h), la fenêtre en montre 13 (10 h – 23 h)
   function layoutDay(evs) {
     const items = evs.map((e) => ({ e, s: Date.parse(e.startsAt), f: Date.parse(e.startsAt) + Math.max(15, e.minutes) * 60000 })).sort((a, b) => a.s - b.s || b.f - a.f);
     let cluster = [], end = 0;
@@ -221,9 +221,7 @@
     const mon = new Date(S.week.getTime() + (S.wk2 ? 7 : 0) * DAY);
     const days = Array.from({ length: 7 }, (_, i) => new Date(mon.getTime() + i * DAY));
     const inWeek = groupCommon(D.events.filter((e) => Date.parse(e.startsAt) >= mon.getTime() && Date.parse(e.startsAt) < mon.getTime() + 7 * DAY && personMatch(e)));
-    let h0 = 7, h1 = 23;
-    inWeek.forEach((e) => { const d = new Date(e.startsAt); h0 = Math.min(h0, d.getHours()); h1 = Math.max(h1, Math.ceil(d.getHours() + (d.getMinutes() + e.minutes) / 60)); });
-    h1 = Math.min(24, h1);
+    const h0 = 0, h1 = 24;
     const hours = Array.from({ length: h1 - h0 }, (_, i) => h0 + i);
     const now = new Date();
     const head = days.map((d) => `<div class="sh-cal__dh${sameDay(d, now) ? ' is-today' : ''}"><span>${fr(d, { weekday: 'short' }).replace('.', '')}</span><b>${d.getDate()}</b></div>`).join('');
@@ -234,7 +232,7 @@
         const k = kindOf(e), p = personOf(e), past = Date.parse(e.startsAt) + e.minutes * 60000 < Date.now();
         const who = ROLE !== 'member' ? (e.type === 'personal' ? (e._n > 1 ? `${e._n} élèves` : String(e.member || '')) : e.audienceLabel || '') : '';
         return `<button type="button" class="sh-gev sh-ev--${k.k}${e.chest ? ' is-chest' : ''}${past ? ' is-past' : ''}${isNewEv(e) ? ' is-new' : ''}${hgt < 44 ? ' is-short' : ''}" data-ev="${esc(e.id)}" style="top:${top}px;height:${hgt}px;left:calc(${(col / n) * 100}% + 2px);width:calc(${100 / n}% - 4px);${p && p.color ? `--c:${esc(p.color)};` : ''}">
-          <span class="sh-gev__t"><b>${hm(e.startsAt)}</b>${esc(e.title)}</span>${hgt >= 44 ? `<span class="sh-gev__s">${e.chest ? 'CHEST · ' : `${k.label} · `}${esc(who)}</span>` : ''}</button>`;
+          <span class="sh-gev__t"><b>${hm(e.startsAt)}</b>${esc(e.title)}</span>${hgt >= 62 ? `<span class="sh-gev__s">${e.chest ? 'CHEST · ' : `${k.label} · `}${esc(who)}</span>` : ''}</button>`;
       }).join('');
       const nowLine = sameDay(d, now) && now.getHours() >= h0 && now.getHours() < h1 ? `<i class="sh-cal__now" style="top:${((now.getHours() - h0) * 60 + now.getMinutes()) / 60 * HH}px"></i>` : '';
       return `<div class="sh-cal__col${sameDay(d, now) ? ' is-today' : ''}${d < new Date(new Date().setHours(0, 0, 0, 0)) ? ' is-past' : ''}" data-slot="${ymd(d)}" data-h0="${h0}" style="height:${hours.length * HH}px">${evs}${nowLine}</div>`;
@@ -242,15 +240,14 @@
     return `<div class="sh-cal" style="--hh:${HH}px">
       <div class="sh-cal__head"><span></span>${head}</div>
       <div class="sh-cal__adrow"><span class="sh-cal__adk">Missions</span>${allDay}</div>
-      <div class="sh-cal__scroll" id="shCalScroll"><div class="sh-cal__body"><div class="sh-cal__hours">${hours.map((h) => `<span style="height:${HH}px">${pad(h)}:00</span>`).join('')}</div>${cols}</div></div>
+      <div class="sh-cal__scroll" id="shCalScroll" style="height:${13 * HH + 12}px"><div class="sh-cal__body"><div class="sh-cal__hours">${hours.map((h) => `<span style="height:${HH}px">${h ? `${pad(h)}:00` : ''}</span>`).join('')}</div>${cols}</div></div>
     </div>`;
   }
   // après rendu : la grille s'ouvre sur l'heure courante (ou 8 h)
   function scrollCal() {
     const sc = document.getElementById('shCalScroll'); if (!sc) return;
-    const col = sc.querySelector('.sh-cal__col'); const h0 = col ? Number(col.dataset.h0) : 7;
-    const h = sameDay(S.week, mondayOf(new Date())) && !S.wk2 ? Math.max(h0, new Date().getHours() - 1) : 8;
-    sc.scrollTop = Math.max(0, (h - h0) * HH);
+    // vue par défaut : 10 h – 23 h (la journée entière reste accessible en faisant défiler)
+    sc.scrollTop = 10 * HH;
   }
 
   function weekHtml() {
@@ -946,7 +943,7 @@
     if (k === 'event') {
       body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="${C.picked.length ? 'Point sur tes trades de la semaine' : 'Live : revue du marché'}">`, true)}
         ${dateField('cDate', 'Date', ymd(base))}${timeField('cTime', 'Heure', `${pad(base.getHours())}:${pad(base.getMinutes())}`)}
-        ${field('Durée', `<select id="cMin">${[15, 30, 45, 60, 90, 120].map((m) => `<option value="${m}" ${m === (ed ? ed.minutes : 45) ? 'selected' : ''}>${dur(m)}</option>`).join('')}</select>`)}
+        ${(() => { const cur = ed ? ed.minutes : C.dur || 45; const opts = [15, 30, 45, 60, 90, 120, 180]; if (!opts.includes(cur)) opts.push(cur); return field('Durée', `<select id="cMin">${opts.sort((a, b) => a - b).map((m) => `<option value="${m}" ${m === cur ? 'selected' : ''}>${dur(m)}</option>`).join('')}</select>`); })()}
         ${field('Lien de l’appel <i>(facultatif)</i>', `<input type="url" id="cLink" maxlength="300" value="${esc(ed ? ed.link : '')}" placeholder="https://meet.google.com/…">`)}`;
     } else if (k === 'task') {
       body = `${field('Mission', `<input type="text" id="cTitle" maxlength="200" placeholder="Remplir ton journal chaque soir">`, true)}
@@ -996,8 +993,9 @@
     document.querySelectorAll('#shDlgIn [data-tp-open]').forEach((b) => { b.querySelector('span').textContent = document.getElementById(b.dataset.tpOpen).value || '--:--'; });
   };
 
-  async function openComposer(kind, editing, preset, startAt) {
+  async function openComposer(kind, editing, preset, startAt, minutes) {
     C.start = startAt || null;
+    C.dur = minutes || null;
     await ensurePeople();
     if (ROLE === 'admin' && !S.educators) await loadEducators().catch(() => {});
     const I0 = (editing && editing.idea) || null;
@@ -1176,11 +1174,12 @@
       return;
     }
     const slot = t.closest('.sh-cal__col');
-    if (slot && !t.closest('.sh-gev')) {
+    if (slot && !t.closest('.sh-gev') && S.tapCreate) {
+      S.tapCreate = false;
       const r = slot.getBoundingClientRect();
       const mins = Math.max(0, Math.floor(((e.clientY - r.top) / HH * 60) / 15) * 15) + Number(slot.dataset.h0) * 60;
       const at = new Date(`${slot.dataset.slot}T00:00`); at.setMinutes(mins);
-      return openComposer('event', null, null, at);
+      return openComposer('event', null, null, at, 60);
     }
     const wk = t.closest('[data-week]');
     if (wk) { const d = Number(wk.dataset.week); S.wk2 = false; S.week = d === 0 ? mondayOf(new Date()) : new Date(S.week.getTime() + d * 7 * DAY); return reloadWeek(); }
@@ -1220,6 +1219,33 @@
     const sv4 = t.closest('[data-scv-share]'); if (sv4) { if (window.CHESTSchool) CHESTSchool.share({ video: sv4.dataset.scvShare }); return; }
     const dm = t.closest('[data-del-mission]');
     if (dm) { if (!(await ask('Retirer cette mission chez tous les membres qui l’ont ?', 'Retirer'))) return; return act(() => postJson(`/mentor/common/${dm.dataset.delMission}/delete`, {}), 'Mission retirée.'); }
+  });
+  // Appuyer-glisser sur la grille (façon Calendrier d'Apple) : une bulle naît sous la souris, s'étire jusqu'au relâchement,
+  // puis « Nouveau rendez-vous » s'ouvre avec ce jour, cette heure et cette durée. Au doigt : un simple appui (1 h).
+  root.addEventListener('pointerdown', (e) => {
+    const col = e.target.closest('.sh-cal__col');
+    if (!col || e.target.closest('.sh-gev') || e.button !== 0) return;
+    if (e.pointerType === 'touch') { S.tapCreate = true; return; }
+    e.preventDefault();
+    const top = col.getBoundingClientRect().top;
+    const q = (y, up) => Math.max(0, Math.min(24 * 60, (up ? Math.ceil : Math.floor)(((y - top) / HH * 60) / 15) * 15));
+    const start = Math.min(q(e.clientY), 24 * 60 - 15);
+    let end = start + 60;
+    const ghost = document.createElement('div');
+    ghost.className = 'sh-ghost';
+    col.appendChild(ghost);
+    const tm = (m) => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
+    const paint = () => { ghost.style.top = `${start / 60 * HH}px`; ghost.style.height = `${(end - start) / 60 * HH - 2}px`; ghost.innerHTML = `<b>Nouveau rendez-vous</b><span>${tm(start)} – ${tm(end)}</span>`; };
+    paint();
+    let moved = false;
+    const move = (ev) => { const m = q(ev.clientY, true); if (Math.abs(ev.clientY - e.clientY) > 4) moved = true; if (moved) { end = Math.max(start + 15, Math.min(24 * 60, m)); paint(); } };
+    const up = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+      ghost.classList.add('is-set');
+      const at = new Date(`${col.dataset.slot}T00:00`); at.setMinutes(start);
+      openComposer('event', null, null, at, end - start).finally(() => setTimeout(() => ghost.remove(), 150));
+    };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
   });
   root.addEventListener('change', (e) => {
     if (e.target.id === 'shWho') { S.member = e.target.value || null; reloadWeek(); }
