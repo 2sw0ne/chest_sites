@@ -790,17 +790,19 @@
   //   Éducateur : tous ses élèves, ou certains d'entre eux.  Admin : tout le monde, les membres, l'équipe, ou des
   //   personnes choisies (éducateurs et membres mêlés). Un appel avec un seul membre = appel personnel (son suivi).
   const C = { kind: 'event', target: 'all', scope: [], picked: [], q: '', flyer: null, editing: null, format: 'landscape', side: 'buy', tps: 1 };
+  // « Pour » (2026-11-08) : un groupe, et dans chaque groupe sa liste pour ne garder que certaines personnes
+  // (rien de coché = tout le groupe). Admin : Tout le monde / Membres / Éducateurs ; éducateur : ses élèves.
   function targetsFor(kind) {
-    if (ROLE === 'educator') return kind === 'post' ? [['students', 'Tous mes élèves']] : [['students', 'Tous mes élèves'], ['pick', 'Choisir']];
-    if (kind === 'post') return [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Équipe']];
-    if (kind === 'task') return [['members', 'Tous les membres'], ['pick', 'Choisir']];
-    return [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Équipe'], ['pick', 'Choisir']];
+    if (ROLE === 'educator') return [['students', 'Mes élèves']];
+    if (kind === 'task') return [['members', 'Membres']];
+    return [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Éducateurs']];
   }
-  // personnes qu'on peut choisir : l'admin voit les éducateurs (appel d'équipe) puis les membres ; une mission ne vise que des membres
+  const GROUP_ALL = { all: 'Tout le monde', members: 'Tous les membres', educators: 'Toute l’équipe', students: 'Tous mes élèves' };
   function pickables(kind) {
     const members = (S.people || []).map((p) => ({ id: p.id, name: p.name, sub: ROLE === 'admin' && p.educator ? `avec ${p.educator}` : '' }));
-    if (ROLE !== 'admin' || kind === 'task' || kind === 'share') return [['', members]];
     const edus = (S.educators || []).map((e) => ({ id: e.id, name: e.name, sub: 'Éducateur', staff: true }));
+    if (ROLE !== 'admin' || kind === 'task' || kind === 'share' || C.target === 'members') return [['', members]];
+    if (C.target === 'educators') return [['', edus]];
     return [['Éducateurs', edus], ['Membres', members]];
   }
   const seg = (name, opts, val) => `<div class="chest-seg sh-seg" data-seg="${name}" role="radiogroup">${opts.map(([v, l]) => `<button type="button" role="radio" data-v="${v}" aria-checked="${String(v) === String(val)}" class="${String(v) === String(val) ? 'is-active' : ''}">${l}</button>`).join('')}</div>`;
@@ -815,11 +817,64 @@
         return `<button type="button" class="sh-pick__p${on ? ' is-on' : ''}" data-pick="${p.id}" role="checkbox" aria-checked="${on}" style="--c:${hashColor(p.id)}"><span class="sh-pick__av">${esc(initials(p.name))}</span><span class="sh-pick__n"><b>${esc(p.name)}</b>${p.sub ? `<small>${esc(p.sub)}</small>` : ''}</span><span class="sh-pick__ck">${ic('check')}</span></button>`;
       }).join('')}`;
     }).join('');
-    return `<div class="sh-f sh-f--wide sh-pick"><span>${C.picked.length ? plural(C.picked.length, 'personne choisie', 'personnes choisies') : 'Choisis une ou plusieurs personnes'}</span>
+    const total = pickables(C.kind).reduce((n, [, l]) => n + l.length, 0);
+    const all = C.kind === 'share' ? '' : `<button type="button" class="sh-pick__p sh-pick__all${C.picked.length ? '' : ' is-on'}" data-pick-all role="checkbox" aria-checked="${!C.picked.length}"><span class="sh-pick__av">${ic('users')}</span><span class="sh-pick__n"><b>${esc(GROUP_ALL[C.target] || 'Tout le groupe')}</b><small>${plural(total, 'personne', 'personnes')}</small></span><span class="sh-pick__ck">${ic('check')}</span></button>`;
+    return `<div class="sh-f sh-f--wide sh-pick"><span>${C.picked.length ? plural(C.picked.length, 'personne choisie', 'personnes choisies') : C.kind === 'share' ? 'Choisis un ou plusieurs membres' : 'Tout le groupe, ou coche des personnes'}</span>
       <input type="search" id="pickQ" class="sh-pick__q" placeholder="Rechercher un nom…" value="${esc(C.q)}" autocomplete="off" aria-label="Rechercher un nom">
-      <div class="sh-pick__list" id="pickList">${groups || '<em class="sh-hint">Personne à afficher.</em>'}</div></div>`;
+      <div class="sh-pick__list" id="pickList">${q ? '' : all}${groups || '<em class="sh-hint">Personne à afficher.</em>'}</div></div>`;
   }
   const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  // Date et heure (2026-11-08) : les mêmes sélecteurs que le Journal — calendrier du mois et roue des heures façon iPhone.
+  // La valeur vit dans un champ caché (id cDate / cTime / cDue) relu par submitComposer et gardé par keepValues.
+  const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  const dLabel = (iso) => (iso ? new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Choisir une date…');
+  const dateField = (id, label, val) => `<div class="sh-f"><span>${label}</span><div class="sh-dp"><input type="hidden" id="${id}" value="${esc(val)}"><button type="button" class="sh-dp__trig" data-dp-open="${id}">${ic('cal')}<span>${esc(dLabel(val))}</span></button><div class="sh-dp__panel" data-dp-panel="${id}" hidden></div></div></div>`;
+  const timeField = (id, label, val) => `<div class="sh-f"><span>${label}</span><div class="sh-dp"><input type="hidden" id="${id}" value="${esc(val)}"><button type="button" class="sh-dp__trig" data-tp-open="${id}"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/></svg><span>${esc(val || '--:--')}</span></button><div class="sh-tp__panel" data-tp-panel="${id}" hidden></div></div></div>`;
+  function closePickers(except) { document.querySelectorAll('#shDlgIn .sh-dp__panel, #shDlgIn .sh-tp__panel').forEach((p) => { if (p !== except) p.hidden = true; }); }
+  function renderMonth(id) {
+    const panel = document.querySelector(`[data-dp-panel="${id}"]`), cur = document.getElementById(id).value;
+    const { y, m } = S.dpView;
+    const startDow = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate(), prev = new Date(y, m, 0).getDate();
+    const today = ymd(new Date());
+    let cells = '';
+    for (let i = 0; i < startDow; i++) cells += `<button type="button" class="sh-dp__c is-muted" disabled>${prev - startDow + 1 + i}</button>`;
+    for (let d = 1; d <= days; d++) { const iso = `${y}-${pad(m + 1)}-${pad(d)}`; cells += `<button type="button" class="sh-dp__c${iso === today ? ' is-today' : ''}${iso === cur ? ' is-on' : ''}" data-dp-pick="${iso}" data-dp-for="${id}">${d}</button>`; }
+    const trail = (7 - ((startDow + days) % 7)) % 7;
+    for (let d = 1; d <= trail; d++) cells += `<button type="button" class="sh-dp__c is-muted" disabled>${d}</button>`;
+    panel.innerHTML = `<div class="sh-dp__head"><button type="button" class="sh-dp__nav" data-dp-nav="-1" data-dp-for="${id}" aria-label="Mois précédent">‹</button><b>${MONTHS[m]} ${y}</b><button type="button" class="sh-dp__nav" data-dp-nav="1" data-dp-for="${id}" aria-label="Mois suivant">›</button></div>
+      <div class="sh-dp__wd"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="sh-dp__grid">${cells}</div>`;
+  }
+  const WH = 36;
+  function openTime(id) {
+    const panel = document.querySelector(`[data-tp-panel="${id}"]`);
+    const wheel = (n, k) => `<div class="sh-wheel" data-wheel="${k}"><div class="sh-wheel__pad"></div>${Array.from({ length: n }, (_, i) => `<div class="sh-wheel__it" data-wv="${i}">${pad(k === 'm' ? i * 5 : i)}</div>`).join('')}<div class="sh-wheel__pad"></div></div>`;
+    panel.innerHTML = `<div class="sh-tp__wheels">${wheel(24, 'h')}<span class="sh-tp__colon">:</span>${wheel(12, 'm')}<div class="sh-tp__sep"></div></div><button type="button" class="chest-btn sh-tp__ok" data-tp-ok="${id}">OK</button>`;
+    panel.hidden = false;
+    const [h, mi] = (document.getElementById(id).value || '19:00').split(':').map(Number);
+    const set = (k, i) => { const w = panel.querySelector(`[data-wheel="${k}"]`); w.scrollTop = i * WH; hl(w, i); };
+    set('h', h || 0); set('m', Math.round((mi || 0) / 5) % 12);
+    panel.querySelectorAll('.sh-wheel').forEach((w) => {
+      let t; w.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(() => { const i = Math.round(w.scrollTop / WH); w.scrollTo({ top: i * WH, behavior: 'smooth' }); hl(w, i); }, 110); });
+    });
+  }
+  const hl = (w, i) => w.querySelectorAll('.sh-wheel__it').forEach((el, k) => el.classList.toggle('is-on', k === i));
+  function onPickerClick(t) {
+    const o = t.closest('[data-dp-open]');
+    if (o) { const id = o.dataset.dpOpen, panel = document.querySelector(`[data-dp-panel="${id}"]`); const open = panel.hidden; closePickers(); if (open) { const b = new Date((document.getElementById(id).value || ymd(new Date())) + 'T00:00:00'); S.dpView = { y: b.getFullYear(), m: b.getMonth() }; renderMonth(id); panel.hidden = false; } return true; }
+    const nv = t.closest('[data-dp-nav]');
+    if (nv) { let { y, m } = S.dpView; m += Number(nv.dataset.dpNav); if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; } S.dpView = { y, m }; renderMonth(nv.dataset.dpFor); return true; }
+    const pk = t.closest('[data-dp-pick]');
+    if (pk) { const id = pk.dataset.dpFor; document.getElementById(id).value = pk.dataset.dpPick; document.querySelector(`[data-dp-open="${id}"] span`).textContent = dLabel(pk.dataset.dpPick); closePickers(); return true; }
+    const to = t.closest('[data-tp-open]');
+    if (to) { const id = to.dataset.tpOpen, panel = document.querySelector(`[data-tp-panel="${id}"]`); const open = panel.hidden; closePickers(); if (open) openTime(id); return true; }
+    const wi = t.closest('.sh-wheel__it');
+    if (wi) { const w = wi.parentElement; w.scrollTo({ top: Number(wi.dataset.wv) * WH, behavior: 'smooth' }); return true; }
+    const ok = t.closest('[data-tp-ok]');
+    if (ok) { const id = ok.dataset.tpOk, panel = document.querySelector(`[data-tp-panel="${id}"]`); const i = (k) => Math.round(panel.querySelector(`[data-wheel="${k}"]`).scrollTop / WH); const val = `${pad(Math.min(23, i('h')))}:${pad(Math.min(11, i('m')) * 5)}`; document.getElementById(id).value = val; document.querySelector(`[data-tp-open="${id}"] span`).textContent = val; closePickers(); return true; }
+    if (!t.closest('.sh-dp__panel, .sh-tp__panel')) closePickers();
+    return false;
+  }
 
   function composerHtml() {
     const k = C.kind, ed = C.editing;
@@ -834,13 +889,13 @@
     const title = ed ? (k === 'event' ? 'Modifier l’appel' : 'Modifier l’Idea') : k === 'event' ? 'Nouveau rendez-vous' : k === 'task' ? 'Nouvelle mission' : 'Nouvelle Idea';
     let body = '';
     if (k === 'event') {
-      body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="${C.target === 'pick' ? 'Point sur tes trades de la semaine' : 'Live : revue du marché'}">`, true)}
-        ${field('Date', `<input type="date" id="cDate" value="${ymd(base)}">`)}${field('Heure', `<input type="time" id="cTime" step="900" value="${pad(base.getHours())}:${pad(base.getMinutes())}">`)}
+      body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="${C.picked.length ? 'Point sur tes trades de la semaine' : 'Live : revue du marché'}">`, true)}
+        ${dateField('cDate', 'Date', ymd(base))}${timeField('cTime', 'Heure', `${pad(base.getHours())}:${pad(base.getMinutes())}`)}
         ${field('Durée', `<select id="cMin">${[15, 30, 45, 60, 90, 120].map((m) => `<option value="${m}" ${m === (ed ? ed.minutes : 45) ? 'selected' : ''}>${dur(m)}</option>`).join('')}</select>`)}
         ${field('Lien de l’appel <i>(facultatif)</i>', `<input type="url" id="cLink" maxlength="300" value="${esc(ed ? ed.link : '')}" placeholder="https://meet.google.com/…">`)}`;
     } else if (k === 'task') {
       body = `${field('Mission', `<input type="text" id="cTitle" maxlength="200" placeholder="Remplir ton journal chaque soir">`, true)}
-        ${field('À faire pour le', `<input type="date" id="cDue" value="${ymd(due)}">`)}`;
+        ${dateField('cDue', 'À faire pour le', ymd(due))}`;
     } else {
       const I = (ed && ed.idea) || {};
       const tpIn = Array.from({ length: C.tps }, (_, n) => field(`TP ${n + 1}${n ? ' <i>(facultatif)</i>' : ''}`, `<input type="text" inputmode="decimal" id="cTp${n + 1}" value="${I.tps && I.tps[n] != null ? esc(I.tps[n]) : ''}" placeholder="${n ? '' : '2 676'}">`)).join('');
@@ -857,14 +912,14 @@
         ${ROLE === 'admin' ? `<label class="sh-tick"><input type="checkbox" id="cPin" ${ed && ed.pinned ? 'checked' : ''}><span>Épingler en tête</span></label>` : ''}`;
     }
     const n = C.picked.length;
-    const hint = C.target === 'pick' ? (n === 0 ? 'Choisis au moins une personne.' : k === 'task' ? `Ajoutée aux missions de ${plural(n, 'membre', 'membres')} : chacun coche la sienne.` : `Posé dans le planning de ${plural(n, 'personne', 'personnes')}, déjà confirmé. Chacun est prévenu.`)
+    const hint = n ? (k === 'post' ? `L’Idea apparaît dans School chez ${plural(n, 'personne', 'personnes')}.` : k === 'task' ? `Ajoutée aux missions de ${plural(n, 'membre', 'membres')} : chacun coche la sienne.` : `Posé dans le planning de ${plural(n, 'personne', 'personnes')}, déjà confirmé. Chacun est prévenu.`)
       : k === 'task' ? 'Copiée chez chaque membre visé ; chacun coche la sienne, tu vois l’avancement dans Missions.'
       : k === 'event' ? 'Un seul rendez-vous, visible dans le planning de tous ceux que tu vises. Chacun est prévenu, puis rappelé 15 min avant.' : 'L’Idea apparaît dans School chez tous ceux que tu vises. Tu la passes en cours ou inactive depuis sa fiche.';
     return `<div class="sh-comp">
       <header class="sh-comp__h"><span class="chest-step">${ROLE === 'admin' ? 'Admin' : 'Éducateur'}</span><h2>${title}</h2></header>
       ${ed ? '' : `<div class="sh-f sh-f--wide"><span>Quoi</span>${seg('kind', [['event', 'Appel'], ['task', 'Mission'], ['post', 'Idea']], k)}</div>`}
       <div class="sh-f sh-f--wide"><span>Pour</span>${seg('target', T, C.target)}</div>
-      ${C.target === 'pick' ? pickerHtml() : ''}
+      ${pickerHtml()}
       <div class="sh-grid">${body}</div>
       <p class="sh-hint">${hint}</p>
       <p class="sh-msg" id="shMsg" role="alert"></p>
@@ -879,7 +934,11 @@
     fn();
     ids.forEach((id) => { const el = document.getElementById(id); if (el && kept[id] != null && !(id === 'cTitle' && !kept[id])) el.value = kept[id]; });
   }
-  const refreshComposer = () => keepValues(() => { document.getElementById('shDlgIn').innerHTML = (S.dlgRender || composerHtml)(); });
+  const refreshComposer = () => {
+    keepValues(() => { document.getElementById('shDlgIn').innerHTML = (S.dlgRender || composerHtml)(); });
+    document.querySelectorAll('#shDlgIn [data-dp-open]').forEach((b) => { b.querySelector('span').textContent = dLabel(document.getElementById(b.dataset.dpOpen).value); });
+    document.querySelectorAll('#shDlgIn [data-tp-open]').forEach((b) => { b.querySelector('span').textContent = document.getElementById(b.dataset.tpOpen).value || '--:--'; });
+  };
 
   async function openComposer(kind, editing, preset) {
     await ensurePeople();
@@ -887,15 +946,16 @@
     const I0 = (editing && editing.idea) || null;
     Object.assign(C, { kind: kind || 'event', editing: editing || null, flyer: null, q: '', format: editing && editing.format === 'portrait' ? 'portrait' : 'landscape', side: I0 && I0.side === 'sell' ? 'sell' : 'buy', tps: I0 ? Math.max(1, I0.tps.length) : 1 });
     if (editing) {
-      C.target = editing.audience === 'people' ? 'pick' : editing.audience;
-      if (ROLE === 'educator' && C.target !== 'pick') C.target = 'students';
-      C.picked = editing.audience === 'people' ? (editing.scope || []).slice() : [];
+      const ppl = editing.audience === 'people' ? (editing.scope || []).slice() : [];
+      const eds = new Set((S.educators || []).map((x) => x.id));
+      C.target = ROLE === 'educator' ? 'students' : editing.audience !== 'people' ? editing.audience : ppl.every((id) => eds.has(id)) ? 'educators' : ppl.some((id) => eds.has(id)) ? 'all' : 'members';
+      C.picked = ppl;
       C.scope = editing.audience === 'students' ? (editing.scope || []).slice() : [];
     } else {
       C.target = ROLE === 'educator' ? 'students' : C.kind === 'task' ? 'members' : 'all';
       C.scope = [];
       C.picked = preset && preset.length ? preset.slice() : S.member ? [Number(S.member)] : [];
-      if (C.picked.length && C.kind !== 'post') C.target = 'pick';
+      if (C.picked.length && ROLE === 'admin') C.target = 'members';
     }
     S.dlgRender = composerHtml;
     openDlg(composerHtml(), false, submitComposer);
@@ -910,11 +970,12 @@
 
   async function onDlgClick(e) {
     const t = e.target;
+    if (onPickerClick(t)) return;
     const sg = t.closest('[data-seg] [data-v]');
     if (sg && t.closest('.sh-comp')) {
       const name = sg.parentElement.dataset.seg;
       if (name === 'kind') { C.kind = sg.dataset.v; return refreshComposer(); }
-      if (name === 'target') { C.target = sg.dataset.v; return refreshComposer(); }
+      if (name === 'target') { C.target = sg.dataset.v; C.picked = []; C.q = ''; return refreshComposer(); }
       if (name === 'format') { C.format = sg.dataset.v; return refreshComposer(); }
       if (name === 'side') C.side = sg.dataset.v;
       sg.parentElement.querySelectorAll('[data-v]').forEach((b) => { b.classList.toggle('is-active', b === sg); b.setAttribute('aria-checked', String(b === sg)); });
@@ -926,16 +987,17 @@
     if (t.closest('[data-del-tp]')) { C.tps = Math.max(1, C.tps - 1); return refreshComposer(); }
     const ist = t.closest('[data-idea-status]');
     if (ist) return setIdeaStatus(Number(ist.dataset.ideaId), ist.dataset.ideaStatus);
+    if (t.closest('[data-pick-all]')) { C.picked = []; return refreshComposer(); }
     const pk = t.closest('[data-pick]');
     if (pk) { const id = Number(pk.dataset.pick); C.picked = C.picked.includes(id) ? C.picked.filter((x) => x !== id) : C.picked.concat(id); return refreshComposer(); }
     const eev = t.closest('[data-edit-ev]');
     if (eev) { const ev = findEvent(eev.dataset.editEv); const first = ev && Object.assign({}, ev, { startsAt: new Date(Date.parse(ev.startsAt) - ev.occurrence * 7 * DAY).toISOString() }); return openComposer('event', first); }
     const dev = t.closest('[data-del-ev]');
-    if (dev) { if (!(await ask('Supprimer cet appel du planning de tous ceux qui le voient ?', 'Supprimer'))) return; return act(() => postJson(`/school/events/${dev.dataset.delEv}/delete`, {}), 'Appel supprimé.'); }
+    if (dev) { dlg.close(); if (!(await ask('Supprimer cet appel du planning de tous ceux qui le voient ?', 'Supprimer'))) return; return act(() => postJson(`/school/events/${dev.dataset.delEv}/delete`, {}), 'Appel supprimé.'); }
     const ep = t.closest('[data-edit-post]');
     if (ep) return openComposer('post', S.posts.find((p) => p.id === Number(ep.dataset.editPost)));
     const dp = t.closest('[data-del-post]');
-    if (dp) { if (!(await ask('Supprimer cette info ?', 'Supprimer'))) return; return act(() => postJson(`/school/posts/${dp.dataset.delPost}/delete`, {}), 'Info supprimée.'); }
+    if (dp) { dlg.close(); if (!(await ask('Supprimer cette info ?', 'Supprimer'))) return; return act(() => postJson(`/school/posts/${dp.dataset.delPost}/delete`, {}), 'Info supprimée.'); }
     const os = t.closest('[data-open-suivi]');
     if (os) { dlg.close(); return goSuivi(os.dataset.openSuivi); }
   }
@@ -945,8 +1007,7 @@
     const idea = C.kind === 'post' ? { pair: v('cPair'), side: C.side, pe: v('cPe'), sl: v('cSl'), tps: Array.from({ length: C.tps }, (_, n) => v(`cTp${n + 1}`)) } : null;
     const title = v('cTitle') || (idea && idea.pair ? `${idea.pair.toUpperCase()} · ${idea.side === 'sell' ? 'Vente' : 'Achat'}` : '');
     if (!title) throw new Error(C.kind === 'task' ? 'Décris la mission.' : 'Donne un titre.');
-    const pick = C.target === 'pick';
-    if (pick && !C.picked.length) throw new Error('Choisis au moins une personne.');
+    const pick = C.picked.length > 0;
     const target = pick ? { audience: 'people', scope: C.picked } : { audience: C.target, scope: C.scope };
     const staff = new Set((S.educators || []).map((e) => e.id));
     // un seul membre choisi : appel personnel (dans son suivi) plutôt qu'un rendez-vous de groupe
