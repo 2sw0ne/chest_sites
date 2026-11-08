@@ -195,13 +195,13 @@
     else { const nx = m.sessions.slice().sort((x, y) => x.delta - y.delta)[0]; vibe = nx ? `${nx.name} ouvre à ${Math.round((hr + nx.delta) % 24)}h` : ''; }
     $('d2Sess').innerHTML = `
             <div style="position: relative; height: 150px; overflow: hidden; background: linear-gradient(${rgb(sky.top)}, ${rgb(sky.mid)} 62%, ${rgb(sky.bot)}); display: flex; align-items: center; justify-content: center;">
-              <div aria-hidden="true" style="position: absolute; inset: 0px; opacity: ${m.stars}; background-image: radial-gradient(1px 1px at 12% 22%, rgb(var(--fg-rgb, 255, 255, 255)), transparent), radial-gradient(1px 1px at 32% 12%, rgb(var(--fg-rgb, 255, 255, 255)), transparent), radial-gradient(1.5px 1.5px at 58% 28%, rgb(var(--fg-rgb, 255, 255, 255)), transparent), radial-gradient(1px 1px at 78% 16%, rgb(var(--fg-rgb, 255, 255, 255)), transparent), radial-gradient(1px 1px at 88% 40%, rgb(var(--fg-rgb, 255, 255, 255)), transparent);"></div>
+              <div aria-hidden="true" style="position: absolute; inset: 0px; opacity: ${m.stars}; background-image: radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 32% 12%, #fff, transparent), radial-gradient(1.5px 1.5px at 58% 28%, #fff, transparent), radial-gradient(1px 1px at 78% 16%, #fff, transparent), radial-gradient(1px 1px at 88% 40%, #fff, transparent);"></div>
               <svg aria-hidden="true" viewBox="0 0 100 60" preserveAspectRatio="none" style="position: absolute; left: 6%; right: 6%; top: 18px; width: 88%; height: 96px; opacity: 0.32;"><path d="M0 60 Q50 -40 100 60" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="1.5 4" vector-effect="non-scaling-stroke"></path></svg>
               <span aria-hidden="true" style="position: absolute; left: ${(6 + tS * 88).toFixed(1)}%; top: ${(18 + (1 - 4 * tS * (1 - tS)) * 96).toFixed(0)}px; width: 26px; height: 26px; margin: -13px 0px 0px -13px; border-radius: 999px; background: ${day ? WX.sun[0] : WX.moon[0]}; box-shadow: ${day ? 'rgba(255, 175, 70, 0.55) 0px 0px 20px 5px' : 'rgba(200, 215, 255, 0.45) 0px 0px 18px 4px'};"></span>
-              <div aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 18px; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.22);"></div>
+              <div aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 18px; height: 1px; background: rgba(255, 255, 255, 0.22);"></div>
               <div style="position: relative; text-align: center; margin-top: 26px;">
-                <div style="font-size: 23px; font-weight: 800; letter-spacing: -0.02em; color: rgb(var(--fg-rgb, 255, 255, 255)); text-shadow: rgba(0, 0, 0, calc(0.4 * var(--sh-k, 1))) 0px 1px 8px;">${esc(title)}</div>
-                <div style="margin-top: 4px; font-size: 12.5px; color: rgba(var(--fg-rgb, 255, 255, 255), 0.88); text-shadow: rgba(0, 0, 0, calc(0.3 * var(--sh-k, 1))) 0px 1px 4px;">${hh} ${esc(place)} · ${moment}</div>
+                <div style="font-size: 23px; font-weight: 800; letter-spacing: -0.02em; color: #fff; text-shadow: rgba(0, 0, 0, 0.4) 0px 1px 8px;">${esc(title)}</div>
+                <div style="margin-top: 4px; font-size: 12.5px; color: rgba(255, 255, 255, 0.88); text-shadow: rgba(0, 0, 0, 0.3) 0px 1px 4px;">${hh} ${esc(place)} · ${moment}</div>
               </div>
             </div>
             <div style="padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px;">

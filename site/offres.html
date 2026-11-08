@@ -15,8 +15,8 @@
 <link rel="stylesheet" href="css/patch-chest-da.css?v=20">
 <link rel="stylesheet" href="css/connect-da.css?v=5">
 <link rel="stylesheet" href="css/offres-da.css?v=6">
-<link rel="stylesheet" href="css/offres-2.css?v=9">
-<script src="js/theme.js?v=9"></script>
+<link rel="stylesheet" href="css/offres-2.css?v=10">
+<script src="js/theme.js?v=10"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
@@ -98,7 +98,7 @@
     <div class="of-trial" id="ofTrial">
       <span class="of-trial__ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>
       <div class="of-trial__txt"><b id="ofTrialTitle">Essai gratuit · 7 jours</b><span id="ofTrialText">Tout CHEST Essentiel, sans carte bancaire. Pendant l'essai, tes données restent sur ton appareil (dans ton navigateur), elles ne passent pas par nos serveurs.</span></div>
-      <button type="button" class="cx-btn" id="ofTrialBtn">Commencer l'essai</button>
+      <button type="button" class="cx-btn-2 of-trial__btn" id="ofTrialBtn">Commencer l'essai</button>
     </div>
     <p class="of-fine" id="ofFine">Prix TTC, payé une fois : pas d’abonnement, rien ne se renouvelle tout seul. Paiement sécurisé par Stripe : carte, Apple Pay, Google Pay. Accès immédiat, remboursement possible sous 7 jours.</p>
     <div class="of-redo"><button type="button" class="cx-link" id="ofRedo">Refaire le questionnaire</button></div>
@@ -216,19 +216,21 @@
   }
   function renderPlans() {
     const seg = document.querySelector('.of-billing');
-    if (seg) seg.hidden = !editing;
-    $('#ofPlans').classList.toggle('of-duo', !editing);
+    if (seg) seg.hidden = true; // l'éditeur montre les deux familles côte à côte, comme le client
+    $('#ofPlans').classList.add('of-duo');
+    $('#ofPlans').classList.toggle('is-editing', editing);
     if (editing) { renderEditor(); return; }
     const cur = currentKey();
     const top = reco || 'premium';
-    $('#ofPlans').innerHTML = ['premium', 'essentiel'].map((g) => {
+    // 2026-11-08 : la moins chère à gauche, Premium à droite et plus grande
+    $('#ofPlans').innerHTML = ['essentiel', 'premium'].map((g) => {
       const list = OFFERS.filter((o) => o.enabled && o.group === g).sort((a, b) => b.level - a.level);
       if (!list.length) return '';
       const main = list[0], rest = list.slice(1);
       if (rest.some((o) => o.key === cur)) moreOpen[g] = true;
       const more = rest.length ? `<button type="button" class="of-more" data-more="${g}" aria-expanded="${!!moreOpen[g]}">Plus d’offres · ${rest.map((o) => durTxt(o.months)).reverse().join(' et ')}<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg></button>
         <div class="of-more__list" ${moreOpen[g] ? '' : 'hidden'}>${rest.slice().reverse().map((o) => moreRow(o, cur)).join('')}</div>` : '';
-      return `<div class="of-col">${planCard(main, cur, g === top)}${more}</div>`;
+      return `<div class="of-col of-col--${g}">${planCard(main, cur, g === top)}${more}</div>`;
     }).join('');
     renderTrial();
   }
@@ -355,21 +357,18 @@
   }
 
   function renderEditor() {
-    const ed = (f, cls, ph, v) => `<div class="${cls} of-ed__txt" contenteditable="plaintext-only" spellcheck="true" data-f="${f}" data-ph="${esc(ph)}">${esc(v)}</div>`;
-    $('#ofPlans').style.setProperty('--n', '3');
-    $('#ofPlans').innerHTML = edDraft.map((o, i) => (o.group !== billing ? '' : `<article class="cx-plan of-ed ${o.enabled ? '' : 'is-off'}" data-i="${i}" aria-label="Édition de l'offre ${esc(o.name)}">
+    // 2026-11-08 : même mise en page que la page client (Essentiel à gauche, Premium à droite ; l'offre 1 an en grand,
+    // les 3 et 6 mois dessous, plus petites) : ce que l'admin modifie est à la place où le client le verra.
+    const card = (o, i, sub) => `<article class="cx-plan of-ed of-card ${sub ? 'of-ed--sub' : ''} ${o.enabled ? '' : 'is-off'}" data-i="${i}" aria-label="Édition de l'offre ${esc(o.name)}">
+      <div class="of-card__head"><span class="of-card__rank">${rankBadge(o, sub ? 30 : 40)}</span><div><div class="cx-plan__name">${esc(rankName(o))}</div><span class="of-card__dur">${durTxt(o.months)} d’accès</span></div></div>
       <div class="of-ed__bar">
-        <span class="of-ed__slot">${esc(GROUP_NAME[o.group])} ${o.level} · ${durTxt(o.months)}</span>
         <label class="of-ed__sw"><input type="checkbox" data-f="enabled" ${o.enabled ? 'checked' : ''}><span aria-hidden="true"></span>Affichée</label>
         <label class="of-ed__sw"><input type="checkbox" data-f="featured" ${o.featured ? 'checked' : ''}><span aria-hidden="true"></span>Recommandée</label>
         <label class="of-ed__sw"><input type="checkbox" data-f="soon" ${o.soon ? 'checked' : ''}><span aria-hidden="true"></span>Bientôt</label>
       </div>
-      ${ed('name', 'cx-plan__name', 'Nom de l’offre', o.name)}
-      <div class="of-ed__prices of-ed__prices--one">
+      <div class="of-ed__prices of-ed__prices--one of-ed__prices--big">
         <label class="of-ed__field"><span>Prix pour ${durTxt(o.months)}</span><input type="text" inputmode="decimal" data-f="price" value="${esc(fmtNum(o.price))}" placeholder="—" aria-label="Prix en euros"><i>€</i></label>
       </div>
-      ${ed('who', 'cx-plan__who', 'Pour qui', o.who)}
-      ${ed('desc', 'cx-plan__desc', 'Description courte', o.desc)}
       <ul class="cx-feats of-ed__feats">${o.feats.map(([on, t], k) => `<li class="${on ? '' : 'is-off'}" data-k="${k}">
         <button type="button" class="cx-check of-ed__chk" data-act="toggle" aria-pressed="${on ? 'true' : 'false'}" aria-label="${on ? 'Inclus' : 'Non inclus'} : cliquer pour changer">${on ? CHECK : DASH}</button>
         <span class="of-ed__txt" contenteditable="plaintext-only" data-feat="${k}" data-ph="Élément de l’offre">${esc(t)}</span>
@@ -379,7 +378,13 @@
       <div class="of-ed__links">
         ${CHECKOUT === 'auto' ? '<p class="of-ed__field of-ed__field--link of-ed__auto">Paiement Stripe automatique, au prix ci-dessus.</p>' : `<label class="of-ed__field of-ed__field--link"><span>Lien de paiement Stripe</span><input type="url" data-f="link" value="${esc(o.link || '')}" placeholder="https://buy.stripe.com/…" spellcheck="false"></label>`}
       </div>
-    </article>`)).join('');
+    </article>`;
+    $('#ofPlans').innerHTML = ['essentiel', 'premium'].map((g) => {
+      const list = edDraft.map((o, i) => [o, i]).filter(([o]) => o.group === g).sort((a, b) => b[0].level - a[0].level);
+      if (!list.length) return '';
+      const [main, ...rest] = list;
+      return `<div class="of-col of-col--${g}">${card(main[0], main[1], false)}${rest.length ? `<p class="of-ed__more">Autres durées · ${rest.map(([o]) => durTxt(o.months)).reverse().join(' et ')}</p>${rest.slice().reverse().map(([o, i]) => card(o, i, true)).join('')}` : ''}</div>`;
+    }).join('');
     document.querySelectorAll('#ofBilling button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.billing === billing)));
   }
 

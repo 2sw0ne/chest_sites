@@ -106,7 +106,7 @@
     const bits = [`Du 1er au ${lastDay} ${MONTHS[M.m]}`];
     if (acc.balance > 0) bits.push(`${pct(tot / acc.balance * 100, 2)} sur ${nf(acc.balance, 0)} $`);
     bits.push(`${mrows.length} position${mrows.length > 1 ? 's' : ''} clôturée${mrows.length > 1 ? 's' : ''}`);
-    const grad = tot < 0 ? 'linear-gradient(rgb(var(--fg-rgb, 255, 255, 255)) 8%, rgb(255, 194, 201) 45%, rgb(var(--red-rgb, 255, 77, 94))) text' : 'linear-gradient(rgb(var(--fg-rgb, 255, 255, 255)) 8%, rgb(201, 251, 233) 45%, rgb(var(--green-rgb, 51, 230, 166))) text';
+    const grad = tot < 0 ? 'linear-gradient(light-dark(rgb(var(--red-rgb, 255, 77, 94)), #fff) 8%, light-dark(rgb(var(--red-rgb, 255, 77, 94)), rgb(255, 194, 201)) 45%, rgb(var(--red-rgb, 255, 77, 94))) text' : 'linear-gradient(light-dark(rgb(var(--green-rgb, 51, 230, 166)), #fff) 8%, light-dark(rgb(var(--green-rgb, 51, 230, 166)), rgb(201, 251, 233)) 45%, rgb(var(--green-rgb, 51, 230, 166))) text';
     const glow = tot < 0 ? 'rgba(var(--red-rgb, 255, 77, 94), 0.3)' : 'rgba(var(--green-rgb, 51, 230, 166), 0.3)';
     const tabs = others.map((o) => `
           <button type="button" role="tab" data-acc="${esc(o.a.id)}" aria-selected="${o.a.id === acc.id}" style="position: relative; padding: 8px 0px; border: 0px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: ${o.a.id === acc.id ? 'var(--ink, rgb(246, 246, 247))' : 'var(--ink-3, rgb(122, 122, 130))'}; cursor: pointer;">

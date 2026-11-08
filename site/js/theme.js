@@ -70,6 +70,15 @@
     + 'html[data-mode="light"] :is(#scnrMediaCard,.ct-modal,.chart-dark){color-scheme:dark;color:#f6f6f7;--fg-rgb:initial;--ink:initial;--ink-1:initial;--ink-2:initial;--ink-3:initial;--ink-4:initial;--bg-0:initial;--bg0-rgb:initial;--bg-1:initial;--dk-rgb:initial;--sh-k:initial;--green:initial;--green-rgb:initial;--green-hi:initial;--red:initial;--red-rgb:initial;--red-hi:initial;--amber:initial;--amber-rgb:initial;--amber-hi:initial;--txt-top:initial;--pos-mid:initial;--neg-mid:initial;--brand-mid:initial}'
     + 'html[data-mode="light"] body{background-color:#f2f2f5;}'
     + 'html[data-mode="light"] ::selection{background:rgba(var(--a1-rgb),.2);}';
+  // Finitions du mode clair (titres nets, filigranes, livres du calendrier) : css/light.css, chargé partout
+  try {
+    const me = document.currentScript && document.currentScript.src;
+    if (me && !document.getElementById('chestLightCss')) {
+      const l = document.createElement('link'); l.id = 'chestLightCss'; l.rel = 'stylesheet';
+      l.href = new URL('../css/light.css?v=1', me).href;
+      (document.head || document.documentElement).appendChild(l);
+    }
+  } catch (e) {}
   function accent() { let k = ''; try { k = localStorage.getItem(ACC_KEY) || ''; } catch (e) {} return ACCENTS[k] ? k : 'chest'; }
   function paintAccent(k) {
     const a = ACCENTS[k] || ACCENTS.chest;

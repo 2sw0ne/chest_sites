@@ -141,3 +141,34 @@
 @keyframes ofDrop{ from{ opacity:0; transform:translateY(-10px); filter:blur(4px); } to{ opacity:1; transform:none; filter:none; } }
 @keyframes ofPop{ from{ opacity:0; transform:scale(.85); } to{ opacity:1; transform:none; } }
 @media (prefers-reduced-motion: reduce){ .of-promo-price s, .of-promo-price .cx-plan__price, .of-promo-chip{ animation:none; } }
+
+/* ---------- 2026-11-08 : Essentiel à gauche, Premium à droite et plus grande ; essai discret ; éditeur admin = même mise en page ---------- */
+.chest-root.of-body #ofOffers #ofPlans.of-duo{ grid-template-columns:minmax(0,1fr) minmax(0,1.22fr); max-width:960px; gap:22px; align-items:center; }
+.of-col--essentiel{ align-self:start; margin-top:44px; }
+.chest-root.of-body .of-col--premium .of-card{ padding:34px 32px 30px; gap:16px; }
+.chest-root.of-body .of-col--premium .of-card .cx-plan__name{ font-size:21px; }
+.chest-root.of-body .of-col--premium .of-card .cx-plan__price b{ font-size:66px; }
+.chest-root.of-body .of-col--premium .of-card .cx-feats li{ font-size:14.5px; padding:8px 0; }
+.chest-root.of-body .of-col--premium .of-card .cx-pill{ height:54px; font-size:15px; }
+.chest-root.of-body .of-col--essentiel .of-card .cx-plan__price b{ font-size:44px; }
+@media (max-width:760px){
+  .chest-root.of-body #ofOffers #ofPlans.of-duo{ grid-template-columns:1fr; max-width:460px; }
+  .of-col--premium{ order:-1; } .of-col--essentiel{ margin-top:0; }
+}
+/* essai 7 jours : une ligne discrète, bouton secondaire petit */
+.chest-root.of-body .of-trial{ max-width:640px; margin-top:26px; padding:12px 14px 12px 16px; gap:14px; border-radius:16px; background:transparent; box-shadow:none; border:1px dashed rgba(var(--fg-rgb, 255, 255, 255),.12); }
+.chest-root.of-body .of-trial__ic{ width:30px; height:30px; border-radius:9px; color:var(--chest-ink-3, #7a7a82); background:none; box-shadow:none; }
+.chest-root.of-body .of-trial__ic svg{ width:17px; height:17px; }
+.chest-root.of-body .of-trial__txt b{ font-size:13px; font-weight:600; color:var(--chest-ink-2, #9b9ba1); }
+.chest-root.of-body .of-trial__txt span{ font-size:11.5px; line-height:1.5; color:var(--chest-ink-3, #7a7a82); }
+.chest-root.of-body .of-trial__btn{ height:32px !important; padding:0 14px !important; font-size:12px !important; border-radius:999px !important; flex-shrink:0; }
+@media (max-width:720px){ .chest-root.of-body .of-trial{ flex-direction:row; align-items:center; } .chest-root.of-body .of-trial__txt span{ display:none; } }
+/* éditeur */
+.chest-root.of-body #ofPlans.is-editing .of-col{ align-items:stretch; }
+.of-ed__more{ margin:8px 2px 0; font-size:11.5px; color:var(--chest-ink-3, #7a7a82); text-align:center; }
+.chest-root.of-body .of-ed--sub{ padding:18px 18px 16px !important; gap:10px; opacity:.92; }
+.chest-root.of-body .of-ed--sub .cx-plan__name{ font-size:14.5px !important; }
+.chest-root.of-body .of-ed--sub .cx-feats li{ font-size:12px; padding:4px 0; }
+.of-ed__prices--big input{ font-size:34px !important; font-weight:700; letter-spacing:-.04em; height:56px !important; }
+.of-col--premium .of-ed:not(.of-ed--sub) .of-ed__prices--big input{ font-size:46px !important; height:68px !important; }
+.of-ed--sub .of-ed__prices--big input{ font-size:22px !important; height:44px !important; }
