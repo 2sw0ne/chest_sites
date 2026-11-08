@@ -2201,7 +2201,7 @@ def _verify_stripe(payload, header):
 
 def _user_for_stripe(db, obj):
     ref = str(obj.get("client_reference_id") or "")
-    m = re.fullmatch(r"u(\d+)", ref)
+    m = re.fullmatch(r"u(\d+)(?:-[a-z]+\d)?", ref)
     if m:
         row = db.execute("SELECT * FROM users WHERE id = ?", (int(m.group(1)),)).fetchone()
         if row:
@@ -4251,7 +4251,9 @@ def billing_checkout():
         if not link:
             return jsonify({"error": "Le paiement en ligne de cette offre ouvre très bientôt."}), 503
         # Le code de réduction n'est jamais pré-rempli : le membre le tape lui-même sur la page Stripe.
-        q = urllib.parse.urlencode({"client_reference_id": f"u{user['id']}", "prefilled_email": user["email"], "locale": "fr"})
+        # l'offre voyage avec le membre (2026-11-08) : Premium I et Essentiel III coûtent tous deux 1000 €, le montant
+        # seul ne suffit pas à savoir ce qui a été acheté (lu par le webhook, validé contre le prix de l'offre)
+        q = urllib.parse.urlencode({"client_reference_id": f"u{user['id']}-{key}", "prefilled_email": user["email"], "locale": "fr"})
         return jsonify({"url": f"{link}{'&' if '?' in link else '?'}{q}", "mode": "liens"})
     db = get_db()
     edu = db.execute("SELECT * FROM users WHERE id = ?", (_col(user, "referred_by"),)).fetchone() if _col(user, "referred_by") else None
@@ -4313,6 +4315,13 @@ def billing_webhook():
             if meta.get("offer") in PRICING_KEYS and str(meta.get("amount") or "") == str(amount):
                 lvl = int(meta["offer"][-1])
                 plan = {"plan": meta["offer"][:-1], "level": lvl, "months": LEVEL_MONTHS[lvl]}
+            ref = re.fullmatch(r"u\d+-([a-z]+\d)", str(obj.get("client_reference_id") or ""))
+            if not plan and ref and ref.group(1) in PRICING_KEYS:
+                o = next((x for x in get_pricing()["offers"] if x.get("key") == ref.group(1)), None)
+                pct = get_promo()["pct"]
+                if o and o.get("price") and int(amount or 0) in (int(round(float(o["price"]) * 100)), int(round(float(o["price"]) * (100 - pct)))):
+                    lvl = int(ref.group(1)[-1])
+                    plan = {"plan": ref.group(1)[:-1], "level": lvl, "months": LEVEL_MONTHS[lvl]}
             pl = obj.get("payment_link")
             pl_key = STRIPE_LINK_IDS.get(pl.get("id") if isinstance(pl, dict) else pl)
             if not plan and pl_key and str(STRIPE_DEFAULT_LINKS[pl_key][0] * 100) == str(amount):
