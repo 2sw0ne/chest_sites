@@ -792,18 +792,18 @@
   const C = { kind: 'event', target: 'all', scope: [], picked: [], q: '', flyer: null, editing: null, format: 'landscape', side: 'buy', tps: 1 };
   // « Pour » (2026-11-08) : un groupe, et dans chaque groupe sa liste pour ne garder que certaines personnes
   // (rien de coché = tout le groupe). Admin : Tout le monde / Membres / Éducateurs ; éducateur : ses élèves.
+  // « Tout le monde » (ou « Tous mes élèves ») vise le groupe entier ; « Membres », « Éducateurs », « Élèves » ouvrent la
+  // liste pour cocher les personnes une à une (2026-11-08).
   function targetsFor(kind) {
-    if (ROLE === 'educator') return [['students', 'Mes élèves']];
-    if (kind === 'task') return [['members', 'Membres']];
-    return [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Éducateurs']];
+    if (ROLE === 'educator') return [['students', 'Tous mes élèves'], ['pickm', 'Élèves']];
+    if (kind === 'task') return [['members', 'Tous les membres'], ['pickm', 'Membres']];
+    return [['all', 'Tout le monde'], ['pickm', 'Membres'], ['picke', 'Éducateurs']];
   }
-  const GROUP_ALL = { all: 'Tout le monde', members: 'Tous les membres', educators: 'Toute l’équipe', students: 'Tous mes élèves' };
+  const isPick = () => C.target === 'pickm' || C.target === 'picke';
   function pickables(kind) {
     const members = (S.people || []).map((p) => ({ id: p.id, name: p.name, sub: ROLE === 'admin' && p.educator ? `avec ${p.educator}` : '' }));
     const edus = (S.educators || []).map((e) => ({ id: e.id, name: e.name, sub: 'Éducateur', staff: true }));
-    if (ROLE !== 'admin' || kind === 'task' || kind === 'share' || C.target === 'members') return [['', members]];
-    if (C.target === 'educators') return [['', edus]];
-    return [['Éducateurs', edus], ['Membres', members]];
+    return [['', C.target === 'picke' && kind !== 'share' ? edus : members]];
   }
   const seg = (name, opts, val) => `<div class="chest-seg sh-seg" data-seg="${name}" role="radiogroup">${opts.map(([v, l]) => `<button type="button" role="radio" data-v="${v}" aria-checked="${String(v) === String(val)}" class="${String(v) === String(val) ? 'is-active' : ''}">${l}</button>`).join('')}</div>`;
   const field = (label, inner, wide, hint) => `<label class="sh-f${wide ? ' sh-f--wide' : ''}"><span>${label}</span>${inner}${hint ? `<em>${hint}</em>` : ''}</label>`;
@@ -817,11 +817,9 @@
         return `<button type="button" class="sh-pick__p${on ? ' is-on' : ''}" data-pick="${p.id}" role="checkbox" aria-checked="${on}" style="--c:${hashColor(p.id)}"><span class="sh-pick__av">${esc(initials(p.name))}</span><span class="sh-pick__n"><b>${esc(p.name)}</b>${p.sub ? `<small>${esc(p.sub)}</small>` : ''}</span><span class="sh-pick__ck">${ic('check')}</span></button>`;
       }).join('')}`;
     }).join('');
-    const total = pickables(C.kind).reduce((n, [, l]) => n + l.length, 0);
-    const all = C.kind === 'share' ? '' : `<button type="button" class="sh-pick__p sh-pick__all${C.picked.length ? '' : ' is-on'}" data-pick-all role="checkbox" aria-checked="${!C.picked.length}"><span class="sh-pick__av">${ic('users')}</span><span class="sh-pick__n"><b>${esc(GROUP_ALL[C.target] || 'Tout le groupe')}</b><small>${plural(total, 'personne', 'personnes')}</small></span><span class="sh-pick__ck">${ic('check')}</span></button>`;
-    return `<div class="sh-f sh-f--wide sh-pick"><span>${C.picked.length ? plural(C.picked.length, 'personne choisie', 'personnes choisies') : C.kind === 'share' ? 'Choisis un ou plusieurs membres' : 'Tout le groupe, ou coche des personnes'}</span>
+    return `<div class="sh-f sh-f--wide sh-pick"><span>${C.picked.length ? plural(C.picked.length, 'personne choisie', 'personnes choisies') : 'Coche une ou plusieurs personnes'}</span>
       <input type="search" id="pickQ" class="sh-pick__q" placeholder="Rechercher un nom…" value="${esc(C.q)}" autocomplete="off" aria-label="Rechercher un nom">
-      <div class="sh-pick__list" id="pickList">${q ? '' : all}${groups || '<em class="sh-hint">Personne à afficher.</em>'}</div></div>`;
+      <div class="sh-pick__list" id="pickList">${groups || '<em class="sh-hint">Personne à afficher.</em>'}</div></div>`;
   }
   const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
@@ -919,7 +917,7 @@
       <header class="sh-comp__h"><span class="chest-step">${ROLE === 'admin' ? 'Admin' : 'Éducateur'}</span><h2>${title}</h2></header>
       ${ed ? '' : `<div class="sh-f sh-f--wide"><span>Quoi</span>${seg('kind', [['event', 'Appel'], ['task', 'Mission'], ['post', 'Idea']], k)}</div>`}
       <div class="sh-f sh-f--wide"><span>Pour</span>${seg('target', T, C.target)}</div>
-      ${pickerHtml()}
+      ${isPick() ? pickerHtml() : ''}
       <div class="sh-grid">${body}</div>
       <p class="sh-hint">${hint}</p>
       <p class="sh-msg" id="shMsg" role="alert"></p>
@@ -948,14 +946,14 @@
     if (editing) {
       const ppl = editing.audience === 'people' ? (editing.scope || []).slice() : [];
       const eds = new Set((S.educators || []).map((x) => x.id));
-      C.target = ROLE === 'educator' ? 'students' : editing.audience !== 'people' ? editing.audience : ppl.every((id) => eds.has(id)) ? 'educators' : ppl.some((id) => eds.has(id)) ? 'all' : 'members';
+      C.target = editing.audience !== 'people' ? (ROLE === 'educator' ? 'students' : editing.audience) : ROLE === 'educator' ? 'pickm' : ppl.every((id) => eds.has(id)) ? 'picke' : 'pickm';
       C.picked = ppl;
       C.scope = editing.audience === 'students' ? (editing.scope || []).slice() : [];
     } else {
       C.target = ROLE === 'educator' ? 'students' : C.kind === 'task' ? 'members' : 'all';
       C.scope = [];
       C.picked = preset && preset.length ? preset.slice() : S.member ? [Number(S.member)] : [];
-      if (C.picked.length && ROLE === 'admin') C.target = 'members';
+      if (C.picked.length) C.target = 'pickm';
     }
     S.dlgRender = composerHtml;
     openDlg(composerHtml(), false, submitComposer);
@@ -987,7 +985,6 @@
     if (t.closest('[data-del-tp]')) { C.tps = Math.max(1, C.tps - 1); return refreshComposer(); }
     const ist = t.closest('[data-idea-status]');
     if (ist) return setIdeaStatus(Number(ist.dataset.ideaId), ist.dataset.ideaStatus);
-    if (t.closest('[data-pick-all]')) { C.picked = []; return refreshComposer(); }
     const pk = t.closest('[data-pick]');
     if (pk) { const id = Number(pk.dataset.pick); C.picked = C.picked.includes(id) ? C.picked.filter((x) => x !== id) : C.picked.concat(id); return refreshComposer(); }
     const eev = t.closest('[data-edit-ev]');
@@ -1007,7 +1004,8 @@
     const idea = C.kind === 'post' ? { pair: v('cPair'), side: C.side, pe: v('cPe'), sl: v('cSl'), tps: Array.from({ length: C.tps }, (_, n) => v(`cTp${n + 1}`)) } : null;
     const title = v('cTitle') || (idea && idea.pair ? `${idea.pair.toUpperCase()} · ${idea.side === 'sell' ? 'Vente' : 'Achat'}` : '');
     if (!title) throw new Error(C.kind === 'task' ? 'Décris la mission.' : 'Donne un titre.');
-    const pick = C.picked.length > 0;
+    const pick = isPick();
+    if (pick && !C.picked.length) throw new Error('Coche au moins une personne.');
     const target = pick ? { audience: 'people', scope: C.picked } : { audience: C.target, scope: C.scope };
     const staff = new Set((S.educators || []).map((e) => e.id));
     // un seul membre choisi : appel personnel (dans son suivi) plutôt qu'un rendez-vous de groupe
