@@ -71,7 +71,8 @@
   const S = {
     week: mondayOf(new Date()), agenda: null, posts: [], ideaTab: 'on', newIds: null, missions: [], mentor: null, people: null, educators: null,
     tab: null, member: null, // filtre éducateur/admin : un seul élève dans le planning
-    planNew: new Set(), person: null,
+    planNew: new Set(), person: null, wk2: false,
+    view: (() => { try { return localStorage.getItem('chest_school_view') === 'compact' ? 'compact' : 'full'; } catch (e) { return 'full'; } })(),
   };
   // Équipe : le planning montre la semaine en cours ET la suivante (2026-11-08) ; un membre garde sa semaine.
   const SPAN = ROLE === 'member' ? 7 : 14;
@@ -198,24 +199,80 @@
     return `<div class="sh-legend"><div class="sh-legend__row">${types}</div>${people.length ? `<div class="sh-legend__row"><span class="sh-legend__k">${ROLE === 'admin' ? 'Éducateurs' : 'Élèves'}</span>${people.join('')}${reset}</div>` : ''}</div>`;
   }
   const newBadgePlan = () => (S.planNew.size ? `<span class="sh-plus" aria-label="${S.planNew.size} nouveauté${S.planNew.size > 1 ? 's' : ''} dans le planning">+${S.planNew.size}</span>` : '');
+  // Vue « Complet » (2026-11-08, équipe) : la semaine heure par heure, comme le calendrier de l'iPhone. Chaque rendez-vous
+  // est placé à son horaire (hauteur = durée, côte à côte s'ils se chevauchent) ; les missions sont en haut du jour ;
+  // un clic sur une zone vide ouvre « Nouveau rendez-vous » à ce jour et à ce quart d'heure. « Compact » = les cartes.
+  const HH = 52; // pixels par heure
+  function layoutDay(evs) {
+    const items = evs.map((e) => ({ e, s: Date.parse(e.startsAt), f: Date.parse(e.startsAt) + Math.max(15, e.minutes) * 60000 })).sort((a, b) => a.s - b.s || b.f - a.f);
+    let cluster = [], end = 0;
+    const flush = () => { const n = Math.max(...cluster.map((x) => x.col)) + 1; cluster.forEach((x) => { x.n = n; }); cluster = []; };
+    items.forEach((it) => {
+      if (cluster.length && it.s >= end) flush();
+      const used = new Set(cluster.filter((x) => x.f > it.s).map((x) => x.col));
+      let c = 0; while (used.has(c)) c++;
+      it.col = c; cluster.push(it); end = Math.max(end, it.f);
+    });
+    if (cluster.length) flush();
+    return items;
+  }
+  function gridHtml() {
+    const D = S.agenda || { events: [], tasks: [] };
+    const mon = new Date(S.week.getTime() + (S.wk2 ? 7 : 0) * DAY);
+    const days = Array.from({ length: 7 }, (_, i) => new Date(mon.getTime() + i * DAY));
+    const inWeek = groupCommon(D.events.filter((e) => Date.parse(e.startsAt) >= mon.getTime() && Date.parse(e.startsAt) < mon.getTime() + 7 * DAY && personMatch(e)));
+    let h0 = 7, h1 = 23;
+    inWeek.forEach((e) => { const d = new Date(e.startsAt); h0 = Math.min(h0, d.getHours()); h1 = Math.max(h1, Math.ceil(d.getHours() + (d.getMinutes() + e.minutes) / 60)); });
+    h1 = Math.min(24, h1);
+    const hours = Array.from({ length: h1 - h0 }, (_, i) => h0 + i);
+    const now = new Date();
+    const head = days.map((d) => `<div class="sh-cal__dh${sameDay(d, now) ? ' is-today' : ''}"><span>${fr(d, { weekday: 'short' }).replace('.', '')}</span><b>${d.getDate()}</b></div>`).join('');
+    const allDay = days.map((d) => `<div class="sh-cal__ad">${groupTasks(D.tasks.filter((t) => t.dueAt && sameDay(t.dueAt, d) && (ROLE !== 'educator' || !S.person || S.person === 'm' + t.memberId))).map(taskChip).join('')}</div>`).join('');
+    const cols = days.map((d) => {
+      const evs = layoutDay(inWeek.filter((e) => sameDay(e.startsAt, d))).map(({ e, col, n }) => {
+        const st = new Date(e.startsAt), top = ((st.getHours() - h0) * 60 + st.getMinutes()) / 60 * HH, hgt = Math.max(22, e.minutes / 60 * HH - 2);
+        const k = kindOf(e), p = personOf(e), past = Date.parse(e.startsAt) + e.minutes * 60000 < Date.now();
+        const who = ROLE !== 'member' ? (e.type === 'personal' ? (e._n > 1 ? `${e._n} élèves` : String(e.member || '')) : e.audienceLabel || '') : '';
+        return `<button type="button" class="sh-gev sh-ev--${k.k}${e.chest ? ' is-chest' : ''}${past ? ' is-past' : ''}${isNewEv(e) ? ' is-new' : ''}${hgt < 44 ? ' is-short' : ''}" data-ev="${esc(e.id)}" style="top:${top}px;height:${hgt}px;left:calc(${(col / n) * 100}% + 2px);width:calc(${100 / n}% - 4px);${p && p.color ? `--c:${esc(p.color)};` : ''}">
+          <span class="sh-gev__t"><b>${hm(e.startsAt)}</b>${esc(e.title)}</span>${hgt >= 44 ? `<span class="sh-gev__s">${e.chest ? 'CHEST · ' : `${k.label} · `}${esc(who)}</span>` : ''}</button>`;
+      }).join('');
+      const nowLine = sameDay(d, now) && now.getHours() >= h0 && now.getHours() < h1 ? `<i class="sh-cal__now" style="top:${((now.getHours() - h0) * 60 + now.getMinutes()) / 60 * HH}px"></i>` : '';
+      return `<div class="sh-cal__col${sameDay(d, now) ? ' is-today' : ''}${d < new Date(new Date().setHours(0, 0, 0, 0)) ? ' is-past' : ''}" data-slot="${ymd(d)}" data-h0="${h0}" style="height:${hours.length * HH}px">${evs}${nowLine}</div>`;
+    }).join('');
+    return `<div class="sh-cal" style="--hh:${HH}px">
+      <div class="sh-cal__head"><span></span>${head}</div>
+      <div class="sh-cal__adrow"><span class="sh-cal__adk">Missions</span>${allDay}</div>
+      <div class="sh-cal__scroll" id="shCalScroll"><div class="sh-cal__body"><div class="sh-cal__hours">${hours.map((h) => `<span style="height:${HH}px">${pad(h)}:00</span>`).join('')}</div>${cols}</div></div>
+    </div>`;
+  }
+  // après rendu : la grille s'ouvre sur l'heure courante (ou 8 h)
+  function scrollCal() {
+    const sc = document.getElementById('shCalScroll'); if (!sc) return;
+    const col = sc.querySelector('.sh-cal__col'); const h0 = col ? Number(col.dataset.h0) : 7;
+    const h = sameDay(S.week, mondayOf(new Date())) && !S.wk2 ? Math.max(h0, new Date().getHours() - 1) : 8;
+    sc.scrollTop = Math.max(0, (h - h0) * HH);
+  }
+
   function weekHtml() {
     const thisWeek = sameDay(S.week, mondayOf(new Date()));
     const next = new Date(S.week.getTime() + 7 * DAY);
+    const full = S.view !== 'compact';
     const filter = ROLE !== 'member' && S.people ? `<label class="sh-filter"><span class="sr-only">Afficher</span><select id="shWho">
         <option value="">${ROLE === 'admin' ? 'Tout le monde' : 'Tous mes élèves'}</option>
         ${S.people.map((p) => `<option value="${p.id}" ${String(S.member) === String(p.id) ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : '';
     return `<div class="sh-week">
       <div class="sh-week__bar">
         <div class="sh-week__nav">
-          <button type="button" class="sh-ib" data-week="-1" aria-label="Semaine précédente">${ic('left')}</button>
-          <div class="sh-week__t"><b>${thisWeek ? 'Cette semaine et la suivante' : `Semaines du ${fr(S.week, { day: 'numeric', month: 'long' })}`}</b><span>${esc(weekRange(S.week).split(' – ')[0])} – ${esc(weekRange(next).split(' – ')[1])}</span></div>
-          <button type="button" class="sh-ib" data-week="1" aria-label="Semaine suivante">${ic('right')}</button>
-          ${thisWeek ? '' : '<button type="button" class="sh-link" data-week="0">Revenir à aujourd’hui</button>'}${newBadgePlan()}
+          <button type="button" class="sh-ib" ${full ? 'data-wk="-1"' : 'data-week="-1"'} aria-label="Semaine précédente">${ic('left')}</button>
+          ${full ? `<div class="sh-week__t"><b>${thisWeek ? (S.wk2 ? 'Semaine prochaine' : 'Cette semaine') : `Semaine du ${fr(S.wk2 ? next : S.week, { day: 'numeric', month: 'long' })}`}</b><span>${esc(weekRange(S.wk2 ? next : S.week))}</span></div>`
+            : `<div class="sh-week__t"><b>${thisWeek ? 'Cette semaine et la suivante' : `Semaines du ${fr(S.week, { day: 'numeric', month: 'long' })}`}</b><span>${esc(weekRange(S.week).split(' – ')[0])} – ${esc(weekRange(next).split(' – ')[1])}</span></div>`}
+          <button type="button" class="sh-ib" ${full ? 'data-wk="1"' : 'data-week="1"'} aria-label="Semaine suivante">${ic('right')}</button>
+          ${thisWeek && !S.wk2 ? '' : '<button type="button" class="sh-link" data-week="0">Aujourd’hui</button>'}${newBadgePlan()}
         </div>
-        <div class="sh-week__tools">${filter}<button type="button" class="chest-btn" data-compose="event">${ic('plus')}Ajouter</button></div>
+        <div class="sh-week__tools">${seg('view', [['full', 'Complet'], ['compact', 'Compact']], full ? 'full' : 'compact')}${filter}<button type="button" class="chest-btn" data-compose="event">${ic('plus')}Ajouter</button></div>
       </div>
-      ${weekGrid(S.week, thisWeek ? 'Cette semaine' : `Semaine du ${fr(S.week, { day: 'numeric', month: 'long' })}`)}
-      ${weekGrid(next, thisWeek ? 'Semaine prochaine' : `Semaine du ${fr(next, { day: 'numeric', month: 'long' })}`)}
+      ${full ? gridHtml() : `${weekGrid(S.week, thisWeek ? 'Cette semaine' : `Semaine du ${fr(S.week, { day: 'numeric', month: 'long' })}`)}
+      ${weekGrid(next, thisWeek ? 'Semaine prochaine' : `Semaine du ${fr(next, { day: 'numeric', month: 'long' })}`)}`}
       ${legendHtml()}
     </div>`;
   }
@@ -262,7 +319,7 @@
     const st = STATUS[stOf(p)];
     return `<article class="sh-fc sh-fc--${p.image ? fmtOf(p) : p.idea ? 'pos' : 'text'}${isNew(p) ? ' is-new' : ''} is-${st[1]}">
       <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir l’Idea « ${esc(p.title)} »"></button>
-      <header class="sh-fc__h"><span class="sh-fc__av${p.authorAvatar ? ' has-photo' : ''}"${p.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: p.authorAvatar }))}')"` : ''}>${p.authorAvatar ? '' : esc(initials(who))}</span>
+      <header class="sh-fc__h"><span class="sh-fc__av${p.authorAvatar || p.chest ? ' has-photo' : ''}${p.chest ? ' is-chest' : ''}"${p.chest ? ` style="background-image:url('assets/logo-chest.png')"` : p.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: p.authorAvatar }))}')"` : ''}>${p.authorAvatar || p.chest ? '' : esc(initials(who))}</span>
         <span class="sh-fc__who"><b>${esc(who)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
         ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : ''}</header>
       ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : p.idea ? '' : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
@@ -567,7 +624,7 @@
     const box = document.getElementById('shPanel');
     if (!box) return;
     try { localStorage.setItem('chest_school_tab_' + ROLE, S.tab); } catch (e) { /* tant pis */ }
-    if (S.tab === 'planning') { box.innerHTML = weekHtml(); return; }
+    if (S.tab === 'planning') { box.innerHTML = weekHtml(); scrollCal(); return; }
     if (S.tab === 'people') {
       box.innerHTML = '<div id="shPeople"></div>';
       if (window.CHESTMentorHub) await CHESTMentorHub.render(document.getElementById('shPeople'), { compact: true });
@@ -878,7 +935,7 @@
     const k = C.kind, ed = C.editing;
     const T = targetsFor(k);
     if (!T.some(([v]) => v === C.target)) C.target = T[0][0];
-    const base = ed ? new Date(ed.startsAt || Date.now()) : (() => { const d = new Date(Date.now() + DAY); d.setHours(19, 0, 0, 0); return d; })();
+    const base = ed ? new Date(ed.startsAt || Date.now()) : C.start ? new Date(C.start) : (() => { const d = new Date(Date.now() + DAY); d.setHours(19, 0, 0, 0); return d; })();
     const due = new Date(Date.now() + 7 * DAY);
     const flyerHtml = (label) => `<div class="sh-f sh-f--wide"><span>${label} <i>(facultatif)</i></span><div class="sh-drop${C.flyer || (ed && ed.image) ? ' has-img' : ''} sh-drop--${C.format}" id="cDrop">
         <input type="file" id="cFile" accept="image/*" aria-label="${label}">
@@ -916,6 +973,7 @@
     return `<div class="sh-comp">
       <header class="sh-comp__h"><span class="chest-step">${ROLE === 'admin' ? 'Admin' : 'Éducateur'}</span><h2>${title}</h2></header>
       ${ed ? '' : `<div class="sh-f sh-f--wide"><span>Quoi</span>${seg('kind', [['event', 'Appel'], ['task', 'Mission'], ['post', 'Idea']], k)}</div>`}
+      ${ROLE === 'admin' ? `<div class="sh-f sh-f--wide"><span>Signer en tant que</span>${seg('as', [['chest', 'CHEST'], ['me', esc(U.firstName || 'Moi')]], C.as)}</div>` : ''}
       <div class="sh-f sh-f--wide"><span>Pour</span>${seg('target', T, C.target)}</div>
       ${isPick() ? pickerHtml() : ''}
       <div class="sh-grid">${body}</div>
@@ -938,11 +996,14 @@
     document.querySelectorAll('#shDlgIn [data-tp-open]').forEach((b) => { b.querySelector('span').textContent = document.getElementById(b.dataset.tpOpen).value || '--:--'; });
   };
 
-  async function openComposer(kind, editing, preset) {
+  async function openComposer(kind, editing, preset, startAt) {
+    C.start = startAt || null;
     await ensurePeople();
     if (ROLE === 'admin' && !S.educators) await loadEducators().catch(() => {});
     const I0 = (editing && editing.idea) || null;
-    Object.assign(C, { kind: kind || 'event', editing: editing || null, flyer: null, q: '', format: editing && editing.format === 'portrait' ? 'portrait' : 'landscape', side: I0 && I0.side === 'sell' ? 'sell' : 'buy', tps: I0 ? Math.max(1, I0.tps.length) : 1 });
+    let sign = 'chest'; try { sign = localStorage.getItem('chest_school_sign') === 'me' ? 'me' : 'chest'; } catch (e) { /* tant pis */ }
+    if (editing && editing.signed) sign = editing.signed === 'me' ? 'me' : 'chest';
+    Object.assign(C, { as: sign, kind: kind || 'event', editing: editing || null, flyer: null, q: '', format: editing && editing.format === 'portrait' ? 'portrait' : 'landscape', side: I0 && I0.side === 'sell' ? 'sell' : 'buy', tps: I0 ? Math.max(1, I0.tps.length) : 1 });
     if (editing) {
       const ppl = editing.audience === 'people' ? (editing.scope || []).slice() : [];
       const eds = new Set((S.educators || []).map((x) => x.id));
@@ -976,6 +1037,7 @@
       if (name === 'target') { C.target = sg.dataset.v; C.picked = []; C.q = ''; return refreshComposer(); }
       if (name === 'format') { C.format = sg.dataset.v; return refreshComposer(); }
       if (name === 'side') C.side = sg.dataset.v;
+      if (name === 'as') { C.as = sg.dataset.v; try { localStorage.setItem('chest_school_sign', C.as); } catch (err) { /* tant pis */ } }
       sg.parentElement.querySelectorAll('[data-v]').forEach((b) => { b.classList.toggle('is-active', b === sg); b.setAttribute('aria-checked', String(b === sg)); });
       return;
     }
@@ -1006,7 +1068,7 @@
     if (!title) throw new Error(C.kind === 'task' ? 'Décris la mission.' : 'Donne un titre.');
     const pick = isPick();
     if (pick && !C.picked.length) throw new Error('Coche au moins une personne.');
-    const target = pick ? { audience: 'people', scope: C.picked } : { audience: C.target, scope: C.scope };
+    const target = pick ? { audience: 'people', scope: C.picked, as: C.as } : { audience: C.target, scope: C.scope, as: C.as };
     const staff = new Set((S.educators || []).map((e) => e.id));
     // un seul membre choisi : appel personnel (dans son suivi) plutôt qu'un rendez-vous de groupe
     const solo = pick && C.picked.length === 1 && !staff.has(C.picked[0]) && !(C.editing && C.editing.type === 'collective');
@@ -1015,7 +1077,7 @@
       const at = new Date(`${v('cDate')}T${v('cTime')}`);
       const ed = C.editing || {};
       const common = { startsAt: at.toISOString(), minutes: Number(v('cMin')), mode: ed.mode || 'visio', link: v('cLink'), body: ed.body || '' };
-      if (solo) await postForm('/mentor/events', Object.assign(common, { member: C.picked[0], topic: title, confirmed: true }), {});
+      if (solo) await postForm('/mentor/events', Object.assign(common, { member: C.picked[0], topic: title, confirmed: true, as: C.as }), {});
       else await postForm('/school/events', Object.assign(common, target, { id: ed.seriesId, title, weeks: ed.weeks || 1 }), {});
       S.week = mondayOf(at) < S.week || mondayOf(at) >= new Date(S.week.getTime() + SPAN * DAY) ? mondayOf(at) : S.week;
     } else if (C.kind === 'task') {
@@ -1097,13 +1159,31 @@
   async function reloadWeek() {
     try { await loadAgenda(); } catch (e) { return toast(e.message); }
     if (ROLE === 'member') renderMember();
-    else { const box = document.getElementById('shPanel'); if (box && S.tab === 'planning') box.innerHTML = weekHtml(); const f = root.querySelector('.sh-facts'); if (f) f.outerHTML = staffFacts(); }
+    else { const box = document.getElementById('shPanel'); if (box && S.tab === 'planning') { box.innerHTML = weekHtml(); scrollCal(); } const f = root.querySelector('.sh-facts'); if (f) f.outerHTML = staffFacts(); }
   }
 
   root.addEventListener('click', async (e) => {
     const t = e.target;
+    const vw = t.closest('[data-seg="view"] [data-v]');
+    if (vw) { S.view = vw.dataset.v; try { localStorage.setItem('chest_school_view', S.view); } catch (err) { /* tant pis */ } const box = document.getElementById('shPanel'); if (box) { box.innerHTML = weekHtml(); scrollCal(); } return; }
+    const wk2 = t.closest('[data-wk]');
+    if (wk2) {
+      // vue Complet : on avance d'une semaine (la donnée couvre deux semaines, on recharge quand on sort de la fenêtre)
+      const d = Number(wk2.dataset.wk), box = document.getElementById('shPanel');
+      if (d > 0 && !S.wk2) S.wk2 = true; else if (d < 0 && S.wk2) S.wk2 = false;
+      else { S.week = new Date(S.week.getTime() + d * 7 * DAY); S.wk2 = false; await reloadWeek(); return; }
+      if (box) { box.innerHTML = weekHtml(); scrollCal(); }
+      return;
+    }
+    const slot = t.closest('.sh-cal__col');
+    if (slot && !t.closest('.sh-gev')) {
+      const r = slot.getBoundingClientRect();
+      const mins = Math.max(0, Math.floor(((e.clientY - r.top) / HH * 60) / 15) * 15) + Number(slot.dataset.h0) * 60;
+      const at = new Date(`${slot.dataset.slot}T00:00`); at.setMinutes(mins);
+      return openComposer('event', null, null, at);
+    }
     const wk = t.closest('[data-week]');
-    if (wk) { const d = Number(wk.dataset.week); S.week = d === 0 ? mondayOf(new Date()) : new Date(S.week.getTime() + d * 7 * DAY); return reloadWeek(); }
+    if (wk) { const d = Number(wk.dataset.week); S.wk2 = false; S.week = d === 0 ? mondayOf(new Date()) : new Date(S.week.getTime() + d * 7 * DAY); return reloadWeek(); }
     const ev = t.closest('[data-ev]'); if (ev) { const x = findEvent(ev.dataset.ev); if (x) eventDetail(x); return; }
     const it = t.closest('[data-idea-tab]'); if (it) { S.ideaTab = it.dataset.ideaTab; if (ROLE === 'member') { const sec = document.getElementById('shIdeas'); if (sec) sec.outerHTML = feed2(); } else renderTab(); return; }
     const po = t.closest('[data-post]'); if (po) { const x = S.posts.find((p) => p.id === Number(po.dataset.post)); if (x) postDetail(x); return; }

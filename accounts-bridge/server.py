@@ -440,6 +440,11 @@ def init_db():
         """)
         db.execute("CREATE INDEX IF NOT EXISTS school_notifs_user ON school_notifs (user_id, created_at)")
         db.execute("CREATE TABLE IF NOT EXISTS school_reminders (key TEXT PRIMARY KEY, sent_at TEXT NOT NULL)")
+        # Signature d'un admin (2026-11-08) : « chest » (au nom de CHEST) ou « me » (son prénom). Vide = comportement
+        # d'avant : rendez-vous et missions signés CHEST, Idea signées du prénom.
+        for t in ("school_events", "school_posts", "mentor_events", "mentor_tasks", "mentor_common"):
+            if "signed" not in [c[1] for c in db.execute(f"PRAGMA table_info({t})").fetchall()]:
+                db.execute(f"ALTER TABLE {t} ADD COLUMN signed TEXT")
         if "audience" not in [c[1] for c in db.execute("PRAGMA table_info(mentor_common)").fetchall()]:
             db.execute("ALTER TABLE mentor_common ADD COLUMN audience TEXT")
         # Couleur de chaque membre de l'équipe dans le planning commun (2026-10-28) : un éducateur = une couleur.
@@ -2615,7 +2620,7 @@ def _mentor_payload(db, user, member, edu):
         return names[uid]
     mid = member["id"]
     events = [{"id": r["id"], "startsAt": r["starts_at"], "minutes": r["minutes"], "topic": r["topic"] or "", "mode": r["mode"] or "",
-               "link": r["link"] or "", "status": r["status"], "authorId": r["author_id"], "author": who(r["author_id"]),
+               "link": r["link"] or "", "status": r["status"], "authorId": r["author_id"], "author": "CHEST" if _col(r, "signed") == "chest" else who(r["author_id"]),
                "common": bool(_col(r, "common_id")), "body": _col(r, "body", ""), "flyer": json.loads(r["flyer"]) if _col(r, "flyer") else None,
                "createdAt": r["created_at"]} for r in db.execute("SELECT * FROM mentor_events WHERE member_id = ? ORDER BY starts_at", (mid,)).fetchall()]
     notes = [{"id": r["id"], "eventId": r["event_id"], "title": r["title"] or "", "body": r["body"] or "", "authorId": r["author_id"],
@@ -2624,7 +2629,7 @@ def _mentor_payload(db, user, member, edu):
     lib = [{"id": r["id"], "kind": r["kind"], "title": r["title"] or "", "body": r["body"] or "", "url": r["url"] or "",
             "file": json.loads(r["file"]) if r["file"] else None, "authorId": r["author_id"], "author": who(r["author_id"]), "createdAt": r["created_at"]}
            for r in db.execute("SELECT * FROM mentor_library WHERE member_id = ? ORDER BY created_at DESC", (mid,)).fetchall()]
-    tasks = [{"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "author": who(r["author_id"]),
+    tasks = [{"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "author": "CHEST" if _col(r, "signed") == "chest" else who(r["author_id"]),
               "common": bool(_col(r, "common_id")), "createdAt": r["created_at"]}
              for r in db.execute("SELECT * FROM mentor_tasks WHERE member_id = ? ORDER BY done_at IS NOT NULL, due_at IS NULL, due_at, id", (mid,)).fetchall()]
     a = access_of(member)
@@ -2731,15 +2736,15 @@ def mentor_event_save():
             db.execute("UPDATE mentor_events SET starts_at = ?, minutes = ?, topic = ?, mode = ?, link = ?, body = ?, flyer = ?, status = ?, author_id = ?, updated_at = ? WHERE id = ?",
                        (starts.isoformat(), minutes, topic, mode, link, body, flyer, status, user["id"], now, ev["id"]))
         else:
-            db.execute("INSERT INTO mentor_events (member_id, author_id, starts_at, minutes, topic, mode, link, body, flyer, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                       (member["id"], user["id"], starts.isoformat(), minutes, topic, mode, link, body, json.dumps(up) if up else None, status, now, now))
+            db.execute("INSERT INTO mentor_events (member_id, author_id, starts_at, minutes, topic, mode, link, body, flyer, status, created_at, updated_at, signed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                       (member["id"], user["id"], starts.isoformat(), minutes, topic, mode, link, body, json.dumps(up) if up else None, status, now, now, _signed(user, b)))
         db.commit()
     if not b.get("id") or not staff:
         when = _fr_when(starts.isoformat())
         if staff:
-            _school_notify(db, [member["id"]], "event", f"{_first(db, user['id'])} t'a ajouté un appel", f"{topic} · {when}", "/school", user["id"])
+            _school_notify(db, [member["id"]], "event", f"{_sig(db, user, _signed(user, b))} t'a ajouté un appel", f"{topic} · {when}", "/school", user["id"])
             if edu and edu["id"] != user["id"]:
-                _school_notify(db, [edu["id"]], "event", f"{_first(db, user['id'])} a ajouté un appel avec {member['first_name']}", f"{topic} · {when}", "/school", user["id"])
+                _school_notify(db, [edu["id"]], "event", f"{_sig(db, user, _signed(user, b))} a ajouté un appel avec {member['first_name']}", f"{topic} · {when}", "/school", user["id"])
         elif edu:
             _school_notify(db, [edu["id"]], "event", f"{member['first_name']} propose un appel", f"{topic} · {when}", "/school", user["id"])
     return jsonify(_mentor_payload(db, user, member, edu))
@@ -2794,11 +2799,11 @@ def mentor_task_save():
                 return jsonify({"error": "Mission introuvable."}), 404
             db.execute("UPDATE mentor_tasks SET title = ?, due_at = ? WHERE id = ?", (title, due, b["id"]))
         else:
-            db.execute("INSERT INTO mentor_tasks (member_id, author_id, title, due_at, created_at) VALUES (?, ?, ?, ?, ?)",
-                       (member["id"], user["id"], title, due, datetime.now(timezone.utc).isoformat()))
+            db.execute("INSERT INTO mentor_tasks (member_id, author_id, title, due_at, created_at, signed) VALUES (?, ?, ?, ?, ?, ?)",
+                       (member["id"], user["id"], title, due, datetime.now(timezone.utc).isoformat(), _signed(user, b)))
         db.commit()
     if not b.get("id"):
-        _school_notify(db, [member["id"]], "task", f"{_first(db, user['id'])} t'a donné une mission", title + (f" · pour {_fr_when(due).split(' à ')[0]}" if due else ""), "/school", user["id"])
+        _school_notify(db, [member["id"]], "task", f"{_sig(db, user, _signed(user, b))} t'a donné une mission", title + (f" · pour {_fr_when(due).split(' à ')[0]}" if due else ""), "/school", user["id"])
     return jsonify(_mentor_payload(db, user, member, edu))
 
 
@@ -3094,7 +3099,7 @@ def _event_public(db, r, who, start=None, occ=0):
             "startsAt": s.isoformat(), "minutes": r["minutes"], "mode": r["mode"] or "visio", "link": r["link"] or "",
             "flyer": json.loads(r["flyer"]) if r["flyer"] else None, "audience": r["audience"], "scope": _scope_of(r),
             "audienceLabel": _audience_label(db, r["audience"], _scope_of(r)), "weeks": r["weeks"], "occurrence": occ,
-            "author": who(r["author_id"]), "authorId": r["author_id"], "status": "confirmed", "createdAt": r["created_at"]}
+            "author": who(r["author_id"]), "authorId": r["author_id"], "status": "confirmed", "createdAt": r["created_at"], "signed": _col(r, "signed") or "chest"}
 
 
 CHEST_COLOR = "#fc1283"
@@ -3220,7 +3225,7 @@ def school_agenda():
             events.append({"id": f"p{r['id']}", "eventId": r["id"], "type": "personal", "ownerId": owner, "color": color_of.get(owner), "title": r["topic"] or "Appel", "body": _col(r, "body", ""),
                            "startsAt": r["starts_at"], "minutes": r["minutes"], "mode": r["mode"] or "visio", "link": r["link"] or "",
                            "flyer": json.loads(r["flyer"]) if _col(r, "flyer") else None, "status": r["status"], "common": bool(_col(r, "common_id")),
-                           "memberId": r["member_id"], "member": people.get(r["member_id"]), "author": who(r["author_id"]), "authorId": r["author_id"], "createdAt": r["created_at"]})
+                           "memberId": r["member_id"], "member": people.get(r["member_id"]), "author": who(r["author_id"]), "authorId": r["author_id"], "createdAt": r["created_at"], "signed": _col(r, "signed") or "chest"})
         # missions : celles qui tombent dans la fenêtre, plus (membre) celles qui restent à faire sans date ou en retard
         tq = ",".join("?" * len(task_mids))
         sql = f"SELECT * FROM mentor_tasks WHERE member_id IN ({tq}) AND ((due_at >= ? AND due_at < ?)" + (" OR done_at IS NULL)" if role == "member" else ")")
@@ -3234,10 +3239,10 @@ def school_agenda():
     for e in events:
         if e["type"] == "collective":
             e["ownerId"] = e["authorId"]
-        e["chest"] = e.get("ownerId") in admins
+        e["chest"] = e.get("ownerId") in admins and e.get("signed") != "me"
         e["color"] = CHEST_COLOR if e["chest"] else (color_of.get(e.get("ownerId")) if role == "admin" else None)
-        if e["type"] == "collective" and e["chest"] and role != "admin":
-            e["author"] = "Un éducateur"
+        if e["chest"] and role != "admin":
+            e["author"] = "CHEST"
     events.sort(key=lambda e: e["startsAt"])
     return jsonify({"from": start.isoformat(), "to": end.isoformat(), "role": role, "events": events, "tasks": tasks,
                     "staff": staff if role == "admin" else []})
@@ -3283,15 +3288,15 @@ def school_event_save():
             if up or b.get("removeFlyer"):
                 delete_file(json.loads(flyer) if flyer else None)
                 flyer = json.dumps(up) if up else None
-            db.execute("UPDATE school_events SET title = ?, body = ?, starts_at = ?, minutes = ?, mode = ?, link = ?, flyer = ?, audience = ?, scope = ?, weeks = ?, updated_at = ? WHERE id = ?",
-                       (title, body, start.isoformat(), minutes, mode, link, flyer, aud, json.dumps(scope), weeks, now, r["id"]))
+            db.execute("UPDATE school_events SET title = ?, body = ?, starts_at = ?, minutes = ?, mode = ?, link = ?, flyer = ?, audience = ?, scope = ?, weeks = ?, signed = ?, updated_at = ? WHERE id = ?",
+                       (title, body, start.isoformat(), minutes, mode, link, flyer, aud, json.dumps(scope), weeks, _signed(user, b), now, r["id"]))
             eid = r["id"]
         else:
-            eid = db.execute("INSERT INTO school_events (title, body, starts_at, minutes, mode, link, flyer, audience, scope, weeks, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                             (title, body, start.isoformat(), minutes, mode, link, json.dumps(up) if up else None, aud, json.dumps(scope), weeks, user["id"], now, now)).lastrowid
+            eid = db.execute("INSERT INTO school_events (title, body, starts_at, minutes, mode, link, flyer, audience, scope, weeks, author_id, created_at, updated_at, signed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                             (title, body, start.isoformat(), minutes, mode, link, json.dumps(up) if up else None, aud, json.dumps(scope), weeks, user["id"], now, now, _signed(user, b))).lastrowid
         db.commit()
     if not b.get("id"):
-        _school_notify(db, _audience_users(db, aud, scope), "event", f"{_first(db, user['id'])} a ajouté un appel", f"{title} · {_fr_when(start.isoformat())}", "/school", user["id"])
+        _school_notify(db, _audience_users(db, aud, scope), "event", f"{_sig(db, user, _signed(user, b))} a ajouté un appel", f"{title} · {_fr_when(start.isoformat())}", "/school", user["id"])
     return jsonify({"event": _event_public(db, db.execute("SELECT * FROM school_events WHERE id = ?", (eid,)).fetchone(), _names(db))})
 
 
@@ -3317,7 +3322,8 @@ def _post_public(db, r, who, pic=None):
             "pinned": bool(r["pinned"]), "format": r["format"] if "format" in r.keys() and r["format"] else "landscape",
             "idea": json.loads(r["idea"]) if "idea" in r.keys() and r["idea"] else None,
             "status": (r["status"] if "status" in r.keys() and r["status"] in IDEA_STATUS else "zone"),
-            "author": who(r["author_id"]), "authorId": r["author_id"], "authorAvatar": pic(r["author_id"]) if pic else None,
+            "author": "CHEST" if _col(r, "signed") == "chest" else who(r["author_id"]), "authorId": r["author_id"], "chest": _col(r, "signed") == "chest",
+            "authorAvatar": None if _col(r, "signed") == "chest" else (pic(r["author_id"]) if pic else None), "signed": _col(r, "signed") or "me",
             "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
 
 
@@ -3437,14 +3443,14 @@ def school_post_save():
             if up or b.get("removeImage"):
                 delete_file(json.loads(image) if image else None)
                 image = json.dumps(up) if up else None
-            db.execute("UPDATE school_posts SET title = ?, body = ?, image = ?, audience = ?, scope = ?, pinned = ?, format = ?, idea = ?, updated_at = ? WHERE id = ?",
-                       (title, body, image, aud, json.dumps(scope), pinned, fmt, idea_js, now, r["id"]))
+            db.execute("UPDATE school_posts SET title = ?, body = ?, image = ?, audience = ?, scope = ?, pinned = ?, format = ?, idea = ?, signed = ?, updated_at = ? WHERE id = ?",
+                       (title, body, image, aud, json.dumps(scope), pinned, fmt, idea_js, _signed(user, b), now, r["id"]))
         else:
-            pid = db.execute("INSERT INTO school_posts (title, body, image, audience, scope, pinned, format, idea, status, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                             (title, body, json.dumps(up) if up else None, aud, json.dumps(scope), pinned, fmt, idea_js, "zone", user["id"], now, now)).lastrowid
+            pid = db.execute("INSERT INTO school_posts (title, body, image, audience, scope, pinned, format, idea, status, author_id, created_at, updated_at, signed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                             (title, body, json.dumps(up) if up else None, aud, json.dumps(scope), pinned, fmt, idea_js, "zone", user["id"], now, now, _signed(user, b))).lastrowid
         db.commit()
     if not b.get("id"):
-        _school_notify(db, _audience_users(db, aud, scope), "idea", f"Nouvelle Idea de {_first(db, user['id'])}", title, f"/school?post={pid}", user["id"])
+        _school_notify(db, _audience_users(db, aud, scope), "idea", f"Nouvelle Idea de {_sig(db, user, _signed(user, b))}", title, f"/school?post={pid}", user["id"])
     return school_posts()
 
 
@@ -3488,13 +3494,14 @@ def school_mission_add():
         return jsonify({"error": "Aucun membre dans cette sélection."}), 400
     now = datetime.now(timezone.utc).isoformat()
     with db_lock:
-        cid = db.execute("INSERT INTO mentor_common (kind, title, due_at, weeks, scope, audience, author_id, created_at) VALUES ('task', ?, ?, 1, ?, ?, ?, ?)",
-                         (title, due.isoformat() if due else None, json.dumps(scope), aud, user["id"], now)).lastrowid
+        sg = _signed(user, b)
+        cid = db.execute("INSERT INTO mentor_common (kind, title, due_at, weeks, scope, audience, author_id, created_at, signed) VALUES ('task', ?, ?, 1, ?, ?, ?, ?, ?)",
+                         (title, due.isoformat() if due else None, json.dumps(scope), aud, user["id"], now, sg)).lastrowid
         for mid in members:
-            db.execute("INSERT INTO mentor_tasks (member_id, author_id, title, due_at, created_at, common_id) VALUES (?, ?, ?, ?, ?, ?)",
-                       (mid, user["id"], title, due.isoformat() if due else None, now, cid))
+            db.execute("INSERT INTO mentor_tasks (member_id, author_id, title, due_at, created_at, common_id, signed) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                       (mid, user["id"], title, due.isoformat() if due else None, now, cid, sg))
         db.commit()
-    _school_notify(db, members, "task", f"{_first(db, user['id'])} t'a donné une mission", title + (f" · pour {_fr_when(due.isoformat()).split(' à ')[0]}" if due else ""), "/school", user["id"])
+    _school_notify(db, members, "task", f"{_sig(db, user, _signed(user, b))} t'a donné une mission", title + (f" · pour {_fr_when(due.isoformat()).split(' à ')[0]}" if due else ""), "/school", user["id"])
     return jsonify({"ok": True, "members": len(members), "commonId": cid})
 
 
@@ -3531,6 +3538,15 @@ def _fr_when(iso):
     from zoneinfo import ZoneInfo
     d = _when(iso).astimezone(ZoneInfo("Europe/Paris"))
     return f"{WEEKDAYS_FR[d.weekday()]} {d.day} {MONTHS_FR[d.month - 1].lower()} à {d.strftime('%H:%M')}"
+
+
+def _signed(user, b):
+    """Signature choisie par un admin : « chest » ou « me » ; l'équipe signe toujours de son prénom."""
+    return ("me" if (b or {}).get("as") == "me" else "chest") if user["is_admin"] else "me"
+
+
+def _sig(db, user, signed):
+    return "CHEST" if signed == "chest" else _first(db, user["id"])
 
 
 def _first(db, uid):
