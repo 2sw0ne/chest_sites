@@ -431,6 +431,15 @@ def init_db():
         for name in ("body", "flyer"):
             if name not in [c[1] for c in db.execute("PRAGMA table_info(mentor_events)").fetchall()]:
                 db.execute(f"ALTER TABLE mentor_events ADD COLUMN {name} TEXT")
+        # Notifications School (2026-11-08) : qui a ajouté un appel, une mission, une Idea, un contenu ; rappels 15 min avant.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS school_notifs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, kind TEXT NOT NULL, title TEXT NOT NULL,
+                body TEXT, url TEXT, actor_id INTEGER, created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS school_notifs_user ON school_notifs (user_id, created_at)")
+        db.execute("CREATE TABLE IF NOT EXISTS school_reminders (key TEXT PRIMARY KEY, sent_at TEXT NOT NULL)")
         if "audience" not in [c[1] for c in db.execute("PRAGMA table_info(mentor_common)").fetchall()]:
             db.execute("ALTER TABLE mentor_common ADD COLUMN audience TEXT")
         # Couleur de chaque membre de l'équipe dans le planning commun (2026-10-28) : un éducateur = une couleur.
@@ -789,6 +798,7 @@ def user_public(row):
         "access": access_of(row),
         "role": ("manager" if _col(row, "role") == "manager" else "admin") if row["is_admin"] else (_col(row, "role") or "member"),
         "avatar": _avatar_key(_col(row, "avatar")),
+        "scanner": _col(row, "edu_scanner"),
     }
 
 
@@ -2724,6 +2734,14 @@ def mentor_event_save():
             db.execute("INSERT INTO mentor_events (member_id, author_id, starts_at, minutes, topic, mode, link, body, flyer, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                        (member["id"], user["id"], starts.isoformat(), minutes, topic, mode, link, body, json.dumps(up) if up else None, status, now, now))
         db.commit()
+    if not b.get("id") or not staff:
+        when = _fr_when(starts.isoformat())
+        if staff:
+            _school_notify(db, [member["id"]], "event", f"{_first(db, user['id'])} t'a ajouté un appel", f"{topic} · {when}", "/school", user["id"])
+            if edu and edu["id"] != user["id"]:
+                _school_notify(db, [edu["id"]], "event", f"{_first(db, user['id'])} a ajouté un appel avec {member['first_name']}", f"{topic} · {when}", "/school", user["id"])
+        elif edu:
+            _school_notify(db, [edu["id"]], "event", f"{member['first_name']} propose un appel", f"{topic} · {when}", "/school", user["id"])
     return jsonify(_mentor_payload(db, user, member, edu))
 
 
@@ -2779,6 +2797,8 @@ def mentor_task_save():
             db.execute("INSERT INTO mentor_tasks (member_id, author_id, title, due_at, created_at) VALUES (?, ?, ?, ?, ?)",
                        (member["id"], user["id"], title, due, datetime.now(timezone.utc).isoformat()))
         db.commit()
+    if not b.get("id"):
+        _school_notify(db, [member["id"]], "task", f"{_first(db, user['id'])} t'a donné une mission", title + (f" · pour {_fr_when(due).split(' à ')[0]}" if due else ""), "/school", user["id"])
     return jsonify(_mentor_payload(db, user, member, edu))
 
 
@@ -2923,7 +2943,7 @@ def mentor_common_delete(cid):
 #   des éducateurs listés dans scope. Un admin choisit librement ; un éducateur publie seulement pour ses élèves.
 # Les appels personnels restent dans mentor_events (un membre principal), les missions dans mentor_tasks
 # (copiées chez chaque membre visé pour que chacun coche la sienne).
-AUDIENCES = ("all", "members", "educators", "students")
+AUDIENCES = ("all", "members", "educators", "students", "people")
 
 
 def _school_role(user):
@@ -2937,10 +2957,21 @@ def _scope_of(row):
         return []
 
 
+def _students_of(edu_id):
+    """Ids des élèves d'un éducateur (gardés le temps d'une requête)."""
+    cache = g.setdefault("_students_of", {})
+    if edu_id not in cache:
+        cache[edu_id] = {r["id"] for r in get_db().execute("SELECT id FROM users WHERE referred_by = ?", (edu_id,)).fetchall()}
+    return cache[edu_id]
+
+
 def _school_visible(row, user):
     aud, scope = row["audience"], _scope_of(row)
     if user["is_admin"] or row["author_id"] == user["id"]:
         return True
+    if aud == "people":
+        # personnes choisies une à une (2026-11-08) ; l'éducateur voit aussi ce qui concerne ses élèves
+        return user["id"] in scope or (is_educator(user) and bool(_students_of(user["id"]) & set(scope)))
     if is_educator(user):
         return aud in ("all", "members", "educators") or (aud == "students" and user["id"] in scope)
     return aud in ("all", "members") or (aud == "students" and _col(user, "referred_by") in scope)
@@ -2948,9 +2979,17 @@ def _school_visible(row, user):
 
 def _school_target(user, b):
     """(audience, scope) demandés, ramenés à ce que l'auteur a le droit de viser."""
+    picked = sorted({int(x) for x in (b.get("scope") or []) if str(x).isdigit()})
     if not user["is_admin"]:
+        if b.get("audience") == "people":
+            mine = sorted(set(picked) & _students_of(user["id"]))
+            return ("people", mine) if mine else (None, None)
         return "students", [user["id"]]
     aud = b.get("audience") if b.get("audience") in AUDIENCES else "all"
+    if aud == "people":
+        ok = {r["id"] for r in get_db().execute(f"SELECT id FROM users WHERE status = 'approved' AND id IN ({','.join('?' * len(picked))})", picked).fetchall()} if picked else set()
+        ok.discard(user["id"])
+        return ("people", sorted(ok)) if ok else (None, None)
     scope = sorted({int(x) for x in (b.get("scope") or []) if str(x).isdigit()}) if aud == "students" else []
     if aud == "students" and not scope:
         return None, None
@@ -3033,6 +3072,9 @@ def _scope_members(db, user, audience, scope):
         return [r["id"] for r in db.execute(f"SELECT id FROM users WHERE referred_by IN ({q})", scope).fetchall()] if scope else []
     if audience == "educators":
         return []
+    if audience == "people":
+        q = ",".join("?" * len(scope))
+        return [r["id"] for r in db.execute(f"SELECT id FROM users WHERE id IN ({q}) AND is_admin = 0 AND COALESCE(role, 'member') = 'member'", scope).fetchall()] if scope else []
     return [r["id"] for r in db.execute("SELECT id FROM users WHERE is_admin = 0 AND COALESCE(role, 'member') = 'member' AND status = 'approved'").fetchall()]
 
 
@@ -3040,6 +3082,9 @@ def _audience_label(db, audience, scope):
     if audience == "students":
         names = [r["first_name"] for r in db.execute(f"SELECT first_name FROM users WHERE id IN ({','.join('?' * len(scope))})", scope).fetchall()] if scope else []
         return "Élèves de " + ", ".join(names) if names else "Élèves"
+    if audience == "people":
+        names = [r["first_name"] for r in db.execute(f"SELECT first_name FROM users WHERE id IN ({','.join('?' * len(scope))})", scope).fetchall()] if scope else []
+        return (", ".join(names[:3]) + (f" +{len(names) - 3}" if len(names) > 3 else "")) if names else "Personnes choisies"
     return {"all": "Tout le monde", "members": "Membres", "educators": "Équipe"}[audience]
 
 
@@ -3049,7 +3094,7 @@ def _event_public(db, r, who, start=None, occ=0):
             "startsAt": s.isoformat(), "minutes": r["minutes"], "mode": r["mode"] or "visio", "link": r["link"] or "",
             "flyer": json.loads(r["flyer"]) if r["flyer"] else None, "audience": r["audience"], "scope": _scope_of(r),
             "audienceLabel": _audience_label(db, r["audience"], _scope_of(r)), "weeks": r["weeks"], "occurrence": occ,
-            "author": who(r["author_id"]), "authorId": r["author_id"], "status": "confirmed"}
+            "author": who(r["author_id"]), "authorId": r["author_id"], "status": "confirmed", "createdAt": r["created_at"]}
 
 
 CHEST_COLOR = "#fc1283"
@@ -3175,13 +3220,13 @@ def school_agenda():
             events.append({"id": f"p{r['id']}", "eventId": r["id"], "type": "personal", "ownerId": owner, "color": color_of.get(owner), "title": r["topic"] or "Appel", "body": _col(r, "body", ""),
                            "startsAt": r["starts_at"], "minutes": r["minutes"], "mode": r["mode"] or "visio", "link": r["link"] or "",
                            "flyer": json.loads(r["flyer"]) if _col(r, "flyer") else None, "status": r["status"], "common": bool(_col(r, "common_id")),
-                           "memberId": r["member_id"], "member": people.get(r["member_id"]), "author": who(r["author_id"]), "authorId": r["author_id"]})
+                           "memberId": r["member_id"], "member": people.get(r["member_id"]), "author": who(r["author_id"]), "authorId": r["author_id"], "createdAt": r["created_at"]})
         # missions : celles qui tombent dans la fenêtre, plus (membre) celles qui restent à faire sans date ou en retard
         tq = ",".join("?" * len(task_mids))
         sql = f"SELECT * FROM mentor_tasks WHERE member_id IN ({tq}) AND ((due_at >= ? AND due_at < ?)" + (" OR done_at IS NULL)" if role == "member" else ")")
         for r in (db.execute(sql + " ORDER BY due_at IS NULL, due_at", (*task_mids, start.isoformat(), hi)).fetchall() if task_mids else []):
             tasks.append({"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "doneAt": r["done_at"], "memberId": r["member_id"],
-                          "member": people.get(r["member_id"]), "author": who(r["author_id"]), "common": bool(_col(r, "common_id"))})
+                          "member": people.get(r["member_id"]), "author": who(r["author_id"]), "authorId": r["author_id"], "common": bool(_col(r, "common_id")), "createdAt": r["created_at"]})
     # Couleurs (2026-10-30) : seul l'admin voit le code couleur des éducateurs. Un élève ne voit que son éducateur et un
     # éducateur que ses élèves : pas de couleur à décoder, chaque rendez-vous garde la couleur de son type. Ce que pose un
     # admin prend la couleur de CHEST partout (chest: true) ; ses appels collectifs sont signés « Un éducateur ».
@@ -3217,7 +3262,7 @@ def school_event_save():
         return jsonify({"error": "Date, heure ou durée invalide."}), 400
     aud, scope = _school_target(user, b)
     if not aud:
-        return jsonify({"error": "Choisis au moins un éducateur."}), 400
+        return jsonify({"error": "Choisis au moins une personne."}), 400
     mode = b.get("mode") if b.get("mode") in ("visio", "telephone", "presentiel") else "visio"
     link = str(b.get("link") or "").strip()[:300]
     if link and not re.fullmatch(r"https://\S+", link):
@@ -3245,6 +3290,8 @@ def school_event_save():
             eid = db.execute("INSERT INTO school_events (title, body, starts_at, minutes, mode, link, flyer, audience, scope, weeks, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                              (title, body, start.isoformat(), minutes, mode, link, json.dumps(up) if up else None, aud, json.dumps(scope), weeks, user["id"], now, now)).lastrowid
         db.commit()
+    if not b.get("id"):
+        _school_notify(db, _audience_users(db, aud, scope), "event", f"{_first(db, user['id'])} a ajouté un appel", f"{title} · {_fr_when(start.isoformat())}", "/school", user["id"])
     return jsonify({"event": _event_public(db, db.execute("SELECT * FROM school_events WHERE id = ?", (eid,)).fetchone(), _names(db))})
 
 
@@ -3371,7 +3418,7 @@ def school_post_save():
         return jsonify({"error": "Donne un titre à l'IDEA."}), 400
     aud, scope = _school_target(user, b)
     if not aud:
-        return jsonify({"error": "Choisis au moins un éducateur."}), 400
+        return jsonify({"error": "Choisis au moins une personne."}), 400
     up = save_upload("image", "post")
     if up and not (up.get("mime") or "").startswith("image/"):
         delete_file(up)
@@ -3393,9 +3440,11 @@ def school_post_save():
             db.execute("UPDATE school_posts SET title = ?, body = ?, image = ?, audience = ?, scope = ?, pinned = ?, format = ?, idea = ?, updated_at = ? WHERE id = ?",
                        (title, body, image, aud, json.dumps(scope), pinned, fmt, idea_js, now, r["id"]))
         else:
-            db.execute("INSERT INTO school_posts (title, body, image, audience, scope, pinned, format, idea, status, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                       (title, body, json.dumps(up) if up else None, aud, json.dumps(scope), pinned, fmt, idea_js, "zone", user["id"], now, now))
+            pid = db.execute("INSERT INTO school_posts (title, body, image, audience, scope, pinned, format, idea, status, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                             (title, body, json.dumps(up) if up else None, aud, json.dumps(scope), pinned, fmt, idea_js, "zone", user["id"], now, now)).lastrowid
         db.commit()
+    if not b.get("id"):
+        _school_notify(db, _audience_users(db, aud, scope), "idea", f"Nouvelle Idea de {_first(db, user['id'])}", title, f"/school?post={pid}", user["id"])
     return school_posts()
 
 
@@ -3445,6 +3494,7 @@ def school_mission_add():
             db.execute("INSERT INTO mentor_tasks (member_id, author_id, title, due_at, created_at, common_id) VALUES (?, ?, ?, ?, ?, ?)",
                        (mid, user["id"], title, due.isoformat() if due else None, now, cid))
         db.commit()
+    _school_notify(db, members, "task", f"{_first(db, user['id'])} t'a donné une mission", title + (f" · pour {_fr_when(due.isoformat()).split(' à ')[0]}" if due else ""), "/school", user["id"])
     return jsonify({"ok": True, "members": len(members), "commonId": cid})
 
 
@@ -3468,6 +3518,152 @@ def school_missions():
         out.append({"id": r["id"], "title": r["title"], "dueAt": r["due_at"], "audienceLabel": _audience_label(db, aud, scope),
                     "members": n["n"] or 0, "done": n["d"] or 0, "author": who(r["author_id"]), "createdAt": r["created_at"]})
     return jsonify({"missions": out})
+
+
+# ---------------------------------------------------------------- Notifications School (2026-11-08)
+# Chaque ajout (appel, mission, Idea, contenu partagé) prévient les personnes visées : une ligne dans school_notifs (la
+# cloche de CHEST la relit, GET /school/notifs) et une notification push (réglage « school_new »). Un appel prévient
+# aussi 15 min avant (school_reminder_loop, réglage « school_remind »), une seule fois par occurrence (school_reminders).
+WEEKDAYS_FR = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
+
+
+def _fr_when(iso):
+    from zoneinfo import ZoneInfo
+    d = _when(iso).astimezone(ZoneInfo("Europe/Paris"))
+    return f"{WEEKDAYS_FR[d.weekday()]} {d.day} {MONTHS_FR[d.month - 1].lower()} à {d.strftime('%H:%M')}"
+
+
+def _first(db, uid):
+    r = db.execute("SELECT first_name FROM users WHERE id = ?", (uid,)).fetchone()
+    return r["first_name"] if r else "L'équipe"
+
+
+def _audience_users(db, audience, scope):
+    """Tous les comptes visés par un public School (pour prévenir)."""
+    base = "SELECT id FROM users WHERE status = 'approved'"
+    if audience == "all":
+        rows = db.execute(base).fetchall()
+    elif audience == "members":
+        rows = db.execute(base + " AND is_admin = 0 AND COALESCE(role, 'member') = 'member'").fetchall()
+    elif audience == "educators":
+        rows = db.execute(base + " AND (is_admin = 1 OR role = 'educator')").fetchall()
+    elif audience in ("students", "people") and scope:
+        q = ",".join("?" * len(scope))
+        rows = db.execute(base + (f" AND referred_by IN ({q})" if audience == "students" else f" AND id IN ({q})"), scope).fetchall()
+    else:
+        rows = []
+    return [r["id"] for r in rows]
+
+
+def _push_school(items):
+    """Envoi push en tâche de fond (sans ralentir la réponse) : [(user_id, kind, title, body, url)]."""
+    def run():
+        with app.app_context():
+            db = get_db()
+            for uid, kind, title, body, url in items:
+                try:
+                    if _user_prefs(db, uid).get("school_remind" if kind == "remind" else "school_new", True):
+                        send_push_to_user(uid, title, body, url)
+                except Exception as e:
+                    print(f"[school] push impossible pour {uid} : {e}", flush=True)
+    if items and VAPID_PRIVATE_KEY:
+        threading.Thread(target=run, daemon=True).start()
+
+
+def _school_notify(db, uids, kind, title, body, url="/school", actor=None):
+    """Prévient chaque compte de uids (sauf l'auteur) : ligne pour la cloche + push. À appeler hors db_lock."""
+    uids = sorted({int(u) for u in uids if u and u != actor})
+    if not uids:
+        return 0
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db.executemany("INSERT INTO school_notifs (user_id, kind, title, body, url, actor_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                       [(u, kind, title, body, url, actor, now) for u in uids])
+        db.commit()
+    _push_school([(u, kind, title, body, url) for u in uids])
+    return len(uids)
+
+
+@app.route("/school/notifs")
+def school_notifs():
+    """Les 40 dernières notifications School du compte (?since= pour ne lire que les nouvelles)."""
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    since = str(request.args.get("since") or "")[:40]
+    rows = get_db().execute("SELECT * FROM school_notifs WHERE user_id = ? AND created_at > ? ORDER BY id DESC LIMIT 40", (user["id"], since)).fetchall()
+    return jsonify({"notifs": [{"id": r["id"], "kind": r["kind"], "title": r["title"], "body": r["body"] or "", "url": r["url"] or "/school",
+                                "createdAt": r["created_at"]} for r in rows]})
+
+
+def school_reminders_due(db, now=None):
+    """Appels qui commencent dans les 15 prochaines minutes et pas encore rappelés : [(clé, destinataires, titre, corps)]."""
+    now = now or datetime.now(timezone.utc)
+    hi = now + timedelta(minutes=15)
+    out = []
+    for r in db.execute("SELECT * FROM school_events").fetchall():
+        first = _when(r["starts_at"])
+        for w in range(max(1, r["weeks"])):
+            s = first + timedelta(weeks=w)
+            if now - timedelta(minutes=1) <= s <= hi:
+                users = set(_audience_users(db, r["audience"], _scope_of(r))) | {r["author_id"]}
+                if r["audience"] == "people":
+                    edus = db.execute(f"SELECT DISTINCT referred_by FROM users WHERE id IN ({','.join('?' * len(_scope_of(r)))}) AND referred_by IS NOT NULL", _scope_of(r)).fetchall() if _scope_of(r) else []
+                    users |= {e[0] for e in edus}
+                out.append((f"c{r['id']}:{w}", users, r["title"], s))
+    for r in db.execute("SELECT e.*, u.referred_by FROM mentor_events e JOIN users u ON u.id = e.member_id WHERE e.status = 'confirmed' AND e.starts_at >= ? AND e.starts_at <= ?",
+                        ((now - timedelta(minutes=1)).isoformat(), hi.isoformat())).fetchall():
+        out.append((f"p{r['id']}", {r["member_id"], r["author_id"], r["referred_by"]}, r["topic"] or "Appel", _when(r["starts_at"])))
+    done = {x["key"] for x in db.execute("SELECT key FROM school_reminders").fetchall()}
+    return [(k, u, t, s) for k, u, t, s in out if k not in done]
+
+
+def school_reminder_loop():
+    while True:
+        try:
+            with app.app_context():
+                db = get_db()
+                now = datetime.now(timezone.utc)
+                for key, users, title, start in school_reminders_due(db, now):
+                    mins = max(1, round((start - now).total_seconds() / 60))
+                    with db_lock:
+                        db.execute("INSERT OR IGNORE INTO school_reminders (key, sent_at) VALUES (?, ?)", (key, now.isoformat()))
+                        db.commit()
+                    _school_notify(db, users, "remind", f"Dans {mins} min : {title}", f"Il commence à {_fr_when(start.isoformat()).split(' à ')[-1]}. Ouvre School pour le rejoindre.", "/school")
+        except Exception:
+            import traceback
+            traceback.print_exc()
+        time.sleep(60)
+
+
+@app.route("/school/share", methods=["POST"])
+def school_share():
+    """Un éducateur (ou un admin) envoie un élément des cours à des membres : il arrive dans la bibliothèque de leur suivi."""
+    user, err = _school_writer()
+    if err:
+        return err
+    b = request.get_json(silent=True) or {}
+    title = re.sub(r"\s+", " ", str(b.get("title") or "")).strip()[:140]
+    kind = b.get("kind") if b.get("kind") in ("video", "link", "text") else "link"
+    url = str(b.get("url") or "").strip()[:500]
+    body = str(b.get("body") or "").strip()[:2000]
+    if not title or (kind != "text" and not re.fullmatch(r"(https://|/)\S+", url)):
+        return jsonify({"error": "Élément invalide."}), 400
+    picked = {int(x) for x in (b.get("members") or []) if str(x).isdigit()}
+    db = get_db()
+    if user["is_admin"]:
+        ok = {r["id"] for r in db.execute(f"SELECT id FROM users WHERE id IN ({','.join('?' * len(picked))})", sorted(picked)).fetchall()} if picked else set()
+    else:
+        ok = picked & _students_of(user["id"])
+    if not ok:
+        return jsonify({"error": "Choisis au moins un membre."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db.executemany("INSERT INTO mentor_library (member_id, author_id, kind, title, body, url, file, created_at) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)",
+                       [(m, user["id"], kind, title, body, url, now) for m in ok])
+        db.commit()
+    _school_notify(db, ok, "share", f"{_first(db, user['id'])} t'a envoyé un contenu", title, "/suivi", user["id"])
+    return jsonify({"ok": True, "members": len(ok)})
 
 
 # ---------------------------------------------------------------- BERICH v3 : algorithmes et plan (2026-10-28)
@@ -4766,11 +4962,21 @@ def school_list():
     return jsonify({"entries": [entry_public(r) for r in rows], "seeded": bool(seeded)})
 
 
+def _scanner_video_ok(user, cur, data):
+    """Un éducateur rattaché à un scanner gère les vidéos de ce scanner (section « scanners ») et rien d'autre."""
+    sid = _col(user, "edu_scanner")
+    if not sid or not is_educator(user):
+        return False
+    if cur and (cur.get("section") != "scanners" or cur.get("scanner") != sid):
+        return False
+    return data is None or (data.get("kind") == "video" and data.get("section", "scanners") == "scanners" and data.get("scanner", sid) == sid)
+
+
 @app.route("/school/entries", methods=["POST"])
 def school_save():
     admin = approved_user()
-    if not admin or not admin["is_admin"]:
-        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if not admin:
+        return jsonify({"error": "Non connecté."}), 401
     if request.files or request.form:
         try:
             data = json.loads(request.form.get("data", "{}"))
@@ -4778,6 +4984,11 @@ def school_save():
             return jsonify({"error": "Données invalides."}), 400
     else:
         data = request.get_json(silent=True) or {}
+    if not admin["is_admin"]:
+        prev = get_db().execute("SELECT data FROM school_entries WHERE id = ?", (str(data.get("id") or ""),)).fetchone()
+        if not _scanner_video_ok(admin, json.loads(prev["data"]) if prev else None, data):
+            return jsonify({"error": "Réservé aux administrateurs (un éducateur ajoute les vidéos de son scanner)."}), 403
+        data["section"], data["scanner"] = "scanners", _col(admin, "edu_scanner")
     kind = data.get("kind")
     if kind not in ("item", "video", "cat"):
         return jsonify({"error": "Type d'élément inconnu."}), 400
@@ -4822,8 +5033,12 @@ def school_save():
 @app.route("/school/entries/<entry_id>/delete", methods=["POST"])
 def school_delete(entry_id):
     admin = approved_user()
-    if not admin or not admin["is_admin"]:
-        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if not admin:
+        return jsonify({"error": "Non connecté."}), 401
+    if not admin["is_admin"]:
+        prev = get_db().execute("SELECT data FROM school_entries WHERE id = ?", (entry_id,)).fetchone()
+        if not prev or not _scanner_video_ok(admin, json.loads(prev["data"]), None):
+            return jsonify({"error": "Réservé aux administrateurs."}), 403
     with db_lock:
         db = get_db()
         row = db.execute("SELECT * FROM school_entries WHERE id = ?", (entry_id,)).fetchone()
@@ -5792,7 +6007,7 @@ def send_push_to_admins(title, body_text, url=None):
 # Un reglage absent = tout coche (comportement d'avant : tout le monde recevait tout).
 NOTIF_TYPES = (
     "calendar_pre", "calendar_result", "position_open", "position_close",
-    "report_weekly", "report_monthly", "new_member",
+    "report_weekly", "report_monthly", "new_member", "school_new", "school_remind",
 )
 NOTIF_PREFS_KEY = "chest_notif_prefs"
 BERICH_SIGNALS_URL = os.environ.get("BERICH_SIGNALS_URL", "https://berich-bridge-production.up.railway.app/signals")
@@ -6206,6 +6421,7 @@ class NoKeepAliveHandler(WSGIRequestHandler):
 if __name__ == "__main__":
     init_db()
     threading.Thread(target=digest_loop, daemon=True).start()
+    threading.Thread(target=school_reminder_loop, daemon=True).start()
     threading.Thread(target=bucket_migrate, daemon=True).start()
     threading.Thread(target=ud_migrate, daemon=True).start()
     # threaded=True : threaded=False bloquait TOUTES les requetes suivantes

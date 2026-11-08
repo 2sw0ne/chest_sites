@@ -424,6 +424,9 @@
       if (v) return openDlg(`${x.author} · Vidéo`, x.title, `<div class="sv-player"><iframe src="${esc(v.src)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="${esc(x.title)}"></iframe></div>${desc}`);
     }
     if (x.file && /^image\//.test(x.file.mime || '')) return openDlg(`${x.author} · Image`, x.title, `<img class="sv-player sv-player--img" src="${esc(fileUrl(x.file))}" alt="">${desc}`);
+    // élément des cours envoyé par l'équipe (« /school?c=vvs ») : ouvert dans CHEST, pas dans un nouvel onglet
+    const m = !x.file && /^\/([\w-]+)(\?.*)?$/.exec(x.url || '');
+    if (m) { const sh = window.parent && window.parent !== window && window.parent.CHESTShell; if (sh && sh.go) sh.go(m[1], m[2] || ''); else location.href = m[1] + '.html' + (m[2] || ''); return; }
     window.open(x.file ? fileUrl(x.file) : x.url, '_blank', 'noopener');
   }
 

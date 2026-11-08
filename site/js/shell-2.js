@@ -114,6 +114,8 @@
       N().markRead(n ? n.id : it.dataset.id);
       toggle(false);
       if (n && n.data && n.data.journalAccountId) go('journal');
+      // notification School (js/idea-badge.js) : « /school?post=12 » → page school, recherche ?post=12
+      else if (n && n.data && n.data.url) { const m = /^\/([\w-]+)(\?.*)?$/.exec(n.data.url); if (m) go(m[1], m[2] || ''); }
     });
     paintNotifs();
     window.addEventListener('storage', (e) => { if (!e.key || /notif/i.test(e.key)) paintNotifs(); });

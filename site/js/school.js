@@ -58,6 +58,14 @@
     if (!(A && A.isAdmin && A.isAdmin())) return false;
     try { return localStorage.getItem('chest_admin_preview_mode') !== 'client'; } catch (e) { return true; }
   };
+  // Équipe (2026-11-08) : un éducateur parcourt les cours sans les modifier, envoie un élément à ses élèves
+  // (js/school-hub.js → POST /school/share) et gère les vidéos de SON scanner (section « Scanners »).
+  const role = () => ((A && A.getUser && A.getUser()) || {}).role || 'member';
+  const isStaff = () => isAdmin() || role() === 'educator';
+  const myScanner = () => (role() === 'educator' ? ((A.getUser() || {}).scanner || null) : null);
+  const scName = (id) => { const sc = window.CHESTScanners && CHESTScanners.get(id); return sc ? sc.name : id; };
+  const canEditV = (v) => isAdmin() || (!!myScanner() && v.section === 'scanners' && v.scanner === myScanner());
+  if (!D.videoSections.some((x) => x.id === 'scanners')) D.videoSections.push({ id: 'scanners', title: 'Scanners', blurb: 'Les vidéos de chaque scanner, ajoutées par l’éducateur qui le suit.', icon: 'chart' });
   const authH = () => { const t = A && A.getToken && A.getToken(); return t ? { Authorization: 'Bearer ' + t } : {}; };
   const fileUrl = (info) => (info && info.key ? `${API()}/school/files/${info.key}` : '');
   const R = { entries: [], ok: false };
@@ -394,8 +402,8 @@
   // le même mécanisme de retouche serveur (une entrée `school_entries` de même id que surcharge le catalogue
   // de base, voir `allItems()`), seule l'interface les excluait jusqu'ici.
   const itemTools = (it) => (isAdmin()
-    ? toolsMenu([{ label: 'Modifier', attr: 'data-iedit', id: it.id }, { label: 'Retirer', attr: 'data-idel', id: it.id }])
-    : '');
+    ? toolsMenu([{ label: 'Envoyer à…', attr: 'data-ishare', id: it.id }, { label: 'Modifier', attr: 'data-iedit', id: it.id }, { label: 'Retirer', attr: 'data-idel', id: it.id }])
+    : isStaff() && !needsFile(it) ? toolsMenu([{ label: 'Envoyer à…', attr: 'data-ishare', id: it.id }]) : '');
   function elTile(it) {
     const href = hrefOf(it);
     const nk = noteKey(it);
@@ -546,7 +554,7 @@
     const doors = $('#vDoors'); const bar = $('#vBar'); const body = $('#vBody');
     const admin = isAdmin();
     const all = loadVideos();
-    $('#vAdd').hidden = !admin;
+    $('#vAdd').hidden = !(admin || (section === 'scanners' && myScanner()));
     if (!section) {
       head.step.textContent = '02 — École'; head.title.textContent = 'Cours vidéo';
       head.blurb.textContent = 'Mindset pour s\'inspirer, Business pour revoir toutes les rediffusions, rangées par catégorie.';
@@ -572,12 +580,17 @@
       chips.innerHTML = `<button type="button" data-vcat="" class="${!cat ? 'is-active' : ''}">Tous · ${mine.filter(done).length}</button>` +
         cats.map((c) => `<button type="button" data-vcat="${esc(c)}" class="${cat === c ? 'is-active' : ''}">${esc(c)} · ${mine.filter((v) => done(v) && v.cat === c).length}</button>`).join('') +
         (admin ? '<button type="button" class="sc-chip-add" id="vAddCat">+ Catégorie</button>' : '');
+    } else if (section === 'scanners') {
+      const ids = [...new Set(mine.filter(done).map((v) => v.scanner).filter(Boolean))];
+      chips.hidden = !ids.length;
+      chips.innerHTML = `<button type="button" data-vcat="" class="${!cat ? 'is-active' : ''}">Tous · ${mine.filter(done).length}</button>` +
+        ids.map((id) => `<button type="button" data-vcat="${esc(id)}" class="${cat === id ? 'is-active' : ''}">${esc(scName(id))} · ${mine.filter((v) => done(v) && v.scanner === id).length}</button>`).join('');
     } else { chips.hidden = true; chips.innerHTML = ''; }
-    const shown = mine.filter((v) => done(v) && (section !== 'business' || !cat || v.cat === cat)).sort((a, b) => b.ts - a.ts);
+    const shown = mine.filter((v) => done(v) && (!cat || (section === 'business' ? v.cat === cat : section === 'scanners' ? v.scanner === cat : true))).sort((a, b) => b.ts - a.ts);
     const pend = admin ? mine.filter((v) => !done(v) && (!cat || v.cat === cat)) : [];
     let html = '';
     if (!shown.length) {
-      html += `<div class="sc-vempty"><span class="sc-vempty__ic">${svg('play')}</span><b>Aucune vidéo ici pour l'instant</b><span>${admin ? 'Ajoute un lien ou un fichier vidéo.' : 'De nouvelles vidéos arrivent bientôt.'}</span>${admin ? `<button type="button" class="chest-btn" data-vadd="${section}|${esc(cat || '')}">+ Ajouter une vidéo</button>` : ''}</div>`;
+      html += `<div class="sc-vempty"><span class="sc-vempty__ic">${svg('play')}</span><b>Aucune vidéo ici pour l'instant</b><span>${admin || (section === 'scanners' && myScanner()) ? 'Ajoute un lien ou un fichier vidéo.' : 'De nouvelles vidéos arrivent bientôt.'}</span>${admin || (section === 'scanners' && myScanner()) ? `<button type="button" class="chest-btn" data-vadd="${section}|${esc(cat || '')}">+ Ajouter une vidéo</button>` : ''}</div>`;
     } else if (section === 'business') {
       html += `<div class="sc-posters">${shown.map(posterCard).join('')}</div>`;
     } else {
@@ -588,9 +601,9 @@
     }
     body.innerHTML = html;
   }
-  const vtools = (v) => (isAdmin()
-    ? toolsMenu([{ label: 'Modifier', attr: 'data-vedit', id: v.id }, { label: 'Changer la miniature', attr: 'data-vthumb', id: v.id }, { label: 'Retirer', attr: 'data-vdel', id: v.id }])
-    : '');
+  const vtools = (v) => (canEditV(v)
+    ? toolsMenu([].concat(isStaff() ? [{ label: 'Envoyer à…', attr: 'data-vshare', id: v.id }] : [], [{ label: 'Modifier', attr: 'data-vedit', id: v.id }, { label: 'Changer la miniature', attr: 'data-vthumb', id: v.id }, { label: 'Retirer', attr: 'data-vdel', id: v.id }]))
+    : isStaff() ? toolsMenu([{ label: 'Envoyer à…', attr: 'data-vshare', id: v.id }]) : '');
   function posterCard(v) {
     const th = thumbUrl(v);
     return `<article class="sc-poster" data-id="${esc(v.id)}">
@@ -605,7 +618,7 @@
     const th = thumbUrl(v);
     return `<article class="sc-vcard" data-id="${esc(v.id)}">
       <button type="button" class="sc-vthumb ${th ? '' : 'is-empty'}" data-play="${esc(v.id)}" ${th ? `style="background-image:url('${th}')"` : ''} aria-label="Lire ${esc(v.title)}">
-        <span class="sc-video__play">${svg('play')}</span><span class="sc-vbadge">${esc(sectionOf(v.section).title)}${p && p.kind === 'ytlist' ? ' · playlist' : ''}</span></button>
+        <span class="sc-video__play">${svg('play')}</span><span class="sc-vbadge">${esc(v.section === 'scanners' && v.scanner ? scName(v.scanner) : sectionOf(v.section).title)}${p && p.kind === 'ytlist' ? ' · playlist' : ''}</span></button>
       <div class="sc-vcard__meta"><div><div class="sc-vcard__t">${esc(v.title)}</div>${v.speaker ? `<div class="sc-vcard__c">${esc(v.speaker)}</div>` : ''}</div>${vtools(v)}</div></article>`;
   }
 
@@ -670,7 +683,8 @@
   function videoForm(v, defaults) {
     if (!guardAdmin()) return;
     defaults = defaults || {};
-    const cur = v || { section: defaults.section || 'business', cat: defaults.cat || allCats()[0] };
+    const cur = v || { section: isAdmin() ? defaults.section || 'business' : 'scanners', cat: defaults.cat || allCats()[0], scanner: defaults.scanner || myScanner() || '' };
+    const scs = window.CHESTScanners ? CHESTScanners.list() : [];
     const cats = allCats();
     openModal(`<button type="button" class="sc-modal__x" data-mclose aria-label="Fermer">${svg('close')}</button>
       <form class="sc-form" id="vForm" autocomplete="off" novalidate>
@@ -680,7 +694,8 @@
         <label>… ou fichier vidéo${cur.file ? ` <em class="sc-form__cur">(actuel : ${esc(cur.file.name)})</em>` : ''}<input id="vFile" type="file" accept="video/*,.mp4,.mov,.mkv,.webm"></label>
         <label>Titre<input id="vTitle" type="text" maxlength="140" placeholder="Ex. Rediffusion — Rank Up 12/08" value="${esc(cur.title || '')}"></label>
         <div class="sc-form__row">
-          <label>Section<select id="vSection">${D.videoSections.map((s) => `<option value="${s.id}" ${cur.section === s.id ? 'selected' : ''}>${esc(s.title)}</option>`).join('')}</select></label>
+          <label ${isAdmin() ? '' : 'hidden'}>Section<select id="vSection">${D.videoSections.map((s) => `<option value="${s.id}" ${cur.section === s.id ? 'selected' : ''}>${esc(s.title)}</option>`).join('')}</select></label>
+          <label id="vScWrap">Scanner<select id="vScanner" ${isAdmin() ? '' : 'disabled'}>${scs.map((x) => `<option value="${esc(x.id)}" ${cur.scanner === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
           <label id="vCatWrap">Catégorie<select id="vCat">${cats.map((c) => `<option ${cur.cat === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}<option value="__new">+ Créer une catégorie…</option></select></label>
         </div>
         <label id="vNewCatWrap" hidden>Nom de la nouvelle catégorie<input id="vNewCat" type="text" maxlength="40" placeholder="Ex. Immobilier"></label>
@@ -695,7 +710,7 @@
         <div class="sc-form__foot"><button type="button" class="chest-btn-2" data-mclose>Annuler</button><button type="submit" class="chest-btn" id="fSubmit">${v && !v.pending ? 'Enregistrer' : 'Ajouter'}</button></div>
       </form>`);
     const thumb = wireThumb(cur.thumb);
-    const reflect = () => { const biz = $('#vSection').value === 'business'; $('#vCatWrap').hidden = !biz; $('#vNewCatWrap').hidden = !(biz && $('#vCat').value === '__new'); };
+    const reflect = () => { const biz = $('#vSection').value === 'business'; $('#vCatWrap').hidden = !biz; $('#vScWrap').hidden = $('#vSection').value !== 'scanners'; $('#vNewCatWrap').hidden = !(biz && $('#vCat').value === '__new'); };
     $('#vSection').addEventListener('change', reflect);
     $('#vCat').addEventListener('change', () => { reflect(); if ($('#vCat').value === '__new') $('#vNewCat').focus(); });
     reflect();
@@ -724,14 +739,15 @@
         let tblob = thumb.blob;
         if (!tblob && !thumb.keep && !thumb.remove && file) tblob = await defaultThumb(file);
         const dur = $('#vDur').value.trim() || (file ? await durationOf(file) : '');
-        const data = { kind: 'video', section, cat: category, title: $('#vTitle').value.trim() || (file ? file.name.replace(/\.[^.]+$/, '') : 'Vidéo sans titre'), speaker: $('#vSpeaker').value.trim(), desc: $('#vDesc').value.trim(), duration: dur, url, pending: !hasSource };
+        const data = { kind: 'video', section, cat: category, scanner: section === 'scanners' ? $('#vScanner').value : '', title: $('#vTitle').value.trim() || (file ? file.name.replace(/\.[^.]+$/, '') : 'Vidéo sans titre'), speaker: $('#vSpeaker').value.trim(), desc: $('#vDesc').value.trim(), duration: dur, url, pending: !hasSource };
         if (v) data.id = v.id;
         if (thumb.remove && !tblob) data.removeThumb = true;
         if (url && v && v.file && !file) data.removeFile = true;
         await saveEntry(data, { file, thumb: tblob }, setProgress);
         closeModal();
         const st = parseUrl();
-        if (st.v === 'video') go({ v: 'video', s: section, k: section === 'business' ? category : '' }, { replace: true, noScroll: true }); else rerender();
+        if (st.v === 'video') go({ v: 'video', s: section, k: section === 'business' ? category : section === 'scanners' ? data.scanner : '' }, { replace: true, noScroll: true }); else rerender();
+        if (window.CHESTSchoolHub && CHESTSchoolHub.repaint) CHESTSchoolHub.repaint();
       } catch (ex) { err.textContent = ex.message; $('#fSubmit').disabled = false; const pg = $('#fProg'); if (pg) pg.hidden = true; }
     });
     $('#vUrl').focus();
@@ -864,6 +880,8 @@
     if (iedit) { e.preventDefault(); e.stopPropagation(); itemForm(allItems().find((x) => x.id === iedit.dataset.iedit)); return; }
     const idel = e.target.closest('[data-idel]');
     if (idel) { e.preventDefault(); e.stopPropagation(); deleteItem(idel.dataset.idel); return; }
+    const ish = e.target.closest('[data-ishare], [data-vshare]');
+    if (ish) { e.preventDefault(); e.stopPropagation(); closeAllToolsMenus(); share(ish.dataset.ishare ? { item: ish.dataset.ishare } : { video: ish.dataset.vshare }); return; }
     const add = e.target.closest('#vAdd, [data-vadd]');
     if (add) {
       const st = parseUrl();
@@ -904,6 +922,30 @@
       try { await removeEntry(del.dataset.vdel); rerender(); } catch (ex) { window.CHESTAlert && window.CHESTAlert(ex.message); }
     }
   });
+
+  // Un élément des cours → ce que reçoit le membre dans la bibliothèque de son suivi (lien interne, vidéo ou fichier)
+  function shareRef(ref) {
+    if (ref.video) {
+      const v = loadVideos().find((x) => x.id === ref.video);
+      if (!v) return null;
+      return v.url ? { kind: 'video', title: v.title, url: v.url, body: v.desc || '' } : { kind: 'link', title: v.title, url: fileUrl(v.file), body: v.desc || '' };
+    }
+    const it = allItems().find((x) => x.id === ref.item);
+    if (!it) return null;
+    const nk = noteKey(it);
+    const url = it.kind === 'course' ? `/school?c=${it.course}` : nk ? `/school?n=${encodeURIComponent(nk)}` : hrefOf(it);
+    return { kind: 'link', title: it.title, url, body: it.desc || '' };
+  }
+  function share(ref) {
+    const p = shareRef(ref);
+    if (p && window.CHESTSchoolHub && CHESTSchoolHub.share) CHESTSchoolHub.share(p);
+  }
+  window.CHESTSchool = {
+    videos: () => loadVideos().filter(done), thumb: thumbUrl, play: playVideo, share,
+    addScannerVideo: () => videoForm(null, { section: 'scanners', scanner: myScanner() }),
+    editVideo: (id) => videoForm(loadVideos().find((x) => x.id === id)),
+    ready: () => R.ok,
+  };
 
   // =====================================================================
   //  Recherche
@@ -993,5 +1035,6 @@
     const first = parseUrl();
     history.replaceState(first, '', location.href);
     render(first, { noScroll: true, instant: true });
+    if (window.CHESTSchoolHub && CHESTSchoolHub.repaint) CHESTSchoolHub.repaint();
   })();
 })();

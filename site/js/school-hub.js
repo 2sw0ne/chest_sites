@@ -71,50 +71,73 @@
   const S = {
     week: mondayOf(new Date()), agenda: null, posts: [], ideaTab: 'on', newIds: null, missions: [], mentor: null, people: null, educators: null,
     tab: null, member: null, // filtre éducateur/admin : un seul élève dans le planning
+    planNew: new Set(), person: null,
   };
+  // Équipe : le planning montre la semaine en cours ET la suivante (2026-11-08) ; un membre garde sa semaine.
+  const SPAN = ROLE === 'member' ? 7 : 14;
 
   // ---------------------------------------------------------------- planning de la semaine
   async function loadAgenda() {
-    const from = S.week, to = new Date(from.getTime() + 7 * DAY);
+    const from = S.week, to = new Date(from.getTime() + SPAN * DAY);
     const q = `?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}${S.member ? `&member=${S.member}` : ''}`;
     S.agenda = await api('/school/agenda' + q);
   }
 
+  // Type d'un rendez-vous (code couleur de la pastille) : Appel (une personne), Groupe, Équipe ; CHEST pour l'admin.
   function kindOf(e) {
-    if (e.type === 'personal') return { k: 'perso', label: e.common ? 'Commun' : 'Perso' };
-    if (e.audience === 'educators') return { k: 'team', label: 'Équipe' };
-    return { k: 'group', label: 'Collectif' };
+    if (e.type === 'personal') return { k: 'perso', label: e._n > 1 ? 'Groupe' : 'Appel' };
+    if (e.audience === 'educators' || (e.audience === 'people' && staffIds().size && (e.scope || []).every((id) => staffIds().has(id)))) return { k: 'team', label: 'Équipe' };
+    return { k: 'group', label: 'Groupe' };
   }
+  const staffIds = () => new Set(((S.agenda && S.agenda.staff) || []).map((x) => x.id).concat((S.educators || []).map((x) => x.id)));
 
-  // Couleur d'un rendez-vous = celle de l'éducateur (ou de l'admin) à qui il appartient (GET /school/agenda → staff).
+  // Couleur de la personne (barre et pastille de la carte) : l'admin voit l'éducateur, l'éducateur voit l'élève.
+  const PEOPLE_PAL = ['#a855f7', '#38bdf8', '#33e6a6', '#f5c451', '#2dd4bf', '#4d8dff', '#ff8a65', '#e879f9', '#84cc16', '#f472b6'];
+  const hashColor = (id) => PEOPLE_PAL[Math.abs(Number(id) || 0) % PEOPLE_PAL.length];
   const ownerOf = (e) => ((S.agenda && S.agenda.staff) || []).find((x) => x.id === e.ownerId) || null;
+  function personOf(e) {
+    if (e.chest) return { id: 'chest', name: 'CHEST', chest: true };
+    if (ROLE === 'admin') { const o = ownerOf(e); return o ? { id: 'o' + o.id, name: o.first, color: o.color } : null; }
+    if (ROLE === 'educator') {
+      if (e.type === 'personal' && !(e._n > 1)) return { id: 'm' + e.memberId, name: String(e.member || '').split(' ')[0], color: hashColor(e.memberId) };
+      return { id: 'g', name: 'Groupes', color: 'var(--a2, #f9a45e)', group: true };
+    }
+    return null;
+  }
+  const personMatch = (e) => {
+    if (ROLE === 'admin') return !S.owner || e.ownerId === S.owner;
+    if (ROLE === 'educator' && S.person) { const p = personOf(e); return !!p && p.id === S.person; }
+    return true;
+  };
+  const isNewEv = (e) => S.planNew.has(e.id);
+
   function evCard(e) {
     const k = kindOf(e);
     const ended = Date.parse(e.startsAt) + e.minutes * 60000 < Date.now();
-    const o = ownerOf(e);
+    const p = personOf(e);
     const ask = e.status === 'proposed' ? '<span class="sh-ev__ask">à confirmer</span>' : '';
-    // équipe : « Call · nom du membre » ; membre : le sujet de son appel
-    // un appel commun posé chez plusieurs élèves = une seule carte côté équipe (« 4 élèves »)
+    // équipe : « nom du membre » pour un appel perso ; un appel posé chez plusieurs élèves = une seule carte (« 4 élèves »)
     const many = e._n > 1;
-    const title = e.type === 'personal' && ROLE !== 'member' ? (many ? esc(e.title) : `Call · ${esc(e.member || '')}`) : esc(e.title);
-    const sub = e.type === 'personal' && ROLE !== 'member' ? `<span class="sh-ev__topic">${many ? `${e._n} élèves` : esc(e.title)}</span>` : '';
-    // ce que pose l'admin : couleur de CHEST et signé CHEST ; l'admin voit aussi le prénom de chaque éducateur
-    const tag = e.chest ? '<span class="sh-ev__who"><i></i>CHEST</span>' : o ? `<span class="sh-ev__who"><i></i>${esc(o.first)}</span>` : '';
-    return `<button type="button" class="sh-ev sh-ev--${k.k}${e.chest ? ' is-chest' : ''}${ended ? ' is-past' : ''}" data-ev="${esc(e.id)}"${e.color && !e.chest ? ` style="--c:${esc(e.color)}"` : ''}>
-      ${e.flyer ? `<span class="sh-ev__fly"><img src="${esc(fileUrl(e.flyer))}" alt="" loading="lazy"></span>` : ''}
-      <span class="sh-ev__body"><span class="sh-ev__t"><b>${hm(e.startsAt)}</b><span>${dur(e.minutes)}</span><em>${e.type === 'personal' ? 'Call' : k.label}</em></span>
-      <span class="sh-ev__title">${title}</span>${sub}${tag}${ask}</span></button>`;
+    const staff = ROLE !== 'member';
+    const title = esc(e.title);
+    const sub = staff ? (e.type === 'personal' ? `<span class="sh-ev__topic">${many ? `${e._n} élèves` : esc(e.member || '')}</span>` : e.audienceLabel ? `<span class="sh-ev__topic">${esc(e.audienceLabel)}</span>` : '') : '';
+    const tag = p && !p.group ? `<span class="sh-ev__who"><i></i>${esc(p.name)}</span>` : '';
+    return `<button type="button" class="sh-ev sh-ev--${k.k}${e.chest ? ' is-chest' : ''}${ended ? ' is-past' : ''}${isNewEv(e) ? ' is-new' : ''}" data-ev="${esc(e.id)}"${p && p.color ? ` style="--c:${esc(p.color)}"` : ''}>
+      <span class="sh-ev__body"><span class="sh-ev__t"><b>${hm(e.startsAt)}</b><span>${dur(e.minutes)}</span><em class="sh-ty sh-ty--${e.chest ? 'chest' : k.k}">${e.chest ? 'CHEST' : k.label}</em></span>
+      <span class="sh-ev__title">${title}</span>${sub}${staff ? tag : ''}${ask}${isNewEv(e) ? '<span class="sh-new">Nouveau</span>' : ''}</span></button>`;
   }
   function taskChip(t) {
     const late = !t.doneAt && t.dueAt && Date.parse(t.dueAt) < Date.now();
+    const nw = S.planNew.has('t' + t.id) || (t.group && t.group.some((x) => S.planNew.has('t' + x.id)));
+    const fresh = nw ? '<em class="sh-new">Nouveau</em>' : '';
     if (t.group) {
       // équipe : une mission de groupe = une seule ligne, avec l'avancement
       const done = t.group.filter((x) => x.doneAt).length, n = t.group.length;
       const all = done === n, lateAny = t.dueAt && Date.parse(t.dueAt) < Date.now() && !all;
-      return `<div class="sh-due${all ? ' is-done' : ''}${lateAny ? ' is-late' : ''}">${ic(all ? 'check' : 'flag')}<span><b>${esc(t.title)}</b><small>${done}/${n} faites · ${plural(n, 'membre', 'membres')}</small></span></div>`;
+      return `<div class="sh-due${all ? ' is-done' : ''}${lateAny ? ' is-late' : ''}${nw ? ' is-new' : ''}">${ic(all ? 'check' : 'flag')}<span><b>${esc(t.title)}</b><small>Mission · ${done}/${n} faites</small>${fresh}</span></div>`;
     }
-    const who = ROLE !== 'member' && t.member ? ` · ${esc(t.member)}` : '';
-    return `<div class="sh-due${t.doneAt ? ' is-done' : ''}${late ? ' is-late' : ''}">${ic(t.doneAt ? 'check' : 'flag')}<span><b>${esc(t.title)}</b><small>${t.doneAt ? 'faite' : late ? 'en retard' : 'à rendre'}${who}</small></span></div>`;
+    const who = ROLE !== 'member' && t.member ? ` · ${esc(String(t.member).split(' ')[0])}` : '';
+    return `<div class="sh-due${t.doneAt ? ' is-done' : ''}${late ? ' is-late' : ''}${nw ? ' is-new' : ''}"${ROLE === 'educator' && t.memberId ? ` style="--c:${hashColor(t.memberId)}"` : ''}>${ic(t.doneAt ? 'check' : 'flag')}<span><b>${esc(t.title)}</b><small>Mission · ${t.doneAt ? 'faite' : late ? 'en retard' : 'à rendre'}${who}</small>${fresh}</span></div>`;
   }
   function groupTasks(list) {
     if (ROLE === 'member') return list;
@@ -134,21 +157,22 @@
     list.forEach((e) => {
       if (e.type !== 'personal') return out.push(e);
       const k = `${e.title}|${e.startsAt}|${e.ownerId}`;
-      if (seen.has(k)) { seen.get(k)._n += 1; return; }
+      if (seen.has(k)) { seen.get(k)._n += 1; if (isNewEv(e)) S.planNew.add(seen.get(k).id); return; }
       const g = Object.assign({}, e, { _n: 1 }); seen.set(k, g); out.push(g);
     });
     return out;
   }
-  function weekHtml() {
+  const weekRange = (mon) => {
+    const end = new Date(mon.getTime() + 6 * DAY);
+    return `${fr(mon, { day: 'numeric', month: mon.getMonth() === end.getMonth() ? undefined : 'short' })} – ${fr(end, { day: 'numeric', month: 'long' })}`;
+  };
+  function weekGrid(mon, label) {
     const D = S.agenda || { events: [], tasks: [] };
-    const days = Array.from({ length: 7 }, (_, i) => new Date(S.week.getTime() + i * DAY));
-    const end = new Date(S.week.getTime() + 6 * DAY);
-    const thisWeek = sameDay(S.week, mondayOf(new Date()));
-    const range = `${fr(S.week, { day: 'numeric', month: S.week.getMonth() === end.getMonth() ? undefined : 'short' })} – ${fr(end, { day: 'numeric', month: 'long' })}`;
-    const total = D.events.length;
+    const days = Array.from({ length: 7 }, (_, i) => new Date(mon.getTime() + i * DAY));
+    const inWeek = D.events.filter((e) => Date.parse(e.startsAt) >= mon.getTime() && Date.parse(e.startsAt) < mon.getTime() + 7 * DAY && personMatch(e));
     const cols = days.map((d) => {
-      const evs = groupCommon(D.events.filter((e) => sameDay(e.startsAt, d) && (!S.owner || e.ownerId === S.owner)));
-      const due = groupTasks(D.tasks.filter((t) => t.dueAt && sameDay(t.dueAt, d)));
+      const evs = groupCommon(D.events.filter((e) => sameDay(e.startsAt, d) && personMatch(e)));
+      const due = groupTasks(D.tasks.filter((t) => t.dueAt && sameDay(t.dueAt, d) && (ROLE !== 'educator' || !S.person || S.person === 'm' + t.memberId)));
       const today = sameDay(d, new Date());
       const past = d < new Date(new Date().setHours(0, 0, 0, 0));
       return `<div class="sh-day${today ? ' is-today' : ''}${past ? ' is-past' : ''}${evs.length || due.length ? '' : ' is-empty'}">
@@ -156,7 +180,27 @@
         <div class="sh-day__list">${evs.map(evCard).join('')}${due.map(taskChip).join('')}${evs.length || due.length ? '' : '<span class="sh-day__none">—</span>'}</div>
       </div>`;
     }).join('');
-    const undated = ROLE === 'member' ? D.tasks.filter((t) => !t.doneAt && (!t.dueAt || Date.parse(t.dueAt) < S.week.getTime())) : [];
+    return `<section class="sh-wk"><h3 class="sh-wk__h"><b>${label}</b><span>${esc(weekRange(mon))} · ${plural(groupCommon(inWeek).length, 'rendez-vous', 'rendez-vous')}</span></h3><div class="sh-days">${cols}</div></section>`;
+  }
+  // Légende : les types (pastille) et les personnes (barre de couleur), cliquables pour filtrer.
+  function legendHtml() {
+    const D = S.agenda || { events: [] };
+    const types = `<span class="sh-legend__k">Types</span><span class="sh-ty sh-ty--perso">Appel</span><span class="sh-ty sh-ty--group">Groupe</span>${ROLE === 'admin' ? '<span class="sh-ty sh-ty--team">Équipe</span>' : ''}<span class="sh-ty sh-ty--chest">CHEST</span><span class="sh-lg sh-lg--due">Mission</span>`;
+    let people = [];
+    if (ROLE === 'admin') {
+      people = (D.staff || []).filter((x) => x.role !== 'admin').map((x) => `<button type="button" class="sh-lg${S.owner === x.id ? ' is-on' : ''}${S.owner && S.owner !== x.id ? ' is-off' : ''}" style="--c:${esc(x.color)}" data-owner="${x.id}" aria-pressed="${S.owner === x.id}">${esc(x.first)}</button>`);
+    } else {
+      const seen = new Map();
+      groupCommon(D.events).forEach((e) => { const p = personOf(e); if (p && !p.chest && !seen.has(p.id)) seen.set(p.id, p); });
+      people = [...seen.values()].map((p) => `<button type="button" class="sh-lg${S.person === p.id ? ' is-on' : ''}${S.person && S.person !== p.id ? ' is-off' : ''}" style="--c:${esc(p.color)}" data-person="${esc(p.id)}" aria-pressed="${S.person === p.id}">${esc(p.name)}</button>`);
+    }
+    const reset = S.owner || S.person ? '<button type="button" class="sh-link" data-owner="" data-person="">Tout afficher</button>' : '';
+    return `<div class="sh-legend"><div class="sh-legend__row">${types}</div>${people.length ? `<div class="sh-legend__row"><span class="sh-legend__k">${ROLE === 'admin' ? 'Éducateurs' : 'Élèves'}</span>${people.join('')}${reset}</div>` : ''}</div>`;
+  }
+  const newBadgePlan = () => (S.planNew.size ? `<span class="sh-plus" aria-label="${S.planNew.size} nouveauté${S.planNew.size > 1 ? 's' : ''} dans le planning">+${S.planNew.size}</span>` : '');
+  function weekHtml() {
+    const thisWeek = sameDay(S.week, mondayOf(new Date()));
+    const next = new Date(S.week.getTime() + 7 * DAY);
     const filter = ROLE !== 'member' && S.people ? `<label class="sh-filter"><span class="sr-only">Afficher</span><select id="shWho">
         <option value="">${ROLE === 'admin' ? 'Tout le monde' : 'Tous mes élèves'}</option>
         ${S.people.map((p) => `<option value="${p.id}" ${String(S.member) === String(p.id) ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : '';
@@ -164,20 +208,19 @@
       <div class="sh-week__bar">
         <div class="sh-week__nav">
           <button type="button" class="sh-ib" data-week="-1" aria-label="Semaine précédente">${ic('left')}</button>
-          <div class="sh-week__t"><b>${thisWeek ? 'Cette semaine' : `Semaine du ${fr(S.week, { day: 'numeric', month: 'long' })}`}</b><span>${esc(range)} · ${plural(total, 'rendez-vous', 'rendez-vous')}</span></div>
+          <div class="sh-week__t"><b>${thisWeek ? 'Cette semaine et la suivante' : `Semaines du ${fr(S.week, { day: 'numeric', month: 'long' })}`}</b><span>${esc(weekRange(S.week).split(' – ')[0])} – ${esc(weekRange(next).split(' – ')[1])}</span></div>
           <button type="button" class="sh-ib" data-week="1" aria-label="Semaine suivante">${ic('right')}</button>
-          ${thisWeek ? '' : '<button type="button" class="sh-link" data-week="0">Revenir à aujourd’hui</button>'}
+          ${thisWeek ? '' : '<button type="button" class="sh-link" data-week="0">Revenir à aujourd’hui</button>'}${newBadgePlan()}
         </div>
-        <div class="sh-week__tools">${filter}${ROLE !== 'member' ? `<button type="button" class="chest-btn" data-compose="event">${ic('plus')}Ajouter</button>` : ''}</div>
+        <div class="sh-week__tools">${filter}<button type="button" class="chest-btn" data-compose="event">${ic('plus')}Ajouter</button></div>
       </div>
-      <div class="sh-days">${cols}</div>
-      ${undated.length ? `<div class="sh-undated"><span class="chest-step">Toujours à faire</span>${undated.map(taskChip).join('')}</div>` : ''}
-      ${ROLE === 'admin' ? `<div class="sh-legend">${((D.staff) || []).map((x) => `<button type="button" class="sh-lg${x.role === 'admin' ? ' sh-lg--chest' : ''}${S.owner === x.id ? ' is-on' : ''}${S.owner && S.owner !== x.id ? ' is-off' : ''}" style="--c:${esc(x.color)}" data-owner="${x.id}" aria-pressed="${S.owner === x.id}">${x.role === 'admin' ? 'CHEST' : esc(x.first)}</button>`).join('')}<span class="sh-lg sh-lg--due">Mission à rendre</span>${S.owner ? '<button type="button" class="sh-link" data-owner="">Tout afficher</button>' : ''}</div>` : ''}
+      ${weekGrid(S.week, thisWeek ? 'Cette semaine' : `Semaine du ${fr(S.week, { day: 'numeric', month: 'long' })}`)}
+      ${weekGrid(next, thisWeek ? 'Semaine prochaine' : `Semaine du ${fr(next, { day: 'numeric', month: 'long' })}`)}
+      ${legendHtml()}
     </div>`;
   }
-
   // ---------------------------------------------------------------- infos
-  // IDEA (2026-11-08) : les idées de trade de l'équipe, en fil façon Instagram. Chaque IDEA garde son format d'image
+  // Idea (2026-11-08) : les idées de trade de l'équipe, en fil façon Instagram. Chaque Idea garde son format d'image
   // (vertical 4:5, horizontal 16:9 sur deux colonnes), peut porter une position (paire, sens, PE, SL, TP 1…n) et un
   // statut : zone d'action / en cours (onglet Actives) ou inactive (onglet Inactives). Seule l'équipe publie.
   const fmtOf = (p) => (p.format === 'portrait' ? 'portrait' : 'landscape');
@@ -193,11 +236,11 @@
     if (days < 7) return cap1(fr(d, { weekday: 'long', day: 'numeric', month: 'short' }));
     return fr(d, t.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
   }
-  // prix au format des plateformes (point décimal), même nombre de décimales pour tous les niveaux d'une IDEA
+  // prix au format des plateformes (point décimal), même nombre de décimales pour tous les niveaux d'une Idea
   const decOf = (I) => Math.min(5, Math.max(0, ...[I.pe, I.sl, ...I.tps].map((v) => (String(v).split('.')[1] || '').length)));
   const fmtN = (x, d) => Number(x).toFixed(d);
   const rrOf = (I, tp) => { const risk = Math.abs(I.pe - I.sl); return risk ? Math.abs(tp - I.pe) / risk : 0; };
-  // Position d'une IDEA, sur le modèle de la carte « Signal en cours » : sens en grand (néon vert / rouge), paire,
+  // Position d'une Idea, sur le modèle de la carte « Signal en cours » : sens en grand (néon vert / rouge), paire,
   // puis Entrée (gris) · Stop (rouge) · TP (vert) avec leur R:R. Version compacte dans le fil : TP 1 seulement.
   function posHtml(I, compact) {
     if (!I) return '';
@@ -218,28 +261,28 @@
     const body = String(p.body || '');
     const st = STATUS[stOf(p)];
     return `<article class="sh-fc sh-fc--${p.image ? fmtOf(p) : p.idea ? 'pos' : 'text'}${isNew(p) ? ' is-new' : ''} is-${st[1]}">
-      <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir l’IDEA « ${esc(p.title)} »"></button>
+      <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir l’Idea « ${esc(p.title)} »"></button>
       <header class="sh-fc__h"><span class="sh-fc__av${p.authorAvatar ? ' has-photo' : ''}"${p.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: p.authorAvatar }))}')"` : ''}>${p.authorAvatar ? '' : esc(initials(who))}</span>
         <span class="sh-fc__who"><b>${esc(who)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
         ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : ''}</header>
       ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : p.idea ? '' : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
-      <div class="sh-fc__b"><span class="sh-st sh-st--${st[1]}">${st[0]}</span>${p.image || p.idea ? `<h3>${esc(p.title)}</h3>` : ''}${posHtml(p.idea, true)}${body ? `<p>${esc(body.slice(0, 180))}${body.length > 180 ? '…' : ''}</p>` : ''}<span class="sh-fc__more">Voir l’IDEA${ic('go')}</span></div>
+      <div class="sh-fc__b"><span class="sh-st sh-st--${st[1]}">${st[0]}</span>${p.image || p.idea ? `<h3>${esc(p.title)}</h3>` : ''}${posHtml(p.idea, true)}${body ? `<p>${esc(body.slice(0, 180))}${body.length > 180 ? '…' : ''}</p>` : ''}<span class="sh-fc__more">Voir l’Idea${ic('go')}</span></div>
     </article>`;
   }
   const ideaTabs = (list) => {
     const on = list.filter((p) => stOf(p) !== 'inactive').length, off = list.length - on;
-    return `<div class="chest-seg sh-seg sh-itabs" role="tablist" aria-label="IDEA actives ou inactives">${[['on', 'Actives', on], ['off', 'Inactives', off]].map(([k, l, n]) => `<button type="button" role="tab" data-idea-tab="${k}" aria-selected="${S.ideaTab === k}" class="${S.ideaTab === k ? 'is-active' : ''}">${l} <small>${n}</small></button>`).join('')}</div>`;
+    return `<div class="chest-seg sh-seg sh-itabs" role="tablist" aria-label="Idea actives ou inactives">${[['on', 'Actives', on], ['off', 'Inactives', off]].map(([k, l, n]) => `<button type="button" role="tab" data-idea-tab="${k}" aria-selected="${S.ideaTab === k}" class="${S.ideaTab === k ? 'is-active' : ''}">${l} <small>${n}</small></button>`).join('')}</div>`;
   };
   function postsHtml(list, empty) {
     const shown = list.filter((p) => (S.ideaTab === 'off') === (stOf(p) === 'inactive'));
     return shown.length ? `<div class="sh-feed">${shown.map((p) => postCard(p)).join('')}</div>`
-      : `<p class="sh-empty">${S.ideaTab === 'off' ? 'Aucune IDEA inactive pour l’instant.' : empty}</p>`;
+      : `<p class="sh-empty">${S.ideaTab === 'off' ? 'Aucune Idea inactive pour l’instant.' : empty}</p>`;
   }
   const newBadge = () => (S.newIds && S.newIds.size ? `<span class="sh-plus" aria-label="${S.newIds.size} nouvelle${S.newIds.size > 1 ? 's' : ''}">+${S.newIds.size}</span>` : '');
   function feed2() {
     const list = S.posts || [];
-    return `<section class="sh-feedsec" id="shIdeas" aria-labelledby="shFeedT"><div class="sh-feedsec__h"><span class="chest-step">IDEA</span><h2 id="shFeedT">Les idées de l’équipe</h2>${newBadge()}${ideaTabs(list)}</div>
-      ${postsHtml(list, 'Pas d’IDEA active pour l’instant. Les idées de trade de l’équipe arrivent ici.')}</section>`;
+    return `<section class="sh-feedsec" id="shIdeas" aria-labelledby="shFeedT"><div class="sh-feedsec__h"><span class="chest-step">Idea</span><h2 id="shFeedT">Les idées de l’équipe</h2>${newBadge()}${ideaTabs(list)}</div>
+      ${postsHtml(list, 'Pas d’Idea active pour l’instant. Les idées de trade de l’équipe arrivent ici.')}</section>`;
   }
 
 
@@ -376,14 +419,14 @@
             const past = Date.parse(e.startsAt) + e.minutes * 60000 < Date.now();
             return `<button type="button" data-ev="${esc(e.id)}" style="display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 11px; border: 1px solid ${c[0]}; background: ${c[1]}; color: var(--ink, rgb(246, 246, 247)); font: inherit; text-align: left; cursor: pointer; opacity: ${past ? 0.55 : 1};">
               <span style="${MONO2} font-size: 10px; color: ${c[2]};">${hm(e.startsAt)} · ${esc(who)}</span>
-              <span style="font-size: 12.5px; font-weight: 600; line-height: 1.3;">${esc(e.title)}</span></button>`;
+              <span style="font-size: 12.5px; font-weight: 600; line-height: 1.3;">${esc(e.title)}</span>${isNewEv(e) ? '<span class="sh-new" style="align-self: flex-start;">Nouveau</span>' : ''}</button>`;
           }).join('')}
         </div>`;
     }).join('');
     return `<section style="display: flex; flex-direction: column; gap: 14px;">
         <div style="display: flex; align-items: center; gap: 12px;">
           <span style="${MONO2} font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">02 — ${thisWeek ? 'Cette semaine' : `Semaine du ${fr(S.week, { day: 'numeric', month: 'long' })}`}</span>
-          <span style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
+          ${newBadgePlan()}<span style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
           <button type="button" class="sh-ib" data-week="-1" aria-label="Semaine précédente">${ic('left')}</button><button type="button" class="sh-ib" data-week="1" aria-label="Semaine suivante">${ic('right')}</button>
           ${thisWeek ? '' : '<button type="button" class="sh-link" data-week="0">Aujourd’hui</button>'}
         </div>
@@ -467,9 +510,20 @@
       </section>`;
   }
 
+  // Dernières nouvelles School (GET /school/notifs) : qui a ajouté quoi, et les rappels 15 min avant un appel.
+  const NK = { event: ['cal', 'Appel'], task: ['flag', 'Mission'], idea: ['info', 'Idea'], share: ['book', 'Contenu'], remind: ['cal', 'Rappel'] };
+  function newsHtml() {
+    const list = (S.notifs || []).slice(0, 4);
+    if (!list.length) return '';
+    return `<section class="sh-news" aria-label="Dernières nouvelles"><span class="chest-step">Dernières nouvelles</span><ul>${list.map((n) => {
+      const k = NK[n.kind] || NK.event;
+      return `<li class="sh-news__it is-${esc(n.kind)}${n.createdAt > S.notifSeen ? ' is-new' : ''}"><span class="sh-news__ic">${ic(k[0])}</span><span class="sh-news__t"><b>${esc(n.title)}</b><small>${esc(n.body)}</small></span><time>${esc(ago(Date.parse(n.createdAt)))}</time></li>`;
+    }).join('')}</ul></section>`;
+  }
+
   function renderMember() {
     let n = 3;
-    root.innerHTML = `<div class="sh2" style="display: flex; flex-direction: column; gap: 30px; color: var(--ink, rgb(246, 246, 247)); font-size: 13.5px; line-height: normal;">${hero2()}${week2()}${cards2()}${feed2()}<div id="shRef">${ref2()}</div></div>`;
+    root.innerHTML = `<div class="sh2" style="display: flex; flex-direction: column; gap: 30px; color: var(--ink, rgb(246, 246, 247)); font-size: 13.5px; line-height: normal;">${hero2()}${newsHtml()}${week2()}${cards2()}${feed2()}<div id="shRef">${ref2()}</div></div>`;
     // la recherche des cours (js/school.js) passe sous le héros ; l'ancien en-tête School est masqué
     const sb = document.getElementById('scSearchBox'), slot = document.getElementById('sh2Search');
     if (sb && slot) slot.appendChild(sb);
@@ -479,8 +533,8 @@
   }
 
   const TABS = {
-    educator: [['planning', 'Planning'], ['people', 'Élèves'], ['ideas', 'IDEA'], ['missions', 'Missions']],
-    admin: [['planning', 'Planning'], ['people', 'Membres'], ['educators', 'Éducateurs'], ['ideas', 'IDEA'], ['missions', 'Missions'], ['content', 'Contenu des cours']],
+    educator: [['planning', 'Planning'], ['people', 'Élèves'], ['ideas', 'Idea'], ['missions', 'Missions'], ['content', 'Contenu']],
+    admin: [['planning', 'Planning'], ['people', 'Membres'], ['educators', 'Éducateurs'], ['ideas', 'Idea'], ['missions', 'Missions'], ['content', 'Contenu des cours']],
   };
 
   function staffFacts() {
@@ -490,7 +544,7 @@
     const asks = D.events.filter((e) => e.status === 'proposed').length;
     const late = D.tasks.filter((t) => !t.doneAt && t.dueAt && Date.parse(t.dueAt) < now).length;
     const people = S.people ? S.people.length : 0;
-    const f = [[people, ROLE === 'admin' ? (people > 1 ? 'membres' : 'membre') : (people > 1 ? 'élèves' : 'élève')], [upcoming, 'à venir cette semaine'], [asks, asks > 1 ? 'appels à confirmer' : 'appel à confirmer', asks ? 'ask' : ''], [late, late > 1 ? 'missions en retard' : 'mission en retard', late ? 'late' : '']];
+    const f = [[people, ROLE === 'admin' ? (people > 1 ? 'membres' : 'membre') : (people > 1 ? 'élèves' : 'élève')], [upcoming, 'à venir sur 2 semaines'], [asks, asks > 1 ? 'appels à confirmer' : 'appel à confirmer', asks ? 'ask' : ''], [late, late > 1 ? 'missions en retard' : 'mission en retard', late ? 'late' : '']];
     return `<div class="sh-facts">${f.map(([v, l, c]) => `<span class="${c ? 'is-' + c : ''}"><b>${v}</b>${l}</span>`).join('')}</div>`;
   }
 
@@ -502,9 +556,9 @@
       ? ['School · Admin', 'Toute l’école', 'Le planning de chacun, les membres et leurs éducateurs, et ce que tu publies : pour tout le monde, les membres ou l’équipe.']
       : ['School · Éducateur', 'Tes élèves', 'Leur semaine, leurs missions et leurs notes. Pose un appel ou une mission chez un élève, ou chez tous.'];
     root.innerHTML = `<header class="sh-head"><div><div class="chest-step">${head[0]}</div><h1>${head[1]}</h1><p>${head[2]}</p></div>
-        <div class="sh-head__acts"><button type="button" class="chest-btn-2" data-compose="post">${ic('info')}IDEA</button><button type="button" class="chest-btn-2" data-compose="task">${ic('flag')}Mission</button><button type="button" class="chest-btn" data-compose="event">${ic('cal')}Appel</button></div></header>
-      ${staffFacts()}
-      <nav class="sh-tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${l}</button>`).join('')}</nav>
+        <div class="sh-head__acts"><button type="button" class="chest-btn-2" data-compose="post">${ic('info')}Idea</button><button type="button" class="chest-btn-2" data-compose="task">${ic('flag')}Mission</button><button type="button" class="chest-btn" data-compose="event">${ic('cal')}Appel</button></div></header>
+      ${staffFacts()}${newsHtml()}
+      <nav class="sh-tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${l}${k === 'planning' && S.planNew.size ? `<em class="sh-tabn">+${S.planNew.size}</em>` : ''}</button>`).join('')}</nav>
       <div class="sh-panel" id="shPanel"></div>`;
     renderTab();
   }
@@ -522,6 +576,7 @@
     if (S.tab === 'educators') { box.innerHTML = educatorsHtml(); return; }
     if (S.tab === 'ideas') { box.innerHTML = ideasHtml(); return; }
     if (S.tab === 'missions') { box.innerHTML = missionsHtml(); return; }
+    if (S.tab === 'content' && ROLE === 'educator') { box.innerHTML = eduContentHtml(); return; }
     if (S.tab === 'content') {
       box.innerHTML = `<div class="sh-content">
         <button type="button" class="sh-door" data-go="written">${ic('book')}<span><b>Cours écrits</b><small>Trading, UGC, Psychologie, Autres ressources : ajoute, modifie ou retire un élément (menu ⋮ sur chaque carte).</small></span><span class="sh-go">Gérer ${ic('go')}</span></button>
@@ -529,6 +584,47 @@
         <div class="sh-refpick"><div class="sh-sub sh-sub--top"><span class="chest-step">Scanner de référence</span><span class="sh-hint">Montré à tous les membres en haut de School, avec ses derniers trades, sa stratégie et sa checklist.</span></div>
           <div class="sh-pills">${scannerList().map((x) => `<button type="button" class="sh-pill${S.ref && S.ref.scanner === x.id ? ' is-on' : ''}" data-ref-pick="${x.id}" aria-pressed="${!!(S.ref && S.ref.scanner === x.id)}">${x.logo ? `<img src="${esc(x.logo)}" alt="">` : ''}${esc(x.name)}</button>`).join('')}</div></div>`;
     }
+  }
+
+  // Contenu, côté éducateur (2026-11-08) : les cours en lecture (modifiables par l'admin seul), « Envoyer à… » sur chaque
+  // élément (menu ⋮), et les vidéos de SON scanner, qu'il ajoute lui-même (lien YouTube / Vimeo ou fichier, comme l'admin).
+  function eduContentHtml() {
+    const sid = U.scanner, sc = sid && window.CHESTScanners && CHESTScanners.get(sid);
+    const vids = sid && window.CHESTSchool ? CHESTSchool.videos().filter((v) => v.section === 'scanners' && v.scanner === sid).sort((a, b) => b.ts - a.ts) : [];
+    const scan = sc ? `<section class="sh-scv" style="--c:${esc(sc.logoColor || 'var(--a1, #fc1283)')}">
+        <header class="sh-scv__h"><span class="sh-ref__logo">${sc.logo ? `<img src="${esc(sc.logo)}" alt="">` : esc(sc.logoInitials || sc.name.slice(0, 2))}</span>
+          <span class="sh-ref__who"><span class="chest-step">Ton scanner</span><b>${esc(sc.name)}</b><small>${plural(vids.length, 'vidéo', 'vidéos')} · visibles par tous dans Cours vidéo → Scanners</small></span>
+          <button type="button" class="chest-btn" data-scv-add>${ic('plus')}Ajouter une vidéo</button></header>
+        ${vids.length ? `<ul class="sh-scv__list">${vids.map((v) => { const th = CHESTSchool.thumb(v); return `<li><button type="button" class="sh-scv__th" data-scv-play="${esc(v.id)}" aria-label="Lire ${esc(v.title)}"${th ? ` style="background-image:url('${esc(th)}')"` : ''}>${ic('play')}</button>
+          <span class="sh-scv__t"><b>${esc(v.title)}</b><small>${v.duration ? esc(v.duration) + ' · ' : ''}${esc(fr(v.createdAt || Date.now(), { day: 'numeric', month: 'short' }))}</small></span>
+          <span class="sh-scv__a"><button type="button" class="chest-btn-2" data-scv-share="${esc(v.id)}">${ic('share')}Envoyer</button><button type="button" class="sh-link" data-scv-edit="${esc(v.id)}">Modifier</button></span></li>`; }).join('')}</ul>`
+        : '<p class="sh-empty">Pas encore de vidéo pour ton scanner. Colle un lien YouTube ou envoie un fichier : elle apparaît chez tous les membres.</p>'}</section>`
+      : `<p class="sh-empty">Aucun scanner n’est rattaché à ton compte pour l’instant : l’admin te le donne depuis Admin → Éducateurs. Tu pourras alors y ajouter tes vidéos.</p>`;
+    return `${scan}<div class="sh-sub sh-sub--top"><span class="chest-step">Les cours</span><span class="sh-hint">Ouvre une catégorie, puis les options (•••) d’un élément → « Envoyer à… » pour le partager à tes élèves. Seul l’admin les modifie.</span></div>
+      <div class="sh-content">
+        <button type="button" class="sh-door" data-go="written">${ic('book')}<span><b>Cours écrits</b><small>Trading, UGC, Psychologie, Autres ressources.</small></span><span class="sh-go">Parcourir ${ic('go')}</span></button>
+        <button type="button" class="sh-door" data-go="video">${ic('play')}<span><b>Cours vidéo</b><small>Mindset, Business et les vidéos des scanners.</small></span><span class="sh-go">Parcourir ${ic('go')}</span></button></div>`;
+  }
+
+  // « Envoyer à… » : un élément des cours vers la bibliothèque du suivi des membres choisis (POST /school/share).
+  async function share(item) {
+    await ensurePeople();
+    Object.assign(C, { kind: 'share', picked: [], q: '' });
+    S.shareItem = item;
+    S.dlgRender = shareHtml;
+    openDlg(shareHtml(), false, async () => {
+      if (!C.picked.length) throw new Error('Choisis au moins un membre.');
+      const r = await postJson('/school/share', Object.assign({ members: C.picked }, item));
+      toast(`Envoyé à ${plural(r.members, 'membre', 'membres')} : c’est dans leur suivi.`);
+    });
+  }
+  function shareHtml() {
+    const it = S.shareItem || {};
+    return `<div class="sh-comp"><header class="sh-comp__h"><span class="chest-step">Envoyer</span><h2>${esc(it.title || '')}</h2></header>
+      ${pickerHtml()}
+      <p class="sh-hint">L’élément arrive dans la bibliothèque de leur suivi, et ils sont prévenus.</p>
+      <p class="sh-msg" id="shMsg" role="alert"></p>
+      <footer class="sh-comp__f"><button type="button" class="chest-btn-2" data-close>Annuler</button><button type="submit" class="chest-btn">Envoyer${C.picked.length ? ` à ${C.picked.length}` : ''}</button></footer></div>`;
   }
 
   const PALETTE = ['#a855f7', '#f5c451', '#38bdf8', 'var(--green, #33e6a6)', 'var(--a1, #fc1283)', 'var(--a2, #f9a45e)', 'var(--red, #ff4d5e)', '#2dd4bf', '#4d8dff', '#e8e8ee'];
@@ -556,10 +652,10 @@
   }
 
   function ideasHtml() {
-    return `<div class="sh-feedsec"><div class="sh-feedsec__h"><span class="chest-step">IDEA publiées</span><h2>Les idées de l’équipe</h2>${newBadge()}${ideaTabs(S.posts || [])}<button type="button" class="chest-btn sh-feedsec__add" data-compose="post">+ Nouvelle IDEA</button></div>
-      ${postsHtml(S.posts || [], 'Aucune IDEA active. Une IDEA apparaît dans School chez tous ceux que tu vises.')}</div>`;
+    return `<div class="sh-feedsec"><div class="sh-feedsec__h"><span class="chest-step">Idea publiées</span><h2>Les idées de l’équipe</h2>${newBadge()}${ideaTabs(S.posts || [])}<button type="button" class="chest-btn sh-feedsec__add" data-compose="post">+ Nouvelle Idea</button></div>
+      ${postsHtml(S.posts || [], 'Aucune Idea active. Une Idea apparaît dans School chez tous ceux que tu vises.')}</div>`;
   }
-  // Missions : le suivi personnalisé (copiées chez chaque membre visé), à ne pas confondre avec les IDEA
+  // Missions : le suivi personnalisé (copiées chez chaque membre visé), à ne pas confondre avec les Idea
   function missionsHtml() {
     const M = S.missions;
     return `<div class="sh-missions">
@@ -591,6 +687,14 @@
     });
     dlg.addEventListener('click', onDlgClick);
     dlg.addEventListener('change', onDlgChange);
+    // recherche dans la liste des personnes : seule la liste est redessinée (le champ garde le focus)
+    dlg.addEventListener('input', (e) => {
+      if (e.target.id !== 'pickQ') return;
+      C.q = e.target.value;
+      const box = document.createElement('div'); box.innerHTML = pickerHtml();
+      const list = document.getElementById('pickList'), fresh = box.querySelector('#pickList');
+      if (list && fresh) list.innerHTML = fresh.innerHTML;
+    });
     return dlg;
   }
   function openDlg(html, wide, onSubmit) {
@@ -671,7 +775,7 @@
     try {
       const d = await postJson(`/school/posts/${id}/status`, { status: st });
       S.posts = d.posts;
-      toast(st === 'inactive' ? 'IDEA rangée dans les Inactives.' : st === 'encours' ? 'IDEA passée en cours.' : 'IDEA en zone d’action.');
+      toast(st === 'inactive' ? 'Idea rangée dans les Inactives.' : st === 'encours' ? 'Idea passée en cours.' : 'Idea en zone d’action.');
       if (ROLE === 'member') renderMember(); else renderTab();
       const x = S.posts.find((p) => p.id === id); if (x) postDetail(x);
     } catch (e) { toast(e.message); }
@@ -682,17 +786,40 @@
       <p class="sh-detail__by">${fr(n.createdAt, { day: 'numeric', month: 'long', year: 'numeric' })}</p><div class="sh-read">${textToHtml(n.body)}</div></div></div>`);
   }
 
-  // Composer : Appel / Mission / Info, et pour qui.
-  const C = { kind: 'event', target: 'all', scope: [], member: '', flyer: null, editing: null, format: 'landscape', side: 'buy', tps: 1 };
+  // Composer (simplifié le 2026-11-08) : Appel / Mission / Idea, pour un groupe ou pour des personnes choisies une à une.
+  //   Éducateur : tous ses élèves, ou certains d'entre eux.  Admin : tout le monde, les membres, l'équipe, ou des
+  //   personnes choisies (éducateurs et membres mêlés). Un appel avec un seul membre = appel personnel (son suivi).
+  const C = { kind: 'event', target: 'all', scope: [], picked: [], q: '', flyer: null, editing: null, format: 'landscape', side: 'buy', tps: 1 };
   function targetsFor(kind) {
-    if (ROLE === 'educator') return kind === 'post' ? [['students', 'Tous mes élèves']] : [['students', 'Tous mes élèves'], ['one', 'Un élève']];
-    const t = [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Équipe'], ['students', 'Élèves de…'], ['one', 'Un membre']];
-    if (kind === 'task') return t.filter(([k]) => k !== 'educators');
-    if (kind === 'post') return t.filter(([k]) => k !== 'one');
-    return t;
+    if (ROLE === 'educator') return kind === 'post' ? [['students', 'Tous mes élèves']] : [['students', 'Tous mes élèves'], ['pick', 'Choisir']];
+    if (kind === 'post') return [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Équipe']];
+    if (kind === 'task') return [['members', 'Tous les membres'], ['pick', 'Choisir']];
+    return [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Équipe'], ['pick', 'Choisir']];
+  }
+  // personnes qu'on peut choisir : l'admin voit les éducateurs (appel d'équipe) puis les membres ; une mission ne vise que des membres
+  function pickables(kind) {
+    const members = (S.people || []).map((p) => ({ id: p.id, name: p.name, sub: ROLE === 'admin' && p.educator ? `avec ${p.educator}` : '' }));
+    if (ROLE !== 'admin' || kind === 'task' || kind === 'share') return [['', members]];
+    const edus = (S.educators || []).map((e) => ({ id: e.id, name: e.name, sub: 'Éducateur', staff: true }));
+    return [['Éducateurs', edus], ['Membres', members]];
   }
   const seg = (name, opts, val) => `<div class="chest-seg sh-seg" data-seg="${name}" role="radiogroup">${opts.map(([v, l]) => `<button type="button" role="radio" data-v="${v}" aria-checked="${String(v) === String(val)}" class="${String(v) === String(val) ? 'is-active' : ''}">${l}</button>`).join('')}</div>`;
   const field = (label, inner, wide, hint) => `<label class="sh-f${wide ? ' sh-f--wide' : ''}"><span>${label}</span>${inner}${hint ? `<em>${hint}</em>` : ''}</label>`;
+  function pickerHtml() {
+    const q = norm(C.q);
+    const groups = pickables(C.kind).map(([label, list]) => {
+      const shown = list.filter((p) => !q || norm(p.name).includes(q));
+      if (!shown.length) return '';
+      return `${label ? `<span class="sh-pick__g">${label}</span>` : ''}${shown.map((p) => {
+        const on = C.picked.includes(p.id);
+        return `<button type="button" class="sh-pick__p${on ? ' is-on' : ''}" data-pick="${p.id}" role="checkbox" aria-checked="${on}" style="--c:${hashColor(p.id)}"><span class="sh-pick__av">${esc(initials(p.name))}</span><span class="sh-pick__n"><b>${esc(p.name)}</b>${p.sub ? `<small>${esc(p.sub)}</small>` : ''}</span><span class="sh-pick__ck">${ic('check')}</span></button>`;
+      }).join('')}`;
+    }).join('');
+    return `<div class="sh-f sh-f--wide sh-pick"><span>${C.picked.length ? plural(C.picked.length, 'personne choisie', 'personnes choisies') : 'Choisis une ou plusieurs personnes'}</span>
+      <input type="search" id="pickQ" class="sh-pick__q" placeholder="Rechercher un nom…" value="${esc(C.q)}" autocomplete="off" aria-label="Rechercher un nom">
+      <div class="sh-pick__list" id="pickList">${groups || '<em class="sh-hint">Personne à afficher.</em>'}</div></div>`;
+  }
+  const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
   function composerHtml() {
     const k = C.kind, ed = C.editing;
@@ -700,24 +827,17 @@
     if (!T.some(([v]) => v === C.target)) C.target = T[0][0];
     const base = ed ? new Date(ed.startsAt || Date.now()) : (() => { const d = new Date(Date.now() + DAY); d.setHours(19, 0, 0, 0); return d; })();
     const due = new Date(Date.now() + 7 * DAY);
-    const people = S.people || [];
-    const scopeHtml = C.target === 'students' && ROLE === 'admin' ? `<div class="sh-f sh-f--wide"><span>Éducateurs</span><div class="sh-pills">${(S.educators || []).map((e) => `<button type="button" class="sh-pill${C.scope.includes(e.id) ? ' is-on' : ''}" data-scope="${e.id}" aria-pressed="${C.scope.includes(e.id)}">${esc(e.first)} <small>${e.students}</small></button>`).join('') || '<em class="sh-hint">Aucun éducateur.</em>'}</div></div>` : '';
-    const oneHtml = C.target === 'one' ? field(ROLE === 'admin' ? 'Membre' : 'Élève', `<select id="cMember"><option value="">Choisir…</option>${people.map((p) => `<option value="${p.id}" ${String(C.member) === String(p.id) ? 'selected' : ''}>${esc(p.name)}${ROLE === 'admin' && p.educator ? ` · avec ${esc(p.educator)}` : ''}</option>`).join('')}</select>`, true) : '';
-    const flyerHtml = (label) => `<div class="sh-f sh-f--wide"><span>${label} <i>(facultatif)</i></span><div class="sh-drop${C.flyer || (ed && (ed.flyer || ed.image)) ? ' has-img' : ''}${k === 'post' ? ' sh-drop--' + C.format : ''}" id="cDrop">
+    const flyerHtml = (label) => `<div class="sh-f sh-f--wide"><span>${label} <i>(facultatif)</i></span><div class="sh-drop${C.flyer || (ed && ed.image) ? ' has-img' : ''} sh-drop--${C.format}" id="cDrop">
         <input type="file" id="cFile" accept="image/*" aria-label="${label}">
-        ${C.flyer ? `<img src="${esc(URL.createObjectURL(C.flyer))}" alt="">` : ed && (ed.flyer || ed.image) ? `<img src="${esc(fileUrl(ed.flyer || ed.image))}" alt="">` : ''}
-        <span class="sh-drop__t">${ic('image')}<b>${C.flyer || (ed && (ed.flyer || ed.image)) ? 'Changer l’image' : 'Choisir une image'}</b><small>${k === 'post' ? 'Capture de graphique, analyse, annonce · JPG ou PNG' : 'JPG ou PNG · format affiche ou carré'}</small></span></div></div>`;
-    const title = ed ? (k === 'event' ? 'Modifier l’appel' : 'Modifier l’IDEA') : 'Ajouter au School';
+        ${C.flyer ? `<img src="${esc(URL.createObjectURL(C.flyer))}" alt="">` : ed && ed.image ? `<img src="${esc(fileUrl(ed.image))}" alt="">` : ''}
+        <span class="sh-drop__t">${ic('image')}<b>${C.flyer || (ed && ed.image) ? 'Changer l’image' : 'Choisir une image'}</b><small>Capture de graphique, analyse · JPG ou PNG</small></span></div></div>`;
+    const title = ed ? (k === 'event' ? 'Modifier l’appel' : 'Modifier l’Idea') : k === 'event' ? 'Nouveau rendez-vous' : k === 'task' ? 'Nouvelle mission' : 'Nouvelle Idea';
     let body = '';
     if (k === 'event') {
-      body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="${C.target === 'one' ? 'Point sur tes trades de la semaine' : 'Live : revue du marché'}">`, true)}
+      body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="${C.target === 'pick' ? 'Point sur tes trades de la semaine' : 'Live : revue du marché'}">`, true)}
         ${field('Date', `<input type="date" id="cDate" value="${ymd(base)}">`)}${field('Heure', `<input type="time" id="cTime" step="900" value="${pad(base.getHours())}:${pad(base.getMinutes())}">`)}
-        ${field('Durée', `<select id="cMin">${[30, 45, 60, 90, 120, 180].map((m) => `<option value="${m}" ${m === (ed ? ed.minutes : 60) ? 'selected' : ''}>${dur(m)}</option>`).join('')}</select>`)}
-        ${C.target !== 'one' ? field('Répéter', `<select id="cWeeks">${[[1, 'Une fois'], [2, '2 semaines'], [4, '4 semaines'], [8, '8 semaines'], [12, '12 semaines'], [26, '6 mois']].map(([v, l]) => `<option value="${v}" ${v === (ed ? ed.weeks : 1) ? 'selected' : ''}>${l}</option>`).join('')}</select>`) : ''}
-        <div class="sh-f sh-f--wide"><span>Format</span>${seg('mode', Object.entries(MODES), ed ? ed.mode : 'visio')}</div>
-        ${field('Lien de visio <i>(facultatif)</i>', `<input type="url" id="cLink" maxlength="300" value="${esc(ed ? ed.link : '')}" placeholder="https://meet.google.com/…">`, true)}
-        ${field('Description <i>(facultatif)</i>', `<textarea id="cBody" rows="4" maxlength="4000" placeholder="Ce qui sera vu, ce qu’il faut préparer…">${esc(ed ? ed.body : '')}</textarea>`, true)}
-        ${flyerHtml('Flyer')}`;
+        ${field('Durée', `<select id="cMin">${[15, 30, 45, 60, 90, 120].map((m) => `<option value="${m}" ${m === (ed ? ed.minutes : 45) ? 'selected' : ''}>${dur(m)}</option>`).join('')}</select>`)}
+        ${field('Lien de l’appel <i>(facultatif)</i>', `<input type="url" id="cLink" maxlength="300" value="${esc(ed ? ed.link : '')}" placeholder="https://meet.google.com/…">`)}`;
     } else if (k === 'task') {
       body = `${field('Mission', `<input type="text" id="cTitle" maxlength="200" placeholder="Remplir ton journal chaque soir">`, true)}
         ${field('À faire pour le', `<input type="date" id="cDue" value="${ymd(due)}">`)}`;
@@ -731,19 +851,20 @@
             ${field('PE', `<input type="text" inputmode="decimal" id="cPe" value="${I.pe != null ? esc(I.pe) : ''}" placeholder="2 640">`)}${field('SL', `<input type="text" inputmode="decimal" id="cSl" value="${I.sl != null ? esc(I.sl) : ''}" placeholder="2 628">`)}
             ${tpIn}
             <div class="sh-f sh-f--wide sh-tpacts"><button type="button" class="sh-link" data-add-tp ${C.tps >= 8 ? 'disabled' : ''}>+ Ajouter un TP</button>${C.tps > 1 ? '<button type="button" class="sh-link sh-link--red" data-del-tp>Retirer le dernier TP</button>' : ''}</div></div></div>
-        ${field('Texte', `<textarea id="cBody" rows="5" maxlength="8000" placeholder="Le contexte, ce qui invalide l’idée, la gestion…">${esc(ed ? ed.body : '')}</textarea>`, true)}
+        ${field('Texte', `<textarea id="cBody" rows="4" maxlength="8000" placeholder="Le contexte, ce qui invalide l’idée, la gestion…">${esc(ed ? ed.body : '')}</textarea>`, true)}
         <div class="sh-f sh-f--wide"><span>Format de l’image</span>${seg('format', [['portrait', 'Vertical · 4:5'], ['landscape', 'Horizontal · 16:9']], C.format)}</div>
         ${flyerHtml('Image')}
         ${ROLE === 'admin' ? `<label class="sh-tick"><input type="checkbox" id="cPin" ${ed && ed.pinned ? 'checked' : ''}><span>Épingler en tête</span></label>` : ''}`;
     }
-    const hint = C.target === 'one' ? (k === 'event' ? 'Posé directement dans son planning, déjà confirmé. Il le retrouve dans School et dans son suivi.' : 'Ajoutée à ses missions : il la coche quand c’est fait.')
+    const n = C.picked.length;
+    const hint = C.target === 'pick' ? (n === 0 ? 'Choisis au moins une personne.' : k === 'task' ? `Ajoutée aux missions de ${plural(n, 'membre', 'membres')} : chacun coche la sienne.` : `Posé dans le planning de ${plural(n, 'personne', 'personnes')}, déjà confirmé. Chacun est prévenu.`)
       : k === 'task' ? 'Copiée chez chaque membre visé ; chacun coche la sienne, tu vois l’avancement dans Missions.'
-      : k === 'event' ? 'Un seul rendez-vous, visible dans le planning de chacun de ceux que tu vises.' : 'L’IDEA apparaît dans School chez tous ceux que tu vises, dans les Actives (zone d’action). Tu la passes en cours ou inactive depuis sa fiche.';
+      : k === 'event' ? 'Un seul rendez-vous, visible dans le planning de tous ceux que tu vises. Chacun est prévenu, puis rappelé 15 min avant.' : 'L’Idea apparaît dans School chez tous ceux que tu vises. Tu la passes en cours ou inactive depuis sa fiche.';
     return `<div class="sh-comp">
       <header class="sh-comp__h"><span class="chest-step">${ROLE === 'admin' ? 'Admin' : 'Éducateur'}</span><h2>${title}</h2></header>
-      ${ed ? '' : `<div class="sh-f sh-f--wide"><span>Quoi</span>${seg('kind', [['event', 'Appel'], ['task', 'Mission'], ['post', 'IDEA']], k)}</div>`}
+      ${ed ? '' : `<div class="sh-f sh-f--wide"><span>Quoi</span>${seg('kind', [['event', 'Appel'], ['task', 'Mission'], ['post', 'Idea']], k)}</div>`}
       <div class="sh-f sh-f--wide"><span>Pour</span>${seg('target', T, C.target)}</div>
-      ${scopeHtml}${oneHtml}
+      ${C.target === 'pick' ? pickerHtml() : ''}
       <div class="sh-grid">${body}</div>
       <p class="sh-hint">${hint}</p>
       <p class="sh-msg" id="shMsg" role="alert"></p>
@@ -752,29 +873,31 @@
   }
 
   function keepValues(fn) {
-    const ids = [...document.querySelectorAll('#shDlgIn input[id^="c"], #shDlgIn select[id^="c"], #shDlgIn textarea[id^="c"]')].filter((el) => el.type !== 'file' && el.type !== 'checkbox').map((el) => el.id);
+    const ids = [...document.querySelectorAll('#shDlgIn input[id^="c"], #shDlgIn select[id^="c"], #shDlgIn textarea[id^="c"]')].filter((el) => el.type !== 'file' && el.type !== 'checkbox' && el.id !== 'pickQ').map((el) => el.id);
     const kept = {};
     ids.forEach((id) => { const el = document.getElementById(id); if (el) kept[id] = el.value; });
     fn();
     ids.forEach((id) => { const el = document.getElementById(id); if (el && kept[id] != null && !(id === 'cTitle' && !kept[id])) el.value = kept[id]; });
   }
-  const refreshComposer = () => keepValues(() => { document.getElementById('shDlgIn').innerHTML = composerHtml(); });
+  const refreshComposer = () => keepValues(() => { document.getElementById('shDlgIn').innerHTML = (S.dlgRender || composerHtml)(); });
 
-  async function openComposer(kind, editing) {
+  async function openComposer(kind, editing, preset) {
     await ensurePeople();
     if (ROLE === 'admin' && !S.educators) await loadEducators().catch(() => {});
     const I0 = (editing && editing.idea) || null;
-    Object.assign(C, { kind: kind || 'event', editing: editing || null, flyer: null, format: editing && editing.format === 'portrait' ? 'portrait' : 'landscape', side: I0 && I0.side === 'sell' ? 'sell' : 'buy', tps: I0 ? Math.max(1, I0.tps.length) : 1 });
+    Object.assign(C, { kind: kind || 'event', editing: editing || null, flyer: null, q: '', format: editing && editing.format === 'portrait' ? 'portrait' : 'landscape', side: I0 && I0.side === 'sell' ? 'sell' : 'buy', tps: I0 ? Math.max(1, I0.tps.length) : 1 });
     if (editing) {
-      C.target = editing.audience === 'students' ? 'students' : editing.audience;
-      C.scope = (editing.scope || []).slice();
-      if (ROLE === 'educator') C.target = 'students';
+      C.target = editing.audience === 'people' ? 'pick' : editing.audience;
+      if (ROLE === 'educator' && C.target !== 'pick') C.target = 'students';
+      C.picked = editing.audience === 'people' ? (editing.scope || []).slice() : [];
+      C.scope = editing.audience === 'students' ? (editing.scope || []).slice() : [];
     } else {
-      C.target = ROLE === 'educator' ? 'students' : 'all';
+      C.target = ROLE === 'educator' ? 'students' : C.kind === 'task' ? 'members' : 'all';
       C.scope = [];
-      C.member = S.member || '';
-      if (C.member) C.target = 'one';
+      C.picked = preset && preset.length ? preset.slice() : S.member ? [Number(S.member)] : [];
+      if (C.picked.length && C.kind !== 'post') C.target = 'pick';
     }
+    S.dlgRender = composerHtml;
     openDlg(composerHtml(), false, submitComposer);
   }
 
@@ -783,7 +906,6 @@
       C.flyer = e.target.files[0] || null; refreshComposer();
       if (C.flyer && C.kind === 'post') { const im = new Image(); im.onload = () => { C.format = im.naturalHeight > im.naturalWidth ? 'portrait' : 'landscape'; refreshComposer(); }; im.src = URL.createObjectURL(C.flyer); }
     }
-    if (e.target.id === 'cMember') C.member = e.target.value;
   }
 
   async function onDlgClick(e) {
@@ -804,8 +926,8 @@
     if (t.closest('[data-del-tp]')) { C.tps = Math.max(1, C.tps - 1); return refreshComposer(); }
     const ist = t.closest('[data-idea-status]');
     if (ist) return setIdeaStatus(Number(ist.dataset.ideaId), ist.dataset.ideaStatus);
-    const sc = t.closest('[data-scope]');
-    if (sc) { const id = Number(sc.dataset.scope); C.scope = C.scope.includes(id) ? C.scope.filter((x) => x !== id) : C.scope.concat(id); return refreshComposer(); }
+    const pk = t.closest('[data-pick]');
+    if (pk) { const id = Number(pk.dataset.pick); C.picked = C.picked.includes(id) ? C.picked.filter((x) => x !== id) : C.picked.concat(id); return refreshComposer(); }
     const eev = t.closest('[data-edit-ev]');
     if (eev) { const ev = findEvent(eev.dataset.editEv); const first = ev && Object.assign({}, ev, { startsAt: new Date(Date.parse(ev.startsAt) - ev.occurrence * 7 * DAY).toISOString() }); return openComposer('event', first); }
     const dev = t.closest('[data-del-ev]');
@@ -820,31 +942,33 @@
 
   async function submitComposer() {
     const v = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-    const segVal = (n) => { const b = dlg.querySelector(`[data-seg="${n}"] .is-active`); return b ? b.dataset.v : ''; };
     const idea = C.kind === 'post' ? { pair: v('cPair'), side: C.side, pe: v('cPe'), sl: v('cSl'), tps: Array.from({ length: C.tps }, (_, n) => v(`cTp${n + 1}`)) } : null;
     const title = v('cTitle') || (idea && idea.pair ? `${idea.pair.toUpperCase()} · ${idea.side === 'sell' ? 'Vente' : 'Achat'}` : '');
     if (!title) throw new Error(C.kind === 'task' ? 'Décris la mission.' : 'Donne un titre.');
-    const one = C.target === 'one';
-    const member = one ? v('cMember') : '';
-    if (one && !member) throw new Error(ROLE === 'admin' ? 'Choisis le membre.' : 'Choisis l’élève.');
-    if (C.target === 'students' && ROLE === 'admin' && !C.scope.length) throw new Error('Choisis au moins un éducateur.');
-    const target = { audience: C.target, scope: C.scope };
+    const pick = C.target === 'pick';
+    if (pick && !C.picked.length) throw new Error('Choisis au moins une personne.');
+    const target = pick ? { audience: 'people', scope: C.picked } : { audience: C.target, scope: C.scope };
+    const staff = new Set((S.educators || []).map((e) => e.id));
+    // un seul membre choisi : appel personnel (dans son suivi) plutôt qu'un rendez-vous de groupe
+    const solo = pick && C.picked.length === 1 && !staff.has(C.picked[0]) && !(C.editing && C.editing.type === 'collective');
     if (C.kind === 'event') {
       if (!v('cDate') || !v('cTime')) throw new Error('Choisis la date et l’heure.');
       const at = new Date(`${v('cDate')}T${v('cTime')}`);
-      const common = { startsAt: at.toISOString(), minutes: Number(v('cMin')), mode: segVal('mode') || 'visio', link: v('cLink'), body: v('cBody') };
-      if (one) await postForm('/mentor/events', Object.assign(common, { member: Number(member), topic: title, confirmed: true }), { flyer: C.flyer });
-      else await postForm('/school/events', Object.assign(common, target, { id: C.editing && C.editing.seriesId, title, weeks: Number(v('cWeeks') || 1) }), { flyer: C.flyer });
-      S.week = mondayOf(at);
+      const ed = C.editing || {};
+      const common = { startsAt: at.toISOString(), minutes: Number(v('cMin')), mode: ed.mode || 'visio', link: v('cLink'), body: ed.body || '' };
+      if (solo) await postForm('/mentor/events', Object.assign(common, { member: C.picked[0], topic: title, confirmed: true }), {});
+      else await postForm('/school/events', Object.assign(common, target, { id: ed.seriesId, title, weeks: ed.weeks || 1 }), {});
+      S.week = mondayOf(at) < S.week || mondayOf(at) >= new Date(S.week.getTime() + SPAN * DAY) ? mondayOf(at) : S.week;
     } else if (C.kind === 'task') {
       const dueAt = v('cDue') ? new Date(`${v('cDue')}T23:59`).toISOString() : null;
-      if (one) await postJson('/mentor/tasks', { member: Number(member), title, dueAt });
-      else { const r = await postJson('/school/missions', Object.assign({ title, dueAt }, target)); toast(`Mission ajoutée chez ${plural(r.members, 'membre', 'membres')}.`); }
+      const r = await postJson('/school/missions', Object.assign({ title, dueAt }, target));
+      toast(`Mission ajoutée chez ${plural(r.members, 'membre', 'membres')}.`);
     } else {
       const pin = document.getElementById('cPin');
       await postForm('/school/posts', Object.assign({ id: C.editing && C.editing.id, title, body: v('cBody'), pinned: !!(pin && pin.checked), format: C.format, idea }, target), { image: C.flyer });
     }
-    if (C.kind !== 'task' || one) toast(C.editing ? 'Enregistré.' : C.kind === 'post' ? 'IDEA publiée.' : C.kind === 'event' ? 'Ajouté au planning.' : 'Mission ajoutée.');
+    if (C.kind !== 'task') toast(C.editing ? 'Enregistré.' : C.kind === 'post' ? 'Idea publiée.' : 'Ajouté au planning. Les personnes visées sont prévenues.');
+    if (C.kind !== 'post' && ROLE !== 'member') S.tab = 'planning';
     await refresh();
   }
 
@@ -882,8 +1006,22 @@
     S.newIds = new Set((S.posts || []).filter((p) => p.createdAt > seen && p.authorId !== U.id && stOf(p) !== 'inactive').map((p) => p.id));
     try { localStorage.setItem('chest_idea_seen', new Date().toISOString()); } catch (e) {}
   }
+  // « Nouveau » et « +N » du planning : ce qui a été ajouté par quelqu'un d'autre depuis la dernière visite (chest_plan_seen,
+  // clé d'appareil) ; la pastille de School dans la barre latérale (js/idea-badge.js) se remet à zéro.
+  function markPlanSeen() {
+    if (S.planSeenDone) return;
+    S.planSeenDone = true;
+    let seen = '';
+    try { seen = localStorage.getItem('chest_plan_seen') || ''; } catch (e) {}
+    if (!seen) seen = new Date(Date.now() - 3 * DAY).toISOString();
+    const D = S.agenda || { events: [], tasks: [] };
+    const fresh = (x) => x.createdAt && x.createdAt > seen && x.authorId !== U.id;
+    S.planNew = new Set(D.events.filter(fresh).map((e) => e.id).concat(D.tasks.filter(fresh).map((t) => 't' + t.id)));
+    try { localStorage.setItem('chest_plan_seen', new Date().toISOString()); } catch (e) {}
+  }
   async function refresh() {
-    const jobs = [loadAgenda(), api('/school/posts').then((d) => { S.posts = d.posts; markSeen(); })];
+    if (S.notifSeen == null) { try { S.notifSeen = localStorage.getItem('chest_school_news_seen') || ''; localStorage.setItem('chest_school_news_seen', new Date().toISOString()); } catch (e) { S.notifSeen = ''; } }
+    const jobs = [loadAgenda().then(markPlanSeen), api('/school/notifs').then((d) => { S.notifs = d.notifs; }).catch(() => { S.notifs = []; }), api('/school/posts').then((d) => { S.posts = d.posts; markSeen(); })];
     jobs.push(api('/school/scanner').then((d) => { S.ref = d; }).catch(() => { S.ref = null; }));
     if (ROLE === 'member') jobs.push(api('/mentor').then((d) => { S.mentor = d; }).catch(() => { S.mentor = null; }));
     else {
@@ -918,8 +1056,13 @@
     const sv = t.closest('[data-suivi]'); if (sv) { e.preventDefault(); return goSuivi(''); }
     const tk = t.closest('[data-task]');
     if (tk) { try { S.mentor = await postJson(`/mentor/tasks/${tk.dataset.task}/toggle`, {}); await loadAgenda(); renderMember(); } catch (err) { toast(err.message); } return; }
-    const ow = t.closest('[data-owner]');
-    if (ow && ROLE !== 'member') { const id = Number(ow.dataset.owner) || null; S.owner = S.owner === id ? null : id; const box = ROLE === 'member' ? null : document.getElementById('shPanel'); if (box) box.innerHTML = weekHtml(); return; }
+    const ow = t.closest('[data-owner], [data-person]');
+    if (ow && ROLE !== 'member') {
+      if (ow.hasAttribute('data-owner') && ow.dataset.owner) { const id = Number(ow.dataset.owner); S.owner = S.owner === id ? null : id; }
+      else if (ow.dataset.person) S.person = S.person === ow.dataset.person ? null : ow.dataset.person;
+      else { S.owner = null; S.person = null; }
+      const box = document.getElementById('shPanel'); if (box) box.innerHTML = weekHtml(); return;
+    }
     const sw = t.closest('[data-color]');
     if (sw) return setColor(Number(sw.dataset.staff), sw.dataset.color);
     const rt = t.closest('[data-ref-tab]'); if (rt) { S.refTab = rt.dataset.refTab; return paintRef(); }
@@ -932,6 +1075,10 @@
     if (tr) { const [sym, tf] = tr.dataset.trade.split('|'); return openStrategies(`?scanner=${encodeURIComponent(S.ref.scanner)}&symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(tf)}`); }
     const rp = t.closest('[data-ref-pick]');
     if (rp) { try { S.ref = await postJson('/school/scanner', { scanner: rp.dataset.refPick }); toast('Scanner de référence enregistré.'); renderTab(); } catch (err) { toast(err.message); } return; }
+    if (t.closest('[data-scv-add]')) { if (window.CHESTSchool) CHESTSchool.addScannerVideo(); return; }
+    const sv2 = t.closest('[data-scv-play]'); if (sv2) { if (window.CHESTSchool) CHESTSchool.play(sv2.dataset.scvPlay); return; }
+    const sv3 = t.closest('[data-scv-edit]'); if (sv3) { if (window.CHESTSchool) CHESTSchool.editVideo(sv3.dataset.scvEdit); return; }
+    const sv4 = t.closest('[data-scv-share]'); if (sv4) { if (window.CHESTSchool) CHESTSchool.share({ video: sv4.dataset.scvShare }); return; }
     const dm = t.closest('[data-del-mission]');
     if (dm) { if (!(await ask('Retirer cette mission chez tous les membres qui l’ont ?', 'Retirer'))) return; return act(() => postJson(`/mentor/common/${dm.dataset.delMission}/delete`, {}), 'Mission retirée.'); }
   });
@@ -952,5 +1099,5 @@
   root.hidden = false;
   root.innerHTML = '<p class="sh-empty sh-loading">Chargement de ta semaine…</p>';
   refresh();
-  window.CHESTSchoolHub = { refresh };
+  window.CHESTSchoolHub = { refresh, share, repaint: () => { if (ROLE !== 'member' && S.tab === 'content') renderTab(); } };
 })();
