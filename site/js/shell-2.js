@@ -133,7 +133,7 @@ window.CHESTTopbar = (function () {
   const lightEl = document.querySelector('#chestShell .c2-shell__light');
   const BASE = lightEl ? lightEl.getAttribute('style') : '';
   const LIGHTS = {
-    calendar: 'position: absolute; left: 180px; top: -280px; width: 1100px; height: 700px; pointer-events: none; filter: blur(120px); opacity: 0.85; background: radial-gradient(40% 46% at 40% 50%, rgba(51, 230, 166, 0.16), transparent 72%), radial-gradient(30% 36% at 70% 40%, rgba(var(--a1-rgb, 252, 18, 131), 0.08), transparent 74%);',
+    calendar: 'position: absolute; left: 180px; top: -280px; width: 1100px; height: 700px; pointer-events: none; filter: blur(120px); opacity: 0.85; background: radial-gradient(40% 46% at 40% 50%, rgba(var(--green-rgb, 51, 230, 166), 0.16), transparent 72%), radial-gradient(30% 36% at 70% 40%, rgba(var(--a1-rgb, 252, 18, 131), 0.08), transparent 74%);',
     school: 'position: absolute; left: 160px; top: -300px; width: 900px; height: 640px; pointer-events: none; filter: blur(110px); background: radial-gradient(42% 46% at 40% 50%, rgba(var(--a1-rgb, 252, 18, 131), 0.15), transparent 72%), radial-gradient(34% 40% at 66% 44%, rgba(var(--a2-rgb, 249, 164, 94), 0.09), transparent 74%);',
     journal: 'display: none;', strategies: 'display: none;', berich: 'display: none;', backtesting: 'display: none;',
   };

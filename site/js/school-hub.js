@@ -307,7 +307,7 @@
         <ul>${items.map((it, i) => `<li class="${done.includes(i) ? 'is-done' : ''}"><button type="button" class="sh-check" data-ref-check="${i}" role="checkbox" aria-checked="${done.includes(i)}" aria-label="${esc(it)}">${ic('check')}</button><span>${esc(it)}</span></li>`).join('')}</ul>
         <div class="sh-check-list__f${all ? ' is-ok' : ''}">${all ? `${ic('check')}Tout est vérifié : tu peux prendre le trade.` : `${done.length}/${items.length} vérifiés`}${done.length ? '<button type="button" class="sh-link" data-ref-reset>Recommencer</button>' : ''}</div></div>` : '<p class="sh-empty">La checklist de ce scanner arrive bientôt.</p>';
     }
-    return `<div class="sh-ref" style="--c:${esc(sc.logoColor || '#fc1283')}">
+    return `<div class="sh-ref" style="--c:${esc(sc.logoColor || 'var(--a1, #fc1283)')}">
       <div class="sh-ref__head">
         <span class="sh-ref__logo">${sc.logo ? `<img src="${esc(sc.logo)}" alt="">` : esc(sc.logoInitials || sc.name.slice(0, 2))}</span>
         <span class="sh-ref__who"><span class="chest-step">Scanner de référence</span><b>${esc(sc.name)}</b>${g ? `<small>${esc(g.tagline)}</small>` : ''}</span>
@@ -325,8 +325,8 @@
   // (prochain appel, missions, infos), scanner de référence + « avant de trader ». Mêmes données et mêmes
   // actions que la vue v3 (data-task, data-post, data-ref-*, data-trade, data-suivi).
   const MONO2 = "font-family: 'Fragment Mono', ui-monospace, monospace;";
-  const LBL2 = MONO2 + ' font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);';
-  const TILE2 = 'border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column;';
+  const LBL2 = MONO2 + ' font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));';
+  const TILE2 = 'border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column;';
   const GRAD2 = 'background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); -webkit-background-clip: text; background-clip: text; color: transparent;';
   function nextCall2() {
     const M = S.mentor || {};
@@ -345,14 +345,14 @@
     const tasks = M.tasks || [], done = tasks.filter((t) => t.doneAt).length;
     const sc = S.ref && window.CHESTScanners && CHESTScanners.get(S.ref.scanner);
     const title = nx ? `Prêt pour ${fr(nx.startsAt, { weekday: 'long' })} ?` : 'Ta semaine';
-    const stat = (k, v, first, grad) => `<div style="display: flex; flex-direction: column; gap: 6px; padding: 0px 24px;${first ? '' : ' border-left: 1px solid rgba(255, 255, 255, 0.09);'}"><dt style="${MONO2} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">${k}</dt><dd style="margin: 0px; font-size: 20px; font-weight: 700;${grad ? ' ' + GRAD2 : ''}">${v}</dd></div>`;
-    return `<section style="position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 14px 0px 26px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
-        <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: -26px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 78%); -webkit-background-clip: text; background-clip: text; color: transparent;">School</div>
-        <span style="${MONO2} font-size: 10.5px; letter-spacing: 0.24em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Ton espace</span>
+    const stat = (k, v, first, grad) => `<div style="display: flex; flex-direction: column; gap: 6px; padding: 0px 24px;${first ? '' : ' border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);'}"><dt style="${MONO2} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">${k}</dt><dd style="margin: 0px; font-size: 20px; font-weight: 700;${grad ? ' ' + GRAD2 : ''}">${v}</dd></div>`;
+    return `<section style="position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 14px 0px 26px; text-align: center; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
+        <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: -26px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.075), rgba(var(--fg-rgb, 255, 255, 255), 0) 78%); -webkit-background-clip: text; background-clip: text; color: transparent;">School</div>
+        <span style="${MONO2} font-size: 10.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">01 — Ton espace</span>
         <h1 style="margin: 0px; font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -0.05em;">${esc(title)}</h1>
-        ${edu ? `<a href="suivi.html" data-suivi style="display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02); color: rgb(246, 246, 247); text-decoration: none;">
-          <span style="width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: rgb(5, 5, 5); background: rgb(127, 243, 202);">${esc(initials(edu.name).slice(0, 1))}</span>
-          <span style="display: flex; flex-direction: column; gap: 1px; text-align: left;"><span style="font-size: 11px; color: rgb(122, 122, 130);">Ton éducateur</span><span style="font-weight: 600;">${esc(edu.first || edu.name)}</span></span>
+        ${edu ? `<a href="suivi.html" data-suivi style="display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.02); color: var(--ink, rgb(246, 246, 247)); text-decoration: none;">
+          <span style="width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: var(--bg-0, rgb(5, 5, 5)); background: var(--green-hi, rgb(127, 243, 202));">${esc(initials(edu.name).slice(0, 1))}</span>
+          <span style="display: flex; flex-direction: column; gap: 1px; text-align: left;"><span style="font-size: 11px; color: var(--ink-3, rgb(122, 122, 130));">Ton éducateur</span><span style="font-weight: 600;">${esc(edu.first || edu.name)}</span></span>
         </a>` : ''}
         <dl style="margin: 6px 0px 0px; display: flex; flex-wrap: wrap; justify-content: center;">
           ${stat('Prochain appel', nx ? jMinus(nx.startsAt) : '—', true, !!nx)}${stat('Missions', tasks.length ? `${done} / ${tasks.length}` : '—')}${stat('Scanner', sc ? esc(sc.name) : '—')}
@@ -367,14 +367,14 @@
     const cols = days.map((d, i) => {
       const evs = D.events.filter((e) => sameDay(e.startsAt, d)).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
       const today = sameDay(d, new Date());
-      return `<div style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: ${i ? '1px solid rgba(255, 255, 255, 0.06)' : '0px'}; background: ${today ? 'linear-gradient(rgba(var(--a1-rgb, 252, 18, 131), 0.07), transparent 70%)' : 'transparent'};">
-          <div style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;"><span style="font-size: 12.5px; font-weight: 700; color: ${today ? 'rgb(246, 246, 247)' : 'rgb(201, 201, 206)'};">${fr(d, { weekday: 'short' }).replace('.', '').replace(/^./, (c) => c.toUpperCase())}</span><span style="${MONO2} font-size: 10.5px; color: rgb(122, 122, 130);">${d.getDate()}</span></div>
+      return `<div style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: ${i ? '1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06)' : '0px'}; background: ${today ? 'linear-gradient(rgba(var(--a1-rgb, 252, 18, 131), 0.07), transparent 70%)' : 'transparent'};">
+          <div style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;"><span style="font-size: 12.5px; font-weight: 700; color: ${today ? 'var(--ink, rgb(246, 246, 247))' : 'var(--ink-1, rgb(201, 201, 206))'};">${fr(d, { weekday: 'short' }).replace('.', '').replace(/^./, (c) => c.toUpperCase())}</span><span style="${MONO2} font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));">${d.getDate()}</span></div>
           ${evs.map((e) => {
             const chest = e.chest || e.type !== 'personal';
             const who = e.chest ? 'CHEST' : e.type === 'personal' ? (ownerOf(e) ? ownerOf(e).first : 'Appel') : kindOf(e).label;
-            const c = chest ? ['rgba(249, 164, 94, 0.3)', 'linear-gradient(160deg, rgba(var(--a1-rgb, 252, 18, 131), 0.1), rgba(var(--a2-rgb, 249, 164, 94), 0.04))', 'rgb(249, 164, 94)'] : ['rgba(51, 230, 166, 0.3)', 'linear-gradient(160deg, rgba(51, 230, 166, 0.1), rgba(51, 230, 166, 0.03))', 'rgb(127, 243, 202)'];
+            const c = chest ? ['rgba(var(--a2-rgb, 249, 164, 94), 0.3)', 'linear-gradient(160deg, rgba(var(--a1-rgb, 252, 18, 131), 0.1), rgba(var(--a2-rgb, 249, 164, 94), 0.04))', 'rgb(var(--a2-rgb, 249, 164, 94))'] : ['rgba(var(--green-rgb, 51, 230, 166), 0.3)', 'linear-gradient(160deg, rgba(var(--green-rgb, 51, 230, 166), 0.1), rgba(var(--green-rgb, 51, 230, 166), 0.03))', 'var(--green-hi, rgb(127, 243, 202))'];
             const past = Date.parse(e.startsAt) + e.minutes * 60000 < Date.now();
-            return `<button type="button" data-ev="${esc(e.id)}" style="display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 11px; border: 1px solid ${c[0]}; background: ${c[1]}; color: rgb(246, 246, 247); font: inherit; text-align: left; cursor: pointer; opacity: ${past ? 0.55 : 1};">
+            return `<button type="button" data-ev="${esc(e.id)}" style="display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 11px; border: 1px solid ${c[0]}; background: ${c[1]}; color: var(--ink, rgb(246, 246, 247)); font: inherit; text-align: left; cursor: pointer; opacity: ${past ? 0.55 : 1};">
               <span style="${MONO2} font-size: 10px; color: ${c[2]};">${hm(e.startsAt)} · ${esc(who)}</span>
               <span style="font-size: 12.5px; font-weight: 600; line-height: 1.3;">${esc(e.title)}</span></button>`;
           }).join('')}
@@ -382,48 +382,48 @@
     }).join('');
     return `<section style="display: flex; flex-direction: column; gap: 14px;">
         <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="${MONO2} font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — ${thisWeek ? 'Cette semaine' : `Semaine du ${fr(S.week, { day: 'numeric', month: 'long' })}`}</span>
-          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
+          <span style="${MONO2} font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">02 — ${thisWeek ? 'Cette semaine' : `Semaine du ${fr(S.week, { day: 'numeric', month: 'long' })}`}</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
           <button type="button" class="sh-ib" data-week="-1" aria-label="Semaine précédente">${ic('left')}</button><button type="button" class="sh-ib" data-week="1" aria-label="Semaine suivante">${ic('right')}</button>
           ${thisWeek ? '' : '<button type="button" class="sh-link" data-week="0">Aujourd’hui</button>'}
         </div>
-        <div style="overflow-x: auto;"><div style="min-width: 820px; display: grid; grid-template-columns: repeat(7, minmax(0px, 1fr)); border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(255, 255, 255, 0.016); overflow: hidden;">${cols}</div></div>
+        <div style="overflow-x: auto;"><div style="min-width: 820px; display: grid; grid-template-columns: repeat(7, minmax(0px, 1fr)); border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: rgba(var(--fg-rgb, 255, 255, 255), 0.016); overflow: hidden;">${cols}</div></div>
       </section>`;
   }
   function cards2() {
     const M = S.mentor || {}, nx = nextCall2();
     const tasks = (M.tasks || []).slice().sort((a, b) => (!!a.doneAt - !!b.doneAt) || (Date.parse(a.dueAt || 0) - Date.parse(b.dueAt || 0)));
     const done = tasks.filter((t) => t.doneAt).length;
-    const call = nx ? `<div style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(16, 16, 19, 0.75), rgba(9, 9, 11, 0.9)); box-shadow: rgba(255, 255, 255, 0.12) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+    const call = nx ? `<div style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.75), rgba(var(--dk-rgb, 9, 9, 11), 0.9)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.12) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
           <div aria-hidden="true" style="position: absolute; right: -80px; top: -90px; width: 260px; height: 240px; background: radial-gradient(closest-side, rgba(var(--a1-rgb, 252, 18, 131), 0.22), transparent);"></div>
           <span style="position: relative; ${LBL2}">Prochain appel${nx.status === 'proposed' ? ' · à confirmer' : ''}</span>
           <span style="position: relative; font-size: 22px; font-weight: 700; letter-spacing: -0.025em;">${esc(nx.title || 'Appel')}</span>
           <div style="position: relative; display: flex; align-items: baseline; gap: 10px;">
             <span style="font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; ${GRAD2} padding-bottom: 0.06em;">${jMinus(nx.startsAt)}</span>
-            <span style="color: rgb(155, 155, 161);">${esc(fr(nx.startsAt, { weekday: 'long', day: 'numeric', month: 'short' }))} · ${hm(nx.startsAt)}</span>
+            <span style="color: var(--ink-2, rgb(155, 155, 161));">${esc(fr(nx.startsAt, { weekday: 'long', day: 'numeric', month: 'short' }))} · ${hm(nx.startsAt)}</span>
           </div>
           <div style="position: relative; display: flex; gap: 10px; margin-top: auto;">
-            <a href="${icsHref(nx)}" download="appel-chest.ics" style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; color: rgb(255, 255, 255); font-weight: 600; text-decoration: none; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.28) 0px 10px 30px;">Ajouter à mon agenda</a>
-            <a href="suivi.html" data-suivi style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.14); color: rgb(201, 201, 206); text-decoration: none;">Déplacer</a>
+            <a href="${icsHref(nx)}" download="appel-chest.ics" style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; color: rgb(var(--fg-rgb, 255, 255, 255)); font-weight: 600; text-decoration: none; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.28) 0px 10px 30px;">Ajouter à mon agenda</a>
+            <a href="suivi.html" data-suivi style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.14); color: var(--ink-1, rgb(201, 201, 206)); text-decoration: none;">Déplacer</a>
           </div>
-        </div>` : `<div class="tile" style="${TILE2} gap: 14px;"><span style="${LBL2}">Prochain appel</span><p style="margin: 0px; font-size: 13px; line-height: 1.6; color: rgb(155, 155, 161);">${M.educator ? `Pas d’appel prévu pour l’instant avec ${esc(M.educator.first)}.` : 'Pas encore d’éducateur rattaché à ton compte.'}</p>${M.educator ? '<a href="suivi.html" data-suivi class="sh-link" style="align-self: flex-start;">Ouvrir ton espace →</a>' : ''}</div>`;
+        </div>` : `<div class="tile" style="${TILE2} gap: 14px;"><span style="${LBL2}">Prochain appel</span><p style="margin: 0px; font-size: 13px; line-height: 1.6; color: var(--ink-2, rgb(155, 155, 161));">${M.educator ? `Pas d’appel prévu pour l’instant avec ${esc(M.educator.first)}.` : 'Pas encore d’éducateur rattaché à ton compte.'}</p>${M.educator ? '<a href="suivi.html" data-suivi class="sh-link" style="align-self: flex-start;">Ouvrir ton espace →</a>' : ''}</div>`;
     const missions = `<div class="tile" style="${TILE2} gap: 6px;">
           <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;"><span style="${LBL2}">Avant le prochain appel</span>${tasks.length ? `<span style="margin-left: auto; font-size: 12px; font-weight: 600; color: rgb(var(--a2-rgb, 249, 164, 94));">${done} / ${tasks.length}</span>` : ''}</div>
           ${tasks.length ? tasks.slice(0, 5).map((t) => {
             const late = !t.doneAt && t.dueAt && Date.parse(t.dueAt) < Date.now();
             const sub = t.doneAt ? `fait le ${fr(t.doneAt, { day: 'numeric', month: 'short' })}` : t.dueAt ? `${late ? 'en retard · ' : 'avant '}${fr(t.dueAt, { weekday: 'long', day: 'numeric', month: 'short' })}` : 'sans date';
-            return `<button type="button" data-task="${t.id}" role="checkbox" aria-checked="${!!t.doneAt}" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 0px; border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.055); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;">
-              <span aria-hidden="true" style="width: 18px; height: 18px; flex: 0 0 18px; margin-top: 1px; border-radius: 4px; display: grid; place-items: center; ${t.doneAt ? 'background: rgb(var(--a1-rgb, 252, 18, 131));' : 'border: 1.5px solid rgba(255, 255, 255, 0.5);'} color: #fff; font-size: 12px; font-weight: 700;">${t.doneAt ? '✓' : ''}</span>
-              <span style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 13px; color: ${t.doneAt ? 'rgb(122, 122, 130)' : 'rgb(246, 246, 247)'}; text-decoration: ${t.doneAt ? 'line-through' : 'none'};">${esc(t.title)}</span>
-              <span style="${MONO2} font-size: 10.5px; color: ${late ? 'rgb(255, 148, 160)' : 'rgb(122, 122, 130)'};">${esc(sub)}</span></span></button>`;
-          }).join('') : `<p style="margin: 0px; font-size: 13px; color: rgb(155, 155, 161);">Rien à préparer pour l’instant.</p>`}
+            return `<button type="button" data-task="${t.id}" role="checkbox" aria-checked="${!!t.doneAt}" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 0px; border: 0; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;">
+              <span aria-hidden="true" style="width: 18px; height: 18px; flex: 0 0 18px; margin-top: 1px; border-radius: 4px; display: grid; place-items: center; ${t.doneAt ? 'background: rgb(var(--a1-rgb, 252, 18, 131));' : 'border: 1.5px solid rgba(var(--fg-rgb, 255, 255, 255), 0.5);'} color: #fff; font-size: 12px; font-weight: 700;">${t.doneAt ? '✓' : ''}</span>
+              <span style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 13px; color: ${t.doneAt ? 'var(--ink-3, rgb(122, 122, 130))' : 'var(--ink, rgb(246, 246, 247))'}; text-decoration: ${t.doneAt ? 'line-through' : 'none'};">${esc(t.title)}</span>
+              <span style="${MONO2} font-size: 10.5px; color: ${late ? 'var(--red-hi, rgb(255, 148, 160))' : 'var(--ink-3, rgb(122, 122, 130))'};">${esc(sub)}</span></span></button>`;
+          }).join('') : `<p style="margin: 0px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));">Rien à préparer pour l’instant.</p>`}
         </div>`;
     const posts = (S.posts || []).slice(0, 2);
     const infos = `<div class="tile" style="${TILE2} gap: 14px;"><span style="${LBL2}">Infos</span>
-          ${posts.length ? posts.map((p) => `<button type="button" data-post="${p.id}" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 0px 14px; border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.055); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;">
-              <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; color: rgb(5, 5, 5); background: ${p.chest ? 'linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)))' : 'rgb(127, 243, 202)'};">${p.chest ? 'CHEST' : esc(String(p.author || 'Équipe').split(' ')[0])}</span><span style="${MONO2} font-size: 10.5px; color: rgb(122, 122, 130);">${esc(relDay(p.createdAt).toLowerCase())}</span></span>
+          ${posts.length ? posts.map((p) => `<button type="button" data-post="${p.id}" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 0px 14px; border: 0; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;">
+              <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; color: var(--bg-0, rgb(5, 5, 5)); background: ${p.chest ? 'linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)))' : 'var(--green-hi, rgb(127, 243, 202))'};">${p.chest ? 'CHEST' : esc(String(p.author || 'Équipe').split(' ')[0])}</span><span style="${MONO2} font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));">${esc(relDay(p.createdAt).toLowerCase())}</span></span>
               <span style="font-weight: 600;">${esc(p.title)}</span>
-              <span style="font-size: 12.5px; line-height: 1.55; color: rgb(155, 155, 161);">${esc(String(p.body || '').slice(0, 120))}${String(p.body || '').length > 120 ? '…' : ''}</span></button>`).join('') : '<p style="margin: 0px; font-size: 13px; color: rgb(155, 155, 161);">Pas d’info de l’équipe pour l’instant.</p>'}
+              <span style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));">${esc(String(p.body || '').slice(0, 120))}${String(p.body || '').length > 120 ? '…' : ''}</span></button>`).join('') : '<p style="margin: 0px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));">Pas d’info de l’équipe pour l’instant.</p>'}
         </div>`;
     return `<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">${call}${missions}</section>`;
   }
@@ -442,10 +442,10 @@
       const buy = t.side === 'buy', r = rowR(t), d = new Date(t.time);
       const st = !t.status || t.status === 'active' ? 'En cours' : t.status === 'sl' ? 'Stop' : 'Objectif';
       return `<button type="button" class="row-h" data-trade="${esc(t.symbol)}|${esc(t.tf)}" style="display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.6fr; align-items: center; gap: 10px; padding: 10px 8px; margin: 0px -8px; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;">
-              <span style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;">${fr(d, { day: 'numeric', month: 'short' })} ${hm(d)}</span>
-              <span><span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${buy ? 'rgb(127, 243, 202)' : 'rgb(255, 148, 160)'}; background: ${buy ? 'rgba(51, 230, 166, 0.12)' : 'rgba(255, 77, 94, 0.12)'};">${buy ? 'Achat' : 'Vente'}</span></span>
-              <span style="color: rgb(155, 155, 161);">${st} · ${esc(t.symbol)}</span>
-              <span style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: ${r == null ? 'rgb(155, 155, 161)' : r >= 0 ? 'rgb(127, 243, 202)' : 'rgb(255, 148, 160)'};">${r == null ? '—' : (r >= 0 ? '+' : '−') + Math.abs(r).toFixed(1).replace('.', ',') + ' R'}</span></button>`;
+              <span style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">${fr(d, { day: 'numeric', month: 'short' })} ${hm(d)}</span>
+              <span><span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${buy ? 'var(--green-hi, rgb(127, 243, 202))' : 'var(--red-hi, rgb(255, 148, 160))'}; background: ${buy ? 'rgba(var(--green-rgb, 51, 230, 166), 0.12)' : 'rgba(var(--red-rgb, 255, 77, 94), 0.12)'};">${buy ? 'Achat' : 'Vente'}</span></span>
+              <span style="color: var(--ink-2, rgb(155, 155, 161));">${st} · ${esc(t.symbol)}</span>
+              <span style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: ${r == null ? 'var(--ink-2, rgb(155, 155, 161))' : r >= 0 ? 'var(--green-hi, rgb(127, 243, 202))' : 'var(--red-hi, rgb(255, 148, 160))'};">${r == null ? '—' : (r >= 0 ? '+' : '−') + Math.abs(r).toFixed(1).replace('.', ',') + ' R'}</span></button>`;
     }).join('');
     const items = g ? g.recap : [];
     const ok = checks(R.scanner);
@@ -454,22 +454,22 @@
           <div style="display: flex; align-items: center; gap: 12px;">
             ${sc.logo ? `<img src="${esc(sc.logo)}" alt="" style="width: 40px; height: 40px; border-radius: 11px; object-fit: cover;">` : ''}
             <span style="display: flex; flex-direction: column; gap: 2px;"><span style="${LBL2}">03 — Ton scanner de référence</span><span style="font-size: 17px; font-weight: 700;">${esc(sc.name)}</span></span>
-            <button type="button" data-ref-open style="margin-left: auto; border: 0; background: none; color: rgb(155, 155, 161); font: inherit; font-size: 12px; cursor: pointer;">Ouvrir →</button>
+            <button type="button" data-ref-open style="margin-left: auto; border: 0; background: none; color: var(--ink-2, rgb(155, 155, 161)); font: inherit; font-size: 12px; cursor: pointer;">Ouvrir →</button>
           </div>
-          ${trades || `<p style="margin: 0px; font-size: 13px; color: rgb(155, 155, 161);">${R.available === false ? 'Le scanner ne répond pas pour le moment.' : 'Pas de trade récent. Ouvre le graphique pour voir les signaux en direct.'}</p>`}
+          ${trades || `<p style="margin: 0px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));">${R.available === false ? 'Le scanner ne répond pas pour le moment.' : 'Pas de trade récent. Ouvre le graphique pour voir les signaux en direct.'}</p>`}
         </div>
         <div class="tile" style="${TILE2} gap: 4px;">
-          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;"><span style="${LBL2}">Avant de trader aujourd’hui</span><span style="margin-left: auto; font-size: 11.5px; color: rgb(122, 122, 130);">remis à zéro chaque matin</span></div>
-          ${items.length ? items.map((it, i) => `<button type="button" data-ref-check="${i}" role="checkbox" aria-checked="${ok.includes(i)}" style="display: flex; align-items: center; gap: 12px; padding: 9px 0px; border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;">
-              <span aria-hidden="true" style="width: 18px; height: 18px; flex: 0 0 18px; border-radius: 4px; display: grid; place-items: center; ${ok.includes(i) ? 'background: rgb(51, 230, 166); color: rgb(5, 5, 5);' : 'border: 1.5px solid rgba(255, 255, 255, 0.5);'} font-size: 12px; font-weight: 700;">${ok.includes(i) ? '✓' : ''}</span>
-              <span style="font-size: 13px; color: rgb(246, 246, 247);">${esc(it)}</span></button>`).join('') : '<p style="margin: 0px; font-size: 13px; color: rgb(155, 155, 161);">La checklist de ce scanner arrive bientôt.</p>'}
+          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;"><span style="${LBL2}">Avant de trader aujourd’hui</span><span style="margin-left: auto; font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">remis à zéro chaque matin</span></div>
+          ${items.length ? items.map((it, i) => `<button type="button" data-ref-check="${i}" role="checkbox" aria-checked="${ok.includes(i)}" style="display: flex; align-items: center; gap: 12px; padding: 9px 0px; border: 0; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;">
+              <span aria-hidden="true" style="width: 18px; height: 18px; flex: 0 0 18px; border-radius: 4px; display: grid; place-items: center; ${ok.includes(i) ? 'background: rgb(var(--green-rgb, 51, 230, 166)); color: var(--bg-0, rgb(5, 5, 5));' : 'border: 1.5px solid rgba(var(--fg-rgb, 255, 255, 255), 0.5);'} font-size: 12px; font-weight: 700;">${ok.includes(i) ? '✓' : ''}</span>
+              <span style="font-size: 13px; color: var(--ink, rgb(246, 246, 247));">${esc(it)}</span></button>`).join('') : '<p style="margin: 0px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));">La checklist de ce scanner arrive bientôt.</p>'}
         </div>
       </section>`;
   }
 
   function renderMember() {
     let n = 3;
-    root.innerHTML = `<div class="sh2" style="display: flex; flex-direction: column; gap: 30px; color: rgb(246, 246, 247); font-size: 13.5px; line-height: normal;">${hero2()}${week2()}${cards2()}${feed2()}<div id="shRef">${ref2()}</div></div>`;
+    root.innerHTML = `<div class="sh2" style="display: flex; flex-direction: column; gap: 30px; color: var(--ink, rgb(246, 246, 247)); font-size: 13.5px; line-height: normal;">${hero2()}${week2()}${cards2()}${feed2()}<div id="shRef">${ref2()}</div></div>`;
     // la recherche des cours (js/school.js) passe sous le héros ; l'ancien en-tête School est masqué
     const sb = document.getElementById('scSearchBox'), slot = document.getElementById('sh2Search');
     if (sb && slot) slot.appendChild(sb);
@@ -531,7 +531,7 @@
     }
   }
 
-  const PALETTE = ['#a855f7', '#f5c451', '#38bdf8', '#33e6a6', '#fc1283', '#f9a45e', '#ff4d5e', '#2dd4bf', '#4d8dff', '#e8e8ee'];
+  const PALETTE = ['#a855f7', '#f5c451', '#38bdf8', 'var(--green, #33e6a6)', 'var(--a1, #fc1283)', 'var(--a2, #f9a45e)', 'var(--red, #ff4d5e)', '#2dd4bf', '#4d8dff', '#e8e8ee'];
   function colorsHtml() {
     const staff = ((S.agenda && S.agenda.staff) || []).filter((x) => x.role !== 'admin');
     if (!staff.length) return '';

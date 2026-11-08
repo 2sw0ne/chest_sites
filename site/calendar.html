@@ -10,15 +10,15 @@
      polices/CSS externes chargent, surtout juste apres la connexion (branche
      experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
      charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
-<style>html,body{background:#050505}</style>
+<style>html,body{background:var(--bg-0, #050505)}</style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=3">
-<link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=20">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
-<link rel="stylesheet" href="css/calendar-da.css?v=6">
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/chest-da.css?v=21">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
+<link rel="stylesheet" href="css/calendar-da.css?v=7">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : sans ca, une regle de classe qui fixe elle-meme
@@ -45,34 +45,34 @@
   /* 2026-11-08 : le bandeau sort de la colonne de 980 px et prend toute la largeur de la page (l'iframe) */
   html, body{ overflow-x:clip; }
   .c2-ticker{ position:relative; width:100vw; max-width:none; min-width:0; margin-left:calc(50% - 50vw); overflow:hidden; contain:inline-size;
-    border-bottom:1px solid rgba(255,255,255,.07); background:linear-gradient(rgba(255,255,255,.025), rgba(255,255,255,0)), rgba(6,6,8,.6);
+    border-bottom:1px solid rgba(var(--fg-rgb, 255, 255, 255),.07); background:linear-gradient(rgba(var(--fg-rgb, 255, 255, 255),.025), rgba(var(--fg-rgb, 255, 255, 255),0)), rgba(var(--dk-rgb, 6, 6, 8),.6);
     -webkit-mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
   .c2-ticker::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px; pointer-events:none; background:linear-gradient(90deg, transparent, rgba(var(--a1-rgb, 252, 18, 131),.35) 30%, rgba(var(--a2-rgb, 249, 164, 94),.35) 70%, transparent); }
-  .c2-ticker .ticker-item{ align-items:center; gap:10px; padding:12px 26px; border-right:1px solid rgba(255,255,255,.05); font-family:"Instrument Sans", system-ui, sans-serif; font-size:12.5px; }
-  .c2-ticker .ticker-item b{ color:#f6f6f7; font-weight:600; letter-spacing:-.005em; }
-  .c2-ticker .ticker-item .px{ color:#9b9ba1; font-variant-numeric:tabular-nums; }
+  .c2-ticker .ticker-item{ align-items:center; gap:10px; padding:12px 26px; border-right:1px solid rgba(var(--fg-rgb, 255, 255, 255),.05); font-family:"Instrument Sans", system-ui, sans-serif; font-size:12.5px; }
+  .c2-ticker .ticker-item b{ color:var(--ink, #f6f6f7); font-weight:600; letter-spacing:-.005em; }
+  .c2-ticker .ticker-item .px{ color:var(--ink-2, #9b9ba1); font-variant-numeric:tabular-nums; }
   .c2-ticker .ticker-item .chg{ font-weight:600; font-size:12px; padding:2px 7px; border-radius:999px; }
-  .c2-ticker .ticker-item .chg.pos{ color:#7ff3ca; background:rgba(51,230,166,.08); text-shadow:0 0 12px rgba(51,230,166,.45); }
-  .c2-ticker .ticker-item .chg.neg{ color:#ff94a0; background:rgba(255,77,94,.08); text-shadow:0 0 12px rgba(255,77,94,.4); }
+  .c2-ticker .ticker-item .chg.pos{ color:var(--green-hi, #7ff3ca); background:rgba(var(--green-rgb, 51, 230, 166),.08); text-shadow:0 0 12px rgba(var(--green-rgb, 51, 230, 166),.45); }
+  .c2-ticker .ticker-item .chg.neg{ color:var(--red-hi, #ff94a0); background:rgba(var(--red-rgb, 255, 77, 94),.08); text-shadow:0 0 12px rgba(var(--red-rgb, 255, 77, 94),.4); }
   /* bibliothèque : étages remplis, serre-livre + jour */
   .c2-lib{ display:flex; flex-wrap:wrap; align-items:flex-end; row-gap:26px; padding:28px 0 4px; }
   .c2-slot{ position:relative; flex:1 0 auto; display:flex; align-items:flex-end; min-height:calc(var(--sh) - 20px); padding:0 2px var(--pl); }
-  .c2-slot::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:var(--pl); background:linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.04)); border-top:1px solid rgba(255,255,255,.3); box-shadow:0 12px 22px rgba(0,0,0,.5); }
+  .c2-slot::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:var(--pl); background:linear-gradient(rgba(var(--fg-rgb, 255, 255, 255),.16), rgba(var(--fg-rgb, 255, 255, 255),.04)); border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.3); box-shadow:0 12px 22px rgba(0, 0, 0, calc(.5 * var(--sh-k, 1))); }
   .c2-slot--fill{ flex-grow:1000; min-width:0; }
   .c2-slot--day{ padding-left:12px; padding-right:12px; }
   .c2-slot--day.is-first{ padding-left:2px; padding-right:2px; }
-  .c2-shelf__day{ position:relative; display:block; width:2px; height:calc(var(--sh) - 40px); border-radius:2px; background:linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.22)); }
+  .c2-shelf__day{ position:relative; display:block; width:2px; height:calc(var(--sh) - 40px); border-radius:2px; background:linear-gradient(rgba(var(--fg-rgb, 255, 255, 255),0), rgba(var(--fg-rgb, 255, 255, 255),.22)); }
   .c2-slot--day.is-first .c2-shelf__day{ width:0; }
   .c2-shelf__day i{ position:absolute; left:8px; top:-22px; white-space:nowrap; font-style:normal; font-size:10.5px; font-weight:500; letter-spacing:.02em; color:rgba(155,155,161,.55); }
   .c2-slot--day.is-first .c2-shelf__day i{ left:0; }
   .c2-slot--day.is-today .c2-shelf__day i{ color:rgba(var(--a2-rgb, 249, 164, 94),.75); }
   /* semaine repliable */
-  .c2-more{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:44px; margin-top:10px; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.02); color:#c9c9ce; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; transition:background .2s ease, border-color .2s ease, color .2s ease; }
-  .c2-more:hover{ background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.16); color:#f6f6f7; }
+  .c2-more{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:44px; margin-top:10px; border-radius:14px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.08); background:rgba(var(--fg-rgb, 255, 255, 255),.02); color:var(--ink-1, #c9c9ce); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; transition:background .2s ease, border-color .2s ease, color .2s ease; }
+  .c2-more:hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.05); border-color:rgba(var(--fg-rgb, 255, 255, 255),.16); color:var(--ink, #f6f6f7); }
   .c2-more:focus-visible{ outline:0; box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.3); }
-  .c2-more span{ font-weight:500; color:#7a7a82; }
+  .c2-more span{ font-weight:500; color:var(--ink-3, #7a7a82); }
   .c2-more[hidden]{ display:none; }
-  .c2-ticker .ticker-meta{ border-left:0; background:none; color:#7a7a82; }
+  .c2-ticker .ticker-meta{ border-left:0; background:none; color:var(--ink-3, #7a7a82); }
   .ticker-wrap{
     display:flex; align-items:stretch; border-bottom:1px solid var(--chest-rule); overflow:hidden;
   }
@@ -85,7 +85,7 @@
   .ticker-item .px{ color:var(--chest-ink-2); font-variant-numeric:tabular-nums; }
   .ticker-item .chg{ font-weight:700; font-variant-numeric:tabular-nums; }
   .ticker-item .chg.pos{ color:var(--chest-green); } .ticker-item .chg.neg{ color:var(--chest-red); }
-  .ticker-meta{ flex-shrink:0; padding:11px 20px; font-size:11px; color:var(--chest-ink-3); white-space:nowrap; border-left:1px solid var(--chest-rule); background:rgba(8,8,10,.9); }
+  .ticker-meta{ flex-shrink:0; padding:11px 20px; font-size:11px; color:var(--chest-ink-3); white-space:nowrap; border-left:1px solid var(--chest-rule); background:rgba(var(--dk-rgb, 8, 8, 10),.9); }
 
   /* ---------- Bubbles (aujourd'hui) ---------- */
   .bubble-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-bottom:clamp(30px,5vh,46px); }
@@ -106,7 +106,7 @@
   .bubble__stats b{ font-variant-numeric:tabular-nums; }
   .bubble__badge{ font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
   .bubble__badge.pending{ background:rgba(var(--a1-rgb, 252, 18, 131),.14); color:var(--acc); }
-  .bubble__badge.released{ background:rgba(51,230,166,.14); color:var(--green); }
+  .bubble__badge.released{ background:rgba(var(--green-rgb, 51, 230, 166),.14); color:var(--green); }
 
   .bubble__detail{ max-height:0; overflow:hidden; transition:max-height .35s var(--ease); }
   .bubble__detail-inner{ padding-top:14px; margin-top:14px; border-top:1px solid var(--line); }
@@ -203,8 +203,8 @@
     background:radial-gradient(ellipse 55% 65% at 50% 18%, var(--glow, rgba(var(--a1-rgb, 252, 18, 131),.32)), transparent 72%);
     transition:background .5s;
   }
-  .sentiment-hero[data-tone="pos"]{ --glow: rgba(51,230,166,.45); }
-  .sentiment-hero[data-tone="neg"]{ --glow: rgba(255,77,94,.45); }
+  .sentiment-hero[data-tone="pos"]{ --glow: rgba(var(--green-rgb, 51, 230, 166),.45); }
+  .sentiment-hero[data-tone="neg"]{ --glow: rgba(var(--red-rgb, 255, 77, 94),.45); }
   /* Fondu de sortie vers le fond reel de la page (retour direct utilisateur
      du 2026-09-16 : coupure nette en bas du hero, capture entouree en rose).
      Le fondu d'entree tente au dessus (vers le ticker) a ete retire : il
@@ -219,38 +219,38 @@
   .sentiment-hero__inner{ position:relative; max-width:760px; margin:0 auto; }
   .sentiment-hero__badge{
     display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-    padding:7px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.7); margin-bottom:24px;
+    padding:7px 16px; border-radius:999px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.16); color:rgba(var(--fg-rgb, 255, 255, 255),.7); margin-bottom:24px;
   }
   .sentiment-hero__badge::before{ content:''; width:7px; height:7px; border-radius:50%; background:currentColor; }
-  .sentiment-hero[data-tone="pos"] .sentiment-hero__badge{ color:var(--green); border-color:rgba(51,230,166,.35); }
-  .sentiment-hero[data-tone="neg"] .sentiment-hero__badge{ color:var(--red); border-color:rgba(255,77,94,.35); }
+  .sentiment-hero[data-tone="pos"] .sentiment-hero__badge{ color:var(--green); border-color:rgba(var(--green-rgb, 51, 230, 166),.35); }
+  .sentiment-hero[data-tone="neg"] .sentiment-hero__badge{ color:var(--red); border-color:rgba(var(--red-rgb, 255, 77, 94),.35); }
   .sentiment-hero__code{
     font-size:clamp(46px,7vw,78px); font-weight:800; letter-spacing:-.03em; line-height:1; margin:0 0 10px;
-    background:linear-gradient(180deg,#fff,rgba(255,255,255,.55)); -webkit-background-clip:text; background-clip:text; color:transparent;
+    background:linear-gradient(180deg,#fff,rgba(var(--fg-rgb, 255, 255, 255),.55)); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
-  .sentiment-hero__label{ font-size:13.5px; color:rgba(255,255,255,.5); margin-bottom:32px; }
-  .sentiment-hero__weekly{ font-size:clamp(32px,5vw,50px); font-weight:800; letter-spacing:-.02em; line-height:1; margin-bottom:6px; color:rgba(255,255,255,.9); }
+  .sentiment-hero__label{ font-size:13.5px; color:rgba(var(--fg-rgb, 255, 255, 255),.5); margin-bottom:32px; }
+  .sentiment-hero__weekly{ font-size:clamp(32px,5vw,50px); font-weight:800; letter-spacing:-.02em; line-height:1; margin-bottom:6px; color:rgba(var(--fg-rgb, 255, 255, 255),.9); }
   .sentiment-hero[data-tone="pos"] .sentiment-hero__weekly{ color:var(--green); }
   .sentiment-hero[data-tone="neg"] .sentiment-hero__weekly{ color:var(--red); }
-  .sentiment-hero__weekly-label{ font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.4); margin-bottom:28px; }
-  .sentiment-hero__text{ font-size:14.5px; line-height:1.6; margin:0 0 28px; color:rgba(255,255,255,.75); }
+  .sentiment-hero__weekly-label{ font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:rgba(var(--fg-rgb, 255, 255, 255),.4); margin-bottom:28px; }
+  .sentiment-hero__text{ font-size:14.5px; line-height:1.6; margin:0 0 28px; color:rgba(var(--fg-rgb, 255, 255, 255),.75); }
 
   /* Cartes cote a cote pour chaque annonce motrice */
   .sentiment-hero__drivers{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:24px; text-align:left; }
   .driver-card{
     display:flex; flex-direction:column; gap:8px; padding:14px 16px; border-radius:14px;
-    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+    background:rgba(var(--fg-rgb, 255, 255, 255),.05); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1);
   }
   .driver-card__top{ display:flex; align-items:center; gap:8px; }
   .driver-card__top .flag-ic{ width:20px; height:15px; flex-shrink:0; }
   .driver-card__logo{ width:20px; height:20px; border-radius:50%; flex-shrink:0; }
-  .driver-card__top .tag{ font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:rgba(255,255,255,.4); white-space:nowrap; margin-left:auto; }
-  .driver-card__name{ font-size:12.5px; font-weight:600; line-height:1.3; flex:1; min-width:0; color:rgba(255,255,255,.92); }
+  .driver-card__top .tag{ font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:rgba(var(--fg-rgb, 255, 255, 255),.4); white-space:nowrap; margin-left:auto; }
+  .driver-card__name{ font-size:12.5px; font-weight:600; line-height:1.3; flex:1; min-width:0; color:rgba(var(--fg-rgb, 255, 255, 255),.92); }
   .driver-card__value{ font-size:24px; font-weight:800; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
   .driver-card__estimates{ display:flex; gap:14px; font-size:11px; }
   .driver-card__estimates b{ font-variant-numeric:tabular-nums; font-size:12.5px; }
-  .driver-card__estimates span{ display:block; opacity:.7; text-transform:uppercase; letter-spacing:.04em; font-size:9.5px; margin-bottom:2px; color:rgba(255,255,255,.55); }
-  .sentiment-hero .val.neutral{ color:rgba(255,255,255,.55); }
+  .driver-card__estimates span{ display:block; opacity:.7; text-transform:uppercase; letter-spacing:.04em; font-size:9.5px; margin-bottom:2px; color:rgba(var(--fg-rgb, 255, 255, 255),.55); }
+  .sentiment-hero .val.neutral{ color:rgba(var(--fg-rgb, 255, 255, 255),.55); }
 
   /* Prevu | Reel, separes par le trait violet (--acc2) - le "prevu" reste
      visible toute la semaine, meme une fois l'evenement publie. Avant
@@ -259,7 +259,7 @@
      reference (.is-ref) - la taille seule dit ce qui compte maintenant. */
   .driver-card__compare{ display:flex; align-items:stretch; gap:12px; }
   .driver-card__compare-col{ flex:1; min-width:0; }
-  .driver-card__compare-col span{ display:block; opacity:.7; text-transform:uppercase; letter-spacing:.04em; font-size:9.5px; margin-bottom:3px; color:rgba(255,255,255,.55); }
+  .driver-card__compare-col span{ display:block; opacity:.7; text-transform:uppercase; letter-spacing:.04em; font-size:9.5px; margin-bottom:3px; color:rgba(var(--fg-rgb, 255, 255, 255),.55); }
   .driver-card__compare-col b{ font-weight:800; font-variant-numeric:tabular-nums; transition:font-size .2s, opacity .2s; }
   .driver-card__compare-col.is-main b{ font-size:20px; opacity:1; }
   .driver-card__compare-col.is-ref b{ font-size:13px; opacity:.5; }
@@ -268,9 +268,9 @@
   /* Quand Prevu == Reel exactement (conforme au consensus) : le dit
      explicitement plutot que de laisser deux chiffres presque identiques
      ressembler a un bug d'affichage. */
-  .driver-card__match{ font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:rgba(255,255,255,.4); margin-top:6px; }
-  .driver-card__calib{ font-size:9.5px; line-height:1.4; color:rgba(51,230,166,.85); margin-top:8px; }
-  .driver-card__calib.is-heuristic{ color:rgba(255,255,255,.35); }
+  .driver-card__match{ font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:rgba(var(--fg-rgb, 255, 255, 255),.4); margin-top:6px; }
+  .driver-card__calib{ font-size:9.5px; line-height:1.4; color:rgba(var(--green-rgb, 51, 230, 166),.85); margin-top:8px; }
+  .driver-card__calib.is-heuristic{ color:rgba(var(--fg-rgb, 255, 255, 255),.35); }
 
   /* ---------- Semaine a venir : 3 annonces vedettes (plus gros risque
      d'impact) + pile compacte pour le reste - retour direct utilisateur du
@@ -287,12 +287,12 @@
   .driver-compact{ display:flex; gap:16px; align-items:stretch; margin-bottom:24px; text-align:left; }
   @media (max-width:640px){ .driver-compact{ flex-direction:column; } }
   .driver-compact__detail{
-    flex:0 0 220px; min-width:0; border:1px solid rgba(255,255,255,.1); border-radius:var(--radius-sm);
-    background:rgba(255,255,255,.03); padding:16px; display:flex; flex-direction:column; justify-content:center;
+    flex:0 0 220px; min-width:0; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); border-radius:var(--radius-sm);
+    background:rgba(var(--fg-rgb, 255, 255, 255),.03); padding:16px; display:flex; flex-direction:column; justify-content:center;
   }
   .driver-compact__detail .driver-card{ border:none; background:none; padding:0; animation:driverDetailIn .25s var(--ease); }
   @keyframes driverDetailIn{ from{ opacity:0; transform:translateX(-8px); } to{ opacity:1; transform:translateX(0); } }
-  .driver-compact__hint{ margin:0; font-size:12px; line-height:1.6; color:rgba(255,255,255,.4); }
+  .driver-compact__hint{ margin:0; font-size:12px; line-height:1.6; color:rgba(var(--fg-rgb, 255, 255, 255),.4); }
   /* Rangee qui se comprime toute seule pour tenir sur une ligne, sans barre
      de defilement visible (retour direct utilisateur du 2026-09-16 : "je
      veux que tout soit range, pas de volet qui glissent tous au meme
@@ -304,15 +304,15 @@
   .driver-compact__stack{
     flex:1; min-width:0; display:flex; align-items:flex-start; gap:2px;
     overflow-x:auto; overflow-y:hidden; padding:4px 2px 10px;
-    scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.2) transparent;
+    scrollbar-width:thin; scrollbar-color:rgba(var(--fg-rgb, 255, 255, 255),.2) transparent;
   }
   .driver-compact__stack::-webkit-scrollbar{ height:4px; }
-  .driver-compact__stack::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.2); border-radius:4px; }
+  .driver-compact__stack::-webkit-scrollbar-thumb{ background:rgba(var(--fg-rgb, 255, 255, 255),.2); border-radius:4px; }
   .driver-compact__stack::-webkit-scrollbar-track{ background:transparent; }
   .driver-tab{
     all:unset; box-sizing:border-box; position:relative; z-index:1;
     flex:1 1 22px; min-width:18px; max-width:26px; height:150px;
-    border:1px solid rgba(255,255,255,.12); border-radius:9px; background:rgba(255,255,255,.03);
+    border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); border-radius:9px; background:rgba(var(--fg-rgb, 255, 255, 255),.03);
     cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:9px; padding:11px 0 10px;
     overflow:hidden; transition:flex-basis .2s var(--ease), transform .2s var(--ease), background .2s, border-color .2s;
   }
@@ -320,41 +320,41 @@
      coupe/deborde) ; au survol la tranche s'elargit un peu et revele le nom
      en ecriture verticale, comme demande - le flex-shrink des voisines
      absorbe naturellement la place prise (pas de decalage brutal). */
-  .driver-tab:hover{ flex-basis:64px; transform:translateY(-5px); background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.3); z-index:3; }
+  .driver-tab:hover{ flex-basis:64px; transform:translateY(-5px); background:rgba(var(--fg-rgb, 255, 255, 255),.06); border-color:rgba(var(--fg-rgb, 255, 255, 255),.3); z-index:3; }
   .driver-tab.is-active{ flex-basis:64px; background:rgba(var(--a1-rgb, 252, 18, 131),.09); border-color:var(--acc); box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.22); z-index:2; }
   .driver-tab .flag-ic{ width:18px; height:13px; flex-shrink:0; }
   .driver-tab__name{
     flex:1; min-height:0; writing-mode:vertical-rl; text-orientation:mixed; white-space:nowrap;
-    font-size:10px; font-weight:600; line-height:1.3; color:rgba(255,255,255,.85); letter-spacing:.01em;
+    font-size:10px; font-weight:600; line-height:1.3; color:rgba(var(--fg-rgb, 255, 255, 255),.85); letter-spacing:.01em;
     opacity:0; transition:opacity .15s ease;
   }
   .driver-tab:hover .driver-tab__name, .driver-tab.is-active .driver-tab__name{ opacity:1; transition-delay:.08s; }
-  .driver-tab__dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; background:rgba(255,255,255,.3); }
+  .driver-tab__dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; background:rgba(var(--fg-rgb, 255, 255, 255),.3); }
   .driver-tab__dot.pos{ background:var(--green); } .driver-tab__dot.neg{ background:var(--red); }
   .driver-now-sep{ flex:0 0 auto; width:1px; align-self:stretch; margin:6px 10px; background:linear-gradient(180deg, transparent, var(--acc), transparent); position:relative; }
   .driver-now-sep span{
     position:absolute; top:-8px; left:50%; transform:translateX(-50%) rotate(-90deg); transform-origin:center;
     white-space:nowrap; font-size:8px; text-transform:uppercase; letter-spacing:.06em; color:var(--acc);
-    background:rgba(18,18,22,.92); padding:2px 7px; border-radius:6px;
+    background:rgba(var(--dk-rgb, 18, 18, 22),.92); padding:2px 7px; border-radius:6px;
   }
 
   /* ---------- Mode weekend : bilan de la semaine passee + previsionnel ---------- */
   .week-compare{ display:flex; align-items:center; justify-content:center; gap:22px; margin-bottom:10px; flex-wrap:wrap; }
   .week-compare__col{ text-align:center; }
-  .week-compare__col span{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.45); margin-bottom:4px; }
+  .week-compare__col span{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:rgba(var(--fg-rgb, 255, 255, 255),.45); margin-bottom:4px; }
   .week-compare__col b{ display:block; font-size:clamp(28px,5vw,42px); font-weight:800; letter-spacing:-.02em; }
   .week-compare__divider{ width:2px; height:44px; background:var(--acc2); opacity:.55; border-radius:2px; }
   /* Colonne "Reussite" : metrique secondaire (pas un mouvement de prix comme
      les 2 autres colonnes) - taille reduite pour ne pas rivaliser visuellement
      avec Prevision/Realise, qui restent les deux chiffres principaux. */
   .week-compare__col--accuracy b{ font-size:clamp(20px,3.4vw,28px); }
-  .week-compare__accuracy-note{ width:100%; font-size:11px; color:rgba(255,255,255,.4); margin-top:2px; }
+  .week-compare__accuracy-note{ width:100%; font-size:11px; color:rgba(var(--fg-rgb, 255, 255, 255),.4); margin-top:2px; }
   .week-block{ text-align:left; margin-bottom:26px; }
-  .week-block__title{ font-size:11px; text-transform:uppercase; letter-spacing:.14em; color:rgba(255,255,255,.5); margin-bottom:14px; }
-  .driver-empty{ font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:12px; background:rgba(255,255,255,.05); color:rgba(255,255,255,.55); text-align:left; }
+  .week-block__title{ font-size:11px; text-transform:uppercase; letter-spacing:.14em; color:rgba(var(--fg-rgb, 255, 255, 255),.5); margin-bottom:14px; }
+  .driver-empty{ font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:12px; background:rgba(var(--fg-rgb, 255, 255, 255),.05); color:rgba(var(--fg-rgb, 255, 255, 255),.55); text-align:left; }
 
-  .sentiment-hero__disclaimer{ font-size:11px; color:rgba(255,255,255,.38); margin:0; line-height:1.5; }
-  .sentiment-hero__disclaimer a{ color:rgba(255,255,255,.6); text-decoration:underline; }
+  .sentiment-hero__disclaimer{ font-size:11px; color:rgba(var(--fg-rgb, 255, 255, 255),.38); margin:0; line-height:1.5; }
+  .sentiment-hero__disclaimer a{ color:rgba(var(--fg-rgb, 255, 255, 255),.6); text-decoration:underline; }
 
   /* ---------- Marché crypto (deplace depuis le Dashboard) ---------- */
   .mover-cols{ display:grid; grid-template-columns:1fr 1fr; gap:28px; }
@@ -373,15 +373,15 @@
   /* ---------- Compte a rebours (evenements sans donnee chiffree) ---------- */
   .countdown{ font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; background:var(--panel-2); color:var(--muted); font-variant-numeric:tabular-nums; }
 </style>
-<script src="js/theme.js?v=6"></script>
+<script src="js/theme.js?v=7"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=17">
-<link rel="stylesheet" href="css/chest-da-2.css?v=3">
-<link rel="stylesheet" href="css/chest-2-site.css?v=16">
-<link rel="stylesheet" href="css/cal-2.css?v=2">
+<link rel="stylesheet" href="css/v2.css?v=18">
+<link rel="stylesheet" href="css/chest-da-2.css?v=4">
+<link rel="stylesheet" href="css/chest-2-site.css?v=17">
+<link rel="stylesheet" href="css/cal-2.css?v=3">
 </head>
 <body data-page="calendar" class="chest-root">
 
@@ -428,7 +428,7 @@
         </a>
       </div>
     </header>
-<main id="calMain" class="is-loading" style="position: relative; z-index: 1; min-width: 0px; display: flex; flex-direction: column; color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px;">
+<main id="calMain" class="is-loading" style="position: relative; z-index: 1; min-width: 0px; display: flex; flex-direction: column; color: var(--ink, rgb(246, 246, 247)); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px;">
   <!-- Bandeau des paires (hausse / baisse du jour), données de js/calendar.js renderTicker -->
     <div class="ticker-wrap c2-ticker" aria-label="Variation des paires aujourd’hui">
       <div class="ticker-track" id="tickerTrack">
@@ -439,33 +439,33 @@
   <!-- CHEST 2.0 (2026-11-02) : contenu copié de CHEST-DESIGN-2.0/html-exact/Calendrier.html, styles inchangés.
        Les données réelles sont posées par js/cal-2.js (modèle de js/calendar.js, événement chest:cal-render). -->
     <section style="position: relative; isolation: isolate; overflow: hidden; text-align: center; padding: 46px 36px 40px; display: flex; flex-direction: column; align-items: center;">
-      <div id="c2CalHalo" aria-hidden="true" style="position: absolute; left: 50%; top: -40px; width: 1000px; height: 600px; margin-left: -500px; z-index: -2; pointer-events: none; background: radial-gradient(55% 64% at 50% 20%, rgba(51, 230, 166, 0.3), transparent 72%);"></div>
-      <div aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 120px; z-index: -1; pointer-events: none; background: linear-gradient(transparent, rgba(5, 5, 6, 0.95));"></div>
-      <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 22px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 78%) text; color: transparent;">Calendrier</div>
-      <span id="c2CalBadge" style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(127, 243, 202); border: 1px solid rgba(51, 230, 166, 0.4); background: rgba(51, 230, 166, 0.08); padding: 7px 14px; border-radius: 999px;">…</span>
-      <h1 style="margin: 18px 0px 0px; font-size: 112px; line-height: 1; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(rgb(255, 255, 255), rgba(255, 255, 255, 0.55)) text; color: transparent;" id="c2CalCode">—</h1>
-      <span id="c2CalLabel" style="margin-top: 6px; font-size: 14px; color: rgb(155, 155, 161);">&nbsp;</span>
+      <div id="c2CalHalo" aria-hidden="true" style="position: absolute; left: 50%; top: -40px; width: 1000px; height: 600px; margin-left: -500px; z-index: -2; pointer-events: none; background: radial-gradient(55% 64% at 50% 20%, rgba(var(--green-rgb, 51, 230, 166), 0.3), transparent 72%);"></div>
+      <div aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 120px; z-index: -1; pointer-events: none; background: linear-gradient(transparent, rgba(var(--dk-rgb, 5, 5, 6), 0.95));"></div>
+      <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 22px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0) 78%) text; color: transparent;">Calendrier</div>
+      <span id="c2CalBadge" style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--green-hi, rgb(127, 243, 202)); border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.4); background: rgba(var(--green-rgb, 51, 230, 166), 0.08); padding: 7px 14px; border-radius: 999px;">…</span>
+      <h1 style="margin: 18px 0px 0px; font-size: 112px; line-height: 1; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(rgb(var(--fg-rgb, 255, 255, 255)), rgba(var(--fg-rgb, 255, 255, 255), 0.55)) text; color: transparent;" id="c2CalCode">—</h1>
+      <span id="c2CalLabel" style="margin-top: 6px; font-size: 14px; color: var(--ink-2, rgb(155, 155, 161));">&nbsp;</span>
       <div style="margin-top: 26px; display: flex; align-items: baseline; gap: 12px;">
-        <span id="c2CalMove" style="font-size: 72px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; color: rgb(127, 243, 202); font-variant-numeric: tabular-nums; text-shadow: rgba(51, 230, 166, 0.55) 0px 0px 34px;">—</span>
-        <span style="max-width: 150px; text-align: left; font-size: 12.5px; line-height: 1.45; color: rgb(155, 155, 161);" id="c2CalMoveWords">&nbsp;</span>
+        <span id="c2CalMove" style="font-size: 72px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; color: var(--green-hi, rgb(127, 243, 202)); font-variant-numeric: tabular-nums; text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.55) 0px 0px 34px;">—</span>
+        <span style="max-width: 150px; text-align: left; font-size: 12.5px; line-height: 1.45; color: var(--ink-2, rgb(155, 155, 161));" id="c2CalMoveWords">&nbsp;</span>
       </div>
       <div id="c2CalGauge" style="margin-top: 22px; width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 8px;">
-        <div style="position: relative; height: 8px; border-radius: 999px; background: linear-gradient(90deg, rgba(255, 77, 94, 0.7), rgba(255, 255, 255, 0.12) 50%, rgba(51, 230, 166, 0.8));">
-          <span id="c2CalKnob" style="position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0px 0px -9px; border-radius: 999px; background: rgb(5, 5, 6); border: 2px solid rgb(127, 243, 202); box-shadow: rgba(51, 230, 166, 0.9) 0px 0px 16px;"></span>
-          <span id="c2CalLastDot" hidden aria-hidden="true" title="Semaine passée" style="position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0px 0px -4px; border-radius: 999px; background: rgba(255, 255, 255, 0.45);"></span>
+        <div style="position: relative; height: 8px; border-radius: 999px; background: linear-gradient(90deg, rgba(var(--red-rgb, 255, 77, 94), 0.7), rgba(var(--fg-rgb, 255, 255, 255), 0.12) 50%, rgba(var(--green-rgb, 51, 230, 166), 0.8));">
+          <span id="c2CalKnob" style="position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0px 0px -9px; border-radius: 999px; background: var(--bg-0, rgb(5, 5, 6)); border: 2px solid var(--green-hi, rgb(127, 243, 202)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.9) 0px 0px 16px;"></span>
+          <span id="c2CalLastDot" hidden aria-hidden="true" title="Semaine passée" style="position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0px 0px -4px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.45);"></span>
         </div>
-        <div style="display: flex; justify-content: space-between; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span>−3 %</span><span>0</span><span>+3 %</span></div>
+        <div style="display: flex; justify-content: space-between; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span>−3 %</span><span>0</span><span>+3 %</span></div>
         
-        <div id="c2CalPast" hidden style="margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; font-size: 11.5px; color: rgb(122, 122, 130);">
-          <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.45);"></span>Semaine passée</span>
-          <span>prévu <b id="c2CalPastPrev" style="color: rgb(201, 201, 206); font-weight: 600;">—</b></span>
-          <span>réalisé <b id="c2CalPastReal" style="color: rgb(127, 243, 202); font-weight: 600;">…</b><span id="c2CalPastMark"></span></span>
+        <div id="c2CalPast" hidden style="margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">
+          <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.45);"></span>Semaine passée</span>
+          <span>prévu <b id="c2CalPastPrev" style="color: var(--ink-1, rgb(201, 201, 206)); font-weight: 600;">—</b></span>
+          <span>réalisé <b id="c2CalPastReal" style="color: var(--green-hi, rgb(127, 243, 202)); font-weight: 600;">…</b><span id="c2CalPastMark"></span></span>
           <span id="c2CalDots" hidden style="display: flex; align-items: center; gap: 3px;"></span>
         </div>
       </div>
-      <span id="c2CalLock" style="margin-top: 24px; display: flex; align-items: center; gap: 8px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: rgb(122, 122, 130);">
+      <span id="c2CalLock" style="margin-top: 24px; display: flex; align-items: center; gap: 8px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg> Prévision verrouillée lundi</span>
-      <p id="c2CalText" style="margin: 14px 0px 0px; max-width: 600px; font-size: 14px; line-height: 1.6; color: rgb(201, 201, 206);">Chargement de l’analyse…</p>
+      <p id="c2CalText" style="margin: 14px 0px 0px; max-width: 600px; font-size: 14px; line-height: 1.6; color: var(--ink-1, rgb(201, 201, 206));">Chargement de l’analyse…</p>
     </section>
 
     <div id="c2CalEcon" style="display: flex; flex-direction: column; gap: 34px; padding: 6px 36px 64px; max-width: 1180px; width: 100%; box-sizing: border-box;">
@@ -473,8 +473,8 @@
       
       <section style="display: flex; flex-direction: column; gap: 14px;">
         <div style="display: flex; align-items: baseline; gap: 12px;">
-          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Les trois annonces qui décident</span>
-          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
+          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">01 — Les trois annonces qui décident</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
         </div>
         <div id="c2CalMajors" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
         </div>
@@ -483,17 +483,17 @@
       
       <section style="display: flex; flex-direction: column; gap: 14px;">
         <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;">
-          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — La semaine</span>
-          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
+          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">02 — La semaine</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
         </div>
         
-        <div role="group" aria-label="Force de l'annonce" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(255, 255, 255, 0.02);">
-          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130); margin-right: 4px;">Force du marché</span>
+        <div role="group" aria-label="Force de l'annonce" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: rgba(var(--fg-rgb, 255, 255, 255), 0.02);">
+          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130)); margin-right: 4px;">Force du marché</span>
           <span id="c2CalStars" style="display: contents;"></span>
-          <span id="c2CalShown" style="margin-left: auto; font-size: 11.5px; color: rgb(122, 122, 130);"></span>
+          <span id="c2CalShown" style="margin-left: auto; font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"></span>
         </div>
         <div style="overflow-x: auto;">
-          <div id="c2CalWeek" style="min-width: 760px; display: grid; grid-template-columns: repeat(5, minmax(0px, 1fr)); border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(255, 255, 255, 0.016); overflow: hidden;">
+          <div id="c2CalWeek" style="min-width: 760px; display: grid; grid-template-columns: repeat(5, minmax(0px, 1fr)); border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: rgba(var(--fg-rgb, 255, 255, 255), 0.016); overflow: hidden;">
           </div>
         </div>
         <button type="button" id="c2CalWeekMore" class="c2-more" aria-controls="c2CalWeek" hidden></button>
@@ -502,13 +502,13 @@
       
       <section style="display: flex; flex-direction: column; gap: 18px;">
         <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;">
-          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);" id="c2CalLibTitle">03 — Bibliothèque</span>
-          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
-          <span style="font-size: 12px; color: rgb(155, 155, 161);">Les jours s’enchaînent d’un serre-livre à l’autre. Plus le livre est épais, plus l’annonce pèse.</span>
+          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));" id="c2CalLibTitle">03 — Bibliothèque</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
+          <span style="font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">Les jours s’enchaînent d’un serre-livre à l’autre. Plus le livre est épais, plus l’annonce pèse.</span>
         </div>
 
         
-        <div id="c2CalShelf" style="position: relative; padding: 12px 22px 18px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.07); background: radial-gradient(80% 60% at 50% 100%, rgba(var(--a2-rgb, 249, 164, 94), 0.06), transparent 70%), linear-gradient(rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.03)); box-shadow: rgba(0, 0, 0, 0.25) 0px 0px 0px 6px inset;">
+        <div id="c2CalShelf" style="position: relative; padding: 12px 22px 18px; border-radius: 22px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: radial-gradient(80% 60% at 50% 100%, rgba(var(--a2-rgb, 249, 164, 94), 0.06), transparent 70%), linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.01), rgba(var(--fg-rgb, 255, 255, 255), 0.03)); box-shadow: rgba(0, 0, 0, calc(0.25 * var(--sh-k, 1))) 0px 0px 0px 6px inset;">
         </div>
 
         <div id="c2CalBook"></div>
@@ -658,14 +658,14 @@
 
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/lot-calculator.js?v=7"></script>
-<script src="js/liquid-glass.js?v=2"></script>
+<script src="js/lot-calculator.js?v=8"></script>
+<script src="js/liquid-glass.js?v=3"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/crypto-movers.js"></script>
 <script src="js/calendar.js?v=26"></script>
-<script src="js/cal-2.js?v=5"></script>
-<script src="js/page-tour.js"></script>
+<script src="js/cal-2.js?v=6"></script>
+<script src="js/page-tour.js?v=3"></script>
 <script>
 CHESTTour.init([
   { selector: '#c2CalCode', title: 'La prévision de la semaine', text: 'Le mouvement attendu sur la paire suivie : somme des effets estimés des annonces de la semaine, plafonnée à ±3 %, verrouillée le lundi.' },

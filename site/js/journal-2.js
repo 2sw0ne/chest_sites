@@ -6,9 +6,9 @@
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MONO = "font-family: 'Fragment Mono', ui-monospace, monospace;";
-  const LABEL = MONO + ' font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);';
-  const COLORS = ['#fc1283', '#9dbcff', '#e8b339', '#33e6a6', '#b46bff', '#f9a45e'];
-  const POS = 'rgb(127, 243, 202)', NEG = 'rgb(255, 148, 160)';
+  const LABEL = MONO + ' font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));';
+  const COLORS = ['var(--a1, #fc1283)', '#9dbcff', 'var(--amber, #e8b339)', 'var(--green, #33e6a6)', '#b46bff', 'var(--a2, #f9a45e)'];
+  const POS = 'var(--green-hi, rgb(127, 243, 202))', NEG = 'var(--red-hi, rgb(255, 148, 160))';
   const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
   const J = () => window.CHESTJournal;
   let state = null, filter = 'all';
@@ -17,7 +17,7 @@
   const sign = (v) => (v > 0 ? '+' : v < 0 ? '−' : '');
   const money = (v, d) => (v == null ? '—' : sign(v) + nf(Math.abs(v), d == null ? 0 : d) + ' $');
   const pct = (v, d) => (v == null ? '—' : sign(v) + nf(Math.abs(v), d == null ? 1 : d) + ' %');
-  const ink = (v) => (v > 0 ? POS : v < 0 ? NEG : 'rgb(246, 246, 247)');
+  const ink = (v) => (v > 0 ? POS : v < 0 ? NEG : 'var(--ink, rgb(246, 246, 247))');
   const when = (r) => new Date(r.closeAt || r.date);
   const closed = (rows) => rows.filter((r) => r.result && r.pnl != null && isFinite(r.pnl) && r.date).sort((a, b) => when(a) - when(b));
   const dayKey = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -45,8 +45,8 @@
     const hm = l.lastSync ? new Date(l.lastSync).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—';
     const err = !!l.lastError;
     const label = err ? 'Synchro impossible' : (l.kind === 'vps' ? 'VPS en direct' : 'Myfxbook') + ' · ' + hm;
-    T.set(window, `<span style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 12px; color: rgb(155, 155, 161);">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: ${err ? 'rgb(255, 77, 94)' : 'rgb(51, 230, 166)'}; box-shadow: ${err ? 'rgba(255, 77, 94, 0.16)' : 'rgba(51, 230, 166, 0.16)'} 0px 0px 0px 3px;"></span>${esc(label)}
+    T.set(window, `<span style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: ${err ? 'rgb(var(--red-rgb, 255, 77, 94))' : 'rgb(var(--green-rgb, 51, 230, 166))'}; box-shadow: ${err ? 'rgba(var(--red-rgb, 255, 77, 94), 0.16)' : 'rgba(var(--green-rgb, 51, 230, 166), 0.16)'} 0px 0px 0px 3px;"></span>${esc(label)}
       </span>`);
   }
 
@@ -61,7 +61,7 @@
     const Y = (v) => 246 - (v - min) / span * 232;
     const line = ys.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' ');
     const neg = total < 0;
-    const col = neg ? '255,77,94' : '51,230,166', hex = neg ? '#ff4d5e' : '#33e6a6';
+    const col = neg ? '255,77,94' : '51,230,166', hex = neg ? 'var(--red, #ff4d5e)' : 'var(--green, #33e6a6)';
     const last = new Date(M.y, M.m + 1, 0).getDate();
     const endDay = M.current ? new Date().getDate() : last;
     const mm = MONTHS[M.m].slice(0, 4).replace(/(janv|févr|avri|juil|sept|octo|nove|déce)$/, (s) => ({ janv: 'janv.', févr: 'févr.', avri: 'avr.', juil: 'juil.', sept: 'sept.', octo: 'oct.', nove: 'nov.', déce: 'déc.' }[s])).replace(/^(mars|mai|juin|août)$/, '$1');
@@ -81,8 +81,8 @@
           ${pts.length ? `<path d="${line} L940 260 L0 260 Z" fill="url(#jA)"></path>
           <path d="${line}" fill="none" stroke="url(#jL)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(${col}, 0.5) 0px 0px 8px);"></path>` : ''}
         </svg>
-        ${pts.length ? `<span class="pulse" style="position: absolute; left: 94%; top: ${(yEnd / 260 * 100).toFixed(2)}%; width: 11px; height: 11px; margin: -5.5px 0px 0px -5.5px; border-radius: 999px; background: rgb(255, 255, 255); box-shadow: rgba(${col}, 0.25) 0px 0px 0px 4px, rgba(${col}, 0.9) 0px 0px 22px;"></span>` : ''}
-        <span style="position: absolute; left: 36px; bottom: 8px; font-size: 10.5px; color: rgb(122, 122, 130);">${pts.length ? '' : `Pas encore de position clôturée en ${MONTHS[M.m]}.`}</span>
+        ${pts.length ? `<span class="pulse" style="position: absolute; left: 94%; top: ${(yEnd / 260 * 100).toFixed(2)}%; width: 11px; height: 11px; margin: -5.5px 0px 0px -5.5px; border-radius: 999px; background: rgb(var(--fg-rgb, 255, 255, 255)); box-shadow: rgba(${col}, 0.25) 0px 0px 0px 4px, rgba(${col}, 0.9) 0px 0px 22px;"></span>` : ''}
+        <span style="position: absolute; left: 36px; bottom: 8px; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));">${pts.length ? '' : `Pas encore de position clôturée en ${MONTHS[M.m]}.`}</span>
       </div>`;
   }
 
@@ -90,7 +90,7 @@
     return others.map((o) => {
       const v = closed(monthRows(o.rows, M)).reduce((s, r) => s + r.pnl, 0);
       return `
-          <a href="journal.html?acc=${encodeURIComponent(o.a.id)}" class="leg" style="display: inline-flex; align-items: center; gap: 9px; padding: 4px 0px; font-size: 12.5px; color: ${o.a.id === acc.id ? 'rgb(246, 246, 247)' : 'rgb(155, 155, 161)'};">
+          <a href="journal.html?acc=${encodeURIComponent(o.a.id)}" class="leg" style="display: inline-flex; align-items: center; gap: 9px; padding: 4px 0px; font-size: 12.5px; color: ${o.a.id === acc.id ? 'var(--ink, rgb(246, 246, 247))' : 'var(--ink-2, rgb(155, 155, 161))'};">
             <i style="width: 6px; height: 6px; border-radius: 999px; background: ${o.color}; box-shadow: ${o.color} 0px 0px 8px;"></i>
             <span>${esc(o.a.name || 'Journal')}</span>
             <b style="font-weight: 700; font-variant-numeric: tabular-nums; color: ${v < 0 ? NEG : POS};">${money(v)}</b>
@@ -106,28 +106,28 @@
     const bits = [`Du 1er au ${lastDay} ${MONTHS[M.m]}`];
     if (acc.balance > 0) bits.push(`${pct(tot / acc.balance * 100, 2)} sur ${nf(acc.balance, 0)} $`);
     bits.push(`${mrows.length} position${mrows.length > 1 ? 's' : ''} clôturée${mrows.length > 1 ? 's' : ''}`);
-    const grad = tot < 0 ? 'linear-gradient(rgb(255, 255, 255) 8%, rgb(255, 194, 201) 45%, rgb(255, 77, 94)) text' : 'linear-gradient(rgb(255, 255, 255) 8%, rgb(201, 251, 233) 45%, rgb(51, 230, 166)) text';
-    const glow = tot < 0 ? 'rgba(255, 77, 94, 0.3)' : 'rgba(51, 230, 166, 0.3)';
+    const grad = tot < 0 ? 'linear-gradient(rgb(var(--fg-rgb, 255, 255, 255)) 8%, rgb(255, 194, 201) 45%, rgb(var(--red-rgb, 255, 77, 94))) text' : 'linear-gradient(rgb(var(--fg-rgb, 255, 255, 255)) 8%, rgb(201, 251, 233) 45%, rgb(var(--green-rgb, 51, 230, 166))) text';
+    const glow = tot < 0 ? 'rgba(var(--red-rgb, 255, 77, 94), 0.3)' : 'rgba(var(--green-rgb, 51, 230, 166), 0.3)';
     const tabs = others.map((o) => `
-          <button type="button" role="tab" data-acc="${esc(o.a.id)}" aria-selected="${o.a.id === acc.id}" style="position: relative; padding: 8px 0px; border: 0px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: ${o.a.id === acc.id ? 'rgb(246, 246, 247)' : 'rgb(122, 122, 130)'}; cursor: pointer;">
+          <button type="button" role="tab" data-acc="${esc(o.a.id)}" aria-selected="${o.a.id === acc.id}" style="position: relative; padding: 8px 0px; border: 0px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: ${o.a.id === acc.id ? 'var(--ink, rgb(246, 246, 247))' : 'var(--ink-3, rgb(122, 122, 130))'}; cursor: pointer;">
             ${esc(o.a.name || 'Journal')}
             <span aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 0px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.55) 0px 0px 10px; opacity: ${o.a.id === acc.id ? 1 : 0};"></span>
           </button>`).join('');
     const legend = legendHtml(acc, others, M);
     $('jr2Hero').innerHTML = `
-      <div aria-hidden="true" style="position: absolute; left: 50%; top: 0px; width: 900px; height: 520px; margin-left: -450px; z-index: -2; pointer-events: none; filter: blur(100px); background: radial-gradient(40% 46% at 42% 42%, rgba(51, 230, 166, 0.16), transparent 72%), radial-gradient(34% 40% at 64% 36%, rgba(var(--a1-rgb, 252, 18, 131), 0.12), transparent 74%);"></div>
-      <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 16px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 78%) text; color: transparent;">Journal</div>
+      <div aria-hidden="true" style="position: absolute; left: 50%; top: 0px; width: 900px; height: 520px; margin-left: -450px; z-index: -2; pointer-events: none; filter: blur(100px); background: radial-gradient(40% 46% at 42% 42%, rgba(var(--green-rgb, 51, 230, 166), 0.16), transparent 72%), radial-gradient(34% 40% at 64% 36%, rgba(var(--a1-rgb, 252, 18, 131), 0.12), transparent 74%);"></div>
+      <div class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 16px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.075), rgba(var(--fg-rgb, 255, 255, 255), 0) 78%) text; color: transparent;">Journal</div>
       <div role="tablist" aria-label="Tes journaux" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 24px;">${tabs}
         <button type="button" data-jr2="new" style="padding: 8px 0px; border: 0px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(var(--a2-rgb, 249, 164, 94)); cursor: pointer;">+ Nouveau journal</button>
       </div>
       <h1 style="margin: 18px 0px 0px; font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -0.05em;">${esc(acc.name || 'Journal')}</h1>
-      <div style="margin-top: 8px; font-size: 13px; color: rgb(155, 155, 161);">${esc(state.subtitle)}</div>
-      <div style="margin-top: 22px; ${MONO} font-size: 10px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: rgb(122, 122, 130);">P&amp;L ${M.current ? 'du mois' : 'de ' + MONTHS[M.m]}</div>
+      <div style="margin-top: 8px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));">${esc(state.subtitle)}</div>
+      <div style="margin-top: 22px; ${MONO} font-size: 10px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">P&amp;L ${M.current ? 'du mois' : 'de ' + MONTHS[M.m]}</div>
       <div style="margin-top: 12px; font-size: 100px; line-height: 0.98; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; background: ${grad}; color: transparent; filter: drop-shadow(${glow} 0px 0px 36px);">${money(tot, 2)}</div>
-      <p style="max-width: 520px; margin: 12px auto 0px; font-size: 13px; line-height: 1.6; color: rgb(155, 155, 161);">${esc(bits.join(' · '))}</p>
+      <p style="max-width: 520px; margin: 12px auto 0px; font-size: 13px; line-height: 1.6; color: var(--ink-2, rgb(155, 155, 161));">${esc(bits.join(' · '))}</p>
       <div style="margin-top: 24px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-        ${$('jrAddBtn') && !$('jrAddBtn').hidden ? `<button type="button" data-jr2="add" style="display: flex; align-items: center; height: 44px; padding: 0px 22px; border-radius: 999px; border: 0px; color: rgb(255, 255, 255); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.3) 0px 10px 30px;">+ Ajouter un trade</button>` : ''}
-        <button type="button" class="btn2" data-jr2="edit" style="display: flex; align-items: center; height: 44px; padding: 0px 20px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.14)) border-box border-box; color: rgb(246, 246, 247); font: inherit; font-weight: 600; cursor: pointer;">Modifier ce compte</button>
+        ${$('jrAddBtn') && !$('jrAddBtn').hidden ? `<button type="button" data-jr2="add" style="display: flex; align-items: center; height: 44px; padding: 0px 22px; border-radius: 999px; border: 0px; color: rgb(var(--fg-rgb, 255, 255, 255)); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.3) 0px 10px 30px;">+ Ajouter un trade</button>` : ''}
+        <button type="button" class="btn2" data-jr2="edit" style="display: flex; align-items: center; height: 44px; padding: 0px 20px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(var(--dk-rgb, 11, 11, 14)), rgb(var(--dk-rgb, 11, 11, 14))) padding-box padding-box, linear-gradient(135deg, rgba(var(--fg-rgb, 255, 255, 255), 0.14), rgba(var(--fg-rgb, 255, 255, 255), 0.14)) border-box border-box; color: var(--ink, rgb(246, 246, 247)); font: inherit; font-weight: 600; cursor: pointer;">Modifier ce compte</button>
       </div>
       <div id="jr2Legend" style="margin: 28px auto 0px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px;">${legend}
       </div>
@@ -145,17 +145,17 @@
     const s = J().computeStats(rows);
     const dd = drawdown(acc, rows);
     const k = (label, val, note, color, glow, first) => `
-          <div style="display: flex; flex-direction: column; gap: 8px; padding: 2px 22px; border-left: ${first ? '0px' : '1px solid rgba(255, 255, 255, 0.09)'};">
-            <span style="${MONO} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">${label}</span>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 2px 22px; border-left: ${first ? '0px' : '1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09)'};">
+            <span style="${MONO} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">${label}</span>
             <span style="font-size: 25px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: ${color}; text-shadow: ${glow || 'none'};">${val}</span>
-            <span style="font-size: 11.5px; color: rgb(122, 122, 130);">${note}</span>
+            <span style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">${note}</span>
           </div>`;
     $('jr2Kpis').innerHTML =
-      k('Winrate', s.winRatePct == null ? '—' : nf(Math.round(s.winRatePct), 0) + ' %', `${s.total} trade${s.total > 1 ? 's' : ''}`, 'rgb(246, 246, 247)', null, true)
-      + k('R moyen par trade', s.avgRR == null ? '—' : sign(s.avgRR) + nf(Math.abs(s.avgRR), 2) + ' R', 'pertes comprises', s.avgRR == null ? 'rgb(246, 246, 247)' : ink(s.avgRR), s.avgRR > 0 ? 'rgba(51, 230, 166, 0.35) 0px 0px 18px' : null)
-      + k('P&amp;L total', money(s.totalPnl), 'sur ce compte', s.totalPnl == null ? 'rgb(246, 246, 247)' : ink(s.totalPnl))
-      + k('Trades', String(s.total), `${s.tp} TP · ${s.sl} SL · ${s.be} BE${s.open ? ' · ' + s.open + ' en cours' : ''}`, 'rgb(246, 246, 247)')
-      + k('Drawdown max', dd.usd ? (dd.pct != null ? pct(dd.pct) : money(dd.usd)) : '0 %', dd.at ? 'le ' + dd.at.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'aucun recul', dd.usd ? NEG : 'rgb(246, 246, 247)');
+      k('Winrate', s.winRatePct == null ? '—' : nf(Math.round(s.winRatePct), 0) + ' %', `${s.total} trade${s.total > 1 ? 's' : ''}`, 'var(--ink, rgb(246, 246, 247))', null, true)
+      + k('R moyen par trade', s.avgRR == null ? '—' : sign(s.avgRR) + nf(Math.abs(s.avgRR), 2) + ' R', 'pertes comprises', s.avgRR == null ? 'var(--ink, rgb(246, 246, 247))' : ink(s.avgRR), s.avgRR > 0 ? 'rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 18px' : null)
+      + k('P&amp;L total', money(s.totalPnl), 'sur ce compte', s.totalPnl == null ? 'var(--ink, rgb(246, 246, 247))' : ink(s.totalPnl))
+      + k('Trades', String(s.total), `${s.tp} TP · ${s.sl} SL · ${s.be} BE${s.open ? ' · ' + s.open + ' en cours' : ''}`, 'var(--ink, rgb(246, 246, 247))')
+      + k('Drawdown max', dd.usd ? (dd.pct != null ? pct(dd.pct) : money(dd.usd)) : '0 %', dd.at ? 'le ' + dd.at.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'aucun recul', dd.usd ? NEG : 'var(--ink, rgb(246, 246, 247))');
   }
 
   // ---------- 02 — Conditions du compte (règles du challenge) ----------
@@ -164,7 +164,7 @@
     $('jr2CondHint').textContent = state.subtitle || '';
     const box = $('jr2Conds');
     if (!R || !(acc.balance > 0)) {
-      box.innerHTML = `<p style="margin: 14px 0px 0px; font-size: 12.5px; line-height: 1.6; color: rgb(122, 122, 130);">${!R ? (acc.type === 'propfirm' ? 'Règles du challenge pas encore renseignées : ouvre « Modifier ce compte » et choisis le modèle de la propfirm.' : 'Compte propre : pas de règles de challenge à suivre.') : 'Renseigne le solde du compte (Modifier ce compte) pour suivre les règles du challenge.'}</p>`;
+      box.innerHTML = `<p style="margin: 14px 0px 0px; font-size: 12.5px; line-height: 1.6; color: var(--ink-3, rgb(122, 122, 130));">${!R ? (acc.type === 'propfirm' ? 'Règles du challenge pas encore renseignées : ouvre « Modifier ce compte » et choisis le modèle de la propfirm.' : 'Compte propre : pas de règles de challenge à suivre.') : 'Renseigne le solde du compte (Modifier ce compte) pour suivre les règles du challenge.'}</p>`;
       return;
     }
     const bal = acc.balance, cl = closed(rows);
@@ -176,16 +176,16 @@
     const days = byDay.size;
     const items = [];
     const row = (title, sub, ratio, bar, status) => {
-      const st = status === 'ok' ? { t: '✓', c: POS, b: 'rgba(51, 230, 166, 0.16)', g: 'rgba(51, 230, 166, 0.25)' }
-        : status === 'ko' ? { t: '✗', c: NEG, b: 'rgba(255, 77, 94, 0.16)', g: 'rgba(255, 77, 94, 0.25)' }
-        : { t: '…', c: 'rgb(244, 208, 122)', b: 'rgba(232, 179, 57, 0.16)', g: 'rgba(232, 179, 57, 0.2)' };
+      const st = status === 'ok' ? { t: '✓', c: POS, b: 'rgba(var(--green-rgb, 51, 230, 166), 0.16)', g: 'rgba(var(--green-rgb, 51, 230, 166), 0.25)' }
+        : status === 'ko' ? { t: '✗', c: NEG, b: 'rgba(var(--red-rgb, 255, 77, 94), 0.16)', g: 'rgba(var(--red-rgb, 255, 77, 94), 0.25)' }
+        : { t: '…', c: 'rgb(244, 208, 122)', b: 'rgba(var(--amber-rgb, 232, 179, 57), 0.16)', g: 'rgba(var(--amber-rgb, 232, 179, 57), 0.2)' };
       return `
-            <div style="display: flex; align-items: center; gap: 14px; padding: 14px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.055);">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 14px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);">
               <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 3px; min-width: 0px;">
                 <span style="font-size: 13px;">${esc(title)}</span>
-                <span style="font-size: 11.5px; color: rgb(122, 122, 130);">${esc(sub)}</span>
+                <span style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">${esc(sub)}</span>
               </span>
-              <div style="width: 110px; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.06);"><div style="height: 100%; width: ${Math.max(0, Math.min(100, ratio * 100)).toFixed(0)}%; border-radius: 999px; background: ${bar};"></div></div>
+              <div style="width: 110px; height: 4px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.06);"><div style="height: 100%; width: ${Math.max(0, Math.min(100, ratio * 100)).toFixed(0)}%; border-radius: 999px; background: ${bar};"></div></div>
               <span style="width: 22px; height: 22px; flex: 0 0 22px; border-radius: 999px; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: ${st.c}; background: ${st.b}; box-shadow: ${st.g} 0px 0px 12px;">${st.t}</span>
             </div>`;
     };
@@ -197,16 +197,16 @@
     }
     if (R.dailyLossPct) {
       const lim = bal * R.dailyLossPct / 100;
-      items.push(row(`Perte du jour < ${fmtP(R.dailyLossPct)} %`, `pire jour : ${worstDay ? pct(worstDay / bal * 100) : 'aucune perte'}`, -worstDay / lim, 'rgb(232, 179, 57)', -worstDay > lim ? 'ko' : 'ok'));
+      items.push(row(`Perte du jour < ${fmtP(R.dailyLossPct)} %`, `pire jour : ${worstDay ? pct(worstDay / bal * 100) : 'aucune perte'}`, -worstDay / lim, 'rgb(var(--amber-rgb, 232, 179, 57))', -worstDay > lim ? 'ko' : 'ok'));
     }
     if (R.maxLossPct) {
       const lim = bal * R.maxLossPct / 100;
-      items.push(row(`Perte max < ${fmtP(R.maxLossPct)} %`, `plus bas : ${low ? pct(low / bal * 100) : 'jamais sous le départ'}`, -low / lim, 'rgb(232, 179, 57)', -low > lim ? 'ko' : 'ok'));
+      items.push(row(`Perte max < ${fmtP(R.maxLossPct)} %`, `plus bas : ${low ? pct(low / bal * 100) : 'jamais sous le départ'}`, -low / lim, 'rgb(var(--amber-rgb, 232, 179, 57))', -low > lim ? 'ko' : 'ok'));
     }
     if (R.minDays) {
-      items.push(row(`${R.minDays} jours de trading minimum`, `${days} jour${days > 1 ? 's' : ''}`, days / R.minDays, 'rgb(51, 230, 166)', days >= R.minDays ? 'ok' : 'wait'));
+      items.push(row(`${R.minDays} jours de trading minimum`, `${days} jour${days > 1 ? 's' : ''}`, days / R.minDays, 'rgb(var(--green-rgb, 51, 230, 166))', days >= R.minDays ? 'ok' : 'wait'));
     }
-    box.innerHTML = items.join('') || '<p style="margin: 14px 0px 0px; font-size: 12.5px; color: rgb(122, 122, 130);">Aucune règle chiffrée pour ce challenge.</p>';
+    box.innerHTML = items.join('') || '<p style="margin: 14px 0px 0px; font-size: 12.5px; color: var(--ink-3, rgb(122, 122, 130));">Aucune règle chiffrée pour ce challenge.</p>';
   }
 
   // ---------- 03 — Le mois jour par jour ----------
@@ -231,14 +231,14 @@
     for (let d = first; d <= last; d++) if (dowOf(d) < 5) cells.push(d);
     const cell = (d) => {
       if (d == null) return `
-            <div style="display: flex; flex-direction: column; justify-content: space-between; height: 48px; padding: 6px 10px; box-sizing: border-box; border-radius: 10px; background: transparent; box-shadow: rgba(255, 255, 255, 0.04) 0px 0px 0px 1px inset;">
-              <span style="${MONO} font-size: 9.5px; color: rgb(122, 122, 130);"></span>
-              <span style="font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; color: rgb(122, 122, 130);"></span>
+            <div style="display: flex; flex-direction: column; justify-content: space-between; height: 48px; padding: 6px 10px; box-sizing: border-box; border-radius: 10px; background: transparent; box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.04) 0px 0px 0px 1px inset;">
+              <span style="${MONO} font-size: 9.5px; color: var(--ink-3, rgb(122, 122, 130));"></span>
+              <span style="font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-3, rgb(122, 122, 130));"></span>
             </div>`;
       const v = byDay.get(d);
       const future = M.current && d > today.getDate();
-      let bg = 'rgba(255, 255, 255, 0.02)', sh = 'rgba(255, 255, 255, 0.05)', col = 'rgb(122, 122, 130)', txt = future ? '' : '—';
-      if (future) { bg = 'transparent'; sh = 'rgba(255, 255, 255, 0.04)'; }
+      let bg = 'rgba(var(--fg-rgb, 255, 255, 255), 0.02)', sh = 'rgba(var(--fg-rgb, 255, 255, 255), 0.05)', col = 'var(--ink-3, rgb(122, 122, 130))', txt = future ? '' : '—';
+      if (future) { bg = 'transparent'; sh = 'rgba(var(--fg-rgb, 255, 255, 255), 0.04)'; }
       if (v != null) {
         const a = 0.06 + 0.25 * Math.abs(v) / maxAbs;
         const c = v >= 0 ? '51, 230, 166' : '255, 77, 94';
@@ -247,12 +247,12 @@
       }
       return `
             <div style="display: flex; flex-direction: column; justify-content: space-between; height: 48px; padding: 6px 10px; box-sizing: border-box; border-radius: 10px; background: ${bg}; box-shadow: ${sh} 0px 0px 0px 1px inset;">
-              <span style="${MONO} font-size: 9.5px; color: rgb(122, 122, 130);">${String(d).padStart(2, '0')}</span>
+              <span style="${MONO} font-size: 9.5px; color: var(--ink-3, rgb(122, 122, 130));">${String(d).padStart(2, '0')}</span>
               <span style="font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; color: ${col};">${txt}</span>
             </div>`;
     };
     $('jr2Month').innerHTML = ['LUN', 'MAR', 'MER', 'JEU', 'VEN'].map((d) => `
-          <span style="${MONO} font-size: 9.5px; color: rgb(122, 122, 130); text-align: center;">${d}</span>`).join('') + cells.map(cell).join('');
+          <span style="${MONO} font-size: 9.5px; color: var(--ink-3, rgb(122, 122, 130)); text-align: center;">${d}</span>`).join('') + cells.map(cell).join('');
   }
 
   // ---------- 04 — Positions ----------
@@ -260,7 +260,7 @@
     const all = rows.slice().sort((a, b) => when(b) - when(a));
     const list = all.filter((r) => filter === 'all' || (filter === 'win' ? r.pnl > 0 : r.pnl < 0));
     $('jr2Filter').innerHTML = [['all', 'Toutes'], ['win', 'Gagnantes'], ['loss', 'Perdantes']].map(([k, l]) => `
-            <button type="button" data-filter="${k}" aria-pressed="${filter === k}" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: ${filter === k ? 'rgb(246, 246, 247)' : 'transparent'}; color: ${filter === k ? 'rgb(5, 5, 5)' : 'rgb(155, 155, 161)'}; font: inherit; font-size: 12px; font-weight: ${filter === k ? 600 : 400}; cursor: pointer;">${l}</button>`).join('');
+            <button type="button" data-filter="${k}" aria-pressed="${filter === k}" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: ${filter === k ? 'var(--ink, rgb(246, 246, 247))' : 'transparent'}; color: ${filter === k ? 'var(--bg-0, rgb(5, 5, 5))' : 'var(--ink-2, rgb(155, 155, 161))'}; font: inherit; font-size: 12px; font-weight: ${filter === k ? 600 : 400}; cursor: pointer;">${l}</button>`).join('');
     const COLS = 'grid-template-columns: 1.1fr 1fr 0.8fr 0.6fr 0.9fr 0.9fr 0.6fr 1.3fr 0.9fr;';
     const shown = list.slice(0, 8);
     $('jr2Rows').innerHTML = shown.length ? shown.map((r) => {
@@ -271,18 +271,18 @@
       const note = raw.length > 26 ? raw.slice(0, 25).trimEnd() + '…' : raw;
       const sell = r.side === 'sell';
       return `
-              <div class="row-h"${r.source === 'manual' || !r.source ? ` data-edit="${esc(r.id)}" style="cursor: pointer;` : ' style="'} display: grid; ${COLS} gap: 10px; align-items: center; padding: 12px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums; white-space: nowrap;">${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+              <div class="row-h"${r.source === 'manual' || !r.source ? ` data-edit="${esc(r.id)}" style="cursor: pointer;` : ' style="'} display: grid; ${COLS} gap: 10px; align-items: center; padding: 12px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums; white-space: nowrap;">${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                 <span style="font-weight: 600;">${esc(pairLabel(r.pair))}</span>
-                <span>${r.side ? `<span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${sell ? NEG : POS}; background: ${sell ? 'rgba(255, 77, 94, 0.12)' : 'rgba(51, 230, 166, 0.12)'};">${sell ? 'Vente' : 'Achat'}</span>` : '—'}</span>
-                <span style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;">${num(lot, 2)}</span>
+                <span>${r.side ? `<span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${sell ? NEG : POS}; background: ${sell ? 'rgba(var(--red-rgb, 255, 77, 94), 0.12)' : 'rgba(var(--green-rgb, 51, 230, 166), 0.12)'};">${sell ? 'Vente' : 'Achat'}</span>` : '—'}</span>
+                <span style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">${num(lot, 2)}</span>
                 <span style="font-variant-numeric: tabular-nums;">${num(r.entry, priceDigits(r.entry))}</span>
                 <span style="font-variant-numeric: tabular-nums;">${num(exit, priceDigits(exit))}</span>
-                <span style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;">${r.rrActual != null ? sign(r.rrActual) + nf(Math.abs(r.rrActual), 1) : '—'}</span>
-                <span style="min-width: 0px;"${raw.length > 26 ? ` title="${esc(raw)}"` : ''}>${note ? `<span style="font-size: 11px; padding: 3px 8px; border-radius: 999px; color: rgb(201, 201, 206); background: rgba(255, 255, 255, 0.05); display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;">${esc(note)}</span>` : ''}</span>
-                <span style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: ${r.result ? ink(r.pnl) : 'rgb(155, 155, 161)'};">${r.result ? money(r.pnl) : 'En cours'}</span>
+                <span style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">${r.rrActual != null ? sign(r.rrActual) + nf(Math.abs(r.rrActual), 1) : '—'}</span>
+                <span style="min-width: 0px;"${raw.length > 26 ? ` title="${esc(raw)}"` : ''}>${note ? `<span style="font-size: 11px; padding: 3px 8px; border-radius: 999px; color: var(--ink-1, rgb(201, 201, 206)); background: rgba(var(--fg-rgb, 255, 255, 255), 0.05); display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;">${esc(note)}</span>` : ''}</span>
+                <span style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: ${r.result ? ink(r.pnl) : 'var(--ink-2, rgb(155, 155, 161))'};">${r.result ? money(r.pnl) : 'En cours'}</span>
               </div>`;
-    }).join('') : `<p style="margin: 0px; padding: 22px 8px; font-size: 12.5px; color: rgb(122, 122, 130);">${all.length ? 'Aucune position pour ce filtre.' : 'Aucune position dans ce journal pour l’instant.'}</p>`;
+    }).join('') : `<p style="margin: 0px; padding: 22px 8px; font-size: 12.5px; color: var(--ink-3, rgb(122, 122, 130));">${all.length ? 'Aucune position pour ce filtre.' : 'Aucune position dans ce journal pour l’instant.'}</p>`;
     $('jr2Count').textContent = `${shown.length} sur ${list.length} position${list.length > 1 ? 's' : ''}`;
   }
 
@@ -294,27 +294,27 @@
       const step = Math.max(1, Math.ceil(ys.length / 40)), pts = ys.filter((_, i) => i % step === 0 || i === ys.length - 1);
       const max = Math.max(...pts), min = Math.min(...pts), span = (max - min) || 1;
       const d = pts.map((v, i) => `${i ? 'L' : 'M'}${(pts.length > 1 ? i / (pts.length - 1) * 300 : 0).toFixed(0)},${(54 - (v - min) / span * 48).toFixed(1)}`).join(' ');
-      const tot = s.totalPnl || 0, col = tot < 0 ? '#ff4d5e' : '#33e6a6', glow = tot < 0 ? 'rgb(255, 77, 94)' : 'rgb(51, 230, 166)';
+      const tot = s.totalPnl || 0, col = tot < 0 ? 'var(--red, #ff4d5e)' : 'var(--green, #33e6a6)', glow = tot < 0 ? 'rgb(var(--red-rgb, 255, 77, 94))' : 'rgb(var(--green-rgb, 51, 230, 166))';
       const prop = o.a.type === 'propfirm';
       return `
-            <button type="button" data-acc="${esc(o.a.id)}" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 16px; text-align: left; font: inherit; color: rgb(246, 246, 247); cursor: pointer; border-radius: 18px; border: 1px solid ${o.a.id === acc.id ? 'rgba(249, 164, 94, 0.45)' : 'rgba(255, 255, 255, 0.12)'}; background: linear-gradient(160deg, rgba(16, 16, 19, 0.72), rgba(9, 9, 11, 0.88)); box-shadow: rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset;">
+            <button type="button" data-acc="${esc(o.a.id)}" style="position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 16px; text-align: left; font: inherit; color: var(--ink, rgb(246, 246, 247)); cursor: pointer; border-radius: 18px; border: 1px solid ${o.a.id === acc.id ? 'rgba(var(--a2-rgb, 249, 164, 94), 0.45)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.12)'}; background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.88)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset;">
               <span style="display: flex; align-items: center; gap: 8px; width: 100%;">
                 <span style="width: 7px; height: 7px; border-radius: 999px; background: ${o.color}; box-shadow: ${o.color} 0px 0px 8px;"></span>
                 <span style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;">${esc(o.a.name || 'Journal')}</span>
-                <span style="margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${prop ? 'rgb(249, 164, 94)' : 'rgb(201, 201, 206)'}; background: ${prop ? 'rgba(249, 164, 94, 0.12)' : 'rgba(255, 255, 255, 0.07)'};">${prop ? 'Propfirm' : 'Compte propre'}</span>
+                <span style="margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${prop ? 'rgb(var(--a2-rgb, 249, 164, 94))' : 'var(--ink-1, rgb(201, 201, 206))'}; background: ${prop ? 'rgba(var(--a2-rgb, 249, 164, 94), 0.12)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.07)'};">${prop ? 'Propfirm' : 'Compte propre'}</span>
               </span>
-              <span style="font-size: 11.5px; color: rgb(122, 122, 130);">${esc(o.subtitle)}</span>
+              <span style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">${esc(o.subtitle)}</span>
               <svg width="100%" height="60" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true" style="display: block;">${cl.length ? `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(${glow} 0px 0px 6px);"></path>` : '<line x1="0" x2="300" y1="30" y2="30" stroke="rgba(255,255,255,.12)" stroke-dasharray="3 6" vector-effect="non-scaling-stroke"></line>'}</svg>
-              <span style="display: flex; gap: 14px; width: 100%; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 11.5px; color: rgb(122, 122, 130); font-variant-numeric: tabular-nums;">
-                <span><b style="color: ${tot < 0 ? NEG : POS};">${money(tot, 2)}</b></span><span><b style="color: rgb(246, 246, 247);">${s.total}</b> trades</span><span><b style="color: rgb(246, 246, 247);">${s.winRatePct == null ? '—' : Math.round(s.winRatePct) + ' %'}</b> réussite</span>
+              <span style="display: flex; gap: 14px; width: 100%; padding-top: 10px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130)); font-variant-numeric: tabular-nums;">
+                <span><b style="color: ${tot < 0 ? NEG : POS};">${money(tot, 2)}</b></span><span><b style="color: var(--ink, rgb(246, 246, 247));">${s.total}</b> trades</span><span><b style="color: var(--ink, rgb(246, 246, 247));">${s.winRatePct == null ? '—' : Math.round(s.winRatePct) + ' %'}</b> réussite</span>
               </span>
             </button>`;
     };
     $('jr2Journals').innerHTML = others.map(card).join('') + `
-          <button type="button" data-jr2="new" style="min-height: 180px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 22px; border-radius: 18px; border: 1px dashed rgba(255, 255, 255, 0.18); background: transparent; color: rgb(155, 155, 161); font: inherit; text-align: left; cursor: pointer;">
-            <span style="width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, 0.2); font-size: 17px;">+</span>
-            <span style="font-size: 15px; font-weight: 700; color: rgb(246, 246, 247);">Nouveau journal</span>
-            <span style="font-size: 12px; color: rgb(122, 122, 130);">Propfirm ou compte propre, relié ou saisi à la main.</span>
+          <button type="button" data-jr2="new" style="min-height: 180px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 22px; border-radius: 18px; border: 1px dashed rgba(var(--fg-rgb, 255, 255, 255), 0.18); background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font: inherit; text-align: left; cursor: pointer;">
+            <span style="width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.2); font-size: 17px;">+</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--ink, rgb(246, 246, 247));">Nouveau journal</span>
+            <span style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));">Propfirm ou compte propre, relié ou saisi à la main.</span>
           </button>`;
   }
 

@@ -1617,7 +1617,7 @@
   function buildHeatGradient(chartInstance, series, forLine, ref) {
     const r = ref || 0;
     const { ctx: c2d, chartArea, scales } = chartInstance;
-    if (!chartArea) return forLine ? '#33e6a6' : 'rgba(51,230,166,.1)';
+    if (!chartArea) return forLine ? 'var(--green, #33e6a6)' : 'rgba(var(--green-rgb, 51, 230, 166),.1)';
     const grad = c2d.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
     // Remplissage moins sature (etait 0.85) : a cette intensite il noyait le trait au lieu de
     // rester un simple appui visuel derriere lui (retour utilisateur 2026-10-11, "trop vague").
@@ -1666,8 +1666,8 @@
 
   function drawChart(d) {
     const isDark = true; // le thème clair inverse la page entière : les graphiques restent dessinés pour un fond sombre
-    const grid = isDark ? 'rgba(255,255,255,.045)' : 'rgba(0,0,0,.07)';
-    const tick = isDark ? '#6f6f76' : '#65656b';
+    const grid = isDark ? 'rgba(var(--fg-rgb, 255, 255, 255),.045)' : 'rgba(0, 0, 0, calc(.07 * var(--sh-k, 1)))';
+    const tick = isDark ? '#6f6f76' : 'var(--ink-4, #65656b)';
 
     // Reference neutre = capital de depart du compte (2026-10-02) : en $, la courbe s'organise
     // autour de ce montant (au milieu de l'axe), en %, autour de 0 % de ce capital.
@@ -1721,7 +1721,7 @@
             borderColor: (c) => buildHeatGradient(c.chart, series, true, ref) },
           { // trait net + remplissage, par-dessus
             data: series, borderWidth: 2.25, pointRadius: 0, pointHoverRadius: 4, pointHoverBorderWidth: 2,
-            pointHoverBackgroundColor: '#0b0b0d', tension: .2, borderJoinStyle: 'round', borderCapStyle: 'round',
+            pointHoverBackgroundColor: 'var(--bg-1, #0b0b0d)', tension: .2, borderJoinStyle: 'round', borderCapStyle: 'round',
             borderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
             pointHoverBorderColor: (c) => buildHeatGradient(c.chart, series, true, ref),
             backgroundColor: (c) => buildHeatGradient(c.chart, series, false, ref),

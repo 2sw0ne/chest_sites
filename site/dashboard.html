@@ -10,14 +10,14 @@
      polices/CSS externes chargent, surtout juste apres la connexion (branche
      experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
      charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
-<style>html,body{background:#050505}</style>
+<style>html,body{background:var(--bg-0, #050505)}</style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=3">
-<link rel="stylesheet" href="css/layout.css?v=5">
-<link rel="stylesheet" href="css/chest-da.css?v=20">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/layout.css?v=6">
+<link rel="stylesheet" href="css/chest-da.css?v=21">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
 <style>
   /* Filet de securite : une regle de classe qui fixe elle-meme `display`
@@ -57,7 +57,7 @@
   .acc-menu{
     position:absolute; top:calc(100% + 8px); left:0; z-index:40; width:280px;
     border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
-    box-shadow:0 24px 60px rgba(0,0,0,.4); padding:8px; display:none;
+    box-shadow:0 24px 60px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))); padding:8px; display:none;
   }
   .acc-menu.is-open{ display:block; }
   .acc-menu__item{
@@ -103,7 +103,7 @@
   .acc-tools__menu{
     display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60; width:200px;
     border:1px solid var(--line2); border-radius:var(--radius-sm); background:var(--panel);
-    box-shadow:0 16px 40px rgba(0,0,0,.35); padding:6px;
+    box-shadow:0 16px 40px rgba(0, 0, 0, calc(.35 * var(--sh-k, 1))); padding:6px;
   }
   .acc-tools:hover .acc-tools__menu, .acc-tools:focus-within .acc-tools__menu{ display:block; }
   .acc-tools__menu button{
@@ -112,10 +112,10 @@
   }
   .acc-tools__menu button:hover{ background:var(--panel-2); }
   .acc-tools__menu button.is-danger{ color:var(--red); }
-  .acc-tools__menu button.is-danger:hover{ background:rgba(255,77,94,.12); }
+  .acc-tools__menu button.is-danger:hover{ background:rgba(var(--red-rgb, 255, 77, 94),.12); }
 
   /* ---------- Compte "Live" (Myfxbook, admin, toujours synchronise) ---------- */
-  .acc-switcher__btn.is-live{ border-color:rgba(51,230,166,.4); }
+  .acc-switcher__btn.is-live{ border-color:rgba(var(--green-rgb, 51, 230, 166),.4); }
   .avatar.is-live, .acc-menu__item .avatar.is-live{ background:linear-gradient(135deg,#1fbd88,var(--green)); }
   /* Etoile "Compte principal" (2026-10-11, renommee depuis "Live Shield") : declarative, voir
      dashboard.js toggleMainAccount - pas une donnee lue depuis Myfxbook (aucun champ API ne
@@ -145,14 +145,14 @@
   }
   .conn-bar__status{ display:flex; align-items:center; gap:10px; font-size:13.5px; }
   .conn-dot{ width:9px; height:9px; border-radius:50%; background:var(--faint); flex-shrink:0; }
-  .conn-dot.is-on{ background:var(--green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .conn-dot.is-on{ background:var(--green); box-shadow:0 0 0 3px rgba(var(--green-rgb, 51, 230, 166),.16); }
   .conn-dot.is-pending{ background:var(--amber); box-shadow:0 0 0 3px rgba(245,166,35,.16); }
   .conn-bar__status span{ color:var(--muted); }
   .conn-bar__status code{ background:var(--bg); padding:1px 6px; border-radius:5px; }
 
   /* ---------- Assistant "Ajouter un compte" (Myfxbook) ---------- */
   .connmodal-overlay{
-    position:fixed; inset:0; z-index:280; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    position:fixed; inset:0; z-index:280; background:rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s;
   }
   .connmodal-overlay.is-open{ opacity:1; pointer-events:auto; }
@@ -176,7 +176,7 @@
     display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
     padding:3px 9px; border-radius:999px; margin-bottom:10px;
   }
-  .method-card__badge.free{ background:rgba(51,230,166,.14); color:var(--green); }
+  .method-card__badge.free{ background:rgba(var(--green-rgb, 51, 230, 166),.14); color:var(--green); }
   .method-card__badge.paid{ background:rgba(245,166,35,.14); color:var(--amber); }
   .method-card__title{ font-size:15px; font-weight:700; margin-bottom:6px; }
   .method-card__desc{ font-size:12px; color:var(--muted); line-height:1.5; }
@@ -229,7 +229,7 @@
   .conn-tag[hidden]{ display:none; }
   .conn-tag b{ color:var(--chest-ink-2); font-weight:600; }
   .conn-tag i{ width:6px; height:6px; border-radius:50%; background:var(--chest-ink-3); flex-shrink:0; }
-  .conn-tag i.is-live{ background:var(--chest-green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .conn-tag i.is-live{ background:var(--chest-green); box-shadow:0 0 0 3px rgba(var(--green-rgb, 51, 230, 166),.16); }
   .conn-tag a{ color:var(--chest-acc-2); text-decoration:none; font-weight:600; }
   .conn-tag a:hover{ color:#fff; }
   /* Positions ouvertes en direct (VPS) - lignes sur filets, pas de cartes. */
@@ -258,26 +258,26 @@
   .objective-row .value{ text-align:right; font-size:13px; font-weight:700; }
   .objective-row .value.pos{ color:var(--green); } .objective-row .value.neg{ color:var(--red); }
   .objective-row .check{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-left:10px; }
-  .objective-row .check.ok{ background:rgba(51,230,166,.16); color:var(--green); }
-  .objective-row .check.ko{ background:rgba(255,77,94,.16); color:var(--red); }
+  .objective-row .check.ok{ background:rgba(var(--green-rgb, 51, 230, 166),.16); color:var(--green); }
+  .objective-row .check.ko{ background:rgba(var(--red-rgb, 255, 77, 94),.16); color:var(--red); }
   .objective-row__wrap{ display:flex; align-items:center; }
 
   /* 05 — Performance par jour (CHEST 2.0, 2026-11-03) */
   .d2-perf{ display:flex; flex-direction:column; padding-top:6px; }
   .d2-perf .mini-cal__totals{ margin:0 0 12px; }
   .d2-perf .mini-cal__head{ margin-bottom:12px; }
-  .d2-perf .mini-cal__range{ flex-basis:auto; margin-left:auto; color:#7a7a82; font-family:"Fragment Mono", ui-monospace, monospace; font-size:10.5px; }
-  .d2-perf .day-nav__btn{ width:28px; height:28px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:#c9c9ce; }
+  .d2-perf .mini-cal__range{ flex-basis:auto; margin-left:auto; color:var(--ink-3, #7a7a82); font-family:"Fragment Mono", ui-monospace, monospace; font-size:10.5px; }
+  .d2-perf .day-nav__btn{ width:28px; height:28px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.03); color:var(--ink-1, #c9c9ce); }
   .d2-perf .day-nav__btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-  .d2-perf .day-nav__today{ height:28px; padding:0 12px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:#9b9ba1; font-size:12px; }
-  .d2-perf .day-nav__today.is-active{ background:#f6f6f7; color:#050505; border-color:#f6f6f7; }
+  .d2-perf .day-nav__today{ height:28px; padding:0 12px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.03); color:var(--ink-2, #9b9ba1); font-size:12px; }
+  .d2-perf .day-nav__today.is-active{ background:var(--ink, #f6f6f7); color:var(--bg-0, #050505); border-color:var(--ink, #f6f6f7); }
   .d2-perf .mini-cal__grid{ gap:6px; }
-  .d2-perf .mini-cal__cell{ border-radius:10px; background:rgba(255,255,255,.025); border-color:rgba(255,255,255,.06); padding:6px 7px; }
+  .d2-perf .mini-cal__cell{ border-radius:10px; background:rgba(var(--fg-rgb, 255, 255, 255),.025); border-color:rgba(var(--fg-rgb, 255, 255, 255),.06); padding:6px 7px; }
   .d2-perf .mini-cal__cell .p{ font-size:10.5px; }
-  .d2-calset{ margin-left:auto; width:28px; height:28px; display:grid; place-items:center; border-radius:9px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); color:#9b9ba1; cursor:pointer; }
+  .d2-calset{ margin-left:auto; width:28px; height:28px; display:grid; place-items:center; border-radius:9px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.03); color:var(--ink-2, #9b9ba1); cursor:pointer; }
   .d2-calset[hidden]{ display:none; }
   .d2-calset svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.6; }
-  .d2-calset:hover{ color:#f6f6f7; }
+  .d2-calset:hover{ color:var(--ink, #f6f6f7); }
   .mini-cal{ }
   .mini-cal__head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:10px; }
   .mini-cal__range{ font-size:11px; color:var(--faint); flex-basis:100%; }
@@ -320,11 +320,11 @@
   }
   @keyframes miniCalIn{ from{ opacity:0; transform:scale(.93); } to{ opacity:1; transform:scale(1); } }
   @media (prefers-reduced-motion: reduce){ .mini-cal__cell{ animation:none; } }
-  .mini-cal__cell.pos{ background:rgba(51,230,166, calc(.05 + var(--mag,0) * .22)); border-color:rgba(51,230,166, calc(.18 + var(--mag,0) * .5)); }
-  .mini-cal__cell.neg{ background:rgba(255,77,94, calc(.05 + var(--mag,0) * .22)); border-color:rgba(255,77,94, calc(.18 + var(--mag,0) * .5)); }
+  .mini-cal__cell.pos{ background:rgba(var(--green-rgb, 51, 230, 166), calc(.05 + var(--mag,0) * .22)); border-color:rgba(var(--green-rgb, 51, 230, 166), calc(.18 + var(--mag,0) * .5)); }
+  .mini-cal__cell.neg{ background:rgba(var(--red-rgb, 255, 77, 94), calc(.05 + var(--mag,0) * .22)); border-color:rgba(var(--red-rgb, 255, 77, 94), calc(.18 + var(--mag,0) * .5)); }
   .mini-cal__cell.pos:hover, .mini-cal__cell.neg:hover{ transform:translateY(-2px); z-index:1; }
-  .mini-cal__cell.pos:hover{ box-shadow:0 6px 16px rgba(51,230,166,.18); }
-  .mini-cal__cell.neg:hover{ box-shadow:0 6px 16px rgba(255,77,94,.18); }
+  .mini-cal__cell.pos:hover{ box-shadow:0 6px 16px rgba(var(--green-rgb, 51, 230, 166),.18); }
+  .mini-cal__cell.neg:hover{ box-shadow:0 6px 16px rgba(var(--red-rgb, 255, 77, 94),.18); }
   .mini-cal__cell .d{ font-size:10px; color:var(--faint); font-variant-numeric:tabular-nums; }
   .mini-cal__cell .p{ font-size:9.5px; font-weight:700; font-variant-numeric:tabular-nums; transition:opacity .15s ease; }
   .mini-cal__cell.pos .p{ color:var(--green); } .mini-cal__cell.neg .p{ color:var(--red); }
@@ -385,7 +385,7 @@
   }
   .sesstl-sky__arc{ position:absolute; left:0; right:0; top:20px; bottom:18px; opacity:.3; pointer-events:none; }
   .sesstl-sky__arc path{ fill:none; stroke:#fff; stroke-width:1.5; stroke-dasharray:2 6; stroke-linecap:round; }
-  .sesstl-sky__horizon{ position:absolute; left:0; right:0; bottom:18px; height:1px; background:rgba(255,255,255,.18); }
+  .sesstl-sky__horizon{ position:absolute; left:0; right:0; bottom:18px; height:1px; background:rgba(var(--fg-rgb, 255, 255, 255),.18); }
   .sesstl-sky__body{
     position:absolute; width:20px; height:20px; border-radius:50%; transform:translate(-50%,50%);
     transition:left .8s ease, bottom .8s ease, background .8s ease, box-shadow .8s ease; z-index:1;
@@ -397,9 +397,9 @@
   /* Meme traitement typo que le titre "BERICH" (berich.html) - gras 800,
      tres serre - juste a une echelle de card plutot que de hero plein ecran
      (retour direct utilisateur du 2026-09-16). */
-  .sesstl-sky__title{ font-size:23px; font-weight:800; color:#fff; text-shadow:0 1px 8px rgba(0,0,0,.4); letter-spacing:-.02em; }
-  .sesstl-sky__title.is-preview::after{ content:'aperçu'; margin-left:8px; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:rgba(255,255,255,.75); background:rgba(255,255,255,.18); border-radius:999px; padding:2px 7px; vertical-align:4px; }
-  .sesstl-sky__time{ font-size:12.5px; color:rgba(255,255,255,.85); text-shadow:0 1px 4px rgba(0,0,0,.3); margin-top:4px; }
+  .sesstl-sky__title{ font-size:23px; font-weight:800; color:#fff; text-shadow:0 1px 8px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))); letter-spacing:-.02em; }
+  .sesstl-sky__title.is-preview::after{ content:'aperçu'; margin-left:8px; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:rgba(var(--fg-rgb, 255, 255, 255),.75); background:rgba(var(--fg-rgb, 255, 255, 255),.18); border-radius:999px; padding:2px 7px; vertical-align:4px; }
+  .sesstl-sky__time{ font-size:12.5px; color:rgba(var(--fg-rgb, 255, 255, 255),.85); text-shadow:0 1px 4px rgba(0, 0, 0, calc(.3 * var(--sh-k, 1))); margin-top:4px; }
 
   /* Contenu sous le ciel (pistes + statut) - la card etant passee en
      padding:0 pour laisser le ciel deborder, c'est ce bloc qui porte
@@ -422,7 +422,7 @@
   .sesstl-label{ grid-column:1; display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--muted); }
   .sesstl-flag{ display:inline-block; width:16px; height:12px; border-radius:2px; flex-shrink:0; }
   .sesstl-dot{ width:7px; height:7px; border-radius:50%; background:var(--faint); flex-shrink:0; margin-left:auto; }
-  .sesstl-dot.is-open{ box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .sesstl-dot.is-open{ box-shadow:0 0 0 3px rgba(var(--green-rgb, 51, 230, 166),.16); }
   .sesstl-track{ grid-column:2; position:relative; height:10px; border-radius:999px; background:var(--bg); border:1px solid var(--line); overflow:visible; }
   .sesstl-seg{ position:absolute; top:0; bottom:0; opacity:.9; border-radius:999px; }
   .sesstl-status{ grid-column:3; font-size:11px; color:var(--faint); text-align:right; white-space:nowrap; }
@@ -439,7 +439,7 @@
   .sesstl-nowline.is-pinned{ background:var(--acc); }
   .sesstl-nowline__tick{ position:absolute; top:-5px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--ink); }
   .sesstl-nowline.is-pinned .sesstl-nowline__tick{ border-top-color:var(--acc); }
-  .sesstl-nowline__handle{ position:absolute; top:50%; left:50%; width:16px; height:16px; border-radius:50%; transform:translate(-50%,-50%); background:var(--panel); border:2px solid var(--ink); box-shadow:0 2px 6px rgba(0,0,0,.25); }
+  .sesstl-nowline__handle{ position:absolute; top:50%; left:50%; width:16px; height:16px; border-radius:50%; transform:translate(-50%,-50%); background:var(--panel); border:2px solid var(--ink); box-shadow:0 2px 6px rgba(0, 0, 0, calc(.25 * var(--sh-k, 1))); }
   .sesstl-nowline.is-pinned .sesstl-nowline__handle{ border-color:var(--acc); }
 
   /* Une seule ligne de lecture pour la volatilite estimee a l'endroit vise
@@ -447,9 +447,9 @@
      utilisateur du 2026-09-16 : "des choses qu'on ne va pas lire"). */
   .sesstl-vibe{ display:flex; align-items:center; gap:7px; font-size:12.5px; margin-top:14px; }
   .sesstl-vibe__dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .sesstl-vibe__dot.level-high{ background:var(--red); box-shadow:0 0 0 3px rgba(255,77,94,.18); }
+  .sesstl-vibe__dot.level-high{ background:var(--red); box-shadow:0 0 0 3px rgba(var(--red-rgb, 255, 77, 94),.18); }
   .sesstl-vibe__dot.level-medium{ background:var(--acc2); box-shadow:0 0 0 3px rgba(var(--a2-rgb, 249, 164, 94),.18); }
-  .sesstl-vibe__dot.level-low{ background:var(--green); box-shadow:0 0 0 3px rgba(51,230,166,.16); }
+  .sesstl-vibe__dot.level-low{ background:var(--green); box-shadow:0 0 0 3px rgba(var(--green-rgb, 51, 230, 166),.16); }
   .sesstl-vibe__level{ font-weight:700; color:var(--ink); }
   .sesstl-vibe__sep{ color:var(--faint); }
   .sesstl-vibe__label{ color:var(--muted); }
@@ -475,18 +475,18 @@
     pointer-events:none; border-radius:50%; filter:blur(40px); opacity:.9; transition:background .6s var(--v2-ease);
     background:radial-gradient(closest-side, rgba(var(--a1-rgb, 252, 18, 131),.2), rgba(var(--a2-rgb, 249, 164, 94),.06) 60%, transparent);
   }
-  .chest-root .dv2-hero[data-sign="pos"]::before{ background:radial-gradient(closest-side, rgba(51,230,166,.16), rgba(var(--a1-rgb, 252, 18, 131),.08) 62%, transparent); }
-  .chest-root .dv2-hero[data-sign="neg"]::before{ background:radial-gradient(closest-side, rgba(255,77,94,.17), rgba(var(--a1-rgb, 252, 18, 131),.06) 62%, transparent); }
+  .chest-root .dv2-hero[data-sign="pos"]::before{ background:radial-gradient(closest-side, rgba(var(--green-rgb, 51, 230, 166),.16), rgba(var(--a1-rgb, 252, 18, 131),.08) 62%, transparent); }
+  .chest-root .dv2-hero[data-sign="neg"]::before{ background:radial-gradient(closest-side, rgba(var(--red-rgb, 255, 77, 94),.17), rgba(var(--a1-rgb, 252, 18, 131),.06) 62%, transparent); }
   .chest-root .dv2-hero__top{ display:flex; align-items:center; justify-content:center; gap:8px 16px; flex-wrap:wrap; font-size:11px; color:var(--chest-ink-3); }
   .chest-root .dv2-hero__kind{ display:inline-flex; align-items:center; gap:6px; }
   .chest-root .dv2-hero__acc{ margin-top:18px; display:flex; justify-content:center; }
   .chest-root .dv2-hero .acc-switcher__btn{
-    border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.035); border-radius:999px; padding:6px 16px 6px 6px;
-    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.035); border-radius:999px; padding:6px 16px 6px 6px;
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
     transition:border-color .2s var(--v2-ease), background-color .2s var(--v2-ease), transform .16s var(--v2-ease);
   }
   .chest-root .dv2-hero .acc-switcher__btn:active{ transform:scale(.97); }
-  @media (hover:hover) and (pointer:fine){ .chest-root .dv2-hero .acc-switcher__btn:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.45); background:rgba(255,255,255,.055); } }
+  @media (hover:hover) and (pointer:fine){ .chest-root .dv2-hero .acc-switcher__btn:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.45); background:rgba(var(--fg-rgb, 255, 255, 255),.055); } }
   .chest-root .dv2-hero .acc-switcher__btn .avatar{ border-radius:50%; }
   .chest-root .dv2-hero .acc-menu{ left:50%; transform:translateX(-50%); text-align:left; }
   .chest-root .dv2-hero__num{ margin-top:22px; }
@@ -494,12 +494,12 @@
   .chest-root .dv2-hero__sub{ margin-top:4px; font-size:13px; color:var(--chest-ink-2); font-variant-numeric:tabular-nums; }
 
   .chest-root .dv2-facts{ margin:28px 0 0; display:flex; justify-content:center; flex-wrap:wrap; row-gap:16px; }
-  .chest-root .dv2-facts > div{ padding:0 28px; border-left:1px solid transparent; border-image:linear-gradient(180deg, transparent, rgba(255,255,255,.13), transparent) 1; }
+  .chest-root .dv2-facts > div{ padding:0 28px; border-left:1px solid transparent; border-image:linear-gradient(180deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.13), transparent) 1; }
   .chest-root .dv2-facts > div:first-child{ border-left:0; }
   .chest-root .dv2-facts dt{ font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--chest-ink-3); }
   .chest-root .dv2-facts dd{ margin:7px 0 0; font-size:18px; font-weight:700; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }
-  .chest-root .dv2-facts dd.pos{ color:var(--chest-green); text-shadow:0 0 16px rgba(51,230,166,.3); }
-  .chest-root .dv2-facts dd.neg{ color:var(--chest-red); text-shadow:0 0 16px rgba(255,77,94,.28); }
+  .chest-root .dv2-facts dd.pos{ color:var(--chest-green); text-shadow:0 0 16px rgba(var(--green-rgb, 51, 230, 166),.3); }
+  .chest-root .dv2-facts dd.neg{ color:var(--chest-red); text-shadow:0 0 16px rgba(var(--red-rgb, 255, 77, 94),.28); }
 
   .chest-root .dv2-chart{ margin:36px auto 0; max-width:1240px; text-align:left; }
   .chest-root .dv2-chart__bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
@@ -524,8 +524,8 @@
   .chest-root .dv2-head__hint{ font-size:11.5px; color:var(--chest-ink-3); }
   .chest-root .dv2-kpis .chest-label{ margin-bottom:9px; }
   .chest-root .dv2-live{ display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:10px; vertical-align:2px;
-    background:var(--chest-green); box-shadow:0 0 0 3px rgba(51,230,166,.16); animation:dv2Pulse 2.4s ease-in-out infinite; }
-  @keyframes dv2Pulse{ 50%{ box-shadow:0 0 0 6px rgba(51,230,166,0); } }
+    background:var(--chest-green); box-shadow:0 0 0 3px rgba(var(--green-rgb, 51, 230, 166),.16); animation:dv2Pulse 2.4s ease-in-out infinite; }
+  @keyframes dv2Pulse{ 50%{ box-shadow:0 0 0 6px rgba(var(--green-rgb, 51, 230, 166),0); } }
   .chest-root #openPosSection{ padding-top:24px; padding-bottom:26px; }
   .chest-root .dv2-payouts{ padding-top:20px; padding-bottom:20px; }
   .chest-root .dv2-payouts .payout-bar__info{ gap:14px; }
@@ -543,29 +543,29 @@
   @media (prefers-reduced-motion:reduce){ .chest-root .dv2-live{ animation:none; } }
 
   /* v2 — bas de page : séparateur estompé, cases du calendrier plus douces, volet Outils sans gros bouton gris */
-  .chest-root .chest-split > div[style*="chest-rule"]{ background:linear-gradient(180deg, transparent, rgba(255,255,255,.1), transparent) !important; }
+  .chest-root .chest-split > div[style*="chest-rule"]{ background:linear-gradient(180deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.1), transparent) !important; }
   .chest-root .mini-cal__cell{ border-radius:10px; }
-  .chest-root .mini-cal__cell:not(.pos):not(.neg){ background:rgba(255,255,255,.018); border-color:rgba(255,255,255,.05); }
-  .chest-root .mini-cal__cell.pos{ background:linear-gradient(160deg, rgba(51,230,166, calc(.08 + var(--mag,0) * .26)), rgba(51,230,166,.03)); }
-  .chest-root .mini-cal__cell.neg{ background:linear-gradient(160deg, rgba(255,77,94, calc(.08 + var(--mag,0) * .26)), rgba(255,77,94,.03)); }
-  .chest-root .objective-row{ border-bottom-color:rgba(255,255,255,.06); }
+  .chest-root .mini-cal__cell:not(.pos):not(.neg){ background:rgba(var(--fg-rgb, 255, 255, 255),.018); border-color:rgba(var(--fg-rgb, 255, 255, 255),.05); }
+  .chest-root .mini-cal__cell.pos{ background:linear-gradient(160deg, rgba(var(--green-rgb, 51, 230, 166), calc(.08 + var(--mag,0) * .26)), rgba(var(--green-rgb, 51, 230, 166),.03)); }
+  .chest-root .mini-cal__cell.neg{ background:linear-gradient(160deg, rgba(var(--red-rgb, 255, 77, 94), calc(.08 + var(--mag,0) * .26)), rgba(var(--red-rgb, 255, 77, 94),.03)); }
+  .chest-root .objective-row{ border-bottom-color:rgba(var(--fg-rgb, 255, 255, 255),.06); }
   /* Volet Outils : une vraie barre qu'on a envie de cliquer */
   .chest-root .tools-bar{
     position:relative; width:100%; display:flex; align-items:center; gap:18px; padding:18px 20px; text-align:left; cursor:pointer;
-    font:inherit; color:var(--chest-ink); border-radius:18px; border:1px solid rgba(255,255,255,.1);
-    background:radial-gradient(120% 140% at 0% 0%, rgba(var(--a1-rgb, 252, 18, 131),.12), transparent 55%), linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 24px 50px -30px rgba(0,0,0,.8);
+    font:inherit; color:var(--chest-ink); border-radius:18px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1);
+    background:radial-gradient(120% 140% at 0% 0%, rgba(var(--a1-rgb, 252, 18, 131),.12), transparent 55%), linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.045), rgba(var(--fg-rgb, 255, 255, 255),.012));
+    box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.08), 0 24px 50px -30px rgba(0, 0, 0, calc(.8 * var(--sh-k, 1)));
     transition:border-color .25s cubic-bezier(.23,1,.32,1), box-shadow .25s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1);
   }
   .chest-root .tools-bar:active{ transform:scale(.99); }
   .chest-root .tools-bar:focus-visible{ outline:2px solid rgba(var(--a2-rgb, 249, 164, 94),.85); outline-offset:3px; }
   @media (hover:hover) and (pointer:fine){
-    .chest-root .tools-bar:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.55); box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.25), 0 0 34px rgba(var(--a1-rgb, 252, 18, 131),.18); }
+    .chest-root .tools-bar:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.55); box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.08), 0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.25), 0 0 34px rgba(var(--a1-rgb, 252, 18, 131),.18); }
     .chest-root .tools-bar:hover .tools-bar__cta{ background:var(--chest-grad); color:#fff; border-color:transparent; box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.35); }
   }
   .chest-root .tools-bar__ic{
     width:46px; height:46px; flex-shrink:0; border-radius:14px; display:grid; place-items:center; color:#fff;
-    background:var(--chest-grad); box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(255,255,255,.3);
+    background:var(--chest-grad); box-shadow:0 10px 26px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);
   }
   .chest-root .tools-bar__ic svg{ width:22px; height:22px; }
   .chest-root .tools-bar__text{ display:flex; flex-direction:column; gap:5px; min-width:0; flex:1; }
@@ -573,7 +573,7 @@
   .chest-root .tools-bar__sub{ font-size:12.5px; color:var(--chest-ink-2); line-height:1.45; }
   .chest-root .tools-bar__cta{
     flex-shrink:0; display:inline-flex; align-items:center; gap:8px; padding:9px 14px 9px 16px; border-radius:999px;
-    font-size:12.5px; font-weight:700; color:var(--chest-ink); border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.05);
+    font-size:12.5px; font-weight:700; color:var(--chest-ink); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.16); background:rgba(var(--fg-rgb, 255, 255, 255),.05);
     transition:background .25s, color .25s, border-color .25s, box-shadow .25s;
   }
   .chest-root .tools-bar__cta .chev{ display:grid; place-items:center; transition:transform .3s cubic-bezier(.23,1,.32,1); }
@@ -590,14 +590,14 @@
 
   /* v2 — objectifs en jauges */
   .chest-root .v2obj{ flex-wrap:wrap; row-gap:10px; padding:16px 4px; }
-  .chest-root .v2obj__bar{ flex-basis:100%; height:5px; border-radius:5px; background:rgba(255,255,255,.06); overflow:hidden; }
+  .chest-root .v2obj__bar{ flex-basis:100%; height:5px; border-radius:5px; background:rgba(var(--fg-rgb, 255, 255, 255),.06); overflow:hidden; }
   .chest-root .v2obj__bar i{ display:block; height:100%; border-radius:inherit; transform-origin:left; transform:scaleX(var(--p)); animation:v2objIn 1s cubic-bezier(.23,1,.32,1) both; }
   @keyframes v2objIn{ from{ transform:scaleX(0); } }
   .chest-root .v2obj__bar.is-progress i{ background:linear-gradient(90deg, rgba(var(--a1-rgb, 252, 18, 131),.7), var(--a2, #f9a45e)); box-shadow:0 0 12px rgba(var(--a2-rgb, 249, 164, 94),.5); }
-  .chest-root .v2obj__bar.is-done i{ background:linear-gradient(90deg, #1fbd88, #33e6a6); box-shadow:0 0 12px rgba(51,230,166,.55); }
-  .chest-root .v2obj__bar.is-safe i{ background:linear-gradient(90deg, rgba(51,230,166,.5), #33e6a6); }
-  .chest-root .v2obj__bar.is-warn i{ background:linear-gradient(90deg, #e8b339, #f4d07a); box-shadow:0 0 12px rgba(232,179,57,.5); }
-  .chest-root .v2obj__bar.is-bad i{ background:linear-gradient(90deg, #ff4d5e, #ff94a0); box-shadow:0 0 12px rgba(255,77,94,.55); }
+  .chest-root .v2obj__bar.is-done i{ background:linear-gradient(90deg, #1fbd88, var(--green, #33e6a6)); box-shadow:0 0 12px rgba(var(--green-rgb, 51, 230, 166),.55); }
+  .chest-root .v2obj__bar.is-safe i{ background:linear-gradient(90deg, rgba(var(--green-rgb, 51, 230, 166),.5), var(--green, #33e6a6)); }
+  .chest-root .v2obj__bar.is-warn i{ background:linear-gradient(90deg, var(--amber, #e8b339), var(--amber-hi, #f4d07a)); box-shadow:0 0 12px rgba(var(--amber-rgb, 232, 179, 57),.5); }
+  .chest-root .v2obj__bar.is-bad i{ background:linear-gradient(90deg, var(--red, #ff4d5e), var(--red-hi, #ff94a0)); box-shadow:0 0 12px rgba(var(--red-rgb, 255, 77, 94),.55); }
   .chest-root .v2obj__note{ flex-basis:100%; margin-top:-4px; font-size:11px; color:var(--chest-ink-3); }
   @media (prefers-reduced-motion:reduce){ .chest-root .v2obj__bar i{ animation:none; } }
 
@@ -607,18 +607,18 @@
     mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 94%) !important; -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 38%,transparent 94%) !important; }
   .chest-root .mini-cal__cell.is-future{ opacity:.35; background:transparent !important; border-style:dashed; }
 </style>
-<script src="js/theme.js?v=6"></script>
+<script src="js/theme.js?v=7"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=17">
-<link rel="stylesheet" href="css/chest-da-2.css?v=3">
-<link rel="stylesheet" href="css/chest-2-site.css?v=16">
-<link rel="stylesheet" href="css/shell-2.css?v=6">
-<link rel="stylesheet" href="css/dash-2.css?v=8">
+<link rel="stylesheet" href="css/v2.css?v=18">
+<link rel="stylesheet" href="css/chest-da-2.css?v=4">
+<link rel="stylesheet" href="css/chest-2-site.css?v=17">
+<link rel="stylesheet" href="css/shell-2.css?v=7">
+<link rel="stylesheet" href="css/dash-2.css?v=9">
 </head>
 <body data-page="dashboard" class="chest-root">
 
@@ -666,7 +666,7 @@
       </div>
     </header>
 
-    <main id="dashMain" style="display: flex; flex-direction: column; gap: 28px; padding: 34px 36px 56px; max-width: 1180px; width: 100%; box-sizing: border-box; color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px;">
+    <main id="dashMain" style="display: flex; flex-direction: column; gap: 28px; padding: 34px 36px 56px; max-width: 1180px; width: 100%; box-sizing: border-box; color: var(--ink, rgb(246, 246, 247)); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px;">
   <!-- CHEST 2.0 (2026-11-02) : contenu copié de CHEST-DESIGN-2.0/html-exact/Main.html, valeurs inchangées.
        Les données réelles sont posées par js/dash-2.js (événement chest:dash-render de dashboard.js). -->
   <div class="chest-section" id="dashEmptyState" hidden>
@@ -683,8 +683,8 @@
       <section style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px;">
         <div style="position: relative; display: flex; flex-direction: column; gap: 10px;">
           <!-- Titre à deux plans (2026-11-05) : « Dashboard » en filigrane derrière, le prénom du membre devant -->
-          <span aria-hidden="true" style="position: absolute; left: -4px; bottom: -14px; z-index: 0; pointer-events: none; white-space: nowrap; font-size: 88px; line-height: 1; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 82%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">Dashboard</span>
-          <span style="position: relative; z-index: 1; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Vue d'ensemble</span>
+          <span aria-hidden="true" style="position: absolute; left: -4px; bottom: -14px; z-index: 0; pointer-events: none; white-space: nowrap; font-size: 88px; line-height: 1; font-weight: 700; letter-spacing: -0.055em; background: linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255), 0.075), rgba(var(--fg-rgb, 255, 255, 255), 0) 82%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">Dashboard</span>
+          <span style="position: relative; z-index: 1; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">01 — Vue d'ensemble</span>
           <h1 id="d2Hello" aria-label="Mon espace" style="position: relative; z-index: 1; margin: 0px; font-size: 40px; line-height: 1.06; font-weight: 700; letter-spacing: -0.04em; min-height: 1.06em;"><span id="d2HelloTxt">Dashboard</span><span class="d2-caret" aria-hidden="true"></span></h1>
           <style>
             .d2-caret{ display:inline-block; width:3px; height:.82em; margin-left:4px; vertical-align:-0.06em; border-radius:2px; background:linear-gradient(180deg,var(--a1, #fc1283),var(--a2, #f9a45e)); animation:d2Caret 1s steps(1) infinite; }
@@ -708,31 +708,31 @@
             (async () => { await wait(450); await type(hello); await wait(15000); await erase(); await wait(380); await type('Mon espace'); })();
           })();
           </script>
-          <p id="d2Date" hidden style="display: none; position: relative; z-index: 1; margin: 0px; font-size: 14px; color: rgb(155, 155, 161);">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
+          <p id="d2Date" hidden style="display: none; position: relative; z-index: 1; margin: 0px; font-size: 14px; color: var(--ink-2, rgb(155, 155, 161));">Lundi 2 novembre · Londres ouverte, New York dans 2 h 50.</p>
         </div>
         <div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-          <div class="acc-switcher" id="accSwitcher" style="position: relative;"><button type="button" class="btn2" id="accSwitcherBtn" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.024); -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-weight: 600; cursor: pointer;">
-            <span id="d2AccDot" style="width: 7px; height: 7px; border-radius: 999px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.8) 0px 0px 10px;"></span>
+          <div class="acc-switcher" id="accSwitcher" style="position: relative;"><button type="button" class="btn2" id="accSwitcherBtn" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0px 14px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); color: var(--ink, rgb(246, 246, 247)); font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-weight: 600; cursor: pointer;">
+            <span id="d2AccDot" style="width: 7px; height: 7px; border-radius: 999px; background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.8) 0px 0px 10px;"></span>
             <span id="d2AccLabel">—</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b9ba1" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
           </button><div class="acc-menu" id="accMenu"><div id="accMenuList"></div><div class="acc-menu__divider"></div><button class="acc-menu__item acc-menu__add" id="familyAddBtn"><span>＋</span> Ajouter un compte</button></div></div>
-          <div role="group" aria-label="Période" id="periodPills" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">
-            <button type="button" data-period="week" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">7J</button>
-            <button type="button" data-period="30d" class="is-active" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">30J</button>
-            <button type="button" data-period="90d" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">3M</button>
-            <button type="button" data-period="full" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">Tout</button>
+          <div role="group" aria-label="Période" id="periodPills" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.024);">
+            <button type="button" data-period="week" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">7J</button>
+            <button type="button" data-period="30d" class="is-active" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">30J</button>
+            <button type="button" data-period="90d" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">3M</button>
+            <button type="button" data-period="full" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">Tout</button>
           </div>
         </div>
       </section>
 
       
-      <section style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 0px; padding: 26px 0px 30px; border-top: 1px solid rgba(255, 255, 255, 0.07); border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
+      <section style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 0px; padding: 26px 0px 30px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
         <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 10px; padding-right: 32px;">
-          <span id="d2BalLabel" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Solde</span>
+          <span id="d2BalLabel" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Solde</span>
           <span id="d2Bal" style="font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; font-variant-numeric: tabular-nums;">—</span>
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <span id="d2Chip" style="font-size: 13px; font-weight: 700; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12); padding: 4px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; text-shadow: rgba(51, 230, 166, 0.45) 0px 0px 14px;">+740 $ · +0,74 %</span>
-            <span id="d2ChipSub" style="font-size: 12.5px; color: rgb(155, 155, 161);">sur 30 jours</span>
+            <span id="d2Chip" style="font-size: 13px; font-weight: 700; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12); padding: 4px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.45) 0px 0px 14px;">+740 $ · +0,74 %</span>
+            <span id="d2ChipSub" style="font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));">sur 30 jours</span>
           </div>
         </div>
         <div id="d2Kpis" style="flex: 3 1 560px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); row-gap: 20px;"></div>
@@ -742,20 +742,20 @@
       <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px;">
 
         
-        <div style="grid-column: 1 / -1; position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(14, 14, 17, 0.72), rgba(9, 9, 11, 0.86)); box-shadow: rgba(0, 0, 0, 0.45) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 16px;">
-          <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
+        <div style="grid-column: 1 / -1; position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.86)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 16px;">
+          <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255), 0.5), transparent);"></div>
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
             <div style="display: flex; flex-direction: column; gap: 4px;">
-              <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — Courbe d'equity</span>
+              <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">02 — Courbe d'equity</span>
               <span id="d2ChartTitle" style="font-size: 19px; font-weight: 700; letter-spacing: -0.025em;">—</span>
             </div>
-            <div style="margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 12px; color: rgb(155, 155, 161);">
-              <span style="display: flex; align-items: center; gap: 7px;"><span style="width: 16px; height: 2px; border-radius: 2px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.8) 0px 0px 8px;"></span>Compte</span>
-              <span id="d2LegBt" hidden style="display: flex; align-items: center; gap: 7px;"><span style="width: 16px; height: 0px; border-top: 2px dashed rgb(232, 179, 57);"></span>Backtest de départ</span>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">
+              <span style="display: flex; align-items: center; gap: 7px;"><span style="width: 16px; height: 2px; border-radius: 2px; background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.8) 0px 0px 8px;"></span>Compte</span>
+              <span id="d2LegBt" hidden style="display: flex; align-items: center; gap: 7px;"><span style="width: 16px; height: 0px; border-top: 2px dashed rgb(var(--amber-rgb, 232, 179, 57));"></span>Backtest de départ</span>
             </div>
           </div>
           <div style="display: flex; gap: 12px; min-width: 0px;">
-            <div id="d2Y" style="display: flex; flex-direction: column; justify-content: space-between; height: 270px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130); text-align: right; font-variant-numeric: tabular-nums;"></div>
+            <div id="d2Y" style="display: flex; flex-direction: column; justify-content: space-between; height: 270px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130)); text-align: right; font-variant-numeric: tabular-nums;"></div>
             <div style="position: relative; flex: 1 1 0%; min-width: 0px; height: 270px;">
               <svg width="100%" height="270" viewBox="0 0 1000 270" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
                 <defs>
@@ -779,23 +779,23 @@
                 <path id="d2Area" d="" fill="url(#eqFill)"></path>
                 <path id="d2Bt" d="" fill="none" stroke="#e8b339" stroke-width="1.5" stroke-dasharray="5 6" opacity=".75" vector-effect="non-scaling-stroke"></path>
                 <!-- Au-dessus du solde de départ : ligne et lueur vertes ; en dessous : rouges (2026-11-05) -->
-                <g clip-path="url(#eqClipUp)"><path id="d2Line" d="" fill="none" stroke="#33e6a6" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.65) 0px 0px 8px);"></path></g>
-                <g clip-path="url(#eqClipDn)"><path id="d2LineDn" d="" fill="none" stroke="#ff4d5e" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(255, 77, 94, 0.65) 0px 0px 8px);"></path></g>
+                <g clip-path="url(#eqClipUp)"><path id="d2Line" d="" fill="none" stroke="#33e6a6" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.65) 0px 0px 8px);"></path></g>
+                <g clip-path="url(#eqClipDn)"><path id="d2LineDn" d="" fill="none" stroke="#ff4d5e" stroke-width="2.2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(var(--red-rgb, 255, 77, 94), 0.65) 0px 0px 8px);"></path></g>
               </svg>
-              <div id="d2Dot" style="position: absolute; left: 100%; top: 18px; width: 11px; height: 11px; margin: -5.5px 0px 0px -5.5px; border-radius: 999px; background: rgb(5, 5, 6); border: 2px solid rgb(110, 242, 201); box-shadow: rgba(51, 230, 166, 0.9) 0px 0px 14px;"></div>
-              <div id="d2DotLbl" style="position: absolute; left: 100%; top: 18px; transform: translate(-100%, -150%); padding: 6px 10px; border-radius: 10px; background: rgba(5, 5, 6, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); font-size: 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums;">—</div>
+              <div id="d2Dot" style="position: absolute; left: 100%; top: 18px; width: 11px; height: 11px; margin: -5.5px 0px 0px -5.5px; border-radius: 999px; background: var(--bg-0, rgb(5, 5, 6)); border: 2px solid var(--green-hi, rgb(110, 242, 201)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.9) 0px 0px 14px;"></div>
+              <div id="d2DotLbl" style="position: absolute; left: 100%; top: 18px; transform: translate(-100%, -150%); padding: 6px 10px; border-radius: 10px; background: rgba(var(--dk-rgb, 5, 5, 6), 0.85); border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); font-size: 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums;">—</div>
             </div>
           </div>
-          <div id="d2X" style="display: flex; justify-content: space-between; padding-left: 54px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"></div>
+          <div id="d2X" style="display: flex; justify-content: space-between; padding-left: 54px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"></div>
         </div>
 
       </section>
 
-      <section id="openPosSection" hidden style="position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(14, 14, 17, 0.72), rgba(9, 9, 11, 0.86)); box-shadow: rgba(0, 0, 0, 0.45) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 12px;">
-        <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
+      <section id="openPosSection" hidden style="position: relative; overflow: hidden; min-width: 0px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.86)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 12px;">
+        <div aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255), 0.5), transparent);"></div>
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">03 — Positions ouvertes · en direct</span>
-          <span id="openPosMeta" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);"></span>
+          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">03 — Positions ouvertes · en direct</span>
+          <span id="openPosMeta" style="margin-left: auto; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));"></span>
         </div>
         <div class="openpos" id="openPosList"></div>
       </section>
@@ -803,28 +803,28 @@
       
       <section style="display: flex; flex-direction: column; gap: 14px;">
         <div style="display: flex; align-items: baseline; gap: 12px;">
-          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">04 — Aujourd'hui</span>
-          <span style="flex: 1 1 0%; height: 1px; background: rgba(255, 255, 255, 0.07);"></span>
+          <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">04 — Aujourd'hui</span>
+          <span style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
 
           
-          <div class="tile" id="d2Sess" style="overflow: hidden; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; display: flex; flex-direction: column;">
+          <div class="tile" id="d2Sess" style="overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; display: flex; flex-direction: column;">
           </div>
 
           
-          <div class="tile" id="d2NewsTile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px;">
+          <div class="tile" id="d2NewsTile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px;">
             <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;">
               <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;">Annonces du jour</span>
-              <a href="calendar.html" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);">Calendrier →</a>
-            </div><div id="d2News" style="display: contents;"></div><p id="d2Forecast" hidden style="margin: auto 0px 0px; padding-top: 10px; font-size: 12.5px; color: rgb(155, 155, 161);"></p>
+              <a href="calendar.html" style="margin-left: auto; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">Calendrier →</a>
+            </div><div id="d2News" style="display: contents;"></div><p id="d2Forecast" hidden style="margin: auto 0px 0px; padding-top: 10px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));"></p>
           </div>
 
           
-          <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+          <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;">Force des devises</span>
-              <span style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(155, 155, 161);">H4</span>
+              <span style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-2, rgb(155, 155, 161));">H4</span>
             </div>
             <div id="d2Str" style="display: flex; flex-direction: column; gap: 7px;"></div>
           </div>
@@ -833,9 +833,9 @@
 
       
       <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px;">
-        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0px;">
+        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0px;">
           <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;">
-            <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">05 — Performance par jour</span>
+            <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">05 — Performance par jour</span>
             <button type="button" class="d2-calset" id="miniCalSettingsBtn" title="Période affichée" aria-label="Période affichée" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
           </div>
           <!-- Retour utilisateur 2026-11-03 : « Performance par jour » de l'ancien Dashboard à la place des derniers trades -->
@@ -854,10 +854,10 @@
           </div>
         </div>
 
-        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0px;">
+        <div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0px;">
           <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;">
-            <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">06 — Signaux des scanners</span>
-            <a href="strategies.html" style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);">Stratégies →</a>
+            <span style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">06 — Signaux des scanners</span>
+            <a href="strategies.html" style="margin-left: auto; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">Stratégies →</a>
           </div><div id="d2Sig" style="display: contents;"></div>
         </div>
       </section>
@@ -977,9 +977,9 @@
 
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/confirm-dialog.js"></script>
-<script src="js/lot-calculator.js?v=7"></script>
-<script src="js/liquid-glass.js?v=2"></script>
+<script src="js/confirm-dialog.js?v=3"></script>
+<script src="js/lot-calculator.js?v=8"></script>
+<script src="js/liquid-glass.js?v=3"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/myfxbook-store.js?v=7"></script>
@@ -992,10 +992,10 @@
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/notifications-store.js?v=1"></script>
 <script src="js/journal-store.js?v=14"></script>
-<script src="js/live-sim.js?v=5"></script><script src="js/dashboard.js?v=64"></script>
-<script src="js/session-timeline.js?v=6"></script>
+<script src="js/live-sim.js?v=5"></script><script src="js/dashboard.js?v=65"></script>
+<script src="js/session-timeline.js?v=7"></script>
 <script src="js/currency-strength.js?v=2"></script>
-<script src="js/page-tour.js"></script>
+<script src="js/page-tour.js?v=3"></script>
 <script>
 CHESTTour.init([
   { selector: '#accSwitcher', title: 'Choisis ton compte', text: 'Ici tu changes de compte. Chaque compte est rattaché à un compte du Journal, qui garde son historique.' },
@@ -1008,6 +1008,6 @@ CHESTTour.init([
 </script>
 <script src="js/v2.js?v=5"></script>
 <script src="js/scanner-store.js"></script>
-<script src="js/dash-2.js?v=8"></script>
+<script src="js/dash-2.js?v=9"></script>
 </body>
 </html>

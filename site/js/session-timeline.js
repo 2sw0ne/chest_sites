@@ -46,10 +46,10 @@
   // drapeau - un emoji regional s'affiche en texte brut ("AU", "JP"...) sur
   // Windows, piege deja documente sur ce projet.
   const SESSIONS = [
-    { name: 'Sydney', flag: 'au', start: 22, end: 7, color: '#f9a45e' },
+    { name: 'Sydney', flag: 'au', start: 22, end: 7, color: 'var(--a2, #f9a45e)' },
     { name: 'Tokyo', flag: 'jp', start: 0, end: 9, color: '#5470c2' },
-    { name: 'Londres', flag: 'gb', start: 8, end: 17, color: '#33e6a6' },
-    { name: 'New York', flag: 'us', start: 13, end: 22, color: '#fc1283' },
+    { name: 'Londres', flag: 'gb', start: 8, end: 17, color: 'var(--green, #33e6a6)' },
+    { name: 'New York', flag: 'us', start: 13, end: 22, color: 'var(--a1, #fc1283)' },
   ];
 
   // Meme liste que le selecteur de account.html (etiquettes courtes ici,

@@ -27,7 +27,7 @@
     .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
       color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
     .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
-      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      vertical-align:text-bottom;background:rgba(var(--fg-rgb, 255, 255, 255),.3);border:1px solid rgba(0, 0, 0, calc(.5 * var(--sh-k, 1)));
       border-radius:2px;box-sizing:border-box;color:transparent;
       user-select:none}
     .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
@@ -54,50 +54,50 @@
     }
   
 
-body{margin:0;background:#050506}
-a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
+body{margin:0;background:var(--bg-0, #050506)}
+a{color:var(--ink, #f6f6f7);text-decoration:none}a:hover{color:#ffffff}
 .tile{transition:border-color .2s cubic-bezier(.16,1,.3,1)}
 .tile:hover{border-color:rgba(var(--a2-rgb, 249, 164, 94),.32)}
-.row-h:hover{background:rgba(255,255,255,.025)}
+.row-h:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.025)}
 .btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
-.btn2:hover{background:linear-gradient(#0b0b0e,#0b0b0e) padding-box,linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)) border-box!important;box-shadow:0 8px 26px rgba(var(--a1-rgb, 252, 18, 131),.18)}
-@keyframes dotPulse{50%{box-shadow:0 0 0 10px rgba(51,230,166,0),0 0 22px rgba(51,230,166,.9)}}
+.btn2:hover{background:linear-gradient(var(--bg-1, #0b0b0e),var(--bg-1, #0b0b0e)) padding-box,linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)) border-box!important;box-shadow:0 8px 26px rgba(var(--a1-rgb, 252, 18, 131),.18)}
+@keyframes dotPulse{50%{box-shadow:0 0 0 10px rgba(var(--green-rgb, 51, 230, 166),0),0 0 22px rgba(var(--green-rgb, 51, 230, 166),.9)}}
 .pulse{animation:dotPulse 2.4s ease-in-out infinite}
 .sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
-.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(8,8,10,.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
+.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(var(--dk-rgb, 8, 8, 10),.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
 .sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(var(--a1-rgb, 252, 18, 131),.09),transparent 75%)}
-.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1) 12%,rgba(255,255,255,.1) 88%,transparent)}
-.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9b9ba1}
-.sb-tog:hover{color:#f6f6f7}
+.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.1) 12%,rgba(var(--fg-rgb, 255, 255, 255),.1) 88%,transparent)}
+.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-2, #9b9ba1)}
+.sb-tog:hover{color:var(--ink, #f6f6f7)}
 .sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
-.sb-tog__bg path{fill:#070709;stroke:rgba(255,255,255,.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
-.sb-tog:hover .sb-tog__bg path{stroke:rgba(255,255,255,.28)}
+.sb-tog__bg path{fill:var(--bg-1, #070709);stroke:rgba(var(--fg-rgb, 255, 255, 255),.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.sb-tog:hover .sb-tog__bg path{stroke:rgba(var(--fg-rgb, 255, 255, 255),.28)}
 .sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
-.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:#f6f6f7;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:var(--ink, #f6f6f7);text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
 .sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(var(--a1-rgb, 252, 18, 131),.55))}
-.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7a82;white-space:nowrap;overflow:hidden}
+.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3, #7a7a82);white-space:nowrap;overflow:hidden}
 .sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
-.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:#9b9ba1;text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:var(--ink-2, #9b9ba1);text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
 .nav-i:active{transform:scale(.98)}
-.nav-i .ic{flex:0 0 18px;stroke:rgba(255,255,255,.34);transition:stroke .18s}
-.nav-i:hover{background:rgba(255,255,255,.04);color:#f6f6f7}
-.nav-i:hover .ic{stroke:rgba(255,255,255,.7)}
-.nav-i.on{color:#f6f6f7;font-weight:700;background:linear-gradient(90deg,rgba(var(--a1-rgb, 252, 18, 131),.16),rgba(var(--a2-rgb, 249, 164, 94),.05) 60%,transparent)}
+.nav-i .ic{flex:0 0 18px;stroke:rgba(var(--fg-rgb, 255, 255, 255),.34);transition:stroke .18s}
+.nav-i:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.04);color:var(--ink, #f6f6f7)}
+.nav-i:hover .ic{stroke:rgba(var(--fg-rgb, 255, 255, 255),.7)}
+.nav-i.on{color:var(--ink, #f6f6f7);font-weight:700;background:linear-gradient(90deg,rgba(var(--a1-rgb, 252, 18, 131),.16),rgba(var(--a2-rgb, 249, 164, 94),.05) 60%,transparent)}
 .nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(var(--a1-rgb, 252, 18, 131),.55))}
 .nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 0 14px rgba(var(--a1-rgb, 252, 18, 131),.8)}
 .nav-i.adm .ic{stroke:url(#sba)}
 .nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
-.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(255,255,255,.07)}
-.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7a82;margin-bottom:9px;white-space:nowrap}
-.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:#f6f6f7;text-decoration:none;border-radius:10px}
+.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.07)}
+.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3, #7a7a82);margin-bottom:9px;white-space:nowrap}
+.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:var(--ink, #f6f6f7);text-decoration:none;border-radius:10px}
 .sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.45);background:rgba(var(--a1-rgb, 252, 18, 131),.08);padding:6px;margin:-6px -6px 8px}
 .sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e))}
 .sb-acc__id{display:flex;flex-direction:column;min-width:0}
 .sb-acc__id b{font-size:12.5px;line-height:1.25}
-.sb-acc__id span{font-size:11px;color:#7a7a82;overflow:hidden;text-overflow:ellipsis}
-.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#9b9ba1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
-.sb-out:hover{background:rgba(255,255,255,.11);color:#f6f6f7}
+.sb-acc__id span{font-size:11px;color:var(--ink-3, #7a7a82);overflow:hidden;text-overflow:ellipsis}
+.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(var(--fg-rgb, 255, 255, 255),.07);color:var(--ink-2, #9b9ba1);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.sb-out:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.11);color:var(--ink, #f6f6f7)}
 .sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
 .sbT:checked ~ .sb .sb-txt{display:none}
 .sbT:checked ~ .sb .sb-tog .chev{transform:none}
@@ -109,8 +109,8 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
 .sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
 .sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
 .sbT:checked ~ .sb .sb-out{width:38px;padding:0}
-.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
-.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(255,255,255,.3);color:#fff}
+.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
+.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);color:#fff}
 @media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
@@ -118,7 +118,7 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
 </head>
 <body>
 
-<div id="dc-root"><div class="sc-host" data-sc-name="Berich"><div data-dc-tpl="3" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: rgb(5, 5, 6); color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
+<div id="dc-root"><div class="sc-host" data-sc-name="Berich"><div data-dc-tpl="3" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--bg-0, rgb(5, 5, 6)); color: var(--ink, rgb(246, 246, 247)); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
   <div data-dc-tpl="4" aria-hidden="true" style="position: absolute; inset: 0px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.05; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size: 180px 180px;"></div>
 
   
@@ -189,66 +189,66 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
   <main data-dc-tpl="83" style="position: relative; z-index: 1; flex: 999 1 560px; min-width: 0px; display: flex; flex-direction: column;">
     <div data-dc-tpl="84" aria-hidden="true" style="position: absolute; left: 50%; top: 0px; width: 1000px; height: 640px; margin-left: -500px; pointer-events: none; background: radial-gradient(55% 64% at 50% 18%, rgba(8, 153, 129, 0.42), transparent 72%);"></div>
 
-    <header data-dc-tpl="85" style="position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+    <header data-dc-tpl="85" style="position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06);">
       <div data-dc-tpl="86" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-        <span data-dc-tpl="87" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Exécution</span>
+        <span data-dc-tpl="87" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Exécution</span>
         <span data-dc-tpl="88" style="color: rgb(58, 58, 64);">/</span>
         <span data-dc-tpl="89" style="font-weight: 600;">BERICH</span>
       </div>
-      <button data-dc-tpl="90" type="button" class="btn2" style="margin-left: auto; height: 36px; padding: 0px 14px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)) border-box border-box; color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Refaire le quiz</button>
+      <button data-dc-tpl="90" type="button" class="btn2" style="margin-left: auto; height: 36px; padding: 0px 14px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(var(--dk-rgb, 11, 11, 14)), rgb(var(--dk-rgb, 11, 11, 14))) padding-box padding-box, linear-gradient(135deg, rgba(var(--fg-rgb, 255, 255, 255), 0.12), rgba(var(--fg-rgb, 255, 255, 255), 0.12)) border-box border-box; color: var(--ink, rgb(246, 246, 247)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Refaire le quiz</button>
     </header>
 
     
-    <section data-dc-tpl="91" aria-live="polite" style="position: relative; margin: 22px 36px 0px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 26px; padding: 14px 18px; border-radius: 18px; border: 1px solid rgba(51, 230, 166, 0.3); background: linear-gradient(90deg, rgba(8, 153, 129, 0.28), rgba(8, 153, 129, 0.06) 60%, rgba(255, 255, 255, 0.016)); box-shadow: rgba(255, 255, 255, 0.08) 0px 1px 0px inset;">
+    <section data-dc-tpl="91" aria-live="polite" style="position: relative; margin: 22px 36px 0px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 26px; padding: 14px 18px; border-radius: 18px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.3); background: linear-gradient(90deg, rgba(8, 153, 129, 0.28), rgba(8, 153, 129, 0.06) 60%, rgba(var(--fg-rgb, 255, 255, 255), 0.016)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.08) 0px 1px 0px inset;">
       <span data-dc-tpl="92" style="display: flex; align-items: center; gap: 10px;">
-        <span data-dc-tpl="93" class="pulse" style="width: 9px; height: 9px; border-radius: 999px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.2) 0px 0px 0px 4px;"></span>
-        <span data-dc-tpl="94" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(127, 243, 202);">Signal en cours · BERICH I</span>
+        <span data-dc-tpl="93" class="pulse" style="width: 9px; height: 9px; border-radius: 999px; background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.2) 0px 0px 0px 4px;"></span>
+        <span data-dc-tpl="94" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--green-hi, rgb(127, 243, 202));">Signal en cours · BERICH I</span>
       </span>
-      <span data-dc-tpl="95" style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;"><span data-dc-tpl="96" style="color: rgb(127, 243, 202);">Achat</span> XAU/USD</span>
-      <span data-dc-tpl="97" style="display: flex; flex-wrap: wrap; gap: 18px; font-size: 12.5px; color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;">
-        <span data-dc-tpl="98">Entrée <b data-dc-tpl="99" style="color: rgb(246, 246, 247);">4 061,2</b></span>
-        <span data-dc-tpl="100">Stop <b data-dc-tpl="101" style="color: rgb(255, 148, 160);">4 051,8</b></span>
-        <span data-dc-tpl="102">Objectif <b data-dc-tpl="103" style="color: rgb(127, 243, 202);">4 108,0</b></span>
-        <span data-dc-tpl="104">Ouvert à <b data-dc-tpl="105" style="color: rgb(246, 246, 247);">13:45</b> · sur ton compte à 13:45:02</span>
+      <span data-dc-tpl="95" style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;"><span data-dc-tpl="96" style="color: var(--green-hi, rgb(127, 243, 202));">Achat</span> XAU/USD</span>
+      <span data-dc-tpl="97" style="display: flex; flex-wrap: wrap; gap: 18px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">
+        <span data-dc-tpl="98">Entrée <b data-dc-tpl="99" style="color: var(--ink, rgb(246, 246, 247));">4 061,2</b></span>
+        <span data-dc-tpl="100">Stop <b data-dc-tpl="101" style="color: var(--red-hi, rgb(255, 148, 160));">4 051,8</b></span>
+        <span data-dc-tpl="102">Objectif <b data-dc-tpl="103" style="color: var(--green-hi, rgb(127, 243, 202));">4 108,0</b></span>
+        <span data-dc-tpl="104">Ouvert à <b data-dc-tpl="105" style="color: var(--ink, rgb(246, 246, 247));">13:45</b> · sur ton compte à 13:45:02</span>
       </span>
-      <span data-dc-tpl="106" style="margin-left: auto; font-size: 20px; font-weight: 700; color: rgb(127, 243, 202); font-variant-numeric: tabular-nums; text-shadow: rgba(51, 230, 166, 0.45) 0px 0px 18px;">+1,9 R</span>
+      <span data-dc-tpl="106" style="margin-left: auto; font-size: 20px; font-weight: 700; color: var(--green-hi, rgb(127, 243, 202)); font-variant-numeric: tabular-nums; text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.45) 0px 0px 18px;">+1,9 R</span>
     </section>
 
     
     <section data-dc-tpl="107" style="position: relative; isolation: isolate; overflow: hidden; text-align: center; padding: 34px 36px 0px;">
-      <div data-dc-tpl="108" class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 78%) text; color: transparent;">BERICH</div>
+      <div data-dc-tpl="108" class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0) 78%) text; color: transparent;">BERICH</div>
       <div data-dc-tpl="109" style="display: flex; justify-content: center; align-items: center; gap: 12px;">
         <img data-dc-tpl="110" src="assets/logo-berich.webp" alt="Logo BERICH" style="width: 46px; height: 46px; object-fit: contain; mix-blend-mode: screen;">
-        <span data-dc-tpl="111" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(51, 230, 166, 0.3); background: rgba(51, 230, 166, 0.07); font-size: 12px;">
-          <span data-dc-tpl="112" style="width: 6px; height: 6px; border-radius: 999px; background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.9) 0px 0px 8px;"></span>Compte IC Markets relié · synchro 14:38
+        <span data-dc-tpl="111" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.3); background: rgba(var(--green-rgb, 51, 230, 166), 0.07); font-size: 12px;">
+          <span data-dc-tpl="112" style="width: 6px; height: 6px; border-radius: 999px; background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.9) 0px 0px 8px;"></span>Compte IC Markets relié · synchro 14:38
         </span>
       </div>
-      <div data-dc-tpl="113" style="margin-top: 14px; font-size: 13px; color: rgb(155, 155, 161);">Mon plan · <b data-dc-tpl="114" style="color: rgb(246, 246, 247);">×3 en 12 mois</b> · BERICH I 70 % + BERICH II 30 % · risque 1 %</div>
-      <div data-dc-tpl="115" style="margin-top: 14px; font-size: 104px; line-height: 0.98; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; background: linear-gradient(rgb(255, 255, 255) 8%, rgb(201, 251, 233) 45%, rgb(51, 230, 166)) text; color: transparent; filter: drop-shadow(rgba(51, 230, 166, 0.3) 0px 0px 36px);"><span class="sc-interp">14 210 €</span></div>
-      <div data-dc-tpl="116" style="margin-top: 10px; font-size: 13px; color: rgb(155, 155, 161);"><span class="sc-interp">Ton plan rejoué sur 46 positions · 10 000 € au départ, le 1er juin</span></div>
+      <div data-dc-tpl="113" style="margin-top: 14px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));">Mon plan · <b data-dc-tpl="114" style="color: var(--ink, rgb(246, 246, 247));">×3 en 12 mois</b> · BERICH I 70 % + BERICH II 30 % · risque 1 %</div>
+      <div data-dc-tpl="115" style="margin-top: 14px; font-size: 104px; line-height: 0.98; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; background: linear-gradient(rgb(var(--fg-rgb, 255, 255, 255)) 8%, rgb(201, 251, 233) 45%, rgb(var(--green-rgb, 51, 230, 166))) text; color: transparent; filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.3) 0px 0px 36px);"><span class="sc-interp">14 210 €</span></div>
+      <div data-dc-tpl="116" style="margin-top: 10px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Ton plan rejoué sur 46 positions · 10 000 € au départ, le 1er juin</span></div>
 
       <div data-dc-tpl="117" style="margin-top: 22px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px;">
-        <div data-dc-tpl="118" role="group" aria-label="Vue" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(0, 0, 0, 0.25);">
+        <div data-dc-tpl="118" role="group" aria-label="Vue" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(0, 0, 0, calc(0.25 * var(--sh-k, 1)));">
           
-            <button data-dc-tpl="120" type="button" aria-pressed="true" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: rgb(246, 246, 247); color: rgb(5, 5, 5); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">Mon plan</span></button>
+            <button data-dc-tpl="120" type="button" aria-pressed="true" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">Mon plan</span></button>
           
-            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">Mes positions</span></button>
+            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">Mes positions</span></button>
           
-            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH I</span></button>
+            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH I</span></button>
           
-            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH II</span></button>
+            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH II</span></button>
           
         </div>
-        <span data-dc-tpl="121" aria-hidden="true" style="width: 1px; height: 22px; background: rgba(255, 255, 255, 0.12);"></span>
-        <div data-dc-tpl="122" role="group" aria-label="Période" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(0, 0, 0, 0.25);">
+        <span data-dc-tpl="121" aria-hidden="true" style="width: 1px; height: 22px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.12);"></span>
+        <div data-dc-tpl="122" role="group" aria-label="Période" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(0, 0, 0, calc(0.25 * var(--sh-k, 1)));">
           
-            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">30 j</span></button>
+            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">30 j</span></button>
           
-            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">90 j</span></button>
+            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">90 j</span></button>
           
-            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">1 an</span></button>
+            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">1 an</span></button>
           
-            <button data-dc-tpl="124" type="button" aria-pressed="true" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: rgb(246, 246, 247); color: rgb(5, 5, 5); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">Tout</span></button>
+            <button data-dc-tpl="124" type="button" aria-pressed="true" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">Tout</span></button>
           
         </div>
       </div>
@@ -261,46 +261,46 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
           </defs>
           <line data-dc-tpl="135" x1="0" x2="1000" y1="251.3" y2="251.3" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 7" vector-effect="non-scaling-stroke"></line>
           <path data-dc-tpl="136" d="M0.0 251.3 L11.9 252.4 L23.8 256.0 L35.7 243.6 L47.6 243.5 L59.5 237.3 L71.4 240.2 L83.3 227.2 L95.2 226.0 L107.1 226.1 L119.0 223.8 L130.9 211.1 L142.8 203.5 L154.7 203.9 L166.6 198.2 L178.5 191.1 L190.4 199.2 L202.3 187.6 L214.2 179.7 L226.1 168.9 L238.0 173.8 L249.9 177.0 L261.8 178.4 L273.7 168.1 L285.6 162.6 L297.5 153.2 L309.4 154.0 L321.3 155.4 L333.2 147.7 L345.1 153.9 L357.0 146.1 L368.9 143.2 L380.8 140.0 L392.7 142.3 L404.6 138.2 L416.5 146.1 L428.4 146.1 L440.3 147.6 L452.2 155.6 L464.1 153.9 L475.9 158.6 L487.8 146.1 L499.7 134.3 L511.6 130.3 L523.5 134.8 L535.4 139.4 L547.3 128.1 L559.2 132.8 L571.1 126.6 L583.0 122.4 L594.9 123.5 L606.8 114.7 L618.7 122.6 L630.6 129.6 L642.5 117.0 L654.4 110.3 L666.3 100.8 L678.2 96.2 L690.1 83.7 L702.0 70.9 L713.9 76.8 L725.8 80.2 L737.7 67.9 L749.6 55.2 L761.5 42.3 L773.4 47.2 L785.3 44.5 L797.2 40.9 L809.1 48.2 L821.0 52.5 L832.9 51.9 L844.8 59.8 L856.7 58.7 L868.6 45.7 L880.5 43.1 L892.4 37.3 L904.3 31.8 L916.2 20.6 L928.1 23.7 L940.0 14.0 L940 270 L0 270 Z" fill="url(#bA)"></path>
-          <path data-dc-tpl="137" d="M0.0 251.3 L11.9 252.4 L23.8 256.0 L35.7 243.6 L47.6 243.5 L59.5 237.3 L71.4 240.2 L83.3 227.2 L95.2 226.0 L107.1 226.1 L119.0 223.8 L130.9 211.1 L142.8 203.5 L154.7 203.9 L166.6 198.2 L178.5 191.1 L190.4 199.2 L202.3 187.6 L214.2 179.7 L226.1 168.9 L238.0 173.8 L249.9 177.0 L261.8 178.4 L273.7 168.1 L285.6 162.6 L297.5 153.2 L309.4 154.0 L321.3 155.4 L333.2 147.7 L345.1 153.9 L357.0 146.1 L368.9 143.2 L380.8 140.0 L392.7 142.3 L404.6 138.2 L416.5 146.1 L428.4 146.1 L440.3 147.6 L452.2 155.6 L464.1 153.9 L475.9 158.6 L487.8 146.1 L499.7 134.3 L511.6 130.3 L523.5 134.8 L535.4 139.4 L547.3 128.1 L559.2 132.8 L571.1 126.6 L583.0 122.4 L594.9 123.5 L606.8 114.7 L618.7 122.6 L630.6 129.6 L642.5 117.0 L654.4 110.3 L666.3 100.8 L678.2 96.2 L690.1 83.7 L702.0 70.9 L713.9 76.8 L725.8 80.2 L737.7 67.9 L749.6 55.2 L761.5 42.3 L773.4 47.2 L785.3 44.5 L797.2 40.9 L809.1 48.2 L821.0 52.5 L832.9 51.9 L844.8 59.8 L856.7 58.7 L868.6 45.7 L880.5 43.1 L892.4 37.3 L904.3 31.8 L916.2 20.6 L928.1 23.7 L940.0 14.0" fill="none" stroke="url(#bL)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.5) 0px 0px 8px);"></path>
+          <path data-dc-tpl="137" d="M0.0 251.3 L11.9 252.4 L23.8 256.0 L35.7 243.6 L47.6 243.5 L59.5 237.3 L71.4 240.2 L83.3 227.2 L95.2 226.0 L107.1 226.1 L119.0 223.8 L130.9 211.1 L142.8 203.5 L154.7 203.9 L166.6 198.2 L178.5 191.1 L190.4 199.2 L202.3 187.6 L214.2 179.7 L226.1 168.9 L238.0 173.8 L249.9 177.0 L261.8 178.4 L273.7 168.1 L285.6 162.6 L297.5 153.2 L309.4 154.0 L321.3 155.4 L333.2 147.7 L345.1 153.9 L357.0 146.1 L368.9 143.2 L380.8 140.0 L392.7 142.3 L404.6 138.2 L416.5 146.1 L428.4 146.1 L440.3 147.6 L452.2 155.6 L464.1 153.9 L475.9 158.6 L487.8 146.1 L499.7 134.3 L511.6 130.3 L523.5 134.8 L535.4 139.4 L547.3 128.1 L559.2 132.8 L571.1 126.6 L583.0 122.4 L594.9 123.5 L606.8 114.7 L618.7 122.6 L630.6 129.6 L642.5 117.0 L654.4 110.3 L666.3 100.8 L678.2 96.2 L690.1 83.7 L702.0 70.9 L713.9 76.8 L725.8 80.2 L737.7 67.9 L749.6 55.2 L761.5 42.3 L773.4 47.2 L785.3 44.5 L797.2 40.9 L809.1 48.2 L821.0 52.5 L832.9 51.9 L844.8 59.8 L856.7 58.7 L868.6 45.7 L880.5 43.1 L892.4 37.3 L904.3 31.8 L916.2 20.6 L928.1 23.7 L940.0 14.0" fill="none" stroke="url(#bL)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.5) 0px 0px 8px);"></path>
         </svg>
-        <span data-dc-tpl="138" class="pulse" style="position: absolute; left: 94%; top: 5.19%; width: 12px; height: 12px; margin: -6px 0px 0px -6px; border-radius: 999px; background: rgb(255, 255, 255); box-shadow: rgba(51, 230, 166, 0.25) 0px 0px 0px 4px, rgba(51, 230, 166, 0.9) 0px 0px 22px;"></span>
-        <span data-dc-tpl="139" style="position: absolute; left: 36px; bottom: 10px; font-size: 10.5px; color: rgb(122, 122, 130);"><span class="sc-interp">Capital en euros · départ en pointillés</span></span>
+        <span data-dc-tpl="138" class="pulse" style="position: absolute; left: 94%; top: 5.19%; width: 12px; height: 12px; margin: -6px 0px 0px -6px; border-radius: 999px; background: rgb(var(--fg-rgb, 255, 255, 255)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.25) 0px 0px 0px 4px, rgba(var(--green-rgb, 51, 230, 166), 0.9) 0px 0px 22px;"></span>
+        <span data-dc-tpl="139" style="position: absolute; left: 36px; bottom: 10px; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Capital en euros · départ en pointillés</span></span>
       </div>
 
-      <div data-dc-tpl="140" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; padding: 14px 0px 0px; font-size: 12px; color: rgb(155, 155, 161);">
-        <span data-dc-tpl="141"><span data-dc-tpl="142" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12);">Achat</span> XAU/USD · 0,62 lot · <b data-dc-tpl="143" style="color: rgb(127, 243, 202);">+287 €</b></span>
+      <div data-dc-tpl="140" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; padding: 14px 0px 0px; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">
+        <span data-dc-tpl="141"><span data-dc-tpl="142" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);">Achat</span> XAU/USD · 0,62 lot · <b data-dc-tpl="143" style="color: var(--green-hi, rgb(127, 243, 202));">+287 €</b></span>
       </div>
 
-      <div data-dc-tpl="144" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); row-gap: 16px; margin-top: 22px; padding: 22px 0px 26px; border-top: 1px solid rgba(255, 255, 255, 0.07); border-bottom: 1px solid rgba(255, 255, 255, 0.07); text-align: left;">
+      <div data-dc-tpl="144" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); row-gap: 16px; margin-top: 22px; padding: 22px 0px 26px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); text-align: left;">
         
           <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 0px;">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Performance</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.35) 0px 0px 18px;"><span class="sc-interp">+42,1 %</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">10 000 € → 14 210 €</span></span>
+            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Performance</span></span>
+            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202)); text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 18px;"><span class="sc-interp">+42,1 %</span></span>
+            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">10 000 € → 14 210 €</span></span>
           </div>
         
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(255, 255, 255, 0.09);">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Recul max</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160); text-shadow: none;"><span class="sc-interp">−6,2 %</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">depuis un plus haut</span></span>
+          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);">
+            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Recul max</span></span>
+            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160)); text-shadow: none;"><span class="sc-interp">−6,2 %</span></span>
+            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">depuis un plus haut</span></span>
           </div>
         
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(255, 255, 255, 0.09);">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Pire série</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247); text-shadow: none;"><span class="sc-interp">4 stops</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">d’un algorithme</span></span>
+          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);">
+            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Pire série</span></span>
+            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247)); text-shadow: none;"><span class="sc-interp">4 stops</span></span>
+            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">d’un algorithme</span></span>
           </div>
         
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(255, 255, 255, 0.09);">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Risque</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247); text-shadow: none;"><span class="sc-interp">1 %</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">BERICH I 1 % · II 0,6 %</span></span>
+          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);">
+            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Risque</span></span>
+            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247)); text-shadow: none;"><span class="sc-interp">1 %</span></span>
+            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">BERICH I 1 % · II 0,6 %</span></span>
           </div>
         
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(255, 255, 255, 0.09);">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Positions</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247); text-shadow: none;"><span class="sc-interp">46</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">rejouées</span></span>
+          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);">
+            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Positions</span></span>
+            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247)); text-shadow: none;"><span class="sc-interp">46</span></span>
+            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">rejouées</span></span>
           </div>
         
       </div>
@@ -311,69 +311,69 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
       
       <section data-dc-tpl="151" style="display: flex; flex-direction: column; gap: 18px;">
         <div data-dc-tpl="152" style="display: flex; flex-direction: column; gap: 6px;">
-          <span data-dc-tpl="153" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">01 — Automatisation</span>
+          <span data-dc-tpl="153" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">01 — Automatisation</span>
           <h2 data-dc-tpl="154" style="margin: 0px; font-size: 24px; font-weight: 700; letter-spacing: -0.03em;">Du signal à ton compte</h2>
         </div>
         <ol data-dc-tpl="155" style="position: relative; list-style: none; margin: 0px; padding: 0px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px;">
           
-            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(51, 230, 166, 0.25); background: linear-gradient(160deg, rgba(51, 230, 166, 0.07), rgba(255, 255, 255, 0.01));">
+            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.25); background: linear-gradient(160deg, rgba(var(--green-rgb, 51, 230, 166), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0.01));">
               <span data-dc-tpl="158" style="display: flex; align-items: center; gap: 10px;">
-                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: rgb(5, 5, 5); background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
+                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: var(--bg-0, rgb(5, 5, 5)); background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
                 <span data-dc-tpl="160" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Signal BERICH</span></span>
-                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span class="sc-interp">Étape 1</span></span>
+                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Étape 1</span></span>
               </span>
-              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: rgb(155, 155, 161);"><span class="sc-interp">Or, 5 min · dernier signal il y a 55 min</span></span>
+              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Or, 5 min · dernier signal il y a 55 min</span></span>
             </li>
           
-            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(51, 230, 166, 0.25); background: linear-gradient(160deg, rgba(51, 230, 166, 0.07), rgba(255, 255, 255, 0.01));">
+            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.25); background: linear-gradient(160deg, rgba(var(--green-rgb, 51, 230, 166), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0.01));">
               <span data-dc-tpl="158" style="display: flex; align-items: center; gap: 10px;">
-                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: rgb(5, 5, 5); background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
+                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: var(--bg-0, rgb(5, 5, 5)); background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
                 <span data-dc-tpl="160" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Ton plan</span></span>
-                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span class="sc-interp">Étape 2</span></span>
+                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Étape 2</span></span>
               </span>
-              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: rgb(155, 155, 161);"><span class="sc-interp">×3 en 12 mois · BERICH I + II</span></span>
+              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">×3 en 12 mois · BERICH I + II</span></span>
             </li>
           
-            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(51, 230, 166, 0.25); background: linear-gradient(160deg, rgba(51, 230, 166, 0.07), rgba(255, 255, 255, 0.01));">
+            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.25); background: linear-gradient(160deg, rgba(var(--green-rgb, 51, 230, 166), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0.01));">
               <span data-dc-tpl="158" style="display: flex; align-items: center; gap: 10px;">
-                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: rgb(5, 5, 5); background: rgb(51, 230, 166); box-shadow: rgba(51, 230, 166, 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
+                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: var(--bg-0, rgb(5, 5, 5)); background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
                 <span data-dc-tpl="160" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Ton compte</span></span>
-                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span class="sc-interp">Étape 3</span></span>
+                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Étape 3</span></span>
               </span>
-              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: rgb(155, 155, 161);"><span class="sc-interp">IC Markets · 14 210 € · rattaché à ton plan par l’équipe CHEST</span></span>
+              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">IC Markets · 14 210 € · rattaché à ton plan par l’équipe CHEST</span></span>
             </li>
           
         </ol>
-        <p data-dc-tpl="163" style="margin: 0px; font-size: 12.5px; color: rgb(155, 155, 161);">Chaque signal part avec le risque de son algorithme : <b data-dc-tpl="164" style="color: rgb(246, 246, 247);">1 %</b> pour BERICH I, <b data-dc-tpl="165" style="color: rgb(246, 246, 247);">0,6 %</b> pour BERICH II, soit environ <b data-dc-tpl="166" style="color: rgb(246, 246, 247);">142 €</b> par position sur ton compte.</p>
+        <p data-dc-tpl="163" style="margin: 0px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));">Chaque signal part avec le risque de son algorithme : <b data-dc-tpl="164" style="color: var(--ink, rgb(246, 246, 247));">1 %</b> pour BERICH I, <b data-dc-tpl="165" style="color: var(--ink, rgb(246, 246, 247));">0,6 %</b> pour BERICH II, soit environ <b data-dc-tpl="166" style="color: var(--ink, rgb(246, 246, 247));">142 €</b> par position sur ton compte.</p>
       </section>
 
       
       <section data-dc-tpl="167" style="display: flex; flex-direction: column; gap: 18px;">
         <div data-dc-tpl="168" style="display: flex; flex-direction: column; gap: 6px;">
-          <span data-dc-tpl="169" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">02 — Projection</span>
+          <span data-dc-tpl="169" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">02 — Projection</span>
           <h2 data-dc-tpl="170" style="margin: 0px; font-size: 24px; font-weight: 700; letter-spacing: -0.03em;">Où ton plan peut t'emmener</h2>
         </div>
-        <div data-dc-tpl="171" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(12, 16, 15, 0.72), rgba(9, 9, 11, 0.88)); box-shadow: rgba(0, 0, 0, 0.45) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 28px;">
-          <div data-dc-tpl="172" aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
+        <div data-dc-tpl="171" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 12, 16, 15), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.88)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 28px;">
+          <div data-dc-tpl="172" aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255), 0.5), transparent);"></div>
           <figure data-dc-tpl="173" style="margin: 0px; display: flex; flex-direction: column; gap: 10px; min-width: 0px;">
             <div data-dc-tpl="174" style="display: flex; gap: 10px;">
-              <div data-dc-tpl="175" style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130); text-align: right;"><span data-dc-tpl="176">40 k€</span><span data-dc-tpl="177">30 k€</span><span data-dc-tpl="178">20 k€</span><span data-dc-tpl="179">10 k€</span></div>
+              <div data-dc-tpl="175" style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130)); text-align: right;"><span data-dc-tpl="176">40 k€</span><span data-dc-tpl="177">30 k€</span><span data-dc-tpl="178">20 k€</span><span data-dc-tpl="179">10 k€</span></div>
               <div data-dc-tpl="180" style="position: relative; flex: 1 1 0%; min-width: 0px; height: 260px;">
                 <svg data-dc-tpl="181" width="100%" height="260" viewBox="0 0 600 260" preserveAspectRatio="none" aria-hidden="true" style="display: block;">
                   <line data-dc-tpl="182" x1="0" x2="600" y1="86.7" y2="86.7" stroke="#f9a45e" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"></line>
                   <path data-dc-tpl="183" d="M0.0,260.0 L50.0,236.3 L100.0,212.7 L150.0,192.5 L200.0,170.6 L250.0,145.2 L300.0,118.9 L350.0,90.9 L400.0,62.1 L450.0,29.7 L500.0,-4.3 L550.0,-42.7 L600.0,-84.6 L600.0,185.9 L550.0,205.2 L500.0,221.1 L450.0,232.6 L400.0,242.4 L350.0,248.7 L300.0,254.2 L250.0,257.9 L200.0,260.0 L150.0,260.0 L100.0,257.8 L50.0,258.9 L0.0,260.0 Z" fill="rgba(51,230,166,.08)"></path>
                   <path data-dc-tpl="184" d="M0.0,260.0 L50.0,243.4 L100.0,226.7 L150.0,213.5 L200.0,198.6 L250.0,180.3 L300.0,161.0 L350.0,140.1 L400.0,118.2 L450.0,92.9 L500.0,65.9 L550.0,34.5 L600.0,-0.3 L600.0,126.9 L550.0,151.2 L500.0,171.9 L450.0,188.4 L400.0,203.1 L350.0,214.3 L300.0,224.7 L250.0,233.3 L200.0,241.1 L150.0,245.4 L100.0,247.9 L50.0,254.0 L0.0,260.0 Z" fill="rgba(51,230,166,.16)"></path>
-                  <path data-dc-tpl="185" d="M0.0,260.0 L50.0,249.6 L100.0,239.2 L150.0,232.3 L200.0,223.6 L250.0,211.5 L300.0,198.5 L350.0,183.7 L400.0,168.1 L450.0,149.1 L500.0,128.3 L550.0,103.1 L600.0,74.5" fill="none" stroke="#33e6a6" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(51, 230, 166, 0.7) 0px 0px 8px);"></path>
+                  <path data-dc-tpl="185" d="M0.0,260.0 L50.0,249.6 L100.0,239.2 L150.0,232.3 L200.0,223.6 L250.0,211.5 L300.0,198.5 L350.0,183.7 L400.0,168.1 L450.0,149.1 L500.0,128.3 L550.0,103.1 L600.0,74.5" fill="none" stroke="#33e6a6" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.7) 0px 0px 8px);"></path>
                   <path data-dc-tpl="186" d="M0.0,260.0 L50.0,253.1 L100.0,241.8 L150.0,247.0 L200.0,230.5 L250.0,223.6" fill="none" stroke="#f6f6f7" stroke-width="2.4" vector-effect="non-scaling-stroke"></path>
                 </svg>
                 <span data-dc-tpl="187" style="position: absolute; right: 8px; top: 33.3%; transform: translateY(-130%); font-size: 11px; font-weight: 600; color: rgb(var(--a2-rgb, 249, 164, 94));">Objectif 30 000 €</span>
               </div>
             </div>
-            <figcaption data-dc-tpl="188" style="display: flex; flex-wrap: wrap; gap: 16px; padding-left: 44px; font-size: 11.5px; color: rgb(155, 155, 161);">
-              <span data-dc-tpl="189" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="190" style="width: 14px; height: 8px; border-radius: 2px; background: rgba(51, 230, 166, 0.22);"></span>8 futurs sur 10</span>
-              <span data-dc-tpl="191" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="192" style="width: 14px; height: 8px; border-radius: 2px; background: rgba(51, 230, 166, 0.4);"></span>1 sur 2</span>
-              <span data-dc-tpl="193" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="194" style="width: 14px; height: 2px; background: rgb(51, 230, 166);"></span>futur médian</span>
-              <span data-dc-tpl="195" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="196" style="width: 14px; height: 2px; background: rgb(246, 246, 247);"></span>ton compte</span>
+            <figcaption data-dc-tpl="188" style="display: flex; flex-wrap: wrap; gap: 16px; padding-left: 44px; font-size: 11.5px; color: var(--ink-2, rgb(155, 155, 161));">
+              <span data-dc-tpl="189" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="190" style="width: 14px; height: 8px; border-radius: 2px; background: rgba(var(--green-rgb, 51, 230, 166), 0.22);"></span>8 futurs sur 10</span>
+              <span data-dc-tpl="191" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="192" style="width: 14px; height: 8px; border-radius: 2px; background: rgba(var(--green-rgb, 51, 230, 166), 0.4);"></span>1 sur 2</span>
+              <span data-dc-tpl="193" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="194" style="width: 14px; height: 2px; background: rgb(var(--green-rgb, 51, 230, 166));"></span>futur médian</span>
+              <span data-dc-tpl="195" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="196" style="width: 14px; height: 2px; background: var(--ink, rgb(246, 246, 247));"></span>ton compte</span>
             </figcaption>
           </figure>
           <div data-dc-tpl="197" style="display: flex; flex-direction: column; gap: 18px;">
@@ -381,19 +381,19 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
               <div data-dc-tpl="199" style="position: relative; width: 120px; height: 120px; flex: 0 0 120px;">
                 <svg data-dc-tpl="200" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
                   <circle data-dc-tpl="201" cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9"></circle>
-                  <circle data-dc-tpl="202" cx="60" cy="60" r="50" fill="none" stroke="#33e6a6" stroke-width="9" stroke-linecap="round" stroke-dasharray="201.1 314.2" transform="rotate(-90 60 60)" style="filter: drop-shadow(rgba(51, 230, 166, 0.6) 0px 0px 8px);"></circle>
+                  <circle data-dc-tpl="202" cx="60" cy="60" r="50" fill="none" stroke="#33e6a6" stroke-width="9" stroke-linecap="round" stroke-dasharray="201.1 314.2" transform="rotate(-90 60 60)" style="filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.6) 0px 0px 8px);"></circle>
                 </svg>
                 <span data-dc-tpl="203" style="position: absolute; inset: 0px; display: grid; place-items: center; font-size: 26px; font-weight: 700; letter-spacing: -0.03em;">64 %</span>
               </div>
-              <span data-dc-tpl="204" style="font-size: 13px; line-height: 1.55; color: rgb(155, 155, 161);">des futurs simulés touchent <b data-dc-tpl="205" style="color: rgb(246, 246, 247);">30 000 €</b> en 12 mois, en restant sous ton recul accepté.</span>
+              <span data-dc-tpl="204" style="font-size: 13px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));">des futurs simulés touchent <b data-dc-tpl="205" style="color: var(--ink, rgb(246, 246, 247));">30 000 €</b> en 12 mois, en restant sous ton recul accepté.</span>
             </div>
-            <dl data-dc-tpl="206" style="margin: 0px; display: flex; flex-direction: column; border-top: 1px solid rgba(255, 255, 255, 0.07);">
-              <div data-dc-tpl="207" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.055);"><dt data-dc-tpl="208" style="color: rgb(155, 155, 161);">Médiane</dt><dd data-dc-tpl="209" style="margin: 0px 0px 0px auto; font-weight: 700; font-variant-numeric: tabular-nums;">31 400 €</dd></div>
-              <div data-dc-tpl="210" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.055);"><dt data-dc-tpl="211" style="color: rgb(155, 155, 161);">8 fois sur 10, entre</dt><dd data-dc-tpl="212" style="margin: 0px 0px 0px auto; font-weight: 700; font-variant-numeric: tabular-nums;">19 200 € <span data-dc-tpl="213" style="color: rgb(122, 122, 130); font-weight: 500;">et</span> 46 800 €</dd></div>
-              <div data-dc-tpl="214" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.055);"><dt data-dc-tpl="215" style="color: rgb(155, 155, 161);">Creux probable en route</dt><dd data-dc-tpl="216" style="margin: 0px 0px 0px auto; font-weight: 700; color: rgb(255, 148, 160);">−12 % <span data-dc-tpl="217" style="color: rgb(122, 122, 130); font-weight: 500;">· au pire −24 %</span></dd></div>
+            <dl data-dc-tpl="206" style="margin: 0px; display: flex; flex-direction: column; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
+              <div data-dc-tpl="207" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);"><dt data-dc-tpl="208" style="color: var(--ink-2, rgb(155, 155, 161));">Médiane</dt><dd data-dc-tpl="209" style="margin: 0px 0px 0px auto; font-weight: 700; font-variant-numeric: tabular-nums;">31 400 €</dd></div>
+              <div data-dc-tpl="210" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);"><dt data-dc-tpl="211" style="color: var(--ink-2, rgb(155, 155, 161));">8 fois sur 10, entre</dt><dd data-dc-tpl="212" style="margin: 0px 0px 0px auto; font-weight: 700; font-variant-numeric: tabular-nums;">19 200 € <span data-dc-tpl="213" style="color: var(--ink-3, rgb(122, 122, 130)); font-weight: 500;">et</span> 46 800 €</dd></div>
+              <div data-dc-tpl="214" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);"><dt data-dc-tpl="215" style="color: var(--ink-2, rgb(155, 155, 161));">Creux probable en route</dt><dd data-dc-tpl="216" style="margin: 0px 0px 0px auto; font-weight: 700; color: var(--red-hi, rgb(255, 148, 160));">−12 % <span data-dc-tpl="217" style="color: var(--ink-3, rgb(122, 122, 130)); font-weight: 500;">· au pire −24 %</span></dd></div>
             </dl>
             <div data-dc-tpl="218" style="display: flex; flex-wrap: wrap; gap: 10px;">
-              <button data-dc-tpl="219" type="button" class="btn2" style="height: 38px; padding: 0px 16px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(11, 11, 14), rgb(11, 11, 14)) padding-box padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.14)) border-box border-box; color: rgb(246, 246, 247); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Comparer d'autres réglages</button>
+              <button data-dc-tpl="219" type="button" class="btn2" style="height: 38px; padding: 0px 16px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(var(--dk-rgb, 11, 11, 14)), rgb(var(--dk-rgb, 11, 11, 14))) padding-box padding-box, linear-gradient(135deg, rgba(var(--fg-rgb, 255, 255, 255), 0.14), rgba(var(--fg-rgb, 255, 255, 255), 0.14)) border-box border-box; color: var(--ink, rgb(246, 246, 247)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Comparer d'autres réglages</button>
               <button data-dc-tpl="220" type="button" style="height: 38px; padding: 0px 4px; border: 0px; background: none; color: rgb(var(--a2-rgb, 249, 164, 94)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Refaire le quiz →</button>
             </div>
           </div>
@@ -404,310 +404,310 @@ a{color:#f6f6f7;text-decoration:none}a:hover{color:#ffffff}
       <section data-dc-tpl="221" style="display: flex; flex-direction: column; gap: 18px;">
         <div data-dc-tpl="222" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px;">
           <div data-dc-tpl="223" style="display: flex; flex-direction: column; gap: 6px;">
-            <span data-dc-tpl="224" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">03 — Performances</span>
+            <span data-dc-tpl="224" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">03 — Performances</span>
             <h2 data-dc-tpl="225" style="margin: 0px; font-size: 24px; font-weight: 700; letter-spacing: -0.03em;"><span class="sc-interp">BERICH I</span> : depuis toujours, l'an dernier, cette année</h2>
           </div>
-          <div data-dc-tpl="226" role="group" aria-label="Algorithme" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">
+          <div data-dc-tpl="226" role="group" aria-label="Algorithme" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.024);">
             
-              <button data-dc-tpl="228" type="button" aria-pressed="true" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: rgb(246, 246, 247); color: rgb(5, 5, 5); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">BERICH I</span> <span data-dc-tpl="229" style="color: rgb(var(--a2-rgb, 249, 164, 94));"><span class="sc-interp">★</span></span></button>
+              <button data-dc-tpl="228" type="button" aria-pressed="true" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">BERICH I</span> <span data-dc-tpl="229" style="color: rgb(var(--a2-rgb, 249, 164, 94));"><span class="sc-interp">★</span></span></button>
             
-              <button data-dc-tpl="228" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH II</span> <span data-dc-tpl="229" style="color: rgb(var(--a2-rgb, 249, 164, 94));"><span class="sc-interp">★</span></span></button>
+              <button data-dc-tpl="228" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH II</span> <span data-dc-tpl="229" style="color: rgb(var(--a2-rgb, 249, 164, 94));"><span class="sc-interp">★</span></span></button>
             
           </div>
         </div>
         <div data-dc-tpl="230" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px;">
           
-            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset;">
-              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Depuis toujours</span></span>
-              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.35) 0px 0px 22px;"><span class="sc-interp">+96,0 R</span></span>
-              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: rgb(155, 155, 161);"><b data-dc-tpl="236" style="font-size: 15px; color: rgb(127, 243, 202);"><span class="sc-interp">+184 %</span></b><span class="sc-interp">1 000 € → 2 840 €</span></span>
-              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(255, 255, 255, 0.07);">
+            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
+              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Depuis toujours</span></span>
+              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202)); text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 22px;"><span class="sc-interp">+96,0 R</span></span>
+              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));"><b data-dc-tpl="236" style="font-size: 15px; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+184 %</span></b><span class="sc-interp">1 000 € → 2 840 €</span></span>
+              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">473</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">473</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">41,6 %</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">41,6 %</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">1,92</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">1,92</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">+0,20 R</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+0,20 R</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160);"><span class="sc-interp">−9,0 R</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−9,0 R</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">28 sur 34</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">28 sur 34</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: 1 / -1;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">+14,0 R · mars 2024</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: 1 / -1;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+14,0 R · mars 2024</span></dd>
                   </div>
                 
               </dl>
-              <span data-dc-tpl="242" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">depuis le 3 janv. 2023</span></span>
+              <span data-dc-tpl="242" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">depuis le 3 janv. 2023</span></span>
             </article>
           
-            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset;">
-              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">L’année dernière · 2025</span></span>
-              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.35) 0px 0px 22px;"><span class="sc-interp">+31,0 R</span></span>
-              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: rgb(155, 155, 161);"><b data-dc-tpl="236" style="font-size: 15px; color: rgb(127, 243, 202);"><span class="sc-interp">+36 %</span></b><span class="sc-interp">1 000 € → 1 360 €</span></span>
-              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(255, 255, 255, 0.07);">
+            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
+              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">L’année dernière · 2025</span></span>
+              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202)); text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 22px;"><span class="sc-interp">+31,0 R</span></span>
+              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));"><b data-dc-tpl="236" style="font-size: 15px; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+36 %</span></b><span class="sc-interp">1 000 € → 1 360 €</span></span>
+              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">162</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">162</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">40,1 %</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">40,1 %</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">1,71</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">1,71</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">+0,19 R</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+0,19 R</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160);"><span class="sc-interp">−7,0 R</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−7,0 R</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">10 sur 12</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">10 sur 12</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: 1 / -1;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">+9,0 R · juillet 2025</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: 1 / -1;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+9,0 R · juillet 2025</span></dd>
                   </div>
                 
               </dl>
-              <span data-dc-tpl="242" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">du 1er janvier au 31 décembre 2025</span></span>
+              <span data-dc-tpl="242" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">du 1er janvier au 31 décembre 2025</span></span>
             </article>
           
-            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset;">
-              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);"><span class="sc-interp">Cette année · 2026</span></span>
-              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202); text-shadow: rgba(51, 230, 166, 0.35) 0px 0px 22px;"><span class="sc-interp">+27,0 R</span></span>
-              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: rgb(155, 155, 161);"><b data-dc-tpl="236" style="font-size: 15px; color: rgb(127, 243, 202);"><span class="sc-interp">+31 %</span></b><span class="sc-interp">1 000 € → 1 310 €</span></span>
-              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(255, 255, 255, 0.07);">
+            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
+              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Cette année · 2026</span></span>
+              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202)); text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 22px;"><span class="sc-interp">+27,0 R</span></span>
+              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));"><b data-dc-tpl="236" style="font-size: 15px; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+31 %</span></b><span class="sc-interp">1 000 € → 1 310 €</span></span>
+              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">139</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">139</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">43,2 %</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">43,2 %</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">2,04</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">2,04</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">+0,19 R</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+0,19 R</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160);"><span class="sc-interp">−6,0 R</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−6,0 R</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">8 sur 10</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">8 sur 10</span></dd>
                   </div>
                 
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); grid-column: 1 / -1;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: rgb(122, 122, 130);"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(246, 246, 247);"><span class="sc-interp">+8,0 R · avril 2026</span></dd>
+                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: 1 / -1;">
+                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+8,0 R · avril 2026</span></dd>
                   </div>
                 
               </dl>
-              <span data-dc-tpl="242" style="font-size: 11.5px; color: rgb(122, 122, 130);"><span class="sc-interp">depuis le 1er janvier 2026</span></span>
+              <span data-dc-tpl="242" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">depuis le 1er janvier 2026</span></span>
             </article>
           
         </div>
-        <p data-dc-tpl="243" style="margin: 0px; font-size: 12px; color: rgb(122, 122, 130);">Le calcul en euros suit le réglage de ton plan pour cet algorithme (1 %, palier après 3 stops) en partant de 10 000 €, gains réinvestis.</p>
+        <p data-dc-tpl="243" style="margin: 0px; font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));">Le calcul en euros suit le réglage de ton plan pour cet algorithme (1 %, palier après 3 stops) en partant de 10 000 €, gains réinvestis.</p>
       </section>
 
       
-      <section data-dc-tpl="244" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.12); background: linear-gradient(160deg, rgba(14, 14, 17, 0.72), rgba(9, 9, 11, 0.86)); box-shadow: rgba(0, 0, 0, 0.45) 0px 18px 44px, rgba(255, 255, 255, 0.14) 1.5px 1.5px 0px inset, rgba(255, 255, 255, 0.04) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 12px;">
-        <div data-dc-tpl="245" aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);"></div>
+      <section data-dc-tpl="244" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.86)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 12px;">
+        <div data-dc-tpl="245" aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255), 0.5), transparent);"></div>
         <div data-dc-tpl="246" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;">
           <div data-dc-tpl="247" style="display: flex; flex-direction: column; gap: 6px;">
-            <span data-dc-tpl="248" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">04 — Registre</span>
+            <span data-dc-tpl="248" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">04 — Registre</span>
             <h2 data-dc-tpl="249" style="margin: 0px; font-size: 20px; font-weight: 700; letter-spacing: -0.025em;">Toutes les positions</h2>
           </div>
-          <div data-dc-tpl="250" role="group" aria-label="Filtre" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.024);">
-            <button data-dc-tpl="251" type="button" aria-pressed="true" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: rgb(246, 246, 247); color: rgb(5, 5, 5); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">Toutes</button>
-            <button data-dc-tpl="252" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Gagnantes</button>
-            <button data-dc-tpl="253" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Perdantes</button>
-            <button data-dc-tpl="254" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: rgb(155, 155, 161); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">En cours</button>
+          <div data-dc-tpl="250" role="group" aria-label="Filtre" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.024);">
+            <button data-dc-tpl="251" type="button" aria-pressed="true" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">Toutes</button>
+            <button data-dc-tpl="252" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Gagnantes</button>
+            <button data-dc-tpl="253" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Perdantes</button>
+            <button data-dc-tpl="254" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">En cours</button>
           </div>
         </div>
         <div data-dc-tpl="255" style="overflow-x: auto;">
           <div data-dc-tpl="256" style="min-width: 760px; display: flex; flex-direction: column;">
-            <div data-dc-tpl="257" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; padding: 8px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: rgb(122, 122, 130); border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
+            <div data-dc-tpl="257" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; padding: 8px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130)); border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
               <span data-dc-tpl="258">Ouverture</span><span data-dc-tpl="259">Algo</span><span data-dc-tpl="260">Sens</span><span data-dc-tpl="261">Entrée</span><span data-dc-tpl="262">Sortie</span><span data-dc-tpl="263">Issue</span><span data-dc-tpl="264">Durée</span><span data-dc-tpl="265" style="text-align: right;">R</span>
             </div>
             
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">2 nov. 13:45</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(201, 201, 206);"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12);"><span class="sc-interp">Achat</span></span></span>
+              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">2 nov. 13:45</span></span>
+                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
+                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
                 <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 061,2</span></span>
                 <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">en cours</span></span>
-                <span data-dc-tpl="274" style="color: rgb(155, 155, 161);"><span class="sc-interp">Ouverte</span></span>
-                <span data-dc-tpl="275" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">55 min</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202);"><span class="sc-interp">+1,9</span></span>
+                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Ouverte</span></span>
+                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">55 min</span></span>
+                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+1,9</span></span>
               </div>
             
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">31 oct. 10:30</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(201, 201, 206);"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12);"><span class="sc-interp">Achat</span></span></span>
+              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">31 oct. 10:30</span></span>
+                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
+                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
                 <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 012,5</span></span>
                 <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 040,7</span></span>
-                <span data-dc-tpl="274" style="color: rgb(155, 155, 161);"><span class="sc-interp">Objectif 3 R</span></span>
-                <span data-dc-tpl="275" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">6,2 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202);"><span class="sc-interp">+3,0</span></span>
+                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Objectif 3 R</span></span>
+                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">6,2 h</span></span>
+                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+3,0</span></span>
               </div>
             
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">29 oct. 15:15</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(201, 201, 206);"><span class="sc-interp">BERICH II</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: rgb(255, 148, 160); background: rgba(255, 77, 94, 0.12);"><span class="sc-interp">Vente</span></span></span>
+              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">29 oct. 15:15</span></span>
+                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH II</span></span>
+                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--red-hi, rgb(255, 148, 160)); background: rgba(var(--red-rgb, 255, 77, 94), 0.12);"><span class="sc-interp">Vente</span></span></span>
                 <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 031,0</span></span>
                 <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 038,4</span></span>
-                <span data-dc-tpl="274" style="color: rgb(155, 155, 161);"><span class="sc-interp">Stop</span></span>
-                <span data-dc-tpl="275" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">0,8 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160);"><span class="sc-interp">−1,0</span></span>
+                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Stop</span></span>
+                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">0,8 h</span></span>
+                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−1,0</span></span>
               </div>
             
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">28 oct. 09:00</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(201, 201, 206);"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12);"><span class="sc-interp">Achat</span></span></span>
+              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">28 oct. 09:00</span></span>
+                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
+                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
                 <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 044,8</span></span>
                 <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 039,6</span></span>
-                <span data-dc-tpl="274" style="color: rgb(155, 155, 161);"><span class="sc-interp">Stop</span></span>
-                <span data-dc-tpl="275" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">1,1 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160);"><span class="sc-interp">−1,0</span></span>
+                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Stop</span></span>
+                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">1,1 h</span></span>
+                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−1,0</span></span>
               </div>
             
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">24 oct. 14:45</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(201, 201, 206);"><span class="sc-interp">BERICH II</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12);"><span class="sc-interp">Achat</span></span></span>
+              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">24 oct. 14:45</span></span>
+                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH II</span></span>
+                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
                 <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 002,1</span></span>
                 <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 049,6</span></span>
-                <span data-dc-tpl="274" style="color: rgb(155, 155, 161);"><span class="sc-interp">Objectif 5 R</span></span>
-                <span data-dc-tpl="275" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">1,9 j</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202);"><span class="sc-interp">+5,0</span></span>
+                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Objectif 5 R</span></span>
+                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">1,9 j</span></span>
+                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+5,0</span></span>
               </div>
             
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">22 oct. 11:15</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(201, 201, 206);"><span class="sc-interp">BERICH II</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: rgb(255, 148, 160); background: rgba(255, 77, 94, 0.12);"><span class="sc-interp">Vente</span></span></span>
+              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">22 oct. 11:15</span></span>
+                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH II</span></span>
+                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--red-hi, rgb(255, 148, 160)); background: rgba(var(--red-rgb, 255, 77, 94), 0.12);"><span class="sc-interp">Vente</span></span></span>
                 <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 018,7</span></span>
                 <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 018,7</span></span>
-                <span data-dc-tpl="274" style="color: rgb(155, 155, 161);"><span class="sc-interp">Sortie à 0</span></span>
-                <span data-dc-tpl="275" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">3,4 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(155, 155, 161);"><span class="sc-interp">0,0</span></span>
+                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Sortie à 0</span></span>
+                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">3,4 h</span></span>
+                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">0,0</span></span>
               </div>
             
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">20 oct. 16:00</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(201, 201, 206);"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: rgb(255, 148, 160); background: rgba(255, 77, 94, 0.12);"><span class="sc-interp">Vente</span></span></span>
+              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">20 oct. 16:00</span></span>
+                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
+                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--red-hi, rgb(255, 148, 160)); background: rgba(var(--red-rgb, 255, 77, 94), 0.12);"><span class="sc-interp">Vente</span></span></span>
                 <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 051,3</span></span>
                 <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 027,9</span></span>
-                <span data-dc-tpl="274" style="color: rgb(155, 155, 161);"><span class="sc-interp">Objectif 3 R</span></span>
-                <span data-dc-tpl="275" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">4,7 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202);"><span class="sc-interp">+3,0</span></span>
+                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Objectif 3 R</span></span>
+                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">4,7 h</span></span>
+                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+3,0</span></span>
               </div>
             
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">17 oct. 08:30</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: rgb(201, 201, 206);"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: rgb(127, 243, 202); background: rgba(51, 230, 166, 0.12);"><span class="sc-interp">Achat</span></span></span>
+              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
+                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">17 oct. 08:30</span></span>
+                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
+                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
                 <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">3 998,4</span></span>
                 <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">3 993,1</span></span>
-                <span data-dc-tpl="274" style="color: rgb(155, 155, 161);"><span class="sc-interp">Stop</span></span>
-                <span data-dc-tpl="275" style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;"><span class="sc-interp">0,6 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160);"><span class="sc-interp">−1,0</span></span>
+                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Stop</span></span>
+                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">0,6 h</span></span>
+                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−1,0</span></span>
               </div>
             
           </div>
         </div>
-        <button data-dc-tpl="277" type="button" style="align-self: center; height: 34px; padding: 0px 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.12); background: transparent; color: rgb(201, 201, 206); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Afficher 10 de plus · 473 positions</button>
+        <button data-dc-tpl="277" type="button" style="align-self: center; height: 34px; padding: 0px 16px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: transparent; color: var(--ink-1, rgb(201, 201, 206)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Afficher 10 de plus · 473 positions</button>
       </section>
 
       
       <section data-dc-tpl="278" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px;">
-        <div data-dc-tpl="279" class="tile" style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset;">
+        <div data-dc-tpl="279" class="tile" style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
           <div data-dc-tpl="280" style="display: flex; flex-direction: column; gap: 6px;">
-            <span data-dc-tpl="281" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">05 — Sessions</span>
+            <span data-dc-tpl="281" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">05 — Sessions</span>
             <span data-dc-tpl="282" style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em;">Quand l'algorithme performe</span>
-            <span data-dc-tpl="283" style="font-size: 12px; color: rgb(122, 122, 130);">Longueur de barre = winrate, chiffre = résultat cumulé. Heures de Paris.</span>
+            <span data-dc-tpl="283" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));">Longueur de barre = winrate, chiffre = résultat cumulé. Heures de Paris.</span>
           </div>
           
             <div data-dc-tpl="285" style="display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 12px;">
-              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Asie</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span class="sc-interp">01:00 → 09:00</span></span></span>
-              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 31%; border-radius: 999px; background: linear-gradient(90deg, rgb(255, 77, 94), rgb(255, 148, 160)); box-shadow: none;"></div></div>
-              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(255, 148, 160);"><span class="sc-interp">−6,0 R</span></span>
+              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Asie</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">01:00 → 09:00</span></span></span>
+              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 31%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--red-rgb, 255, 77, 94)), var(--red-hi, rgb(255, 148, 160))); box-shadow: none;"></div></div>
+              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−6,0 R</span></span>
             </div>
           
             <div data-dc-tpl="285" style="display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 12px;">
-              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Londres</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span class="sc-interp">09:00 → 14:00</span></span></span>
-              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 46%; border-radius: 999px; background: linear-gradient(90deg, rgb(51, 230, 166), rgb(110, 242, 201)); box-shadow: rgba(51, 230, 166, 0.4) 0px 0px 10px;"></div></div>
-              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202);"><span class="sc-interp">+42,0 R</span></span>
+              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Londres</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">09:00 → 14:00</span></span></span>
+              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 46%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), var(--green-hi, rgb(110, 242, 201))); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.4) 0px 0px 10px;"></div></div>
+              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+42,0 R</span></span>
             </div>
           
             <div data-dc-tpl="285" style="display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 12px;">
-              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Chevauchement</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span class="sc-interp">14:00 → 18:00</span></span></span>
-              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 51%; border-radius: 999px; background: linear-gradient(90deg, rgb(51, 230, 166), rgb(110, 242, 201)); box-shadow: rgba(51, 230, 166, 0.4) 0px 0px 10px;"></div></div>
-              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202);"><span class="sc-interp">+49,0 R</span></span>
+              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Chevauchement</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">14:00 → 18:00</span></span></span>
+              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 51%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), var(--green-hi, rgb(110, 242, 201))); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.4) 0px 0px 10px;"></div></div>
+              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+49,0 R</span></span>
             </div>
           
             <div data-dc-tpl="285" style="display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 12px;">
-              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">New York</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(122, 122, 130);"><span class="sc-interp">18:00 → 23:00</span></span></span>
-              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 38%; border-radius: 999px; background: linear-gradient(90deg, rgb(51, 230, 166), rgb(110, 242, 201)); box-shadow: rgba(51, 230, 166, 0.4) 0px 0px 10px;"></div></div>
-              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(127, 243, 202);"><span class="sc-interp">+11,0 R</span></span>
+              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">New York</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">18:00 → 23:00</span></span></span>
+              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 38%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), var(--green-hi, rgb(110, 242, 201))); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.4) 0px 0px 10px;"></div></div>
+              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+11,0 R</span></span>
             </div>
           
         </div>
-        <div data-dc-tpl="292" class="tile" style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset;">
+        <div data-dc-tpl="292" class="tile" style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
           <div data-dc-tpl="293" style="display: flex; flex-direction: column; gap: 6px;">
-            <span data-dc-tpl="294" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(122, 122, 130);">06 — Sens &amp; durée</span>
+            <span data-dc-tpl="294" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">06 — Sens &amp; durée</span>
             <span data-dc-tpl="295" style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em;">Achats, ventes, temps en position</span>
           </div>
           <div data-dc-tpl="296" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0px;">
             <div data-dc-tpl="297" style="display: flex; flex-direction: column; gap: 6px; padding-right: 18px;">
-              <span data-dc-tpl="298" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(127, 243, 202);">Achats · 278</span>
-              <span data-dc-tpl="299" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: rgb(127, 243, 202);">+64,2 R</span>
-              <span data-dc-tpl="300" style="font-size: 12px; color: rgb(155, 155, 161);">winrate 44 %</span>
+              <span data-dc-tpl="298" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--green-hi, rgb(127, 243, 202));">Achats · 278</span>
+              <span data-dc-tpl="299" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--green-hi, rgb(127, 243, 202));">+64,2 R</span>
+              <span data-dc-tpl="300" style="font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">winrate 44 %</span>
             </div>
             <div data-dc-tpl="301" style="display: flex; flex-direction: column; gap: 6px; padding-left: 18px; border-left: 1px solid rgba(var(--a2-rgb, 249, 164, 94), 0.5);">
-              <span data-dc-tpl="302" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(255, 148, 160);">Ventes · 195</span>
-              <span data-dc-tpl="303" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: rgb(127, 243, 202);">+31,8 R</span>
-              <span data-dc-tpl="304" style="font-size: 12px; color: rgb(155, 155, 161);">winrate 39 %</span>
+              <span data-dc-tpl="302" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--red-hi, rgb(255, 148, 160));">Ventes · 195</span>
+              <span data-dc-tpl="303" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--green-hi, rgb(127, 243, 202));">+31,8 R</span>
+              <span data-dc-tpl="304" style="font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">winrate 39 %</span>
             </div>
           </div>
           <div data-dc-tpl="305" style="display: flex; height: 10px; border-radius: 999px; overflow: hidden;">
-            <div data-dc-tpl="306" style="width: 59%; background: linear-gradient(90deg, rgb(51, 230, 166), rgba(51, 230, 166, 0.5));"></div>
-            <div data-dc-tpl="307" style="width: 41%; background: linear-gradient(90deg, rgba(255, 77, 94, 0.5), rgb(255, 77, 94));"></div>
+            <div data-dc-tpl="306" style="width: 59%; background: linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), rgba(var(--green-rgb, 51, 230, 166), 0.5));"></div>
+            <div data-dc-tpl="307" style="width: 41%; background: linear-gradient(90deg, rgba(var(--red-rgb, 255, 77, 94), 0.5), rgb(var(--red-rgb, 255, 77, 94)));"></div>
           </div>
-          <dl data-dc-tpl="308" style="margin: 4px 0px 0px; display: flex; flex-direction: column; border-top: 1px solid rgba(255, 255, 255, 0.07);">
-            <div data-dc-tpl="309" style="display: flex; justify-content: space-between; padding: 10px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><dt data-dc-tpl="310" style="color: rgb(155, 155, 161);">Temps moyen · gagnantes</dt><dd data-dc-tpl="311" style="margin: 0px; font-weight: 700;">5,8 h</dd></div>
-            <div data-dc-tpl="312" style="display: flex; justify-content: space-between; padding: 10px 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><dt data-dc-tpl="313" style="color: rgb(155, 155, 161);">Temps moyen · perdantes</dt><dd data-dc-tpl="314" style="margin: 0px; font-weight: 700;">1,4 h</dd></div>
-            <div data-dc-tpl="315" style="display: flex; justify-content: space-between; padding: 10px 0px;"><dt data-dc-tpl="316" style="color: rgb(155, 155, 161);">Plus longue position</dt><dd data-dc-tpl="317" style="margin: 0px; font-weight: 700;">3,2 j</dd></div>
+          <dl data-dc-tpl="308" style="margin: 4px 0px 0px; display: flex; flex-direction: column; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
+            <div data-dc-tpl="309" style="display: flex; justify-content: space-between; padding: 10px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><dt data-dc-tpl="310" style="color: var(--ink-2, rgb(155, 155, 161));">Temps moyen · gagnantes</dt><dd data-dc-tpl="311" style="margin: 0px; font-weight: 700;">5,8 h</dd></div>
+            <div data-dc-tpl="312" style="display: flex; justify-content: space-between; padding: 10px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><dt data-dc-tpl="313" style="color: var(--ink-2, rgb(155, 155, 161));">Temps moyen · perdantes</dt><dd data-dc-tpl="314" style="margin: 0px; font-weight: 700;">1,4 h</dd></div>
+            <div data-dc-tpl="315" style="display: flex; justify-content: space-between; padding: 10px 0px;"><dt data-dc-tpl="316" style="color: var(--ink-2, rgb(155, 155, 161));">Plus longue position</dt><dd data-dc-tpl="317" style="margin: 0px; font-weight: 700;">3,2 j</dd></div>
           </dl>
         </div>
       </section>

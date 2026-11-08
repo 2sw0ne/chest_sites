@@ -13,7 +13,7 @@
    ici, opaque, avec la teinte exacte de la sidebar composée sur le fond
    de page — et le bouton gagne la même zone de clic. */
 .chest-sidebar__toggle{ width:18px; }
-.chest-sidebar__toggle-bg path{ fill:#0a0a0c !important; }
+.chest-sidebar__toggle-bg path{ fill:var(--bg-1, #0a0a0c) !important; }
 /* Filet de raccord : prolonge le bord de la sidebar derrière la bulle,
    pour qu'aucune couture n'apparaisse au-dessus ni en dessous. */
 .chest-sidebar::after{
@@ -111,14 +111,14 @@
   background-position:right center !important;
   background-size:9px 6px !important;
 }
-.scnr-topbar .scnr-field select option{ background:#0c0c0e; color:var(--chest-ink); font-size:14px; }
+.scnr-topbar .scnr-field select option{ background:var(--bg-1, #0c0c0e); color:var(--chest-ink); font-size:14px; }
 
 /* Unité de temps : segmenté en pilules, comme partout ailleurs */
 .scnr-tf{
   height:auto !important; display:inline-flex !important; flex-wrap:wrap;
   gap:2px !important; padding:3px !important;
   border:1px solid var(--chest-border) !important; border-radius:999px !important;
-  background:rgba(255,255,255,.03) !important; overflow:visible !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.03) !important; overflow:visible !important;
 }
 .scnr-tf button{
   flex:0 0 auto !important; font-size:11.5px !important; font-weight:600 !important;
@@ -133,21 +133,21 @@
 
 /* Le graphique passe en fenêtre liquid glass */
 .scnr-media.card{
-  border:1px solid rgba(255,255,255,.14) !important;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14) !important;
   border-radius:var(--chest-r-lg) !important;
-  background:linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74)) !important;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.62), rgba(var(--dk-rgb, 9, 9, 11),.74)) !important;
   backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   box-shadow:
-    0 18px 44px rgba(0,0,0,.45),
-    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
-    inset -1.5px -1.5px 0 rgba(255,255,255,.06),
-    inset 0 0 40px rgba(255,255,255,.035) !important;
+    0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),
+    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2),
+    inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06),
+    inset 0 0 40px rgba(var(--fg-rgb, 255, 255, 255),.035) !important;
   position:relative;
 }
 .scnr-media.card::after{
   content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none; z-index:2;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  background:linear-gradient(90deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.55),transparent);
 }
 /* Le conteneur .container bridait la page à 1180px alors que la maquette
    est pleine largeur — le graphique respire enfin. */
@@ -157,7 +157,7 @@
 .scnr-tags{ padding:0 26px 22px; }
 .scnr-tags span{
   font-size:11px; padding:4px 10px; border-radius:999px;
-  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); color:#c9c9cf;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.05); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); color:#c9c9cf;
 }
 
 
@@ -201,20 +201,20 @@
 /* Le bloc du signal : fenêtre liquid glass, colonnes égales
    (1fr / 1.3fr écrasait la colonne de gauche sur les écrans moyens) */
 .signal-hero.card{
-  border:1px solid rgba(255,255,255,.14) !important;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14) !important;
   border-radius:var(--chest-r-lg) !important;
-  background:linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74)) !important;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.62), rgba(var(--dk-rgb, 9, 9, 11),.74)) !important;
   backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   box-shadow:
-    0 18px 44px rgba(0,0,0,.45),
-    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
-    inset -1.5px -1.5px 0 rgba(255,255,255,.06) !important;
+    0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),
+    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2),
+    inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06) !important;
   position:relative;
 }
 .signal-hero.card::after{
   content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none; z-index:2;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  background:linear-gradient(90deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.55),transparent);
 }
 .signal-hero__active{ grid-template-columns:repeat(auto-fit,minmax(300px,1fr)) !important; }
 @media (max-width:880px){ .signal-hero__active{ grid-template-columns:1fr !important; } }
@@ -242,17 +242,17 @@
 .signal-hero__levels strong,
 .levels strong{ font-size:24px !important; font-weight:700 !important; letter-spacing:-.02em; white-space:nowrap; }
 .signal-hero__levels .sl strong,
-.levels .sl strong{ text-shadow:0 0 18px rgba(255,77,94,.3); }
+.levels .sl strong{ text-shadow:0 0 18px rgba(var(--red-rgb, 255, 77, 94),.3); }
 .signal-hero__levels .tp strong,
-.levels .tp strong{ text-shadow:0 0 18px rgba(51,230,166,.35); }
+.levels .tp strong{ text-shadow:0 0 18px rgba(var(--green-rgb, 51, 230, 166),.35); }
 
 /* Ligne de risque : encadré léger, sélecteur en pilules */
 .risk-box{
   border:1px solid var(--chest-border) !important; border-radius:var(--chest-r-sm) !important;
-  background:rgba(255,255,255,.03) !important; font-size:12.5px !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.03) !important; font-size:12.5px !important;
 }
 .risk-choice-group{
-  border:1px solid var(--chest-border) !important; background:rgba(255,255,255,.03) !important;
+  border:1px solid var(--chest-border) !important; background:rgba(var(--fg-rgb, 255, 255, 255),.03) !important;
   padding:3px !important; border-radius:999px !important;
 }
 .risk-choice-group button{
@@ -265,20 +265,20 @@
 
 /* Le graphique passe en fenêtre liquid glass */
 .chart-wrap.card{
-  border:1px solid rgba(255,255,255,.14) !important;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14) !important;
   border-radius:var(--chest-r-lg) !important;
-  background:linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74)) !important;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.62), rgba(var(--dk-rgb, 9, 9, 11),.74)) !important;
   backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   box-shadow:
-    0 18px 44px rgba(0,0,0,.45),
-    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
-    inset -1.5px -1.5px 0 rgba(255,255,255,.06) !important;
+    0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),
+    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2),
+    inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06) !important;
   position:relative;
 }
 .chart-wrap.card::after{
   content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none; z-index:2;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  background:linear-gradient(90deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.55),transparent);
 }
 .chart-wrap__head{ padding:20px 24px 0 !important; }
 .chart-note{ padding:14px 24px 20px !important; color:var(--chest-ink-3) !important; }
@@ -304,15 +304,15 @@
 .wizard-card.card,
 .connmodal-modal,
 .gate__card{
-  border:1px solid rgba(255,255,255,.14) !important;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14) !important;
   border-radius:var(--chest-r-xl) !important;
-  background:linear-gradient(160deg, rgba(9,9,11,.72), rgba(9,9,11,.82)) !important;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.72), rgba(var(--dk-rgb, 9, 9, 11),.82)) !important;
   backdrop-filter:blur(30px) saturate(1.1);
   -webkit-backdrop-filter:blur(30px) saturate(1.1);
   box-shadow:
-    0 30px 80px rgba(0,0,0,.55),
-    inset 1.5px 1.5px 0 rgba(255,255,255,.14),
-    inset -1.5px -1.5px 0 rgba(255,255,255,.05) !important;
+    0 30px 80px rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))),
+    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.14),
+    inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05) !important;
 }
 
 /* Fil d'étapes : filet fin + accent dégradé sur l'étape en cours */
@@ -335,7 +335,7 @@
 .mfx-account-row{
   border:1px solid var(--chest-border) !important;
   border-radius:var(--chest-r-sm) !important;
-  background:rgba(255,255,255,.025) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.025) !important;
   transition:transform .2s var(--chest-ease), border-color .2s, background .2s, box-shadow .2s !important;
 }
 .broker-card:hover,
@@ -357,20 +357,20 @@
 .method-steps{
   border:1px solid var(--chest-border) !important;
   border-radius:var(--chest-r-sm) !important;
-  background:rgba(255,255,255,.025) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.025) !important;
 }
 .method-steps h3{ font-size:10px !important; letter-spacing:.16em; text-transform:uppercase; color:var(--chest-ink-3) !important; }
 .method-steps ol{ color:var(--chest-ink-2) !important; }
 .method-steps code,
 .sync-line code,
 .conn-bar__status code{
-  background:rgba(255,255,255,.06) !important; border:1px solid rgba(255,255,255,.1);
+  background:rgba(var(--fg-rgb, 255, 255, 255),.06) !important; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1);
   border-radius:5px; padding:1px 6px; font-size:.92em;
 }
 
 /* Champs de formulaire : contour rose au focus, comme la maquette */
 .field{
-  background:rgba(255,255,255,.04) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.04) !important;
   border:1px solid var(--chest-border) !important;
   border-radius:13px !important;
   transition:border-color .18s, background .18s !important;
@@ -378,7 +378,7 @@
 .field:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.4) !important; }
 .field:focus{
   border-color:var(--chest-acc) !important;
-  background:rgba(255,255,255,.06) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.06) !important;
   box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.12);
 }
 label{ font-size:12px !important; letter-spacing:.02em; color:var(--chest-ink-2) !important; }
@@ -394,21 +394,21 @@ label{ font-size:12px !important; letter-spacing:.02em; color:var(--chest-ink-2)
 .btn-ghost{
   border-radius:999px !important;
   border:1px solid transparent !important;
-  background:linear-gradient(rgba(255,255,255,.04),rgba(255,255,255,.04)) padding-box,
-             linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.16)) border-box !important;
+  background:linear-gradient(rgba(var(--fg-rgb, 255, 255, 255),.04),rgba(var(--fg-rgb, 255, 255, 255),.04)) padding-box,
+             linear-gradient(135deg,rgba(var(--fg-rgb, 255, 255, 255),.16),rgba(var(--fg-rgb, 255, 255, 255),.16)) border-box !important;
   transition:background .2s, color .2s, box-shadow .2s !important;
 }
 .btn-secondary:hover,
 .btn-ghost:hover{
   color:#fff !important;
-  background:linear-gradient(rgba(255,255,255,.04),rgba(255,255,255,.04)) padding-box,
+  background:linear-gradient(rgba(var(--fg-rgb, 255, 255, 255),.04),rgba(var(--fg-rgb, 255, 255, 255),.04)) padding-box,
              var(--chest-grad) border-box !important;
   box-shadow:0 8px 26px rgba(var(--a1-rgb, 252, 18, 131),.2) !important;
 }
 
 /* Boutons ronds (réglages, navigation de jour) */
 .icon-btn{
-  background:rgba(255,255,255,.04) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.04) !important;
   border:1px solid var(--chest-border) !important;
   color:var(--chest-ink-2) !important;
   transition:color .18s, border-color .18s !important;
@@ -418,27 +418,27 @@ label{ font-size:12px !important; letter-spacing:.02em; color:var(--chest-ink-2)
 /* Segmenté hérité (.pill-group) : même rendu que .chest-seg */
 .pill-group{
   border:1px solid var(--chest-border) !important;
-  background:rgba(255,255,255,.03) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.03) !important;
 }
 .pill-group button{ color:var(--chest-ink-2) !important; }
 .pill-group button.is-active{ background:var(--chest-ink) !important; color:var(--chest-bg) !important; }
 
 /* Voile des modales : même profondeur que le reste */
-.connmodal-overlay{ background:rgba(0,0,0,.66) !important; backdrop-filter:blur(10px) !important; -webkit-backdrop-filter:blur(10px) !important; }
+.connmodal-overlay{ background:rgba(0, 0, 0, calc(.66 * var(--sh-k, 1))) !important; backdrop-filter:blur(10px) !important; -webkit-backdrop-filter:blur(10px) !important; }
 
 /* Titre de modale */
 .connmodal-modal h2{ font-size:19px !important; font-weight:700 !important; letter-spacing:-.025em; }
 .connmodal-modal .hint,
 p.hint{ color:var(--chest-ink-2) !important; }
 .connmodal-close{
-  background:rgba(255,255,255,.05) !important; border:1px solid var(--chest-border) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.05) !important; border:1px solid var(--chest-border) !important;
   color:var(--chest-ink-2) !important; transition:color .18s, border-color .18s;
 }
 .connmodal-close:hover{ color:var(--chest-ink) !important; border-color:rgba(var(--a2-rgb, 249, 164, 94),.5) !important; }
 
 /* Bloc vide / réservé */
 .placeholder{
-  border:1px dashed rgba(255,255,255,.18) !important;
+  border:1px dashed rgba(var(--fg-rgb, 255, 255, 255),.18) !important;
   border-radius:var(--chest-r) !important;
   color:var(--chest-ink-3) !important;
 }
@@ -451,8 +451,8 @@ p.hint{ color:var(--chest-ink-2) !important; }
 /* Bandeau "exemple" : ambre de la DA */
 .example-badge{
   color:var(--chest-amber) !important;
-  background:rgba(232,179,57,.12) !important;
-  border-color:rgba(232,179,57,.35) !important;
+  background:rgba(var(--amber-rgb, 232, 179, 57),.12) !important;
+  border-color:rgba(var(--amber-rgb, 232, 179, 57),.35) !important;
   border-radius:999px !important;
 }
 
@@ -465,26 +465,26 @@ p.hint{ color:var(--chest-ink-2) !important; }
 
 /* Annonces du jour : les « bulles » deviennent des mini-fenêtres verre */
 .bubble{
-  border:1px solid rgba(255,255,255,.12) !important;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12) !important;
   border-radius:var(--chest-r) !important;
-  background:linear-gradient(160deg, rgba(9,9,11,.5), rgba(9,9,11,.66)) !important;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.5), rgba(var(--dk-rgb, 9, 9, 11),.66)) !important;
   backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
   -webkit-backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
   box-shadow:
-    0 14px 34px rgba(0,0,0,.4),
-    inset 1.5px 1.5px 0 rgba(255,255,255,.16),
-    inset -1.5px -1.5px 0 rgba(255,255,255,.05) !important;
+    0 14px 34px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))),
+    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.16),
+    inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.05) !important;
   transition:transform .22s var(--chest-ease), border-color .22s, box-shadow .22s !important;
 }
 .bubble:hover{
   transform:translateY(-3px);
   border-color:rgba(var(--a2-rgb, 249, 164, 94),.45) !important;
-  box-shadow:0 20px 44px rgba(0,0,0,.45), 0 0 34px rgba(var(--a1-rgb, 252, 18, 131),.18),
-             inset 1.5px 1.5px 0 rgba(255,255,255,.2) !important;
+  box-shadow:0 20px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), 0 0 34px rgba(var(--a1-rgb, 252, 18, 131),.18),
+             inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2) !important;
 }
 .bubble.is-open{ border-color:rgba(var(--a1-rgb, 252, 18, 131),.55) !important; }
-.bubble__badge.pending{ background:rgba(232,179,57,.14) !important; color:var(--chest-amber) !important; }
-.bubble__badge.released{ background:rgba(51,230,166,.14) !important; color:var(--chest-green) !important; }
+.bubble__badge.pending{ background:rgba(var(--amber-rgb, 232, 179, 57),.14) !important; color:var(--chest-amber) !important; }
+.bubble__badge.released{ background:rgba(var(--green-rgb, 51, 230, 166),.14) !important; color:var(--chest-green) !important; }
 .bubble__detail-inner{ border-top-color:var(--chest-rule) !important; }
 
 /* Prévu | Réel dans le détail : filets au lieu de trois pavés */
@@ -498,7 +498,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
 .compare-cell span{ font-size:9.5px !important; letter-spacing:.14em !important; color:var(--chest-ink-3) !important; }
 .compare-cell b{ font-size:18px !important; font-weight:700 !important; }
 .hypothesis{
-  background:rgba(255,255,255,.04) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.04) !important;
   border:1px solid var(--chest-border);
   border-radius:var(--chest-r-sm) !important;
 }
@@ -506,21 +506,21 @@ p.hint{ color:var(--chest-ink-2) !important; }
 /* Tableaux du jour et des prochains jours : fenêtres liquid glass */
 .day-table,
 .upcoming-table{
-  border:1px solid rgba(255,255,255,.14) !important;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14) !important;
   border-radius:var(--chest-r-lg) !important;
-  background:linear-gradient(160deg, rgba(9,9,11,.62), rgba(9,9,11,.74)) !important;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.62), rgba(var(--dk-rgb, 9, 9, 11),.74)) !important;
   backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   -webkit-backdrop-filter:blur(34px) brightness(.34) saturate(1.05);
   box-shadow:
-    0 18px 44px rgba(0,0,0,.45),
-    inset 1.5px 1.5px 0 rgba(255,255,255,.2),
-    inset -1.5px -1.5px 0 rgba(255,255,255,.06) !important;
+    0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))),
+    inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2),
+    inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06) !important;
   position:relative;
 }
 .day-table::after,
 .upcoming-table::after{
   content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none; z-index:2;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  background:linear-gradient(90deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.55),transparent);
 }
 .day-row,
 .upcoming-row{
@@ -529,7 +529,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   transition:background .18s;
 }
 .day-row:hover,
-.upcoming-row:hover{ background:rgba(255,255,255,.035); }
+.upcoming-row:hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.035); }
 .day-row .t,
 .upcoming-row .t{ color:var(--chest-ink-2) !important; font-size:12.5px; }
 .day-row .col span,
@@ -544,7 +544,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
 /* Filtre d'importance : pilules alignées sur la DA, actif en dégradé */
 .imp-pill{
   border:1px solid var(--chest-border) !important;
-  background:rgba(255,255,255,.03) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.03) !important;
   color:var(--chest-ink-2) !important;
   transition:border-color .18s, color .18s, background .18s !important;
 }
@@ -559,13 +559,13 @@ p.hint{ color:var(--chest-ink-2) !important; }
 
 /* Navigateur de jour */
 .day-nav__btn{
-  background:rgba(255,255,255,.04) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.04) !important;
   border:1px solid var(--chest-border) !important;
   color:var(--chest-ink-2) !important;
 }
 .day-nav__btn:not(:disabled):hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.5) !important; color:var(--chest-ink) !important; }
 .day-nav__today{
-  background:rgba(255,255,255,.03) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.03) !important;
   border:1px solid var(--chest-border) !important;
   color:var(--chest-ink-2) !important;
 }
@@ -583,29 +583,29 @@ p.hint{ color:var(--chest-ink-2) !important; }
 .driver-compact__detail{
   border:1px solid var(--chest-border) !important;
   border-radius:var(--chest-r) !important;
-  background:rgba(255,255,255,.03) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.03) !important;
 }
 
 /* Ticker : filets et fond de la DA */
 .ticker-item{ border-right-color:var(--chest-rule) !important; }
-.ticker-meta{ background:rgba(8,8,10,.9) !important; border-left-color:var(--chest-rule) !important; }
+.ticker-meta{ background:rgba(var(--dk-rgb, 8, 8, 10),.9) !important; border-left-color:var(--chest-rule) !important; }
 
 /* État de chargement / vide */
 .cal-state{
-  border:1px dashed rgba(255,255,255,.18) !important;
+  border:1px dashed rgba(var(--fg-rgb, 255, 255, 255),.18) !important;
   border-radius:var(--chest-r) !important;
   color:var(--chest-ink-3) !important;
 }
-.cal-state code{ background:rgba(255,255,255,.06) !important; color:var(--chest-ink) !important; }
+.cal-state code{ background:rgba(var(--fg-rgb, 255, 255, 255),.06) !important; color:var(--chest-ink) !important; }
 
 /* Marché crypto : la carte devient une mini-fenêtre verre */
 #moversSection .card{
-  border:1px solid rgba(255,255,255,.12) !important;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12) !important;
   border-radius:var(--chest-r) !important;
-  background:linear-gradient(160deg, rgba(9,9,11,.5), rgba(9,9,11,.66)) !important;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.5), rgba(var(--dk-rgb, 9, 9, 11),.66)) !important;
   backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
   -webkit-backdrop-filter:blur(22px) brightness(.62) saturate(1.05);
-  box-shadow:0 14px 34px rgba(0,0,0,.4), inset 1.5px 1.5px 0 rgba(255,255,255,.16) !important;
+  box-shadow:0 14px 34px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.16) !important;
 }
 .mover-row{ border-bottom-color:var(--chest-rule-row) !important; }
 .mover-col__label{ font-size:10px !important; letter-spacing:.16em !important; color:var(--chest-ink-3) !important; }
@@ -647,7 +647,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   border:1px solid var(--chest-border) !important;
   border-radius:var(--chest-r) !important;
   background:var(--chest-surface) !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
 }
 
 
@@ -663,7 +663,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   font-size:10px !important; font-weight:600 !important; letter-spacing:.14em !important;
   text-transform:uppercase !important; color:var(--chest-ink-3) !important;
   text-align:left; padding:14px 16px !important;
-  border-bottom:1px solid rgba(255,255,255,.1) !important;
+  border-bottom:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1) !important;
   background:transparent !important;
 }
 .chest-root tbody td{
@@ -671,7 +671,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
   border-bottom:1px solid var(--chest-rule-row) !important;
 }
 .chest-root tbody tr{ transition:background .18s; }
-.chest-root tbody tr:hover{ background:rgba(255,255,255,.035); }
+.chest-root tbody tr:hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.035); }
 .chest-root tbody tr:last-child td{ border-bottom:none !important; }
 /* Les chiffres d'un tableau s'alignent toujours */
 .chest-root td[class*="pnl"], .chest-root td[class*="rr"],
@@ -695,7 +695,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
 .tabbar, .tabs{
   display:inline-flex; gap:2px; padding:3px;
   border:1px solid var(--chest-border) !important; border-radius:999px !important;
-  background:rgba(255,255,255,.03) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.03) !important;
 }
 .tabbar button, .tabs button{
   border:none !important; background:transparent !important; cursor:pointer;
@@ -703,16 +703,16 @@ p.hint{ color:var(--chest-ink-2) !important; }
   border-radius:999px !important; color:var(--chest-ink-2) !important;
   transition:color .18s, background .18s;
 }
-.tabbar button:hover, .tabs button:hover{ color:var(--chest-ink) !important; background:rgba(255,255,255,.05) !important; }
+.tabbar button:hover, .tabs button:hover{ color:var(--chest-ink) !important; background:rgba(var(--fg-rgb, 255, 255, 255),.05) !important; }
 .tabbar button.is-active, .tabs button.is-active{
   background:var(--chest-ink) !important; color:var(--chest-bg) !important; font-weight:700 !important;
 }
 
 /* Zone de dépôt de fichier (import Excel) */
 .dropzone, .file-drop, [class*="upload"]{
-  border:1px dashed rgba(255,255,255,.18) !important;
+  border:1px dashed rgba(var(--fg-rgb, 255, 255, 255),.18) !important;
   border-radius:var(--chest-r) !important;
-  background:rgba(255,255,255,.02) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.02) !important;
   transition:border-color .2s, background .2s !important;
 }
 .dropzone:hover, .file-drop:hover,
@@ -724,13 +724,13 @@ p.hint{ color:var(--chest-ink-2) !important; }
 /* Sélecteurs natifs : même traitement que les champs */
 .chest-root select.field,
 .chest-root select:not(.scnr-field select){
-  background-color:rgba(255,255,255,.04);
+  background-color:rgba(var(--fg-rgb, 255, 255, 255),.04);
   border:1px solid var(--chest-border);
   border-radius:var(--chest-r-sm);
   color:var(--chest-ink);
 }
 .chest-root select:focus{ outline:none; border-color:var(--chest-acc); }
-.chest-root select option{ background:#0c0c0e; color:var(--chest-ink); }
+.chest-root select option{ background:var(--bg-1, #0c0c0e); color:var(--chest-ink); }
 
 /* Cases et interrupteurs : accent de marque */
 .chest-root input[type="checkbox"],
@@ -741,7 +741,7 @@ p.hint{ color:var(--chest-ink-2) !important; }
 .chest-root progress::-webkit-progress-value,
 .progress__bar, .bar__fill{ background:var(--chest-grad) !important; }
 .chest-root progress::-webkit-progress-bar,
-.progress, .bar{ background:rgba(255,255,255,.07) !important; border-radius:999px; }
+.progress, .bar{ background:rgba(var(--fg-rgb, 255, 255, 255),.07) !important; border-radius:999px; }
 
 /* Message d'aide / note discrète */
 .hint, .note, .muted{ color:var(--chest-ink-2) !important; }
@@ -766,8 +766,8 @@ small{ color:var(--chest-ink-3); }
   background:radial-gradient(ellipse 46% 52% at 50% 20%, var(--glow, rgba(140,140,160,.22)), transparent 70%) !important;
 }
 .sentiment-hero[data-tone="neutral"]{ --glow: rgba(140,140,160,.22) !important; }
-.sentiment-hero[data-tone="pos"]{ --glow: rgba(51,230,166,.4) !important; }
-.sentiment-hero[data-tone="neg"]{ --glow: rgba(255,77,94,.4) !important; }
+.sentiment-hero[data-tone="pos"]{ --glow: rgba(var(--green-rgb, 51, 230, 166),.4) !important; }
+.sentiment-hero[data-tone="neg"]{ --glow: rgba(var(--red-rgb, 255, 77, 94),.4) !important; }
 /* Fondu latéral en plus du fondu bas : plus de bord net à gauche/droite */
 .sentiment-hero{ position:relative; }
 .sentiment-hero__inner{ position:relative; z-index:1; }
@@ -797,7 +797,7 @@ small{ color:var(--chest-ink-3); }
 .scnr-topbar.card{
   border:1px solid var(--chest-border) !important;
   border-radius:var(--chest-r-lg) !important;
-  background:rgba(255,255,255,.025) !important;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.025) !important;
   border-top:1px solid var(--chest-border) !important;
   padding:22px 26px 24px !important;
   margin:0 0 14px !important;
@@ -825,15 +825,15 @@ small{ color:var(--chest-ink-3); }
    plus claire, un liseré, et une taille cliquable. */
 .chest-sidebar__toggle{ width:20px !important; height:104px !important; right:-20px !important; }
 .chest-sidebar__toggle-bg path{
-  fill:#131317 !important;
-  stroke:rgba(255,255,255,.14) !important; stroke-width:1 !important;
+  fill:var(--bg-1, #131317) !important;
+  stroke:rgba(var(--fg-rgb, 255, 255, 255),.14) !important; stroke-width:1 !important;
 }
 .chest-sidebar__toggle svg:last-child{ width:12px !important; height:12px !important; margin-left:-4px !important; }
 .chest-sidebar__toggle{ color:var(--chest-ink) !important; }
 /* Le filet de bord ne doit pas traverser la bulle */
 .chest-sidebar::after{
   content:''; position:absolute; top:0; bottom:0; right:0; width:1px;
-  background:rgba(255,255,255,.1); pointer-events:none; z-index:1;
+  background:rgba(var(--fg-rgb, 255, 255, 255),.1); pointer-events:none; z-index:1;
 }
 
 
@@ -866,7 +866,7 @@ small{ color:var(--chest-ink-3); }
   margin:0 !important;
   border:1px solid var(--chest-border);
   border-radius:var(--chest-r);
-  background:rgba(255,255,255,.025);
+  background:rgba(var(--fg-rgb, 255, 255, 255),.025);
   overflow:hidden;
 }
 .upcoming-day__label{
@@ -916,13 +916,13 @@ small{ color:var(--chest-ink-3); }
 
 /* Volet : bulle franchement visible, chevron contrasté. */
 .chest-sidebar__toggle-bg path{
-  fill:#17171c !important;
-  stroke:rgba(255,255,255,.22) !important;
+  fill:var(--bg-1, #17171c) !important;
+  stroke:rgba(var(--fg-rgb, 255, 255, 255),.22) !important;
   stroke-width:1.2 !important;
 }
-.chest-sidebar__toggle{ color:#f6f6f7 !important; }
+.chest-sidebar__toggle{ color:var(--ink, #f6f6f7) !important; }
 .chest-sidebar__toggle:hover .chest-sidebar__toggle-bg path{
-  fill:#1e1e24 !important; stroke:rgba(var(--a2-rgb, 249, 164, 94),.6) !important;
+  fill:var(--bg-1, #1e1e24) !important; stroke:rgba(var(--a2-rgb, 249, 164, 94),.6) !important;
 }
 
 
@@ -935,7 +935,7 @@ small{ color:var(--chest-ink-3); }
    ===================================================================== */
 :root{
   --lit-fill: linear-gradient(135deg, rgba(var(--a1-rgb, 252, 18, 131),.26), rgba(var(--a2-rgb, 249, 164, 94),.22));
-  --lit-base: #101013;
+  --lit-base: var(--bg-1, #101013);
   --lit-ring: rgba(var(--a2-rgb, 249, 164, 94),.85);
   --lit-glow: 0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.4), 0 12px 32px rgba(var(--a1-rgb, 252, 18, 131),.24);
   --rim-ring: rgba(var(--a2-rgb, 249, 164, 94),.75);
@@ -967,7 +967,7 @@ small{ color:var(--chest-ink-3); }
    iframe (le shell app.html, ou une page d'auth) : les pages chargées dans l'iframe sont inversées avec lui.
    Ce qui ne doit PAS être inversé (médias, éléments de marque à dégradé + texte blanc) est ré-inversé ci-dessous.
    ===================================================================== */
-html[data-theme="light"]:not(.is-embedded){ filter: invert(1) hue-rotate(180deg); background:#050505; }
+html[data-theme="light"]:not(.is-embedded){ filter: invert(1) hue-rotate(180deg); background:var(--bg-0, #050505); }
 
 html[data-theme="light"] img,
 html[data-theme="light"] video,
@@ -1014,7 +1014,7 @@ html[data-theme="light"] .wel video{ filter: none; }
 /* 1) .chest-grad-text (grand nombre en dégradé, ex. "+12.4%") part de BLANC vers l'orange - pensé
    pour un fond sombre. Inversé tel quel, il devient un dégradé terne (brun/olive) illisible sur
    fond blanc. Contre-inversée (comme .chest-btn plus haut) puis redéfinie avec un dégradé qui part
-   de --chest-bg (#050505, la même valeur qu'utilise le fond en sombre - donc un encre quasi noir
+   de --chest-bg (var(--bg-0, #050505), la même valeur qu'utilise le fond en sombre - donc un encre quasi noir
    ici) vers le même orange de marque : même intention visuelle, adaptée à un fond clair. */
 html[data-theme="light"] .chest-grad-text{
   filter: invert(1) hue-rotate(180deg);

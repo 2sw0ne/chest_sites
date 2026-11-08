@@ -19,7 +19,7 @@
          dessus (retour direct utilisateur du 2026-09-15). */
       position:fixed; left:24px; bottom:24px; z-index:50; width:40px; height:40px; border-radius:50%;
       border:1px solid var(--line2); background:var(--panel); color:var(--muted); cursor:pointer;
-      font:inherit; font-size:15px; font-weight:700; font-style:italic; box-shadow:0 8px 24px rgba(0,0,0,.25);
+      font:inherit; font-size:15px; font-weight:700; font-style:italic; box-shadow:0 8px 24px rgba(0, 0, 0, calc(.25 * var(--sh-k, 1)));
       transition:color .15s, border-color .15s, transform .15s;
     }
     .chesttour-btn:hover{ color:var(--acc); border-color:var(--acc); transform:translateY(-2px); }
@@ -30,12 +30,12 @@
     .chesttour-overlay.is-open{ opacity:1; pointer-events:auto; }
     .chesttour-spotlight{
       position:fixed; z-index:401; border-radius:14px; pointer-events:none;
-      box-shadow:0 0 0 9999px rgba(4,4,6,.8);
+      box-shadow:0 0 0 9999px rgba(var(--dk-rgb, 4, 4, 6),.8);
       transition:top .35s ease, left .35s ease, width .35s ease, height .35s ease;
     }
     .chesttour-tooltip{
       position:fixed; z-index:402; width:min(320px,calc(100vw - 32px)); background:var(--panel);
-      border:1px solid var(--line2); border-radius:var(--radius); padding:18px 20px; box-shadow:0 24px 60px rgba(0,0,0,.4);
+      border:1px solid var(--line2); border-radius:var(--radius); padding:18px 20px; box-shadow:0 24px 60px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1)));
       transition:top .35s ease, left .35s ease;
     }
     .chesttour-tooltip__step{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--acc); margin-bottom:8px; }

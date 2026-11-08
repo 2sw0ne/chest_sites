@@ -56,7 +56,7 @@
     + '.rk-mark{position:relative;display:inline-block;flex-shrink:0;width:var(--rk-s);height:var(--rk-s);margin-right:calc(var(--rk-s) * .22);line-height:0;vertical-align:middle}.rk-mark>svg{display:block}'
     + '.rk-roman{position:absolute;right:calc(var(--rk-s) * -.2);bottom:calc(var(--rk-s) * -.06);min-width:calc(var(--rk-s) * .44);padding:0 calc(var(--rk-s) * .07);height:calc(var(--rk-s) * .36);'
     + 'display:inline-flex;align-items:center;justify-content:center;border-radius:999px;font:700 max(9px,calc(var(--rk-s) * .22))/1 "Instrument Sans",system-ui,sans-serif;font-style:normal;letter-spacing:.04em;'
-    + 'color:#fff;background:#0b0b0d;box-shadow:0 0 0 1.5px var(--rk-c),0 2px 8px rgba(0,0,0,.5)}';
+    + 'color:#fff;background:var(--bg-1, #0b0b0d);box-shadow:0 0 0 1.5px var(--rk-c),0 2px 8px rgba(0, 0, 0, calc(.5 * var(--sh-k, 1)))}';
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   window.CHESTRank = { info, badge, chip, corner, hex, ROMAN, GLYPH, COLORS };
 })();

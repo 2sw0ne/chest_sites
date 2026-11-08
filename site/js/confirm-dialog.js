@@ -10,7 +10,7 @@
 
   const STYLE = `
     .chestconfirm-overlay{
-      position:fixed; inset:0; z-index:400; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+      position:fixed; inset:0; z-index:400; background:rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
       display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s;
     }
     .chestconfirm-overlay.is-open{ opacity:1; pointer-events:auto; }

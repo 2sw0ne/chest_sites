@@ -10,15 +10,15 @@
      polices/CSS externes chargent, surtout juste apres la connexion (branche
      experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
      charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
-<style>html,body{background:#050505}</style>
+<style>html,body{background:var(--bg-0, #050505)}</style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=3">
-<link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=20">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
-<link rel="stylesheet" href="css/backtest-da.css?v=15">
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/chest-da.css?v=21">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
+<link rel="stylesheet" href="css/backtest-da.css?v=16">
 <style>
   .val{ font-variant-numeric:tabular-nums; font-weight:700; }
   .val.pos{ color:var(--green); } .val.neg{ color:var(--red); } .val.neutral{ color:var(--muted); }
@@ -30,10 +30,10 @@
     position:absolute; top:20px; left:24px; z-index:5;
     display:inline-flex; align-items:center; gap:6px;
     font-family:'Instrument Sans',system-ui,sans-serif; font-size:12.5px; font-weight:600;
-    text-decoration:none; color:#f6f6f7; background:rgba(255,255,255,.08); backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 14px 8px 10px;
+    text-decoration:none; color:var(--ink, #f6f6f7); background:rgba(var(--fg-rgb, 255, 255, 255),.08); backdrop-filter:blur(10px);
+    border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.16); border-radius:999px; padding:8px 14px 8px 10px;
   }
-  .chest-back:hover{ background:rgba(255,255,255,.14); }
+  .chest-back:hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.14); }
 
   /* ---------- Page de garde : hero plein écran, toujours sombre (identité SWYPER) ---------- */
   .bt-hero-glow{
@@ -54,27 +54,27 @@
   .bt-hero-glow__inner{ position:relative; max-width:820px; margin:0 auto; }
   .bt-hero-glow__badge{
     display:inline-flex; align-items:center; gap:8px; font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-    padding:7px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.7); margin-bottom:26px;
+    padding:7px 16px; border-radius:999px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.16); color:rgba(var(--fg-rgb, 255, 255, 255),.7); margin-bottom:26px;
   }
   .bt-hero-glow__badge .dot{ width:7px; height:7px; border-radius:50%; background:var(--acc); box-shadow:0 0 10px var(--acc); display:inline-block; }
   .bt-hero-glow__title{
     font-size:clamp(44px,9vw,104px); line-height:.95; font-weight:800; letter-spacing:-.03em; margin:0 0 18px; word-break:break-word;
     background:linear-gradient(180deg,#fff,color-mix(in srgb,#fff 55%,var(--acc))); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
-  .bt-hero-glow__desc{ font-size:15px; line-height:1.6; color:rgba(255,255,255,.65); max-width:56ch; margin:0 auto 30px; }
+  .bt-hero-glow__desc{ font-size:15px; line-height:1.6; color:rgba(var(--fg-rgb, 255, 255, 255),.65); max-width:56ch; margin:0 auto 30px; }
   .bt-hero-glow__cta{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:20px; }
-  .bt-hero-glow__cta .btn-secondary{ background:rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.18); }
+  .bt-hero-glow__cta .btn-secondary{ background:rgba(var(--fg-rgb, 255, 255, 255),.08); color:#fff; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.18); }
   .bt-hero-glow__actions{ display:flex; gap:18px; justify-content:center; margin-bottom:40px; }
-  .bt-hero-glow__linkbtn{ background:none; border:none; font:inherit; cursor:pointer; font-size:12.5px; font-weight:600; color:rgba(255,255,255,.55); text-decoration:underline; }
+  .bt-hero-glow__linkbtn{ background:none; border:none; font:inherit; cursor:pointer; font-size:12.5px; font-weight:600; color:rgba(var(--fg-rgb, 255, 255, 255),.55); text-decoration:underline; }
   .bt-hero-glow__linkbtn:hover{ color:#fff; }
   .bt-hero-glow__linkbtn--danger{ color:rgba(255,120,130,.75); }
   .bt-hero-glow__linkbtn--danger:hover{ color:#ff8b96; }
   .bt-hero-glow__stats{
     display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:20px; max-width:640px; margin:0 auto;
-    padding-top:28px; border-top:1px solid rgba(255,255,255,.12);
+    padding-top:28px; border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12);
   }
   .bt-hero-glow__stats span{ display:block; font-size:19px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; }
-  .bt-hero-glow__stats label{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.4); margin-top:5px; }
+  .bt-hero-glow__stats label{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:rgba(var(--fg-rgb, 255, 255, 255),.4); margin-top:5px; }
 
   /* ---------- En-tête de section (eyebrow + filtre) ---------- */
   .section-head{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
@@ -105,19 +105,19 @@
   .mm-card__ok{ color:var(--green); }
   .bt-idx{ display:inline-flex; align-items:center; gap:6px; margin-top:4px; font-size:11px; color:var(--muted); }
   .bt-idx b{ font-size:12px; color:var(--ink); font-variant-numeric:tabular-nums; }
-  .bt-swing{ font-style:normal; font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#33e6a6; border:1px solid rgba(51,230,166,.45); border-radius:999px; padding:1px 7px; box-shadow:0 0 12px rgba(51,230,166,.18); }
+  .bt-swing{ font-style:normal; font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--green, #33e6a6); border:1px solid rgba(var(--green-rgb, 51, 230, 166),.45); border-radius:999px; padding:1px 7px; box-shadow:0 0 12px rgba(var(--green-rgb, 51, 230, 166),.18); }
   .bt-idxlist{ display:flex; flex-direction:column; gap:7px; margin:8px 0 10px; }
   .bt-idxrow{ display:grid; grid-template-columns:minmax(120px,1.3fr) 1fr auto; align-items:center; gap:10px; font-size:12.5px; color:var(--muted); }
   .bt-idxrow small{ color:var(--faint); margin-left:4px; }
   .bt-idxrow b{ color:var(--ink); font-variant-numeric:tabular-nums; min-width:52px; text-align:right; }
-  .bt-idxrow__bar{ height:5px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; }
+  .bt-idxrow__bar{ height:5px; border-radius:999px; background:rgba(var(--fg-rgb, 255, 255, 255),.08); overflow:hidden; }
   .bt-idxrow__bar i{ display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--a1, #fc1283),var(--a2, #f9a45e)); }
   .bt-mm{ display:flex; flex-direction:column; gap:5px; margin:6px 0 10px; font-size:13px; line-height:1.5; }
-  .bt-mm__line b{ color:#f6f6f7; font-variant-numeric:tabular-nums; }
+  .bt-mm__line b{ color:var(--ink, #f6f6f7); font-variant-numeric:tabular-nums; }
   .bt-mm__line em{ font-style:normal; font-weight:700; letter-spacing:.06em; color:var(--a2, #f9a45e); margin-right:6px; text-shadow:0 0 10px rgba(var(--a2-rgb, 249, 164, 94),.4); }
   .bt-mm__tag{ display:block; font-size:10.5px; letter-spacing:.06em; color:var(--a2, #f9a45e); margin-top:1px; }
-  .bt-mm__warn{ color:#e8b339; }
-  .bt-insights{ margin-top:34px; padding-top:18px; border-top:1px solid rgba(255,255,255,.08); font-size:12.5px; line-height:1.65; color:var(--muted); max-width:720px; }
+  .bt-mm__warn{ color:var(--amber, #e8b339); }
+  .bt-insights{ margin-top:34px; padding-top:18px; border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.08); font-size:12.5px; line-height:1.65; color:var(--muted); max-width:720px; }
   .bt-insights__k{ display:block; font-size:10px; letter-spacing:.24em; text-transform:uppercase; margin-bottom:6px; }
   .bt-insights p{ margin:0 0 6px; }
   .bt-insights b{ color:var(--ink); font-weight:600; }
@@ -181,8 +181,8 @@
   .month-sep__stats{ margin-left:12px; text-transform:none; letter-spacing:0; font-size:11.5px; color:var(--faint); font-weight:500; }
 
   .result-badge{ font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; }
-  .result-badge.tp{ background:rgba(51,230,166,.14); color:var(--green); }
-  .result-badge.sl{ background:rgba(255,77,94,.14); color:var(--red); }
+  .result-badge.tp{ background:rgba(var(--green-rgb, 51, 230, 166),.14); color:var(--green); }
+  .result-badge.sl{ background:rgba(var(--red-rgb, 255, 77, 94),.14); color:var(--red); }
   .result-badge.be{ background:var(--line2); color:var(--muted); }
 
   .empty-note{ border:1px dashed var(--line2); border-radius:var(--radius); padding:40px 24px; text-align:center; color:var(--muted); }
@@ -192,26 +192,26 @@
     -webkit-mask-image:linear-gradient(180deg, transparent, #000 35%, #000 70%, transparent), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
     -webkit-mask-composite:source-in; mask-image:linear-gradient(180deg, transparent, #000 35%, #000 70%, transparent), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-composite:intersect; }
   .bt-hero-curve svg{ width:100%; height:100%; display:block; }
-  .bt-hero-curve__line{ stroke-dasharray:1; stroke-dashoffset:1; animation:hcDraw 2.2s cubic-bezier(.65,0,.35,1) .3s forwards; filter:drop-shadow(0 0 6px rgba(51,230,166,.4)); }
+  .bt-hero-curve__line{ stroke-dasharray:1; stroke-dashoffset:1; animation:hcDraw 2.2s cubic-bezier(.65,0,.35,1) .3s forwards; filter:drop-shadow(0 0 6px rgba(var(--green-rgb, 51, 230, 166),.4)); }
   .bt-hero-curve__area{ opacity:0; animation:hcFade 1.2s ease 1.6s forwards; }
   @keyframes hcDraw{ to{ stroke-dashoffset:0; } }
   @keyframes hcFade{ to{ opacity:1; } }
   @media (prefers-reduced-motion:reduce){ .bt-hero-curve__line{ animation:none; stroke-dasharray:none; stroke-dashoffset:0; } .bt-hero-curve__area{ animation:none; opacity:1; } }
-  .bt-hero-glow__stats{ border-top:1px solid transparent !important; border-image:linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent) 1; }
+  .bt-hero-glow__stats{ border-top:1px solid transparent !important; border-image:linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.14), transparent) 1; }
   .bt-grade{ font-size:28px !important; line-height:1; background:linear-gradient(180deg,#fff,var(--a2, #f9a45e)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 16px rgba(var(--a2-rgb, 249, 164, 94),.55)); }
-  .bt-grade--s, .bt-grade--a{ background:linear-gradient(180deg,#fff,#33e6a6); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 18px rgba(51,230,166,.6)); }
-  .bt-grade--d, .bt-grade--e{ background:linear-gradient(180deg,#fff,#ff4d5e); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 16px rgba(255,77,94,.5)); }
+  .bt-grade--s, .bt-grade--a{ background:linear-gradient(180deg,#fff,var(--green, #33e6a6)); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 18px rgba(var(--green-rgb, 51, 230, 166),.6)); }
+  .bt-grade--d, .bt-grade--e{ background:linear-gradient(180deg,#fff,var(--red, #ff4d5e)); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 16px rgba(var(--red-rgb, 255, 77, 94),.5)); }
 </style>
-<script src="js/theme.js?v=6"></script>
+<script src="js/theme.js?v=7"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=17">
-<link rel="stylesheet" href="css/chest-da-2.css?v=3">
-<link rel="stylesheet" href="css/chest-2-site.css?v=16">
+<link rel="stylesheet" href="css/v2.css?v=18">
+<link rel="stylesheet" href="css/chest-da-2.css?v=4">
+<link rel="stylesheet" href="css/chest-2-site.css?v=17">
 </head>
 <body data-page="backtesting" class="chest-root">
 
@@ -383,15 +383,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/confirm-dialog.js"></script>
-<script src="js/lot-calculator.js?v=7"></script>
-<script src="js/liquid-glass.js?v=2"></script>
+<script src="js/confirm-dialog.js?v=3"></script>
+<script src="js/lot-calculator.js?v=8"></script>
+<script src="js/liquid-glass.js?v=3"></script>
 <script src="js/backtest-store.js?v=3"></script>
-<script src="js/backtest-share.js?v=4"></script>
+<script src="js/backtest-share.js?v=5"></script>
 <script src="js/backtest-engine.js?v=21"></script>
 <script src="js/propfirm-rules.js?v=5"></script>
 <script src="js/propfirm-fit.js?v=10"></script>
-<script src="js/page-tour.js"></script>
+<script src="js/page-tour.js?v=3"></script>
 <script>
 CHESTTour.init([
   { selector: '.bt-hero-glow', title: 'Ce backtest', text: 'Capital initial, nombre de trades, période couverte et une note globale calculée sur le retour, le drawdown et le winrate.' },

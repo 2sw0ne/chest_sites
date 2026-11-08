@@ -4,11 +4,11 @@
    l'habillage (largeur 1180, héros centré, onglets en pilules, étapes en cartes, sections en verre).
    Chargé après berich-da.css et berich-plan.css.
    ===================================================================== */
-body[data-page="berich"] .br-page{ max-width:1180px; padding:0 36px 64px !important; box-sizing:border-box; color:#f6f6f7; }
+body[data-page="berich"] .br-page{ max-width:1180px; padding:0 36px 64px !important; box-sizing:border-box; color:var(--ink, #f6f6f7); }
 body[data-page="berich"] .br-rule{ display:none !important; }
 body[data-page="berich"] .br-section__head{ margin-top:40px !important; }
 body[data-page="berich"] .br-section__head h3{ font-size:22px !important; letter-spacing:-.025em; }
-body[data-page="berich"] .br-label{ font-family:var(--c2-mono,'Fragment Mono',ui-monospace,monospace) !important; font-size:10.5px !important; letter-spacing:.2em !important; color:#7a7a82 !important; }
+body[data-page="berich"] .br-label{ font-family:var(--c2-mono,'Fragment Mono',ui-monospace,monospace) !important; font-size:10.5px !important; letter-spacing:.2em !important; color:var(--ink-3, #7a7a82) !important; }
 
 /* ---------- En-tête : logo et états au centre, mot BERICH en fantôme derrière le héros ---------- */
 body[data-page="berich"] .br-top{ justify-content:center; padding-top:22px !important; gap:10px; }
@@ -17,19 +17,19 @@ body[data-page="berich"] .br-logo{ width:30px !important; height:30px !important
 body[data-page="berich"] .br-logo img{ width:30px !important; height:30px !important; }
 body[data-page="berich"] .br-wordmark{ display:none !important; }
 body[data-page="berich"] .br-top__right{ margin:0 !important; justify-content:center; gap:8px; }
-body[data-page="berich"] .br-stat{ height:30px; padding:0 12px; border-radius:999px; border:1px solid rgba(51,230,166,.25); background:rgba(51,230,166,.06); font-size:11.5px; }
+body[data-page="berich"] .br-stat{ height:30px; padding:0 12px; border-radius:999px; border:1px solid rgba(var(--green-rgb, 51, 230, 166),.25); background:rgba(var(--green-rgb, 51, 230, 166),.06); font-size:11.5px; }
 body[data-page="berich"] .br-hero{ position:relative; isolation:isolate; padding-top:10px !important; text-align:center; }
 body[data-page="berich"] .br-hero::before{ content:'BERICH'; position:absolute; left:50%; top:-6px; transform:translateX(-50%); z-index:-1; pointer-events:none; white-space:nowrap;
-  font-size:210px; font-weight:700; letter-spacing:-.06em; line-height:1; background:linear-gradient(rgba(255,255,255,.07), rgba(255,255,255,0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  font-size:210px; font-weight:700; letter-spacing:-.06em; line-height:1; background:linear-gradient(rgba(var(--fg-rgb, 255, 255, 255),.07), rgba(var(--fg-rgb, 255, 255, 255),0) 78%); -webkit-background-clip:text; background-clip:text; color:transparent; }
 body[data-page="berich"] .br-hero__num{ margin:10px 0 6px !important; font-size:96px !important; letter-spacing:-.055em !important; }
 body[data-page="berich"] .br-plan-line, body[data-page="berich"] .br-hero__sub{ font-size:12.5px !important; }
 
 /* ---------- Onglets en pilules (vue + période) ---------- */
 body[data-page="berich"] .br-hero__controls{ margin-top:18px !important; gap:10px !important; }
-body[data-page="berich"] .br-tabs{ display:inline-flex !important; gap:2px !important; padding:3px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(255,255,255,.024); }
-body[data-page="berich"] .br-tabs button{ height:30px; padding:0 13px !important; border-radius:999px; color:#9b9ba1 !important; font-size:12px !important; font-weight:500 !important; }
+body[data-page="berich"] .br-tabs{ display:inline-flex !important; gap:2px !important; padding:3px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); border-radius:999px; background:rgba(var(--fg-rgb, 255, 255, 255),.024); }
+body[data-page="berich"] .br-tabs button{ height:30px; padding:0 13px !important; border-radius:999px; color:var(--ink-2, #9b9ba1) !important; font-size:12px !important; font-weight:500 !important; }
 body[data-page="berich"] .br-tabs button::after{ display:none !important; }
-body[data-page="berich"] .br-tabs button[aria-pressed="true"]{ background:#f6f6f7 !important; color:#050505 !important; font-weight:600 !important; }
+body[data-page="berich"] .br-tabs button[aria-pressed="true"]{ background:var(--ink, #f6f6f7) !important; color:var(--bg-0, #050505) !important; font-weight:600 !important; }
 body[data-page="berich"] .br-sep{ display:none !important; }
 
 /* ---------- Courbe et chiffres ---------- */
@@ -40,22 +40,22 @@ body[data-page="berich"] .br-kpis{ margin-top:22px !important; }
 body[data-page="berich"] .br-flow{ counter-reset:brstep; grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:16px !important; }
 body[data-page="berich"] .br-flow::before, body[data-page="berich"] .br-flow.is-live::after{ display:none !important; }
 body[data-page="berich"] .br-node{ counter-increment:brstep; display:grid !important; grid-template-columns:30px 1fr auto; grid-template-areas:"i t n" "s s s" "x x x"; align-items:center; column-gap:12px; row-gap:8px;
-  text-align:left !important; padding:18px !important; border-radius:18px; border:1px solid rgba(255,255,255,.1); background:linear-gradient(160deg, rgba(16,16,19,.72), rgba(9,9,11,.88));
-  box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.12), inset -1.5px -1.5px 0 rgba(255,255,255,.03); }
-body[data-page="berich"] .br-node.is-ok{ border-color:rgba(51,230,166,.3); }
-body[data-page="berich"] .br-node::after{ content:'Étape ' counter(brstep); grid-area:n; font-size:10.5px; color:#7a7a82; }
+  text-align:left !important; padding:18px !important; border-radius:18px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19),.72), rgba(var(--dk-rgb, 9, 9, 11),.88));
+  box-shadow:inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.12), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.03); }
+body[data-page="berich"] .br-node.is-ok{ border-color:rgba(var(--green-rgb, 51, 230, 166),.3); }
+body[data-page="berich"] .br-node::after{ content:'Étape ' counter(brstep); grid-area:n; font-size:10.5px; color:var(--ink-3, #7a7a82); }
 body[data-page="berich"] .br-node__i{ grid-area:i; width:30px !important; height:30px !important; margin:0 !important; }
 body[data-page="berich"] .br-node__i svg{ width:14px !important; height:14px !important; }
 body[data-page="berich"] .br-node__t{ grid-area:t; font-size:14px !important; }
-body[data-page="berich"] .br-node__s{ grid-area:s; max-width:none !important; font-size:11.5px !important; color:#9b9ba1 !important; }
+body[data-page="berich"] .br-node__s{ grid-area:s; max-width:none !important; font-size:11.5px !important; color:var(--ink-2, #9b9ba1) !important; }
 body[data-page="berich"] .br-node > :not(.br-node__i):not(.br-node__t):not(.br-node__s){ grid-area:x; justify-self:start; margin:0 !important; }
-body[data-page="berich"] .br-flow__note{ max-width:none !important; margin:16px 0 0 !important; text-align:left !important; font-size:12px !important; color:#7a7a82 !important; }
+body[data-page="berich"] .br-flow__note{ max-width:none !important; margin:16px 0 0 !important; text-align:left !important; font-size:12px !important; color:var(--ink-3, #7a7a82) !important; }
 
 /* ---------- 02, 04, 05, 06 : cartes en verre ---------- */
 body[data-page="berich"] .br-proj,
 body[data-page="berich"] #brLedger,
-body[data-page="berich"] .br-cols > *{ position:relative; border-radius:18px; border:1px solid rgba(255,255,255,.12);
-  background:linear-gradient(160deg, rgba(14,14,17,.72), rgba(9,9,11,.86)); box-shadow:0 18px 44px rgba(0,0,0,.45), inset 1.5px 1.5px 0 rgba(255,255,255,.14), inset -1.5px -1.5px 0 rgba(255,255,255,.04); }
+body[data-page="berich"] .br-cols > *{ position:relative; border-radius:18px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12);
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17),.72), rgba(var(--dk-rgb, 9, 9, 11),.86)); box-shadow:0 18px 44px rgba(0, 0, 0, calc(.45 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.14), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.04); }
 body[data-page="berich"] .br-proj{ padding:22px !important; }
 body[data-page="berich"] #brLedger{ margin-top:40px; padding:22px; }
 body[data-page="berich"] #brLedger .br-section__head{ margin-top:0 !important; }
@@ -76,17 +76,17 @@ body[data-page="berich"] .br-depth{ opacity:.55; }
 
 /* 2026-11-05 : icône de la coche (rond noir sans style), emplacement vide du plan, mini-graphique de la position */
 .chest-root .br-done svg{ width:22px; height:22px; flex:0 0 22px; padding:4px; box-sizing:border-box; border-radius:999px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;
-  background:rgba(51,230,166,.14); box-shadow:inset 0 0 0 1px rgba(51,230,166,.35); }
+  background:rgba(var(--green-rgb, 51, 230, 166),.14); box-shadow:inset 0 0 0 1px rgba(var(--green-rgb, 51, 230, 166),.35); }
 .chest-root #brWatch:empty{ display:none; }
 .chest-root .br-mini{ position:relative; height:230px; margin:22px 0 6px; padding-right:112px; border-radius:16px; overflow:hidden;
-  background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.008)); box-shadow:inset 0 0 0 1px rgba(255,255,255,.07); }
+  background:linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.025), rgba(var(--fg-rgb, 255, 255, 255),.008)); box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.07); }
 .chest-root .br-mini svg{ display:block; width:100%; height:100%; }
-.chest-root .br-mini__wait{ display:grid; place-items:center; height:100%; font-size:12.5px; color:#5c5c63; }
+.chest-root .br-mini__wait{ display:grid; place-items:center; height:100%; font-size:12.5px; color:var(--ink-4, #5c5c63); }
 .chest-root .br-mini__lvls{ position:absolute; top:0; right:10px; bottom:0; width:96px; }
-.chest-root .br-mini__lvl{ position:absolute; right:0; transform:translateY(-50%); padding:3px 8px; border-radius:7px; font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; background:rgba(10,10,12,.92); box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); }
-.chest-root .br-mini__lvl.is-sl{ color:#ff94a0; box-shadow:inset 0 0 0 1px rgba(255,77,94,.45); }
-.chest-root .br-mini__lvl.is-tp{ color:#7ff3ca; box-shadow:inset 0 0 0 1px rgba(51,230,166,.45); }
-.chest-root .br-mini__lvl.is-pe{ color:#f6f6f7; }
-.chest-root .br-mini__lvl.is-px{ color:#9b9ba1; font-weight:600; right:auto; left:-4px; transform:translate(-100%, -50%); }
-.chest-root .br-mini__tf{ position:absolute; left:14px; top:10px; font-size:11px; color:#5c5c63; }
+.chest-root .br-mini__lvl{ position:absolute; right:0; transform:translateY(-50%); padding:3px 8px; border-radius:7px; font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; background:rgba(var(--dk-rgb, 10, 10, 12),.92); box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.12); }
+.chest-root .br-mini__lvl.is-sl{ color:var(--red-hi, #ff94a0); box-shadow:inset 0 0 0 1px rgba(var(--red-rgb, 255, 77, 94),.45); }
+.chest-root .br-mini__lvl.is-tp{ color:var(--green-hi, #7ff3ca); box-shadow:inset 0 0 0 1px rgba(var(--green-rgb, 51, 230, 166),.45); }
+.chest-root .br-mini__lvl.is-pe{ color:var(--ink, #f6f6f7); }
+.chest-root .br-mini__lvl.is-px{ color:var(--ink-2, #9b9ba1); font-weight:600; right:auto; left:-4px; transform:translate(-100%, -50%); }
+.chest-root .br-mini__tf{ position:absolute; left:14px; top:10px; font-size:11px; color:var(--ink-4, #5c5c63); }
 @media (max-width:700px){ .chest-root .br-mini{ height:190px; padding-right:96px; } .chest-root .br-mini__lvl.is-px{ display:none; } }

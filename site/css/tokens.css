@@ -4,10 +4,10 @@
    ../../swyper-dashboard-v2/reference/DA-notes.md)
    ============================================================ */
 :root{
-  --bg:#050505; --panel:#0c0c0e; --panel-2:#111114;
+  --bg:var(--bg-0, #050505); --panel:var(--bg-1, #0c0c0e); --panel-2:var(--bg-1, #111114);
   --ink:#f6f6f7; --muted:#9b9ba1; --faint:#5c5c63;
-  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.16);
-  --navbg:rgba(5,5,5,.72);
+  --line:rgba(var(--fg-rgb, 255, 255, 255),.08); --line2:rgba(var(--fg-rgb, 255, 255, 255),.16);
+  --navbg:rgba(var(--bg0-rgb, 5, 5, 5),.72);
 
   --acc:var(--a1, #fc1283); --acc2:var(--a2, #f9a45e);
   --model-a:#e35728; --model-b:#5470c2;
@@ -81,7 +81,7 @@ label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:8px; f
 .toast{
   position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
   background:var(--ink); color:var(--bg); font-size:13.5px; font-weight:600;
-  padding:12px 22px; border-radius:var(--radius-pill); box-shadow:0 20px 50px rgba(0,0,0,.4);
+  padding:12px 22px; border-radius:var(--radius-pill); box-shadow:0 20px 50px rgba(0, 0, 0, calc(.4 * var(--sh-k, 1)));
   opacity:0; pointer-events:none; transition:opacity .3s var(--ease), transform .3s var(--ease);
   z-index:200;
 }

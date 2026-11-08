@@ -10,41 +10,41 @@
      polices/CSS externes chargent, surtout juste apres la connexion (branche
      experiment/merge-login-welcome) ou l'iframe devient visible au meme instant qu'elle commence a
      charger, plus de longueur d'avance pendant que Welcome s'affichait. -->
-<style>html,body{background:#050505}  /* Fenêtre d'opportunité ouverte depuis une notification (2026-10-06) */
+<style>html,body{background:var(--bg-0, #050505)}  /* Fenêtre d'opportunité ouverte depuis une notification (2026-10-06) */
   .alr-modal{ position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center; padding:16px;
-    background:rgba(5,5,5,.42); backdrop-filter:blur(16px) brightness(.7); -webkit-backdrop-filter:blur(16px) brightness(.7); }
+    background:rgba(var(--bg0-rgb, 5, 5, 5),.42); backdrop-filter:blur(16px) brightness(.7); -webkit-backdrop-filter:blur(16px) brightness(.7); }
   .alr-modal.is-open{ display:flex; }
   .alr-modal__card{ width:min(420px,100%); border-radius:20px; padding:24px; text-align:center;
-    border:1px solid rgba(255,255,255,.14); background:linear-gradient(160deg,rgba(44,44,50,.92),rgba(12,12,14,.94));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 30px 80px rgba(0,0,0,.6); }
+    border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); background:linear-gradient(160deg,rgba(44,44,50,.92),rgba(var(--dk-rgb, 12, 12, 14),.94));
+    box-shadow:inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.12),0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); }
   .alr-modal__logo{ width:72px; height:72px; object-fit:contain; margin:0 auto 12px; display:block; }
   .alr-modal__side{ font-size:28px; font-weight:900; letter-spacing:.04em; margin-top:4px; }
-  .alr-modal__side.is-buy{ color:#33e6a6; text-shadow:0 0 22px rgba(51,230,166,.45); }
-  .alr-modal__side.is-sell{ color:#ff4d5e; text-shadow:0 0 22px rgba(255,77,94,.45); }
+  .alr-modal__side.is-buy{ color:var(--green, #33e6a6); text-shadow:0 0 22px rgba(var(--green-rgb, 51, 230, 166),.45); }
+  .alr-modal__side.is-sell{ color:var(--red, #ff4d5e); text-shadow:0 0 22px rgba(var(--red-rgb, 255, 77, 94),.45); }
   .alr-modal__text{ font-size:15px; margin:8px 0 20px; color:var(--ink); }
   .alr-modal__btns{ display:flex; gap:8px; justify-content:center; }
   /* Cartes d'opportunités v2 (2026-10-06) : carré simple, lueur derrière le signal, niveaux colorés */
   .alr-card{ flex:0 0 150px; height:96px; position:relative; overflow:hidden; align-items:center; justify-content:center; text-align:center; gap:4px; padding:6px 6px; }
   .alr-card::before{ content:''; position:absolute; left:50%; top:50%; width:84px; height:84px; transform:translate(-50%,-50%); border-radius:50%; filter:blur(14px); opacity:.55; z-index:0; pointer-events:none; }
-  .alr-card.is-buy::before{ background:radial-gradient(circle, rgba(51,230,166,.55), rgba(51,230,166,0) 70%); }
-  .alr-card.is-sell::before{ background:radial-gradient(circle, rgba(255,77,94,.6), rgba(255,77,94,0) 70%); }
+  .alr-card.is-buy::before{ background:radial-gradient(circle, rgba(var(--green-rgb, 51, 230, 166),.55), rgba(var(--green-rgb, 51, 230, 166),0) 70%); }
+  .alr-card.is-sell::before{ background:radial-gradient(circle, rgba(var(--red-rgb, 255, 77, 94),.6), rgba(var(--red-rgb, 255, 77, 94),0) 70%); }
   .alr-card > *{ position:relative; z-index:1; }
   .alr-card__logo{ width:22px; height:22px; }
   .alr-card__side{ font-size:12px; font-weight:900; letter-spacing:.04em; }
   .alr-card__meta{ font-size:9px; line-height:1; }
   .alr-card__levels{ font-size:9px; font-weight:700; letter-spacing:0; white-space:nowrap; font-variant-numeric:tabular-nums; }
-  .alr-card__levels .sl{ color:#ff4d5e; }
-  .alr-card__levels .pe{ color:#9b9ba1; }
-  .alr-card__levels .tp{ color:#33e6a6; }
-  .alr-card__levels .bar{ color:#5c5c63; margin:0 3px; }
+  .alr-card__levels .sl{ color:var(--red, #ff4d5e); }
+  .alr-card__levels .pe{ color:var(--ink-2, #9b9ba1); }
+  .alr-card__levels .tp{ color:var(--green, #33e6a6); }
+  .alr-card__levels .bar{ color:var(--ink-4, #5c5c63); margin:0 3px; }
 </style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=3">
-<link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=20">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/chest-da.css?v=21">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
 <style>
   [hidden]{ display:none !important; }
 
@@ -77,7 +77,7 @@
   .scnr-trigger-inner{ display:inline-flex; align-items:center; gap:8px; }
   .scnr-menu{
     position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:260px; background:var(--panel);
-    border:1px solid var(--line2); border-radius:var(--radius-sm); box-shadow:0 20px 48px rgba(0,0,0,.3); padding:6px; display:none;
+    border:1px solid var(--line2); border-radius:var(--radius-sm); box-shadow:0 20px 48px rgba(0, 0, 0, calc(.3 * var(--sh-k, 1))); padding:6px; display:none;
     /* Liste défilante : hauteur max sur l'écran, barre de défilement discrète */
     max-height:min(420px, 62vh); overflow-y:auto; overscroll-behavior:contain;
     scrollbar-width:thin; scrollbar-color:var(--line2) transparent;
@@ -98,9 +98,9 @@
      qui suit le theme clair/sombre du site alors que le hero reste toujours
      sombre) plutot que la version "carte normale" du tabbar. */
   .scnr-hero .scnr-media__tabs{ display:flex; justify-content:center; margin-top:24px; }
-  .scnr-hero .scnr-tabbar{ background:rgba(255,255,255,.06); }
-  .scnr-hero .scnr-tabbar button{ color:rgba(255,255,255,.6); }
-  .scnr-hero .scnr-tabbar button.is-active{ background:#fff; color:#0a0a0d; }
+  .scnr-hero .scnr-tabbar{ background:rgba(var(--fg-rgb, 255, 255, 255),.06); }
+  .scnr-hero .scnr-tabbar button{ color:rgba(var(--fg-rgb, 255, 255, 255),.6); }
+  .scnr-hero .scnr-tabbar button.is-active{ background:#fff; color:var(--bg-1, #0a0a0d); }
   .scnr-tabbar{ display:inline-flex; gap:4px; padding:4px; border-radius:999px; }
   .scnr-tabbar button{ border:none; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600; padding:7px 15px; border-radius:999px; background:transparent; color:var(--muted); transition:background .15s, color .15s; }
   .scnr-tabbar button.is-active{ background:var(--ink); color:var(--bg); }
@@ -149,7 +149,7 @@
   .scnr-hero[data-scanner="pulse"]{ --glow: rgba(45,123,255,.5); }
   .scnr-hero[data-scanner="wave"]{ --glow: rgba(255,45,45,.5); }
   .scnr-hero[data-scanner="stars"]{ --glow: rgba(255,194,26,.5); }
-  .scnr-hero[data-scanner="pivot"]{ --glow: rgba(51,230,166,.5); }
+  .scnr-hero[data-scanner="pivot"]{ --glow: rgba(var(--green-rgb, 51, 230, 166),.5); }
   .scnr-hero[data-scanner="supernova"]{ --glow: rgba(59,123,255,.5); }
   /* Fond de la page Scanner (2026-11-04, demande utilisateur) : plus de lueurs bleue et rose ; seulement la lueur
      derrière le scanner (ci-dessus) et une discrète en bas à gauche, de la même couleur que le scanner affiché
@@ -164,7 +164,7 @@
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="pulse"]){ --v2-d3: rgba(45,123,255,.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="wave"]){ --v2-d3: rgba(255,45,45,.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="stars"]){ --v2-d3: rgba(255,194,26,.14); }
-  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="pivot"]){ --v2-d3: rgba(51,230,166,.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="pivot"]){ --v2-d3: rgba(var(--green-rgb, 51, 230, 166),.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="supernova"]){ --v2-d3: rgba(59,123,255,.14); }
   .scnr-hero__inner{ position:relative; max-width:520px; margin:0 auto; }
   .scnr-hero__logo-wrap{ display:inline-flex; margin-bottom:22px; }
@@ -179,14 +179,14 @@
   .scnr-hero__logo-fallback{
     width:92px; height:92px; border-radius:26px; display:flex; align-items:center; justify-content:center;
     font-size:32px; font-weight:800; color:#fff;
-    box-shadow:0 0 0 1px rgba(255,255,255,.1), 0 24px 56px -8px var(--glow, rgba(0,0,0,.5));
+    box-shadow:0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.1), 0 24px 56px -8px var(--glow, rgba(0,0,0,.5));
     transition:box-shadow .5s ease;
   }
   .scnr-hero__name{
     font-size:clamp(36px,6vw,60px); font-weight:800; letter-spacing:-.03em; line-height:1; margin:0 0 12px;
-    background:linear-gradient(180deg,#fff,rgba(255,255,255,.55)); -webkit-background-clip:text; background-clip:text; color:transparent;
+    background:linear-gradient(180deg,#fff,rgba(var(--fg-rgb, 255, 255, 255),.55)); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
-  .scnr-hero__tags{ font-size:13px; font-weight:600; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.06em; }
+  .scnr-hero__tags{ font-size:13px; font-weight:600; color:rgba(var(--fg-rgb, 255, 255, 255),.5); text-transform:uppercase; letter-spacing:.06em; }
 
   /* ---- Opportunités + notifications (2026-10-06) ---- */
   .alr{ flex:1 1 360px; min-width:0; border-left:1px solid var(--line2); padding-left:16px; margin-left:4px; }
@@ -210,10 +210,10 @@
   .alr-card__name{ font-size:12.5px; font-weight:800; }
   .alr-card__meta{ font-size:10.5px; color:var(--muted); }
   .alr-card__side{ font-size:13px; font-weight:900; letter-spacing:.04em; }
-  .alr-card.is-buy{ border-color:rgba(51,230,166,.45); box-shadow:0 0 26px rgba(51,230,166,.22), inset 0 0 22px rgba(51,230,166,.08); }
-  .alr-card.is-buy .alr-card__side{ color:#33e6a6; }
-  .alr-card.is-sell{ border-color:rgba(255,77,94,.5); box-shadow:0 0 26px rgba(255,77,94,.24), inset 0 0 22px rgba(255,77,94,.08); }
-  .alr-card.is-sell .alr-card__side{ color:#ff4d5e; }
+  .alr-card.is-buy{ border-color:rgba(var(--green-rgb, 51, 230, 166),.45); box-shadow:0 0 26px rgba(var(--green-rgb, 51, 230, 166),.22), inset 0 0 22px rgba(var(--green-rgb, 51, 230, 166),.08); }
+  .alr-card.is-buy .alr-card__side{ color:var(--green, #33e6a6); }
+  .alr-card.is-sell{ border-color:rgba(var(--red-rgb, 255, 77, 94),.5); box-shadow:0 0 26px rgba(var(--red-rgb, 255, 77, 94),.24), inset 0 0 22px rgba(var(--red-rgb, 255, 77, 94),.08); }
+  .alr-card.is-sell .alr-card__side{ color:var(--red, #ff4d5e); }
   .alr__settings{ margin-top:12px; border-top:1px solid var(--line2); padding-top:12px; }
   .alr__group{ margin-bottom:12px; }
   .alr__group > label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px; }
@@ -232,7 +232,7 @@
   .alr-rule__tools{ display:flex; gap:6px; flex-shrink:0; }
   .alr__status{ font-size:12px; color:var(--muted); margin-bottom:10px; }
 </style>
-<script src="js/theme.js?v=6"></script>
+<script src="js/theme.js?v=7"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
@@ -261,7 +261,7 @@
   .alr-card.is-buy, .alr-card.is-sell{ border-color:var(--line2); box-shadow:none; }
   .alr-card::before{ width:96px; height:96px; opacity:.5; }
   .alr-card.is-sell::before{ background:radial-gradient(circle, rgba(255,40,60,.7), rgba(255,40,60,0) 70%); }
-  .alr-card.is-buy::before{ background:radial-gradient(circle, rgba(51,230,166,.55), rgba(51,230,166,0) 70%); }
+  .alr-card.is-buy::before{ background:radial-gradient(circle, rgba(var(--green-rgb, 51, 230, 166),.55), rgba(var(--green-rgb, 51, 230, 166),0) 70%); }
   .alr-card__logo{ width:24px; height:24px; }
   .alr-card__side{ font-size:14px; }
   .alr-card__levels{ font-size:10px; }
@@ -277,11 +277,11 @@
   .alr-last__field span{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; }
   .alr-last__field b{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
   .alr-last__field small{ font-size:10px; color:var(--muted); }
-  .alr-last__field b.is-buy{ color:#33e6a6; text-shadow:0 0 18px rgba(51,230,166,.45); }
-  .alr-last__field b.is-sell{ color:#ff4d5e; text-shadow:0 0 18px rgba(255,40,60,.55); }
-  .alr-last__field b.sl{ color:#ff4d5e; }
-  .alr-last__field b.pe{ color:#9b9ba1; }
-  .alr-last__field b.tp{ color:#33e6a6; }
+  .alr-last__field b.is-buy{ color:var(--green, #33e6a6); text-shadow:0 0 18px rgba(var(--green-rgb, 51, 230, 166),.45); }
+  .alr-last__field b.is-sell{ color:var(--red, #ff4d5e); text-shadow:0 0 18px rgba(255,40,60,.55); }
+  .alr-last__field b.sl{ color:var(--red, #ff4d5e); }
+  .alr-last__field b.pe{ color:var(--ink-2, #9b9ba1); }
+  .alr-last__field b.tp{ color:var(--green, #33e6a6); }
   .alr-last__empty{ font-size:12px; color:var(--muted); padding:0 16px; align-self:center; }
   .alr > .alr__btn{ margin-left:auto; flex-shrink:0; }
   .alr__chips--scroll{ max-height:120px; overflow-y:auto; }
@@ -289,50 +289,50 @@
 <style>
   /* Carte de la dernière opportunité + cloche + menus (maquette "Un/Trois take profit", 2026-10-06) */
   .alr{ flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:12px; border-left:1px solid var(--line2); padding-left:16px; }
-  .alr-last{ flex:1 1 auto; min-width:0; display:flex; align-items:center; min-height:62px; padding:10px 16px; border-radius:14px; border:1px solid var(--line2); background:#0a0a0b; }
-  .alr-last.is-buy{ border-color:rgba(51,230,166,.3); background:linear-gradient(90deg,rgba(51,230,166,.10),rgba(51,230,166,0) 60%),#0a0a0b; box-shadow:0 0 28px rgba(51,230,166,.10); }
-  .alr-last.is-sell{ border-color:rgba(255,77,94,.32); background:linear-gradient(90deg,rgba(255,77,94,.12),rgba(255,77,94,0) 60%),#0a0a0b; box-shadow:0 0 28px rgba(255,77,94,.12); }
+  .alr-last{ flex:1 1 auto; min-width:0; display:flex; align-items:center; min-height:62px; padding:10px 16px; border-radius:14px; border:1px solid var(--line2); background:var(--bg-1, #0a0a0b); }
+  .alr-last.is-buy{ border-color:rgba(var(--green-rgb, 51, 230, 166),.3); background:linear-gradient(90deg,rgba(var(--green-rgb, 51, 230, 166),.10),rgba(var(--green-rgb, 51, 230, 166),0) 60%),var(--bg-1, #0a0a0b); box-shadow:0 0 28px rgba(var(--green-rgb, 51, 230, 166),.10); }
+  .alr-last.is-sell{ border-color:rgba(var(--red-rgb, 255, 77, 94),.32); background:linear-gradient(90deg,rgba(var(--red-rgb, 255, 77, 94),.12),rgba(var(--red-rgb, 255, 77, 94),0) 60%),var(--bg-1, #0a0a0b); box-shadow:0 0 28px rgba(var(--red-rgb, 255, 77, 94),.12); }
   .alr-last__head{ display:flex; flex-direction:column; gap:6px; padding-right:16px; margin-right:4px; border-right:1px solid var(--line2); min-width:112px; }
   .alr-last__badge{ display:inline-flex; align-items:center; gap:7px; align-self:flex-start; height:24px; padding:0 10px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.06em; }
   .alr-last__badge i{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; }
-  .is-buy .alr-last__badge{ color:#33e6a6; background:rgba(51,230,166,.12); border:1px solid rgba(51,230,166,.35); }
-  .is-sell .alr-last__badge{ color:#ff4d5e; background:rgba(255,77,94,.12); border:1px solid rgba(255,77,94,.35); }
+  .is-buy .alr-last__badge{ color:var(--green, #33e6a6); background:rgba(var(--green-rgb, 51, 230, 166),.12); border:1px solid rgba(var(--green-rgb, 51, 230, 166),.35); }
+  .is-sell .alr-last__badge{ color:var(--red, #ff4d5e); background:rgba(var(--red-rgb, 255, 77, 94),.12); border:1px solid rgba(var(--red-rgb, 255, 77, 94),.35); }
   .alr-last__time{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
   .alr-last__fields{ display:flex; align-items:stretch; flex-wrap:wrap; }
   .alr-last__field{ display:flex; flex-direction:column; justify-content:center; gap:4px; padding:0 16px; border-left:1px solid var(--line2); min-width:84px; }
   .alr-last__field span{ font-size:9.5px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); font-weight:600; white-space:nowrap; }
   .alr-last__field b{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
   .alr-last__field b.pe{ color:var(--ink); }
-  .alr-last__field b.sl{ color:#ff4d5e; }
-  .alr-last__field b.tp{ color:#33e6a6; }
+  .alr-last__field b.sl{ color:var(--red, #ff4d5e); }
+  .alr-last__field b.tp{ color:var(--green, #33e6a6); }
   .alr-last__field b.is-hit{ text-shadow:0 0 16px currentColor; }
   .alr-last__status{ margin-left:auto; align-self:center; flex-shrink:0; display:inline-flex; align-items:center; height:26px; padding:0 12px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.05em; white-space:nowrap; }
-  .alr-last__status.is-active{ color:var(--muted); background:rgba(255,255,255,.05); border:1px solid var(--line2); }
-  .alr-last__status.is-tp{ color:#33e6a6; background:rgba(51,230,166,.12); border:1px solid rgba(51,230,166,.35); text-shadow:0 0 10px rgba(51,230,166,.5); }
-  .alr-last__status.is-sl{ color:#ff4d5e; background:rgba(255,77,94,.12); border:1px solid rgba(255,77,94,.35); text-shadow:0 0 10px rgba(255,77,94,.5); }
+  .alr-last__status.is-active{ color:var(--muted); background:rgba(var(--fg-rgb, 255, 255, 255),.05); border:1px solid var(--line2); }
+  .alr-last__status.is-tp{ color:var(--green, #33e6a6); background:rgba(var(--green-rgb, 51, 230, 166),.12); border:1px solid rgba(var(--green-rgb, 51, 230, 166),.35); text-shadow:0 0 10px rgba(var(--green-rgb, 51, 230, 166),.5); }
+  .alr-last__status.is-sl{ color:var(--red, #ff4d5e); background:rgba(var(--red-rgb, 255, 77, 94),.12); border:1px solid rgba(var(--red-rgb, 255, 77, 94),.35); text-shadow:0 0 10px rgba(var(--red-rgb, 255, 77, 94),.5); }
   .alr-last__empty{ font-size:12px; color:var(--muted); }
   .alr-bell{ position:relative; width:40px; height:40px; flex-shrink:0; border-radius:50%; border:1px solid var(--line2); background:var(--bg); color:var(--ink); display:grid; place-items:center; cursor:pointer; }
   .alr-bell svg{ width:18px; height:18px; }
   .alr-bell:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.5); }
   .alr-dd{ position:relative; }
-  .alr-dd__trigger{ width:100%; height:42px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 14px; border-radius:12px; border:1px solid var(--line2); background:rgba(255,255,255,.03); color:var(--ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; text-align:left; }
+  .alr-dd__trigger{ width:100%; height:42px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 14px; border-radius:12px; border:1px solid var(--line2); background:rgba(var(--fg-rgb, 255, 255, 255),.03); color:var(--ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; text-align:left; }
   .alr-dd__trigger:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.5); }
   .alr-dd__chev{ color:var(--muted); font-size:12px; transition:transform .2s; }
   .alr-dd.is-open .alr-dd__chev{ transform:rotate(180deg); }
-  .alr-dd__menu{ display:none; position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:5; max-height:240px; overflow-y:auto; padding:6px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:#0c0c0e; box-shadow:0 20px 50px rgba(0,0,0,.6); }
+  .alr-dd__menu{ display:none; position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:5; max-height:240px; overflow-y:auto; padding:6px; border-radius:14px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); background:var(--bg-1, #0c0c0e); box-shadow:0 20px 50px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); }
   .alr-dd.is-open .alr-dd__menu{ display:block; }
   .alr-dd__menu .alr__chip{ display:flex; align-items:center; justify-content:space-between; width:100%; height:36px; padding:0 12px; border:0; border-radius:9px; background:transparent; color:var(--muted); font:inherit; font-size:13px; font-weight:600; cursor:pointer; text-align:left; }
-  .alr-dd__menu .alr__chip:hover{ background:rgba(255,255,255,.05); color:var(--ink); }
+  .alr-dd__menu .alr__chip:hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.05); color:var(--ink); }
   .alr-dd__menu .alr__chip.is-on{ color:var(--ink); background:rgba(var(--a2-rgb, 249, 164, 94),.08); }
   .alr-dd__menu .alr__chip.is-on::after{ content:'✓'; color:var(--a2, #f9a45e); font-weight:800; }
 </style>
-<link rel="stylesheet" href="css/scanner-guide.css?v=5">
-<link rel="stylesheet" href="css/strength-board.css?v=4">
-<link rel="stylesheet" href="css/chart-visuals.css?v=5">
-<link rel="stylesheet" href="css/v2.css?v=17">
-<link rel="stylesheet" href="css/chest-da-2.css?v=3">
-<link rel="stylesheet" href="css/chest-2-site.css?v=16">
-<link rel="stylesheet" href="css/strat-2.css?v=13">
+<link rel="stylesheet" href="css/scanner-guide.css?v=6">
+<link rel="stylesheet" href="css/strength-board.css?v=5">
+<link rel="stylesheet" href="css/chart-visuals.css?v=6">
+<link rel="stylesheet" href="css/v2.css?v=18">
+<link rel="stylesheet" href="css/chest-da-2.css?v=4">
+<link rel="stylesheet" href="css/chest-2-site.css?v=17">
+<link rel="stylesheet" href="css/strat-2.css?v=14">
 </head>
 <body data-page="strategies" class="chest-root">
 
@@ -496,16 +496,16 @@
 
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/lot-calculator.js?v=7"></script>
-<script src="js/liquid-glass.js?v=2"></script>
+<script src="js/lot-calculator.js?v=8"></script>
+<script src="js/liquid-glass.js?v=3"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/pwa.js?v=7"></script>
-<script src="js/scanner-store.js?v=27"></script>
-<script src="js/scanner-guides.js?v=6"></script>
+<script src="js/scanner-store.js?v=28"></script>
+<script src="js/scanner-guides.js?v=7"></script>
 <script src="js/strength-board.js?v=2"></script>
-<script src="js/scanner-chart.js?v=37"></script>
-<script src="js/page-tour.js"></script>
+<script src="js/scanner-chart.js?v=38"></script>
+<script src="js/page-tour.js?v=3"></script>
 <script>
 CHESTTour.init([
   { selector: '#scnrHero', title: 'Stratégies', text: 'Le scanner actif : son nom, son logo et ce qu\'il détecte.' },
@@ -1040,7 +1040,7 @@ CHESTTour.init([
     </div>
   </div>
 </div>
-<script src="js/strat-2.js?v=6"></script>
+<script src="js/strat-2.js?v=7"></script>
 <script src="js/chart-tools.js?v=1"></script>
 <script src="js/v2.js?v=5"></script>
 </body>

@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="assets/logo-chest.png">
 <!-- Fond sombre IMMÉDIAT (voir app.html pour l'explication complète) : évite le blanc par défaut du
      navigateur pendant que les polices/CSS externes chargent. -->
-<style>html,body{background:#050505}</style>
+<style>html,body{background:var(--bg-0, #050505)}</style>
 <!-- Redirection immédiate vers app.html (branche experiment/merge-login-welcome, 2026-09-23, retour
      utilisateur : « le passage entre localhost:8934/login.html et app.html#/dashboard » — il arrivait
      encore sur CETTE page séparée, par habitude/favori, jamais sur le formulaire intégré à app.html qui
@@ -21,8 +21,8 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"></noscript>
-<link rel="stylesheet" href="css/tokens.css?v=3">
-<script src="js/theme.js?v=6"></script>
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<script src="js/theme.js?v=7"></script>
 <!-- Préchargement d'app.html (retour utilisateur 2026-09-23 : « le fond s'arrête de bouger le temps du
      chargement, un petit freeze ») : une vraie continuité d'animation à travers une navigation entre deux
      documents est impossible (le contexte JS/WebGL de cette page s'arrête forcément quand elle se ferme),
@@ -30,11 +30,11 @@
      la connexion réussisse — son premier rendu (et sa 1re image de shader) devient alors quasi instantané au
      lieu d'attendre le réseau. `rel="prefetch"` = priorité basse, ne retarde rien sur CETTE page. -->
 <link rel="prefetch" href="app.html">
-<link rel="prefetch" href="css/tokens.css?v=3">
-<link rel="prefetch" href="css/layout.css?v=4">
-<link rel="prefetch" href="css/chest-da.css?v=20">
-<link rel="prefetch" href="css/patch-chest-da.css?v=19">
-<link rel="prefetch" href="css/welcome.css?v=35">
+<link rel="prefetch" href="css/tokens.css?v=4">
+<link rel="prefetch" href="css/layout.css?v=5">
+<link rel="prefetch" href="css/chest-da.css?v=21">
+<link rel="prefetch" href="css/patch-chest-da.css?v=20">
+<link rel="prefetch" href="css/welcome.css?v=36">
 <link rel="prefetch" href="js/config.js">
 <link rel="prefetch" href="js/accounts-auth.js?v=12">
 <link rel="prefetch" href="js/shell.js?v=4">
@@ -53,11 +53,11 @@
   *{ box-sizing:border-box; }
   html, body{ margin:0; min-height:100%; height:100%; overflow:hidden; }
   body{
-    font-family:'Instrument Sans', system-ui, sans-serif; color:var(--ink); background:#050505;
+    font-family:'Instrument Sans', system-ui, sans-serif; color:var(--ink); background:var(--bg-0, #050505);
     height:100vh; height:100dvh; /* voir chest-da.css pour le detail du piège 100vh/Safari mobile */
   }
 
-  .auth-hero{ position:fixed; inset:0; z-index:0; overflow:hidden; background:#050505; }
+  .auth-hero{ position:fixed; inset:0; z-index:0; overflow:hidden; background:var(--bg-0, #050505); }
   .auth-hero canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
   #authStars{ z-index:1; }
 
@@ -71,9 +71,9 @@
   .auth-card{
     width:100%; max-width:410px; position:relative;
     padding:40px 32px 32px;
-    background:rgba(10,10,12,.66); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
-    border:1px solid rgba(255,255,255,.1); border-radius:24px;
-    box-shadow:0 30px 90px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.06);
+    background:rgba(var(--dk-rgb, 10, 10, 12),.66); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); border-radius:24px;
+    box-shadow:0 30px 90px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
     text-align:center;
   }
   .auth-card__logo{
@@ -90,11 +90,11 @@
   }
   .auth-field input{
     width:100%; padding:14px 16px 14px 44px; font:inherit; font-size:13.5px; color:var(--ink);
-    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:13px;
+    background:rgba(var(--fg-rgb, 255, 255, 255),.04); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); border-radius:13px;
     transition:border-color .15s, background .15s;
   }
   .auth-field input::placeholder{ color:var(--faint); }
-  .auth-field input:focus{ outline:none; border-color:var(--acc); background:rgba(255,255,255,.06); }
+  .auth-field input:focus{ outline:none; border-color:var(--acc); background:rgba(var(--fg-rgb, 255, 255, 255),.06); }
   .auth-field__toggle{
     position:absolute; right:14px; top:50%; transform:translateY(-50%);
     width:28px; height:28px; display:flex; align-items:center; justify-content:center;
@@ -132,7 +132,7 @@
 
   @media (max-width:760px){ .auth-card{ max-width:380px; padding:36px 24px 28px; } }
 </style>
-<link rel="stylesheet" href="css/auth-2.css?v=7">
+<link rel="stylesheet" href="css/auth-2.css?v=8">
 </head>
 <body>
 

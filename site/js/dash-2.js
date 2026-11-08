@@ -13,7 +13,7 @@
   const usd = (v) => `${sign(v)}${nfr(Math.abs(v), Math.abs(v) >= 1000 || Number.isInteger(Math.round(v * 100) / 100) ? 0 : 2)} $`;
   const pair = (s) => { const u = String(s || '').toUpperCase(); return /^[A-Z]{6}$/.test(u) ? `${u.slice(0, 3)}/${u.slice(3)}` : u; };
   const MONO = 'font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace;';
-  const EMPTY = (t) => `<p style="margin: 6px 0px 0px; padding: 18px 14px; border: 1px dashed rgba(255, 255, 255, 0.16); border-radius: 14px; font-size: 11.5px; color: rgb(122, 122, 130); text-align: center;">${t}</p>`;
+  const EMPTY = (t) => `<p style="margin: 6px 0px 0px; padding: 18px 14px; border: 1px dashed rgba(var(--fg-rgb, 255, 255, 255), 0.16); border-radius: 14px; font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130)); text-align: center;">${t}</p>`;
   const PERIOD_SUB = { week: 'sur 7 jours', '30d': 'sur 30 jours', '90d': 'sur 90 jours', full: 'depuis le début' };
   const PERIOD_KPI = { week: 'P&amp;L · 7 jours', '30d': 'P&amp;L · 30 jours', '90d': 'P&amp;L · 3 mois', full: 'P&amp;L · tout' };
   const TF = { 1: 'M1', 5: 'M5', 15: 'M15', 30: 'M30', 60: 'H1', 240: 'H4', D: 'D1', '1D': 'D1' };
@@ -45,26 +45,26 @@
   const G = 'linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)))';
   function kpi(label, value, color, glow, bar, barBg, note) {
     return `
-            <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 22px; border-left: 1px solid rgba(255, 255, 255, 0.08);">
-              <span style="${MONO} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">${label}</span>
+            <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 22px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08);">
+              <span style="${MONO} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">${label}</span>
               <span style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: ${color}; text-shadow: ${glow};">${value}</span>
-              <div style="height: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); overflow: hidden;">
+              <div style="height: 3px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.06); overflow: hidden;">
                 <div style="height: 100%; width: ${Math.max(0, Math.min(100, bar || 0)).toFixed(0)}%; border-radius: 999px; background: ${barBg};"></div>
               </div>
-              <span style="font-size: 11.5px; color: rgb(122, 122, 130);">${note}</span>
+              <span style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">${note}</span>
             </div>`;
   }
   function paintBand(a, d, P, period, objectives) {
     const bal = Number(a.balance) || 0;
     $('d2BalLabel').textContent = `Solde · ${a.name || 'Compte'}`;
-    $('d2Bal').innerHTML = `${nfr(Math.round(bal))}<span style="color: rgb(122, 122, 130); font-weight: 600;"> $</span>`;
+    $('d2Bal').innerHTML = `${nfr(Math.round(bal))}<span style="color: var(--ink-3, rgb(122, 122, 130)); font-weight: 600;"> $</span>`;
     const diff = d.diff != null ? d.diff : num(d.profitDollar) || 0;
     const pct = d.profitPct != null ? d.profitPct : num(d.profit) || 0;
     const chip = $('d2Chip');
     chip.textContent = `${usd(diff)} · ${sign(pct)}${nfr(Math.abs(pct), 2)} %`;
     chip.style.color = diff < 0 ? 'rgb(255, 148, 160)' : 'rgb(127, 243, 202)';
-    chip.style.background = diff < 0 ? 'rgba(255, 77, 94, 0.12)' : 'rgba(51, 230, 166, 0.12)';
-    chip.style.textShadow = diff < 0 ? 'none' : 'rgba(51, 230, 166, 0.45) 0px 0px 14px';
+    chip.style.background = diff < 0 ? 'rgba(var(--red-rgb, 255, 77, 94), 0.12)' : 'rgba(var(--green-rgb, 51, 230, 166), 0.12)';
+    chip.style.textShadow = diff < 0 ? 'none' : 'rgba(var(--green-rgb, 51, 230, 166), 0.45) 0px 0px 14px';
     $('d2ChipSub').textContent = PERIOD_SUB[period] || '';
 
     const n = d.nTrades || 0, w = d.nWins || 0;
@@ -79,16 +79,16 @@
     const used = lim && lim.tgt ? dd / Math.abs(lim.tgt) : null;
     const pos = diff >= 0;
     $('d2Kpis').innerHTML =
-      kpi(PERIOD_KPI[period] || 'P&amp;L', usd(diff), pos ? 'rgb(127, 243, 202)' : 'rgb(255, 148, 160)', pos ? 'rgba(51, 230, 166, 0.35) 0px 0px 18px' : 'none',
-        goal && goal.tgt ? pct / goal.tgt * 100 : (n ? w / n * 100 : 0), pos ? 'rgb(51, 230, 166)' : 'rgb(255, 77, 94)',
+      kpi(PERIOD_KPI[period] || 'P&amp;L', usd(diff), pos ? 'var(--green-hi, rgb(127, 243, 202))' : 'var(--red-hi, rgb(255, 148, 160))', pos ? 'rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 18px' : 'none',
+        goal && goal.tgt ? pct / goal.tgt * 100 : (n ? w / n * 100 : 0), pos ? 'rgb(var(--green-rgb, 51, 230, 166))' : 'rgb(var(--red-rgb, 255, 77, 94))',
         n ? `${nfr(n)} trade${n > 1 ? 's' : ''} · ${nfr(w)} gagnant${w > 1 ? 's' : ''}` : 'aucun trade sur la période')
-      + kpi('Taux de réussite', winPct != null ? `${nfr(winPct)} %` : '—', 'rgb(246, 246, 247)', 'none', winPct || 0, G,
+      + kpi('Taux de réussite', winPct != null ? `${nfr(winPct)} %` : '—', 'var(--ink, rgb(246, 246, 247))', 'none', winPct || 0, G,
         win90 != null ? `Moyenne 90 j : ${nfr(win90)} %` : 'pas encore de moyenne sur 90 jours')
-      + kpi('Profit factor', pf == null ? '—' : pf === Infinity ? '∞' : nfr(pf, 2), 'rgb(246, 246, 247)', 'none', pf == null ? 0 : pf === Infinity ? 100 : Math.min(1, pf / 3) * 100, G,
+      + kpi('Profit factor', pf == null ? '—' : pf === Infinity ? '∞' : nfr(pf, 2), 'var(--ink, rgb(246, 246, 247))', 'none', pf == null ? 0 : pf === Infinity ? 100 : Math.min(1, pf / 3) * 100, G,
         d.rr && d.rr !== '—' ? `Gain moyen ${esc(String(d.rr).replace('.', ','))} R` : 'gains ÷ pertes')
       + (used != null
-        ? kpi('Drawdown utilisé', `${nfr(dd, 1)} %`, 'rgb(246, 246, 247)', 'none', used * 100, 'rgb(232, 179, 57)', `sur ${nfr(Math.abs(lim.tgt))} % autorisés`)
-        : kpi('Drawdown max', `${nfr(dd, 1)} %`, 'rgb(246, 246, 247)', 'none', Math.min(1, dd / 10) * 100, 'rgb(232, 179, 57)', 'pic → creux sur la période'));
+        ? kpi('Drawdown utilisé', `${nfr(dd, 1)} %`, 'var(--ink, rgb(246, 246, 247))', 'none', used * 100, 'rgb(var(--amber-rgb, 232, 179, 57))', `sur ${nfr(Math.abs(lim.tgt))} % autorisés`)
+        : kpi('Drawdown max', `${nfr(dd, 1)} %`, 'var(--ink, rgb(246, 246, 247))', 'none', Math.min(1, dd / 10) * 100, 'rgb(var(--amber-rgb, 232, 179, 57))', 'pic → creux sur la période'));
   }
 
   // ---------- Courbe d'equity (SVG de la maquette, lissage de Main.dc.html) ----------
@@ -130,10 +130,10 @@
       g.innerHTML = stops.map(([o, c, a]) => `<stop offset="${o}" stop-color="${c}" stop-opacity="${a}"></stop>`).join(''); };
     // Intensité calée sur les extrêmes de la courbe : la zone rouge reste visible même peu profonde.
     const yTop = Math.min(...pts.map((q) => q[1])) / H, yBot = Math.max(...pts.map((q) => q[1])) / H;
-    grad('eqFill', [[Math.min(yTop, t).toFixed(4), '#33e6a6', 0.3], [t, '#33e6a6', 0.03], [t, '#ff4d5e', 0.03], [Math.max(yBot, t).toFixed(4), '#ff4d5e', 0.28], [1, '#ff4d5e', 0.28]]);
+    grad('eqFill', [[Math.min(yTop, t).toFixed(4), 'var(--green, #33e6a6)', 0.3], [t, 'var(--green, #33e6a6)', 0.03], [t, 'var(--red, #ff4d5e)', 0.03], [Math.max(yBot, t).toFixed(4), 'var(--red, #ff4d5e)', 0.28], [1, 'var(--red, #ff4d5e)', 0.28]]);
     const up = eq[eq.length - 1] >= eq[0];
-    $('d2Dot').style.borderColor = up ? 'rgb(110, 242, 201)' : 'rgb(255, 120, 135)';
-    $('d2Dot').style.boxShadow = up ? 'rgba(51, 230, 166, 0.9) 0px 0px 14px' : 'rgba(255, 77, 94, 0.9) 0px 0px 14px';
+    $('d2Dot').style.borderColor = up ? 'var(--green-hi, rgb(110, 242, 201))' : 'rgb(255, 120, 135)';
+    $('d2Dot').style.boxShadow = up ? 'rgba(var(--green-rgb, 51, 230, 166), 0.9) 0px 0px 14px' : 'rgba(var(--red-rgb, 255, 77, 94), 0.9) 0px 0px 14px';
     const last = pts[pts.length - 1];
     [$('d2Dot'), $('d2DotLbl')].forEach((el) => { el.hidden = false; el.style.left = (last[0] / W * 100) + '%'; el.style.top = last[1] + 'px'; });
     $('d2DotLbl').textContent = `${nfr(Math.round(eq[eq.length - 1]))} $`;
@@ -174,47 +174,47 @@
       const segs = s.segs;
       const [a1, b1] = segs[0], [a2, b2] = segs[1] || [0, 0];
       const on = s.open, ct = cityTime(s.name), wx = WX[ct.wx];
-      const bg = on ? 'linear-gradient(90deg, rgb(51, 230, 166), rgb(110, 242, 201))' : 'rgba(255, 255, 255, 0.14)';
+      const bg = on ? 'linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), var(--green-hi, rgb(110, 242, 201)))' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.14)';
       return `
                   <div style="display: grid; grid-template-columns: 96px 1fr 52px; align-items: center; gap: 10px;">
-                    <span style="display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: ${on ? 'rgb(246, 246, 247)' : 'rgb(155, 155, 161)'};">
+                    <span style="display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: ${on ? 'var(--ink, rgb(246, 246, 247))' : 'var(--ink-2, rgb(155, 155, 161))'};">
                       <span aria-hidden="true" style="width: 14px; height: 14px; flex: 0 0 14px; border-radius: 999px; background: ${wx[0]}; box-shadow: ${wx[1]};"></span>
                       ${esc(s.name)}
                     </span>
-                    <div style="position: relative; height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); box-shadow: rgba(255, 255, 255, 0.06) 0px 0px 0px 1px inset;">
-                      <div style="position: absolute; top: 0px; bottom: 0px; left: ${pctH(a1)}; width: ${pctH(b1 - a1)}; border-radius: 999px; background: ${bg}; box-shadow: ${on ? 'rgba(51, 230, 166, 0.45) 0px 0px 12px' : 'none'};"></div>
+                    <div style="position: relative; height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.04); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.06) 0px 0px 0px 1px inset;">
+                      <div style="position: absolute; top: 0px; bottom: 0px; left: ${pctH(a1)}; width: ${pctH(b1 - a1)}; border-radius: 999px; background: ${bg}; box-shadow: ${on ? 'rgba(var(--green-rgb, 51, 230, 166), 0.45) 0px 0px 12px' : 'none'};"></div>
                       <div style="position: absolute; top: 0px; bottom: 0px; left: ${pctH(a2)}; width: ${pctH(b2 - a2)}; border-radius: 999px; background: ${bg};"></div>
                     </div>
-                    <span style="text-align: right; font-size: 11px; font-weight: ${on ? 700 : 500}; color: ${on ? 'rgb(127, 243, 202)' : 'rgb(122, 122, 130)'};">${ct.txt}</span>
+                    <span style="text-align: right; font-size: 11px; font-weight: ${on ? 700 : 500}; color: ${on ? 'var(--green-hi, rgb(127, 243, 202))' : 'var(--ink-3, rgb(122, 122, 130))'};">${ct.txt}</span>
                   </div>`;
     }).join('');
-    const level = open.length >= 2 ? ['rgb(255, 77, 94)', 'rgba(255, 77, 94, 0.18)', 'Volatilité forte'] : open.length === 1 ? ['rgb(232, 179, 57)', 'rgba(232, 179, 57, 0.18)', 'Volatilité moyenne'] : ['rgb(122, 122, 130)', 'rgba(122, 122, 130, 0.18)', 'Volatilité faible'];
+    const level = open.length >= 2 ? ['rgb(var(--red-rgb, 255, 77, 94))', 'rgba(var(--red-rgb, 255, 77, 94), 0.18)', 'Volatilité forte'] : open.length === 1 ? ['rgb(var(--amber-rgb, 232, 179, 57))', 'rgba(var(--amber-rgb, 232, 179, 57), 0.18)', 'Volatilité moyenne'] : ['var(--ink-3, rgb(122, 122, 130))', 'rgba(122, 122, 130, 0.18)', 'Volatilité faible'];
     let vibe;
     if (open.length >= 2) { const end = Math.min(...open.map((s) => hr + s.delta)) % 24; vibe = `chevauchement jusqu'à ${Math.round(end)}h`; }
     else if (open.length === 1) vibe = `${open[0].name} seule jusqu'à ${Math.round((hr + open[0].delta) % 24)}h`;
     else { const nx = m.sessions.slice().sort((x, y) => x.delta - y.delta)[0]; vibe = nx ? `${nx.name} ouvre à ${Math.round((hr + nx.delta) % 24)}h` : ''; }
     $('d2Sess').innerHTML = `
             <div style="position: relative; height: 150px; overflow: hidden; background: linear-gradient(${rgb(sky.top)}, ${rgb(sky.mid)} 62%, ${rgb(sky.bot)}); display: flex; align-items: center; justify-content: center;">
-              <div aria-hidden="true" style="position: absolute; inset: 0px; opacity: ${m.stars}; background-image: radial-gradient(1px 1px at 12% 22%, rgb(255, 255, 255), transparent), radial-gradient(1px 1px at 32% 12%, rgb(255, 255, 255), transparent), radial-gradient(1.5px 1.5px at 58% 28%, rgb(255, 255, 255), transparent), radial-gradient(1px 1px at 78% 16%, rgb(255, 255, 255), transparent), radial-gradient(1px 1px at 88% 40%, rgb(255, 255, 255), transparent);"></div>
+              <div aria-hidden="true" style="position: absolute; inset: 0px; opacity: ${m.stars}; background-image: radial-gradient(1px 1px at 12% 22%, rgb(var(--fg-rgb, 255, 255, 255)), transparent), radial-gradient(1px 1px at 32% 12%, rgb(var(--fg-rgb, 255, 255, 255)), transparent), radial-gradient(1.5px 1.5px at 58% 28%, rgb(var(--fg-rgb, 255, 255, 255)), transparent), radial-gradient(1px 1px at 78% 16%, rgb(var(--fg-rgb, 255, 255, 255)), transparent), radial-gradient(1px 1px at 88% 40%, rgb(var(--fg-rgb, 255, 255, 255)), transparent);"></div>
               <svg aria-hidden="true" viewBox="0 0 100 60" preserveAspectRatio="none" style="position: absolute; left: 6%; right: 6%; top: 18px; width: 88%; height: 96px; opacity: 0.32;"><path d="M0 60 Q50 -40 100 60" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="1.5 4" vector-effect="non-scaling-stroke"></path></svg>
               <span aria-hidden="true" style="position: absolute; left: ${(6 + tS * 88).toFixed(1)}%; top: ${(18 + (1 - 4 * tS * (1 - tS)) * 96).toFixed(0)}px; width: 26px; height: 26px; margin: -13px 0px 0px -13px; border-radius: 999px; background: ${day ? WX.sun[0] : WX.moon[0]}; box-shadow: ${day ? 'rgba(255, 175, 70, 0.55) 0px 0px 20px 5px' : 'rgba(200, 215, 255, 0.45) 0px 0px 18px 4px'};"></span>
-              <div aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 18px; height: 1px; background: rgba(255, 255, 255, 0.22);"></div>
+              <div aria-hidden="true" style="position: absolute; left: 0px; right: 0px; bottom: 18px; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.22);"></div>
               <div style="position: relative; text-align: center; margin-top: 26px;">
-                <div style="font-size: 23px; font-weight: 800; letter-spacing: -0.02em; color: rgb(255, 255, 255); text-shadow: rgba(0, 0, 0, 0.4) 0px 1px 8px;">${esc(title)}</div>
-                <div style="margin-top: 4px; font-size: 12.5px; color: rgba(255, 255, 255, 0.88); text-shadow: rgba(0, 0, 0, 0.3) 0px 1px 4px;">${hh} ${esc(place)} · ${moment}</div>
+                <div style="font-size: 23px; font-weight: 800; letter-spacing: -0.02em; color: rgb(var(--fg-rgb, 255, 255, 255)); text-shadow: rgba(0, 0, 0, calc(0.4 * var(--sh-k, 1))) 0px 1px 8px;">${esc(title)}</div>
+                <div style="margin-top: 4px; font-size: 12.5px; color: rgba(var(--fg-rgb, 255, 255, 255), 0.88); text-shadow: rgba(0, 0, 0, calc(0.3 * var(--sh-k, 1))) 0px 1px 4px;">${hh} ${esc(place)} · ${moment}</div>
               </div>
             </div>
             <div style="padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px;">
               <div style="position: relative; display: flex; flex-direction: column; gap: 9px;">
                 ${rows}
-                <div aria-hidden="true" style="position: absolute; top: -5px; bottom: -5px; left: calc(106px + (100% - 168px) * ${(hr / 24).toFixed(4)}); width: 2px; margin-left: -1px; background: rgb(246, 246, 247);">
-                  <span style="position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin: -7px 0px 0px -7px; border-radius: 999px; background: rgb(11, 11, 14); border: 2px solid rgb(246, 246, 247); box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 6px;"></span>
+                <div aria-hidden="true" style="position: absolute; top: -5px; bottom: -5px; left: calc(106px + (100% - 168px) * ${(hr / 24).toFixed(4)}); width: 2px; margin-left: -1px; background: var(--ink, rgb(246, 246, 247));">
+                  <span style="position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin: -7px 0px 0px -7px; border-radius: 999px; background: rgb(var(--dk-rgb, 11, 11, 14)); border: 2px solid var(--ink, rgb(246, 246, 247)); box-shadow: rgba(0, 0, 0, calc(0.5 * var(--sh-k, 1))) 0px 2px 6px;"></span>
                 </div>
               </div>
-              <div style="display: flex; justify-content: space-between; padding: 0px 62px 0px 106px; ${MONO} font-size: 9.5px; color: rgb(122, 122, 130);"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+              <div style="display: flex; justify-content: space-between; padding: 0px 62px 0px 106px; ${MONO} font-size: 9.5px; color: var(--ink-3, rgb(122, 122, 130));"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
               <div style="display: flex; align-items: center; gap: 8px; padding-top: 4px; font-size: 12.5px;">
                 <span style="width: 8px; height: 8px; border-radius: 999px; background: ${level[0]}; box-shadow: ${level[1]} 0px 0px 0px 3px;"></span>
-                <b>${level[2]}</b><span style="color: rgb(155, 155, 161);">· ${esc(vibe)}</span>
+                <b>${level[2]}</b><span style="color: var(--ink-2, rgb(155, 155, 161));">· ${esc(vibe)}</span>
               </div>
             </div>`;
   }
@@ -232,11 +232,11 @@
     $('d2News').innerHTML = rows.length ? rows.map((e) => {
       const n = e.importance === 'high' ? 3 : 2;
       const bars = [1, 2, 3].map((k) => `
-                  <span style="width: 4px; height: 12px; border-radius: 2px; background: ${k <= n ? (n === 3 ? 'rgb(255, 77, 94)' : 'rgb(232, 179, 57)') : 'rgba(255, 255, 255, 0.1)'};"></span>`).join('');
+                  <span style="width: 4px; height: 12px; border-radius: 2px; background: ${k <= n ? (n === 3 ? 'rgb(var(--red-rgb, 255, 77, 94))' : 'rgb(var(--amber-rgb, 232, 179, 57))') : 'rgba(var(--fg-rgb, 255, 255, 255), 0.1)'};"></span>`).join('');
       return `
               <div class="row-h" style="display: flex; align-items: center; gap: 12px; padding: 10px 8px; margin: 0px -8px; border-radius: 10px;">
-                <span style="width: 44px; ${MONO} font-size: 12px; color: ${e.time && e.time < nowHM ? 'rgb(122, 122, 130)' : 'rgb(246, 246, 247)'}; font-variant-numeric: tabular-nums;">${esc(e.time || '—')}</span>
-                <span style="${MONO} font-size: 10.5px; font-weight: 600; color: rgb(155, 155, 161); border: 1px solid rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 6px;">${esc(CCY[e.country] || e.country || '')}</span>
+                <span style="width: 44px; ${MONO} font-size: 12px; color: ${e.time && e.time < nowHM ? 'var(--ink-3, rgb(122, 122, 130))' : 'var(--ink, rgb(246, 246, 247))'}; font-variant-numeric: tabular-nums;">${esc(e.time || '—')}</span>
+                <span style="${MONO} font-size: 10.5px; font-weight: 600; color: var(--ink-2, rgb(155, 155, 161)); border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); padding: 2px 6px; border-radius: 6px;">${esc(CCY[e.country] || e.country || '')}</span>
                 <span style="flex: 1 1 0%; min-width: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${esc(e.event)}</span>
                 <span aria-label="Impact ${n === 3 ? 'fort' : 'moyen'}" style="display: flex; gap: 3px;">${bars}
                 </span>
@@ -252,7 +252,7 @@
     const fc = $('d2Forecast');
     if (lock && typeof lock.weeklyCapped === 'number') {
       const word = lock.tone === 'pos' ? 'haussier' : lock.tone === 'neg' ? 'baissier' : 'neutre';
-      const col = lock.tone === 'pos' ? 'rgb(127, 243, 202)' : lock.tone === 'neg' ? 'rgb(255, 148, 160)' : 'rgb(246, 246, 247)';
+      const col = lock.tone === 'pos' ? 'var(--green-hi, rgb(127, 243, 202))' : lock.tone === 'neg' ? 'var(--red-hi, rgb(255, 148, 160))' : 'var(--ink, rgb(246, 246, 247))';
       fc.innerHTML = `Prévision de la semaine sur ${esc(pair(pk))} : <strong style="color: ${col};">${word} ${sign(lock.weeklyCapped)}${nfr(Math.abs(lock.weeklyCapped), 1)} %</strong>`;
       fc.hidden = false;
     } else fc.hidden = true;
@@ -268,21 +268,21 @@
         const v = c.index;
         return `
                 <div style="display: grid; grid-template-columns: 34px 1fr 1fr 40px; align-items: center; gap: 0px;">
-                  <span style="${MONO} font-size: 11px; font-weight: 600; color: rgb(201, 201, 206);">${esc(c.code)}</span>
-                  <div style="display: flex; justify-content: flex-end; height: 8px; border-right: 1px solid rgba(255, 255, 255, 0.14);">
-                    <div style="height: 100%; width: ${v < 0 ? Math.min(100, -v / 6 * 100) : 0}%; border-radius: 4px 0px 0px 4px; background: linear-gradient(270deg, rgba(255, 77, 94, 0.9), rgba(255, 77, 94, 0.25));"></div>
+                  <span style="${MONO} font-size: 11px; font-weight: 600; color: var(--ink-1, rgb(201, 201, 206));">${esc(c.code)}</span>
+                  <div style="display: flex; justify-content: flex-end; height: 8px; border-right: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.14);">
+                    <div style="height: 100%; width: ${v < 0 ? Math.min(100, -v / 6 * 100) : 0}%; border-radius: 4px 0px 0px 4px; background: linear-gradient(270deg, rgba(var(--red-rgb, 255, 77, 94), 0.9), rgba(var(--red-rgb, 255, 77, 94), 0.25));"></div>
                   </div>
                   <div style="display: flex; height: 8px;">
-                    <div style="height: 100%; width: ${v > 0 ? Math.min(100, v / 6 * 100) : 0}%; border-radius: 0px 4px 4px 0px; background: linear-gradient(90deg, rgba(51, 230, 166, 0.9), rgba(51, 230, 166, 0.25));"></div>
+                    <div style="height: 100%; width: ${v > 0 ? Math.min(100, v / 6 * 100) : 0}%; border-radius: 0px 4px 4px 0px; background: linear-gradient(90deg, rgba(var(--green-rgb, 51, 230, 166), 0.9), rgba(var(--green-rgb, 51, 230, 166), 0.25));"></div>
                   </div>
-                  <span style="text-align: right; ${MONO} font-size: 11px; color: ${v >= 0 ? 'rgb(127, 243, 202)' : 'rgb(255, 148, 160)'}; font-variant-numeric: tabular-nums;">${v > 0 ? '+' : ''}${v.toFixed(1).replace('.', ',')}</span>
+                  <span style="text-align: right; ${MONO} font-size: 11px; color: ${v >= 0 ? 'var(--green-hi, rgb(127, 243, 202))' : 'var(--red-hi, rgb(255, 148, 160))'}; font-variant-numeric: tabular-nums;">${v > 0 ? '+' : ''}${v.toFixed(1).replace('.', ',')}</span>
                 </div>`;
       }).join('');
     } catch (e) { box.innerHTML = EMPTY('Force des devises indisponible pour le moment.'); }
   }
 
   // ---------- Derniers trades ----------
-  const PILL = (buy) => `<span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${buy ? 'rgb(127, 243, 202)' : 'rgb(255, 148, 160)'}; background: ${buy ? 'rgba(51, 230, 166, 0.12)' : 'rgba(255, 77, 94, 0.12)'};">${buy ? 'Achat' : 'Vente'}</span>`;
+  const PILL = (buy) => `<span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${buy ? 'var(--green-hi, rgb(127, 243, 202))' : 'var(--red-hi, rgb(255, 148, 160))'}; background: ${buy ? 'rgba(var(--green-rgb, 51, 230, 166), 0.12)' : 'rgba(var(--red-rgb, 255, 77, 94), 0.12)'};">${buy ? 'Achat' : 'Vente'}</span>`;
   const when = (ms) => { const d = new Date(ms); return `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${d.toTimeString().slice(0, 5)}`; };
   function paintTrades(a, trades) {
     const rr = new Map((trades || []).map((t) => [new Date(t.date).getTime(), t.rr]));
@@ -294,13 +294,13 @@
       const buy = !/sell/i.test(String(t.side || t.action || t.type || ''));
       const p = parseFloat(t.profit) || 0;
       const r = rr.get(new Date(close).getTime());
-      const col = p >= 0 ? 'rgb(127, 243, 202)' : 'rgb(255, 148, 160)';
+      const col = p >= 0 ? 'var(--green-hi, rgb(127, 243, 202))' : 'var(--red-hi, rgb(255, 148, 160))';
       return `
-                <div class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.8fr 1fr 0.7fr 1fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.043); font-size: 12.5px;">
+                <div class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.8fr 1fr 0.7fr 1fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
                   <span style="font-weight: 600;">${esc(pair(t.symbol || t.pair))}</span>
                   <span>${PILL(buy)}</span>
-                  <span style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;">${esc(when(isFinite(open) ? open : close))}</span>
-                  <span style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;">${r == null ? '—' : `${sign(r)}${nfr(Math.abs(r), 1)}`}</span>
+                  <span style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">${esc(when(isFinite(open) ? open : close))}</span>
+                  <span style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">${r == null ? '—' : `${sign(r)}${nfr(Math.abs(r), 1)}`}</span>
                   <span style="text-align: right; font-weight: 700; color: ${col}; font-variant-numeric: tabular-nums;">${usd(p)}</span>
                 </div>`;
     }).join('');
@@ -317,7 +317,7 @@
     try {
       const rules = ((await fetch(`${base}/alerts/rules`, { headers: H }).then((r) => (r.ok ? r.json() : { rules: [] }))).rules) || [];
       const combos = [...new Set(rules.flatMap((r) => (r.pairs || []).flatMap((p) => (r.timeframes || []).map((tf) => `${p}|${tf}`))))].slice(0, 4);
-      if (!combos.length) { box.innerHTML = EMPTY('Aucune alerte réglée. <a href="strategies.html" style="color: rgb(155, 155, 161);">Choisis tes paires dans Stratégies →</a>'); return; }
+      if (!combos.length) { box.innerHTML = EMPTY('Aucune alerte réglée. <a href="strategies.html" style="color: var(--ink-2, rgb(155, 155, 161));">Choisis tes paires dans Stratégies →</a>'); return; }
       const wanted = new Set(rules.flatMap((r) => r.scanners || []));
       const lists = await Promise.all(combos.map((c) => { const [sy, tf] = c.split('|'); return fetch(`${base}/alerts/signals?symbol=${encodeURIComponent(sy)}&tf=${encodeURIComponent(tf)}`, { headers: H }).then((r) => (r.ok ? r.json() : { opportunities: [] })).catch(() => ({ opportunities: [] })); }));
       const sig = lists.flatMap((l) => l.opportunities || []).filter((o) => !wanted.size || wanted.has(o.scanner)).sort((x, y) => toMs(y.time) - toMs(x.time)).slice(0, 4);
@@ -330,8 +330,8 @@
             <a class="row-h" href="strategies.html?scanner=${encodeURIComponent(o.scanner)}&amp;symbol=${encodeURIComponent(o.symbol)}&amp;tf=${encodeURIComponent(o.tf)}" style="display: flex; align-items: center; gap: 12px; padding: 9px 8px; margin: 0px -8px; border-radius: 12px; color: inherit; text-decoration: none;">
               <img src="${esc(sc.logo || 'assets/logo-chest-new.webp')}" alt="" style="width: 34px; height: 34px; border-radius: 9px; object-fit: cover;">
               <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0px; flex: 1 1 0%;">
-                <span style="font-weight: 600;">${esc((sc.name || o.scanner || '').toUpperCase())} <span style="color: rgb(122, 122, 130); font-weight: 400;">· ${esc(pair(o.symbol))} ${esc(TF[o.tf] || o.tf)}</span></span>
-                <span style="font-size: 11.5px; color: rgb(122, 122, 130);">${esc(ago(t))} · bougie de ${esc(new Date(t).toTimeString().slice(0, 5))}</span>
+                <span style="font-weight: 600;">${esc((sc.name || o.scanner || '').toUpperCase())} <span style="color: var(--ink-3, rgb(122, 122, 130)); font-weight: 400;">· ${esc(pair(o.symbol))} ${esc(TF[o.tf] || o.tf)}</span></span>
+                <span style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">${esc(ago(t))} · bougie de ${esc(new Date(t).toTimeString().slice(0, 5))}</span>
               </div>
               ${PILL(o.side === 'buy')}
             </a>`;
@@ -391,7 +391,7 @@
   function tick() {
     const d = new Date();
     const open = SESS.filter((s) => openNow(s, d));
-    let dot = 'rgb(122, 122, 130)', halo = 'rgba(255, 255, 255, 0.08)', txt;
+    let dot = 'var(--ink-3, rgb(122, 122, 130))', halo = 'rgba(var(--fg-rgb, 255, 255, 255), 0.08)', txt;
     if (weekendClosed(d)) {
       const m = nextChange(d, weekendClosed);
       txt = `Marché fermé · ouvre dans ${m ? dur(m) : '—'}`;
@@ -399,14 +399,14 @@
       const m = nextChange(d, (x) => SESS.some((s) => openNow(s, x)));
       txt = `Entre deux sessions · prochaine dans ${m ? dur(m) : '—'}`;
     } else {
-      dot = 'rgb(51, 230, 166)'; halo = 'rgba(51, 230, 166, 0.16)';
+      dot = 'rgb(var(--green-rgb, 51, 230, 166))'; halo = 'rgba(var(--green-rgb, 51, 230, 166), 0.16)';
       const names = open.map((s) => s.k).join(' + ');
       const m = nextChange(d, (x) => SESS.filter((s) => openNow(s, x)).map((s) => s.k).join());
       txt = `Session ${names}${open.length > 1 ? ' · chevauchement' : ''}${m ? ` · change dans ${dur(m)}` : ''}`;
     }
     if (txt === last) return;
     last = txt;
-    T.set(window, `<span style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 12px; color: rgb(155, 155, 161); font-variant-numeric: tabular-nums; white-space: nowrap;" title="Sessions du marché des changes, heures locales de chaque place">
+    T.set(window, `<span style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); font-size: 12px; color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums; white-space: nowrap;" title="Sessions du marché des changes, heures locales de chaque place">
         <span style="width: 6px; height: 6px; border-radius: 999px; background: ${dot}; box-shadow: ${halo} 0px 0px 0px 3px;"></span>${txt}
       </span>`);
   }

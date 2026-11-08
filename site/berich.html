@@ -6,49 +6,49 @@
 <title>BERICH — CHEST</title>
 <link rel="icon" type="image/png" href="assets/logo-chest.png">
 <!-- Fond sombre immédiat : page chargée dans l'iframe du shell (voir js/shell.js), évite le flash blanc. -->
-<style>html,body{background:#050505}  /* Connexion clé en main (Premium 3) : volet sur fond transparent */
-  .br-p3{ position:fixed; inset:0; z-index:300; display:grid; place-items:center; padding:20px; background:rgba(5,5,5,.42); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); animation:brP3Fade .2s ease-out both; }
+<style>html,body{background:var(--bg-0, #050505)}  /* Connexion clé en main (Premium 3) : volet sur fond transparent */
+  .br-p3{ position:fixed; inset:0; z-index:300; display:grid; place-items:center; padding:20px; background:rgba(var(--bg0-rgb, 5, 5, 5),.42); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); animation:brP3Fade .2s ease-out both; }
   .br-p3[hidden]{ display:none; }
   @keyframes brP3Fade{ from{ opacity:0; } }
-  .br-p3__box{ position:relative; width:min(920px,100%); max-height:calc(100dvh - 40px); overflow:auto; padding:26px; border-radius:20px; border:1px solid rgba(255,255,255,.13);
-    background:rgba(14,14,17,.9); box-shadow:0 30px 90px rgba(0,0,0,.6); animation:brP3In .3s cubic-bezier(.16,1,.3,1) both; }
+  .br-p3__box{ position:relative; width:min(920px,100%); max-height:calc(100dvh - 40px); overflow:auto; padding:26px; border-radius:20px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.13);
+    background:rgba(var(--dk-rgb, 14, 14, 17),.9); box-shadow:0 30px 90px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); animation:brP3In .3s cubic-bezier(.16,1,.3,1) both; }
   @keyframes brP3In{ from{ opacity:0; transform:translateY(10px) scale(.985); } }
   .br-p3__box h3{ margin:6px 0 6px; font-size:22px; letter-spacing:-.02em; }
   .br-p3__lead{ margin:0 0 18px; font-size:14px; color:var(--chest-ink-2); line-height:1.55; }
-  .br-p3__x{ position:absolute; top:16px; right:16px; width:34px; height:34px; display:grid; place-items:center; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--chest-ink-2); cursor:pointer; }
+  .br-p3__x{ position:absolute; top:16px; right:16px; width:34px; height:34px; display:grid; place-items:center; border-radius:10px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); background:rgba(var(--fg-rgb, 255, 255, 255),.04); color:var(--chest-ink-2); cursor:pointer; }
   .br-p3__grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
   @media (max-width:760px){ .br-p3__grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  .br-p3__firm{ display:flex; align-items:center; gap:10px; padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.025); color:var(--chest-ink); text-align:left; cursor:pointer; font:inherit; min-width:0; transition:border-color .2s, background .2s; }
+  .br-p3__firm{ display:flex; align-items:center; gap:10px; padding:12px; border-radius:14px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.09); background:rgba(var(--fg-rgb, 255, 255, 255),.025); color:var(--chest-ink); text-align:left; cursor:pointer; font:inherit; min-width:0; transition:border-color .2s, background .2s; }
   .br-p3__firm img{ width:26px; height:26px; border-radius:7px; flex-shrink:0; background:#fff; object-fit:contain; }
   .br-p3__firm span{ display:flex; flex-direction:column; min-width:0; } .br-p3__firm b{ font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .br-p3__firm small{ font-size:11px; color:var(--chest-ink-3); }
-  .br-p3__firm:hover{ border-color:rgba(255,255,255,.2); } .br-p3__firm.is-on{ border-color:rgba(var(--a1-rgb, 252, 18, 131),.65); background:rgba(var(--a1-rgb, 252, 18, 131),.08); }
+  .br-p3__firm:hover{ border-color:rgba(var(--fg-rgb, 255, 255, 255),.2); } .br-p3__firm.is-on{ border-color:rgba(var(--a1-rgb, 252, 18, 131),.65); background:rgba(var(--a1-rgb, 252, 18, 131),.08); }
   .br-p3__firm:active{ transform:scale(.98); }
   .br-p3__row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px; } .br-p3__k{ font-size:13px; color:var(--chest-ink-2); }
   .br-p3__fields{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
   .br-p3__fields--acc{ grid-template-columns:repeat(3,minmax(0,1fr)); }
   @media (max-width:760px){ .br-p3__fields, .br-p3__fields--acc{ grid-template-columns:1fr 1fr; } }
   .br-p3__fields label{ display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--chest-ink-2); min-width:0; }
-  .br-p3__fields input, .br-p3__fields select{ height:42px; border-radius:12px; padding:0 12px; font:inherit; font-size:14px; color:var(--chest-ink); background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.12); outline:none; width:100%; box-sizing:border-box; }
+  .br-p3__fields input, .br-p3__fields select{ height:42px; border-radius:12px; padding:0 12px; font:inherit; font-size:14px; color:var(--chest-ink); background:rgba(var(--fg-rgb, 255, 255, 255),.035); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); outline:none; width:100%; box-sizing:border-box; }
   .br-p3__fields input:focus, .br-p3__fields select:focus{ border-color:rgba(var(--a1-rgb, 252, 18, 131),.6); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.18); }
-  .br-p3__fields option{ background:#121215; }
+  .br-p3__fields option{ background:var(--bg-1, #121215); }
   .br-p3__safe{ margin:0 0 8px; font-size:12px; color:var(--chest-ink-3); }
-  .br-p3__err{ margin:0 0 8px; min-height:1em; font-size:12.5px; color:#ff4d5e; }
-  .br-p3__foot{ display:flex; justify-content:flex-end; gap:10px; padding-top:14px; border-top:1px solid rgba(255,255,255,.07); }
-  .br-btn--ghost{ background:transparent !important; color:var(--chest-ink) !important; border:1px solid rgba(255,255,255,.16) !important; box-shadow:none !important; }
+  .br-p3__err{ margin:0 0 8px; min-height:1em; font-size:12.5px; color:var(--red, #ff4d5e); }
+  .br-p3__foot{ display:flex; justify-content:flex-end; gap:10px; padding-top:14px; border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.07); }
+  .br-btn--ghost{ background:transparent !important; color:var(--chest-ink) !important; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.16) !important; box-shadow:none !important; }
   .br-btn:disabled{ opacity:.45; cursor:default; }
   .br-p3-wait{ display:inline-flex; align-items:center; gap:8px; color:var(--chest-ink-2); }
-  .br-p3-wait i{ width:8px; height:8px; border-radius:50%; background:#e8b339; box-shadow:0 0 10px rgba(232,179,57,.7); flex-shrink:0; }
+  .br-p3-wait i{ width:8px; height:8px; border-radius:50%; background:var(--amber, #e8b339); box-shadow:0 0 10px rgba(var(--amber-rgb, 232, 179, 57),.7); flex-shrink:0; }
   @media (prefers-reduced-motion:reduce){ .br-p3, .br-p3__box{ animation:none; } }
   /* Performances (2026-10-28) */
   .br-perf{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
   @media (max-width:900px){ .br-perf{ grid-template-columns:1fr; } }
-  .br-perf__card{ position:relative; padding:20px 20px 16px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)); display:flex; flex-direction:column; gap:6px; min-width:0; }
-  .br-perf__card:first-child{ border-color:rgba(8,153,129,.35); background:radial-gradient(120% 100% at 0% 0%, rgba(8,153,129,.14), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)); }
+  .br-perf__card{ position:relative; padding:20px 20px 16px; border-radius:18px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.08); background:linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.035), rgba(var(--fg-rgb, 255, 255, 255),.01)); display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .br-perf__card:first-child{ border-color:rgba(8,153,129,.35); background:radial-gradient(120% 100% at 0% 0%, rgba(8,153,129,.14), transparent 60%), linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.035), rgba(var(--fg-rgb, 255, 255, 255),.01)); }
   .br-perf__t{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--chest-ink-3); }
   .br-perf__r{ font-size:clamp(30px,3.6vw,40px); font-weight:700; letter-spacing:-.03em; line-height:1.1; font-variant-numeric:tabular-nums; }
   .br-perf__money{ display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; font-size:13.5px; color:var(--chest-ink-2); font-variant-numeric:tabular-nums; }
   .br-perf__money b{ font-weight:700; }
-  .br-perf__facts{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin:12px 0 0; padding-top:12px; border-top:1px solid rgba(255,255,255,.07); }
+  .br-perf__facts{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin:12px 0 0; padding-top:12px; border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.07); }
   .br-perf__facts div{ min-width:0; } .br-perf__wide{ grid-column:1 / -1; }
   .br-perf__facts dt{ font-size:10.5px; color:var(--chest-ink-3); margin-bottom:2px; }
   .br-perf__facts dd{ margin:0; font-size:14px; font-weight:600; color:var(--chest-ink); font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -57,22 +57,22 @@
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=3">
-<link rel="stylesheet" href="css/layout.css?v=5">
-<link rel="stylesheet" href="css/chest-da.css?v=20">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=19">
-<link rel="stylesheet" href="css/berich-da.css?v=5">
-<link rel="stylesheet" href="css/berich-plan.css?v=3">
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/layout.css?v=6">
+<link rel="stylesheet" href="css/chest-da.css?v=21">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=20">
+<link rel="stylesheet" href="css/berich-da.css?v=6">
+<link rel="stylesheet" href="css/berich-plan.css?v=4">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
-<script src="js/theme.js?v=6"></script>
+<script src="js/theme.js?v=7"></script>
 <script src="js/auth.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
 <script>CHESTAccounts.guard();</script>
-<link rel="stylesheet" href="css/v2.css?v=17">
-<link rel="stylesheet" href="css/chest-da-2.css?v=3">
-<link rel="stylesheet" href="css/chest-2-site.css?v=16">
-<link rel="stylesheet" href="css/berich-2.css?v=5">
+<link rel="stylesheet" href="css/v2.css?v=18">
+<link rel="stylesheet" href="css/chest-da-2.css?v=4">
+<link rel="stylesheet" href="css/chest-2-site.css?v=17">
+<link rel="stylesheet" href="css/berich-2.css?v=6">
 </head>
 <body data-page="berich" class="chest-root">
 
@@ -251,20 +251,20 @@
 <script src="js/config.local.js"></script>
 <script src="js/nav.js?v=10"></script>
 <script src="js/chest-ui.js?v=2"></script>
-<script src="js/lot-calculator.js?v=7"></script>
-<script src="js/liquid-glass.js?v=2"></script>
+<script src="js/lot-calculator.js?v=8"></script>
+<script src="js/liquid-glass.js?v=3"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/berich-store.js"></script>
 <script src="js/propfirm-rules.js"></script>
 <script src="js/journal-store.js?v=14"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/page-tour.js"></script>
+<script src="js/page-tour.js?v=3"></script>
 <script src="js/berich-plan.js?v=3"></script>
 <script src="js/berich-quiz.js?v=6"></script>
-<script src="js/berich-app.js?v=10"></script>
+<script src="js/berich-app.js?v=11"></script>
 <script src="js/v2.js?v=5"></script>
 <!-- Offres (2026-10-18) : BERICH fait partie de CHEST Premium. -->
-<script src="js/plan-gate.js?v=5"></script>
+<script src="js/plan-gate.js?v=6"></script>
 <script>
 if (window.CHESTPlan && !CHESTPlan.allowed('berich')) {
   CHESTPlan.lock(document.querySelector('.br-page'), {

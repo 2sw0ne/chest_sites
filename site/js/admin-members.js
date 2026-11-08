@@ -22,7 +22,7 @@
   // ------------------------------------------------------------ Rangs (du sommet à la base)
   // Badges provisoires : hexagone aux couleurs du rang + pictogramme. Les vrais badges remplaceront `badge()`.
   const TIERS = [
-    { key: 'admin', name: 'Admin', group: 'team', rights: 'Tout CHEST et la gestion des membres.', c1: '#fc1283', c2: '#f9a45e', g: 'M6.5 15.5 5.6 9l3.6 2.6L12 7l2.8 4.6L18.4 9l-.9 6.5zM7 17.5h10' },
+    { key: 'admin', name: 'Admin', group: 'team', rights: 'Tout CHEST et la gestion des membres.', c1: 'var(--a1, #fc1283)', c2: 'var(--a2, #f9a45e)', g: 'M6.5 15.5 5.6 9l3.6 2.6L12 7l2.8 4.6L18.4 9l-.9 6.5zM7 17.5h10' },
     { key: 'manager', name: 'Manageur', group: 'team', rights: 'Mêmes pouvoirs que l’admin, accès illimité, sans CHEST HQ.', c1: '#ffd23f', c2: '#ff8a1f', g: 'M12 5.5l5.5 2v4c0 3.2-2.3 5.6-5.5 6.8-3.2-1.2-5.5-3.6-5.5-6.8v-4zM9.6 12l1.7 1.7 3.3-3.4' },
     { key: 'educator', name: 'Éducateur', group: 'team', rights: 'Accès complet sans abonnement. Publiera bientôt dans School.', c1: '#b79bff', c2: '#6b4dff', g: 'M4 10.5 12 7l8 3.5-8 3.5zM7.5 12v3.2c0 1 2 2.3 4.5 2.3s4.5-1.3 4.5-2.3V12' },
     { key: 'privilege', name: 'Privilège', group: 'access', rights: 'Tout CHEST, offert par toi, avec ou sans date de fin.', c1: '#9dbcff', c2: '#3f7bff', g: 'M12 6.2l1.5 4.3 4.3 1.5-4.3 1.5L12 17.8l-1.5-4.3L6.2 12l4.3-1.5z' },
@@ -186,7 +186,7 @@
     const max = Math.max(1, ...vals), bw = W / n;
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${vals.map((v, i) => {
       const bh = v ? Math.max(3, v / max * (H - 8)) : 1.5;
-      return `<rect x="${(i * bw + bw * .2).toFixed(2)}" y="${(H - bh).toFixed(2)}" width="${(bw * .6).toFixed(2)}" height="${bh.toFixed(2)}" rx="1.5" fill="${v ? color : 'rgba(255,255,255,.1)'}" ${v ? `opacity="${(.4 + .6 * v / max).toFixed(2)}"` : ''}/>`;
+      return `<rect x="${(i * bw + bw * .2).toFixed(2)}" y="${(H - bh).toFixed(2)}" width="${(bw * .6).toFixed(2)}" height="${bh.toFixed(2)}" rx="1.5" fill="${v ? color : 'rgba(var(--fg-rgb, 255, 255, 255),.1)'}" ${v ? `opacity="${(.4 + .6 * v / max).toFixed(2)}"` : ''}/>`;
     }).join('')}</svg>`;
   }
   const series = (key) => ((S.stats && S.stats.series) || []).map((p) => p[key] || 0);
@@ -217,28 +217,28 @@
         <div class="am-kpi__k">Encaissé ${delta(s.collected, s.collectedPrev)}</div>
         <div class="am-kpi__v"><b>${eur(s.collected)}</b></div>
         <div class="am-kpi__n">${periodWord()} · ${eur(s.collectedPrev)} avant</div>
-        <div class="am-kpi__spark">${sparkArea(cumul(series('revenue')), '#33e6a6')}</div>
+        <div class="am-kpi__spark">${sparkArea(cumul(series('revenue')), 'var(--green, #33e6a6)')}</div>
       </div>
       <div class="am-kpi">
         <div class="am-kpi__k">Nouveaux membres ${delta(s.signups, s.signupsPrev)}</div>
         <div class="am-kpi__v"><b>${nf(s.signups)}</b></div>
         <div class="am-kpi__n">${periodWord()} · ${nf(s.signupsPrev)} avant</div>
-        <div class="am-kpi__spark">${sparkBars(series('signups'), '#fc1283')}</div>
+        <div class="am-kpi__spark">${sparkBars(series('signups'), 'var(--a1, #fc1283)')}</div>
       </div>
       <div class="am-kpi">
         <div class="am-kpi__k">Actifs cette semaine</div>
         <div class="am-kpi__v"><b>${nf(s.active7)}</b></div>
         <div class="am-kpi__n">${nf(s.active1)} aujourd’hui · ${nf(s.active30)} sur 30 jours</div>
-        <div class="am-kpi__spark">${sparkArea(series('users'), '#f9a45e')}</div>
+        <div class="am-kpi__spark">${sparkArea(series('users'), 'var(--a2, #f9a45e)')}</div>
       </div>`;
   }
 
   const METRICS = {
-    revenue: { label: 'Encaissé', type: 'area', color: '#33e6a6', cum: true, fmt: eur, axis: eurShort,
+    revenue: { label: 'Encaissé', type: 'area', color: 'var(--green, #33e6a6)', cum: true, fmt: eur, axis: eurShort,
       head: (s) => ({ v: eur(s.collected), d: delta(s.collected, s.collectedPrev), sub: periodWord() }) },
-    signups: { label: 'Nouveaux membres', type: 'bars', color: '#fc1283', fmt: nf, axis: nf,
+    signups: { label: 'Nouveaux membres', type: 'bars', color: 'var(--a1, #fc1283)', fmt: nf, axis: nf,
       head: (s) => ({ v: nf(s.signups), d: delta(s.signups, s.signupsPrev), sub: periodWord() }) },
-    users: { label: 'Membres actifs par jour', type: 'area', color: '#f9a45e', fmt: nf, axis: nf, max: true,
+    users: { label: 'Membres actifs par jour', type: 'area', color: 'var(--a2, #f9a45e)', fmt: nf, axis: nf, max: true,
       head: (s) => { const v = series('users'); const avg = v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; return { v: avg.toLocaleString('fr-FR', { maximumFractionDigits: 1 }), d: '', sub: `en moyenne par jour, ${periodWord()}` }; } },
     views: { label: 'Pages vues', type: 'area', color: '#9dbcff', fmt: nf, axis: nf,
       head: () => { const v = series('views'); return { v: nf(v.reduce((a, b) => a + b, 0)), d: '', sub: periodWord() }; } },
@@ -333,10 +333,10 @@
   // Ce qui demande une action : chaque ligne ouvre la liste déjà filtrée.
   const WATCH = [
     { key: 'trialEnd', c: '#7ce3f5', ic: 'clock', t: 'Essais qui se terminent', sub: 'dans 3 jours ou moins', test: (m) => cat(m) === 'trial' && (daysUntil(m.access.endsAt) ?? 99) <= 3 },
-    { key: 'pastDue', c: '#ff4d5e', ic: 'card', t: 'Paiements en retard', sub: 'le prélèvement a échoué', test: (m) => (m.access || {}).status === 'past_due' && (m.access || {}).active },
-    { key: 'canceling', c: '#f9a45e', ic: 'door', t: 'Résiliations programmées', sub: 'accès gardé jusqu’à l’échéance', test: (m) => (m.access || {}).status === 'canceling' && (m.access || {}).active },
+    { key: 'pastDue', c: 'var(--red, #ff4d5e)', ic: 'card', t: 'Paiements en retard', sub: 'le prélèvement a échoué', test: (m) => (m.access || {}).status === 'past_due' && (m.access || {}).active },
+    { key: 'canceling', c: 'var(--a2, #f9a45e)', ic: 'door', t: 'Résiliations programmées', sub: 'accès gardé jusqu’à l’échéance', test: (m) => (m.access || {}).status === 'canceling' && (m.access || {}).active },
     { key: 'privEnd', c: '#9dbcff', ic: 'gift', t: 'Privilèges qui expirent', sub: 'dans 14 jours ou moins', test: (m) => cat(m) === 'privilege' && (daysUntil(m.access.endsAt) ?? 99) <= 14 },
-    { key: 'nudge', c: '#fc1283', ic: 'bell', t: 'À relancer', sub: 'accès actif, aucune visite depuis 7 jours', test: (m) => !isTeam(m) && (m.access || {}).active && seenOf(m) && seenOf(m) < Date.now() - 7 * DAY },
+    { key: 'nudge', c: 'var(--a1, #fc1283)', ic: 'bell', t: 'À relancer', sub: 'accès actif, aucune visite depuis 7 jours', test: (m) => !isTeam(m) && (m.access || {}).active && seenOf(m) && seenOf(m) < Date.now() - 7 * DAY },
     { key: 'ghost', c: '#a0a0a8', ic: 'ghost', t: 'Jamais revenus', sub: 'inscrits, aucune visite', test: (m) => !isTeam(m) && m.status !== 'blocked' && !ms(m.lastSeenAt) && !((m.activity || {}).views30) },
   ];
   const WATCH_BY = Object.fromEntries(WATCH.map((w) => [w.key, w]));
@@ -1024,7 +1024,7 @@
     $('amDrawerBody').innerHTML = `<div class="am-dh" style="${tierStyle(c)}">
         <div class="am-dh__row"><span class="am-av am-av--lg">${esc(initials(m))}<span class="am-av__b">${badge(c, 26)}</span></span>
           <div><h2 id="amDrawerName">${esc(fullName(m))}</h2><p>${esc(m.email)}</p></div></div>
-        <div class="am-dh__chips">${chip(c)}${isMe ? '<span class="am-tag">toi</span>' : ''}${m.status === 'blocked' ? '<span class="am-tag am-tag--red">bloqué</span>' : ''}${isOnline(m) ? '<span class="am-tag" style="color:var(--chest-green);background:rgba(51,230,166,.1)">en ligne</span>' : ''}</div>
+        <div class="am-dh__chips">${chip(c)}${isMe ? '<span class="am-tag">toi</span>' : ''}${m.status === 'blocked' ? '<span class="am-tag am-tag--red">bloqué</span>' : ''}${isOnline(m) ? '<span class="am-tag" style="color:var(--chest-green);background:rgba(var(--green-rgb, 51, 230, 166),.1)">en ligne</span>' : ''}</div>
       </div>${tabsHtml}${overview}${access}${activity}${history}`;
   }
 

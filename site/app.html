@@ -17,7 +17,7 @@
      requête réseau externe, potentiellement lente) et les CSS locales n'ont pas fini de charger, puisqu'un
      <link rel="stylesheet"> bloque le premier rendu de toute la page. Ce style inline n'a besoin d'aucun
      fichier externe : il s'applique donc dès l'analyse du <head>. -->
-<style>html,body{background:#050505}</style>
+<style>html,body{background:var(--bg-0, #050505)}</style>
 <script>(function(){try{var s=parseInt(localStorage.getItem('chest_ui_scale'),10);if(s>=50&&s<=200)document.documentElement.style.setProperty('--chest-ui-scale',s/100);}catch(e){}})();</script>
 <!-- Cache le shell UNIQUEMENT le temps que welcome.js démarre (retour utilisateur 2026-09-23 : « ça ouvre 1
      sec le dashboard et ça revient, le welcome apparaît ») : `#chestWelcome` porte `hidden` en dur dans le
@@ -58,22 +58,22 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@1&display=swap"></noscript>
-<link rel="stylesheet" href="css/tokens.css?v=3">
-<link rel="stylesheet" href="css/layout.css?v=4">
-<link rel="stylesheet" href="css/chest-da.css?v=20">
-<link rel="stylesheet" href="css/patch-chest-da.css?v=21">
-<link rel="stylesheet" href="css/welcome.css?v=42">
-<script src="js/theme.js?v=6"></script>
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/chest-da.css?v=21">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=22">
+<link rel="stylesheet" href="css/welcome.css?v=43">
+<script src="js/theme.js?v=7"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
 <script src="js/sync-store.js?v=19"></script>
 <script src="js/pwa.js?v=7"></script>
-<link rel="stylesheet" href="css/v2.css?v=17">
-<link rel="stylesheet" href="css/chest-da-2.css?v=3">
-<link rel="stylesheet" href="css/chest-2-site.css?v=16">
-<link rel="stylesheet" href="css/auth-2.css?v=7">
-<link rel="stylesheet" href="css/shell-2.css?v=17">
+<link rel="stylesheet" href="css/v2.css?v=18">
+<link rel="stylesheet" href="css/chest-da-2.css?v=4">
+<link rel="stylesheet" href="css/chest-2-site.css?v=17">
+<link rel="stylesheet" href="css/auth-2.css?v=8">
+<link rel="stylesheet" href="css/shell-2.css?v=18">
 <!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
 <style>
   html.plan-no-school .chest-nav__item[data-page="school"]::after,
@@ -277,7 +277,7 @@
 <!-- CHEST 2.0 (2026-11-02) : shell copié de CHEST-DESIGN-2.0/html-exact/Main.html (menu + barre du haut),
      valeurs inchangées. Ajouts pour le site : data-page / ids lus par nav.js et shell.js, la page chargée
      dans #chestView (voir js/shell.js), le volet des notifications et la recherche (js/shell-2.js). -->
-<div class="chest-shell is-app c2-shell" id="chestShell" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: rgb(5, 5, 6); color: rgb(246, 246, 247); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
+<div class="chest-shell is-app c2-shell" id="chestShell" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--bg-0, rgb(5, 5, 6)); color: var(--ink, rgb(246, 246, 247)); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
 
   <div aria-hidden="true" class="c2-shell__light" style="position: absolute; right: -220px; top: -260px; width: 980px; height: 640px; pointer-events: none; filter: blur(110px); opacity: 0.9; background: radial-gradient(42% 46% at 58% 46%, rgba(var(--a1-rgb, 252, 18, 131), 0.16), transparent 72%), radial-gradient(36% 40% at 34% 60%, rgba(var(--a2-rgb, 249, 164, 94), 0.1), transparent 74%);"></div>
   <div aria-hidden="true" style="position: absolute; inset: 0px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.05; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size: 180px 180px;"></div>
@@ -345,31 +345,31 @@
 
   <main class="chest-main" style="position: relative; z-index: 1; flex: 999 1 560px; min-width: 0px; display: flex; flex-direction: column;">
 
-    <header class="c2-topbar" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+    <header class="c2-topbar" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06);">
       <a href="#/dashboard" class="c2-mbrand" aria-label="CHEST, retour au Dashboard"><img src="assets/logo-chest.png" alt="" width="24" height="24"></a>
       <div id="crumb" aria-live="polite" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-        <span id="crumbCat" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">Suivi</span>
+        <span id="crumbCat" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Suivi</span>
         <span style="color: rgb(58, 58, 64);">/</span>
         <span id="crumbPage" style="font-weight: 600;">Dashboard</span>
       </div>
       <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
         <div id="c2PageActions" hidden style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"></div>
         <div class="c2-search" id="c2Search">
-          <label style="display: flex; align-items: center; gap: 10px; height: 38px; width: 280px; max-width: 100%; padding: 0px 12px; box-sizing: border-box; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.024); color: rgb(122, 122, 130);">
+          <label style="display: flex; align-items: center; gap: 10px; height: 38px; width: 280px; max-width: 100%; padding: 0px 12px; box-sizing: border-box; border-radius: 12px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); color: var(--ink-3, rgb(122, 122, 130));">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-            <input type="search" id="c2SearchInput" placeholder="Rechercher une page, une paire…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="c2SearchList" aria-label="Rechercher une page ou une paire" style="flex: 1 1 0%; min-width: 0px; background: transparent; border: 0px; outline: 0px; color: rgb(246, 246, 247); font: inherit; font-size: 13px;">
-            <span id="c2SearchKbd" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(155, 155, 161); border: 1px solid rgba(255, 255, 255, 0.12); padding: 2px 6px; border-radius: 6px;">⌘K</span>
+            <input type="search" id="c2SearchInput" placeholder="Rechercher une page, une paire…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="c2SearchList" aria-label="Rechercher une page ou une paire" style="flex: 1 1 0%; min-width: 0px; background: transparent; border: 0px; outline: 0px; color: var(--ink, rgb(246, 246, 247)); font: inherit; font-size: 13px;">
+            <span id="c2SearchKbd" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-2, rgb(155, 155, 161)); border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); padding: 2px 6px; border-radius: 6px;">⌘K</span>
           </label>
           <div class="c2-search__list" id="c2SearchList" role="listbox" hidden></div>
         </div>
         <!-- CHEST 2.0 (2026-11-03) : le compte remplace la cloche des notifications (demande utilisateur). -->
-        <a href="#/account" data-page="account" aria-label="Compte" title="Compte" style="position: relative; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.024); color: rgb(155, 155, 161); display: grid; place-items: center;">
+        <a href="#/account" data-page="account" aria-label="Compte" title="Compte" style="position: relative; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); color: var(--ink-2, rgb(155, 155, 161)); display: grid; place-items: center;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4"></path></svg>
         </a>
         <!-- Espace éducateur : visible pour les comptes au rôle « éducateur » (nav.js), même bouton que la cloche. -->
-        <a href="#/educator" data-page="educator" data-educator-only hidden aria-label="Espace éducateur" title="Espace éducateur" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.6v4.2c0 1 2.2 2.2 5 2.2s5-1.2 5-2.2v-4.2"/></svg>Éducateur</a>
+        <a href="#/educator" data-page="educator" data-educator-only hidden aria-label="Espace éducateur" title="Espace éducateur" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; color: var(--bg-0, rgb(5, 5, 5)); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.6v4.2c0 1 2.2 2.2 5 2.2s5-1.2 5-2.2v-4.2"/></svg>Éducateur</a>
         <!-- HQ (admin principal) : ouvre CHEST HQ (js/hq.js, data-url). -->
-        <a href="#" id="chestHq" data-admin-only data-owner-only hidden data-url="https://chest-hq.vercel.app" aria-label="CHEST HQ" title="CHEST HQ" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.04em; color: rgb(5, 5, 5); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;">HQ<canvas class="chest-hq__sky" width="32" height="14" aria-hidden="true" hidden></canvas></a>
+        <a href="#" id="chestHq" data-admin-only data-owner-only hidden data-url="https://chest-hq.vercel.app" aria-label="CHEST HQ" title="CHEST HQ" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.04em; color: var(--bg-0, rgb(5, 5, 5)); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;">HQ<canvas class="chest-hq__sky" width="32" height="14" aria-hidden="true" hidden></canvas></a>
       </div>
       <div class="chest-progress" id="viewProgress"></div>
     </header>
@@ -466,13 +466,13 @@
 })();
 </script>
 <script src="js/v2-shell.js?v=1"></script>
-<script src="js/hq.js?v=5"></script>
+<script src="js/hq.js?v=6"></script>
 <script src="js/idea-badge.js?v=1"></script>
 <script src="js/user-avatar.js?v=3"></script>
-<script src="js/shell-2.js?v=7"></script>
-<script src="js/liquid-glass.js?v=2"></script>
+<script src="js/shell-2.js?v=8"></script>
+<script src="js/liquid-glass.js?v=3"></script>
 <script src="js/legal-links.js?v=2"></script>
-<script src="js/consent.js?v=5"></script>
+<script src="js/consent.js?v=6"></script>
 <script>if (window.CHESTAccounts && CHESTAccounts.isLoggedIn()) CHESTConsent.ensureTerms();</script>
 </body>
 </html>

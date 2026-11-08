@@ -31,20 +31,20 @@
   const CSS_TEXT = `
 .c2-lg, [data-lg], .c2-notif__panel, .c2-search__list, .lotcalc-modal, .chestconfirm-modal, .drawer, .toast, .sbd{
   --lgx:30%; --lgy:0%;
-  background:linear-gradient(160deg, rgba(20,20,24,.62), rgba(9,9,11,.74)) !important;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 20, 20, 24),.62), rgba(var(--dk-rgb, 9, 9, 11),.74)) !important;
   -webkit-backdrop-filter:blur(18px) saturate(1.25) brightness(1.06) !important; backdrop-filter:blur(18px) saturate(1.25) brightness(1.06) !important;
-  box-shadow:inset 0 1px 1px rgba(255,255,255,.34), inset 0 0 0 1px rgba(255,255,255,.12), 0 24px 60px -18px rgba(0,0,0,.75), 0 2px 6px rgba(0,0,0,.3) !important;
-  border-color:rgba(255,255,255,.14) !important;
+  box-shadow:inset 0 1px 1px rgba(var(--fg-rgb, 255, 255, 255),.34), inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.12), 0 24px 60px -18px rgba(0, 0, 0, calc(.75 * var(--sh-k, 1))), 0 2px 6px rgba(0, 0, 0, calc(.3 * var(--sh-k, 1))) !important;
+  border-color:rgba(var(--fg-rgb, 255, 255, 255),.14) !important;
 }
 html.lg-refract .c2-lg, html.lg-refract [data-lg], html.lg-refract .c2-notif__panel, html.lg-refract .c2-search__list, html.lg-refract .lotcalc-modal,
 html.lg-refract .chestconfirm-modal, html.lg-refract .drawer, html.lg-refract .toast, html.lg-refract .sbd{
   -webkit-backdrop-filter:url(#c2-refract) blur(6px) saturate(1.25) brightness(1.06) !important; backdrop-filter:url(#c2-refract) blur(6px) saturate(1.25) brightness(1.06) !important;
 }
 .lg-shine{ position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:0;
-  background:radial-gradient(420px 260px at var(--lgx) var(--lgy), rgba(255,255,255,.10), rgba(255,255,255,0) 60%),
-    linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); }
-.lg-shine::after{ content:''; position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); }
-@media (prefers-reduced-motion:reduce){ .lg-shine{ background:linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); } }`;
+  background:radial-gradient(420px 260px at var(--lgx) var(--lgy), rgba(var(--fg-rgb, 255, 255, 255),.10), rgba(var(--fg-rgb, 255, 255, 255),0) 60%),
+    linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(var(--fg-rgb, 255, 255, 255),0) 30%, rgba(var(--fg-rgb, 255, 255, 255),0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); }
+.lg-shine::after{ content:''; position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.55), transparent); }
+@media (prefers-reduced-motion:reduce){ .lg-shine{ background:linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(var(--fg-rgb, 255, 255, 255),0) 30%, rgba(var(--fg-rgb, 255, 255, 255),0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); } }`;
   function mountCss() {
     if (doc.getElementById('c2-lg-css')) return;
     const st = doc.createElement('style');

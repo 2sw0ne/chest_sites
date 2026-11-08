@@ -12,9 +12,9 @@
 
   // ───────────────────────── Couleurs (DA CHEST + teintes des vidéos)
   const C = {
-    green: '#33e6a6', red: '#ff4d5e', amber: '#e8b339', gold: '#f5c451', pink: '#fc1283', orange: '#f9a45e',
+    green: 'var(--green, #33e6a6)', red: 'var(--red, #ff4d5e)', amber: 'var(--amber, #e8b339)', gold: '#f5c451', pink: 'var(--a1, #fc1283)', orange: 'var(--a2, #f9a45e)',
     blue: '#3b82f6', sky: '#38bdf8', navy: '#2948c9', violet: '#a855f7', purple: '#8b5cf6',
-    ink: '#f6f6f7', ink2: '#9b9ba1', ink3: '#5c5c63', white: '#e8e8ee', grey: '#6b6b74', teal: '#2dd4bf',
+    ink: 'var(--ink, #f6f6f7)', ink2: 'var(--ink-2, #9b9ba1)', ink3: 'var(--ink-4, #5c5c63)', white: '#e8e8ee', grey: '#6b6b74', teal: '#2dd4bf',
   };
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const r1 = (v) => Math.round(v * 10) / 10;
@@ -227,7 +227,7 @@
       default: return '';
     }
   }
-  function tagInk(col) { return [C.red, C.navy, C.violet, C.purple, C.pink, C.blue].includes(col) ? '#fff' : '#0b0b0e'; }
+  function tagInk(col) { return [C.red, C.navy, C.violet, C.purple, C.pink, C.blue].includes(col) ? '#fff' : 'var(--bg-1, #0b0b0e)'; }
 
   // Niveaux de Fibonacci entre a (niveau 0) et b (niveau 1)
   function fibLv(a, b, r) { return a + (b - a) * r; }
@@ -269,7 +269,7 @@
     const fig5 = chart({ closes: v1, seed: 4, color: phaseCol, h: 300, cloud: { a: cloudA, b: cloudB, color: '#9ca3af', op: 0.14 },
       marks: [{ i: 34, v: cloudB[34] + 1, kind: 'dot', color: B }, { i: 44, v: cloudB[44] + 1, kind: 'dot', color: B }, { i: 49, at: 'low', kind: 'tri-up-o', color: B, off: 12 }],
       notes: [{ i: 35, v: 30, text: 'Touche du nuage', color: B }, { i: 49, v: 44, text: 'Alerte de pullback', color: B, anchor: 'end' }],
-      panel: { h: 70, label: 'OSCILLATEUR QUANTIQUE', range: [0, 100], series: [{ vals: osc, color: '#d4d4d8' }],
+      panel: { h: 70, label: 'OSCILLATEUR QUANTIQUE', range: [0, 100], series: [{ vals: osc, color: 'var(--ink-1, #d4d4d8)' }],
         bands: [{ v1: 82, v2: 100, color: R, op: 0.35, label: 'Vente' }, { v1: 0, v2: 18, color: B, op: 0.38, label: 'Achat' }],
         marks: [{ i: 33, v: osc[33], kind: 'ring', color: C.violet, size: 0.7 }] } });
     const force = `<div class="sg-force">
@@ -418,7 +418,7 @@
     const f5 = chart({ closes: v4, seed: 3, color: col, range: [20, 110], bands: [{ v1: zTop, v2: zBot, from: iy, to: 55, color: Y, op: 0.24 }],
       hl: [{ v: zTop, from: iy, color: Y, label: 'PE', pill: true, dash: true }, { v: zBot - 1, from: iy, color: C.red, dash: true, label: 'SL', pill: true }, { v: zTop + 9, from: iy, color: C.green, dash: true, label: 'TP1 · RR 1', pill: true }, { v: zTop + 34, from: iy, color: C.green, dash: true, label: 'TP2', pill: true }, { v: zTop + 58, from: iy, color: C.green, dash: true, label: 'TP3', pill: true }],
       marks: [{ i: 35, at: 'low', kind: 'star', color: '#fff', off: 13 }] });
-    const f6 = chart({ closes: v4, seed: 3, color: col, range: [20, 110], bands: [{ v1: zTop + 31, v2: zTop + 37, from: 0, to: 18, color: '#9ca3af', op: 0.2, label: 'Zone du passé', tcolor: '#d4d4d8' }],
+    const f6 = chart({ closes: v4, seed: 3, color: col, range: [20, 110], bands: [{ v1: zTop + 31, v2: zTop + 37, from: 0, to: 18, color: '#9ca3af', op: 0.2, label: 'Zone du passé', tcolor: 'var(--ink-1, #d4d4d8)' }],
       hl: [{ v: zTop, from: iy, color: Y, label: 'PE', pill: true, dash: true }, { v: zTop + 9, from: iy, color: C.green, dash: true, label: 'TP1 → stop à l\'entrée', pill: true }, { v: zTop + 34, from: 0, color: C.green, dash: true, label: 'TP2 sur la zone : on le prend', pill: true }, { v: zTop + 58, from: iy, color: C.green, dash: true, label: 'TP3 visé', pill: true, op: 0.5 }] });
     return {
       tagline: 'Le scanner sniper de l\'or, sur le M5.',
@@ -509,7 +509,7 @@
     const TEAL = '#2dd4bf';
     const names = ['-3', '-2', '-1', 'S0', 'S1', 'S2', 'S3', 'S4', 'R4', 'R5', 'R6', 'R7', 'R8'];
     const lvls = names.map((n, k) => ({ v: 8 + k * 7, n }));
-    const ladder = lvls.map((x) => ({ v: x.v, color: x.n === 'S0' || x.n === 'R8' ? TEAL : 'rgba(255,255,255,.18)', w: x.n === 'S0' || x.n === 'R8' ? 3 : 1, label: x.n, pill: x.n === 'S0' || x.n === 'R8' }));
+    const ladder = lvls.map((x) => ({ v: x.v, color: x.n === 'S0' || x.n === 'R8' ? TEAL : 'rgba(var(--fg-rgb, 255, 255, 255),.18)', w: x.n === 'S0' || x.n === 'R8' ? 3 : 1, label: x.n, pill: x.n === 'S0' || x.n === 'R8' }));
     const S0 = lvls[3].v, R8 = lvls[12].v;
     const v = path([[0, 62], [0.55, S0 - 2], [0.7, S0 + 6], [0.8, S0 - 3], [1, S0 + 12]], 56, 0.6, 111);
     const col = (i, up) => (up ? C.green : C.red);
@@ -596,7 +596,7 @@
     const fIcons = chart({ closes: v, seed: 7, color: col, marks: [{ i: 25, at: 'low', kind: 'bolt', color: C.amber, off: 14 }, { i: 31, at: 'low', kind: 'diamond', color: '#60a5fa', off: 13 }, { i: 50, at: 'low', kind: 'diamond', color: '#60a5fa', off: 13 }, { i: 9, at: 'high', kind: 'drop', color: C.red, off: -13 }] });
     const poc = 50;
     const fPoc = chart({ closes: v, seed: 7, color: col, hl: [{ v: poc, color: C.gold, w: 1.6, label: 'POC', pill: true }, { v: 37, color: '#e5e7eb', w: 1, op: 0.6, label: 'Changement de tendance' }],
-      bands: [{ v1: 27, v2: 37, from: 28, to: 38, color: '#e5e7eb', op: 0.08, stroke: true, label: 'Consolidation', tcolor: '#d4d4d8' }],
+      bands: [{ v1: 27, v2: 37, from: 28, to: 38, color: '#e5e7eb', op: 0.08, stroke: true, label: 'Consolidation', tcolor: 'var(--ink-1, #d4d4d8)' }],
       marks: [{ i: 44, v: poc - 4, kind: 'tri-up', color: C.gold }, { i: 54, v: poc + 18, kind: 'tri-up', color: C.gold }] });
     const st = v.map((_, i) => 50 + 40 * Math.sin(i / 2.6 + 1));
     const fSto = chart({ closes: v, seed: 7, color: col, h: 300, panel: { h: 76, range: [0, 100], label: 'STOCHASTIQUE', series: [{ vals: st, color: '#e5e7eb' }, { vals: sma(st, 3), color: C.red, w: 1 }], bands: [{ v1: 80, v2: 100, color: C.red, op: 0.25, label: 'Surachat' }, { v1: 0, v2: 20, color: C.green, op: 0.25, label: 'Survente' }], marks: [10, 26, 42, 58].map((i) => ({ i, v: 6, kind: 'dot', color: C.green })), segs: [{ i1: 10, v1: st[10] + 2, i2: 26, v2: st[26] + 8, color: C.amber }] } });
@@ -672,7 +672,7 @@
   G.stars = (() => {
     const BL = '#3b5bff';
     const v = path([[0, 32], [0.3, 72], [0.45, 60], [0.55, 54], [0.8, 56], [1, 70]], 60, 0.7, 151);
-    const grid = []; for (let p = 20; p <= 90; p += 10) grid.push({ v: p, color: 'rgba(255,255,255,.4)', w: 1, label: (4100 + p).toLocaleString('fr-FR'), op: 0.6 });
+    const grid = []; for (let p = 20; p <= 90; p += 10) grid.push({ v: p, color: 'rgba(var(--fg-rgb, 255, 255, 255),.4)', w: 1, label: (4100 + p).toLocaleString('fr-FR'), op: 0.6 });
     const white = () => '#e8e8ee';
     const f1 = chart({ closes: v, seed: 6, color: white, range: [20, 90], hl: [{ v: 70, color: C.gold, dash: true, label: '4 170', op: 0.9 }, { v: 60, color: C.gold, dash: true, label: '4 160', op: 0.9 }], notes: [{ i: 20, v: 78, text: 'Le prix réagit sur les chiffres ronds', color: C.gold }] });
     const f2 = chart({ closes: v, seed: 6, color: white, range: [20, 90], hl: grid });

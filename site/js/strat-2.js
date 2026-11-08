@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MONO = "font-family: 'Fragment Mono', ui-monospace, monospace;";
-  const POS = 'rgb(127, 243, 202)', NEG = 'rgb(255, 148, 160)';
+  const POS = 'var(--green-hi, rgb(127, 243, 202))', NEG = 'var(--red-hi, rgb(255, 148, 160))';
   const TF = { 1: 'M1', 5: 'M5', 15: 'M15', 30: 'M30', 60: 'H1', 240: 'H4', D: 'D1' };
   const nf = (v, d) => Number(v).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const price = (v) => (v == null ? '—' : nf(v, Math.abs(v) >= 100 ? 1 : 4));
@@ -44,12 +44,12 @@
     const mine = list.filter((o) => o.scanner === detail.scannerId).sort((a, b) => b.time - a.time);
     const cur = mine[0];
     const head = (label, right) => `<div style="display: flex; align-items: center; gap: 10px;${right && right.pb ? ' padding-bottom: 8px;' : ''}">
-            <span style="${MONO} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(122, 122, 130);">${label}</span>${right ? right.html : ''}</div>`;
+            <span style="${MONO} font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">${label}</span>${right ? right.html : ''}</div>`;
     let left;
     if (!cur) {
-      left = `<div class="tile" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+      left = `<div class="tile" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
           ${head('Signal en cours')}
-          <p style="margin: 0px; font-size: 13px; line-height: 1.6; color: rgb(155, 155, 161);">${detail && detail.error ? 'Signaux indisponibles pour le moment.' : `Pas de signal récent sur ${esc(pair(detail.symbol))} · ${esc(TF[detail.tf] || detail.tf)}. Active l’alerte pour être prévenu au prochain.`}</p>
+          <p style="margin: 0px; font-size: 13px; line-height: 1.6; color: var(--ink-2, rgb(155, 155, 161));">${detail && detail.error ? 'Signaux indisponibles pour le moment.' : `Pas de signal récent sur ${esc(pair(detail.symbol))} · ${esc(TF[detail.tf] || detail.tf)}. Active l’alerte pour être prévenu au prochain.`}</p>
         </div>`;
     } else {
       const buy = cur.side === 'buy', lv = cur.levels || {}, tps = lv.tps || (lv.tp != null ? [lv.tp] : []);
@@ -57,36 +57,36 @@
       const risk = lv.pe != null && lv.sl != null ? Math.abs(lv.pe - lv.sl) : 0;
       const rr = risk && tps.length ? Math.abs(tps[tps.length - 1] - lv.pe) / risk : null;
       const r = rOf(cur);
-      left = `<div class="tile" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(${tint}, 0.25); background: linear-gradient(160deg, rgba(${tint}, 0.08), rgba(255, 255, 255, 0.01) 55%); box-shadow: rgba(255, 255, 255, 0.06) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+      left = `<div class="tile" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(${tint}, 0.25); background: linear-gradient(160deg, rgba(${tint}, 0.08), rgba(var(--fg-rgb, 255, 255, 255), 0.01) 55%); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.06) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
           ${head('Signal en cours', { html: `<span style="margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: ${tone};"><span style="width: 6px; height: 6px; border-radius: 999px; background: rgb(${tint}); box-shadow: rgba(${tint}, 0.9) 0px 0px 8px;"></span>${esc(ago(cur.time))}</span>` })}
           <div style="display: flex; align-items: baseline; gap: 12px;">
             <span style="font-size: 30px; font-weight: 700; letter-spacing: -0.03em; color: ${tone}; text-shadow: rgba(${tint}, 0.45) 0px 0px 22px;">${buy ? 'Achat' : 'Vente'}</span>
-            <span style="font-size: 15px; color: rgb(155, 155, 161);">${esc(pair(cur.symbol))} · ${esc(TF[cur.tf] || cur.tf)}</span>
-            <span style="margin-left: auto; font-size: 20px; font-weight: 700; color: ${r == null ? 'rgb(155, 155, 161)' : r >= 0 ? POS : NEG}; font-variant-numeric: tabular-nums;">${r == null ? esc(statusLabel(cur)) : fmtR(r)}</span>
+            <span style="font-size: 15px; color: var(--ink-2, rgb(155, 155, 161));">${esc(pair(cur.symbol))} · ${esc(TF[cur.tf] || cur.tf)}</span>
+            <span style="margin-left: auto; font-size: 20px; font-weight: 700; color: ${r == null ? 'var(--ink-2, rgb(155, 155, 161))' : r >= 0 ? POS : NEG}; font-variant-numeric: tabular-nums;">${r == null ? esc(statusLabel(cur)) : fmtR(r)}</span>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(4, minmax(0px, 1fr)); padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07);">
-            <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 11px; color: rgb(122, 122, 130);">Entrée</span><span style="font-weight: 700; font-variant-numeric: tabular-nums;">${price(lv.pe)}</span></div>
-            <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.07);"><span style="font-size: 11px; color: rgb(122, 122, 130);">Stop</span><span style="font-weight: 700; color: ${NEG}; font-variant-numeric: tabular-nums;">${price(lv.sl)}</span></div>
-            <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.07);"><span style="font-size: 11px; color: rgb(122, 122, 130);">Objectif</span><span style="font-weight: 700; color: ${POS}; font-variant-numeric: tabular-nums;">${price(tps[tps.length - 1])}</span></div>
-            <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.07);"><span style="font-size: 11px; color: rgb(122, 122, 130);">R:R</span><span style="font-weight: 700; font-variant-numeric: tabular-nums;">${rr == null ? '—' : '1 : ' + nf(rr, 1)}</span></div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0px, 1fr)); padding-top: 14px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
+            <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 11px; color: var(--ink-3, rgb(122, 122, 130));">Entrée</span><span style="font-weight: 700; font-variant-numeric: tabular-nums;">${price(lv.pe)}</span></div>
+            <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);"><span style="font-size: 11px; color: var(--ink-3, rgb(122, 122, 130));">Stop</span><span style="font-weight: 700; color: ${NEG}; font-variant-numeric: tabular-nums;">${price(lv.sl)}</span></div>
+            <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);"><span style="font-size: 11px; color: var(--ink-3, rgb(122, 122, 130));">Objectif</span><span style="font-weight: 700; color: ${POS}; font-variant-numeric: tabular-nums;">${price(tps[tps.length - 1])}</span></div>
+            <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);"><span style="font-size: 11px; color: var(--ink-3, rgb(122, 122, 130));">R:R</span><span style="font-weight: 700; font-variant-numeric: tabular-nums;">${rr == null ? '—' : '1 : ' + nf(rr, 1)}</span></div>
           </div>
-          <button type="button" data-s2-lot style="align-self: flex-start; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0px 16px; border: 0px; border-radius: 999px; color: rgb(255, 255, 255); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.28) 0px 10px 30px;">Calculer mon lot</button>
+          <button type="button" data-s2-lot style="align-self: flex-start; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0px 16px; border: 0px; border-radius: 999px; color: rgb(var(--fg-rgb, 255, 255, 255)); font: inherit; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.28) 0px 10px 30px;">Calculer mon lot</button>
         </div>`;
     }
     const rows = mine.slice(0, 5);
     const oldest = mine.length ? mine[mine.length - 1].time : null;
     const span = oldest ? Math.max(1, Math.ceil((Date.now() - oldest) / 86400000)) : 0;
-    const right = `<div class="tile" style="border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)); box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 4px;">
-          ${head('Derniers signaux', { pb: true, html: `<span style="margin-left: auto; font-size: 12px; color: rgb(155, 155, 161);">${mine.length ? `${span} jour${span > 1 ? 's' : ''} · ${mine.length} signa${mine.length > 1 ? 'ux' : 'l'}` : ''}</span>` })}
+    const right = `<div class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 4px;">
+          ${head('Derniers signaux', { pb: true, html: `<span style="margin-left: auto; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">${mine.length ? `${span} jour${span > 1 ? 's' : ''} · ${mine.length} signa${mine.length > 1 ? 'ux' : 'l'}` : ''}</span>` })}
           ${rows.length ? rows.map((o) => {
             const d = new Date(o.time), buy = o.side === 'buy', r = rOf(o);
             return `<div class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.8fr 1fr 0.7fr; align-items: center; gap: 10px; padding: 10px 8px; margin: 0px -8px; border-radius: 10px; font-size: 12.5px;">
-              <span style="color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;">${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-              <span><span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${buy ? POS : NEG}; background: ${buy ? 'rgba(51, 230, 166, 0.12)' : 'rgba(255, 77, 94, 0.12)'};">${buy ? 'Achat' : 'Vente'}</span></span>
-              <span style="color: rgb(155, 155, 161);">${esc(statusLabel(o))}</span>
-              <span style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: ${r == null ? 'rgb(155, 155, 161)' : r >= 0 ? POS : NEG};">${fmtR(r)}</span>
+              <span style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+              <span><span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: ${buy ? POS : NEG}; background: ${buy ? 'rgba(var(--green-rgb, 51, 230, 166), 0.12)' : 'rgba(var(--red-rgb, 255, 77, 94), 0.12)'};">${buy ? 'Achat' : 'Vente'}</span></span>
+              <span style="color: var(--ink-2, rgb(155, 155, 161));">${esc(statusLabel(o))}</span>
+              <span style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: ${r == null ? 'var(--ink-2, rgb(155, 155, 161))' : r >= 0 ? POS : NEG};">${fmtR(r)}</span>
             </div>`;
-          }).join('') : '<p style="margin: 6px 0px 0px; font-size: 12.5px; color: rgb(122, 122, 130);">Aucun signal récent sur cette paire et cette unité de temps.</p>'}
+          }).join('') : '<p style="margin: 6px 0px 0px; font-size: 12.5px; color: var(--ink-3, rgb(122, 122, 130));">Aucun signal récent sur cette paire et cette unité de temps.</p>'}
         </div>`;
     box.innerHTML = left + right;
   }
@@ -118,8 +118,8 @@
       const s = Math.floor(left / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
       txt = `Marché ouvert · bougie ${TF[tf] || tf} dans ${h ? h + ':' + String(m).padStart(2, '0') : m}:${String(sec).padStart(2, '0')}`;
     }
-    const html = `<span style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 12px; color: rgb(155, 155, 161); font-variant-numeric: tabular-nums;">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: ${open ? 'rgb(51, 230, 166)' : 'rgb(122, 122, 130)'}; box-shadow: ${open ? 'rgba(51, 230, 166, 0.16)' : 'rgba(255, 255, 255, 0.08)'} 0px 0px 0px 3px;"></span>${txt}
+    const html = `<span style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); font-size: 12px; color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: ${open ? 'rgb(var(--green-rgb, 51, 230, 166))' : 'var(--ink-3, rgb(122, 122, 130))'}; box-shadow: ${open ? 'rgba(var(--green-rgb, 51, 230, 166), 0.16)' : 'rgba(var(--fg-rgb, 255, 255, 255), 0.08)'} 0px 0px 0px 3px;"></span>${txt}
       </span>`;
     T.set(window, html);
   }

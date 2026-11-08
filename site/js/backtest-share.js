@@ -53,26 +53,26 @@
 
   // ------------------------------------------------------------------ Fenêtre « Partager à un membre »
   const CSS = `
-  .btsh{ position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(5,5,5,.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  .btsh{ position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(var(--bg0-rgb, 5, 5, 5),.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   .btsh[hidden]{ display:none; }
-  .btsh__box{ width:min(440px,100%); border-radius:20px; border:1px solid rgba(255,255,255,.14); padding:22px; color:#f6f6f7;
-    background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02)), rgba(14,14,16,.92);
-    box-shadow:inset 0 1.5px 0 rgba(255,255,255,.12), 0 30px 80px rgba(0,0,0,.6); font-family:'Instrument Sans',system-ui,sans-serif; }
-  .btsh__k{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:#5c5c63; }
+  .btsh__box{ width:min(440px,100%); border-radius:20px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); padding:22px; color:var(--ink, #f6f6f7);
+    background:linear-gradient(180deg,rgba(var(--fg-rgb, 255, 255, 255),.07),rgba(var(--fg-rgb, 255, 255, 255),.02)), rgba(var(--dk-rgb, 14, 14, 16),.92);
+    box-shadow:inset 0 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.12), 0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))); font-family:'Instrument Sans',system-ui,sans-serif; }
+  .btsh__k{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-4, #5c5c63); }
   .btsh__t{ margin:8px 0 4px; font-size:21px; font-weight:700; letter-spacing:-.03em; }
-  .btsh__d{ margin:0 0 16px; font-size:12.5px; line-height:1.55; color:#9b9ba1; }
-  .btsh__in{ width:100%; box-sizing:border-box; height:42px; border-radius:12px; padding:0 14px; font:inherit; font-size:14px; color:#f6f6f7;
-    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.12); }
+  .btsh__d{ margin:0 0 16px; font-size:12.5px; line-height:1.55; color:var(--ink-2, #9b9ba1); }
+  .btsh__in{ width:100%; box-sizing:border-box; height:42px; border-radius:12px; padding:0 14px; font:inherit; font-size:14px; color:var(--ink, #f6f6f7);
+    background:rgba(var(--fg-rgb, 255, 255, 255),.03); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); }
   .btsh__in:focus{ outline:none; border-color:rgba(var(--a1-rgb, 252, 18, 131),.6); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.15); }
   .btsh__list{ margin:10px 0 0; display:flex; flex-direction:column; gap:6px; max-height:210px; overflow:auto; }
-  .btsh__row{ text-align:left; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; font:inherit; font-size:14px; color:#f6f6f7; cursor:pointer;
-    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.1); }
+  .btsh__row{ text-align:left; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; font:inherit; font-size:14px; color:var(--ink, #f6f6f7); cursor:pointer;
+    background:rgba(var(--fg-rgb, 255, 255, 255),.03); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); }
   .btsh__row:hover, .btsh__row.is-on{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.55); background:rgba(var(--a2-rgb, 249, 164, 94),.08); }
   .btsh__av{ width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none; font-size:11px; font-weight:700; color:#fff; background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); }
-  .btsh__msg{ min-height:18px; margin:12px 0 0; font-size:12.5px; color:#9b9ba1; }
-  .btsh__msg.is-err{ color:#ff4d5e; } .btsh__msg.is-ok{ color:#33e6a6; }
+  .btsh__msg{ min-height:18px; margin:12px 0 0; font-size:12.5px; color:var(--ink-2, #9b9ba1); }
+  .btsh__msg.is-err{ color:var(--red, #ff4d5e); } .btsh__msg.is-ok{ color:var(--green, #33e6a6); }
   .btsh__act{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
-  .btsh__btn{ height:40px; padding:0 18px; border-radius:99px; font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; color:#f6f6f7; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); }
+  .btsh__btn{ height:40px; padding:0 18px; border-radius:99px; font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; color:var(--ink, #f6f6f7); background:rgba(var(--fg-rgb, 255, 255, 255),.06); border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); }
   .btsh__btn--go{ border:0; color:#fff; background:linear-gradient(90deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 8px 24px rgba(var(--a1-rgb, 252, 18, 131),.3); }
   .btsh__btn[disabled]{ opacity:.45; cursor:default; box-shadow:none; }
   `;
@@ -206,12 +206,12 @@ window.CHESTTour={init:function(){}};`;
     // is-embedded. Dans un fichier autonome il n'y a pas de parent pour fournir ce fond - demande
     // explicite utilisateur : ne plus compter sur color-scheme/le navigateur, fixer la couleur
     // nous-memes, directement, sur CHAQUE conteneur qui pourrait peindre par-dessus.
-    extra.textContent = `html,body,.chest-shell,#mainZone{background:#050505 !important}
-.bt-hero-glow{background:#050505 !important}
+    extra.textContent = `html,body,.chest-shell,#mainZone{background:var(--bg-0, #050505) !important}
+.bt-hero-glow{background:var(--bg-0, #050505) !important}
 .bt-hero-glow__title{background:linear-gradient(180deg,#fff,#fe94c7) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
 .bt-hero-glow__stats span{color:#fff !important}
 .chest-back,#editLink,#deleteBtn,.bt-hero-glow__actions,#btMenuWrap,.chest-fab,.lotcalc-fab,#sidebarToggle{display:none !important}
-.bt-export-note{max-width:820px;margin:28px auto 0;padding:0 16px 40px;text-align:center;font-size:11.5px;line-height:1.6;color:#5c5c63}`;
+.bt-export-note{max-width:820px;margin:28px auto 0;padding:0 16px 40px;text-align:center;font-size:11.5px;line-height:1.6;color:var(--ink-4, #5c5c63)}`;
     doc.head.appendChild(extra);
 
     doc.title = `${record.title} — rapport de backtest (CHEST)`;

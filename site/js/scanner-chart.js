@@ -335,6 +335,7 @@
       { key: 'clock', label: 'Horloge de trading', def: true, tables: everything },
     ],
   };
+  const velaTheme = () => (window.CHESTTheme && CHESTTheme.current() === 'light' ? 'light' : 'dark');
   const MODEL_KINDS = ['series', 'fills', 'labels', 'lines', 'boxes', 'polylines', 'backgrounds', 'tables'];
   // Indicateurs ajoutables : proposés seulement s'ils ne font pas déjà partie du script du scanner.
   const ADDONS = [
@@ -525,7 +526,7 @@
       symbol: symbolDisplay,
       timeframe: VELA_TIMEFRAME_MAP[opts.timeframe] || '5m',
       data: bars,
-      theme: 'dark',
+      theme: velaTheme(),
       drawings: true,
       volume: false, // légende "Volume 0.00" jamais utile ici (pas de vraie donnée de volume)
     });
@@ -589,7 +590,7 @@
       symbol: symbolDisplay,
       timeframe: VELA_TIMEFRAME_MAP[timeframe] || '15m',
       data: candleData,
-      theme: 'dark', // le thème clair inverse la page entière
+      theme: velaTheme(), // graphique clair en mode clair (js/theme.js)
       drawings: true,
       volume: false, // légende "Volume 0.00" jamais utile ici (pas de vraie donnée de volume)
     });

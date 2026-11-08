@@ -66,29 +66,29 @@
       position:fixed; right:28px; bottom:28px; z-index:260; width:54px; height:54px; border-radius:999px;
       border:none; cursor:pointer; display:grid; place-items:center; color:#fff;
       background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e));
-      box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(255,255,255,.3);
+      box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);
       transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s;
     }
     .lotcalc-fab svg{ width:20px; height:20px; }
-    .lotcalc-fab:hover{ transform:translateY(-2px); box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(255,255,255,.3); }
+    .lotcalc-fab:hover{ transform:translateY(-2px); box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3); }
     .lotcalc-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
     .lotcalc-overlay{
-      position:fixed; inset:0; z-index:280; background:rgba(0,0,0,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+      position:fixed; inset:0; z-index:280; background:rgba(0, 0, 0, calc(.55 * var(--sh-k, 1))); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
       display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s;
     }
     .lotcalc-overlay.is-open{ opacity:1; pointer-events:auto; }
     .lotcalc-modal{
       position:relative; width:100%; max-width:440px; max-height:88vh; overflow-y:auto;
-      border:1px solid rgba(255,255,255,.14); border-radius:var(--chest-r-xl, 20px);
-      background:linear-gradient(160deg, rgba(9,9,11,.82), rgba(9,9,11,.9));
+      border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); border-radius:var(--chest-r-xl, 20px);
+      background:linear-gradient(160deg, rgba(var(--dk-rgb, 9, 9, 11),.82), rgba(var(--dk-rgb, 9, 9, 11),.9));
       backdrop-filter:blur(34px) saturate(1.05); -webkit-backdrop-filter:blur(34px) saturate(1.05);
-      box-shadow:0 30px 80px rgba(0,0,0,.6), inset 1.5px 1.5px 0 rgba(255,255,255,.2), inset -1.5px -1.5px 0 rgba(255,255,255,.06);
+      box-shadow:0 30px 80px rgba(0, 0, 0, calc(.6 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.2), inset -1.5px -1.5px 0 rgba(var(--fg-rgb, 255, 255, 255),.06);
       padding:24px 24px 26px; color:var(--chest-ink, #f6f6f7);
       transform:translateY(12px) scale(.985); transition:transform .25s var(--chest-ease, cubic-bezier(.16,1,.3,1));
     }
     .lotcalc-modal::before{
       content:''; position:absolute; top:0; left:8%; right:8%; height:1px; pointer-events:none;
-      background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+      background:linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.55), transparent);
     }
     .lotcalc-overlay.is-open .lotcalc-modal{ transform:none; }
     .lotcalc-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:20px; }
@@ -96,7 +96,7 @@
     .lotcalc-head h3{ font-size:22px; font-weight:700; letter-spacing:-.03em; line-height:1.1; margin:0; }
     .lotcalc-close{
       flex-shrink:0; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:13px;
-      border:1px solid rgba(255,255,255,.14); background:transparent; color:var(--chest-ink-2, #9b9ba1);
+      border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); background:transparent; color:var(--chest-ink-2, #9b9ba1);
       transition:border-color .18s, color .18s;
     }
     .lotcalc-close:hover{ border-color:rgba(var(--a2-rgb, 249, 164, 94),.5); color:var(--chest-ink, #f6f6f7); }
@@ -106,20 +106,20 @@
       color:var(--chest-ink-3, #5c5c63); margin-bottom:7px;
     }
     .lotcalc-row select, .lotcalc-row input{
-      width:100%; height:42px; box-sizing:border-box; border:1px solid rgba(255,255,255,.14); border-radius:12px;
-      background:rgba(255,255,255,.03); color:var(--chest-ink, #f6f6f7);
+      width:100%; height:42px; box-sizing:border-box; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); border-radius:12px;
+      background:rgba(var(--fg-rgb, 255, 255, 255),.03); color:var(--chest-ink, #f6f6f7);
       font:inherit; font-size:13.5px; padding:0 13px; transition:border-color .18s, box-shadow .18s, background .18s;
     }
-    .lotcalc-row select option, .lotcalc-row select optgroup{ background:#0c0c0e; color:#f6f6f7; }
+    .lotcalc-row select option, .lotcalc-row select optgroup{ background:var(--bg-1, #0c0c0e); color:var(--ink, #f6f6f7); }
     .lotcalc-row select:focus, .lotcalc-row input:focus{
-      outline:none; border-color:rgba(var(--a1-rgb, 252, 18, 131),.6); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.15); background:rgba(255,255,255,.05);
+      outline:none; border-color:rgba(var(--a1-rgb, 252, 18, 131),.6); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.15); background:rgba(var(--fg-rgb, 255, 255, 255),.05);
     }
     .lotcalc-row input::placeholder{ color:var(--chest-ink-3, #5c5c63); }
     .lotcalc-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     @media (max-width:420px){ .lotcalc-grid2{ grid-template-columns:1fr; gap:0; } }
     .lotcalc-risk-toggle{
       display:inline-flex; gap:2px; padding:3px; margin-bottom:8px;
-      border:1px solid rgba(255,255,255,.12); border-radius:999px; background:rgba(255,255,255,.03);
+      border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); border-radius:999px; background:rgba(var(--fg-rgb, 255, 255, 255),.03);
     }
     .lotcalc-risk-toggle button{
       border:none; cursor:pointer; font:inherit; font-size:11.5px; font-weight:600; padding:6px 14px; border-radius:999px;
@@ -139,8 +139,8 @@
     .lotcalc-result__row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; font-size:12.5px; border-bottom:1px solid var(--chest-rule-row, rgba(255,255,255,.055)); color:var(--chest-ink-2, #9b9ba1); }
     .lotcalc-result__row:last-of-type{ border-bottom:none; }
     .lotcalc-result__row b{ font-variant-numeric:tabular-nums; color:var(--chest-ink, #f6f6f7); font-weight:600; text-align:right; }
-    .lotcalc-warning{ margin-top:12px; padding:11px 13px; border-radius:12px; background:rgba(232,179,57,.1); border:1px solid rgba(232,179,57,.32); color:var(--chest-amber, #e8b339); font-size:12px; line-height:1.5; }
-    .lotcalc-error{ margin-top:12px; padding:11px 13px; border-radius:12px; background:rgba(255,77,94,.1); border:1px solid rgba(255,77,94,.3); color:var(--chest-red, #ff4d5e); font-size:12px; line-height:1.5; }
+    .lotcalc-warning{ margin-top:12px; padding:11px 13px; border-radius:12px; background:rgba(var(--amber-rgb, 232, 179, 57),.1); border:1px solid rgba(var(--amber-rgb, 232, 179, 57),.32); color:var(--chest-amber, #e8b339); font-size:12px; line-height:1.5; }
+    .lotcalc-error{ margin-top:12px; padding:11px 13px; border-radius:12px; background:rgba(var(--red-rgb, 255, 77, 94),.1); border:1px solid rgba(var(--red-rgb, 255, 77, 94),.3); color:var(--chest-red, #ff4d5e); font-size:12px; line-height:1.5; }
     .lotcalc-hint{ font-size:11px; color:var(--chest-ink-3, #5c5c63); margin-top:4px; }
     @media (prefers-reduced-motion:reduce){ .lotcalc-modal, .lotcalc-fab, .lotcalc-overlay{ transition:none; } }
   `;
