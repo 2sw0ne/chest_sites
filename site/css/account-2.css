@@ -142,3 +142,4 @@ body[data-page="account"] .acc-photo__a .chest-btn-2:hover{ border-color:rgba(va
 .acc-crop__zoom svg{ width:18px; height:18px; flex-shrink:0; }
 .acc-crop__zoom input{ flex:1; accent-color:var(--a1, #fc1283); }
 .acc-crop__win footer{ display:flex; justify-content:flex-end; gap:8px; }
+body[data-page="account"] .acch__avatar.has-photo{ background:var(--ph) center/cover no-repeat !important; color:transparent !important; border-radius:50% !important; }

@@ -208,7 +208,7 @@ window.CHESTTour={init:function(){}};`;
     // nous-memes, directement, sur CHAQUE conteneur qui pourrait peindre par-dessus.
     extra.textContent = `html,body,.chest-shell,#mainZone{background:var(--bg-0, #050505) !important}
 .bt-hero-glow{background:var(--bg-0, #050505) !important}
-.bt-hero-glow__title{background:linear-gradient(180deg,var(--txt-top, #fff),#fe94c7) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
+.bt-hero-glow__title{background:linear-gradient(180deg,light-dark(#fe94c7, #fff),#fe94c7) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
 .bt-hero-glow__stats span{color:#fff !important}
 .chest-back,#editLink,#deleteBtn,.bt-hero-glow__actions,#btMenuWrap,.chest-fab,.lotcalc-fab,#sidebarToggle{display:none !important}
 .bt-export-note{max-width:820px;margin:28px auto 0;padding:0 16px 40px;text-align:center;font-size:11.5px;line-height:1.6;color:var(--ink-4, #5c5c63)}`;

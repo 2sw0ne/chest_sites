@@ -25,7 +25,7 @@
 @media (prefers-reduced-motion:reduce){ .chest-root .cx-glow{ animation:none; } }
 .chest-root .cx-kicker{ font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--chest-ink-3); }
 .chest-root .cx-h1{ margin:14px 0 10px; font-size:clamp(30px,4.4vw,46px); font-weight:700; letter-spacing:-.045em; line-height:1.05; }
-.chest-root .cx-h1 span{ background:linear-gradient(120deg,var(--txt-top, #fff) 10%,var(--chest-acc-2) 90%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; padding-bottom:.06em; }
+.chest-root .cx-h1 span{ background:linear-gradient(120deg,light-dark(var(--chest-acc-2), #fff) 10%,var(--chest-acc-2) 90%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; padding-bottom:.06em; }
 .chest-root .cx-sub{ max-width:560px; margin:0 auto; font-size:14px; line-height:1.65; color:var(--chest-ink-2); }
 
 /* Objectif -> recommandation */

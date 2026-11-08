@@ -51,7 +51,6 @@
     glace: ['Glace', '#e5e7eb', '229, 231, 235', '#8b95a5', '139, 149, 165'],
     emeraude: ['Émeraude', '#10b981', '16, 185, 129', '#a7f3d0', '167, 243, 208'],
     foret: ['Forêt', '#16a34a', '22, 163, 74', '#d9f99d', '217, 249, 157'],
-    jade: ['Jade', '#0d9488', '13, 148, 136', '#5eead4', '94, 234, 212'],
     indigo: ['Indigo', '#4f46e5', '79, 70, 229', '#a5b4fc', '165, 180, 252'],
     sakura: ['Sakura', '#ec4899', '236, 72, 153', '#fbcfe8', '251, 207, 232'],
     corail: ['Corail', '#ff5a5f', '255, 90, 95', '#ffc8a2', '255, 200, 162'],
@@ -61,7 +60,8 @@
   const ACC_KEY = 'chest_accent';
   // Valeurs claires des variables posées dans toutes les feuilles (neutres, voiles, états) : en sombre elles ne sont
   // pas définies et chaque règle garde sa couleur d'origine (repli du var()).
-  const LIGHT = 'html[data-mode="light"]{color-scheme:light;'
+  // color-scheme sombre par défaut : light-dark(clair, sombre) choisit la valeur sombre hors mode clair
+  const LIGHT = ':root:not([data-mode="light"]){color-scheme:dark;}html[data-mode="light"]{color-scheme:light;'
     + '--fg-rgb:18,18,30;--ink:#141419;--ink-1:#2c2c34;--ink-2:#565660;--ink-3:#787882;--ink-4:#9d9da6;'
     + '--bg-0:#f2f2f5;--bg0-rgb:242,242,245;--bg-1:#ffffff;--dk-rgb:255,255,255;--sh-k:.22;'
     + '--green:#0b9b69;--green-rgb:11,155,105;--green-hi:#08875b;--red:#dc3348;--red-rgb:220,51,72;--red-hi:#c62a3e;'

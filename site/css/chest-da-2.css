@@ -47,9 +47,9 @@
 @media (max-width:900px){.c2-ghost{font-size:90px}}
 .c2-hero__title{margin:18px 0 0;font-size:clamp(44px,6vw,76px);font-weight:700;letter-spacing:-.05em;line-height:1}
 .c2-hero__num{margin-top:22px;font-size:clamp(56px,8vw,104px);font-weight:700;letter-spacing:-.055em;line-height:.98;padding-bottom:.04em;font-variant-numeric:tabular-nums}
-.c2-hero__num.is-pos{background:linear-gradient(180deg,var(--txt-top, #fff) 8%,var(--pos-mid, #c9fbe9) 45%,var(--c2-green));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 36px rgba(var(--green-rgb, 51, 230, 166),.3))}
-.c2-hero__num.is-neg{background:linear-gradient(180deg,var(--txt-top, #fff) 8%,var(--neg-mid, #ffc2c9) 45%,var(--c2-red));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 36px rgba(var(--red-rgb, 255, 77, 94),.3))}
-.c2-hero__num.is-brand{background:linear-gradient(180deg,var(--txt-top, #fff) 8%,var(--brand-mid, #ffd2b0) 45%,var(--c2-orange));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 36px rgba(var(--a2-rgb, 249, 164, 94),.3))}
+.c2-hero__num.is-pos{background:linear-gradient(180deg,light-dark(var(--c2-green), #fff) 8%,light-dark(var(--c2-green), #c9fbe9) 45%,var(--c2-green));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 36px rgba(var(--green-rgb, 51, 230, 166),.3))}
+.c2-hero__num.is-neg{background:linear-gradient(180deg,light-dark(var(--c2-red), #fff) 8%,light-dark(var(--c2-red), #ffc2c9) 45%,var(--c2-red));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 36px rgba(var(--red-rgb, 255, 77, 94),.3))}
+.c2-hero__num.is-brand{background:linear-gradient(180deg,light-dark(var(--c2-orange), #fff) 8%,light-dark(var(--c2-orange), #ffd2b0) 45%,var(--c2-orange));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 36px rgba(var(--a2-rgb, 249, 164, 94),.3))}
 .c2-hero__sub{margin:10px auto 0;max-width:560px;font-size:13px;line-height:1.6;color:var(--c2-ink-2)}
 .c2-facts{margin:26px 0 0;display:flex;flex-wrap:wrap;justify-content:center}
 .c2-facts>div{display:flex;flex-direction:column;gap:6px;padding:0 26px}

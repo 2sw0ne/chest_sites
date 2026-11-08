@@ -72,6 +72,7 @@
       if (!el) return;
       el.classList.toggle('has-photo', !!url);
       el.style.backgroundImage = url ? `url("${url}")` : '';
+      el.style.setProperty('--ph', url ? `url("${url}")` : 'none');
       el.textContent = url ? '' : ini;
     });
     const del = document.getElementById('accPhotoDel'); if (del) del.hidden = !url;
