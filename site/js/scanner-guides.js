@@ -12,7 +12,7 @@
 
   // ───────────────────────── Couleurs (DA CHEST + teintes des vidéos)
   const C = {
-    green: 'var(--green, #33e6a6)', red: 'var(--red, #ff4d5e)', amber: 'var(--amber, #e8b339)', gold: '#f5c451', pink: 'var(--a1, #fc1283)', orange: 'var(--a2, #f9a45e)',
+    green: '#33e6a6', red: '#ff4d5e', amber: '#e8b339', gold: '#f5c451', pink: '#fc1283', orange: '#f9a45e',
     blue: '#3b82f6', sky: '#38bdf8', navy: '#2948c9', violet: '#a855f7', purple: '#8b5cf6',
     ink: 'var(--ink, #f6f6f7)', ink2: 'var(--ink-2, #9b9ba1)', ink3: 'var(--ink-4, #5c5c63)', white: '#e8e8ee', grey: '#6b6b74', teal: '#2dd4bf',
   };

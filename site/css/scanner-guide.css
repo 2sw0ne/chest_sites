@@ -92,8 +92,8 @@
 .sg-group span{ font-size:10px; font-weight:700; letter-spacing:.24em; text-transform:uppercase; color:var(--a2, #f9a45e); }
 
 /* Couleurs dans le texte */
-.c-blue{ color:#60a5fa !important; } .c-red{ color:#ff6b78 !important; } .c-green{ color:var(--green, #33e6a6) !important; }
-.c-gold{ color:#f5c451 !important; } .c-yellow{ color:#facc15 !important; } .c-orange{ color:var(--a2, #f9a45e) !important; }
+.c-blue{ color:#60a5fa !important; } .c-red{ color:#ff6b78 !important; } .c-green{ color:#33e6a6 !important; }
+.c-gold{ color:#f5c451 !important; } .c-yellow{ color:#facc15 !important; } .c-orange{ color:#f9a45e !important; }
 .c-sky{ color:#38bdf8 !important; } .c-navy{ color:#6d8dff !important; } .c-violet{ color:#c084fc !important; } .c-pink{ color:#f472b6 !important; }
 
 /* ─── Fenêtres de schéma ─── */

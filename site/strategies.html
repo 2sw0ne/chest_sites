@@ -141,7 +141,7 @@
     height:clamp(40px,10vh,120px); background:linear-gradient(180deg, transparent, var(--bg));
   }
   .scnr-hero[data-scanner="wolfx"]{ --glow: rgba(84,112,194,.5); }
-  .scnr-hero[data-scanner="algomni"]{ --glow: rgba(var(--a2-rgb, 249, 164, 94),.5); }
+  .scnr-hero[data-scanner="algomni"]{ --glow: rgba(249,164,94,.5); }
   .scnr-hero[data-scanner="swyper-v6"]{ --glow: rgba(132,45,255,.5); }
   .scnr-hero[data-scanner="nexus"]{ --glow: rgba(255,122,26,.5); }
   .scnr-hero[data-scanner="harmonics"]{ --glow: rgba(0,230,138,.5); }
@@ -149,14 +149,14 @@
   .scnr-hero[data-scanner="pulse"]{ --glow: rgba(45,123,255,.5); }
   .scnr-hero[data-scanner="wave"]{ --glow: rgba(255,45,45,.5); }
   .scnr-hero[data-scanner="stars"]{ --glow: rgba(255,194,26,.5); }
-  .scnr-hero[data-scanner="pivot"]{ --glow: rgba(var(--green-rgb, 51, 230, 166),.5); }
+  .scnr-hero[data-scanner="pivot"]{ --glow: rgba(51,230,166,.5); }
   .scnr-hero[data-scanner="supernova"]{ --glow: rgba(59,123,255,.5); }
   /* Fond de la page Scanner (2026-11-04, demande utilisateur) : plus de lueurs bleue et rose ; seulement la lueur
      derrière le scanner (ci-dessus) et une discrète en bas à gauche, de la même couleur que le scanner affiché
      (body::before de css/v2.css, 3e tache --v2-d3). */
   html body[data-page="strategies"]{ --v2-d1: transparent; --v2-d2: transparent; --v2-d3: rgba(140,140,160,.10); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="wolfx"]){ --v2-d3: rgba(84,112,194,.14); }
-  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="algomni"]){ --v2-d3: rgba(var(--a2-rgb, 249, 164, 94),.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="algomni"]){ --v2-d3: rgba(249,164,94,.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="swyper-v6"]){ --v2-d3: rgba(132,45,255,.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="nexus"]){ --v2-d3: rgba(255,122,26,.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="harmonics"]){ --v2-d3: rgba(0,230,138,.14); }
@@ -164,7 +164,7 @@
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="pulse"]){ --v2-d3: rgba(45,123,255,.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="wave"]){ --v2-d3: rgba(255,45,45,.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="stars"]){ --v2-d3: rgba(255,194,26,.14); }
-  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="pivot"]){ --v2-d3: rgba(var(--green-rgb, 51, 230, 166),.14); }
+  html body[data-page="strategies"]:has(.scnr-hero[data-scanner="pivot"]){ --v2-d3: rgba(51,230,166,.14); }
   html body[data-page="strategies"]:has(.scnr-hero[data-scanner="supernova"]){ --v2-d3: rgba(59,123,255,.14); }
   .scnr-hero__inner{ position:relative; max-width:520px; margin:0 auto; }
   .scnr-hero__logo-wrap{ display:inline-flex; margin-bottom:22px; }
@@ -326,7 +326,7 @@
   .alr-dd__menu .alr__chip.is-on{ color:var(--ink); background:rgba(var(--a2-rgb, 249, 164, 94),.08); }
   .alr-dd__menu .alr__chip.is-on::after{ content:'✓'; color:var(--a2, #f9a45e); font-weight:800; }
 </style>
-<link rel="stylesheet" href="css/scanner-guide.css?v=7">
+<link rel="stylesheet" href="css/scanner-guide.css?v=8">
 <link rel="stylesheet" href="css/strength-board.css?v=6">
 <link rel="stylesheet" href="css/chart-visuals.css?v=7">
 <link rel="stylesheet" href="css/v2.css?v=19">
@@ -502,7 +502,7 @@
 <script src="js/config.local.js"></script>
 <script src="js/pwa.js?v=7"></script>
 <script src="js/scanner-store.js?v=29"></script>
-<script src="js/scanner-guides.js?v=7"></script>
+<script src="js/scanner-guides.js?v=8"></script>
 <script src="js/strength-board.js?v=2"></script>
 <script src="js/scanner-chart.js?v=39"></script>
 <script src="js/page-tour.js?v=3"></script>
