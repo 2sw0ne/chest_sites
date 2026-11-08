@@ -48,6 +48,8 @@
     play: 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM10.5 9.5v5l4.2-2.5z',
     note: 'M5 4h14v16H5zM9 8h6M9 12h6M9 16h3',
     go: 'M5 12h14M13 6l6 6-6 6',
+    expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+    share: 'M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7',
   };
   const ic = (n, cls) => `<svg class="sh-ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
 
@@ -175,19 +177,28 @@
   }
 
   // ---------------------------------------------------------------- infos
-  function postCard(p, opts) {
-    const o = opts || {};
+  // Fil des infos, façon Instagram : chaque info garde son format (vertical 4:5, horizontal 16:9 sur deux colonnes),
+  // l'auteur en tête, le titre et le début du texte dessous. Sans image : carte « texte » en grand.
+  const fmtOf = (p) => (p.format === 'portrait' ? 'portrait' : 'landscape');
+  function postCard(p) {
     const staff = ROLE !== 'member';
-    return `<article class="sh-post${p.pinned ? ' is-pinned' : ''}${p.image ? ' has-img' : ''}">
-      <button type="button" class="sh-post__open" data-post="${p.id}" aria-label="Lire « ${esc(p.title)} »"></button>
-      ${p.image ? `<span class="sh-post__img"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy"></span>` : ''}
-      <div class="sh-post__body">
-        <div class="sh-post__meta">${p.pinned ? `<span class="sh-pin">${ic('pin')}Épinglé</span>` : ''}${staff ? `<span class="sh-aud">${esc(p.audienceLabel)}</span>` : ''}<span>${esc(p.author)} · ${fr(p.createdAt, { day: 'numeric', month: 'short' })}</span></div>
-        <h3>${esc(p.title)}</h3>
-        ${o.short ? '' : `<p>${esc(p.body.slice(0, 220))}${p.body.length > 220 ? '…' : ''}</p>`}
-      </div></article>`;
+    const who = p.chest ? 'CHEST' : String(p.author || 'Équipe');
+    const body = String(p.body || '');
+    return `<article class="sh-fc sh-fc--${p.image ? fmtOf(p) : 'text'}${p.pinned ? ' is-pinned' : ''}">
+      <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir « ${esc(p.title)} »"></button>
+      <header class="sh-fc__h"><span class="sh-fc__av${p.chest ? ' is-chest' : ''}">${p.chest ? 'C' : esc(initials(who))}</span>
+        <span class="sh-fc__who"><b>${esc(who)}</b><small>${esc(relDay(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
+        ${p.pinned ? `<span class="sh-pin">${ic('pin')}Épinglé</span>` : ''}</header>
+      ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
+      <div class="sh-fc__b">${p.image ? `<h3>${esc(p.title)}</h3>` : ''}${body ? `<p>${esc(body.slice(0, 180))}${body.length > 180 ? '…' : ''}</p>` : ''}<span class="sh-fc__more">Lire${ic('go')}</span></div>
+    </article>`;
   }
-  const postsHtml = (list, empty) => (list.length ? `<div class="sh-posts">${list.map((p) => postCard(p)).join('')}</div>` : `<p class="sh-empty">${empty}</p>`);
+  const postsHtml = (list, empty) => (list.length ? `<div class="sh-feed">${list.map((p) => postCard(p)).join('')}</div>` : `<p class="sh-empty">${empty}</p>`);
+  function feed2() {
+    const list = S.posts || [];
+    return `<section class="sh-feedsec" aria-labelledby="shFeedT"><div class="sh-feedsec__h"><span class="chest-step">Infos & idées</span><h2 id="shFeedT">Ce que l’équipe partage</h2>${list.length ? `<span class="sh-feedsec__n">${plural(list.length, 'info', 'infos')}</span>` : ''}</div>
+      ${postsHtml(list, 'Pas d’info de l’équipe pour l’instant. Les idées de trade, analyses et annonces arrivent ici.')}</section>`;
+  }
 
   // ---------------------------------------------------------------- suivi du membre (missions + notes)
 
@@ -371,7 +382,7 @@
               <span style="font-weight: 600;">${esc(p.title)}</span>
               <span style="font-size: 12.5px; line-height: 1.55; color: rgb(155, 155, 161);">${esc(String(p.body || '').slice(0, 120))}${String(p.body || '').length > 120 ? '…' : ''}</span></button>`).join('') : '<p style="margin: 0px; font-size: 13px; color: rgb(155, 155, 161);">Pas d’info de l’équipe pour l’instant.</p>'}
         </div>`;
-    return `<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">${call}${missions}${infos}</section>`;
+    return `<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">${call}${missions}</section>`;
   }
   function ref2() {
     const R = S.ref;
@@ -415,7 +426,7 @@
 
   function renderMember() {
     let n = 3;
-    root.innerHTML = `<div class="sh2" style="display: flex; flex-direction: column; gap: 30px; color: rgb(246, 246, 247); font-size: 13.5px; line-height: normal;">${hero2()}${week2()}${cards2()}<div id="shRef">${ref2()}</div></div>`;
+    root.innerHTML = `<div class="sh2" style="display: flex; flex-direction: column; gap: 30px; color: rgb(246, 246, 247); font-size: 13.5px; line-height: normal;">${hero2()}${week2()}${cards2()}${feed2()}<div id="shRef">${ref2()}</div></div>`;
     // la recherche des cours (js/school.js) passe sous le héros ; l'ancien en-tête School est masqué
     const sb = document.getElementById('scSearchBox'), slot = document.getElementById('sh2Search');
     if (sb && slot) slot.appendChild(sb);
@@ -539,6 +550,7 @@
     ensureDlg();
     document.getElementById('shDlgIn').innerHTML = html;
     dlg.classList.toggle('is-wide', !!wide);
+    dlg.classList.remove('is-post');
     S.submit = onSubmit || null;
     if (!dlg.open) dlg.showModal();
     const f = dlg.querySelector('input[type=text]');
@@ -572,15 +584,38 @@
 
   function postDetail(p) {
     const can = ROLE === 'admin' || (ROLE === 'educator' && p.authorId === U.id);
-    openDlg(`<div class="sh-detail sh-detail--post">
-      ${p.image ? `<div class="sh-detail__fly"><img src="${esc(fileUrl(p.image))}" alt=""></div>` : ''}
+    const src = p.image ? fileUrl(p.image) : '';
+    openDlg(`<div class="sh-detail sh-detail--post sh-pd sh-pd--${fmtOf(p)}">
+      ${src ? `<button type="button" class="sh-pd__media" data-post-zoom="${esc(src)}" aria-label="Voir l’image en grand"><img src="${esc(src)}" alt="${esc(p.title)}"><span class="sh-pd__zoom">${ic('expand')}Plein écran</span></button>` : ''}
       <div class="sh-detail__main">
         <div class="sh-detail__k">${p.pinned ? `<span class="sh-badge">${ic('pin')}Épinglé</span>` : ''}${ROLE !== 'member' ? `<span class="sh-badge sh-badge--group">${esc(p.audienceLabel)}</span>` : ''}</div>
         <h2>${esc(p.title)}</h2>
         <p class="sh-detail__by">${esc(p.author)} · ${fr(p.createdAt, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
         <div class="sh-read">${textToHtml(p.body)}</div>
-        ${can ? `<div class="sh-acts"><button type="button" class="chest-btn-2" data-edit-post="${p.id}">Modifier</button><button type="button" class="sh-link sh-link--red" data-del-post="${p.id}">Supprimer</button></div>` : ''}
-      </div></div>`, !!p.image);
+        <div class="sh-acts"><button type="button" class="chest-btn-2" data-share-post="${p.id}">${ic('share')}Partager</button>${src ? `<a class="chest-btn-2" href="${esc(src)}" target="_blank" rel="noopener" download>${ic('image')}Image</a>` : ''}
+          ${can ? `<button type="button" class="chest-btn-2" data-edit-post="${p.id}">Modifier</button><button type="button" class="sh-link sh-link--red" data-del-post="${p.id}">Supprimer</button>` : ''}</div>
+      </div></div>`, false);
+    dlg.classList.add('is-post');
+  }
+
+  // Image d'une info en plein écran (au-dessus de la fenêtre : top layer d'un second <dialog>)
+  function lightbox(src) {
+    const lb = document.createElement('dialog');
+    lb.className = 'sh-lb';
+    lb.innerHTML = `<img src="${esc(src)}" alt=""><button type="button" class="sh-ib sh-lb__x" aria-label="Fermer"><svg class="sh-ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+    document.body.appendChild(lb);
+    lb.addEventListener('click', () => lb.close());
+    lb.addEventListener('close', () => lb.remove());
+    lb.showModal();
+  }
+  // Partage : lien direct vers l'info (School l'ouvre à l'arrivée), feuille de partage du téléphone sinon copie
+  async function sharePost(p) {
+    if (!p) return;
+    const url = `${location.origin}/school?post=${p.id}`;
+    try {
+      if (navigator.share && matchMedia('(hover:none)').matches) { await navigator.share({ title: p.title, text: `${p.title} — CHEST School`, url }); return; }
+      await navigator.clipboard.writeText(url); toast('Lien de l’info copié : seuls les membres qui la voient pourront l’ouvrir.');
+    } catch (e) { if (e && e.name !== 'AbortError') toast(url); }
   }
 
   function noteDetail(n) {
@@ -589,7 +624,7 @@
   }
 
   // Composer : Appel / Mission / Info, et pour qui.
-  const C = { kind: 'event', target: 'all', scope: [], member: '', flyer: null, editing: null };
+  const C = { kind: 'event', target: 'all', scope: [], member: '', flyer: null, editing: null, format: 'landscape' };
   function targetsFor(kind) {
     if (ROLE === 'educator') return kind === 'post' ? [['students', 'Tous mes élèves']] : [['students', 'Tous mes élèves'], ['one', 'Un élève']];
     const t = [['all', 'Tout le monde'], ['members', 'Membres'], ['educators', 'Équipe'], ['students', 'Élèves de…'], ['one', 'Un membre']];
@@ -609,10 +644,10 @@
     const people = S.people || [];
     const scopeHtml = C.target === 'students' && ROLE === 'admin' ? `<div class="sh-f sh-f--wide"><span>Éducateurs</span><div class="sh-pills">${(S.educators || []).map((e) => `<button type="button" class="sh-pill${C.scope.includes(e.id) ? ' is-on' : ''}" data-scope="${e.id}" aria-pressed="${C.scope.includes(e.id)}">${esc(e.first)} <small>${e.students}</small></button>`).join('') || '<em class="sh-hint">Aucun éducateur.</em>'}</div></div>` : '';
     const oneHtml = C.target === 'one' ? field(ROLE === 'admin' ? 'Membre' : 'Élève', `<select id="cMember"><option value="">Choisir…</option>${people.map((p) => `<option value="${p.id}" ${String(C.member) === String(p.id) ? 'selected' : ''}>${esc(p.name)}${ROLE === 'admin' && p.educator ? ` · avec ${esc(p.educator)}` : ''}</option>`).join('')}</select>`, true) : '';
-    const flyerHtml = (label) => `<div class="sh-f sh-f--wide"><span>${label} <i>(facultatif)</i></span><div class="sh-drop${C.flyer || (ed && (ed.flyer || ed.image)) ? ' has-img' : ''}" id="cDrop">
+    const flyerHtml = (label) => `<div class="sh-f sh-f--wide"><span>${label} <i>(facultatif)</i></span><div class="sh-drop${C.flyer || (ed && (ed.flyer || ed.image)) ? ' has-img' : ''}${k === 'post' ? ' sh-drop--' + C.format : ''}" id="cDrop">
         <input type="file" id="cFile" accept="image/*" aria-label="${label}">
         ${C.flyer ? `<img src="${esc(URL.createObjectURL(C.flyer))}" alt="">` : ed && (ed.flyer || ed.image) ? `<img src="${esc(fileUrl(ed.flyer || ed.image))}" alt="">` : ''}
-        <span class="sh-drop__t">${ic('image')}<b>${C.flyer || (ed && (ed.flyer || ed.image)) ? 'Changer l’image' : 'Choisir une image'}</b><small>JPG ou PNG · format affiche ou carré</small></span></div></div>`;
+        <span class="sh-drop__t">${ic('image')}<b>${C.flyer || (ed && (ed.flyer || ed.image)) ? 'Changer l’image' : 'Choisir une image'}</b><small>${k === 'post' ? 'Capture de graphique, analyse, annonce · JPG ou PNG' : 'JPG ou PNG · format affiche ou carré'}</small></span></div></div>`;
     const title = ed ? (k === 'event' ? 'Modifier l’appel' : 'Modifier l’info') : 'Ajouter au School';
     let body = '';
     if (k === 'event') {
@@ -630,7 +665,8 @@
     } else {
       body = `${field('Titre', `<input type="text" id="cTitle" maxlength="140" value="${esc(ed ? ed.title : '')}" placeholder="Nouveau cours disponible">`, true)}
         ${field('Texte', `<textarea id="cBody" rows="6" maxlength="8000" placeholder="L’info en quelques lignes.">${esc(ed ? ed.body : '')}</textarea>`, true)}
-        ${flyerHtml('Illustration')}
+        <div class="sh-f sh-f--wide"><span>Format de l’image</span>${seg('format', [['portrait', 'Vertical · 4:5'], ['landscape', 'Horizontal · 16:9']], C.format)}</div>
+        ${flyerHtml('Image')}
         ${ROLE === 'admin' ? `<label class="sh-tick"><input type="checkbox" id="cPin" ${ed && ed.pinned ? 'checked' : ''}><span>Épingler en tête</span></label>` : ''}`;
     }
     const hint = C.target === 'one' ? (k === 'event' ? 'Posé directement dans son planning, déjà confirmé. Il le retrouve dans School et dans son suivi.' : 'Ajoutée à ses missions : il la coche quand c’est fait.')
@@ -660,7 +696,7 @@
   async function openComposer(kind, editing) {
     await ensurePeople();
     if (ROLE === 'admin' && !S.educators) await loadEducators().catch(() => {});
-    Object.assign(C, { kind: kind || 'event', editing: editing || null, flyer: null });
+    Object.assign(C, { kind: kind || 'event', editing: editing || null, flyer: null, format: editing && editing.format === 'portrait' ? 'portrait' : 'landscape' });
     if (editing) {
       C.target = editing.audience === 'students' ? 'students' : editing.audience;
       C.scope = (editing.scope || []).slice();
@@ -675,7 +711,10 @@
   }
 
   function onDlgChange(e) {
-    if (e.target.id === 'cFile') { C.flyer = e.target.files[0] || null; refreshComposer(); }
+    if (e.target.id === 'cFile') {
+      C.flyer = e.target.files[0] || null; refreshComposer();
+      if (C.flyer && C.kind === 'post') { const im = new Image(); im.onload = () => { C.format = im.naturalHeight > im.naturalWidth ? 'portrait' : 'landscape'; refreshComposer(); }; im.src = URL.createObjectURL(C.flyer); }
+    }
     if (e.target.id === 'cMember') C.member = e.target.value;
   }
 
@@ -686,9 +725,12 @@
       const name = sg.parentElement.dataset.seg;
       if (name === 'kind') { C.kind = sg.dataset.v; return refreshComposer(); }
       if (name === 'target') { C.target = sg.dataset.v; return refreshComposer(); }
+      if (name === 'format') { C.format = sg.dataset.v; return refreshComposer(); }
       sg.parentElement.querySelectorAll('[data-v]').forEach((b) => { b.classList.toggle('is-active', b === sg); b.setAttribute('aria-checked', String(b === sg)); });
       return;
     }
+    const zm = t.closest('[data-post-zoom]'); if (zm) return lightbox(zm.dataset.postZoom);
+    const sh = t.closest('[data-share-post]'); if (sh) return sharePost(S.posts.find((p) => p.id === Number(sh.dataset.sharePost)));
     const sc = t.closest('[data-scope]');
     if (sc) { const id = Number(sc.dataset.scope); C.scope = C.scope.includes(id) ? C.scope.filter((x) => x !== id) : C.scope.concat(id); return refreshComposer(); }
     const eev = t.closest('[data-edit-ev]');
@@ -726,7 +768,7 @@
       else { const r = await postJson('/school/missions', Object.assign({ title, dueAt }, target)); toast(`Mission ajoutée chez ${plural(r.members, 'membre', 'membres')}.`); }
     } else {
       const pin = document.getElementById('cPin');
-      await postForm('/school/posts', Object.assign({ id: C.editing && C.editing.id, title, body: v('cBody'), pinned: !!(pin && pin.checked) }, target), { image: C.flyer });
+      await postForm('/school/posts', Object.assign({ id: C.editing && C.editing.id, title, body: v('cBody'), pinned: !!(pin && pin.checked), format: C.format }, target), { image: C.flyer });
     }
     if (C.kind !== 'task' || one) toast(C.editing ? 'Enregistré.' : C.kind === 'post' ? 'Info publiée.' : C.kind === 'event' ? 'Ajouté au planning.' : 'Mission ajoutée.');
     await refresh();
@@ -770,6 +812,8 @@
     const failed = res.find((r) => r.status === 'rejected');
     if (failed && !S.agenda) { root.innerHTML = `<p class="sh-empty">${esc(failed.reason.message)}</p>`; return; }
     if (ROLE === 'member') renderMember(); else renderStaff();
+    const want = Number(new URLSearchParams(location.search).get('post'));
+    if (want && !S.deep) { S.deep = true; const x = S.posts.find((p) => p.id === want); if (x) postDetail(x); }
   }
   async function reloadWeek() {
     try { await loadAgenda(); } catch (e) { return toast(e.message); }

@@ -425,6 +425,8 @@ def init_db():
                 scope TEXT, pinned INTEGER NOT NULL DEFAULT 0, author_id INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
             )
         """)
+        if "format" not in [c[1] for c in db.execute("PRAGMA table_info(school_posts)").fetchall()]:
+            db.execute("ALTER TABLE school_posts ADD COLUMN format TEXT")
         for name in ("body", "flyer"):
             if name not in [c[1] for c in db.execute("PRAGMA table_info(mentor_events)").fetchall()]:
                 db.execute(f"ALTER TABLE mentor_events ADD COLUMN {name} TEXT")
@@ -3207,7 +3209,8 @@ def school_event_delete(eid):
 def _post_public(db, r, who):
     return {"id": r["id"], "title": r["title"], "body": r["body"] or "", "image": json.loads(r["image"]) if r["image"] else None,
             "audience": r["audience"], "scope": _scope_of(r), "audienceLabel": _audience_label(db, r["audience"], _scope_of(r)),
-            "pinned": bool(r["pinned"]), "author": who(r["author_id"]), "authorId": r["author_id"], "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
+            "pinned": bool(r["pinned"]), "format": r["format"] if "format" in r.keys() and r["format"] else "landscape",
+            "author": who(r["author_id"]), "authorId": r["author_id"], "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
 
 
 @app.route("/school/posts")
@@ -3241,6 +3244,7 @@ def school_post_save():
         delete_file(up)
         return jsonify({"error": "L'illustration doit être une image."}), 400
     pinned = 1 if b.get("pinned") and user["is_admin"] else 0
+    fmt = "portrait" if b.get("format") == "portrait" else "landscape"
     db = get_db()
     now = datetime.now(timezone.utc).isoformat()
     with db_lock:
@@ -3252,11 +3256,11 @@ def school_post_save():
             if up or b.get("removeImage"):
                 delete_file(json.loads(image) if image else None)
                 image = json.dumps(up) if up else None
-            db.execute("UPDATE school_posts SET title = ?, body = ?, image = ?, audience = ?, scope = ?, pinned = ?, updated_at = ? WHERE id = ?",
-                       (title, body, image, aud, json.dumps(scope), pinned, now, r["id"]))
+            db.execute("UPDATE school_posts SET title = ?, body = ?, image = ?, audience = ?, scope = ?, pinned = ?, format = ?, updated_at = ? WHERE id = ?",
+                       (title, body, image, aud, json.dumps(scope), pinned, fmt, now, r["id"]))
         else:
-            db.execute("INSERT INTO school_posts (title, body, image, audience, scope, pinned, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                       (title, body, json.dumps(up) if up else None, aud, json.dumps(scope), pinned, user["id"], now, now))
+            db.execute("INSERT INTO school_posts (title, body, image, audience, scope, pinned, format, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                       (title, body, json.dumps(up) if up else None, aud, json.dumps(scope), pinned, fmt, user["id"], now, now))
         db.commit()
     return school_posts()
 

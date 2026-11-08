@@ -363,3 +363,70 @@
 .sh-check-list__f.is-ok{ color:var(--chest-green); font-weight:600; }
 .sh-refpick{ margin-top:28px; }
 .sh-refpick .sh-pill img{ width:18px; height:18px; border-radius:5px; object-fit:cover; }
+
+/* ---------- Fil des infos façon Instagram (2026-11-08) : vertical 4:5, horizontal 16:9 sur deux colonnes ---------- */
+.sh-feedsec{ display:flex; flex-direction:column; gap:18px; }
+.sh-feedsec__h{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+.sh-feedsec__h .chest-step{ flex-basis:100%; }
+.sh-feedsec__h h2{ margin:0; font-size:28px; font-weight:700; letter-spacing:-.04em; line-height:1.1; }
+.sh-feedsec__n{ font-size:12.5px; color:var(--chest-ink-3, #5c5c63); font-variant-numeric:tabular-nums; }
+.sh-feed{ display:grid; grid-template-columns:repeat(auto-fill, minmax(min(250px, 100%), 1fr)); grid-auto-flow:row dense; gap:16px; align-items:start; }
+.sh-fc{ position:relative; display:flex; flex-direction:column; min-width:0; border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.09);
+  background:linear-gradient(rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  transition:border-color .2s var(--sh-ease), transform .2s var(--sh-ease), box-shadow .2s var(--sh-ease); }
+.sh-fc--landscape{ grid-column:span 2; }
+@media (max-width:620px){ .sh-fc--landscape{ grid-column:auto; } }
+.sh-fc:hover{ border-color:rgba(249,164,94,.45); transform:translateY(-2px); box-shadow:0 18px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06); }
+.sh-fc.is-pinned{ border-color:rgba(252,18,131,.38); }
+.sh-fc__open{ position:absolute; inset:0; z-index:2; border:0; background:none; cursor:pointer; border-radius:inherit; }
+.sh-fc__open:focus-visible{ outline:2px solid rgba(252,18,131,.65); outline-offset:-2px; }
+.sh-fc__h{ display:flex; align-items:center; gap:10px; padding:12px 14px; }
+.sh-fc__av{ width:30px; height:30px; flex:0 0 30px; border-radius:999px; display:grid; place-items:center; font-size:11.5px; font-weight:700; color:#050505;
+  background:#7ff3ca; box-shadow:0 0 0 2px #0a0a0c, 0 0 0 3.5px rgba(252,18,131,.7); }
+.sh-fc__av.is-chest{ background:linear-gradient(135deg,#fc1283,#f9a45e); }
+.sh-fc__who{ display:flex; flex-direction:column; min-width:0; flex:1; }
+.sh-fc__who b{ font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sh-fc__who small{ font-size:11.5px; color:var(--chest-ink-3, #5c5c63); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sh-fc__media{ background:#0a0a0c; overflow:hidden; }
+.sh-fc--portrait .sh-fc__media{ aspect-ratio:4/5; }
+.sh-fc--landscape .sh-fc__media{ aspect-ratio:16/9; }
+.sh-fc__media img{ display:block; width:100%; height:100%; object-fit:cover; transition:transform .5s var(--sh-ease); }
+.sh-fc:hover .sh-fc__media img{ transform:scale(1.025); }
+.sh-fc__quote{ aspect-ratio:4/5; display:flex; align-items:flex-end; padding:22px; background:radial-gradient(120% 80% at 0% 0%, rgba(252,18,131,.28), transparent 60%), radial-gradient(120% 80% at 100% 100%, rgba(249,164,94,.22), transparent 60%), #0c0c0f; }
+.sh-fc__quote span{ font-size:24px; font-weight:700; letter-spacing:-.035em; line-height:1.15; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:6; -webkit-box-orient:vertical; overflow:hidden; }
+.sh-fc__b{ display:flex; flex-direction:column; gap:6px; padding:14px 16px 16px; }
+.sh-fc__b h3{ margin:0; font-size:15.5px; font-weight:600; letter-spacing:-.02em; line-height:1.3; overflow-wrap:anywhere; }
+.sh-fc__b p{ margin:0; font-size:13px; line-height:1.55; color:var(--chest-ink-2, #9b9ba1); overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.sh-fc__more{ display:inline-flex; align-items:center; gap:6px; margin-top:2px; font-size:12px; font-weight:600; color:#f9a45e; }
+.sh-fc__more .sh-ic{ width:14px; height:14px; transition:transform .2s var(--sh-ease); }
+.sh-fc:hover .sh-fc__more .sh-ic{ transform:translateX(3px); }
+.sh-two .sh-feed{ grid-template-columns:repeat(auto-fill, minmax(min(220px, 100%), 1fr)); }
+/* fenêtre d'une info : grande image en haut, texte dessous */
+.sh-dlg.is-post{ width:760px; }
+.sh-dlg.is-post .sh-pd{ grid-template-columns:1fr; }
+.sh-pd__media{ position:relative; display:grid; place-items:center; width:100%; padding:0; border:0; background:#0a0a0c; cursor:zoom-in; overflow:hidden; }
+.sh-pd__media img{ display:block; max-width:100%; width:auto; height:auto; max-height:min(72dvh, 860px); }
+.sh-pd--landscape .sh-pd__media img{ width:100%; }
+.sh-pd__zoom{ position:absolute; right:12px; bottom:12px; display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 11px; border-radius:999px; font-size:12px; font-weight:600; color:#f6f6f7;
+  background:rgba(5,5,5,.6); border:1px solid rgba(255,255,255,.16); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); opacity:.85; transition:opacity .2s ease; }
+.sh-pd__media:hover .sh-pd__zoom, .sh-pd__media:focus-visible .sh-pd__zoom{ opacity:1; }
+.sh-pd__media:focus-visible{ outline:2px solid rgba(252,18,131,.6); outline-offset:-2px; }
+.sh-pd__zoom .sh-ic{ width:14px; height:14px; }
+.sh-pd .sh-acts{ flex-wrap:wrap; }
+.sh-pd .sh-acts .chest-btn-2{ display:inline-flex; align-items:center; gap:7px; }
+.sh-pd .sh-acts .sh-ic{ width:15px; height:15px; }
+/* plein écran */
+.sh-lb{ width:100vw; height:100dvh; max-width:none; max-height:none; margin:0; padding:24px; border:0; background:rgba(3,3,4,.94); display:grid; place-items:center; cursor:zoom-out; }
+.sh-lb::backdrop{ background:rgba(0,0,0,.7); }
+.sh-lb[open]{ animation:shIn .2s cubic-bezier(.16,1,.3,1); }
+.sh-lb img{ max-width:100%; max-height:calc(100dvh - 48px); object-fit:contain; border-radius:8px; }
+.sh-lb__x{ position:fixed; top:16px; right:16px; }
+/* aperçu dans le formulaire au format choisi */
+.sh-drop--portrait img{ width:76px; height:95px; }
+.sh-drop--landscape img{ width:128px; height:72px; }
+@media (hover:none){ .sh-fc:hover{ transform:none; } .sh-fc:hover .sh-fc__media img{ transform:none; } }
+@media (prefers-reduced-motion:reduce){ .sh-fc, .sh-fc__media img, .sh-lb[open]{ transition:none !important; animation:none !important; } }
+.sh-two:has(.sh-feed){ grid-template-columns:1fr; }
+.sh-fc--text .sh-fc__quote{ aspect-ratio:1/1; }
+.sh-fc__h .sh-pin{ font-size:11.5px; }
+.sh-pd .sh-acts a.chest-btn-2{ text-decoration:none; }
