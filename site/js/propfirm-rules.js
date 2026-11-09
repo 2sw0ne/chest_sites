@@ -113,9 +113,9 @@
       },
       riskCapPct: null,
       holding: { weekend: 'allowed', overnight: 'allowed', appliesTo: 'all', swingModelId: null, note: 'Compte Swing : aucune restriction de nuit, de week-end ni d\'annonces (FAQ officielle « FTMO Swing account type »). Disponible uniquement en 2 étapes, à choisir à l\'achat ; on peut repasser du Swing au Standard, jamais l\'inverse. Levier 1:30.' },
-      fee: { pct: 0.54, verified: true, refund: 'first', note: '540 € pour un compte de 100 000 (tarif normal, 439 € en promotion) — remboursé avec le 1er retrait (page FTMO) ; aucun surcoût Swing indiqué' },
-      prices: { currency: 'EUR', asOf: '2026-09-20', source: 'https://ftmo.com/en/', sizes: [{ size: 10000, price: 89 }, { size: 25000, price: 250 }, { size: 50000, price: 345 }, { size: 100000, price: 439, regular: 540 }, { size: 200000, price: 1080 }],
-        notes: ['Aucun surcoût indiqué pour le Swing : mêmes prix que le 2 étapes Standard (la FAQ précise que les frais dépendent du challenge et de la taille du compte)', 'Frais unique, remboursé avec le 1er retrait'] },
+      fee: { pct: 0.599, verified: true, refund: 'first', note: '599 € pour un compte de 100 000 (page de commande FTMO, compte Swing, relevé le 9 nov. 2026) — remboursé avec le 1er retrait' },
+      prices: { currency: 'EUR', asOf: '2026-11-09', source: 'https://trader.ftmo.com/start-challenge', sizes: [{ size: 10000, price: 99 }, { size: 25000, price: 279 }, { size: 50000, price: 379 }, { size: 100000, price: 599 }, { size: 200000, price: 1080 }],
+        notes: ['Prix du compte Swing lus sur la page de commande FTMO : plus cher que le Standard, sauf en 200 000 (même prix)', 'Frais unique, remboursé avec le 1er retrait'] },
       newsFunded: 'Aucune restriction d\'annonces sur le compte Swing.',
       source: { url: 'https://ftmo.com/en/faq/ftmo-swing-account-type/', pageDate: null },
       facts: [
@@ -123,7 +123,7 @@
         'Nuit, week-end et annonces sans restriction sur le compte financé',
         'Levier 1:30 au lieu de 1:100 · disponible uniquement en 2 étapes',
       ],
-      unverified: ['Rythme des retraits après le premier (14 jours supposé)', 'Aucune page officielle n\'indique de surcoût pour le Swing : les frais sont ceux du 2 étapes Standard (la FAQ précise que le prix dépend du challenge et de la taille du compte)'],
+      unverified: ['Rythme des retraits après le premier (14 jours supposé)'],
     },
     {
       id: 'fundednext-stellar-1', firm: 'FundedNext', label: 'Stellar 1 étape',

@@ -416,15 +416,32 @@
       ag = (ag * (len - 1) + g) / len; al = (al * (len - 1) + l) / len;
       rsi[i] = al === 0 ? 100 : 100 - 100 / (1 + ag / al);
     }
-    const id = 'chest-rsi';
-    const pts = (fn) => bars.map((b, i) => ({ time: b.time, value: fn(i), color: '#7E57C2' }));
+    const id = 'chest-rsi', NONE = 'rgba(0,0,0,0)';
+    // comme le script RSI de Pivot sur TradingView : RSI violet, moyenne SMA 14 du RSI en jaune, lignes 70 / 50 / 30,
+    // fond violet entre 30 et 70, vert au-dessus de 70 (surachat), rouge sous 30 (survente)
+    const ma = new Array(n).fill(null);
+    for (let i = 0, sum = 0, cnt = 0; i < n; i++) {
+      if (rsi[i] != null) { sum += rsi[i]; cnt++; }
+      if (i >= len && rsi[i - len] != null) { sum -= rsi[i - len]; cnt--; }
+      if (cnt === len) ma[i] = sum / len;
+    }
+    const line = (key, title, fn, color, width, lineStyle) => ({ id: id + ':line:' + key + '#0', title, paneId: 'unrouted', kind: 'line',
+      points: bars.map((b, i) => ({ time: b.time, value: fn(i), color })), style: { color, width, lineStyle }, visible: true });
     const series = [
-      { id: id + ':line:rsi#0', title: 'RSI', paneId: 'unrouted', kind: 'line', points: pts((i) => rsi[i]), style: { color: '#7E57C2', width: 2, lineStyle: 'solid' }, visible: true },
-      { id: id + ':line:70#0', title: '70', paneId: 'unrouted', kind: 'line', points: bars.map((b) => ({ time: b.time, value: 70, color: '#787B86' })), style: { color: '#787B86', width: 1, lineStyle: 'dashed' }, visible: true },
-      { id: id + ':line:30#0', title: '30', paneId: 'unrouted', kind: 'line', points: bars.map((b) => ({ time: b.time, value: 30, color: '#787B86' })), style: { color: '#787B86', width: 1, lineStyle: 'dashed' }, visible: true },
+      line('b70', 'Bande 70', () => 70, NONE, 1, 'solid'),
+      line('b30', 'Bande 30', () => 30, NONE, 1, 'solid'),
+      line('ob', 'Surachat', (i) => (rsi[i] == null ? null : Math.max(rsi[i], 70)), NONE, 1, 'solid'),
+      line('os', 'Survente', (i) => (rsi[i] == null ? null : Math.min(rsi[i], 30)), NONE, 1, 'solid'),
+      line('70', '70', () => 70, '#787B86', 1, 'dashed'),
+      line('50', '50', () => 50, 'rgba(120,123,134,.5)', 1, 'dashed'),
+      line('30', '30', () => 30, '#787B86', 1, 'dashed'),
+      line('ma', 'RSI-based MA', (i) => ma[i], '#FFEB3B', 1, 'solid'),
+      line('rsi', 'RSI', (i) => rsi[i], '#7E57C2', 1, 'solid'),
     ];
+    const fill = (key, from, to, color) => ({ id: id + ':fill:' + key + '#0', paneId: 'unrouted', fromSeriesId: id + ':line:' + from + '#0', toSeriesId: id + ':line:' + to + '#0', colors: bars.map(() => color) });
+    const fills = [fill('bg', 'b70', 'b30', 'rgba(126,87,194,.10)'), fill('obf', 'ob', 'b70', 'rgba(76,175,80,.45)'), fill('osf', 'os', 'b30', 'rgba(255,82,82,.45)')];
     if (div) {
-      const L = 5, R = 5, lo = 5, hi = 60, NONE = 'rgba(0,0,0,0)';
+      const L = 5, R = 5, lo = 5, hi = 60;
       const bull = [], bear = [];
       let lastPl = null, lastPh = null; // { idx (bougie du pivot), rsi, price }
       for (let i = L + R; i < n; i++) {
@@ -452,7 +469,7 @@
     }
     return {
       id, title: 'RSI', overlay: false,
-      series, fills: [], backgrounds: [], priceLines: [], lines: [], boxes: [], labels: [], polylines: [], linefills: [], tables: [],
+      series, fills, backgrounds: [], priceLines: [], lines: [], boxes: [], labels: [], polylines: [], linefills: [], tables: [],
       inputs: [], inputValues: {}, props: [], propValues: {}, anchorTime: bars[0] ? bars[0].time : 0,
     };
   }
