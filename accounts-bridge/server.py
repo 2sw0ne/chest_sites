@@ -5322,7 +5322,7 @@ def berich_candles():
         return jsonify({"error": "Service de calcul non configuré."}), 503
     if _BERICH_BARS["body"] is None or time.time() - _BERICH_BARS["at"] > 60:
         try:
-            url = SCANNER_SERVER_URL.rstrip("/") + "/bars?" + urllib.parse.urlencode({"symbol": "XAUUSD", "tf": "15", "n": 96})
+            url = SCANNER_SERVER_URL.rstrip("/") + "/bars?" + urllib.parse.urlencode({"symbol": "XAUUSD", "tf": "15", "n": 192})
             with urllib.request.urlopen(url, timeout=30) as resp:
                 _BERICH_BARS.update(at=time.time(), body=resp.read())
         except Exception:

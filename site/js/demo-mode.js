@@ -84,7 +84,10 @@
   // or : de 4 096 à ~4 121 sur les 8 dernières heures (trade BERICH en cours, légèrement gagnant)
   function goldM15() {
     const path = [4096, 4093, 4099, 4097, 4102, 4100, 4095, 4098, 4104, 4101, 4106, 4103, 4108, 4105, 4102, 4107, 4111, 4109, 4113, 4110, 4106, 4109, 4112, 4110, 4114, 4111, 4108, 4112, 4115, 4113, 4117, 4115, 4112, 4116, 4119, 4117, 4120, 4118, 4122, 4121.4];
-    const t0 = Math.floor(NOW / 900000) * 900000 - (path.length - 1) * 900000; let px = 4096;
+    // ~2 jours avant : une marche pseudo-aléatoire fixe qui rejoint le début du parcours
+    const pre = []; let v = 4096; for (let i = 0; i < 150; i++) { v -= Math.sin(i * 1.7) * 6 + Math.cos(i * 0.31) * 3.5 + (i < 70 ? 1 : -0.9); pre.unshift(Math.round(v * 10) / 10); }
+    path.unshift(...pre);
+    const t0 = Math.floor(NOW / 900000) * 900000 - (path.length - 1) * 900000; let px = path[0];
     return path.map((c, i) => { const o = px; px = c; return [t0 + i * 900000, o, Math.max(o, c) + 1.2 + (i % 3) * 0.6, Math.min(o, c) - 1.1 - (i % 4) * 0.5, c]; });
   }
   const PRICE = 4121.4;

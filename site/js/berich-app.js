@@ -296,11 +296,11 @@
   }
   function miniHtml(p, price) {
     if (!miniBars) return '<div class="br-mini__wait">Chargement du graphique…</div>';
-    // dézoomé (2026-11-09) : depuis l'ouverture (+ 8 bougies avant), 32 à 96 bougies M15, et l'échelle contient toujours SL et TP
-    const all = toM15(miniBars), since = all.filter((b) => b[0] >= p.time - 8 * 900000).length;
-    const TF = 900000, bars = all.slice(-Math.max(32, Math.min(96, since)));
+    // vue façon TradingView (2026-11-09) : ~2 jours de M15 (bougies fines), la position et sa zone qui dépasse à droite
+    // dans un espace vide, l'échelle contient toujours SL et TP
+    const TF = 900000, bars = toM15(miniBars).slice(-192);
     const t0 = bars[0][0], tEnd = bars[bars.length - 1][0] + TF;
-    const W = 1000, H = 300, padR = 0.1, cw = (W * (1 - padR)) / bars.length;
+    const W = 1000, H = 300, padR = 0.24, cw = (W * (1 - padR)) / bars.length;
     const xOf = (t) => (Math.max(t0, Math.min(tEnd, t)) - t0) / TF * cw;
     const core = [p.entry].concat(price != null ? [price] : []);
     bars.forEach((b) => { core.push(b[2], b[3]); });
@@ -309,12 +309,12 @@
     const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
     const y = (v) => (hi - v) / (hi - lo) * H;
     const yc = (v) => Math.max(0, Math.min(H, y(v)));
-    const xs = p.time < t0 ? 0 : xOf(Math.floor(p.time / TF) * TF), xe = W;
+    const xs = p.time < t0 ? 0 : xOf(Math.floor(p.time / TF) * TF), xe = W * 0.94;
     const candles = bars.map((b, i) => {
       const x = i * cw + cw / 2, up = b[4] >= b[1], c = up ? '#33e6a6' : '#ff4d5e';
       const yo = y(b[1]), ycl = y(b[4]), top = Math.min(yo, ycl), hgt = Math.max(2, Math.abs(ycl - yo));
       return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(b[2]).toFixed(1)}" y2="${y(b[3]).toFixed(1)}" stroke="${c}" stroke-opacity=".6" stroke-width="1.4" vector-effect="non-scaling-stroke"/>`
-        + `<rect x="${(x - cw * 0.34).toFixed(1)}" y="${top.toFixed(1)}" width="${(cw * 0.68).toFixed(1)}" height="${hgt.toFixed(1)}" rx="2" fill="${c}" fill-opacity="${up ? '.92' : '.88'}"/>`;
+        + `<rect x="${(x - cw * 0.34).toFixed(1)}" y="${top.toFixed(1)}" width="${(cw * 0.68).toFixed(1)}" height="${hgt.toFixed(1)}" rx="${Math.min(2, cw * 0.15).toFixed(1)}" fill="${c}" fill-opacity="${up ? '.92' : '.88'}"/>`;
     }).join('');
     const zone = (a, b2, col) => `<rect x="${xs.toFixed(1)}" y="${Math.min(yc(a), yc(b2)).toFixed(1)}" width="${(xe - xs).toFixed(1)}" height="${Math.abs(yc(a) - yc(b2)).toFixed(1)}" fill="${col}"/>`;
     const lvl = (v, cls, txt) => {
@@ -324,12 +324,12 @@
     };
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
         ${zone(p.entry, p.sl, 'rgba(255, 77, 94,.14)')}${zone(p.entry, p.tp, 'rgba(51, 230, 166,.10)')}
-        <line x1="${xs.toFixed(1)}" x2="${W}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,.55)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
+        <line x1="${xs.toFixed(1)}" x2="${xe.toFixed(1)}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,.55)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
         ${candles}
         ${price != null ? `<line x1="0" x2="${W}" y1="${y(price).toFixed(1)}" y2="${y(price).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>` : ''}
       </svg>
       <div class="br-mini__lvls" aria-label="Niveaux de la position">${lvl(p.sl, 'is-sl', 'SL')}${lvl(p.entry, 'is-pe', 'PE')}${lvl(p.tp, 'is-tp', 'TP')}${price != null ? lvl(price, 'is-px', 'Prix') : ''}</div>
-      <span class="br-mini__tf">XAU/USD · M15 · ${Math.round(bars.length / 4)} dernières heures</span>`;
+      <span class="br-mini__tf">XAU/USD · M15 · ${bars.length > 100 ? Math.round(bars.length / 96) + ' derniers jours' : Math.round(bars.length / 4) + ' dernières heures'}</span>`;
   }
   setInterval(() => { if (activePosition()) loadMini(); }, 60000);
   let riskChoiceIdx = null;
