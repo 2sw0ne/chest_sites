@@ -288,9 +288,15 @@
     paintMini();
   }
   function paintMini() { const el = $('brMini'); if (el && activePosition()) el.innerHTML = miniHtml(S.price); }
+  // marché fermé retiré comme sur le graphique des scanners : week-end, pause de 21 h UTC, bougies plates (O=H=L=C)
+  function tradable(b) {
+    if (b[1] === b[2] && b[2] === b[3] && b[3] === b[4]) return false;
+    const d = new Date(b[0]), day = d.getUTCDay(), h = d.getUTCHours();
+    return !(day === 6 || (day === 0 && h < 22) || (day === 5 && h >= 22) || h === 21);
+  }
   function toM15(bars) {
     const out = [];
-    bars.forEach((b) => {
+    bars.filter(tradable).forEach((b) => {
       const t = Math.floor(b[0] / 900000) * 900000, last = out[out.length - 1];
       if (last && last[0] === t) { last[2] = Math.max(last[2], b[2]); last[3] = Math.min(last[3], b[3]); last[4] = b[4]; }
       else out.push([t, b[1], b[2], b[3], b[4]]);
@@ -306,11 +312,23 @@
     MV.n = Math.max(Math.min(30, L), Math.min(L, MV.n)); MV.off = Math.max(0, Math.min(L - MV.n, MV.off));
     const bars = all.slice(L - MV.off - MV.n, L - MV.off), live = MV.off === 0;
     const W = 1000, H = 300, padR = live ? 0.2 : 0.02, cw = (W * (1 - padR)) / bars.length, t0 = bars[0][0];
-    const xOf = (t) => (t - t0) / TF * cw;
+    // position par bougie (les plages fermées n'existent pas sur l'axe) ; après la dernière bougie : au temps
+    const xOf = (t) => {
+      if (t < t0) return -cw;
+      const last = bars[bars.length - 1][0];
+      if (t > last) return (bars.length - 1 + (t - last) / TF) * cw;
+      let a = 0, z = bars.length - 1;
+      while (a < z) { const m = (a + z) >> 1; if (bars[m][0] < t) a = m + 1; else z = m; }
+      return a * cw;
+    };
     const core = [];
     bars.forEach((b) => { core.push(b[2], b[3]); });
     if (price != null && live) core.push(price);
     ps.forEach((p) => [p.entry, p.sl, p.tp].forEach((v) => { if (v != null && isFinite(v)) core.push(v); }));
+    // positions passées visibles (clôturées, avec leurs niveaux) : dessinées de l'ouverture à la clôture
+    const tLast = bars[bars.length - 1][0] + TF;
+    const past = myLive().filter((p) => p.closed && p.entry != null && p.sl != null && p.tp != null && p.closeTime && p.closeTime > t0 && p.time < tLast);
+    past.forEach((p) => [p.entry, p.sl, p.tp].forEach((v) => core.push(v)));
     let lo = Math.min(...core), hi = Math.max(...core);
     const pad = Math.max(hi - lo, 1) * 0.06; lo -= pad; hi += pad;
     const y = (v) => (hi - v) / (hi - lo) * H;
@@ -342,6 +360,17 @@
       zones += box(p.entry, p.sl, '#ff4d5e', on ? '.15' : '.05') + box(p.entry, p.tp, '#33e6a6', on ? '.11' : '.04')
         + `<line x1="${xs.toFixed(1)}" x2="${xe.toFixed(1)}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,${on ? '.6' : '.3'})" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`;
     });
+    let pastSvg = '', pastTags = '';
+    past.forEach((p) => {
+      const xs = Math.max(0, xOf(Math.floor(p.time / TF) * TF)), x2 = Math.min(W, xOf(Math.floor(p.closeTime / TF) * TF) + cw);
+      if (x2 <= xs) return;
+      const box = (a, b2, col, op) => `<rect x="${xs.toFixed(1)}" y="${Math.min(yc(a), yc(b2)).toFixed(1)}" width="${(x2 - xs).toFixed(1)}" height="${Math.abs(yc(a) - yc(b2)).toFixed(1)}" fill="${col}" fill-opacity="${op}"/>`;
+      pastSvg += box(p.entry, p.sl, '#ff4d5e', '.09') + box(p.entry, p.tp, '#33e6a6', '.07')
+        + `<line x1="${xs.toFixed(1)}" x2="${x2.toFixed(1)}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>`;
+      const rr = p.rr != null ? p.rr : null, res = p.result || (rr > 0 ? 'TP' : rr < 0 ? 'SL' : 'BE');
+      const at = res === 'TP' ? p.tp : res === 'SL' ? p.sl : p.entry;
+      pastTags += `<span class="br-mini__past ${rr > 0 ? 'is-win' : rr < 0 ? 'is-loss' : ''}" style="left:${(x2 / W * 100).toFixed(2)}%;top:${(yc(at) / H * 100).toFixed(2)}%" title="${esc(nameOf(p.algo))} · ${p.side === 'sell' ? 'Vente' : 'Achat'} · ${esc(res)}">${esc(res)}${rr != null ? ' ' + signedR(rr) : ''}</span>`;
+    });
     const candles = bars.map((b, i) => {
       const x = i * cw + cw / 2, up = b[4] >= b[1], c = up ? '#33e6a6' : '#ff4d5e';
       const yo = y(b[1]), ycl = y(b[4]), top = Math.min(yo, ycl), hgt = Math.max(1.5, Math.abs(ycl - yo));
@@ -364,11 +393,11 @@
       + (price != null && live ? `<span class="br-mini__lvl is-px" style="top:${Math.max(4, Math.min(96, yc(price) / H * 100)).toFixed(2)}%">Prix ${nf(price, 2)}</span>` : '');
     const span = bars.length / 4;
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-        ${grid}${zones}${candles}
+        ${grid}${pastSvg}${zones}${candles}
         ${price != null && live ? `<line x1="0" x2="${W}" y1="${y(price).toFixed(1)}" y2="${y(price).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>` : ''}
       </svg>
       <div class="br-mini__ticks" aria-hidden="true">${ticks}</div>
-      <div class="br-mini__times" aria-hidden="true">${times}</div>
+      <div class="br-mini__times" aria-hidden="true">${times}${pastTags}</div>
       <div class="br-mini__lvls" aria-label="Niveaux des positions">${labels}</div>
       <span class="br-mini__tf">XAU/USD · M15 · ${span >= 30 ? nf(span / 24, 1) + ' j' : Math.round(span) + ' h'}${live ? '' : ' · <button type="button" class="br-mini__now" data-br-now>Revenir au présent</button>'}</span>`;
   }

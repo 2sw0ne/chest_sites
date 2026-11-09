@@ -85,10 +85,24 @@
   function goldM15() {
     const path = [4096, 4093, 4099, 4097, 4102, 4100, 4095, 4098, 4104, 4101, 4106, 4103, 4108, 4105, 4102, 4107, 4111, 4109, 4113, 4110, 4106, 4109, 4112, 4110, 4114, 4111, 4108, 4112, 4115, 4113, 4117, 4115, 4112, 4116, 4119, 4117, 4120, 4118, 4122, 4121.4];
     // ~2 jours avant : une marche pseudo-aléatoire fixe qui rejoint le début du parcours
-    const pre = []; let v = 4096; for (let i = 0; i < 150; i++) { v -= Math.sin(i * 1.7) * 6 + Math.cos(i * 0.31) * 3.5 + (i < 70 ? 1 : -0.9); pre.unshift(Math.round(v * 10) / 10); }
+    const pre = []; let v = 4096; for (let i = 0; i < 230; i++) { v -= Math.sin(i * 1.7) * 6 + Math.cos(i * 0.31) * 3.5 + (i < 70 ? 1 : -0.9); pre.unshift(Math.round(v * 10) / 10); }
     path.unshift(...pre);
-    const t0 = Math.floor(NOW / 900000) * 900000 - (path.length - 1) * 900000; let px = path[0];
-    return path.map((c, i) => { const o = px; px = c; return [t0 + i * 900000, o, Math.max(o, c) + 1.2 + (i % 3) * 0.6, Math.min(o, c) - 1.1 - (i % 4) * 0.5, c]; });
+    // horodatage à rebours en sautant le marché fermé (week-end, 21 h UTC), comme les vraies bougies
+    const open = (t) => { const d = new Date(t), day = d.getUTCDay(), h = d.getUTCHours(); return !(day === 6 || (day === 0 && h < 22) || (day === 5 && h >= 22) || h === 21); };
+    const ts = []; let t = Math.floor(NOW / 900000) * 900000;
+    while (ts.length < path.length) { if (open(t)) ts.unshift(t); t -= 900000; }
+    let px = path[0];
+    return path.map((c, i) => { const o = px; px = c; return [ts[i], o, Math.max(o, c) + 1.2 + (i % 3) * 0.6, Math.min(o, c) - 1.1 - (i % 4) * 0.5, c]; });
+  }
+  // positions passées de la démo : deux trades clôturés tirés des bougies simulées
+  function demoPast() {
+    const g = goldM15(), mk = (id, a, b, side, res) => {
+      const e = g[a][4], seg = g.slice(a + 1, b + 1), hi = Math.max(...seg.map((x) => x[2])), lo = Math.min(...seg.map((x) => x[3]));
+      const lv = side === 'buy' ? (res === 'TP' ? { tp: hi - 0.5, sl: e - (hi - 0.5 - e) / 4 } : { sl: lo + 0.5, tp: e + (e - lo - 0.5) * 4 }) : (res === 'TP' ? { tp: lo + 0.5, sl: e + (e - lo - 0.5) / 4 } : { sl: hi - 0.5, tp: e - (hi - 0.5 - e) * 4 });
+      return Object.assign({ id, algo: 'berich2', scanner: 'BERICH II', symbol: 'XAUUSD', side, entry: e, status: 'closed', result: res, time: new Date(g[a][0]).toISOString(), closedAt: new Date(g[b][0]).toISOString() }, lv);
+    };
+    const n = g.length;
+    return [mk('demo-past-1', n - 150, n - 118, 'buy', 'TP'), mk('demo-past-2', n - 95, n - 80, 'sell', 'SL')];
   }
   const PRICE = 4121.4;
   const baseOf = (sym) => (/XAU/.test(sym) ? 4110 : /BTC/.test(sym) ? 96000 : /ETH/.test(sym) ? 3400 : /US30|DJ/.test(sym) ? 44000 : /NAS|US100/.test(sym) ? 21000 : /SPX|US500/.test(sym) ? 6000 : /GER|DAX/.test(sym) ? 19500 : /JPY/.test(sym) ? 152 : 1.1);
@@ -164,7 +178,7 @@
       try { data = JSON.parse(D.fx['EXT signals'] || '{"signals":[]}'); } catch (e) { /* tant pis */ }
       const open = { id: 'demo-open', algo: 'berich2', scanner: 'BERICH II', symbol: 'XAUUSD', side: 'buy', entry: ENTRY, sl: SL, tp: TP, time: new Date(NOW - 95 * 60000).toISOString(), status: 'open' };
       const open2 = { id: 'demo-open-2', algo: 'berich2', scanner: 'BERICH II', symbol: 'XAUUSD', side: 'buy', entry: 4098.4, sl: 4084.6, tp: 4167.4, time: new Date(NOW - 9.5 * 3600000).toISOString(), status: 'open' };
-      data.signals = [open, open2].concat((data.signals || []).filter((s) => s.status === 'closed'));
+      data.signals = [open, open2].concat(demoPast(), (data.signals || []).filter((s) => s.status === 'closed'));
       return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
     return realFetch(input, init);
