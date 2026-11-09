@@ -294,9 +294,56 @@ a{color:var(--ink, #f6f6f7);text-decoration:none}a:hover{color:#ffffff}
     <div data-dc-tpl="129" style="display: flex; flex-direction: column; gap: 30px; padding: 34px 36px 64px; max-width: 1180px; width: 100%; box-sizing: border-box;">
 
       
+      <style>
+.lpr{display:flex;flex-direction:column;gap:18px}
+.lpr-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px}
+.lpr-k{font-family:"Fragment Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3,#7a7a82)}
+.lpr-h small{margin-left:auto;font-size:11.5px;color:var(--ink-3,#7a7a82)}
+.lpr-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.lpr-card{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(rgba(255,255,255,.035),rgba(255,255,255,.01))}
+.lpr-card::before{content:"";position:absolute;right:-60px;top:-70px;width:200px;height:180px;background:radial-gradient(closest-side,var(--glow),transparent)}
+.lpr-card--own{--glow:rgba(51,230,166,.18)} .lpr-card--firm{--glow:rgba(252,18,131,.18)}
+.lpr-card span.t{position:relative;font-size:12px;font-weight:600;color:var(--ink-2,#9b9ba1)}
+.lpr-card b.v{position:relative;font-size:46px;line-height:1;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.lpr-card--own b.v{color:#7ff3ca} .lpr-card--firm b.v{background:linear-gradient(135deg,#fc1283,#f9a45e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lpr-card b.v small{font-size:14px;font-weight:600;color:var(--ink-3,#7a7a82);-webkit-text-fill-color:var(--ink-3,#7a7a82);margin-left:6px;letter-spacing:0}
+.lpr-card dl{position:relative;margin:4px 0 0;display:flex;flex-direction:column;gap:7px}
+.lpr-card dl div{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ink-2,#9b9ba1)}
+.lpr-card dd{margin:0;font-weight:600;color:var(--ink,#f6f6f7);font-variant-numeric:tabular-nums}
+.lpr-firms{grid-column:1/-1;display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02)}
+.lpr-firms > span{font-size:12px;font-weight:600;color:var(--ink-2,#9b9ba1);padding:4px 0 8px}
+.lpr-firm{display:grid;grid-template-columns:130px minmax(0,1fr) 180px 44px 200px;align-items:center;gap:12px;padding:9px 0;border-top:1px solid rgba(255,255,255,.05);font-size:12.5px}
+.lpr-firm__m{color:var(--ink-3,#7a7a82);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lpr-bar{height:5px;border-radius:9px;background:rgba(255,255,255,.07);overflow:hidden}
+.lpr-bar i{display:block;height:100%;border-radius:9px} .lpr-bar i.is-ok{background:#33e6a6} .lpr-bar i.is-mid{background:#e8b339}
+.lpr-pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.lpr-tag{justify-self:start;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700}
+.lpr-tag.is-ok{color:#7ff3ca;background:rgba(51,230,166,.12)} .lpr-tag.is-mid{color:#f5d06a;background:rgba(232,179,57,.12)} .lpr-tag.is-no{color:#ff94a0;background:rgba(255,77,94,.12)}
+</style>
+      <section class="lpr" aria-label="Recommandations du rapport">
+        <div class="lpr-h"><span class="lpr-k">02 — Recommandations · SWYPER</span><small>Calculées sur les 612 positions rejouées du backtest</small></div>
+        <div class="lpr-grid">
+          <div class="lpr-card lpr-card--own"><span class="t">Compte propre</span><b class="v">1,5 %<small>par position</small></b>
+            <dl><div><dt>Résultat simulé</dt><dd>+184 %</dd></div><div><dt>Recul max</dt><dd>−7,8 %</dd></div><div><dt>Pire série</dt><dd>6 stops · −9 %</dd></div></dl></div>
+          <div class="lpr-card lpr-card--firm"><span class="t">Propfirm</span><b class="v">0,6 %<small>par position</small></b>
+            <dl><div><dt>Challenge réussi</dt><dd>9 fois sur 10</dd></div><div><dt>Durée médiane</dt><dd>5 semaines</dd></div><div><dt>Perte du jour</dt><dd>jamais dépassée</dd></div></dl></div>
+          <div class="lpr-firms"><span>Propfirms compatibles avec ce backtest</span><div class="lpr-firm"><b>FTMO</b><span class="lpr-firm__m">2 phases · 10 % puis 5 % · perte du jour 5 %</span>
+      <span class="lpr-bar"><i class="is-ok" style="width:96%"></i></span><span class="lpr-pct">96 %</span>
+      <span class="lpr-tag is-ok">Recommandée</span></div><div class="lpr-firm"><b>FundedNext</b><span class="lpr-firm__m">Stellar 2 phases · perte totale 10 %</span>
+      <span class="lpr-bar"><i class="is-ok" style="width:93%"></i></span><span class="lpr-pct">93 %</span>
+      <span class="lpr-tag is-ok">Compatible</span></div><div class="lpr-firm"><b>The5ers</b><span class="lpr-firm__m">Hyper Growth · 1 phase</span>
+      <span class="lpr-bar"><i class="is-ok" style="width:88%"></i></span><span class="lpr-pct">88 %</span>
+      <span class="lpr-tag is-ok">Compatible</span></div><div class="lpr-firm"><b>Alpha Capital</b><span class="lpr-firm__m">Pro · perte du jour 4 %</span>
+      <span class="lpr-bar"><i class="is-mid" style="width:74%"></i></span><span class="lpr-pct">74 %</span>
+      <span class="lpr-tag is-mid">Perte du jour touchée 2 fois</span></div><div class="lpr-firm"><b>Topstep</b><span class="lpr-firm__m">Futures uniquement</span>
+      <span class="lpr-bar"><i class="is-no" style="width:0%"></i></span><span class="lpr-pct">—</span>
+      <span class="lpr-tag is-no">L’or n’y est pas proposé</span></div></div>
+        </div>
+      </section>
+
       <section data-dc-tpl="130" style="display: flex; flex-direction: column; gap: 18px;">
         <div data-dc-tpl="131" style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;">
-          <span data-dc-tpl="132" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">02 — La bibliothèque en chiffres</span>
+          <span data-dc-tpl="132" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">03 — La bibliothèque en chiffres</span>
           <span data-dc-tpl="133" style="margin-left: auto; font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">Le meilleur de chaque mesure, tous backtests confondus.</span>
         </div>
         <div data-dc-tpl="134" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); row-gap: 18px; padding-bottom: 26px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
@@ -330,7 +377,7 @@ a{color:var(--ink, #f6f6f7);text-decoration:none}a:hover{color:#ffffff}
 
       
       <section data-dc-tpl="140" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
-        <span data-dc-tpl="141" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">03 — Algorithmes</span>
+        <span data-dc-tpl="141" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">04 — Algorithmes</span>
         <div data-dc-tpl="142" role="group" aria-label="Marché" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.024);">
           <button data-dc-tpl="143" type="button" aria-pressed="true" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Tous</button>
           <button data-dc-tpl="144" type="button" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; cursor: pointer;">Or</button>

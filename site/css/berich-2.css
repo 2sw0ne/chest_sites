@@ -78,7 +78,7 @@ body[data-page="berich"] .br-depth{ opacity:.55; }
 .chest-root .br-done svg{ width:22px; height:22px; flex:0 0 22px; padding:4px; box-sizing:border-box; border-radius:999px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;
   background:rgba(var(--green-rgb, 51, 230, 166),.14); box-shadow:inset 0 0 0 1px rgba(var(--green-rgb, 51, 230, 166),.35); }
 .chest-root #brWatch:empty{ display:none; }
-.chest-root .br-mini{ position:relative; height:230px; margin:22px 0 6px; padding-right:112px; border-radius:16px; overflow:hidden;
+.chest-root .br-mini{ position:relative; height:300px; margin:22px 0 6px; padding-right:112px; border-radius:16px; overflow:hidden;
   background:linear-gradient(180deg, rgba(var(--fg-rgb, 255, 255, 255),.025), rgba(var(--fg-rgb, 255, 255, 255),.008)); box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.07); }
 .chest-root .br-mini svg{ display:block; width:100%; height:100%; }
 .chest-root .br-mini__wait{ display:grid; place-items:center; height:100%; font-size:12.5px; color:var(--ink-4, #5c5c63); }
@@ -89,4 +89,11 @@ body[data-page="berich"] .br-depth{ opacity:.55; }
 .chest-root .br-mini__lvl.is-pe{ color:var(--ink, #f6f6f7); }
 .chest-root .br-mini__lvl.is-px{ color:var(--ink-2, #9b9ba1); font-weight:600; right:auto; left:-4px; transform:translate(-100%, -50%); }
 .chest-root .br-mini__tf{ position:absolute; left:14px; top:10px; font-size:11px; color:var(--ink-4, #5c5c63); }
-@media (max-width:700px){ .chest-root .br-mini{ height:190px; padding-right:96px; } .chest-root .br-mini__lvl.is-px{ display:none; } }
+@media (max-width:700px){ .chest-root .br-mini{ height:230px; padding-right:84px; } .chest-root .br-mini__lvl.is-px{ display:none; } }
+/* Téléphone : l'entrée près du stop ou de l'objectif passe sous la ligne pour ne pas chevaucher son voisin (2026-11-09) */
+@media (max-width:700px){
+  .chest-root .br-rail.has-low{ height:96px; }
+  .chest-root .br-rail.has-low .br-rail__lbl.is-entry{ top:72px; }
+  .chest-root .br-signal__foot{ flex-wrap:wrap; row-gap:10px; }
+  .chest-root .br-signal__foot .br-btn{ width:100%; justify-content:center; }
+}

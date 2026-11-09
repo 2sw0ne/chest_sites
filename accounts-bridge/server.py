@@ -548,6 +548,8 @@ def init_db():
                 last_data TEXT
             )
         """)
+        if "berich_seen_at" not in [c[1] for c in db.execute("PRAGMA table_info(vps_accounts)").fetchall()]:
+            db.execute("ALTER TABLE vps_accounts ADD COLUMN berich_seen_at TEXT")
         # Historique des comptes VPS (2026-10-13) : positions CLÔTURÉES envoyées par l'EA (dédupliquées
         # par ticket MT5, mises à jour si renvoyées) et courbe solde/équité (un point toutes les 15 min
         # au plus). C'est ce qui donne à un compte VPS profit, winrate, R:R et courbe sur le Dashboard,
@@ -5495,7 +5497,7 @@ def vps_list():
     if not user:
         return jsonify({"error": "Non connecté."}), 401
     rows = get_db().execute(
-        "SELECT id, label, created_at, last_push_at FROM vps_accounts WHERE user_id = ? ORDER BY created_at DESC",
+        "SELECT id, label, created_at, last_push_at, berich_seen_at FROM vps_accounts WHERE user_id = ? ORDER BY created_at DESC",
         (user["id"],),
     ).fetchall()
     return jsonify({"accounts": [dict(r) for r in rows]})
@@ -5561,6 +5563,89 @@ def vps_data(vid):
         return jsonify({"error": "Compte introuvable."}), 404
     data = json.loads(row["last_data"]) if row["last_data"] else None
     return jsonify({"label": row["label"], "lastPushAt": row["last_push_at"], "data": data})
+
+
+# BERICH en automatique sur le VPS (2026-11-09) : l'EA CHEST_BERICH.mq5 du membre lit ici, avec son identifiant
+# (le même que CHESTAccountPush, 32 hex = le secret, sans session), les ordres à passer : les signaux ouverts des
+# algorithmes de SON plan, chacun avec le risque du plan (réduit après N stops d'affilée de cet algorithme, comme le
+# moteur du quiz), et les positions à fermer (clôture « BE » de BERICH II). Format texte, une ligne par instruction,
+# pour un EA sans analyseur JSON : « PLAN|nom », « OPEN|id|algo|BUY|entrée|sl|tp|risque% », « CLOSE|id ».
+_BR_SIG = {"at": 0.0, "data": None}
+
+
+def _berich_signals_cached():
+    if time.time() - _BR_SIG["at"] > 8 or _BR_SIG["data"] is None:
+        try:
+            with urllib.request.urlopen(BERICH_SIGNALS_URL, timeout=8) as resp:
+                _BR_SIG["data"] = json.loads(resp.read().decode("utf-8")).get("signals", [])
+            _BR_SIG["at"] = time.time()
+        except Exception:
+            if _BR_SIG["data"] is None:
+                return []
+    return _BR_SIG["data"] or []
+
+
+def _berich_orders(db, user_id):
+    r = db.execute("SELECT * FROM berich_plans WHERE user_id = ?", (user_id,)).fetchone()
+    if not r:
+        return None, []
+    plan = json.loads(r["data"])
+    legs = plan.get("legs") if isinstance(plan.get("legs"), list) and plan.get("legs") else [{"algo": plan.get("algo"), "cfg": plan.get("cfg")}]
+    legs = [l for l in legs if isinstance(l, dict) and l.get("algo") and isinstance(l.get("cfg"), dict)]
+    sigs = _berich_signals_cached()
+    since = r["updated_at"] or ""
+    out = []
+    for leg in legs:
+        algo, cfg = str(leg["algo"]), leg["cfg"]
+        mine = [x for x in sigs if (x.get("algo") or "berich1") == algo]  # du plus récent au plus ancien
+        streak = 0
+        for x in mine:
+            if x.get("status") != "closed":
+                continue
+            if x.get("result") == "SL":
+                streak += 1
+            else:
+                break
+        try:
+            risk = float(cfg.get("risk") or 0)
+            if cfg.get("afterSl") and streak >= int(cfg["afterSl"]) and cfg.get("newRisk") is not None:
+                risk = float(cfg["newRisk"])
+        except (TypeError, ValueError):
+            continue
+        for x in mine:
+            # seulement les signaux nés après l'enregistrement du plan : l'EA ne rattrape jamais un vieux signal
+            if str(x.get("time") or "") < since:
+                continue
+            if x.get("status") != "closed":
+                out.append(("OPEN", x, algo, risk))
+            elif x.get("result") == "BE":
+                out.append(("CLOSE", x, algo, risk))
+    return plan, out
+
+
+@app.route("/vps/berich/<vid>")
+def vps_berich(vid):
+    db = get_db()
+    row = db.execute("SELECT id, user_id FROM vps_accounts WHERE id = ?", (vid,)).fetchone()
+    if not row:
+        return ("ERROR|Identifiant inconnu\n", 404, {"Content-Type": "text/plain; charset=utf-8"})
+    user = db.execute("SELECT * FROM users WHERE id = ?", (row["user_id"],)).fetchone()
+    if not user or not (user["is_admin"] or is_educator(user) or access_of(user).get("berich")):
+        return ("ERROR|BERICH n'est pas inclus dans ton offre\n", 403, {"Content-Type": "text/plain; charset=utf-8"})
+    plan, orders = _berich_orders(db, user["id"])
+    if not plan:
+        return ("ERROR|Pas encore de plan : fais le questionnaire sur la page BERICH\n", 200, {"Content-Type": "text/plain; charset=utf-8"})
+    names = {"berich1": "BERICH I", "berich2": "BERICH II"}
+    lines = ["PLAN|" + " + ".join(names.get(str(l.get("algo")), str(l.get("algo"))) for l in (plan.get("legs") or [plan]) if isinstance(l, dict))]
+    for kind, x, algo, risk in orders:
+        if kind == "OPEN":
+            lines.append(f"OPEN|{x.get('id')}|{algo}|{'SELL' if x.get('side') == 'sell' else 'BUY'}|{x.get('entry')}|{x.get('sl')}|{x.get('tp')}|{risk:g}")
+        else:
+            lines.append(f"CLOSE|{x.get('id')}")
+    with db_lock:
+        db.execute("UPDATE vps_accounts SET berich_seen_at = ? WHERE id = ?", (datetime.now(timezone.utc).isoformat(), vid))
+        db.commit()
+    return ("\n".join(lines) + "\n", 200, {"Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store"})
 
 
 @app.route("/vps/push/<vid>", methods=["POST"])

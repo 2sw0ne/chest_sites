@@ -234,7 +234,7 @@
     const broker = conn.broker ? `${esc(conn.broker)}${conn.server ? ' · ' + esc(conn.server) : ''}${conn.login ? ' · n° ' + esc(conn.login) : ''}` : 'Pas encore renseigné.';
     const risk = conn.riskMode === 'preset' ? 'Préréglages de risque' : `${conn.riskPercent || 1} % de risque par position`;
     body.innerHTML = step(1, !!conn.broker, 'Ton broker ou ta propfirm', `${broker} — ${esc(risk)}`, '<button type="button" class="chest-btn-2" data-br-drawer>' + (conn.broker ? 'Modifier' : 'Renseigner') + '</button>')
-      + step(2, vps.length > 0, 'Ton VPS', vps.length ? `Relié : ${vps.map((v) => esc(v.name)).join(', ')}. Les positions de BERICH arrivent sur ce compte.` : 'Pas encore relié. Le VPS fait tourner MetaTrader 5 en continu, même ordinateur éteint.', vps.length ? '<a class="chest-btn-2" href="berich.html">Voir BERICH</a>' : '<a class="chest-btn" href="connect.html?plan=pro&from=berich">Connecter mon VPS</a>')
+      + step(2, vps.length > 0, 'Ton VPS', vps.length ? `Relié : ${vps.map((v) => esc(v.name)).join(', ')}. Les positions de BERICH arrivent sur ce compte.` : 'Pas encore relié. Le VPS fait tourner MetaTrader 5 en continu, même ordinateur éteint.', vps.length ? '<a class="chest-btn-2" href="berich.html">Voir BERICH</a>' : '<a class="chest-btn" href="connect.html?plan=pro&from=berich">Initialiser mon compte</a>')
       + `<p class="acc-step__note">Ton mot de passe de trading reste sur cet appareil : il n’est jamais envoyé à CHEST.</p>`;
     brRow.hidden = true;
     renumber();

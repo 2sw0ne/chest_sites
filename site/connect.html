@@ -240,7 +240,7 @@
     myfxbook: ['prep', 'login', 'account', 'broker', 'journal', 'recap'],
     vps: ['vps', 'id', 'ea', 'verify', 'broker', 'journal', 'recap'],
   };
-  const LABEL = { prep: 'Préparer Myfxbook', login: 'Se connecter', account: 'Choisir le compte', broker: 'Broker & règles', journal: 'Journal', recap: 'Confirmer', vps: 'Ton VPS', id: 'Identifiant CHEST', ea: "Installer l'EA", verify: 'Vérification en direct' };
+  const LABEL = { prep: 'Préparer Myfxbook', login: 'Se connecter', account: 'Choisir le compte', broker: 'Broker & règles', journal: 'Journal', recap: 'Confirmer', vps: 'Ton VPS', id: 'Identifiant CHEST', ea: params.get('from') === 'berich' ? 'Installer les EA' : "Installer l'EA", verify: 'Vérification en direct' };
   const F = { plan: null, method: null, i: 0, d: {} };
 
   function freshData() {
@@ -257,7 +257,7 @@
   function startFlow(planKey) {
     F.plan = planKey; F.method = PLANS[planKey].method; F.i = 0; F.d = freshData();
     $('cxOffers').hidden = true; $('cxFlow').hidden = false;
-    $('cxFlowPlan').textContent = PLANS[planKey].name;
+    $('cxFlowPlan').textContent = params.get('from') === 'berich' ? 'Initialiser mon compte BERICH' : PLANS[planKey].name;
     $('cxFlowPlanSub').textContent = PLANS[planKey].method === 'vps' ? 'VPS personnel' : (PLANS[planKey].mfxPlan === 'live' ? 'MyFxBook · Live Update' : 'MyFxBook · Auto Update');
     try { history.replaceState(null, '', `?plan=${planKey}${params.get('from') ? '&from=' + params.get('from') : ''}`); } catch (e) { /* tant pis */ }
     renderStep();
@@ -483,20 +483,28 @@
   };
 
   // ---------- VPS : EA ----------
+  // BERICH (2026-11-09) : depuis la page BERICH, l'étape installe DEUX EA avec le même identifiant — CHESTAccountPush
+  // (le compte remonte sur CHEST) et CHEST_BERICH (prend les signaux de ton plan, 24 h / 24, au risque du questionnaire).
+  const FOR_BERICH = params.get('from') === 'berich';
   RENDER.ea = (body) => {
-    head("Installe l'EA sur ton VPS", 'Un petit programme qui lit ton solde, ton équité, tes positions ouvertes et ton historique de trades, et les envoie à CHEST. Il ne passe <b>jamais</b> d\'ordre. À faire depuis le bureau à distance de ton VPS.');
+    head(FOR_BERICH ? 'Installe les deux EA BERICH sur ton VPS' : "Installe l'EA sur ton VPS", FOR_BERICH
+      ? 'Le premier envoie ton solde, tes positions et ton historique à CHEST. Le second prend les signaux BERICH de <b>ton plan</b>, 24 h / 24, au risque calculé par ton questionnaire. À faire depuis le bureau à distance de ton VPS.'
+      : 'Un petit programme qui lit ton solde, ton équité, tes positions ouvertes et ton historique de trades, et les envoie à CHEST. Il ne passe <b>jamais</b> d\'ordre. À faire depuis le bureau à distance de ton VPS.');
     body.innerHTML = `
       <ol class="cx-todo">
-        <li><span>Télécharge <a href="downloads/CHESTAccountPush.mq5" download><b>CHESTAccountPush.mq5</b></a> et copie-le dans <code>MQL5/Experts</code> (MT5 → <code>Fichier → Ouvrir le dossier de données</code>).</span></li>
-        <li><span>MetaEditor (<code>F4</code>) → ouvre le fichier → compile (<code>F7</code>) : « 0 erreur ».</span></li>
+        <li><span>Télécharge <a href="downloads/CHESTAccountPush.mq5" download><b>CHESTAccountPush.mq5</b></a>${FOR_BERICH ? ` et <a href="downloads/CHEST_BERICH.mq5" download><b>CHEST_BERICH.mq5</b></a>, copie-les` : ' et copie-le'} dans <code>MQL5/Experts</code> (MT5 → <code>Fichier → Ouvrir le dossier de données</code>).</span></li>
+        <li><span>MetaEditor (<code>F4</code>) → ouvre ${FOR_BERICH ? 'chaque fichier' : 'le fichier'} → compile (<code>F7</code>) : « 0 erreur ».</span></li>
         <li><span><code>Outils → Options → Expert Advisors</code> : coche <b>« Allow WebRequest for listed URL »</b> et ajoute cette adresse :
           <div class="cx-copy" style="margin-top:8px"><input id="cxUrlOut" class="cx-field" type="text" readonly value="${esc(apiBase())}" style="height:40px;border-radius:10px;border:1px solid var(--chest-border);background:rgba(var(--fg-rgb, 255, 255, 255),.03);color:var(--chest-ink);padding:0 12px;flex:1;min-width:0"><button type="button" class="cx-btn-2" data-copy="cxUrlOut" style="min-height:40px">Copier</button></div></span></li>
-        <li><span>Glisse l'EA sur un graphique, onglet <b>Inputs</b> → colle ton identifiant dans <code>PushId</code>, puis coche <b>« Autoriser le trading algorithmique »</b>.
+        <li><span>Glisse ${FOR_BERICH ? '<b>CHESTAccountPush</b>' : "l'EA"} sur un graphique, onglet <b>Inputs</b> → colle ton identifiant dans <code>PushId</code>, puis coche <b>« Autoriser le trading algorithmique »</b>.
           <div class="cx-copy" style="margin-top:8px"><input id="cxIdOut2" type="text" readonly value="${esc(F.d.vpsId || '')}" style="height:40px;border-radius:10px;border:1px solid var(--chest-border);background:rgba(var(--fg-rgb, 255, 255, 255),.03);color:var(--chest-ink);padding:0 12px;flex:1;min-width:0;font-family:ui-monospace,Consolas,monospace"><button type="button" class="cx-btn-2" data-copy="cxIdOut2" style="min-height:40px">Copier</button></div></span></li>
+      ${FOR_BERICH ? `<li><span>Ouvre un graphique <b>XAUUSD</b> (n'importe quelle unité de temps) et glisses-y <b>CHEST_BERICH</b> : onglet <b>Inputs</b> → colle <b>le même identifiant</b> dans <code>PushId</code>, puis coche <b>« Autoriser le trading algorithmique »</b>.</span></li>
+        <li><span>Laisse MT5 ouvert sur le VPS : en haut à gauche du graphique, <b>« CHEST BERICH actif - plan : … »</b> confirme qu'il suit ton plan. Il prend chaque signal avec son stop et son objectif, et suit tout seul les changements de ton plan.</span></li>` : ''}
       </ol>
-      <div class="cx-callout">${INFO}<span><b>Pour exécuter BERICH sur ce VPS</b>, installe aussi <a href="https://raw.githubusercontent.com/2sw0ne/BERICH/main/BERICH_Receiver.mq5" download style="color:var(--chest-acc-2)">BERICH_Receiver.mq5</a> de la même façon, sur un graphique XAUUSD. Il dessine chaque signal et calcule le lot sur ton vrai solde.</span></div>`;
+      ${FOR_BERICH ? `<div class="cx-callout">${INFO}<span>Le risque de chaque position vient de <b>ton questionnaire BERICH</b> (et baisse après une série de stops si ton plan le prévoit). Pas encore de plan ? Fais-le sur la page BERICH : l'EA attend, il ne prend rien sans plan.</span></div>`
+      : `<div class="cx-callout">${INFO}<span><b>Pour que BERICH trade sur ce VPS</b>, installe aussi <a href="downloads/CHEST_BERICH.mq5" download style="color:var(--chest-acc-2)">CHEST_BERICH.mq5</a> sur un graphique XAUUSD, avec le même identifiant : il prend les signaux de ton plan BERICH, au risque de ton questionnaire.</span></div>`}`;
     wireCopy(body);
-    setActions({ next: "J'ai installé l'EA" });
+    setActions({ next: FOR_BERICH ? "J'ai installé les deux EA" : "J'ai installé l'EA" });
   };
 
   // ---------- VPS : vérification en direct ----------
