@@ -440,10 +440,15 @@
     ];
     const fill = (key, from, to, color) => ({ id: id + ':fill:' + key + '#0', paneId: 'unrouted', fromSeriesId: id + ':line:' + from + '#0', toSeriesId: id + ':line:' + to + '#0', colors: bars.map(() => color) });
     const fills = [fill('bg', 'b70', 'b30', 'rgba(126,87,194,.10)'), fill('obf', 'ob', 'b70', 'rgba(76,175,80,.45)'), fill('osf', 'os', 'b30', 'rgba(255,82,82,.45)')];
+    // divergences = objets « line » + « label » de Vela (comme line.new / label.new du script Pine)
+    const lines = [], labels = [];
     if (div) {
       const L = 5, R = 5, lo = 5, hi = 60;
-      const bull = [], bear = [];
       let lastPl = null, lastPh = null; // { idx (bougie du pivot), rsi, price }
+      const seg = (p, c, color, txt, up) => {
+        lines.push({ id: id + ':div:' + lines.length, xloc: 'bar_time', x1: bars[p.idx].time, y1: p.rsi, x2: bars[c].time, y2: rsi[c], extend: 'none', color, width: 2, style: 'solid', overlay: false });
+        labels.push({ id: id + ':lab:' + labels.length, xloc: 'bar_time', x: bars[c].time, yloc: 'price', y: rsi[c], text: txt, style: up ? 'label_up' : 'label_down', color, textColor: '#ffffff', size: 'small', overlay: false });
+      };
       for (let i = L + R; i < n; i++) {
         const c = i - R;
         if (rsi[c] == null) continue;
@@ -454,22 +459,18 @@
           if (rsi[k] >= rsi[c]) isHigh = false;
         }
         if (isLow) {
-          const ok = lastPl && c - lastPl.idx >= lo && c - lastPl.idx <= hi && rsi[c] > lastPl.rsi && bars[c].low < lastPl.price;
-          bull.push({ time: bars[c].time, value: rsi[c], color: ok ? '#26A69A' : NONE });
+          if (lastPl && c - lastPl.idx >= lo && c - lastPl.idx <= hi && rsi[c] > lastPl.rsi && bars[c].low < lastPl.price) seg(lastPl, c, '#26A69A', 'Bull', true);
           lastPl = { idx: c, rsi: rsi[c], price: bars[c].low };
         }
         if (isHigh) {
-          const ok = lastPh && c - lastPh.idx >= lo && c - lastPh.idx <= hi && rsi[c] < lastPh.rsi && bars[c].high > lastPh.price;
-          bear.push({ time: bars[c].time, value: rsi[c], color: ok ? '#EF5350' : NONE });
+          if (lastPh && c - lastPh.idx >= lo && c - lastPh.idx <= hi && rsi[c] < lastPh.rsi && bars[c].high > lastPh.price) seg(lastPh, c, '#EF5350', 'Bear', false);
           lastPh = { idx: c, rsi: rsi[c], price: bars[c].high };
         }
       }
-      series.push({ id: id + ':line:bull#0', title: 'Divergence haussière', paneId: 'unrouted', kind: 'line', points: bull, style: { color: '#26A69A', width: 2, lineStyle: 'solid' }, visible: true });
-      series.push({ id: id + ':line:bear#0', title: 'Divergence baissière', paneId: 'unrouted', kind: 'line', points: bear, style: { color: '#EF5350', width: 2, lineStyle: 'solid' }, visible: true });
     }
     return {
       id, title: 'RSI', overlay: false,
-      series, fills, backgrounds: [], priceLines: [], lines: [], boxes: [], labels: [], polylines: [], linefills: [], tables: [],
+      series, fills, backgrounds: [], priceLines: [], lines, boxes: [], labels, polylines: [], linefills: [], tables: [],
       inputs: [], inputValues: {}, props: [], propValues: {}, anchorTime: bars[0] ? bars[0].time : 0,
     };
   }

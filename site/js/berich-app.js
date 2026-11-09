@@ -296,18 +296,17 @@
   }
   function miniHtml(p, price) {
     if (!miniBars) return '<div class="br-mini__wait">Chargement du graphique…</div>';
-    const TF = 900000, bars = toM15(miniBars).slice(-32);
+    // dézoomé (2026-11-09) : depuis l'ouverture (+ 8 bougies avant), 32 à 96 bougies M15, et l'échelle contient toujours SL et TP
+    const all = toM15(miniBars), since = all.filter((b) => b[0] >= p.time - 8 * 900000).length;
+    const TF = 900000, bars = all.slice(-Math.max(32, Math.min(96, since)));
     const t0 = bars[0][0], tEnd = bars[bars.length - 1][0] + TF;
     const W = 1000, H = 300, padR = 0.1, cw = (W * (1 - padR)) / bars.length;
     const xOf = (t) => (Math.max(t0, Math.min(tEnd, t)) - t0) / TF * cw;
     const core = [p.entry].concat(price != null ? [price] : []);
     bars.forEach((b) => { core.push(b[2], b[3]); });
     let lo = Math.min(...core), hi = Math.max(...core);
-    const span0 = Math.max(hi - lo, 1);
-    // un niveau proche entre dans l'échelle ; un niveau lointain est épinglé au bord
-    const near = (v) => v >= lo - span0 * 1.2 && v <= hi + span0 * 1.2;
-    [p.sl, p.tp].forEach((v) => { if (near(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
-    const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    [p.sl, p.tp].forEach((v) => { if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+    const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
     const y = (v) => (hi - v) / (hi - lo) * H;
     const yc = (v) => Math.max(0, Math.min(H, y(v)));
     const xs = p.time < t0 ? 0 : xOf(Math.floor(p.time / TF) * TF), xe = W;
@@ -330,7 +329,7 @@
         ${price != null ? `<line x1="0" x2="${W}" y1="${y(price).toFixed(1)}" y2="${y(price).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>` : ''}
       </svg>
       <div class="br-mini__lvls" aria-label="Niveaux de la position">${lvl(p.sl, 'is-sl', 'SL')}${lvl(p.entry, 'is-pe', 'PE')}${lvl(p.tp, 'is-tp', 'TP')}${price != null ? lvl(price, 'is-px', 'Prix') : ''}</div>
-      <span class="br-mini__tf">XAU/USD · M15 · 8 dernières heures</span>`;
+      <span class="br-mini__tf">XAU/USD · M15 · ${Math.round(bars.length / 4)} dernières heures</span>`;
   }
   setInterval(() => { if (activePosition()) loadMini(); }, 60000);
   let riskChoiceIdx = null;

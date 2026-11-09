@@ -31,7 +31,7 @@
     const el = bar.querySelector('[data-ct-count]');
     el.hidden = !n; el.textContent = n;
   }
-  const hook = setInterval(() => { if (SC() && SC().indicators) { SC().indicators.onChange((ev) => { refreshCount(); if (ev && ev.settings) { openModal(); return; } if (!modal.hidden) paintModal(); }); refreshCount(); clearInterval(hook); } }, 300);
+  const hook = setInterval(() => { if (SC() && SC().indicators) { SC().indicators.onChange((ev) => { refreshCount(); if (ev && ev.settings) { if (window.CHESTOpenViz) window.CHESTOpenViz(); else openModal(); return; } if (!modal.hidden) paintModal(); }); refreshCount(); clearInterval(hook); } }, 300);
 
   // ---------------- Capture ----------------
   // Capture de Vela (tout le graphique : bougies, indicateurs, dessins, légendes) + un bandeau

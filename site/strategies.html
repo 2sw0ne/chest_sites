@@ -505,7 +505,7 @@
 <script src="js/scanner-store.js?v=29"></script>
 <script src="js/scanner-guides.js?v=8"></script>
 <script src="js/strength-board.js?v=2"></script>
-<script src="js/scanner-chart.js?v=41"></script>
+<script src="js/scanner-chart.js?v=42"></script>
 <script src="js/page-tour.js?v=3"></script>
 <script>
 CHESTTour.init([
@@ -658,10 +658,12 @@ CHESTTour.init([
     if (!scanner || !window.CHESTScannerChart || !CHESTScannerChart.visuals) return;
     const o = CHESTScannerChart.visuals.options(scanner.id);
     let n = 0;
+    const rsis = CHESTScannerChart.indicators ? CHESTScannerChart.indicators.list().filter((u) => u.type === 'chestrsi' && !u.own) : [];
     vizPop.innerHTML = `
       <div class="viz-pop__top"><h3>Affichage</h3><button type="button" class="viz-pop__reset" data-viz-reset>Réinitialiser</button></div>
       ${o.elements.length ? `<p class="viz-pop__k">0${++n} — Éléments du scanner</p><ul class="viz-pop__list">${o.elements.map(vizRow).join('')}</ul>` : ''}
       ${o.addons.length ? `<p class="viz-pop__k">0${++n} — Ajouter au graphique</p><ul class="viz-pop__list">${o.addons.map(vizRow).join('')}</ul>` : ''}
+      ${rsis.length ? `<p class="viz-pop__k">0${++n} — RSI</p><ul class="viz-pop__list">${rsis.map((u, i) => vizRow({ key: 'rsi:' + u.id, on: !!(u.opts && u.opts.divergence), label: 'Divergences' + (rsis.length > 1 ? ' ' + (i + 1) : ''), hint: 'Lignes Bull / Bear sur le RSI' })).join('')}</ul>` : ''}
       <div class="viz-pop__foot"></div>`;
   }
   function setVizOpen(open) {
@@ -680,9 +682,12 @@ CHESTTour.init([
     if (!row) return;
     const on = row.getAttribute('aria-checked') !== 'true';
     row.setAttribute('aria-checked', String(on));
+    if (row.dataset.viz.startsWith('rsi:')) { CHESTScannerChart.indicators.setRsi(row.dataset.viz.slice(4), { divergence: on }); return; }
     CHESTScannerChart.visuals.set(scanner.id, row.dataset.viz, on);
   });
   document.addEventListener('click', () => { if (!vizPop.hidden) setVizOpen(false); });
+  // crayon de la légende du RSI → ce volet (option « Divergences »)
+  window.CHESTOpenViz = () => setTimeout(() => setVizOpen(true), 0);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !vizPop.hidden) { setVizOpen(false); vizToggle.focus(); } });
 
   // Volet « Force du marché » du scanner Pulse (js/strength-board.js) : clic sur une paire = on l'ouvre
@@ -1042,7 +1047,7 @@ CHESTTour.init([
   </div>
 </div>
 <script src="js/strat-2.js?v=8"></script>
-<script src="js/chart-tools.js?v=2"></script>
+<script src="js/chart-tools.js?v=3"></script>
 <script src="js/v2.js?v=5"></script>
 </body>
 </html>
