@@ -1,734 +1,477 @@
 <!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=1440">
-<meta name="robots" content="noindex">
-<title>CHEST (démo) — BERICH</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Fragment+Mono&display=swap">
+<html lang="fr" class="is-shell lg-refract" data-accent="chest"><head><base href="/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BERICH — CHEST</title>
+<link rel="icon" type="image/png" href="assets/logo-chest.png">
+<!-- PWA (2026-09-26, demande utilisateur : "app installable, logo, notifications") : manifest +
+     icônes + service worker (sw.js) - installe le site sur l'écran d'accueil comme une vraie app
+     (plein écran, sans barre de navigateur), gère les notifications push. Voir js/pwa.js. -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050505">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<!-- Fond sombre IMMÉDIAT, avant toute feuille de style externe (retour utilisateur 2026-09-23 : « on a un
+     bug au chargement, je veux vraiment garder le visuel fluide sur le fond, pas ce sentiment que ça
+     charge ») : sans ça, le navigateur affiche un blanc par défaut tant que les polices Google Fonts (une
+     requête réseau externe, potentiellement lente) et les CSS locales n'ont pas fini de charger, puisqu'un
+     <link rel="stylesheet"> bloque le premier rendu de toute la page. Ce style inline n'a besoin d'aucun
+     fichier externe : il s'applique donc dès l'analyse du <head>. -->
+<style>html,body{background:var(--bg-0, #050505)}</style>
+
+<!-- Cache le shell UNIQUEMENT le temps que welcome.js démarre (retour utilisateur 2026-09-23 : « ça ouvre 1
+     sec le dashboard et ça revient, le welcome apparaît ») : `#chestWelcome` porte `hidden` en dur dans le
+     HTML, retiré seulement par welcome.js (chargé après tout le reste du <body>) — le temps qu'il s'exécute,
+     le shell était le premier contenu visible. `wel-boot-hide` (classe TEMPORAIRE, retirée par `show()` dès
+     qu'il tourne, voir welcome.js) ferme cette fenêtre SANS jamais rester posée pendant tout le défilement —
+     bug du 1er correctif (2026-09-23, retour : « je vois plus le dashboard quand je scroll, c'est tout noir,
+     c'est en arrivant en bas que je le vois ») : la classe utilisée alors (`is-welcome`) reste active pendant
+     TOUT le défilement de Welcome (jusqu'à `finish()`, tout en bas), donc le shell restait cache noir pendant
+     toute la descente au lieu d'apparaître progressivement sous la Newsletter comme prévu. -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<!-- Polices en chargement non bloquant (motif "loadCSS") : le rendu ne les attend plus, elles s'appliquent
+     dès qu'elles arrivent (bascule media print -> all), au lieu de retarder le premier affichage. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Instrument+Serif:ital@1&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Instrument+Serif:ital@1&amp;display=swap" media="all" onload="this.media='all'">
+
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/chest-da.css?v=22">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=23">
+<link rel="stylesheet" href="css/welcome.css?v=44">
+<link id="chestLightCss" rel="stylesheet" href="/css/light.css?v=1"><style id="chestAccentVars">:root{--a1:#fc1283;--a1-rgb:252, 18, 131;--a2:#f9a45e;--a2-rgb:249, 164, 94;}:root:not([data-mode="light"]){color-scheme:dark;}html[data-mode="light"]{color-scheme:light;--fg-rgb:18,18,30;--ink:#141419;--ink-1:#2c2c34;--ink-2:#565660;--ink-3:#787882;--ink-4:#9d9da6;--bg-0:#f2f2f5;--bg0-rgb:242,242,245;--bg-1:#ffffff;--dk-rgb:255,255,255;--sh-k:.22;--green:#0b9b69;--green-rgb:11,155,105;--green-hi:#08875b;--red:#dc3348;--red-rgb:220,51,72;--red-hi:#c62a3e;--amber:#c4860a;--amber-rgb:196,134,10;--amber-hi:#a46f00;--txt-top:#141419;--pos-mid:#0f7a55;--neg-mid:#b3263a;--brand-mid:#b9480f;}html[data-mode="light"] :is(#scnrMediaCard,.ct-modal,.chart-dark,.wel){color-scheme:dark;color:#f6f6f7;--fg-rgb:initial;--ink:initial;--ink-1:initial;--ink-2:initial;--ink-3:initial;--ink-4:initial;--bg-0:initial;--bg0-rgb:initial;--bg-1:initial;--dk-rgb:initial;--sh-k:initial;--green:initial;--green-rgb:initial;--green-hi:initial;--red:initial;--red-rgb:initial;--red-hi:initial;--amber:initial;--amber-rgb:initial;--amber-hi:initial;--txt-top:initial;--pos-mid:initial;--neg-mid:initial;--brand-mid:initial}html[data-mode="light"] body{background-color:#f2f2f5;}html[data-mode="light"] ::selection{background:rgba(var(--a1-rgb),.2);}</style>
+
+
+
+
+
+<link rel="stylesheet" href="css/v2.css?v=19">
+<link rel="stylesheet" href="css/chest-da-2.css?v=7">
+<link rel="stylesheet" href="css/chest-2-site.css?v=18">
+<link rel="stylesheet" href="css/auth-2.css?v=8">
+<link rel="stylesheet" href="css/shell-2.css?v=19">
+<!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
 <style>
-
-    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
-      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
-      border-radius:2px;box-sizing:border-box;overflow:hidden}
-    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
-    html.sc-dc-streaming .sc-placeholder,
-    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
-      background:color-mix(in srgb,currentColor 5%,transparent);
-      border-color:transparent}
-    html.sc-dc-streaming .sc-placeholder::before,
-    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
-      position:absolute;inset:0;pointer-events:none;
-      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
-      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
-    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
-    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
-      background:color-mix(in srgb,currentColor 8%,transparent)}
-    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
-      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
-    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
-      vertical-align:text-bottom;background:rgba(var(--fg-rgb, 255, 255, 255),.3);border:1px solid rgba(0, 0, 0, calc(.5 * var(--sh-k, 1)));
-      border-radius:2px;box-sizing:border-box;color:transparent;
-      user-select:none}
-    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
-      color:color-mix(in srgb,currentColor 50%,transparent);
-      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
-      padding:0 3px}
-    .sc-host.sc-has-error{position:relative}
-    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
-      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
-      border-radius:4px;white-space:pre-wrap;pointer-events:none}
-    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts — keep both
-       in sync until dc-runtime regains a build step. */
-    @media print {
-      @page { margin: 0.5cm; }
-      figure, table { break-inside: avoid; }
-      #dc-root, #dc-root > .sc-host { height: auto; }
-      *, *::before, *::after {
-        print-color-adjust: exact; -webkit-print-color-adjust: exact;
-        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-        animation-delay: -99s !important; animation-duration: .001s !important;
-        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
-        animation-play-state: running !important; transition-duration: 0s !important;
-      }
-    }
-  
-
-body{margin:0;background:var(--bg-0, #050506)}
-a{color:var(--ink, #f6f6f7);text-decoration:none}a:hover{color:#ffffff}
-.tile{transition:border-color .2s cubic-bezier(.16,1,.3,1)}
-.tile:hover{border-color:rgba(var(--a2-rgb, 249, 164, 94),.32)}
-.row-h:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.025)}
-.btn2{transition:box-shadow .2s cubic-bezier(.16,1,.3,1)}
-.btn2:hover{background:linear-gradient(var(--bg-1, #0b0b0e),var(--bg-1, #0b0b0e)) padding-box,linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)) border-box!important;box-shadow:0 8px 26px rgba(var(--a1-rgb, 252, 18, 131),.18)}
-@keyframes dotPulse{50%{box-shadow:0 0 0 10px rgba(var(--green-rgb, 51, 230, 166),0),0 0 22px rgba(var(--green-rgb, 51, 230, 166),.9)}}
-.pulse{animation:dotPulse 2.4s ease-in-out infinite}
-.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
-.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(var(--dk-rgb, 8, 8, 10),.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
-.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(var(--a1-rgb, 252, 18, 131),.09),transparent 75%)}
-.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.1) 12%,rgba(var(--fg-rgb, 255, 255, 255),.1) 88%,transparent)}
-.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-2, #9b9ba1)}
-.sb-tog:hover{color:var(--ink, #f6f6f7)}
-.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
-.sb-tog__bg path{fill:var(--bg-1, #070709);stroke:rgba(var(--fg-rgb, 255, 255, 255),.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
-.sb-tog:hover .sb-tog__bg path{stroke:rgba(var(--fg-rgb, 255, 255, 255),.28)}
-.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
-.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:var(--ink, #f6f6f7);text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
-.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(var(--a1-rgb, 252, 18, 131),.55))}
-.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3, #7a7a82);white-space:nowrap;overflow:hidden}
-.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
-.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:var(--ink-2, #9b9ba1);text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
-.nav-i:active{transform:scale(.98)}
-.nav-i .ic{flex:0 0 18px;stroke:rgba(var(--fg-rgb, 255, 255, 255),.34);transition:stroke .18s}
-.nav-i:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.04);color:var(--ink, #f6f6f7)}
-.nav-i:hover .ic{stroke:rgba(var(--fg-rgb, 255, 255, 255),.7)}
-.nav-i.on{color:var(--ink, #f6f6f7);font-weight:700;background:linear-gradient(90deg,rgba(var(--a1-rgb, 252, 18, 131),.16),rgba(var(--a2-rgb, 249, 164, 94),.05) 60%,transparent)}
-.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(var(--a1-rgb, 252, 18, 131),.55))}
-.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 0 14px rgba(var(--a1-rgb, 252, 18, 131),.8)}
-.nav-i.adm .ic{stroke:url(#sba)}
-.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
-.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.07)}
-.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3, #7a7a82);margin-bottom:9px;white-space:nowrap}
-.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:var(--ink, #f6f6f7);text-decoration:none;border-radius:10px}
-.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.45);background:rgba(var(--a1-rgb, 252, 18, 131),.08);padding:6px;margin:-6px -6px 8px}
-.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e))}
-.sb-acc__id{display:flex;flex-direction:column;min-width:0}
-.sb-acc__id b{font-size:12.5px;line-height:1.25}
-.sb-acc__id span{font-size:11px;color:var(--ink-3, #7a7a82);overflow:hidden;text-overflow:ellipsis}
-.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(var(--fg-rgb, 255, 255, 255),.07);color:var(--ink-2, #9b9ba1);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
-.sb-out:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.11);color:var(--ink, #f6f6f7)}
-.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
-.sbT:checked ~ .sb .sb-txt{display:none}
-.sbT:checked ~ .sb .sb-tog .chev{transform:none}
-.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
-.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
-.sbT:checked ~ .sb .sb-nav{padding:0 11px}
-.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
-.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
-.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
-.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
-.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
-.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
-.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);color:#fff}
-@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-
+  html.plan-no-school .chest-nav__item[data-page="school"]::after,
+  html.plan-no-berich .chest-nav__item[data-page="berich"]::after{
+    content:''; flex-shrink:0; width:12px; height:12px; margin-left:auto; background:currentColor; opacity:.5;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+  .chest-shell.is-collapsed .chest-nav__item::after{ display:none; }
 </style>
-</head>
-<body>
+<style id="lgLinksCss">.lg-links{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 0;max-width:640px;margin:6px auto 0;font-size:11.5px;line-height:1.6}.lg-links a{color:var(--chest-ink-3,#5c5c63);text-decoration:none;padding:0 9px;position:relative;transition:color .18s cubic-bezier(.16,1,.3,1)}.lg-links a+a::before{content:"";position:absolute;left:-1.5px;top:50%;width:3px;height:3px;margin-top:-1.5px;border-radius:50%;background:currentColor;opacity:.5}.lg-links a:hover,.lg-links a:focus-visible{color:var(--chest-ink-2,#9b9ba1);text-decoration:underline;text-underline-offset:3px}.lg-links__risk{margin:4px auto 0;max-width:560px;text-align:center;font-size:10.5px;line-height:1.5;color:var(--chest-ink-3,#5c5c63);opacity:.8}</style><style id="csCss">
+.cs{ position:fixed; inset:0; z-index:9000; display:grid; place-items:center; padding:16px; background:rgba(var(--dk-rgb, 3, 3, 4),.78); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  font-family:"Instrument Sans", system-ui, sans-serif; color:var(--ink, #f6f6f7); animation:csFade .2s cubic-bezier(.16,1,.3,1); }
+@keyframes csFade{ from{ opacity:0; } }
+.cs-box{ width:min(520px,100%); max-height:calc(100dvh - 32px); overflow:auto; padding:26px; border-radius:24px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1);
+  background:linear-gradient(170deg, rgba(var(--dk-rgb, 22, 12, 18),.96), rgba(var(--dk-rgb, 8, 8, 10),.98)); box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), 0 0 60px rgba(var(--a1-rgb, 252, 18, 131),.08);
+  animation:csIn .3s cubic-bezier(.16,1,.3,1); }
+@keyframes csIn{ from{ opacity:0; transform:translateY(10px) scale(.985); } }
+.cs-k{ font-size:10px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-4, #5c5c63); }
+.cs-box h2{ margin:10px 0 0; font-size:24px; font-weight:600; letter-spacing:-.035em; line-height:1.15; }
+.cs-lead{ margin:10px 0 0; font-size:13.5px; line-height:1.6; color:var(--ink-2, #9b9ba1); }
+.cs-checks{ display:grid; gap:8px; margin:20px 0 0; }
+.cs-check{ position:relative; display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; cursor:pointer; text-align:left;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.025); font-size:13px; line-height:1.55; color:var(--ink-1, #c9c9ce); transition:border-color .2s, background .2s; }
+.cs-check:hover{ border-color:rgba(var(--fg-rgb, 255, 255, 255),.18); }
+.cs-check input{ position:absolute; opacity:0; width:1px; height:1px; }
+.cs-box__b{ flex-shrink:0; width:20px; height:20px; margin-top:1px; border-radius:6px; border:1.5px solid rgba(var(--fg-rgb, 255, 255, 255),.28); display:grid; place-items:center; transition:background .18s, border-color .18s; }
+.cs-box__b svg{ width:12px; height:12px; fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; opacity:0; transform:scale(.6); transition:opacity .18s, transform .18s cubic-bezier(.16,1,.3,1); }
+.cs-check input:checked + .cs-box__b{ background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); border-color:transparent; }
+.cs-check input:checked + .cs-box__b svg{ opacity:1; transform:none; }
+.cs-check input:focus-visible + .cs-box__b{ outline:2px solid rgba(var(--a1-rgb, 252, 18, 131),.6); outline-offset:2px; }
+.cs-check:has(input:checked){ border-color:rgba(var(--a1-rgb, 252, 18, 131),.35); background:rgba(var(--a1-rgb, 252, 18, 131),.05); }
+.cs-check a{ color:var(--ink, #f6f6f7); text-decoration:underline; text-decoration-color:rgba(var(--a1-rgb, 252, 18, 131),.5); text-underline-offset:2px; }
+.cs-check b{ color:var(--ink, #f6f6f7); font-weight:600; }
+.cs-err{ min-height:1em; margin:12px 0 0; font-size:12.5px; color:var(--red, #ff4d5e); }
+.cs-err:empty{ display:none; }
+.cs-foot{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:20px; }
+.cs-cta{ font:inherit; flex:1; min-height:48px; padding:0 22px; border:none; border-radius:999px; cursor:pointer; font-size:14.5px; font-weight:600; color:#fff;
+  background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.3); transition:transform .16s cubic-bezier(.16,1,.3,1), opacity .2s, box-shadow .2s; }
+.cs-cta:active{ transform:scale(.98); }
+.cs-cta:disabled{ opacity:.35; cursor:not-allowed; box-shadow:none; transform:none; }
+.cs-alt{ font:inherit; background:none; border:none; padding:10px 4px; font-size:13px; color:var(--ink-2, #9b9ba1); cursor:pointer; text-decoration:none; }
+.cs-alt:hover{ color:var(--ink, #f6f6f7); }
+.cs-note{ margin:14px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-4, #5c5c63); text-align:center; }
+/* CHEST 2.0 (maquettes T-Paiement, T-Conditions, Edu-Accueil, 2026-11-03) */
+.cs-box{ border-radius:20px; border-color:rgba(var(--fg-rgb, 255, 255, 255),.13); background:linear-gradient(170deg, rgba(var(--dk-rgb, 30, 20, 28),.92), rgba(var(--dk-rgb, 10, 10, 12),.96)); box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .1); }
+.cs-k{ font-family:"Fragment Mono", ui-monospace, monospace; font-size:9.5px; font-weight:500; letter-spacing:.2em; color:var(--a2, #f9a45e); }
+.cs-box h2{ margin-top:6px; font-size:22px; }
+.cs-head{ display:flex; align-items:center; gap:14px; }
+.cs-head__ic{ flex:none; display:inline-flex; }
+.cs-head__ic svg{ display:block; }
+.cs-box.is-center{ text-align:center; }
+.cs-box.is-center .cs-head{ flex-direction:column; gap:12px; }
+.cs-box.is-center h2{ font-size:26px; margin-top:4px; }
+.cs-tile{ width:52px; height:52px; border-radius:16px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(255, 255, 255, .35); }
+.cs-tile svg{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.cs-check a{ color:var(--a2, #f9a45e); text-decoration:none; }
+.cs-check a:hover{ text-decoration:underline; text-underline-offset:2px; }
+.cs-alt.is-btn{ min-height:44px; padding:0 18px; border-radius:12px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); background:rgba(var(--fg-rgb, 255, 255, 255),.04); color:var(--ink, #f6f6f7); font-weight:600; }
+.cs-alt.is-btn:hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.08); }
+.cs-box.is-center .cs-foot{ flex-wrap:nowrap; }
+.cs-box.is-center .cs-alt.is-btn{ flex:1; }
+.cs-box.is-center .cs-cta{ flex:1.6; min-height:44px; border-radius:12px; }
+.cs-stripe{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-3, #7a7a82); margin-right:auto; }
+.cs-stripe svg{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.8; }
+.cs-box.is-pay .cs-foot{ flex-wrap:nowrap; }
+.cs-box.is-pay .cs-cta{ flex:none; min-height:42px; border-radius:12px; font-size:13.5px; }
+.cs-hint{ margin:10px 0 0; font-size:11.5px; color:var(--ink-3, #7a7a82); text-align:right; }
+.cs-box:has(.cs-cta:not(:disabled)) .cs-hint{ visibility:hidden; }
+@media (max-width:520px){ .cs-box.is-pay .cs-foot, .cs-box.is-center .cs-foot{ flex-wrap:wrap; } .cs-box.is-pay .cs-cta{ flex:1 1 100%; } }
+@media (prefers-reduced-motion:reduce){ .cs, .cs-box{ animation:none; } }</style><style id="c2-lg-css">
+.c2-lg, [data-lg], .c2-notif__panel, .c2-search__list, .lotcalc-modal, .chestconfirm-modal, .drawer, .toast, .sbd{
+  --lgx:30%; --lgy:0%;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 20, 20, 24),.62), rgba(var(--dk-rgb, 9, 9, 11),.74)) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(1.25) brightness(1.06) !important; backdrop-filter:blur(18px) saturate(1.25) brightness(1.06) !important;
+  box-shadow:inset 0 1px 1px rgba(var(--fg-rgb, 255, 255, 255),.34), inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.12), 0 24px 60px -18px rgba(0, 0, 0, calc(.75 * var(--sh-k, 1))), 0 2px 6px rgba(0, 0, 0, calc(.3 * var(--sh-k, 1))) !important;
+  border-color:rgba(var(--fg-rgb, 255, 255, 255),.14) !important;
+}
+html.lg-refract .c2-lg, html.lg-refract [data-lg], html.lg-refract .c2-notif__panel, html.lg-refract .c2-search__list, html.lg-refract .lotcalc-modal,
+html.lg-refract .chestconfirm-modal, html.lg-refract .drawer, html.lg-refract .toast, html.lg-refract .sbd{
+  -webkit-backdrop-filter:url(#c2-refract) blur(6px) saturate(1.25) brightness(1.06) !important; backdrop-filter:url(#c2-refract) blur(6px) saturate(1.25) brightness(1.06) !important;
+}
+.lg-shine{ position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:0;
+  background:radial-gradient(420px 260px at var(--lgx) var(--lgy), rgba(var(--fg-rgb, 255, 255, 255),.10), rgba(var(--fg-rgb, 255, 255, 255),0) 60%),
+    linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(var(--fg-rgb, 255, 255, 255),0) 30%, rgba(var(--fg-rgb, 255, 255, 255),0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); }
+.lg-shine::after{ content:''; position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.55), transparent); }
+@media (prefers-reduced-motion:reduce){ .lg-shine{ background:linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(var(--fg-rgb, 255, 255, 255),0) 30%, rgba(var(--fg-rgb, 255, 255, 255),0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); } }</style></head>
+<body class="chest-root">
 
-<div id="dc-root"><div class="sc-host" data-sc-name="Berich"><div data-dc-tpl="3" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--bg-0, rgb(5, 5, 6)); color: var(--ink, rgb(246, 246, 247)); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
-  <div data-dc-tpl="4" aria-hidden="true" style="position: absolute; inset: 0px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.05; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size: 180px 180px;"></div>
+<!-- ══════════════════════════════════════════════════════════════
+     Connexion intégrée (expérimentation, branche experiment/merge-login-welcome) — visible uniquement
+     quand <html> porte `is-loggedout` (posé par le script en tête du <head>, avant même l'analyse de ce
+     <body>). 2e passe (demande utilisateur : « que le fond n'arrête jamais de tourner et que les
+     éléments arrivent en fondu par-dessus ») : plus de fond/shader séparé ici — la carte se pose direct
+     PAR-DESSUS le hero du Welcome (#welLight/#welStars, déjà en train de tourner, voir welcome.js), qui
+     ne s'arrête donc jamais entre la connexion et Welcome. Au lieu de rediriger vers une page à part,
+     ce même document bascule vers le VRAI Welcome une fois connecté (CHESTWelcome.show(), script en bas).
+     ══════════════════════════════════════════════════════════════ -->
+<div class="auth-overlay" id="authOverlay" aria-hidden="true">
+  <div class="auth-stage" id="authStage">
+  <a class="auth-back" href="/" aria-label="Retour à l’accueil" title="Retour à l’accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg></a>
+    <div class="auth-card">
+      <img class="auth-card__logo" src="assets/logo-chest-hero.webp" alt="CHEST">
+      <h1>Bienvenue sur CHEST</h1>
+      <p class="auth-card__lead">Ton prochain niveau t'attend.</p>
 
-  
-  <input data-dc-tpl="5" type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
-  <aside data-dc-tpl="6" class="sb">
-    <svg data-dc-tpl="7" width="0" height="0" aria-hidden="true" style="position: absolute;"><defs data-dc-tpl="8"><linearGradient data-dc-tpl="9" id="sbg" x1="0" y1="0" x2="1" y2="1"><stop data-dc-tpl="10" offset="0" stop-color="#fc1283"></stop><stop data-dc-tpl="11" offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient data-dc-tpl="12" id="sba" x1="0" y1="0" x2="1" y2="1"><stop data-dc-tpl="13" offset="0" stop-color="#ff8a1f"></stop><stop data-dc-tpl="14" offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
-    <label data-dc-tpl="15" for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
-      <svg data-dc-tpl="16" class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path data-dc-tpl="17" d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
-      <svg data-dc-tpl="18" class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="19" d="M9 5l7 7-7 7"></path></svg>
+      <form id="authForm" autocomplete="off" novalidate="">
+        <div class="auth-field">
+          <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect><path d="M3 6l9 7 9-7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <input id="authEmail" type="email" placeholder="Adresse e-mail" required="" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="10.5" width="16" height="10" rx="2.5"></rect><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5" stroke-linecap="round"></path></svg>
+          <input id="authPassword" type="password" placeholder="Mot de passe" required="" autocomplete="current-password" style="padding-right:44px">
+          <button type="button" class="auth-field__toggle" id="authPwToggle" aria-label="Afficher le mot de passe">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" stroke-linejoin="round"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+
+        <div class="auth-row">
+          <label class="auth-remember"><input type="checkbox" id="authRemember" checked=""> Se souvenir de moi</label>
+          <button type="button" class="auth-forgot" id="authForgotBtn">Mot de passe oublié ?</button>
+        </div>
+
+        <p class="auth-error" id="authFormError"></p>
+        <p class="auth-note" id="authFormNote"></p>
+
+        <button type="submit" class="auth-submit" id="authSubmitBtn">
+          <span id="authSubmitLabel">Se connecter</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+      </form>
+
+      <p class="auth-footnote">Pas encore de compte ? <a href="/inscription">Créer un compte</a></p>
+    </div>
+  </div>
+  <!-- Documents légaux : sous la ligne de flottaison, on les trouve en défilant un peu (pas dans la carte). -->
+  <footer class="auth-legal" data-legal-links=""><nav class="lg-links" aria-label="Documents légaux"><a href="/legal/cgu">Conditions d’utilisation</a><a href="/legal/cgv">Conditions de vente</a><a href="/legal/remboursement">Remboursement</a><a href="/legal/confidentialite">Confidentialité</a><a href="/legal/risques">Avertissement sur les risques</a><a href="/legal/mentions-legales">Mentions légales</a><a href="/legal/charte-educateur">Charte de l’éducateur</a></nav>
+    <p class="lg-links__risk">Le trading comporte un risque de perte en capital. CHEST n’est pas un conseiller en investissement.</p></footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page « Welcome » — posée AVANT le shell, dans le même défilement.
+     Hero, puis Newsletter, puis directement le dashboard : c'est le
+     défilement natif de la page, le dashboard fait partie du flux.
+     Une fois son sommet atteint, le calque disparaît (welcome.js) et
+     on ne peut plus remonter.
+
+     Photo d'une carte : renseigner --img sur .wel__card-media, ex.
+       style="--img:url(/assets/news-school.jpg)"
+     Chemin RACINE obligatoire (/assets/...), jamais relatif (assets/...) : un url()
+     dans une variable CSS se résout depuis la feuille de style qui l'UTILISE
+     (css/welcome.css), pas depuis app.html — un chemin relatif cherche alors
+     dans css/assets/ et échoue en silence (404, dégradé de repli affiché).
+     Le texte d'attente disparaît seul. Le contenu détaillé (fenêtre
+     qui s'ouvre au clic) est dans .wel__card-full.
+     data-news-id alimente le +N rouge du bouton Newsletter.
+     ══════════════════════════════════════════════════════════════ -->
+<div class="wel" id="chestWelcome" aria-label="Bienvenue" hidden="">
+
+  <div id="welScroll">
+
+    <!-- ─── 1 · Le hero ─── -->
+    <section class="wel__page wel__hero">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAACWCAYAAABkW7XSAAAF2UlEQVR4AezU227bOhAFUOP8/0efvDhokNiWRJGcyyoKtLElcmbtYP/38IcAAQJJBBRWkqCMSYDA46Gw/BYQIJBGQGGliWp8UCcQyC6gsLInaH4CjQQUVqOwrUogu4DCyp6g+Qn8JVD0M4VVNFhrEagooLAqpmonAkUFFFbRYK1FoKKAwvorVZ8RIBBSQGGFjMVQBAj8JaCw/lLxGQECIQUUVshYDLVOwE2ZBBRWprTMSqC5gMJq/gtgfQKZBBRWprTMSqC5wGBhNdezPgECSwUU1lJulxEgMCKgsEb0vEuAwFIBhbWUO/VlhiewXUBhbY/AAAQIHBVQWEelPEeAwHYBhbU9AgMQiCcQdSKFFTUZcxEg8EtAYf0i8QEBAlEFFFbUZMxFgMAvAYX1i2T8AycQIDBHQGHNcXUqAQITBBTWBFRHEiAwR0BhzXF1ahcBey4VUFhLuV1GgMCIgMIa0fMuAQJLBRTWUm6XESAwIrC3sEYm9y4BAu0EFFa7yC1MIK+AwsqbnckJtBNQWO0i37WwewmMCyiscUMnECCwSEBhLYJ2DQEC4wIKa9zQCQQI/BSY9pPCmkbrYAIE7hZQWHeLOo8AgWkCCmsarYMJELhbQGHdLTp+nhMIEHghoLBewPiYAIF4AgorXiYmIkDghYDCegHjYwIrBNxxTkBhnfPyNAECGwUU1kZ8VxMgcE5AYZ3z8jQBAhsFUhfWRjdXEyCwQUBhbUB3JQEC1wQU1jU3bxEgsEFAYW1Ad+UFAa8Q+BJQWF8I/hIgkENAYeXIyZQECHwJKKwvBH8JEIgk8HoWhfXaxjcECAQTUFjBAjEOAQKvBRTWaxvfECAQTEBhBQtkfBwnEKgroLDqZmszAuUEFFa5SC1EoK6Awqqbrc3qC7TbUGG1i9zCBPIKKKy82ZmcQDsBhdUucgsTyCvQubDypmZyAk0FFFbT4K1NIKOAwsqYmpkJNBVQWE2D77a2fWsIKKwaOdqCQAsBhdUiZksSqCGgsGrkaAsCLQQOFVYLCUsSIBBeQGGFj8iABAg8BRTWU8K/BAiEF1BY4SNaPKDrCAQWUFiBwzEaAQI/BRTWTw8/ESAQWEBhBQ7HaATmCuQ7XWHly8zEBNoKKKy20VucQD4BhZUvMxMTaCugsC5H70UCBFYLKKzV4u4jQOCygMK6TOdFAgRWCyis1eLuyyhg5iACCitIEMYgQOCzgML6bOQJAgSCCCisIEEYgwCBzwIrCuvzFJ4gQIDAAQGFdQDJIwQIxBBQWDFyMAUBAgcEFNYBJI8cF/AkgZkCCmumrrMJELhVQGHdyukwAgRmCiismbrOJlBZYMNuCmsDuisJELgmoLCuuXmLAIENAgprA7orCRC4JqCwrrmNv+UEAgROCyis02ReIEBgl4DC2iXvXgIETgsorNNkXiBwVsDzdwkorLsknUOAwHQBhTWd2AUECNwloLDuknQOAQLTBRIU1nQDFxAgkERAYSUJypgECDweCstvAQECaQQUVpqoWgxqSQJvBRTWWx5fEiAQSUBhRUrDLAQIvBVQWG95fEmAwCyBK+cqrCtq3iFAYIuAwtrC7lICBK4IKKwrat4hQGCLgMLawj5+qRMIdBRQWB1TtzOBpAIKK2lwxibQUUBhdUzdzrkETPstoLC+KfyHAIHoAgorekLmI0DgW0BhfVP4DwEC0QXqF1b0BMxHgMBhAYV1mMqDBAjsFlBYuxNwPwEChwUU1mEqD8YXMGF1AYVVPWH7ESgkoLAKhWkVAtUFFFb1hO1HoJDAP4VVaCurECBQUkBhlYzVUgRqCiismrnaikBJAYVVMtaPS3mAQEoBhZUyNkMT6CmgsHrmbmsCKQUUVsrYDE3guEClJxVWpTTtQqC4gMIqHrD1CFQSUFiV0rQLgeICCutDwL4mQCCOgMKKk4VJCBD4IKCwPgD5mgCBOAIKK04WJtkt4P7wAgorfEQGJEDgKaCwnhL+JUAgvIDCCh+RAQkQeAr8DwAA//+Cw3OPAAAABklEQVQDAOx/AS0pote3AAAAAElFTkSuQmCC" class="wel__light" style=";width:0px;height:0px;display:block" alt="">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAACWCAYAAABkW7XSAAAF2UlEQVR4AezU227bOhAFUOP8/0efvDhokNiWRJGcyyoKtLElcmbtYP/38IcAAQJJBBRWkqCMSYDA46Gw/BYQIJBGQGGliWp8UCcQyC6gsLInaH4CjQQUVqOwrUogu4DCyp6g+Qn8JVD0M4VVNFhrEagooLAqpmonAkUFFFbRYK1FoKKAwvorVZ8RIBBSQGGFjMVQBAj8JaCw/lLxGQECIQUUVshYDLVOwE2ZBBRWprTMSqC5gMJq/gtgfQKZBBRWprTMSqC5wGBhNdezPgECSwUU1lJulxEgMCKgsEb0vEuAwFIBhbWUO/VlhiewXUBhbY/AAAQIHBVQWEelPEeAwHYBhbU9AgMQiCcQdSKFFTUZcxEg8EtAYf0i8QEBAlEFFFbUZMxFgMAvAYX1i2T8AycQIDBHQGHNcXUqAQITBBTWBFRHEiAwR0BhzXF1ahcBey4VUFhLuV1GgMCIgMIa0fMuAQJLBRTWUm6XESAwIrC3sEYm9y4BAu0EFFa7yC1MIK+AwsqbnckJtBNQWO0i37WwewmMCyiscUMnECCwSEBhLYJ2DQEC4wIKa9zQCQQI/BSY9pPCmkbrYAIE7hZQWHeLOo8AgWkCCmsarYMJELhbQGHdLTp+nhMIEHghoLBewPiYAIF4AgorXiYmIkDghYDCegHjYwIrBNxxTkBhnfPyNAECGwUU1kZ8VxMgcE5AYZ3z8jQBAhsFUhfWRjdXEyCwQUBhbUB3JQEC1wQU1jU3bxEgsEFAYW1Ad+UFAa8Q+BJQWF8I/hIgkENAYeXIyZQECHwJKKwvBH8JEIgk8HoWhfXaxjcECAQTUFjBAjEOAQKvBRTWaxvfECAQTEBhBQtkfBwnEKgroLDqZmszAuUEFFa5SC1EoK6Awqqbrc3qC7TbUGG1i9zCBPIKKKy82ZmcQDsBhdUucgsTyCvQubDypmZyAk0FFFbT4K1NIKOAwsqYmpkJNBVQWE2D77a2fWsIKKwaOdqCQAsBhdUiZksSqCGgsGrkaAsCLQQOFVYLCUsSIBBeQGGFj8iABAg8BRTWU8K/BAiEF1BY4SNaPKDrCAQWUFiBwzEaAQI/BRTWTw8/ESAQWEBhBQ7HaATmCuQ7XWHly8zEBNoKKKy20VucQD4BhZUvMxMTaCugsC5H70UCBFYLKKzV4u4jQOCygMK6TOdFAgRWCyis1eLuyyhg5iACCitIEMYgQOCzgML6bOQJAgSCCCisIEEYgwCBzwIrCuvzFJ4gQIDAAQGFdQDJIwQIxBBQWDFyMAUBAgcEFNYBJI8cF/AkgZkCCmumrrMJELhVQGHdyukwAgRmCiismbrOJlBZYMNuCmsDuisJELgmoLCuuXmLAIENAgprA7orCRC4JqCwrrmNv+UEAgROCyis02ReIEBgl4DC2iXvXgIETgsorNNkXiBwVsDzdwkorLsknUOAwHQBhTWd2AUECNwloLDuknQOAQLTBRIU1nQDFxAgkERAYSUJypgECDweCstvAQECaQQUVpqoWgxqSQJvBRTWWx5fEiAQSUBhRUrDLAQIvBVQWG95fEmAwCyBK+cqrCtq3iFAYIuAwtrC7lICBK4IKKwrat4hQGCLgMLawj5+qRMIdBRQWB1TtzOBpAIKK2lwxibQUUBhdUzdzrkETPstoLC+KfyHAIHoAgorekLmI0DgW0BhfVP4DwEC0QXqF1b0BMxHgMBhAYV1mMqDBAjsFlBYuxNwPwEChwUU1mEqD8YXMGF1AYVVPWH7ESgkoLAKhWkVAtUFFFb1hO1HoJDAP4VVaCurECBQUkBhlYzVUgRqCiismrnaikBJAYVVMtaPS3mAQEoBhZUyNkMT6CmgsHrmbmsCKQUUVsrYDE3guEClJxVWpTTtQqC4gMIqHrD1CFQSUFiV0rQLgeICCutDwL4mQCCOgMKKk4VJCBD4IKCwPgD5mgCBOAIKK04WJtkt4P7wAgorfEQGJEDgKaCwnhL+JUAgvIDCCh+RAQkQeAr8DwAA//+Cw3OPAAAABklEQVQDAOx/AS0pote3AAAAAElFTkSuQmCC" class="wel__stars" style=";width:0px;height:0px;display:block" alt="">
+      <div class="wel__vignette" aria-hidden="true"></div>
+
+      <div class="wel__stage">
+        <img class="wel__logo" src="assets/logo-chest-hero.webp" alt="" data-tuto="1" role="button" tabindex="0" aria-label="Voir la présentation de CHEST" title="Voir la présentation">
+        <h1 class="wel__title"><span>Welcome</span><em id="welName"></em></h1>
+        <p class="wel__say" id="welSay" aria-live="off"><span class="wel__say-sr" id="welSaySr"></span><span class="wel__say-fx" id="welSayFx" aria-hidden="true"></span></p>
+        <div class="wel__actions">
+          <button type="button" class="wel__btn wel__btn--ghost" id="welNewsBtn" data-count="0">
+            <span>Newsletter</span><i class="wel__badge" id="welBadge" aria-hidden="true">+0</i>
+          </button>
+          <button type="button" class="wel__btn wel__btn--main" id="welStart">Start</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─── 2 · Newsletter ─── -->
+    <section class="wel__page wel__page--news" id="welNews">
+      <div class="wel__glow" aria-hidden="true"></div>
+
+      <div class="wel__news-wrap">
+        <div class="wel__news-head">
+          <p class="wel__kicker">Nouveautés</p>
+          <h2 class="wel__h2">Newsletter</h2>
+        </div>
+
+        <div class="wel__grid wel__grid--v2" id="welBentoGrid">
+
+          <!-- CHEST IS HERE : vitrine statique, même esprit que la carte "Presentations" de référence -->
+          <article class="wel__card wel__card--v2 wel__card--hero" data-no-sheet="1" data-bento-id="hero">
+            <div class="wel__card-media" data-cms-media="" style="--img: url(/assets/wel-chest-here.webp); background-position: 0% 24.39%;"></div>
+            <h3 class="wel__card-title" data-cms-title="">Chest Is Here</h3>
+          </article>
+
+          <!-- SCANNER : porte le badge +1 de nouveauté (compté par le bouton Newsletter du hero) -->
+          <article class="wel__card wel__card--v2 wel__card--scanner" data-no-sheet="1" data-news-id="scanner-2026-09" data-bento-id="scanner">
+            <div class="wel__card-media" data-cms-media="" style="--img: url(/assets/wel-scanner.webp); background-position: 50% 62%;"></div>
+            <span class="wel__card-badge" data-cms-badge="">+1</span>
+            <h3 class="wel__card-title" data-cms-title="">Scanner</h3>
+          </article>
+
+          <!-- Founder : le téléphone recule et se floute au survol, les réseaux apparaissent derrière -->
+          <article class="wel__card wel__card--v2 wel__card--founder" data-no-sheet="1" data-bento-id="founder">
+            <h3 class="wel__card-title" data-cms-title="">Founder</h3>
+            <div class="wel__founder-stage">
+              <a class="wel__founder-social wel__founder-social--ig" href="https://instagram.com/2sw0ne" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+              </a>
+              <a class="wel__founder-social wel__founder-social--tt" href="https://www.tiktok.com/@2sw0ne" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 3c.4 2.2 1.9 3.8 4.4 4v3c-1.6.1-3-.4-4.4-1.3v6.6c0 3.5-2.8 6.2-6.3 6.2S4 18.8 4 15.3s2.8-6.2 6.3-6.2c.4 0 .8 0 1.2.1v3.2c-.4-.1-.8-.2-1.2-.2-1.7 0-3.1 1.4-3.1 3.1s1.4 3.1 3.1 3.1 3.2-1.3 3.2-3V3h3.1z"></path></svg>
+              </a>
+              <a class="wel__founder-social wel__founder-social--tg" href="https://t.me/sw0ne21" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 4L2.6 11.2c-.9.4-.9 1.6.1 1.9l4.6 1.4 1.8 5.6c.3.9 1.4 1.1 2 .4l2.6-2.8 4.7 3.5c.8.6 2 .2 2.2-.8L22 4.9c.2-1-.7-1.7-1.5-1.3z"></path><path d="M8.3 14.5L17 7"></path></svg>
+              </a>
+              <img class="wel__founder-phone" data-cms-media="" src="/assets/wel-founder-phone.webp" alt="Profil Instagram du fondateur" style="--dx: 2px; --dy: 45px; --zs: 1.3;">
+            </div>
+          </article>
+
+          <!-- MENU : une bannière à la fois, qui se fond dans la suivante (une par page du site) -->
+          <article class="wel__card wel__card--v2 wel__card--menu" data-no-sheet="1" data-bento-id="menu">
+            <h3 class="wel__card-title" data-cms-title="">Menu</h3>
+            <div class="wel__menu-stage" id="welMenuStage"><div class="wel__menu-banner is-out" style="--c1: #5470c2; --c2: #2c3d7a;">
+        <span class="wel__menu-banner__grid" aria-hidden="true"></span>
+        <span class="wel__menu-banner__glow" aria-hidden="true"></span>
+        <span class="wel__menu-banner__kicker">Chaque trade</span>
+        <h4 class="wel__menu-banner__title">Rien n’est <b>oublié</b>.</h4>
+        <span class="wel__menu-banner__badge"><i class="chest-ic-journal"></i></span></div></div>
+          </article>
+
+          <!-- SCHOOL : miniatures vidéo de la rubrique School, défilement lent -->
+          <article class="wel__card wel__card--v2 wel__card--school" data-no-sheet="1" data-bento-id="school">
+            <h3 class="wel__card-title" data-cms-title="">School</h3>
+            <div class="wel__school-track">
+              <div class="wel__school-track-inner" id="welSchoolTrack"><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/wU8i9-MbdWQ/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/d4sZy3AChZs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/6xjpusd9EMQ/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/iba0283havo/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/7AHz5QoXL9U/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/QZxD5aotAAo/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/b9sc84WGlyw/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/LnV_Pz-qejs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/iTb4oeGqEBs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/uyyqD2M-71c/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/wU8i9-MbdWQ/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/d4sZy3AChZs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/6xjpusd9EMQ/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/iba0283havo/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/7AHz5QoXL9U/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/QZxD5aotAAo/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/b9sc84WGlyw/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/LnV_Pz-qejs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/iTb4oeGqEBs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/uyyqD2M-71c/mqdefault.jpg)"></span></div>
+            </div>
+          </article>
+
+        </div>
+
+        <div class="wel__handoff" aria-hidden="true">
+          <svg class="wel__handoff-arrows" viewBox="0 0 24 24" width="24" height="24" fill="none">
+            <defs>
+              <linearGradient id="welHandoffGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fc1283"></stop>
+                <stop offset="1" stop-color="#f9a45e"></stop>
+              </linearGradient>
+            </defs>
+            <path class="wel__handoff-chev wel__handoff-chev--1" d="M5 5l7 7 7-7" stroke="url(#welHandoffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path class="wel__handoff-chev wel__handoff-chev--2" d="M5 12l7 7 7-7" stroke="url(#welHandoffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+
+  </div>
+
+  <!-- Fenêtre d'une nouveauté (ouverte au clic sur une carte) -->
+  <div class="wel__sheet" id="welSheet" role="dialog" aria-modal="true" aria-labelledby="welSheetTitle">
+    <div class="wel__sheet-win">
+      <button type="button" class="wel__sheet-close" data-wel-close="" aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"></path></svg></button>
+      <div class="wel__sheet-media" id="welSheetMedia"></div>
+      <div class="wel__sheet-body">
+        <span class="wel__sheet-tag" id="welSheetTag"></span>
+        <h3 id="welSheetTitle"></h3>
+        <div class="wel__sheet-text" id="welSheetText"></div>
+        <div class="wel__sheet-date" id="welSheetDate"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shell unique du site : la sidebar et la barre du haut vivent ICI, une
+     seule fois. Chaque page (dashboard.html, calendar.html...) est chargée
+     dans #chestView — elle ne recharge donc jamais le menu, seulement son
+     propre contenu. Voir js/shell.js. -->
+<!-- CHEST 2.0 (2026-11-02) : shell copié de CHEST-DESIGN-2.0/html-exact/Main.html (menu + barre du haut),
+     valeurs inchangées. Ajouts pour le site : data-page / ids lus par nav.js et shell.js, la page chargée
+     dans #chestView (voir js/shell.js), le volet des notifications et la recherche (js/shell-2.js). -->
+<div class="chest-shell is-app c2-shell" id="chestShell" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--bg-0, rgb(5, 5, 6)); color: var(--ink, rgb(246, 246, 247)); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
+
+  <div aria-hidden="true" class="c2-shell__light" style="display: none;"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.05; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size: 180px 180px;"></div>
+
+  <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside class="sb">
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute;"><defs><linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"></stop><stop offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient id="sba" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a1f"></stop><stop offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
     </label>
-    <a data-dc-tpl="20" href="Main.dc.html" class="sb-brand">
-      <img data-dc-tpl="21" src="assets/logo-chest-new.webp" alt="CHEST">
-      <span data-dc-tpl="22" class="sb-txt">CHEST</span>
+    <a href="#/dashboard" class="sb-brand">
+      <img src="assets/logo-chest-new.webp" alt="CHEST">
+      <span class="sb-txt">CHEST</span>
     </a>
-    <div data-dc-tpl="23" class="sb-label"><span data-dc-tpl="24" class="sb-txt">Navigation</span></div>
-    <nav data-dc-tpl="25" class="sb-nav" aria-label="Navigation principale">
-        <a data-dc-tpl="26" href="Main.dc.html" class="nav-i" title="Dashboard">
-          <svg data-dc-tpl="27" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="28" x="3" y="3" width="8" height="8" rx="2"></rect><rect data-dc-tpl="29" x="13" y="3" width="8" height="5" rx="2"></rect><rect data-dc-tpl="30" x="3" y="13" width="8" height="8" rx="2"></rect><rect data-dc-tpl="31" x="13" y="10" width="8" height="11" rx="2"></rect></svg>
-          <span data-dc-tpl="32" class="sb-txt">Dashboard</span>
+    <div class="sb-label"><span class="sb-txt">Navigation</span></div>
+    <nav class="sb-nav" aria-label="Navigation principale">
+        <a href="#/dashboard" data-page="dashboard" class="nav-i" title="Dashboard">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span class="sb-txt">Dashboard</span>
         </a>
-        <a data-dc-tpl="33" href="Backtesting.dc.html" class="nav-i" title="Backtesting">
-          <svg data-dc-tpl="34" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="35" d="M3 17l5-5 4 3 6-8"></path><path data-dc-tpl="36" d="M3 21h18"></path></svg>
-          <span data-dc-tpl="37" class="sb-txt">Backtesting</span>
+        <a href="#/backtesting" data-page="backtesting" class="nav-i" title="Backtesting">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 6-8"></path><path d="M3 21h18"></path></svg>
+          <span class="sb-txt">Backtesting</span>
         </a>
-        <a data-dc-tpl="38" href="Journal.dc.html" class="nav-i" title="Journal">
-          <svg data-dc-tpl="39" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="40" x="4" y="3" width="16" height="18" rx="2"></rect><path data-dc-tpl="41" d="M8 8h8M8 12h8M8 16h5"></path></svg>
-          <span data-dc-tpl="42" class="sb-txt">Journal</span>
+        <a href="#/journal" data-page="journal" class="nav-i" title="Journal">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span class="sb-txt">Journal</span>
         </a>
-        <a data-dc-tpl="43" href="Strategies.dc.html" class="nav-i" title="Stratégies">
-          <svg data-dc-tpl="44" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="45" d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
-          <span data-dc-tpl="46" class="sb-txt">Stratégies</span>
+        <a href="#/strategies" data-page="strategies" class="nav-i" title="Stratégies">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span class="sb-txt">Stratégies</span>
         </a>
-        <a data-dc-tpl="47" href="Calendrier.dc.html" class="nav-i" title="Calendrier">
-          <svg data-dc-tpl="48" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="49" x="3" y="5" width="18" height="16" rx="2"></rect><path data-dc-tpl="50" d="M3 10h18M8 3v4M16 3v4"></path></svg>
-          <span data-dc-tpl="51" class="sb-txt">Calendrier</span>
+        <a href="#/calendar" data-page="calendar" class="nav-i" title="Calendrier">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span class="sb-txt">Calendrier</span>
         </a>
-        <a data-dc-tpl="52" href="Berich.dc.html" class="nav-i on" aria-current="page" title="BERICH">
-          <svg data-dc-tpl="53" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="54" d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
-          <span data-dc-tpl="55" class="sb-txt">BERICH</span>
+        <a href="#/berich" data-page="berich" class="nav-i on" title="BERICH" aria-current="page">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span class="sb-txt">BERICH</span>
         </a>
-        <a data-dc-tpl="56" href="School.dc.html" class="nav-i" title="School">
-          <svg data-dc-tpl="57" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="58" d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path data-dc-tpl="59" d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path data-dc-tpl="60" d="M22 9.5V15"></path></svg>
-          <span data-dc-tpl="61" class="sb-txt">School</span>
-        </a>
-        <span data-dc-tpl="62" class="sb-sep" aria-hidden="true"></span>
-        <a data-dc-tpl="63" href="Admin.dc.html" class="nav-i adm" title="Admin">
-          <svg data-dc-tpl="64" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="65" d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
-          <span data-dc-tpl="66" class="sb-txt">Admin</span>
+        <a href="#/school" data-page="school" class="nav-i" title="School">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path d="M22 9.5V15"></path></svg>
+          <span class="sb-txt">School</span>
+        <em class="idea-badge" aria-label="4 nouveautés dans School">+4</em></a>
+        <span class="sb-sep" aria-hidden="true" data-admin-only="" hidden=""></span>
+        <a href="#/admin-members" data-page="admin-members" class="nav-i adm" title="Admin" data-admin-only="" hidden="">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span class="sb-txt">Admin</span>
         </a>
     </nav>
-    <div data-dc-tpl="67" class="sb-acc">
-      <div data-dc-tpl="68" class="sb-acc__label sb-txt">Compte</div>
-      <a data-dc-tpl="69" href="Compte.dc.html" class="sb-acc__row">
-        <span data-dc-tpl="70" class="sb-acc__av">P</span>
-        <span data-dc-tpl="71" class="sb-txt sb-acc__id"><b data-dc-tpl="72">Pierre</b><span data-dc-tpl="73">pierre@exemple.fr</span></span>
+    <div class="sb-acc">
+      <div class="sb-acc__label sb-txt">Compte</div>
+      <a href="#/account" data-page="account" class="sb-acc__row">
+        <span class="sb-acc__av" id="sidebarUserAvatar">PM</span>
+        <span class="sb-txt sb-acc__id"><b id="sidebarUserName">Pierre Martin</b><span id="sidebarUserEmail">pierre@exemple.fr</span></span>
       </a>
-      <button data-dc-tpl="74" type="button" class="sb-out" title="Se déconnecter">
-        <svg data-dc-tpl="75" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="76" d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
-        <span data-dc-tpl="77" class="sb-txt">Se déconnecter</span>
+      <button type="button" class="sb-out" title="Se déconnecter" data-logout="">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span class="sb-txt">Se déconnecter</span>
       </button>
     </div>
   </aside>
-  <a data-dc-tpl="78" href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
-    <svg data-dc-tpl="79" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="80" x="5" y="2.5" width="14" height="19" rx="3"></rect><path data-dc-tpl="81" d="M8.5 6.5h7"></path><path data-dc-tpl="82" d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
-  </a>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
 
-  
-  <main data-dc-tpl="83" style="position: relative; z-index: 1; flex: 999 1 560px; min-width: 0px; display: flex; flex-direction: column;">
-    <div data-dc-tpl="84" aria-hidden="true" style="position: absolute; left: 50%; top: 0px; width: 1000px; height: 640px; margin-left: -500px; pointer-events: none; background: radial-gradient(55% 64% at 50% 18%, rgba(8, 153, 129, 0.42), transparent 72%);"></div>
+  <main class="chest-main" style="position: relative; z-index: 1; flex: 999 1 560px; min-width: 0px; display: flex; flex-direction: column;">
 
-    <header data-dc-tpl="85" style="position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06);">
-      <div data-dc-tpl="86" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-        <span data-dc-tpl="87" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Exécution</span>
-        <span data-dc-tpl="88" style="color: rgb(58, 58, 64);">/</span>
-        <span data-dc-tpl="89" style="font-weight: 600;">BERICH</span>
+    <header class="c2-topbar" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06);">
+      <a href="#/dashboard" class="c2-mbrand" aria-label="CHEST, retour au Dashboard"><img src="assets/logo-chest.png" alt="" width="24" height="24"></a>
+      <div id="crumb" aria-live="polite" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+        <span id="crumbCat" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Exécution</span>
+        <span style="color: rgb(58, 58, 64);">/</span>
+        <span id="crumbPage" style="font-weight: 600;">BERICH</span>
       </div>
-      <button data-dc-tpl="90" type="button" class="btn2" style="margin-left: auto; height: 36px; padding: 0px 14px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(var(--dk-rgb, 11, 11, 14)), rgb(var(--dk-rgb, 11, 11, 14))) padding-box padding-box, linear-gradient(135deg, rgba(var(--fg-rgb, 255, 255, 255), 0.12), rgba(var(--fg-rgb, 255, 255, 255), 0.12)) border-box border-box; color: var(--ink, rgb(246, 246, 247)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Refaire le quiz</button>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div id="c2PageActions" hidden="" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"></div>
+        <div class="c2-search" id="c2Search">
+          <label style="display: flex; align-items: center; gap: 10px; height: 38px; width: 280px; max-width: 100%; padding: 0px 12px; box-sizing: border-box; border-radius: 12px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); color: var(--ink-3, rgb(122, 122, 130));">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <input type="search" id="c2SearchInput" placeholder="Rechercher une page, une paire…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="c2SearchList" aria-label="Rechercher une page ou une paire" style="flex: 1 1 0%; min-width: 0px; background: transparent; border: 0px; outline: 0px; color: var(--ink, rgb(246, 246, 247)); font: inherit; font-size: 13px;">
+            <span id="c2SearchKbd" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-2, rgb(155, 155, 161)); border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); padding: 2px 6px; border-radius: 6px;">⌘K</span>
+          </label>
+          <div class="c2-search__list" id="c2SearchList" role="listbox" hidden=""><span class="lg-shine" aria-hidden="true"></span></div>
+        </div>
+        <!-- CHEST 2.0 (2026-11-03) : le compte remplace la cloche des notifications (demande utilisateur). -->
+        <a href="#/account" data-page="account" aria-label="Compte" title="Compte" style="position: relative; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); color: var(--ink-2, rgb(155, 155, 161)); display: grid; place-items: center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4"></path></svg>
+        </a>
+        <!-- Espace éducateur : visible pour les comptes au rôle « éducateur » (nav.js), même bouton que la cloche. -->
+        <a href="#/educator" data-page="educator" data-educator-only="" hidden="" aria-label="Espace éducateur" title="Espace éducateur" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; color: var(--bg-0, rgb(5, 5, 5)); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"></path><path d="M7 11.6v4.2c0 1 2.2 2.2 5 2.2s5-1.2 5-2.2v-4.2"></path></svg>Éducateur</a>
+        <!-- HQ (admin principal) : ouvre CHEST HQ (js/hq.js, data-url). -->
+        <a href="#" id="chestHq" data-admin-only="" data-owner-only="" hidden="" data-url="https://chest-hq.vercel.app" aria-label="CHEST HQ" title="CHEST HQ" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.04em; color: var(--bg-0, rgb(5, 5, 5)); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;">HQ<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAOCAYAAABO3B6yAAAD0ElEQVR4AYyRW08bRxiGX6/tDRCIMQEfOBgoNidjE1XxRStwEtSqqtQ27U3/QRv1Ku1Vf0qV9EdUbZDai4YQUqkXlqDG4ZC1jQ0EfMIxBoPN2uvpfGNsOUCkjPaZ7zAz+76zKz2QfewiHxscrI7V2MEuIbczq+A6s10j2thsRzebNXUxf6eZ+c0m9nB0gP043sf++NzNnnwxwea/Gmfz98fYxs/3Gsx/PcakGYMDD1p8AsoJj2QFAT5GmBkCdGIEJozoTHDqbsApdcCp5xja4TReB41bJjNumTvx05QT9/pu4ru7U3A6e/HJlz7M3ed848PgZF+DOV5L37Z44TZY4W3rB+UEGSIjP8g+YcSjt+CqMd3ajem2m5hu78LD4Qnc7bHg+w+9cDns+GzuNlyTw3BODUP+wAN5mDPkhXyOXpZBSHrZCOOdYUgf9YtIed0MGSMjM4ZBePRWeMiosQce2QJvSw/87b3w37DjTqcdoxYbRu12jAzw3DUEecwNvcMF4+1PIVmGoK/Tw3Oid1zcSaJZ57VAN30Oz8kMGSMDdWYMDszKA5i9NgB/az/8bX2YMNkwbuZ02+Cy2jE+NChupR9xQup1QLIPAjpcGlom3uhJjaye8ANkqNkELbmNVrhlGyZbOK1WTLTbqI2xLn7zbjsMsixqvcsp4pUTA0hc29+EGl+FpqqQNLUMtpoG+OKVh3iTvgIP7/Vo4YjYV93fQTWxjWqSk45D46jBvxrC2+t7WPgtAGmtkkL5eUyYYMG0MCIMidfUJtpTyy7Pr94kRbPCb0NQoUUj0GJhaDucXQXqVghqLIStYEyIkvCvf65hYStXM0ACZKL672toj5ZBkaCvQ2v0UmJNTWK9xCmmqGygHCQQTiUQ2U9AiW5DCccR3owhvB5D5GUMfz8JYOH3AB6fi5LwcrIAQvqnsgMSIUiwGeqRCsW18tuiG4UkNvJJbOY4B0koaU6CG9hLILzDiXND0QQeP32JhXgOT2M5rJyLkvCrEw2ERALNJoQY/y3Nsb7nhbqLF2e7WCq+xtLpHpYK+1g6SuD5YQKL2SQWM2kspjJYTGTwbC+LZ7tZrKSPsZziJI+FIIkS9E5CClVrNyMTj0qBxtegnHo1tmkvQtzYajmDkJrGaimDYPEAwdMsgoU3CB7l8F+ekzvESjaPlQNO5kicU04qUPiNRXFhkqK6HMhEnV/UAIh6LaKWRkirGb1w/p2lUlShFMtQTsvv3EML4heQCYIazVCvAQ4RRR5RlkeEHSFSPUZE41QKiJRPEC6fInxWhHJWglI6w/uO/wEAAP//eMFchgAAAAZJREFUAwBaQjMYhssgYAAAAABJRU5ErkJggg==" class="chest-hq__sky" style=";width:0px;height:0px;display:block" alt=""></a>
+      </div>
+      
     </header>
 
-    
-    <section data-dc-tpl="91" aria-live="polite" style="position: relative; margin: 22px 36px 0px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 26px; padding: 14px 18px; border-radius: 18px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.3); background: linear-gradient(90deg, rgba(8, 153, 129, 0.28), rgba(8, 153, 129, 0.06) 60%, rgba(var(--fg-rgb, 255, 255, 255), 0.016)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.08) 0px 1px 0px inset;">
-      <span data-dc-tpl="92" style="display: flex; align-items: center; gap: 10px;">
-        <span data-dc-tpl="93" class="pulse" style="width: 9px; height: 9px; border-radius: 999px; background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.2) 0px 0px 0px 4px;"></span>
-        <span data-dc-tpl="94" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--green-hi, rgb(127, 243, 202));">Position prise par ton VPS · BERICH I</span>
-      </span>
-      <span data-dc-tpl="95" style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;"><span data-dc-tpl="96" style="color: var(--green-hi, rgb(127, 243, 202));">Achat</span> XAU/USD</span>
-      <span data-dc-tpl="97" style="display: flex; flex-wrap: wrap; gap: 18px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;">
-        <span data-dc-tpl="98">Entrée <b data-dc-tpl="99" style="color: var(--ink, rgb(246, 246, 247));">4 061,2</b></span>
-        <span data-dc-tpl="100">Stop <b data-dc-tpl="101" style="color: var(--red-hi, rgb(255, 148, 160));">4 051,8</b></span>
-        <span data-dc-tpl="102">Objectif <b data-dc-tpl="103" style="color: var(--green-hi, rgb(127, 243, 202));">4 108,0</b></span>
-        <span data-dc-tpl="104">Ouvert à <b data-dc-tpl="105" style="color: var(--ink, rgb(246, 246, 247));">13:45</b> · sur ton compte à 13:45:02</span>
-      </span>
-      <span data-dc-tpl="106" style="margin-left: auto; font-size: 20px; font-weight: 700; color: var(--green-hi, rgb(127, 243, 202)); font-variant-numeric: tabular-nums; text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.45) 0px 0px 18px;">+1,9 R</span>
-    </section>
-
-    
-    <section data-dc-tpl="107" style="position: relative; isolation: isolate; overflow: hidden; text-align: center; padding: 34px 36px 0px;">
-      <div data-dc-tpl="108" class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0) 78%) text; color: transparent;">BERICH</div>
-      <div data-dc-tpl="109" style="display: flex; justify-content: center; align-items: center; gap: 12px;">
-        <img data-dc-tpl="110" src="assets/logo-berich.webp" alt="Logo BERICH" style="width: 46px; height: 46px; object-fit: contain; mix-blend-mode: screen;">
-        <span data-dc-tpl="111" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0px 12px; border-radius: 999px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.3); background: rgba(var(--green-rgb, 51, 230, 166), 0.07); font-size: 12px;">
-          <span data-dc-tpl="112" style="width: 6px; height: 6px; border-radius: 999px; background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.9) 0px 0px 8px;"></span>VPS IC Markets · EA BERICH actif
-        </span>
-      </div>
-      <div data-dc-tpl="113" style="margin-top: 14px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));">Mon plan · <b data-dc-tpl="114" style="color: var(--ink, rgb(246, 246, 247));">×3 en 12 mois</b> · BERICH I 70 % + BERICH II 30 % · risque 1 %</div>
-      <div data-dc-tpl="115" style="margin-top: 14px; font-size: 104px; line-height: 0.98; padding-bottom: 0.04em; font-weight: 700; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; background: linear-gradient(rgb(var(--fg-rgb, 255, 255, 255)) 8%, rgb(201, 251, 233) 45%, rgb(var(--green-rgb, 51, 230, 166))) text; color: transparent; filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.3) 0px 0px 36px);"><span class="sc-interp">14 210 €</span></div>
-      <div data-dc-tpl="116" style="margin-top: 10px; font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Ton plan rejoué sur 46 positions · 10 000 € au départ, le 1er juin</span></div>
-
-      <div data-dc-tpl="117" style="margin-top: 22px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px;">
-        <div data-dc-tpl="118" role="group" aria-label="Vue" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(0, 0, 0, calc(0.25 * var(--sh-k, 1)));">
-          
-            <button data-dc-tpl="120" type="button" aria-pressed="true" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">Mon plan</span></button>
-          
-            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">Mes positions</span></button>
-          
-            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH I</span></button>
-          
-            <button data-dc-tpl="120" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH II</span></button>
-          
-        </div>
-        <span data-dc-tpl="121" aria-hidden="true" style="width: 1px; height: 22px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.12);"></span>
-        <div data-dc-tpl="122" role="group" aria-label="Période" style="display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(0, 0, 0, calc(0.25 * var(--sh-k, 1)));">
-          
-            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">30 j</span></button>
-          
-            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">90 j</span></button>
-          
-            <button data-dc-tpl="124" type="button" aria-pressed="false" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">1 an</span></button>
-          
-            <button data-dc-tpl="124" type="button" aria-pressed="true" style="height: 32px; padding: 0px 13px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">Tout</span></button>
-          
-        </div>
-      </div>
-
-      <div data-dc-tpl="125" style="position: relative; height: 270px; margin: 26px -36px 0px; mask-image: linear-gradient(90deg, transparent, rgb(0, 0, 0) 6%, rgb(0, 0, 0) 94%, transparent);">
-        <svg data-dc-tpl="126" width="100%" height="270" viewBox="0 0 1000 270" preserveAspectRatio="none" aria-label="Courbe du résultat cumulé" style="display: block; overflow: visible;">
-          <defs data-dc-tpl="127">
-            <linearGradient data-dc-tpl="128" id="bA" x1="0" y1="0" x2="0" y2="1"><stop data-dc-tpl="129" offset="0" stop-color="rgba(51,230,166,.32)"></stop><stop data-dc-tpl="130" offset="1" stop-color="rgba(51,230,166,0)"></stop></linearGradient>
-            <linearGradient data-dc-tpl="131" id="bL" x1="0" y1="0" x2="1" y2="0"><stop data-dc-tpl="132" offset="0" stop-color="rgba(51,230,166,.35)"></stop><stop data-dc-tpl="133" offset=".55" stop-color="#33e6a6"></stop><stop data-dc-tpl="134" offset="1" stop-color="#ffffff"></stop></linearGradient>
-          </defs>
-          <line data-dc-tpl="135" x1="0" x2="1000" y1="251.3" y2="251.3" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 7" vector-effect="non-scaling-stroke"></line>
-          <path data-dc-tpl="136" d="M0.0 251.3 L11.9 252.4 L23.8 256.0 L35.7 243.6 L47.6 243.5 L59.5 237.3 L71.4 240.2 L83.3 227.2 L95.2 226.0 L107.1 226.1 L119.0 223.8 L130.9 211.1 L142.8 203.5 L154.7 203.9 L166.6 198.2 L178.5 191.1 L190.4 199.2 L202.3 187.6 L214.2 179.7 L226.1 168.9 L238.0 173.8 L249.9 177.0 L261.8 178.4 L273.7 168.1 L285.6 162.6 L297.5 153.2 L309.4 154.0 L321.3 155.4 L333.2 147.7 L345.1 153.9 L357.0 146.1 L368.9 143.2 L380.8 140.0 L392.7 142.3 L404.6 138.2 L416.5 146.1 L428.4 146.1 L440.3 147.6 L452.2 155.6 L464.1 153.9 L475.9 158.6 L487.8 146.1 L499.7 134.3 L511.6 130.3 L523.5 134.8 L535.4 139.4 L547.3 128.1 L559.2 132.8 L571.1 126.6 L583.0 122.4 L594.9 123.5 L606.8 114.7 L618.7 122.6 L630.6 129.6 L642.5 117.0 L654.4 110.3 L666.3 100.8 L678.2 96.2 L690.1 83.7 L702.0 70.9 L713.9 76.8 L725.8 80.2 L737.7 67.9 L749.6 55.2 L761.5 42.3 L773.4 47.2 L785.3 44.5 L797.2 40.9 L809.1 48.2 L821.0 52.5 L832.9 51.9 L844.8 59.8 L856.7 58.7 L868.6 45.7 L880.5 43.1 L892.4 37.3 L904.3 31.8 L916.2 20.6 L928.1 23.7 L940.0 14.0 L940 270 L0 270 Z" fill="url(#bA)"></path>
-          <path data-dc-tpl="137" d="M0.0 251.3 L11.9 252.4 L23.8 256.0 L35.7 243.6 L47.6 243.5 L59.5 237.3 L71.4 240.2 L83.3 227.2 L95.2 226.0 L107.1 226.1 L119.0 223.8 L130.9 211.1 L142.8 203.5 L154.7 203.9 L166.6 198.2 L178.5 191.1 L190.4 199.2 L202.3 187.6 L214.2 179.7 L226.1 168.9 L238.0 173.8 L249.9 177.0 L261.8 178.4 L273.7 168.1 L285.6 162.6 L297.5 153.2 L309.4 154.0 L321.3 155.4 L333.2 147.7 L345.1 153.9 L357.0 146.1 L368.9 143.2 L380.8 140.0 L392.7 142.3 L404.6 138.2 L416.5 146.1 L428.4 146.1 L440.3 147.6 L452.2 155.6 L464.1 153.9 L475.9 158.6 L487.8 146.1 L499.7 134.3 L511.6 130.3 L523.5 134.8 L535.4 139.4 L547.3 128.1 L559.2 132.8 L571.1 126.6 L583.0 122.4 L594.9 123.5 L606.8 114.7 L618.7 122.6 L630.6 129.6 L642.5 117.0 L654.4 110.3 L666.3 100.8 L678.2 96.2 L690.1 83.7 L702.0 70.9 L713.9 76.8 L725.8 80.2 L737.7 67.9 L749.6 55.2 L761.5 42.3 L773.4 47.2 L785.3 44.5 L797.2 40.9 L809.1 48.2 L821.0 52.5 L832.9 51.9 L844.8 59.8 L856.7 58.7 L868.6 45.7 L880.5 43.1 L892.4 37.3 L904.3 31.8 L916.2 20.6 L928.1 23.7 L940.0 14.0" fill="none" stroke="url(#bL)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.5) 0px 0px 8px);"></path>
-        </svg>
-        <span data-dc-tpl="138" class="pulse" style="position: absolute; left: 94%; top: 5.19%; width: 12px; height: 12px; margin: -6px 0px 0px -6px; border-radius: 999px; background: rgb(var(--fg-rgb, 255, 255, 255)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.25) 0px 0px 0px 4px, rgba(var(--green-rgb, 51, 230, 166), 0.9) 0px 0px 22px;"></span>
-        <span data-dc-tpl="139" style="position: absolute; left: 36px; bottom: 10px; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Capital en euros · départ en pointillés</span></span>
-      </div>
-
-      <div data-dc-tpl="140" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; padding: 14px 0px 0px; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">
-        <span data-dc-tpl="141"><span data-dc-tpl="142" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);">Achat</span> XAU/USD · 0,62 lot · <b data-dc-tpl="143" style="color: var(--green-hi, rgb(127, 243, 202));">+287 €</b></span>
-      </div>
-
-      <div data-dc-tpl="144" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); row-gap: 16px; margin-top: 22px; padding: 22px 0px 26px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); text-align: left;">
-        
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 0px;">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Performance</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202)); text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 18px;"><span class="sc-interp">+42,1 %</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">10 000 € → 14 210 €</span></span>
-          </div>
-        
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Recul max</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160)); text-shadow: none;"><span class="sc-interp">−6,2 %</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">depuis un plus haut</span></span>
-          </div>
-        
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Pire série</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247)); text-shadow: none;"><span class="sc-interp">4 stops</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">d’un algorithme</span></span>
-          </div>
-        
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Risque</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247)); text-shadow: none;"><span class="sc-interp">1 %</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">BERICH I 1 % · II 0,6 %</span></span>
-          </div>
-        
-          <div data-dc-tpl="146" style="display: flex; flex-direction: column; gap: 8px; padding: 2px 20px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);">
-            <span data-dc-tpl="147" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Positions</span></span>
-            <span data-dc-tpl="148" style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247)); text-shadow: none;"><span class="sc-interp">46</span></span>
-            <span data-dc-tpl="149" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">rejouées</span></span>
-          </div>
-        
-      </div>
-    </section>
-
-    <div data-dc-tpl="150" style="display: flex; flex-direction: column; gap: 44px; padding: 36px 36px 64px; max-width: 1180px; width: 100%; box-sizing: border-box;">
-
-      
-      <section data-dc-tpl="151" style="display: flex; flex-direction: column; gap: 18px;">
-        <div data-dc-tpl="152" style="display: flex; flex-direction: column; gap: 6px;">
-          <span data-dc-tpl="153" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">01 — Automatisation</span>
-          <h2 data-dc-tpl="154" style="margin: 0px; font-size: 24px; font-weight: 700; letter-spacing: -0.03em;">Du signal à ton compte</h2>
-        </div>
-        <ol data-dc-tpl="155" style="position: relative; list-style: none; margin: 0px; padding: 0px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px;">
-          
-            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.25); background: linear-gradient(160deg, rgba(var(--green-rgb, 51, 230, 166), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0.01));">
-              <span data-dc-tpl="158" style="display: flex; align-items: center; gap: 10px;">
-                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: var(--bg-0, rgb(5, 5, 5)); background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
-                <span data-dc-tpl="160" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Signal BERICH</span></span>
-                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Étape 1</span></span>
-              </span>
-              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Or, 5 min · dernier signal il y a 55 min</span></span>
-            </li>
-          
-            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.25); background: linear-gradient(160deg, rgba(var(--green-rgb, 51, 230, 166), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0.01));">
-              <span data-dc-tpl="158" style="display: flex; align-items: center; gap: 10px;">
-                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: var(--bg-0, rgb(5, 5, 5)); background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
-                <span data-dc-tpl="160" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Ton plan</span></span>
-                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Étape 2</span></span>
-              </span>
-              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">×3 en 12 mois · BERICH I + II</span></span>
-            </li>
-          
-            <li data-dc-tpl="157" class="tile" style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.25); background: linear-gradient(160deg, rgba(var(--green-rgb, 51, 230, 166), 0.07), rgba(var(--fg-rgb, 255, 255, 255), 0.01));">
-              <span data-dc-tpl="158" style="display: flex; align-items: center; gap: 10px;">
-                <span data-dc-tpl="159" style="width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: var(--bg-0, rgb(5, 5, 5)); background: rgb(var(--green-rgb, 51, 230, 166)); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.5) 0px 0px 14px;"><span class="sc-interp">✓</span></span>
-                <span data-dc-tpl="160" style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Ton compte</span></span>
-                <span data-dc-tpl="161" style="margin-left: auto; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Étape 3</span></span>
-              </span>
-              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">IC Markets · 14 210 € · rattaché à ton plan par l’équipe CHEST</span></span>
-            </li>
-          
-        </ol>
-        <p data-dc-tpl="163" style="margin: 0px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));">Chaque signal part avec le risque de son algorithme : <b data-dc-tpl="164" style="color: var(--ink, rgb(246, 246, 247));">1 %</b> pour BERICH I, <b data-dc-tpl="165" style="color: var(--ink, rgb(246, 246, 247));">0,6 %</b> pour BERICH II, soit environ <b data-dc-tpl="166" style="color: var(--ink, rgb(246, 246, 247));">142 €</b> par position sur ton compte.</p>
-      </section>
-
-      
-      <section data-dc-tpl="167" style="display: flex; flex-direction: column; gap: 18px;">
-        <div data-dc-tpl="168" style="display: flex; flex-direction: column; gap: 6px;">
-          <span data-dc-tpl="169" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">02 — Projection</span>
-          <h2 data-dc-tpl="170" style="margin: 0px; font-size: 24px; font-weight: 700; letter-spacing: -0.03em;">Où ton plan peut t'emmener</h2>
-        </div>
-        <div data-dc-tpl="171" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 12, 16, 15), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.88)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 28px;">
-          <div data-dc-tpl="172" aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255), 0.5), transparent);"></div>
-          <figure data-dc-tpl="173" style="margin: 0px; display: flex; flex-direction: column; gap: 10px; min-width: 0px;">
-            <div data-dc-tpl="174" style="display: flex; gap: 10px;">
-              <div data-dc-tpl="175" style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130)); text-align: right;"><span data-dc-tpl="176">40 k€</span><span data-dc-tpl="177">30 k€</span><span data-dc-tpl="178">20 k€</span><span data-dc-tpl="179">10 k€</span></div>
-              <div data-dc-tpl="180" style="position: relative; flex: 1 1 0%; min-width: 0px; height: 260px;">
-                <svg data-dc-tpl="181" width="100%" height="260" viewBox="0 0 600 260" preserveAspectRatio="none" aria-hidden="true" style="display: block;">
-                  <line data-dc-tpl="182" x1="0" x2="600" y1="86.7" y2="86.7" stroke="#f9a45e" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"></line>
-                  <path data-dc-tpl="183" d="M0.0,260.0 L50.0,236.3 L100.0,212.7 L150.0,192.5 L200.0,170.6 L250.0,145.2 L300.0,118.9 L350.0,90.9 L400.0,62.1 L450.0,29.7 L500.0,-4.3 L550.0,-42.7 L600.0,-84.6 L600.0,185.9 L550.0,205.2 L500.0,221.1 L450.0,232.6 L400.0,242.4 L350.0,248.7 L300.0,254.2 L250.0,257.9 L200.0,260.0 L150.0,260.0 L100.0,257.8 L50.0,258.9 L0.0,260.0 Z" fill="rgba(51,230,166,.08)"></path>
-                  <path data-dc-tpl="184" d="M0.0,260.0 L50.0,243.4 L100.0,226.7 L150.0,213.5 L200.0,198.6 L250.0,180.3 L300.0,161.0 L350.0,140.1 L400.0,118.2 L450.0,92.9 L500.0,65.9 L550.0,34.5 L600.0,-0.3 L600.0,126.9 L550.0,151.2 L500.0,171.9 L450.0,188.4 L400.0,203.1 L350.0,214.3 L300.0,224.7 L250.0,233.3 L200.0,241.1 L150.0,245.4 L100.0,247.9 L50.0,254.0 L0.0,260.0 Z" fill="rgba(51,230,166,.16)"></path>
-                  <path data-dc-tpl="185" d="M0.0,260.0 L50.0,249.6 L100.0,239.2 L150.0,232.3 L200.0,223.6 L250.0,211.5 L300.0,198.5 L350.0,183.7 L400.0,168.1 L450.0,149.1 L500.0,128.3 L550.0,103.1 L600.0,74.5" fill="none" stroke="#33e6a6" stroke-width="2" vector-effect="non-scaling-stroke" style="filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.7) 0px 0px 8px);"></path>
-                  <path data-dc-tpl="186" d="M0.0,260.0 L50.0,253.1 L100.0,241.8 L150.0,247.0 L200.0,230.5 L250.0,223.6" fill="none" stroke="#f6f6f7" stroke-width="2.4" vector-effect="non-scaling-stroke"></path>
-                </svg>
-                <span data-dc-tpl="187" style="position: absolute; right: 8px; top: 33.3%; transform: translateY(-130%); font-size: 11px; font-weight: 600; color: rgb(var(--a2-rgb, 249, 164, 94));">Objectif 30 000 €</span>
-              </div>
-            </div>
-            <figcaption data-dc-tpl="188" style="display: flex; flex-wrap: wrap; gap: 16px; padding-left: 44px; font-size: 11.5px; color: var(--ink-2, rgb(155, 155, 161));">
-              <span data-dc-tpl="189" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="190" style="width: 14px; height: 8px; border-radius: 2px; background: rgba(var(--green-rgb, 51, 230, 166), 0.22);"></span>8 futurs sur 10</span>
-              <span data-dc-tpl="191" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="192" style="width: 14px; height: 8px; border-radius: 2px; background: rgba(var(--green-rgb, 51, 230, 166), 0.4);"></span>1 sur 2</span>
-              <span data-dc-tpl="193" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="194" style="width: 14px; height: 2px; background: rgb(var(--green-rgb, 51, 230, 166));"></span>futur médian</span>
-              <span data-dc-tpl="195" style="display: flex; align-items: center; gap: 7px;"><span data-dc-tpl="196" style="width: 14px; height: 2px; background: var(--ink, rgb(246, 246, 247));"></span>ton compte</span>
-            </figcaption>
-          </figure>
-          <div data-dc-tpl="197" style="display: flex; flex-direction: column; gap: 18px;">
-            <div data-dc-tpl="198" style="display: flex; align-items: center; gap: 18px;">
-              <div data-dc-tpl="199" style="position: relative; width: 120px; height: 120px; flex: 0 0 120px;">
-                <svg data-dc-tpl="200" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
-                  <circle data-dc-tpl="201" cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9"></circle>
-                  <circle data-dc-tpl="202" cx="60" cy="60" r="50" fill="none" stroke="#33e6a6" stroke-width="9" stroke-linecap="round" stroke-dasharray="201.1 314.2" transform="rotate(-90 60 60)" style="filter: drop-shadow(rgba(var(--green-rgb, 51, 230, 166), 0.6) 0px 0px 8px);"></circle>
-                </svg>
-                <span data-dc-tpl="203" style="position: absolute; inset: 0px; display: grid; place-items: center; font-size: 26px; font-weight: 700; letter-spacing: -0.03em;">64 %</span>
-              </div>
-              <span data-dc-tpl="204" style="font-size: 13px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));">des futurs simulés touchent <b data-dc-tpl="205" style="color: var(--ink, rgb(246, 246, 247));">30 000 €</b> en 12 mois, en restant sous ton recul accepté.</span>
-            </div>
-            <dl data-dc-tpl="206" style="margin: 0px; display: flex; flex-direction: column; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
-              <div data-dc-tpl="207" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);"><dt data-dc-tpl="208" style="color: var(--ink-2, rgb(155, 155, 161));">Médiane</dt><dd data-dc-tpl="209" style="margin: 0px 0px 0px auto; font-weight: 700; font-variant-numeric: tabular-nums;">31 400 €</dd></div>
-              <div data-dc-tpl="210" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);"><dt data-dc-tpl="211" style="color: var(--ink-2, rgb(155, 155, 161));">8 fois sur 10, entre</dt><dd data-dc-tpl="212" style="margin: 0px 0px 0px auto; font-weight: 700; font-variant-numeric: tabular-nums;">19 200 € <span data-dc-tpl="213" style="color: var(--ink-3, rgb(122, 122, 130)); font-weight: 500;">et</span> 46 800 €</dd></div>
-              <div data-dc-tpl="214" style="display: flex; align-items: baseline; gap: 10px; padding: 11px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);"><dt data-dc-tpl="215" style="color: var(--ink-2, rgb(155, 155, 161));">Creux probable en route</dt><dd data-dc-tpl="216" style="margin: 0px 0px 0px auto; font-weight: 700; color: var(--red-hi, rgb(255, 148, 160));">−12 % <span data-dc-tpl="217" style="color: var(--ink-3, rgb(122, 122, 130)); font-weight: 500;">· au pire −24 %</span></dd></div>
-            </dl>
-            <div data-dc-tpl="218" style="display: flex; flex-wrap: wrap; gap: 10px;">
-              <button data-dc-tpl="219" type="button" class="btn2" style="height: 38px; padding: 0px 16px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgb(var(--dk-rgb, 11, 11, 14)), rgb(var(--dk-rgb, 11, 11, 14))) padding-box padding-box, linear-gradient(135deg, rgba(var(--fg-rgb, 255, 255, 255), 0.14), rgba(var(--fg-rgb, 255, 255, 255), 0.14)) border-box border-box; color: var(--ink, rgb(246, 246, 247)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Comparer d'autres réglages</button>
-              <button data-dc-tpl="220" type="button" style="height: 38px; padding: 0px 4px; border: 0px; background: none; color: rgb(var(--a2-rgb, 249, 164, 94)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Refaire le quiz →</button>
-            </div>
-          </div>
+    <div class="chest-view">
+      <iframe id="chestView" title="Contenu" src="/landing-app/berich-page.html" allow="fullscreen; clipboard-write" allowfullscreen=""></iframe>
+      <!-- Maintenance (2026-10-24) : page mise en maintenance par l'admin (admin-members.html, Système). -->
+      <section class="chest-maint" id="chestMaint" role="status" aria-live="polite" hidden="">
+        <div class="chest-maint__card">
+          <span class="chest-maint__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L4 16.7 7.3 20l5.3-5.3a4 4 0 0 0 5.1-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg></span>
+          <span class="chest-maint__k" id="chestMaintK">Maintenance</span>
+          <h2 class="chest-maint__t" id="chestMaintTitle">On améliore cette partie de CHEST.</h2>
+          <p class="chest-maint__p" id="chestMaintText">Elle revient très vite. Tes données sont en sécurité.</p>
+          <div class="chest-maint__pills" id="chestMaintPills"></div>
+          <a class="chest-btn-2 chest-maint__back" id="chestMaintBack" href="#/dashboard" hidden="">Retour au Dashboard</a>
         </div>
       </section>
-
-      
-      <section data-dc-tpl="221" style="display: flex; flex-direction: column; gap: 18px;">
-        <div data-dc-tpl="222" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px;">
-          <div data-dc-tpl="223" style="display: flex; flex-direction: column; gap: 6px;">
-            <span data-dc-tpl="224" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">03 — Performances</span>
-            <h2 data-dc-tpl="225" style="margin: 0px; font-size: 24px; font-weight: 700; letter-spacing: -0.03em;"><span class="sc-interp">BERICH I</span> : depuis toujours, l'an dernier, cette année</h2>
-          </div>
-          <div data-dc-tpl="226" role="group" aria-label="Algorithme" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.024);">
-            
-              <button data-dc-tpl="228" type="button" aria-pressed="true" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;"><span class="sc-interp">BERICH I</span> <span data-dc-tpl="229" style="color: rgb(var(--a2-rgb, 249, 164, 94));"><span class="sc-interp">★</span></span></button>
-            
-              <button data-dc-tpl="228" type="button" aria-pressed="false" style="height: 32px; padding: 0px 14px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;"><span class="sc-interp">BERICH II</span> <span data-dc-tpl="229" style="color: rgb(var(--a2-rgb, 249, 164, 94));"><span class="sc-interp">★</span></span></button>
-            
-          </div>
-        </div>
-        <div data-dc-tpl="230" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px;">
-          
-            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
-              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Depuis toujours</span></span>
-              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202)); text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 22px;"><span class="sc-interp">+96,0 R</span></span>
-              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));"><b data-dc-tpl="236" style="font-size: 15px; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+184 %</span></b><span class="sc-interp">1 000 € → 2 840 €</span></span>
-              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">473</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">41,6 %</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">1,92</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+0,20 R</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−9,0 R</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">28 sur 34</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: 1 / -1;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+14,0 R · mars 2024</span></dd>
-                  </div>
-                
-              </dl>
-              <span data-dc-tpl="242" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">depuis le 3 janv. 2023</span></span>
-            </article>
-          
-            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
-              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">L’année dernière · 2025</span></span>
-              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202)); text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 22px;"><span class="sc-interp">+31,0 R</span></span>
-              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));"><b data-dc-tpl="236" style="font-size: 15px; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+36 %</span></b><span class="sc-interp">1 000 € → 1 360 €</span></span>
-              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">162</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">40,1 %</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">1,71</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+0,19 R</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−7,0 R</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">10 sur 12</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: 1 / -1;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+9,0 R · juillet 2025</span></dd>
-                  </div>
-                
-              </dl>
-              <span data-dc-tpl="242" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">du 1er janvier au 31 décembre 2025</span></span>
-            </article>
-          
-            <article data-dc-tpl="232" class="tile" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
-              <span data-dc-tpl="233" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Cette année · 2026</span></span>
-              <span data-dc-tpl="234" style="font-size: 38px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202)); text-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.35) 0px 0px 22px;"><span class="sc-interp">+27,0 R</span></span>
-              <span data-dc-tpl="235" style="display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-2, rgb(155, 155, 161));"><b data-dc-tpl="236" style="font-size: 15px; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+31 %</span></b><span class="sc-interp">1 000 € → 1 310 €</span></span>
-              <dl data-dc-tpl="237" style="margin: 4px 0px 0px; display: grid; grid-template-columns: 1fr 1fr; gap: 0px 18px; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Positions</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">139</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Winrate</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">43,2 %</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Profit factor</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">2,04</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Espérance</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+0,19 R</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Drawdown max</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−6,0 R</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: auto;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Mois positifs</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">8 sur 10</span></dd>
-                  </div>
-                
-                  <div data-dc-tpl="239" style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); grid-column: 1 / -1;">
-                    <dt data-dc-tpl="240" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">Meilleur mois</span></dt><dd data-dc-tpl="241" style="margin: 0px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">+8,0 R · avril 2026</span></dd>
-                  </div>
-                
-              </dl>
-              <span data-dc-tpl="242" style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">depuis le 1er janvier 2026</span></span>
-            </article>
-          
-        </div>
-        <p data-dc-tpl="243" style="margin: 0px; font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));">Le calcul en euros suit le réglage de ton plan pour cet algorithme (1 %, palier après 3 stops) en partant de 10 000 €, gains réinvestis.</p>
-      </section>
-
-      
-      <section data-dc-tpl="244" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 14, 14, 17), 0.72), rgba(var(--dk-rgb, 9, 9, 11), 0.86)); box-shadow: rgba(0, 0, 0, calc(0.45 * var(--sh-k, 1))) 0px 18px 44px, rgba(var(--fg-rgb, 255, 255, 255), 0.14) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.04) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 12px;">
-        <div data-dc-tpl="245" aria-hidden="true" style="position: absolute; top: 0px; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255), 0.5), transparent);"></div>
-        <div data-dc-tpl="246" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;">
-          <div data-dc-tpl="247" style="display: flex; flex-direction: column; gap: 6px;">
-            <span data-dc-tpl="248" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">04 — Registre</span>
-            <h2 data-dc-tpl="249" style="margin: 0px; font-size: 20px; font-weight: 700; letter-spacing: -0.025em;">Toutes les positions</h2>
-          </div>
-          <div data-dc-tpl="250" role="group" aria-label="Filtre" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.1); border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.024);">
-            <button data-dc-tpl="251" type="button" aria-pressed="true" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: var(--ink, rgb(246, 246, 247)); color: var(--bg-0, rgb(5, 5, 5)); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">Toutes</button>
-            <button data-dc-tpl="252" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Gagnantes</button>
-            <button data-dc-tpl="253" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Perdantes</button>
-            <button data-dc-tpl="254" type="button" style="height: 30px; padding: 0px 12px; border: 0px; border-radius: 999px; background: transparent; color: var(--ink-2, rgb(155, 155, 161)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">En cours</button>
-          </div>
-        </div>
-        <div data-dc-tpl="255" style="overflow-x: auto;">
-          <div data-dc-tpl="256" style="min-width: 760px; display: flex; flex-direction: column;">
-            <div data-dc-tpl="257" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; padding: 8px; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130)); border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
-              <span data-dc-tpl="258">Ouverture</span><span data-dc-tpl="259">Algo</span><span data-dc-tpl="260">Sens</span><span data-dc-tpl="261">Entrée</span><span data-dc-tpl="262">Sortie</span><span data-dc-tpl="263">Issue</span><span data-dc-tpl="264">Durée</span><span data-dc-tpl="265" style="text-align: right;">R</span>
-            </div>
-            
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">2 nov. 13:45</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
-                <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 061,2</span></span>
-                <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">en cours</span></span>
-                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Ouverte</span></span>
-                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">55 min</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+1,9</span></span>
-              </div>
-            
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">31 oct. 10:30</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
-                <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 012,5</span></span>
-                <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 040,7</span></span>
-                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Objectif 3 R</span></span>
-                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">6,2 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+3,0</span></span>
-              </div>
-            
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">29 oct. 15:15</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH II</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--red-hi, rgb(255, 148, 160)); background: rgba(var(--red-rgb, 255, 77, 94), 0.12);"><span class="sc-interp">Vente</span></span></span>
-                <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 031,0</span></span>
-                <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 038,4</span></span>
-                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Stop</span></span>
-                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">0,8 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−1,0</span></span>
-              </div>
-            
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">28 oct. 09:00</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
-                <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 044,8</span></span>
-                <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 039,6</span></span>
-                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Stop</span></span>
-                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">1,1 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−1,0</span></span>
-              </div>
-            
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">24 oct. 14:45</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH II</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
-                <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 002,1</span></span>
-                <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 049,6</span></span>
-                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Objectif 5 R</span></span>
-                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">1,9 j</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+5,0</span></span>
-              </div>
-            
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">22 oct. 11:15</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH II</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--red-hi, rgb(255, 148, 160)); background: rgba(var(--red-rgb, 255, 77, 94), 0.12);"><span class="sc-interp">Vente</span></span></span>
-                <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 018,7</span></span>
-                <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 018,7</span></span>
-                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Sortie à 0</span></span>
-                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">3,4 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">0,0</span></span>
-              </div>
-            
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">20 oct. 16:00</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--red-hi, rgb(255, 148, 160)); background: rgba(var(--red-rgb, 255, 77, 94), 0.12);"><span class="sc-interp">Vente</span></span></span>
-                <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 051,3</span></span>
-                <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">4 027,9</span></span>
-                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Objectif 3 R</span></span>
-                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">4,7 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+3,0</span></span>
-              </div>
-            
-              <div data-dc-tpl="267" class="row-h" style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 0.9fr 0.9fr 1.1fr 0.7fr 0.7fr; gap: 10px; align-items: center; padding: 11px 8px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.043); font-size: 12.5px;">
-                <span data-dc-tpl="268" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">17 oct. 08:30</span></span>
-                <span data-dc-tpl="269" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 11px; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">BERICH I</span></span>
-                <span data-dc-tpl="270"><span data-dc-tpl="271" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
-                <span data-dc-tpl="272" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">3 998,4</span></span>
-                <span data-dc-tpl="273" style="font-variant-numeric: tabular-nums;"><span class="sc-interp">3 993,1</span></span>
-                <span data-dc-tpl="274" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Stop</span></span>
-                <span data-dc-tpl="275" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">0,6 h</span></span>
-                <span data-dc-tpl="276" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−1,0</span></span>
-              </div>
-            
-          </div>
-        </div>
-        <button data-dc-tpl="277" type="button" style="align-self: center; height: 34px; padding: 0px 16px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: transparent; color: var(--ink-1, rgb(201, 201, 206)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; cursor: pointer;">Afficher 10 de plus · 473 positions</button>
-      </section>
-
-      
-      <section data-dc-tpl="278" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px;">
-        <div data-dc-tpl="279" class="tile" style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
-          <div data-dc-tpl="280" style="display: flex; flex-direction: column; gap: 6px;">
-            <span data-dc-tpl="281" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">05 — Sessions</span>
-            <span data-dc-tpl="282" style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em;">Quand l'algorithme performe</span>
-            <span data-dc-tpl="283" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));">Longueur de barre = winrate, chiffre = résultat cumulé. Heures de Paris.</span>
-          </div>
-          
-            <div data-dc-tpl="285" style="display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 12px;">
-              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Asie</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">01:00 → 09:00</span></span></span>
-              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 31%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--red-rgb, 255, 77, 94)), var(--red-hi, rgb(255, 148, 160))); box-shadow: none;"></div></div>
-              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−6,0 R</span></span>
-            </div>
-          
-            <div data-dc-tpl="285" style="display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 12px;">
-              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Londres</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">09:00 → 14:00</span></span></span>
-              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 46%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), var(--green-hi, rgb(110, 242, 201))); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.4) 0px 0px 10px;"></div></div>
-              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+42,0 R</span></span>
-            </div>
-          
-            <div data-dc-tpl="285" style="display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 12px;">
-              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">Chevauchement</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">14:00 → 18:00</span></span></span>
-              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 51%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), var(--green-hi, rgb(110, 242, 201))); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.4) 0px 0px 10px;"></div></div>
-              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+49,0 R</span></span>
-            </div>
-          
-            <div data-dc-tpl="285" style="display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 12px;">
-              <span data-dc-tpl="286" style="display: flex; flex-direction: column; gap: 1px;"><span data-dc-tpl="287" style="font-weight: 600;"><span class="sc-interp">New York</span></span><span data-dc-tpl="288" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">18:00 → 23:00</span></span></span>
-              <div data-dc-tpl="289" style="height: 10px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><div data-dc-tpl="290" style="height: 100%; width: 38%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), var(--green-hi, rgb(110, 242, 201))); box-shadow: rgba(var(--green-rgb, 51, 230, 166), 0.4) 0px 0px 10px;"></div></div>
-              <span data-dc-tpl="291" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+11,0 R</span></span>
-            </div>
-          
-        </div>
-        <div data-dc-tpl="292" class="tile" style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset;">
-          <div data-dc-tpl="293" style="display: flex; flex-direction: column; gap: 6px;">
-            <span data-dc-tpl="294" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">06 — Sens &amp; durée</span>
-            <span data-dc-tpl="295" style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em;">Achats, ventes, temps en position</span>
-          </div>
-          <div data-dc-tpl="296" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0px;">
-            <div data-dc-tpl="297" style="display: flex; flex-direction: column; gap: 6px; padding-right: 18px;">
-              <span data-dc-tpl="298" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--green-hi, rgb(127, 243, 202));">Achats · 278</span>
-              <span data-dc-tpl="299" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--green-hi, rgb(127, 243, 202));">+64,2 R</span>
-              <span data-dc-tpl="300" style="font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">winrate 44 %</span>
-            </div>
-            <div data-dc-tpl="301" style="display: flex; flex-direction: column; gap: 6px; padding-left: 18px; border-left: 1px solid rgba(var(--a2-rgb, 249, 164, 94), 0.5);">
-              <span data-dc-tpl="302" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--red-hi, rgb(255, 148, 160));">Ventes · 195</span>
-              <span data-dc-tpl="303" style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--green-hi, rgb(127, 243, 202));">+31,8 R</span>
-              <span data-dc-tpl="304" style="font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">winrate 39 %</span>
-            </div>
-          </div>
-          <div data-dc-tpl="305" style="display: flex; height: 10px; border-radius: 999px; overflow: hidden;">
-            <div data-dc-tpl="306" style="width: 59%; background: linear-gradient(90deg, rgb(var(--green-rgb, 51, 230, 166)), rgba(var(--green-rgb, 51, 230, 166), 0.5));"></div>
-            <div data-dc-tpl="307" style="width: 41%; background: linear-gradient(90deg, rgba(var(--red-rgb, 255, 77, 94), 0.5), rgb(var(--red-rgb, 255, 77, 94)));"></div>
-          </div>
-          <dl data-dc-tpl="308" style="margin: 4px 0px 0px; display: flex; flex-direction: column; border-top: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
-            <div data-dc-tpl="309" style="display: flex; justify-content: space-between; padding: 10px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><dt data-dc-tpl="310" style="color: var(--ink-2, rgb(155, 155, 161));">Temps moyen · gagnantes</dt><dd data-dc-tpl="311" style="margin: 0px; font-weight: 700;">5,8 h</dd></div>
-            <div data-dc-tpl="312" style="display: flex; justify-content: space-between; padding: 10px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05);"><dt data-dc-tpl="313" style="color: var(--ink-2, rgb(155, 155, 161));">Temps moyen · perdantes</dt><dd data-dc-tpl="314" style="margin: 0px; font-weight: 700;">1,4 h</dd></div>
-            <div data-dc-tpl="315" style="display: flex; justify-content: space-between; padding: 10px 0px;"><dt data-dc-tpl="316" style="color: var(--ink-2, rgb(155, 155, 161));">Plus longue position</dt><dd data-dc-tpl="317" style="margin: 0px; font-weight: 700;">3,2 j</dd></div>
-          </dl>
-        </div>
-      </section>
+      <span class="chest-maint-pill" id="chestMaintPill" hidden="">En maintenance pour les membres</span>
     </div>
-  </main></div></div></div>
+  </main>
+</div>
 
 
 
 
-<style>
-/* Démonstration de la landing (2026-11-03) : maquette CHEST 2.0 sans les entrées réservées à l'équipe */
-.nav-i.adm, a[href="Admin.dc.html"], .sb-sep{ display:none !important; }
-html{ scrollbar-width:none; } ::-webkit-scrollbar{ display:none; }
-a{ cursor:pointer; }
-</style>
-<script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div aria-hidden="true" style="position: absolute; width: 0px; height: 0px; overflow: hidden;"><svg width="0" height="0"><filter id="c2-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.006 0.02" numOctaves="2" seed="7" result="noise"></feTurbulence><feGaussianBlur in="noise" stdDeviation="2" result="soft"></feGaussianBlur><feDisplacementMap in="SourceGraphic" in2="soft" scale="60" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter></svg></div><script>
 document.addEventListener('click', function (e) {
-  var a = e.target.closest('a'); if (!a) return; e.preventDefault();
-  var m = { 'Main.dc.html': 'dashboard', 'Backtesting.dc.html': 'backtesting', 'Journal.dc.html': 'journal', 'Strategies.dc.html': 'strategies', 'Calendrier.dc.html': 'calendar', 'Berich.dc.html': 'berich', 'School.dc.html': 'school' }[a.getAttribute('href')];
+  var a = e.target.closest('a, button'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  var p = a.getAttribute('data-page') || ''; var m = { dashboard: 'dashboard', backtesting: 'backtesting', journal: 'journal', strategies: 'strategies', calendar: 'calendar', berich: 'berich', school: 'school' }[p];
   if (m && window.parent !== window) window.parent.postMessage({ chestDemo: m }, location.origin);
 }, true);
-</script>
-</body>
-</html>
+</script></body></html>

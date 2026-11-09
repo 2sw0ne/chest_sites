@@ -1,544 +1,477 @@
 <!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=1440">
-<meta name="robots" content="noindex">
-<title>CHEST (démo) — School</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Fragment+Mono&display=swap">
+<html lang="fr" class="is-shell lg-refract" data-accent="chest"><head><base href="/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>School — CHEST</title>
+<link rel="icon" type="image/png" href="assets/logo-chest.png">
+<!-- PWA (2026-09-26, demande utilisateur : "app installable, logo, notifications") : manifest +
+     icônes + service worker (sw.js) - installe le site sur l'écran d'accueil comme une vraie app
+     (plein écran, sans barre de navigateur), gère les notifications push. Voir js/pwa.js. -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050505">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<!-- Fond sombre IMMÉDIAT, avant toute feuille de style externe (retour utilisateur 2026-09-23 : « on a un
+     bug au chargement, je veux vraiment garder le visuel fluide sur le fond, pas ce sentiment que ça
+     charge ») : sans ça, le navigateur affiche un blanc par défaut tant que les polices Google Fonts (une
+     requête réseau externe, potentiellement lente) et les CSS locales n'ont pas fini de charger, puisqu'un
+     <link rel="stylesheet"> bloque le premier rendu de toute la page. Ce style inline n'a besoin d'aucun
+     fichier externe : il s'applique donc dès l'analyse du <head>. -->
+<style>html,body{background:var(--bg-0, #050505)}</style>
+
+<!-- Cache le shell UNIQUEMENT le temps que welcome.js démarre (retour utilisateur 2026-09-23 : « ça ouvre 1
+     sec le dashboard et ça revient, le welcome apparaît ») : `#chestWelcome` porte `hidden` en dur dans le
+     HTML, retiré seulement par welcome.js (chargé après tout le reste du <body>) — le temps qu'il s'exécute,
+     le shell était le premier contenu visible. `wel-boot-hide` (classe TEMPORAIRE, retirée par `show()` dès
+     qu'il tourne, voir welcome.js) ferme cette fenêtre SANS jamais rester posée pendant tout le défilement —
+     bug du 1er correctif (2026-09-23, retour : « je vois plus le dashboard quand je scroll, c'est tout noir,
+     c'est en arrivant en bas que je le vois ») : la classe utilisée alors (`is-welcome`) reste active pendant
+     TOUT le défilement de Welcome (jusqu'à `finish()`, tout en bas), donc le shell restait cache noir pendant
+     toute la descente au lieu d'apparaître progressivement sous la Newsletter comme prévu. -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<!-- Polices en chargement non bloquant (motif "loadCSS") : le rendu ne les attend plus, elles s'appliquent
+     dès qu'elles arrivent (bascule media print -> all), au lieu de retarder le premier affichage. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Instrument+Serif:ital@1&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Instrument+Serif:ital@1&amp;display=swap" media="all" onload="this.media='all'">
+
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/chest-da.css?v=22">
+<link rel="stylesheet" href="css/patch-chest-da.css?v=23">
+<link rel="stylesheet" href="css/welcome.css?v=44">
+<link id="chestLightCss" rel="stylesheet" href="/css/light.css?v=1"><style id="chestAccentVars">:root{--a1:#fc1283;--a1-rgb:252, 18, 131;--a2:#f9a45e;--a2-rgb:249, 164, 94;}:root:not([data-mode="light"]){color-scheme:dark;}html[data-mode="light"]{color-scheme:light;--fg-rgb:18,18,30;--ink:#141419;--ink-1:#2c2c34;--ink-2:#565660;--ink-3:#787882;--ink-4:#9d9da6;--bg-0:#f2f2f5;--bg0-rgb:242,242,245;--bg-1:#ffffff;--dk-rgb:255,255,255;--sh-k:.22;--green:#0b9b69;--green-rgb:11,155,105;--green-hi:#08875b;--red:#dc3348;--red-rgb:220,51,72;--red-hi:#c62a3e;--amber:#c4860a;--amber-rgb:196,134,10;--amber-hi:#a46f00;--txt-top:#141419;--pos-mid:#0f7a55;--neg-mid:#b3263a;--brand-mid:#b9480f;}html[data-mode="light"] :is(#scnrMediaCard,.ct-modal,.chart-dark,.wel){color-scheme:dark;color:#f6f6f7;--fg-rgb:initial;--ink:initial;--ink-1:initial;--ink-2:initial;--ink-3:initial;--ink-4:initial;--bg-0:initial;--bg0-rgb:initial;--bg-1:initial;--dk-rgb:initial;--sh-k:initial;--green:initial;--green-rgb:initial;--green-hi:initial;--red:initial;--red-rgb:initial;--red-hi:initial;--amber:initial;--amber-rgb:initial;--amber-hi:initial;--txt-top:initial;--pos-mid:initial;--neg-mid:initial;--brand-mid:initial}html[data-mode="light"] body{background-color:#f2f2f5;}html[data-mode="light"] ::selection{background:rgba(var(--a1-rgb),.2);}</style>
+
+
+
+
+
+<link rel="stylesheet" href="css/v2.css?v=19">
+<link rel="stylesheet" href="css/chest-da-2.css?v=7">
+<link rel="stylesheet" href="css/chest-2-site.css?v=18">
+<link rel="stylesheet" href="css/auth-2.css?v=8">
+<link rel="stylesheet" href="css/shell-2.css?v=19">
+<!-- Offres (2026-10-18) : cadenas discret sur School / BERICH quand l'offre ne les inclut pas (classes posées par shell.js). -->
 <style>
-
-    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
-      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
-      border-radius:2px;box-sizing:border-box;overflow:hidden}
-    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
-    html.sc-dc-streaming .sc-placeholder,
-    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
-      background:color-mix(in srgb,currentColor 5%,transparent);
-      border-color:transparent}
-    html.sc-dc-streaming .sc-placeholder::before,
-    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
-      position:absolute;inset:0;pointer-events:none;
-      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
-      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
-    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
-    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
-      background:color-mix(in srgb,currentColor 8%,transparent)}
-    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
-      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
-    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
-      vertical-align:text-bottom;background:rgba(var(--fg-rgb, 255, 255, 255),.3);border:1px solid rgba(0, 0, 0, calc(.5 * var(--sh-k, 1)));
-      border-radius:2px;box-sizing:border-box;color:transparent;
-      user-select:none}
-    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
-      color:color-mix(in srgb,currentColor 50%,transparent);
-      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
-      padding:0 3px}
-    .sc-host.sc-has-error{position:relative}
-    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
-      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
-      border-radius:4px;white-space:pre-wrap;pointer-events:none}
-    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts — keep both
-       in sync until dc-runtime regains a build step. */
-    @media print {
-      @page { margin: 0.5cm; }
-      figure, table { break-inside: avoid; }
-      #dc-root, #dc-root > .sc-host { height: auto; }
-      *, *::before, *::after {
-        print-color-adjust: exact; -webkit-print-color-adjust: exact;
-        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-        animation-delay: -99s !important; animation-duration: .001s !important;
-        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
-        animation-play-state: running !important; transition-duration: 0s !important;
-      }
-    }
-  
-
-body{margin:0;background:var(--bg-0, #050506)}
-a{color:var(--ink, #f6f6f7);text-decoration:none}a:hover{color:#ffffff}
-.tile{transition:border-color .2s cubic-bezier(.16,1,.3,1),transform .22s cubic-bezier(.16,1,.3,1)}
-.tile:hover{border-color:rgba(var(--a2-rgb, 249, 164, 94),.32)}
-.course:hover{transform:translateY(-3px);border-color:rgba(var(--a2-rgb, 249, 164, 94),.45)!important}
-.row-h:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.025)}
-.sbT{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
-.sb{position:relative;z-index:3;flex:0 0 248px;max-width:248px;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;background:rgba(var(--dk-rgb, 8, 8, 10),.86);transition:flex-basis .28s cubic-bezier(.16,1,.3,1),max-width .28s cubic-bezier(.16,1,.3,1)}
-.sb::before{content:'';position:absolute;left:0;right:0;top:0;height:220px;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 20% 0%,rgba(var(--a1-rgb, 252, 18, 131),.09),transparent 75%)}
-.sb::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(var(--fg-rgb, 255, 255, 255),.1) 12%,rgba(var(--fg-rgb, 255, 255, 255),.1) 88%,transparent)}
-.sb-tog{position:absolute;top:50%;right:-22px;z-index:4;width:22px;height:112px;margin-top:-56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-2, #9b9ba1)}
-.sb-tog:hover{color:var(--ink, #f6f6f7)}
-.sb-tog__bg{position:absolute;inset:0 0 0 -1px;width:calc(100% + 1px);height:100%;overflow:visible}
-.sb-tog__bg path{fill:var(--bg-1, #070709);stroke:rgba(var(--fg-rgb, 255, 255, 255),.12);stroke-width:1px;vector-effect:non-scaling-stroke;transition:stroke .2s}
-.sb-tog:hover .sb-tog__bg path{stroke:rgba(var(--fg-rgb, 255, 255, 255),.28)}
-.sb-tog .chev{position:relative;margin-left:-5px;transform:rotate(180deg);transition:transform .28s cubic-bezier(.16,1,.3,1)}
-.sb-brand{position:relative;display:flex;align-items:center;gap:10px;padding:20px 22px 4px;color:var(--ink, #f6f6f7);text-decoration:none;font-size:16px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
-.sb-brand img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 7px rgba(var(--a1-rgb, 252, 18, 131),.55))}
-.sb-label{position:relative;padding:22px 26px 10px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3, #7a7a82);white-space:nowrap;overflow:hidden}
-.sb-nav{position:relative;display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
-.nav-i{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:13.5px;font-weight:600;color:var(--ink-2, #9b9ba1);text-decoration:none;white-space:nowrap;transition:color .18s,background-color .18s,transform .16s}
-.nav-i:active{transform:scale(.98)}
-.nav-i .ic{flex:0 0 18px;stroke:rgba(var(--fg-rgb, 255, 255, 255),.34);transition:stroke .18s}
-.nav-i:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.04);color:var(--ink, #f6f6f7)}
-.nav-i:hover .ic{stroke:rgba(var(--fg-rgb, 255, 255, 255),.7)}
-.nav-i.on{color:var(--ink, #f6f6f7);font-weight:700;background:linear-gradient(90deg,rgba(var(--a1-rgb, 252, 18, 131),.16),rgba(var(--a2-rgb, 249, 164, 94),.05) 60%,transparent)}
-.nav-i.on .ic{stroke:url(#sbg);filter:drop-shadow(0 0 6px rgba(var(--a1-rgb, 252, 18, 131),.55))}
-.nav-i.on::before{content:'';position:absolute;left:-12px;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 0 14px rgba(var(--a1-rgb, 252, 18, 131),.8)}
-.nav-i.adm .ic{stroke:url(#sba)}
-.nav-i.adm .sb-txt{background:linear-gradient(90deg,#ff8a1f,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sb-sep{height:1px;margin:10px 6px 6px;background:linear-gradient(90deg,rgba(255,138,31,.55),rgba(255,210,63,0))}
-.sb-acc{position:relative;padding:16px 18px 20px;border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.07)}
-.sb-acc__label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3, #7a7a82);margin-bottom:9px;white-space:nowrap}
-.sb-acc__row{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0;color:var(--ink, #f6f6f7);text-decoration:none;border-radius:10px}
-.sb-acc.on .sb-acc__row{box-shadow:0 0 0 1px rgba(var(--a2-rgb, 249, 164, 94),.45);background:rgba(var(--a1-rgb, 252, 18, 131),.08);padding:6px;margin:-6px -6px 8px}
-.sb-acc__av{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e))}
-.sb-acc__id{display:flex;flex-direction:column;min-width:0}
-.sb-acc__id b{font-size:12.5px;line-height:1.25}
-.sb-acc__id span{font-size:11px;color:var(--ink-3, #7a7a82);overflow:hidden;text-overflow:ellipsis}
-.sb-out{width:100%;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:rgba(var(--fg-rgb, 255, 255, 255),.07);color:var(--ink-2, #9b9ba1);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
-.sb-out:hover{background:rgba(var(--fg-rgb, 255, 255, 255),.11);color:var(--ink, #f6f6f7)}
-.sbT:checked ~ .sb{flex-basis:76px;max-width:76px}
-.sbT:checked ~ .sb .sb-txt{display:none}
-.sbT:checked ~ .sb .sb-tog .chev{transform:none}
-.sbT:checked ~ .sb .sb-brand{justify-content:center;padding:20px 0 4px}
-.sbT:checked ~ .sb .sb-label{height:22px;padding:0}
-.sbT:checked ~ .sb .sb-nav{padding:0 11px}
-.sbT:checked ~ .sb .nav-i{justify-content:center;padding:11px 0;gap:0}
-.sbT:checked ~ .sb .nav-i.on::before{left:-11px}
-.sbT:checked ~ .sb .sb-acc{padding:16px 0 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
-.sbT:checked ~ .sb .sb-acc__row{margin:0;justify-content:center}
-.sbT:checked ~ .sb .sb-out{width:38px;padding:0}
-.calc-fab{position:fixed;right:28px;bottom:28px;z-index:20;width:54px;height:54px;border-radius:999px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e));box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.4),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s}
-.calc-fab:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(var(--a1-rgb, 252, 18, 131),.55),inset 0 1px 0 rgba(var(--fg-rgb, 255, 255, 255),.3);color:#fff}
-@media (max-width:900px){.sb{flex-basis:100%!important;max-width:none!important;min-height:0!important}.sb-nav{flex-direction:row!important;flex-wrap:wrap}.hide-sm{display:none!important}.ghost{font-size:90px!important}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-
+  html.plan-no-school .chest-nav__item[data-page="school"]::after,
+  html.plan-no-berich .chest-nav__item[data-page="berich"]::after{
+    content:''; flex-shrink:0; width:12px; height:12px; margin-left:auto; background:currentColor; opacity:.5;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+  .chest-shell.is-collapsed .chest-nav__item::after{ display:none; }
 </style>
-</head>
-<body>
+<style id="lgLinksCss">.lg-links{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 0;max-width:640px;margin:6px auto 0;font-size:11.5px;line-height:1.6}.lg-links a{color:var(--chest-ink-3,#5c5c63);text-decoration:none;padding:0 9px;position:relative;transition:color .18s cubic-bezier(.16,1,.3,1)}.lg-links a+a::before{content:"";position:absolute;left:-1.5px;top:50%;width:3px;height:3px;margin-top:-1.5px;border-radius:50%;background:currentColor;opacity:.5}.lg-links a:hover,.lg-links a:focus-visible{color:var(--chest-ink-2,#9b9ba1);text-decoration:underline;text-underline-offset:3px}.lg-links__risk{margin:4px auto 0;max-width:560px;text-align:center;font-size:10.5px;line-height:1.5;color:var(--chest-ink-3,#5c5c63);opacity:.8}</style><style id="csCss">
+.cs{ position:fixed; inset:0; z-index:9000; display:grid; place-items:center; padding:16px; background:rgba(var(--dk-rgb, 3, 3, 4),.78); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  font-family:"Instrument Sans", system-ui, sans-serif; color:var(--ink, #f6f6f7); animation:csFade .2s cubic-bezier(.16,1,.3,1); }
+@keyframes csFade{ from{ opacity:0; } }
+.cs-box{ width:min(520px,100%); max-height:calc(100dvh - 32px); overflow:auto; padding:26px; border-radius:24px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1);
+  background:linear-gradient(170deg, rgba(var(--dk-rgb, 22, 12, 18),.96), rgba(var(--dk-rgb, 8, 8, 10),.98)); box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), 0 0 60px rgba(var(--a1-rgb, 252, 18, 131),.08);
+  animation:csIn .3s cubic-bezier(.16,1,.3,1); }
+@keyframes csIn{ from{ opacity:0; transform:translateY(10px) scale(.985); } }
+.cs-k{ font-size:10px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-4, #5c5c63); }
+.cs-box h2{ margin:10px 0 0; font-size:24px; font-weight:600; letter-spacing:-.035em; line-height:1.15; }
+.cs-lead{ margin:10px 0 0; font-size:13.5px; line-height:1.6; color:var(--ink-2, #9b9ba1); }
+.cs-checks{ display:grid; gap:8px; margin:20px 0 0; }
+.cs-check{ position:relative; display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; cursor:pointer; text-align:left;
+  border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.025); font-size:13px; line-height:1.55; color:var(--ink-1, #c9c9ce); transition:border-color .2s, background .2s; }
+.cs-check:hover{ border-color:rgba(var(--fg-rgb, 255, 255, 255),.18); }
+.cs-check input{ position:absolute; opacity:0; width:1px; height:1px; }
+.cs-box__b{ flex-shrink:0; width:20px; height:20px; margin-top:1px; border-radius:6px; border:1.5px solid rgba(var(--fg-rgb, 255, 255, 255),.28); display:grid; place-items:center; transition:background .18s, border-color .18s; }
+.cs-box__b svg{ width:12px; height:12px; fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; opacity:0; transform:scale(.6); transition:opacity .18s, transform .18s cubic-bezier(.16,1,.3,1); }
+.cs-check input:checked + .cs-box__b{ background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); border-color:transparent; }
+.cs-check input:checked + .cs-box__b svg{ opacity:1; transform:none; }
+.cs-check input:focus-visible + .cs-box__b{ outline:2px solid rgba(var(--a1-rgb, 252, 18, 131),.6); outline-offset:2px; }
+.cs-check:has(input:checked){ border-color:rgba(var(--a1-rgb, 252, 18, 131),.35); background:rgba(var(--a1-rgb, 252, 18, 131),.05); }
+.cs-check a{ color:var(--ink, #f6f6f7); text-decoration:underline; text-decoration-color:rgba(var(--a1-rgb, 252, 18, 131),.5); text-underline-offset:2px; }
+.cs-check b{ color:var(--ink, #f6f6f7); font-weight:600; }
+.cs-err{ min-height:1em; margin:12px 0 0; font-size:12.5px; color:var(--red, #ff4d5e); }
+.cs-err:empty{ display:none; }
+.cs-foot{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:20px; }
+.cs-cta{ font:inherit; flex:1; min-height:48px; padding:0 22px; border:none; border-radius:999px; cursor:pointer; font-size:14.5px; font-weight:600; color:#fff;
+  background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.3); transition:transform .16s cubic-bezier(.16,1,.3,1), opacity .2s, box-shadow .2s; }
+.cs-cta:active{ transform:scale(.98); }
+.cs-cta:disabled{ opacity:.35; cursor:not-allowed; box-shadow:none; transform:none; }
+.cs-alt{ font:inherit; background:none; border:none; padding:10px 4px; font-size:13px; color:var(--ink-2, #9b9ba1); cursor:pointer; text-decoration:none; }
+.cs-alt:hover{ color:var(--ink, #f6f6f7); }
+.cs-note{ margin:14px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-4, #5c5c63); text-align:center; }
+/* CHEST 2.0 (maquettes T-Paiement, T-Conditions, Edu-Accueil, 2026-11-03) */
+.cs-box{ border-radius:20px; border-color:rgba(var(--fg-rgb, 255, 255, 255),.13); background:linear-gradient(170deg, rgba(var(--dk-rgb, 30, 20, 28),.92), rgba(var(--dk-rgb, 10, 10, 12),.96)); box-shadow:0 40px 120px rgba(0, 0, 0, calc(.7 * var(--sh-k, 1))), inset 1.5px 1.5px 0 rgba(255, 255, 255, .1); }
+.cs-k{ font-family:"Fragment Mono", ui-monospace, monospace; font-size:9.5px; font-weight:500; letter-spacing:.2em; color:var(--a2, #f9a45e); }
+.cs-box h2{ margin-top:6px; font-size:22px; }
+.cs-head{ display:flex; align-items:center; gap:14px; }
+.cs-head__ic{ flex:none; display:inline-flex; }
+.cs-head__ic svg{ display:block; }
+.cs-box.is-center{ text-align:center; }
+.cs-box.is-center .cs-head{ flex-direction:column; gap:12px; }
+.cs-box.is-center h2{ font-size:26px; margin-top:4px; }
+.cs-tile{ width:52px; height:52px; border-radius:16px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,var(--a1, #fc1283),var(--a2, #f9a45e)); box-shadow:0 14px 40px rgba(var(--a1-rgb, 252, 18, 131),.35), inset 0 1px 0 rgba(255, 255, 255, .35); }
+.cs-tile svg{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.cs-check a{ color:var(--a2, #f9a45e); text-decoration:none; }
+.cs-check a:hover{ text-decoration:underline; text-underline-offset:2px; }
+.cs-alt.is-btn{ min-height:44px; padding:0 18px; border-radius:12px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.14); background:rgba(var(--fg-rgb, 255, 255, 255),.04); color:var(--ink, #f6f6f7); font-weight:600; }
+.cs-alt.is-btn:hover{ background:rgba(var(--fg-rgb, 255, 255, 255),.08); }
+.cs-box.is-center .cs-foot{ flex-wrap:nowrap; }
+.cs-box.is-center .cs-alt.is-btn{ flex:1; }
+.cs-box.is-center .cs-cta{ flex:1.6; min-height:44px; border-radius:12px; }
+.cs-stripe{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-3, #7a7a82); margin-right:auto; }
+.cs-stripe svg{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.8; }
+.cs-box.is-pay .cs-foot{ flex-wrap:nowrap; }
+.cs-box.is-pay .cs-cta{ flex:none; min-height:42px; border-radius:12px; font-size:13.5px; }
+.cs-hint{ margin:10px 0 0; font-size:11.5px; color:var(--ink-3, #7a7a82); text-align:right; }
+.cs-box:has(.cs-cta:not(:disabled)) .cs-hint{ visibility:hidden; }
+@media (max-width:520px){ .cs-box.is-pay .cs-foot, .cs-box.is-center .cs-foot{ flex-wrap:wrap; } .cs-box.is-pay .cs-cta{ flex:1 1 100%; } }
+@media (prefers-reduced-motion:reduce){ .cs, .cs-box{ animation:none; } }</style><style id="c2-lg-css">
+.c2-lg, [data-lg], .c2-notif__panel, .c2-search__list, .lotcalc-modal, .chestconfirm-modal, .drawer, .toast, .sbd{
+  --lgx:30%; --lgy:0%;
+  background:linear-gradient(160deg, rgba(var(--dk-rgb, 20, 20, 24),.62), rgba(var(--dk-rgb, 9, 9, 11),.74)) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(1.25) brightness(1.06) !important; backdrop-filter:blur(18px) saturate(1.25) brightness(1.06) !important;
+  box-shadow:inset 0 1px 1px rgba(var(--fg-rgb, 255, 255, 255),.34), inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.12), 0 24px 60px -18px rgba(0, 0, 0, calc(.75 * var(--sh-k, 1))), 0 2px 6px rgba(0, 0, 0, calc(.3 * var(--sh-k, 1))) !important;
+  border-color:rgba(var(--fg-rgb, 255, 255, 255),.14) !important;
+}
+html.lg-refract .c2-lg, html.lg-refract [data-lg], html.lg-refract .c2-notif__panel, html.lg-refract .c2-search__list, html.lg-refract .lotcalc-modal,
+html.lg-refract .chestconfirm-modal, html.lg-refract .drawer, html.lg-refract .toast, html.lg-refract .sbd{
+  -webkit-backdrop-filter:url(#c2-refract) blur(6px) saturate(1.25) brightness(1.06) !important; backdrop-filter:url(#c2-refract) blur(6px) saturate(1.25) brightness(1.06) !important;
+}
+.lg-shine{ position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:0;
+  background:radial-gradient(420px 260px at var(--lgx) var(--lgy), rgba(var(--fg-rgb, 255, 255, 255),.10), rgba(var(--fg-rgb, 255, 255, 255),0) 60%),
+    linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(var(--fg-rgb, 255, 255, 255),0) 30%, rgba(var(--fg-rgb, 255, 255, 255),0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); }
+.lg-shine::after{ content:''; position:absolute; top:0; left:8%; right:8%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--fg-rgb, 255, 255, 255),.55), transparent); }
+@media (prefers-reduced-motion:reduce){ .lg-shine{ background:linear-gradient(115deg, rgba(var(--a1-rgb, 252, 18, 131),.05), rgba(var(--fg-rgb, 255, 255, 255),0) 30%, rgba(var(--fg-rgb, 255, 255, 255),0) 70%, rgba(var(--a2-rgb, 249, 164, 94),.05)); } }</style></head>
+<body class="chest-root">
 
-<div id="dc-root"><div class="sc-host" data-sc-name="School"><div data-dc-tpl="3" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--bg-0, rgb(5, 5, 6)); color: var(--ink, rgb(246, 246, 247)); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
-  <div data-dc-tpl="4" aria-hidden="true" style="position: absolute; left: 160px; top: -300px; width: 900px; height: 640px; pointer-events: none; filter: blur(110px); background: radial-gradient(42% 46% at 40% 50%, rgba(var(--a1-rgb, 252, 18, 131), 0.15), transparent 72%), radial-gradient(34% 40% at 66% 44%, rgba(var(--a2-rgb, 249, 164, 94), 0.09), transparent 74%);"></div>
-  <div data-dc-tpl="5" aria-hidden="true" style="position: absolute; inset: 0px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.05; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size: 180px 180px;"></div>
+<!-- ══════════════════════════════════════════════════════════════
+     Connexion intégrée (expérimentation, branche experiment/merge-login-welcome) — visible uniquement
+     quand <html> porte `is-loggedout` (posé par le script en tête du <head>, avant même l'analyse de ce
+     <body>). 2e passe (demande utilisateur : « que le fond n'arrête jamais de tourner et que les
+     éléments arrivent en fondu par-dessus ») : plus de fond/shader séparé ici — la carte se pose direct
+     PAR-DESSUS le hero du Welcome (#welLight/#welStars, déjà en train de tourner, voir welcome.js), qui
+     ne s'arrête donc jamais entre la connexion et Welcome. Au lieu de rediriger vers une page à part,
+     ce même document bascule vers le VRAI Welcome une fois connecté (CHESTWelcome.show(), script en bas).
+     ══════════════════════════════════════════════════════════════ -->
+<div class="auth-overlay" id="authOverlay" aria-hidden="true">
+  <div class="auth-stage" id="authStage">
+  <a class="auth-back" href="/" aria-label="Retour à l’accueil" title="Retour à l’accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg></a>
+    <div class="auth-card">
+      <img class="auth-card__logo" src="assets/logo-chest-hero.webp" alt="CHEST">
+      <h1>Bienvenue sur CHEST</h1>
+      <p class="auth-card__lead">Ton prochain niveau t'attend.</p>
 
-  
-  <input data-dc-tpl="6" type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
-  <aside data-dc-tpl="7" class="sb">
-    <svg data-dc-tpl="8" width="0" height="0" aria-hidden="true" style="position: absolute;"><defs data-dc-tpl="9"><linearGradient data-dc-tpl="10" id="sbg" x1="0" y1="0" x2="1" y2="1"><stop data-dc-tpl="11" offset="0" stop-color="#fc1283"></stop><stop data-dc-tpl="12" offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient data-dc-tpl="13" id="sba" x1="0" y1="0" x2="1" y2="1"><stop data-dc-tpl="14" offset="0" stop-color="#ff8a1f"></stop><stop data-dc-tpl="15" offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
-    <label data-dc-tpl="16" for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
-      <svg data-dc-tpl="17" class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path data-dc-tpl="18" d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
-      <svg data-dc-tpl="19" class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="20" d="M9 5l7 7-7 7"></path></svg>
+      <form id="authForm" autocomplete="off" novalidate="">
+        <div class="auth-field">
+          <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect><path d="M3 6l9 7 9-7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <input id="authEmail" type="email" placeholder="Adresse e-mail" required="" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <svg class="auth-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="10.5" width="16" height="10" rx="2.5"></rect><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5" stroke-linecap="round"></path></svg>
+          <input id="authPassword" type="password" placeholder="Mot de passe" required="" autocomplete="current-password" style="padding-right:44px">
+          <button type="button" class="auth-field__toggle" id="authPwToggle" aria-label="Afficher le mot de passe">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" stroke-linejoin="round"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+
+        <div class="auth-row">
+          <label class="auth-remember"><input type="checkbox" id="authRemember" checked=""> Se souvenir de moi</label>
+          <button type="button" class="auth-forgot" id="authForgotBtn">Mot de passe oublié ?</button>
+        </div>
+
+        <p class="auth-error" id="authFormError"></p>
+        <p class="auth-note" id="authFormNote"></p>
+
+        <button type="submit" class="auth-submit" id="authSubmitBtn">
+          <span id="authSubmitLabel">Se connecter</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+      </form>
+
+      <p class="auth-footnote">Pas encore de compte ? <a href="/inscription">Créer un compte</a></p>
+    </div>
+  </div>
+  <!-- Documents légaux : sous la ligne de flottaison, on les trouve en défilant un peu (pas dans la carte). -->
+  <footer class="auth-legal" data-legal-links=""><nav class="lg-links" aria-label="Documents légaux"><a href="/legal/cgu">Conditions d’utilisation</a><a href="/legal/cgv">Conditions de vente</a><a href="/legal/remboursement">Remboursement</a><a href="/legal/confidentialite">Confidentialité</a><a href="/legal/risques">Avertissement sur les risques</a><a href="/legal/mentions-legales">Mentions légales</a><a href="/legal/charte-educateur">Charte de l’éducateur</a></nav>
+    <p class="lg-links__risk">Le trading comporte un risque de perte en capital. CHEST n’est pas un conseiller en investissement.</p></footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page « Welcome » — posée AVANT le shell, dans le même défilement.
+     Hero, puis Newsletter, puis directement le dashboard : c'est le
+     défilement natif de la page, le dashboard fait partie du flux.
+     Une fois son sommet atteint, le calque disparaît (welcome.js) et
+     on ne peut plus remonter.
+
+     Photo d'une carte : renseigner --img sur .wel__card-media, ex.
+       style="--img:url(/assets/news-school.jpg)"
+     Chemin RACINE obligatoire (/assets/...), jamais relatif (assets/...) : un url()
+     dans une variable CSS se résout depuis la feuille de style qui l'UTILISE
+     (css/welcome.css), pas depuis app.html — un chemin relatif cherche alors
+     dans css/assets/ et échoue en silence (404, dégradé de repli affiché).
+     Le texte d'attente disparaît seul. Le contenu détaillé (fenêtre
+     qui s'ouvre au clic) est dans .wel__card-full.
+     data-news-id alimente le +N rouge du bouton Newsletter.
+     ══════════════════════════════════════════════════════════════ -->
+<div class="wel" id="chestWelcome" aria-label="Bienvenue" hidden="">
+
+  <div id="welScroll">
+
+    <!-- ─── 1 · Le hero ─── -->
+    <section class="wel__page wel__hero">
+      <img src="data:image/png;base64,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" class="wel__light" style=";width:0px;height:0px;display:block" alt="">
+      <img src="data:image/png;base64,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" class="wel__stars" style=";width:0px;height:0px;display:block" alt="">
+      <div class="wel__vignette" aria-hidden="true"></div>
+
+      <div class="wel__stage">
+        <img class="wel__logo" src="assets/logo-chest-hero.webp" alt="" data-tuto="1" role="button" tabindex="0" aria-label="Voir la présentation de CHEST" title="Voir la présentation">
+        <h1 class="wel__title"><span>Welcome</span><em id="welName"></em></h1>
+        <p class="wel__say" id="welSay" aria-live="off"><span class="wel__say-sr" id="welSaySr"></span><span class="wel__say-fx" id="welSayFx" aria-hidden="true"></span></p>
+        <div class="wel__actions">
+          <button type="button" class="wel__btn wel__btn--ghost" id="welNewsBtn" data-count="0">
+            <span>Newsletter</span><i class="wel__badge" id="welBadge" aria-hidden="true">+0</i>
+          </button>
+          <button type="button" class="wel__btn wel__btn--main" id="welStart">Start</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─── 2 · Newsletter ─── -->
+    <section class="wel__page wel__page--news" id="welNews">
+      <div class="wel__glow" aria-hidden="true"></div>
+
+      <div class="wel__news-wrap">
+        <div class="wel__news-head">
+          <p class="wel__kicker">Nouveautés</p>
+          <h2 class="wel__h2">Newsletter</h2>
+        </div>
+
+        <div class="wel__grid wel__grid--v2" id="welBentoGrid">
+
+          <!-- CHEST IS HERE : vitrine statique, même esprit que la carte "Presentations" de référence -->
+          <article class="wel__card wel__card--v2 wel__card--hero" data-no-sheet="1" data-bento-id="hero">
+            <div class="wel__card-media" data-cms-media="" style="--img: url(/assets/wel-chest-here.webp); background-position: 0% 24.39%;"></div>
+            <h3 class="wel__card-title" data-cms-title="">Chest Is Here</h3>
+          </article>
+
+          <!-- SCANNER : porte le badge +1 de nouveauté (compté par le bouton Newsletter du hero) -->
+          <article class="wel__card wel__card--v2 wel__card--scanner" data-no-sheet="1" data-news-id="scanner-2026-09" data-bento-id="scanner">
+            <div class="wel__card-media" data-cms-media="" style="--img: url(/assets/wel-scanner.webp); background-position: 50% 62%;"></div>
+            <span class="wel__card-badge" data-cms-badge="">+1</span>
+            <h3 class="wel__card-title" data-cms-title="">Scanner</h3>
+          </article>
+
+          <!-- Founder : le téléphone recule et se floute au survol, les réseaux apparaissent derrière -->
+          <article class="wel__card wel__card--v2 wel__card--founder" data-no-sheet="1" data-bento-id="founder">
+            <h3 class="wel__card-title" data-cms-title="">Founder</h3>
+            <div class="wel__founder-stage">
+              <a class="wel__founder-social wel__founder-social--ig" href="https://instagram.com/2sw0ne" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+              </a>
+              <a class="wel__founder-social wel__founder-social--tt" href="https://www.tiktok.com/@2sw0ne" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 3c.4 2.2 1.9 3.8 4.4 4v3c-1.6.1-3-.4-4.4-1.3v6.6c0 3.5-2.8 6.2-6.3 6.2S4 18.8 4 15.3s2.8-6.2 6.3-6.2c.4 0 .8 0 1.2.1v3.2c-.4-.1-.8-.2-1.2-.2-1.7 0-3.1 1.4-3.1 3.1s1.4 3.1 3.1 3.1 3.2-1.3 3.2-3V3h3.1z"></path></svg>
+              </a>
+              <a class="wel__founder-social wel__founder-social--tg" href="https://t.me/sw0ne21" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 4L2.6 11.2c-.9.4-.9 1.6.1 1.9l4.6 1.4 1.8 5.6c.3.9 1.4 1.1 2 .4l2.6-2.8 4.7 3.5c.8.6 2 .2 2.2-.8L22 4.9c.2-1-.7-1.7-1.5-1.3z"></path><path d="M8.3 14.5L17 7"></path></svg>
+              </a>
+              <img class="wel__founder-phone" data-cms-media="" src="/assets/wel-founder-phone.webp" alt="Profil Instagram du fondateur" style="--dx: 2px; --dy: 45px; --zs: 1.3;">
+            </div>
+          </article>
+
+          <!-- MENU : une bannière à la fois, qui se fond dans la suivante (une par page du site) -->
+          <article class="wel__card wel__card--v2 wel__card--menu" data-no-sheet="1" data-bento-id="menu">
+            <h3 class="wel__card-title" data-cms-title="">Menu</h3>
+            <div class="wel__menu-stage" id="welMenuStage"><div class="wel__menu-banner" style="--c1: #5470c2; --c2: #2c3d7a;">
+        <span class="wel__menu-banner__grid" aria-hidden="true"></span>
+        <span class="wel__menu-banner__glow" aria-hidden="true"></span>
+        <span class="wel__menu-banner__kicker">Chaque trade</span>
+        <h4 class="wel__menu-banner__title">Rien n’est <b>oublié</b>.</h4>
+        <span class="wel__menu-banner__badge"><i class="chest-ic-journal"></i></span></div></div>
+          </article>
+
+          <!-- SCHOOL : miniatures vidéo de la rubrique School, défilement lent -->
+          <article class="wel__card wel__card--v2 wel__card--school" data-no-sheet="1" data-bento-id="school">
+            <h3 class="wel__card-title" data-cms-title="">School</h3>
+            <div class="wel__school-track">
+              <div class="wel__school-track-inner" id="welSchoolTrack"><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/wU8i9-MbdWQ/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/d4sZy3AChZs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/6xjpusd9EMQ/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/iba0283havo/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/7AHz5QoXL9U/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/QZxD5aotAAo/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/b9sc84WGlyw/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/LnV_Pz-qejs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/iTb4oeGqEBs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/uyyqD2M-71c/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/wU8i9-MbdWQ/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/d4sZy3AChZs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/6xjpusd9EMQ/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/iba0283havo/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/7AHz5QoXL9U/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/QZxD5aotAAo/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/b9sc84WGlyw/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/LnV_Pz-qejs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/iTb4oeGqEBs/mqdefault.jpg)"></span><span class="wel__school-thumb" style="background-image:url(https://img.youtube.com/vi/uyyqD2M-71c/mqdefault.jpg)"></span></div>
+            </div>
+          </article>
+
+        </div>
+
+        <div class="wel__handoff" aria-hidden="true">
+          <svg class="wel__handoff-arrows" viewBox="0 0 24 24" width="24" height="24" fill="none">
+            <defs>
+              <linearGradient id="welHandoffGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fc1283"></stop>
+                <stop offset="1" stop-color="#f9a45e"></stop>
+              </linearGradient>
+            </defs>
+            <path class="wel__handoff-chev wel__handoff-chev--1" d="M5 5l7 7 7-7" stroke="url(#welHandoffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path class="wel__handoff-chev wel__handoff-chev--2" d="M5 12l7 7 7-7" stroke="url(#welHandoffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+
+  </div>
+
+  <!-- Fenêtre d'une nouveauté (ouverte au clic sur une carte) -->
+  <div class="wel__sheet" id="welSheet" role="dialog" aria-modal="true" aria-labelledby="welSheetTitle">
+    <div class="wel__sheet-win">
+      <button type="button" class="wel__sheet-close" data-wel-close="" aria-label="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"></path></svg></button>
+      <div class="wel__sheet-media" id="welSheetMedia"></div>
+      <div class="wel__sheet-body">
+        <span class="wel__sheet-tag" id="welSheetTag"></span>
+        <h3 id="welSheetTitle"></h3>
+        <div class="wel__sheet-text" id="welSheetText"></div>
+        <div class="wel__sheet-date" id="welSheetDate"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shell unique du site : la sidebar et la barre du haut vivent ICI, une
+     seule fois. Chaque page (dashboard.html, calendar.html...) est chargée
+     dans #chestView — elle ne recharge donc jamais le menu, seulement son
+     propre contenu. Voir js/shell.js. -->
+<!-- CHEST 2.0 (2026-11-02) : shell copié de CHEST-DESIGN-2.0/html-exact/Main.html (menu + barre du haut),
+     valeurs inchangées. Ajouts pour le site : data-page / ids lus par nav.js et shell.js, la page chargée
+     dans #chestView (voir js/shell.js), le volet des notifications et la recherche (js/shell-2.js). -->
+<div class="chest-shell is-app c2-shell" id="chestShell" style="position: relative; min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--bg-0, rgb(5, 5, 6)); color: var(--ink, rgb(246, 246, 247)); font-family: &quot;Instrument Sans&quot;, system-ui, -apple-system, &quot;Segoe UI&quot;, sans-serif; font-size: 13.5px; overflow: hidden;">
+
+  <div aria-hidden="true" class="c2-shell__light" style="position: absolute; left: 160px; top: -300px; width: 900px; height: 640px; pointer-events: none; filter: blur(110px); background: radial-gradient(42% 46% at 40% 50%, rgba(var(--a1-rgb, 252, 18, 131), 0.15), transparent 72%), radial-gradient(34% 40% at 66% 44%, rgba(var(--a2-rgb, 249, 164, 94), 0.09), transparent 74%);"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0px; pointer-events: none; mix-blend-mode: overlay; opacity: 0.05; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size: 180px 180px;"></div>
+
+  <input type="checkbox" id="sbT" class="sbT" aria-label="Replier le menu">
+  <aside class="sb">
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute;"><defs><linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fc1283"></stop><stop offset="1" stop-color="#f9a45e"></stop></linearGradient><linearGradient id="sba" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a1f"></stop><stop offset="1" stop-color="#ffd23f"></stop></linearGradient></defs></svg>
+    <label for="sbT" class="sb-tog" title="Ouvrir ou fermer le menu">
+      <svg class="sb-tog__bg" viewBox="0 0 22 112" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 C 0 22, 21 30, 21 56 C 21 82, 0 90, 0 112"></path></svg>
+      <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
     </label>
-    <a data-dc-tpl="21" href="Main.dc.html" class="sb-brand">
-      <img data-dc-tpl="22" src="assets/logo-chest-new.webp" alt="CHEST">
-      <span data-dc-tpl="23" class="sb-txt">CHEST</span>
+    <a href="#/dashboard" class="sb-brand">
+      <img src="assets/logo-chest-new.webp" alt="CHEST">
+      <span class="sb-txt">CHEST</span>
     </a>
-    <div data-dc-tpl="24" class="sb-label"><span data-dc-tpl="25" class="sb-txt">Navigation</span></div>
-    <nav data-dc-tpl="26" class="sb-nav" aria-label="Navigation principale">
-        <a data-dc-tpl="27" href="Main.dc.html" class="nav-i" title="Dashboard">
-          <svg data-dc-tpl="28" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="29" x="3" y="3" width="8" height="8" rx="2"></rect><rect data-dc-tpl="30" x="13" y="3" width="8" height="5" rx="2"></rect><rect data-dc-tpl="31" x="3" y="13" width="8" height="8" rx="2"></rect><rect data-dc-tpl="32" x="13" y="10" width="8" height="11" rx="2"></rect></svg>
-          <span data-dc-tpl="33" class="sb-txt">Dashboard</span>
+    <div class="sb-label"><span class="sb-txt">Navigation</span></div>
+    <nav class="sb-nav" aria-label="Navigation principale">
+        <a href="#/dashboard" data-page="dashboard" class="nav-i" title="Dashboard">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect></svg>
+          <span class="sb-txt">Dashboard</span>
         </a>
-        <a data-dc-tpl="34" href="Backtesting.dc.html" class="nav-i" title="Backtesting">
-          <svg data-dc-tpl="35" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="36" d="M3 17l5-5 4 3 6-8"></path><path data-dc-tpl="37" d="M3 21h18"></path></svg>
-          <span data-dc-tpl="38" class="sb-txt">Backtesting</span>
+        <a href="#/backtesting" data-page="backtesting" class="nav-i" title="Backtesting">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 6-8"></path><path d="M3 21h18"></path></svg>
+          <span class="sb-txt">Backtesting</span>
         </a>
-        <a data-dc-tpl="39" href="Journal.dc.html" class="nav-i" title="Journal">
-          <svg data-dc-tpl="40" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="41" x="4" y="3" width="16" height="18" rx="2"></rect><path data-dc-tpl="42" d="M8 8h8M8 12h8M8 16h5"></path></svg>
-          <span data-dc-tpl="43" class="sb-txt">Journal</span>
+        <a href="#/journal" data-page="journal" class="nav-i" title="Journal">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+          <span class="sb-txt">Journal</span>
         </a>
-        <a data-dc-tpl="44" href="Strategies.dc.html" class="nav-i" title="Stratégies">
-          <svg data-dc-tpl="45" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="46" d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
-          <span data-dc-tpl="47" class="sb-txt">Stratégies</span>
+        <a href="#/strategies" data-page="strategies" class="nav-i" title="Stratégies">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V8M9 20V4M15 20v-9M21 20v-6"></path></svg>
+          <span class="sb-txt">Stratégies</span>
         </a>
-        <a data-dc-tpl="48" href="Calendrier.dc.html" class="nav-i" title="Calendrier">
-          <svg data-dc-tpl="49" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="50" x="3" y="5" width="18" height="16" rx="2"></rect><path data-dc-tpl="51" d="M3 10h18M8 3v4M16 3v4"></path></svg>
-          <span data-dc-tpl="52" class="sb-txt">Calendrier</span>
+        <a href="#/calendar" data-page="calendar" class="nav-i" title="Calendrier">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span class="sb-txt">Calendrier</span>
         </a>
-        <a data-dc-tpl="53" href="Berich.dc.html" class="nav-i" title="BERICH">
-          <svg data-dc-tpl="54" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="55" d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
-          <span data-dc-tpl="56" class="sb-txt">BERICH</span>
+        <a href="#/berich" data-page="berich" class="nav-i" title="BERICH">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"></path></svg>
+          <span class="sb-txt">BERICH</span>
         </a>
-        <a data-dc-tpl="57" href="School.dc.html" class="nav-i on" aria-current="page" title="School">
-          <svg data-dc-tpl="58" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="59" d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path data-dc-tpl="60" d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path data-dc-tpl="61" d="M22 9.5V15"></path></svg>
-          <span data-dc-tpl="62" class="sb-txt">School</span>
+        <a href="#/school" data-page="school" class="nav-i on" title="School" aria-current="page">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9.5L12 4 2 9.5l10 5.5 10-5.5z"></path><path d="M6 12.2V17c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.8"></path><path d="M22 9.5V15"></path></svg>
+          <span class="sb-txt">School</span>
         </a>
-        <span data-dc-tpl="63" class="sb-sep" aria-hidden="true"></span>
-        <a data-dc-tpl="64" href="Admin.dc.html" class="nav-i adm" title="Admin">
-          <svg data-dc-tpl="65" class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="66" d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
-          <span data-dc-tpl="67" class="sb-txt">Admin</span>
+        <span class="sb-sep" aria-hidden="true" data-admin-only="" hidden=""></span>
+        <a href="#/admin-members" data-page="admin-members" class="nav-i adm" title="Admin" data-admin-only="" hidden="">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"></path></svg>
+          <span class="sb-txt">Admin</span>
         </a>
     </nav>
-    <div data-dc-tpl="68" class="sb-acc">
-      <div data-dc-tpl="69" class="sb-acc__label sb-txt">Compte</div>
-      <a data-dc-tpl="70" href="Compte.dc.html" class="sb-acc__row">
-        <span data-dc-tpl="71" class="sb-acc__av">P</span>
-        <span data-dc-tpl="72" class="sb-txt sb-acc__id"><b data-dc-tpl="73">Pierre</b><span data-dc-tpl="74">pierre@exemple.fr</span></span>
+    <div class="sb-acc">
+      <div class="sb-acc__label sb-txt">Compte</div>
+      <a href="#/account" data-page="account" class="sb-acc__row">
+        <span class="sb-acc__av has-photo" id="sidebarUserAvatar" style="background-image: url(&quot;data:image/jpeg;base64,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&quot;);">PM</span>
+        <span class="sb-txt sb-acc__id"><b id="sidebarUserName">Pierre Martin</b><span id="sidebarUserEmail">pierre@exemple.fr</span></span>
       </a>
-      <button data-dc-tpl="75" type="button" class="sb-out" title="Se déconnecter">
-        <svg data-dc-tpl="76" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path data-dc-tpl="77" d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
-        <span data-dc-tpl="78" class="sb-txt">Se déconnecter</span>
+      <button type="button" class="sb-out" title="Se déconnecter" data-logout="">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path></svg>
+        <span class="sb-txt">Se déconnecter</span>
       </button>
     </div>
   </aside>
-  <a data-dc-tpl="79" href="Elements.dc.html" class="calc-fab" aria-label="Calculatrice de lot" title="Calculatrice de lot">
-    <svg data-dc-tpl="80" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect data-dc-tpl="81" x="5" y="2.5" width="14" height="19" rx="3"></rect><path data-dc-tpl="82" d="M8.5 6.5h7"></path><path data-dc-tpl="83" d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"></path></svg>
-  </a>
+  <div class="chest-sidebar-overlay" id="sidebarOverlay"></div>
 
-  
-  <main data-dc-tpl="84" style="position: relative; z-index: 1; flex: 999 1 560px; min-width: 0px; display: flex; flex-direction: column;">
-    <header data-dc-tpl="85" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06);">
-      <div data-dc-tpl="86" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-        <span data-dc-tpl="87" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Formation</span>
-        <span data-dc-tpl="88" style="color: rgb(58, 58, 64);">/</span>
-        <span data-dc-tpl="89" style="font-weight: 600;">School</span>
+  <main class="chest-main" style="position: relative; z-index: 1; flex: 999 1 560px; min-width: 0px; display: flex; flex-direction: column;">
+
+    <header class="c2-topbar" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 64px; padding: 10px 36px; box-sizing: border-box; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06);">
+      <a href="#/dashboard" class="c2-mbrand" aria-label="CHEST, retour au Dashboard"><img src="assets/logo-chest.png" alt="" width="24" height="24"></a>
+      <div id="crumb" aria-live="polite" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+        <span id="crumbCat" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Formation</span>
+        <span style="color: rgb(58, 58, 64);">/</span>
+        <span id="crumbPage" style="font-weight: 600;">School</span>
       </div>
-      <label data-dc-tpl="90" style="margin-left: auto; display: flex; align-items: center; gap: 10px; height: 38px; width: 280px; max-width: 100%; padding: 0px 12px; box-sizing: border-box; border-radius: 12px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); color: var(--ink-3, rgb(122, 122, 130));">
-        <svg data-dc-tpl="91" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle data-dc-tpl="92" cx="11" cy="11" r="7"></circle><path data-dc-tpl="93" d="M20 20l-3.5-3.5"></path></svg>
-        <input data-dc-tpl="94" type="search" placeholder="Chercher une notion, un cours…" style="flex: 1 1 0%; min-width: 0px; background: transparent; border: 0px; outline: 0px; color: var(--ink, rgb(246, 246, 247)); font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 13px;">
-      </label>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div id="c2PageActions" hidden="" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"></div>
+        <div class="c2-search" id="c2Search">
+          <label style="display: flex; align-items: center; gap: 10px; height: 38px; width: 280px; max-width: 100%; padding: 0px 12px; box-sizing: border-box; border-radius: 12px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); color: var(--ink-3, rgb(122, 122, 130));">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <input type="search" id="c2SearchInput" placeholder="Rechercher une page, une paire…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="c2SearchList" aria-label="Rechercher une page ou une paire" style="flex: 1 1 0%; min-width: 0px; background: transparent; border: 0px; outline: 0px; color: var(--ink, rgb(246, 246, 247)); font: inherit; font-size: 13px;">
+            <span id="c2SearchKbd" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--ink-2, rgb(155, 155, 161)); border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); padding: 2px 6px; border-radius: 6px;">⌘K</span>
+          </label>
+          <div class="c2-search__list" id="c2SearchList" role="listbox" hidden=""><span class="lg-shine" aria-hidden="true"></span></div>
+        </div>
+        <!-- CHEST 2.0 (2026-11-03) : le compte remplace la cloche des notifications (demande utilisateur). -->
+        <a href="#/account" data-page="account" aria-label="Compte" title="Compte" style="position: relative; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.024); color: var(--ink-2, rgb(155, 155, 161)); display: grid; place-items: center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4"></path></svg>
+        </a>
+        <!-- Espace éducateur : visible pour les comptes au rôle « éducateur » (nav.js), même bouton que la cloche. -->
+        <a href="#/educator" data-page="educator" data-educator-only="" hidden="" aria-label="Espace éducateur" title="Espace éducateur" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; color: var(--bg-0, rgb(5, 5, 5)); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"></path><path d="M7 11.6v4.2c0 1 2.2 2.2 5 2.2s5-1.2 5-2.2v-4.2"></path></svg>Éducateur</a>
+        <!-- HQ (admin principal) : ouvre CHEST HQ (js/hq.js, data-url). -->
+        <a href="#" id="chestHq" data-admin-only="" data-owner-only="" hidden="" data-url="https://chest-hq.vercel.app" aria-label="CHEST HQ" title="CHEST HQ" style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0px 14px; border-radius: 12px; font-weight: 700; font-size: 12.5px; letter-spacing: 0.04em; color: var(--bg-0, rgb(5, 5, 5)); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.25) 0px 8px 24px;">HQ<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAOCAYAAABO3B6yAAAD0ElEQVR4AYyRW08bRxiGX6/tDRCIMQEfOBgoNidjE1XxRStwEtSqqtQ27U3/QRv1Ku1Vf0qV9EdUbZDai4YQUqkXlqDG4ZC1jQ0EfMIxBoPN2uvpfGNsOUCkjPaZ7zAz+76zKz2QfewiHxscrI7V2MEuIbczq+A6s10j2thsRzebNXUxf6eZ+c0m9nB0gP043sf++NzNnnwxwea/Gmfz98fYxs/3Gsx/PcakGYMDD1p8AsoJj2QFAT5GmBkCdGIEJozoTHDqbsApdcCp5xja4TReB41bJjNumTvx05QT9/pu4ru7U3A6e/HJlz7M3ed848PgZF+DOV5L37Z44TZY4W3rB+UEGSIjP8g+YcSjt+CqMd3ajem2m5hu78LD4Qnc7bHg+w+9cDns+GzuNlyTw3BODUP+wAN5mDPkhXyOXpZBSHrZCOOdYUgf9YtIed0MGSMjM4ZBePRWeMiosQce2QJvSw/87b3w37DjTqcdoxYbRu12jAzw3DUEecwNvcMF4+1PIVmGoK/Tw3Oid1zcSaJZ57VAN30Oz8kMGSMDdWYMDszKA5i9NgB/az/8bX2YMNkwbuZ02+Cy2jE+NChupR9xQup1QLIPAjpcGlom3uhJjaye8ANkqNkELbmNVrhlGyZbOK1WTLTbqI2xLn7zbjsMsixqvcsp4pUTA0hc29+EGl+FpqqQNLUMtpoG+OKVh3iTvgIP7/Vo4YjYV93fQTWxjWqSk45D46jBvxrC2+t7WPgtAGmtkkL5eUyYYMG0MCIMidfUJtpTyy7Pr94kRbPCb0NQoUUj0GJhaDucXQXqVghqLIStYEyIkvCvf65hYStXM0ACZKL672toj5ZBkaCvQ2v0UmJNTWK9xCmmqGygHCQQTiUQ2U9AiW5DCccR3owhvB5D5GUMfz8JYOH3AB6fi5LwcrIAQvqnsgMSIUiwGeqRCsW18tuiG4UkNvJJbOY4B0koaU6CG9hLILzDiXND0QQeP32JhXgOT2M5rJyLkvCrEw2ERALNJoQY/y3Nsb7nhbqLF2e7WCq+xtLpHpYK+1g6SuD5YQKL2SQWM2kspjJYTGTwbC+LZ7tZrKSPsZziJI+FIIkS9E5CClVrNyMTj0qBxtegnHo1tmkvQtzYajmDkJrGaimDYPEAwdMsgoU3CB7l8F+ekzvESjaPlQNO5kicU04qUPiNRXFhkqK6HMhEnV/UAIh6LaKWRkirGb1w/p2lUlShFMtQTsvv3EML4heQCYIazVCvAQ4RRR5RlkeEHSFSPUZE41QKiJRPEC6fInxWhHJWglI6w/uO/wEAAP//eMFchgAAAAZJREFUAwBaQjMYhssgYAAAAABJRU5ErkJggg==" class="chest-hq__sky" style=";width:0px;height:0px;display:block" alt=""></a>
+      </div>
+      
     </header>
 
-    <div data-dc-tpl="95" style="display: flex; flex-direction: column; gap: 30px; padding: 34px 36px 64px; max-width: 1180px; width: 100%; box-sizing: border-box;">
-
-      <section data-dc-tpl="96" style="position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 14px 0px 26px; text-align: center; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07);">
-        <div data-dc-tpl="97" class="ghost" aria-hidden="true" style="position: absolute; left: 50%; top: -26px; transform: translateX(-50%); z-index: -1; pointer-events: none; white-space: nowrap; font-size: 210px; font-weight: 700; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.075), rgba(var(--fg-rgb, 255, 255, 255), 0) 78%) text; color: transparent;">School</div>
-        <span data-dc-tpl="98" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">01 — Ton espace</span>
-        <h1 data-dc-tpl="99" style="margin: 0px; font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -0.05em;">Prêt pour jeudi ?</h1>
-        <div data-dc-tpl="100" style="display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.02);">
-          <span data-dc-tpl="101" style="width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; color: var(--bg-0, rgb(5, 5, 5)); background: var(--green-hi, rgb(127, 243, 202));">S</span>
-          <span data-dc-tpl="102" style="display: flex; flex-direction: column; gap: 1px;">
-            <span data-dc-tpl="103" style="font-size: 11px; color: var(--ink-3, rgb(122, 122, 130));">Ton éducatrice</span>
-            <span data-dc-tpl="104" style="font-weight: 600;">Sarah · 4 mois ensemble</span>
-          </span>
-        </div>
-        <dl data-dc-tpl="105" style="margin: 6px 0px 0px; display: flex; flex-wrap: wrap; justify-content: center;">
-          <div data-dc-tpl="106" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 24px;"><dt data-dc-tpl="107" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Prochain appel</dt><dd data-dc-tpl="108" style="margin: 0px; font-size: 20px; font-weight: 700; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))) text; color: transparent;">J−3</dd></div>
-          <div data-dc-tpl="109" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 24px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);"><dt data-dc-tpl="110" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Missions</dt><dd data-dc-tpl="111" style="margin: 0px; font-size: 20px; font-weight: 700;">2 / 4</dd></div>
-          <div data-dc-tpl="112" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 24px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);"><dt data-dc-tpl="113" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Cours terminés</dt><dd data-dc-tpl="114" style="margin: 0px; font-size: 20px; font-weight: 700;">3 / 8</dd></div>
-          <div data-dc-tpl="115" style="display: flex; flex-direction: column; gap: 6px; padding: 0px 24px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.09);"><dt data-dc-tpl="116" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Scanner</dt><dd data-dc-tpl="117" style="margin: 0px; font-size: 20px; font-weight: 700;">SWYPER</dd></div>
-        </dl>
-      </section>
-
-      
-      <section data-dc-tpl="118" style="display: flex; flex-direction: column; gap: 14px;">
-        <div data-dc-tpl="119" style="display: flex; align-items: baseline; gap: 12px;">
-          <span data-dc-tpl="120" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">02 — Cette semaine</span>
-          <span data-dc-tpl="121" style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
-        </div>
-        <div data-dc-tpl="122" style="overflow-x: auto;">
-          <div data-dc-tpl="123" style="min-width: 820px; display: grid; grid-template-columns: repeat(7, minmax(0px, 1fr)); border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: rgba(var(--fg-rgb, 255, 255, 255), 0.016); overflow: hidden;">
-            
-              <div data-dc-tpl="125" style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: 0px; background: linear-gradient(rgba(var(--a1-rgb, 252, 18, 131), 0.07), transparent 70%);">
-                <div data-dc-tpl="126" style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;">
-                  <span data-dc-tpl="127" style="font-size: 12.5px; font-weight: 700; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">Lun</span></span>
-                  <span data-dc-tpl="128" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">2</span></span>
-                </div>
-                
-                  <div data-dc-tpl="130" style="display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 11px; border: 1px solid rgba(var(--a2-rgb, 249, 164, 94), 0.3); background: linear-gradient(160deg, rgba(var(--a1-rgb, 252, 18, 131), 0.1), rgba(var(--a2-rgb, 249, 164, 94), 0.04));">
-                    <span data-dc-tpl="131" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(var(--a2-rgb, 249, 164, 94));"><span class="sc-interp">19:00</span> · <span class="sc-interp">CHEST</span></span>
-                    <span data-dc-tpl="132" style="font-size: 12.5px; font-weight: 600; line-height: 1.3;"><span class="sc-interp">Live : préparer la semaine du NFP</span></span>
-                  </div>
-                
-              </div>
-            
-              <div data-dc-tpl="125" style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06); background: transparent;">
-                <div data-dc-tpl="126" style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;">
-                  <span data-dc-tpl="127" style="font-size: 12.5px; font-weight: 700; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">Mar</span></span>
-                  <span data-dc-tpl="128" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">3</span></span>
-                </div>
-                
-              </div>
-            
-              <div data-dc-tpl="125" style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06); background: transparent;">
-                <div data-dc-tpl="126" style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;">
-                  <span data-dc-tpl="127" style="font-size: 12.5px; font-weight: 700; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">Mer</span></span>
-                  <span data-dc-tpl="128" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">4</span></span>
-                </div>
-                
-                  <div data-dc-tpl="130" style="display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 11px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.25); background: rgba(var(--green-rgb, 51, 230, 166), 0.06);">
-                    <span data-dc-tpl="131" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">12:30</span> · <span class="sc-interp">Collectif</span></span>
-                    <span data-dc-tpl="132" style="font-size: 12.5px; font-weight: 600; line-height: 1.3;"><span class="sc-interp">Questions-réponses Fibonacci</span></span>
-                  </div>
-                
-              </div>
-            
-              <div data-dc-tpl="125" style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06); background: transparent;">
-                <div data-dc-tpl="126" style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;">
-                  <span data-dc-tpl="127" style="font-size: 12.5px; font-weight: 700; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">Jeu</span></span>
-                  <span data-dc-tpl="128" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">5</span></span>
-                </div>
-                
-                  <div data-dc-tpl="130" style="display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 11px; border: 1px solid rgba(var(--green-rgb, 51, 230, 166), 0.25); background: rgba(var(--green-rgb, 51, 230, 166), 0.06);">
-                    <span data-dc-tpl="131" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">18:30</span> · <span class="sc-interp">Sarah</span></span>
-                    <span data-dc-tpl="132" style="font-size: 12.5px; font-weight: 600; line-height: 1.3;"><span class="sc-interp">Bilan d’octobre</span></span>
-                  </div>
-                
-              </div>
-            
-              <div data-dc-tpl="125" style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06); background: transparent;">
-                <div data-dc-tpl="126" style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;">
-                  <span data-dc-tpl="127" style="font-size: 12.5px; font-weight: 700; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">Ven</span></span>
-                  <span data-dc-tpl="128" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">6</span></span>
-                </div>
-                
-                  <div data-dc-tpl="130" style="display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 11px; border: 1px solid rgba(var(--a2-rgb, 249, 164, 94), 0.3); background: linear-gradient(160deg, rgba(var(--a1-rgb, 252, 18, 131), 0.1), rgba(var(--a2-rgb, 249, 164, 94), 0.04));">
-                    <span data-dc-tpl="131" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; color: rgb(var(--a2-rgb, 249, 164, 94));"><span class="sc-interp">14:15</span> · <span class="sc-interp">CHEST</span></span>
-                    <span data-dc-tpl="132" style="font-size: 12.5px; font-weight: 600; line-height: 1.3;"><span class="sc-interp">Live NFP en direct</span></span>
-                  </div>
-                
-              </div>
-            
-              <div data-dc-tpl="125" style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06); background: transparent;">
-                <div data-dc-tpl="126" style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;">
-                  <span data-dc-tpl="127" style="font-size: 12.5px; font-weight: 700; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">Sam</span></span>
-                  <span data-dc-tpl="128" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">7</span></span>
-                </div>
-                
-              </div>
-            
-              <div data-dc-tpl="125" style="display: flex; flex-direction: column; gap: 8px; min-height: 170px; padding: 14px 10px; border-left: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.06); background: transparent;">
-                <div data-dc-tpl="126" style="display: flex; align-items: baseline; gap: 6px; padding: 0px 4px;">
-                  <span data-dc-tpl="127" style="font-size: 12.5px; font-weight: 700; color: var(--ink-1, rgb(201, 201, 206));"><span class="sc-interp">Dim</span></span>
-                  <span data-dc-tpl="128" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">8</span></span>
-                </div>
-                
-              </div>
-            
-          </div>
+    <div class="chest-view">
+      <iframe id="chestView" title="Contenu" src="/landing-app/school-page.html" allow="fullscreen; clipboard-write" allowfullscreen=""></iframe>
+      <!-- Maintenance (2026-10-24) : page mise en maintenance par l'admin (admin-members.html, Système). -->
+      <section class="chest-maint" id="chestMaint" role="status" aria-live="polite" hidden="">
+        <div class="chest-maint__card">
+          <span class="chest-maint__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L4 16.7 7.3 20l5.3-5.3a4 4 0 0 0 5.1-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg></span>
+          <span class="chest-maint__k" id="chestMaintK">Maintenance</span>
+          <h2 class="chest-maint__t" id="chestMaintTitle">On améliore cette partie de CHEST.</h2>
+          <p class="chest-maint__p" id="chestMaintText">Elle revient très vite. Tes données sont en sécurité.</p>
+          <div class="chest-maint__pills" id="chestMaintPills"></div>
+          <a class="chest-btn-2 chest-maint__back" id="chestMaintBack" href="#/dashboard" hidden="">Retour au Dashboard</a>
         </div>
       </section>
-
-      
-      <section data-dc-tpl="133" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
-        <div data-dc-tpl="134" style="position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.12); background: linear-gradient(160deg, rgba(var(--dk-rgb, 16, 16, 19), 0.75), rgba(var(--dk-rgb, 9, 9, 11), 0.9)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.12) 1.5px 1.5px 0px inset, rgba(var(--fg-rgb, 255, 255, 255), 0.03) -1.5px -1.5px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
-          <div data-dc-tpl="135" aria-hidden="true" style="position: absolute; right: -80px; top: -90px; width: 260px; height: 240px; background: radial-gradient(closest-side, rgba(var(--a1-rgb, 252, 18, 131), 0.22), transparent);"></div>
-          <span data-dc-tpl="136" style="position: relative; font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Prochain appel</span>
-          <span data-dc-tpl="137" style="position: relative; font-size: 22px; font-weight: 700; letter-spacing: -0.025em;">Bilan d'octobre avec Sarah</span>
-          <div data-dc-tpl="138" style="position: relative; display: flex; align-items: baseline; gap: 10px;">
-            <span data-dc-tpl="139" style="font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))) text; color: transparent; padding-bottom: 0.06em;">J−3</span>
-            <span data-dc-tpl="140" style="color: var(--ink-2, rgb(155, 155, 161));">jeudi 5 nov. · 18:30</span>
-          </div>
-          <div data-dc-tpl="141" style="position: relative; display: flex; gap: 10px; margin-top: auto;">
-            <a data-dc-tpl="142" href="#" style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; color: rgb(var(--fg-rgb, 255, 255, 255)); font-weight: 600; background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94))); box-shadow: rgba(var(--a1-rgb, 252, 18, 131), 0.28) 0px 10px 30px;">Ajouter à mon agenda</a>
-            <a data-dc-tpl="143" href="#" style="display: flex; align-items: center; height: 40px; padding: 0px 16px; border-radius: 999px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.14); color: var(--ink-1, rgb(201, 201, 206));">Déplacer</a>
-          </div>
-        </div>
-
-        <div data-dc-tpl="144" class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 6px;">
-          <div data-dc-tpl="145" style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;">
-            <span data-dc-tpl="146" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Avant le prochain appel</span>
-            <span data-dc-tpl="147" style="margin-left: auto; font-size: 12px; font-weight: 600; color: rgb(var(--a2-rgb, 249, 164, 94));">2 / 4</span>
-          </div>
-          
-            <label data-dc-tpl="149" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055); cursor: pointer;">
-              <input data-dc-tpl="150" type="checkbox" checked="" style="width: 18px; height: 18px; margin: 1px 0px 0px; accent-color: rgb(var(--a1-rgb, 252, 18, 131));">
-              <span data-dc-tpl="151" style="display: flex; flex-direction: column; gap: 2px;">
-                <span data-dc-tpl="152" style="font-size: 13px; color: var(--ink-3, rgb(122, 122, 130)); text-decoration: line-through;"><span class="sc-interp">Relire le cours Fibonacci</span></span>
-                <span data-dc-tpl="153" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">fait le 30 oct.</span></span>
-              </span>
-            </label>
-          
-            <label data-dc-tpl="149" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055); cursor: pointer;">
-              <input data-dc-tpl="150" type="checkbox" checked="" style="width: 18px; height: 18px; margin: 1px 0px 0px; accent-color: rgb(var(--a1-rgb, 252, 18, 131));">
-              <span data-dc-tpl="151" style="display: flex; flex-direction: column; gap: 2px;">
-                <span data-dc-tpl="152" style="font-size: 13px; color: var(--ink-3, rgb(122, 122, 130)); text-decoration: line-through;"><span class="sc-interp">Noter 5 trades avec capture dans le Journal</span></span>
-                <span data-dc-tpl="153" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">fait le 1er nov.</span></span>
-              </span>
-            </label>
-          
-            <label data-dc-tpl="149" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055); cursor: pointer;">
-              <input data-dc-tpl="150" type="checkbox" style="width: 18px; height: 18px; margin: 1px 0px 0px; accent-color: rgb(var(--a1-rgb, 252, 18, 131));">
-              <span data-dc-tpl="151" style="display: flex; flex-direction: column; gap: 2px;">
-                <span data-dc-tpl="152" style="font-size: 13px; color: var(--ink, rgb(246, 246, 247)); text-decoration: none;"><span class="sc-interp">Backtester SWYPER sur 2 semaines d’octobre</span></span>
-                <span data-dc-tpl="153" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">avant jeudi</span></span>
-              </span>
-            </label>
-          
-            <label data-dc-tpl="149" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055); cursor: pointer;">
-              <input data-dc-tpl="150" type="checkbox" style="width: 18px; height: 18px; margin: 1px 0px 0px; accent-color: rgb(var(--a1-rgb, 252, 18, 131));">
-              <span data-dc-tpl="151" style="display: flex; flex-direction: column; gap: 2px;">
-                <span data-dc-tpl="152" style="font-size: 13px; color: var(--ink, rgb(246, 246, 247)); text-decoration: none;"><span class="sc-interp">Écrire ton protocole d’annonces</span></span>
-                <span data-dc-tpl="153" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">avant jeudi</span></span>
-              </span>
-            </label>
-          
-        </div>
-
-        <div data-dc-tpl="154" class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
-          <span data-dc-tpl="155" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Infos</span>
-          
-            <div data-dc-tpl="157" style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);">
-              <div data-dc-tpl="158" style="display: flex; align-items: center; gap: 8px;">
-                <span data-dc-tpl="159" style="font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; color: var(--bg-0, rgb(5, 5, 5)); background: linear-gradient(135deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)));"><span class="sc-interp">CHEST</span></span>
-                <span data-dc-tpl="160" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">hier</span></span>
-              </div>
-              <span data-dc-tpl="161" style="font-weight: 600;"><span class="sc-interp">Semaine NFP : on réduit le risque</span></span>
-              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Pas plus de 0,5 % par trade de mercredi soir à vendredi 16:00.</span></span>
-            </div>
-          
-            <div data-dc-tpl="157" style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.055);">
-              <div data-dc-tpl="158" style="display: flex; align-items: center; gap: 8px;">
-                <span data-dc-tpl="159" style="font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; color: var(--bg-0, rgb(5, 5, 5)); background: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">Sarah</span></span>
-                <span data-dc-tpl="160" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">29 oct.</span></span>
-              </div>
-              <span data-dc-tpl="161" style="font-weight: 600;"><span class="sc-interp">Tes deux derniers trades hors protocole</span></span>
-              <span data-dc-tpl="162" style="font-size: 12.5px; line-height: 1.55; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">On en parle jeudi. Relis ta règle sur les annonces d’ici là.</span></span>
-            </div>
-          
-        </div>
-      </section>
-
-      
-      <section data-dc-tpl="163" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px;">
-        <div data-dc-tpl="164" class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 12px;">
-          <div data-dc-tpl="165" style="display: flex; align-items: center; gap: 12px;">
-            <img data-dc-tpl="166" src="assets/logo-swyper-v2.webp" alt="" style="width: 40px; height: 40px; border-radius: 11px; object-fit: cover;">
-            <span data-dc-tpl="167" style="display: flex; flex-direction: column; gap: 2px;">
-              <span data-dc-tpl="168" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">03 — Ton scanner de référence</span>
-              <span data-dc-tpl="169" style="font-size: 17px; font-weight: 700;">SWYPER · XAU/USD M15</span>
-            </span>
-            <a data-dc-tpl="170" href="Strategies.dc.html" style="margin-left: auto; font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">Ouvrir →</a>
-          </div>
-          
-            <div data-dc-tpl="172" class="row-h" style="display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.6fr; align-items: center; gap: 10px; padding: 10px 8px; margin: 0px -8px; border-radius: 10px; font-size: 12.5px;">
-              <span data-dc-tpl="173" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">31 oct. 15:00</span></span>
-              <span data-dc-tpl="174"><span data-dc-tpl="175" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
-              <span data-dc-tpl="176" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Objectif</span></span>
-              <span data-dc-tpl="177" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+4,1 R</span></span>
-            </div>
-          
-            <div data-dc-tpl="172" class="row-h" style="display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.6fr; align-items: center; gap: 10px; padding: 10px 8px; margin: 0px -8px; border-radius: 10px; font-size: 12.5px;">
-              <span data-dc-tpl="173" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">30 oct. 10:15</span></span>
-              <span data-dc-tpl="174"><span data-dc-tpl="175" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--red-hi, rgb(255, 148, 160)); background: rgba(var(--red-rgb, 255, 77, 94), 0.12);"><span class="sc-interp">Vente</span></span></span>
-              <span data-dc-tpl="176" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Stop</span></span>
-              <span data-dc-tpl="177" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−1,0 R</span></span>
-            </div>
-          
-            <div data-dc-tpl="172" class="row-h" style="display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.6fr; align-items: center; gap: 10px; padding: 10px 8px; margin: 0px -8px; border-radius: 10px; font-size: 12.5px;">
-              <span data-dc-tpl="173" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">29 oct. 14:30</span></span>
-              <span data-dc-tpl="174"><span data-dc-tpl="175" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
-              <span data-dc-tpl="176" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Objectif</span></span>
-              <span data-dc-tpl="177" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green-hi, rgb(127, 243, 202));"><span class="sc-interp">+3,2 R</span></span>
-            </div>
-          
-            <div data-dc-tpl="172" class="row-h" style="display: grid; grid-template-columns: 1.3fr 0.8fr 1fr 0.6fr; align-items: center; gap: 10px; padding: 10px 8px; margin: 0px -8px; border-radius: 10px; font-size: 12.5px;">
-              <span data-dc-tpl="173" style="color: var(--ink-2, rgb(155, 155, 161)); font-variant-numeric: tabular-nums;"><span class="sc-interp">27 oct. 09:45</span></span>
-              <span data-dc-tpl="174"><span data-dc-tpl="175" style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: var(--green-hi, rgb(127, 243, 202)); background: rgba(var(--green-rgb, 51, 230, 166), 0.12);"><span class="sc-interp">Achat</span></span></span>
-              <span data-dc-tpl="176" style="color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Stop</span></span>
-              <span data-dc-tpl="177" style="text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--red-hi, rgb(255, 148, 160));"><span class="sc-interp">−1,0 R</span></span>
-            </div>
-          
-        </div>
-        <div data-dc-tpl="178" class="tile" style="border-radius: 18px; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.07); background: linear-gradient(rgba(var(--fg-rgb, 255, 255, 255), 0.035), rgba(var(--fg-rgb, 255, 255, 255), 0.01)); box-shadow: rgba(var(--fg-rgb, 255, 255, 255), 0.05) 0px 1px 0px inset; padding: 22px; display: flex; flex-direction: column; gap: 8px;">
-          <div data-dc-tpl="179" style="display: flex; align-items: center; gap: 10px; padding-bottom: 6px;">
-            <span data-dc-tpl="180" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">Avant de trader aujourd'hui</span>
-            <span data-dc-tpl="181" style="margin-left: auto; font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">remis à zéro chaque matin</span>
-          </div>
-          
-            <label data-dc-tpl="183" style="display: flex; align-items: center; gap: 12px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); cursor: pointer;">
-              <input data-dc-tpl="184" type="checkbox" checked="" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(var(--green-rgb, 51, 230, 166));">
-              <span data-dc-tpl="185" style="font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">J’ai regardé le calendrier du jour</span></span>
-            </label>
-          
-            <label data-dc-tpl="183" style="display: flex; align-items: center; gap: 12px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); cursor: pointer;">
-              <input data-dc-tpl="184" type="checkbox" checked="" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(var(--green-rgb, 51, 230, 166));">
-              <span data-dc-tpl="185" style="font-size: 13px; color: var(--ink-2, rgb(155, 155, 161));"><span class="sc-interp">Je connais mon biais H4</span></span>
-            </label>
-          
-            <label data-dc-tpl="183" style="display: flex; align-items: center; gap: 12px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); cursor: pointer;">
-              <input data-dc-tpl="184" type="checkbox" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(var(--green-rgb, 51, 230, 166));">
-              <span data-dc-tpl="185" style="font-size: 13px; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">Mon risque est à 1 % maximum</span></span>
-            </label>
-          
-            <label data-dc-tpl="183" style="display: flex; align-items: center; gap: 12px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); cursor: pointer;">
-              <input data-dc-tpl="184" type="checkbox" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(var(--green-rgb, 51, 230, 166));">
-              <span data-dc-tpl="185" style="font-size: 13px; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">Aucune annonce forte dans les 30 min</span></span>
-            </label>
-          
-            <label data-dc-tpl="183" style="display: flex; align-items: center; gap: 12px; padding: 9px 0px; border-bottom: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.05); cursor: pointer;">
-              <input data-dc-tpl="184" type="checkbox" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(var(--green-rgb, 51, 230, 166));">
-              <span data-dc-tpl="185" style="font-size: 13px; color: var(--ink, rgb(246, 246, 247));"><span class="sc-interp">Le signal vient de mon scanner de référence</span></span>
-            </label>
-          
-        </div>
-      </section>
-
-      
-      <section data-dc-tpl="186" style="display: flex; flex-direction: column; gap: 14px;">
-        <div data-dc-tpl="187" style="display: flex; align-items: baseline; gap: 12px;">
-          <span data-dc-tpl="188" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3, rgb(122, 122, 130));">04 — Tes cours</span>
-          <span data-dc-tpl="189" style="flex: 1 1 0%; height: 1px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.07);"></span>
-          <span data-dc-tpl="190" style="font-size: 12px; color: var(--ink-2, rgb(155, 155, 161));">3 sur 8 terminés</span>
-        </div>
-        <div data-dc-tpl="191" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px;">
-          
-            <a data-dc-tpl="193" href="#" class="tile course" style="display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.02);">
-              <div data-dc-tpl="194" style="position: relative; height: 120px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(135deg, rgb(61, 13, 39), rgb(26, 13, 20) 70%);">
-                <span data-dc-tpl="195" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(var(--fg-rgb, 255, 255, 255), 0.75);"><span class="sc-interp">Cours écrit</span></span>
-                <span data-dc-tpl="196" style="font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; color: rgba(var(--fg-rgb, 255, 255, 255), 0.92);"><span class="sc-interp">01</span></span>
-              </div>
-              <div data-dc-tpl="197" style="display: flex; flex-direction: column; gap: 10px; padding: 16px;">
-                <span data-dc-tpl="198" style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Ressources Trading</span></span>
-                <span data-dc-tpl="199" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">10 chapitres · terminé</span></span>
-                <div data-dc-tpl="200" style="height: 4px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.06);"><div data-dc-tpl="201" style="height: 100%; width: 100%; border-radius: 999px; background: rgb(var(--green-rgb, 51, 230, 166));"></div></div>
-              </div>
-            </a>
-          
-            <a data-dc-tpl="193" href="#" class="tile course" style="display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.02);">
-              <div data-dc-tpl="194" style="position: relative; height: 120px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(135deg, rgb(43, 24, 16), rgb(var(--dk-rgb, 20, 14, 11)) 70%);">
-                <span data-dc-tpl="195" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(var(--fg-rgb, 255, 255, 255), 0.75);"><span class="sc-interp">Cours écrit</span></span>
-                <span data-dc-tpl="196" style="font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; color: rgba(var(--fg-rgb, 255, 255, 255), 0.92);"><span class="sc-interp">02</span></span>
-              </div>
-              <div data-dc-tpl="197" style="display: flex; flex-direction: column; gap: 10px; padding: 16px;">
-                <span data-dc-tpl="198" style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Lexique VVS</span></span>
-                <span data-dc-tpl="199" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">8 chapitres · 6 lus</span></span>
-                <div data-dc-tpl="200" style="height: 4px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.06);"><div data-dc-tpl="201" style="height: 100%; width: 75%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)));"></div></div>
-              </div>
-            </a>
-          
-            <a data-dc-tpl="193" href="#" class="tile course" style="display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.02);">
-              <div data-dc-tpl="194" style="position: relative; height: 120px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(135deg, rgb(11, 42, 36), rgb(var(--dk-rgb, 10, 20, 18)) 70%);">
-                <span data-dc-tpl="195" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(var(--fg-rgb, 255, 255, 255), 0.75);"><span class="sc-interp">Vidéo</span></span>
-                <span data-dc-tpl="196" style="font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; color: rgba(var(--fg-rgb, 255, 255, 255), 0.92);"><span class="sc-interp">03</span></span>
-              </div>
-              <div data-dc-tpl="197" style="display: flex; flex-direction: column; gap: 10px; padding: 16px;">
-                <span data-dc-tpl="198" style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Fibonacci en pratique</span></span>
-                <span data-dc-tpl="199" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">42 min · terminé</span></span>
-                <div data-dc-tpl="200" style="height: 4px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.06);"><div data-dc-tpl="201" style="height: 100%; width: 100%; border-radius: 999px; background: rgb(var(--green-rgb, 51, 230, 166));"></div></div>
-              </div>
-            </a>
-          
-            <a data-dc-tpl="193" href="#" class="tile course" style="display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; border: 1px solid rgba(var(--fg-rgb, 255, 255, 255), 0.08); background: rgba(var(--fg-rgb, 255, 255, 255), 0.02);">
-              <div data-dc-tpl="194" style="position: relative; height: 120px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(135deg, rgb(20, 24, 43), rgb(var(--dk-rgb, 12, 13, 20)) 70%);">
-                <span data-dc-tpl="195" style="font-family: &quot;Fragment Mono&quot;, ui-monospace, monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(var(--fg-rgb, 255, 255, 255), 0.75);"><span class="sc-interp">Vidéo</span></span>
-                <span data-dc-tpl="196" style="font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.05em; color: rgba(var(--fg-rgb, 255, 255, 255), 0.92);"><span class="sc-interp">04</span></span>
-              </div>
-              <div data-dc-tpl="197" style="display: flex; flex-direction: column; gap: 10px; padding: 16px;">
-                <span data-dc-tpl="198" style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;"><span class="sc-interp">Lire une annonce</span></span>
-                <span data-dc-tpl="199" style="font-size: 12px; color: var(--ink-3, rgb(122, 122, 130));"><span class="sc-interp">35 min · pas commencé</span></span>
-                <div data-dc-tpl="200" style="height: 4px; border-radius: 999px; background: rgba(var(--fg-rgb, 255, 255, 255), 0.06);"><div data-dc-tpl="201" style="height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, rgb(var(--a1-rgb, 252, 18, 131)), rgb(var(--a2-rgb, 249, 164, 94)));"></div></div>
-              </div>
-            </a>
-          
-        </div>
-      </section>
+      <span class="chest-maint-pill" id="chestMaintPill" hidden="">En maintenance pour les membres</span>
     </div>
-  </main></div></div></div>
+  </main>
+</div>
 
 
 
 
-<style>
-/* Démonstration de la landing (2026-11-03) : maquette CHEST 2.0 sans les entrées réservées à l'équipe */
-.nav-i.adm, a[href="Admin.dc.html"], .sb-sep{ display:none !important; }
-html{ scrollbar-width:none; } ::-webkit-scrollbar{ display:none; }
-a{ cursor:pointer; }
-</style>
-<script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div aria-hidden="true" style="position: absolute; width: 0px; height: 0px; overflow: hidden;"><svg width="0" height="0"><filter id="c2-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.006 0.02" numOctaves="2" seed="7" result="noise"></feTurbulence><feGaussianBlur in="noise" stdDeviation="2" result="soft"></feGaussianBlur><feDisplacementMap in="SourceGraphic" in2="soft" scale="60" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter></svg></div><script>
 document.addEventListener('click', function (e) {
-  var a = e.target.closest('a'); if (!a) return; e.preventDefault();
-  var m = { 'Main.dc.html': 'dashboard', 'Backtesting.dc.html': 'backtesting', 'Journal.dc.html': 'journal', 'Strategies.dc.html': 'strategies', 'Calendrier.dc.html': 'calendar', 'Berich.dc.html': 'berich', 'School.dc.html': 'school' }[a.getAttribute('href')];
+  var a = e.target.closest('a, button'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  var p = a.getAttribute('data-page') || ''; var m = { dashboard: 'dashboard', backtesting: 'backtesting', journal: 'journal', strategies: 'strategies', calendar: 'calendar', berich: 'berich', school: 'school' }[p];
   if (m && window.parent !== window) window.parent.postMessage({ chestDemo: m }, location.origin);
 }, true);
-</script>
-</body>
-</html>
+</script></body></html>

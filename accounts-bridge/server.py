@@ -5307,14 +5307,14 @@ _BERICH_BARS = {"at": 0, "body": None}
 
 @app.route("/berich/candles")
 def berich_candles():
-    """Bougies M5 de XAU/USD pour le mini-graphique de la position BERICH (cache partagé 60 s, puis scanner-server)."""
+    """Bougies M15 de XAU/USD (2026-11-09 : M5 trop plates) pour le mini-graphique de la position BERICH (cache partagé 60 s, puis scanner-server)."""
     if not approved_user():
         return jsonify({"error": "Non connecté."}), 401
     if not SCANNER_SERVER_URL:
         return jsonify({"error": "Service de calcul non configuré."}), 503
     if _BERICH_BARS["body"] is None or time.time() - _BERICH_BARS["at"] > 60:
         try:
-            url = SCANNER_SERVER_URL.rstrip("/") + "/bars?" + urllib.parse.urlencode({"symbol": "XAUUSD", "tf": "5", "n": 96})
+            url = SCANNER_SERVER_URL.rstrip("/") + "/bars?" + urllib.parse.urlencode({"symbol": "XAUUSD", "tf": "15", "n": 40})
             with urllib.request.urlopen(url, timeout=30) as resp:
                 _BERICH_BARS.update(at=time.time(), body=resp.read())
         except Exception:

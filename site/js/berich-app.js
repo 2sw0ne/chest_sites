@@ -282,33 +282,55 @@
     const el = $('brMini'); const p = activePosition();
     if (el && p) el.innerHTML = miniHtml(p, S.price);
   }
+  // Bougies M15 (2026-11-09, retour patron : en M5 tout était aplati) : les M5 du serveur regroupées par 15 min, les
+  // 32 dernières (8 h). L'échelle suit les bougies, l'entrée, le prix et le stop ; un objectif (ou un stop) trop loin ne
+  // l'écrase plus : sa zone part jusqu'au bord et son étiquette reste épinglée en haut (ou en bas) avec une flèche.
+  function toM15(bars) {
+    const out = [];
+    bars.forEach((b) => {
+      const t = Math.floor(b[0] / 900000) * 900000, last = out[out.length - 1];
+      if (last && last[0] === t) { last[2] = Math.max(last[2], b[2]); last[3] = Math.min(last[3], b[3]); last[4] = b[4]; }
+      else out.push([t, b[1], b[2], b[3], b[4]]);
+    });
+    return out;
+  }
   function miniHtml(p, price) {
     if (!miniBars) return '<div class="br-mini__wait">Chargement du graphique…</div>';
-    const TF = 300000, bars = miniBars.slice(-36);
+    const TF = 900000, bars = toM15(miniBars).slice(-32);
     const t0 = bars[0][0], tEnd = bars[bars.length - 1][0] + TF;
-    const W = 1000, H = 300, padR = 0.14, cw = (W * (1 - padR)) / bars.length;
+    const W = 1000, H = 300, padR = 0.1, cw = (W * (1 - padR)) / bars.length;
     const xOf = (t) => (Math.max(t0, Math.min(tEnd, t)) - t0) / TF * cw;
-    const vals = [p.sl, p.tp, p.entry].concat(price != null ? [price] : []);
-    bars.forEach((b) => { vals.push(b[2], b[3]); });
-    let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+    const core = [p.entry].concat(price != null ? [price] : []);
+    bars.forEach((b) => { core.push(b[2], b[3]); });
+    let lo = Math.min(...core), hi = Math.max(...core);
+    const span0 = Math.max(hi - lo, 1);
+    // un niveau proche entre dans l'échelle ; un niveau lointain est épinglé au bord
+    const near = (v) => v >= lo - span0 * 1.2 && v <= hi + span0 * 1.2;
+    [p.sl, p.tp].forEach((v) => { if (near(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+    const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
     const y = (v) => (hi - v) / (hi - lo) * H;
+    const yc = (v) => Math.max(0, Math.min(H, y(v)));
     const xs = p.time < t0 ? 0 : xOf(Math.floor(p.time / TF) * TF), xe = W;
     const candles = bars.map((b, i) => {
       const x = i * cw + cw / 2, up = b[4] >= b[1], c = up ? '#33e6a6' : '#ff4d5e';
-      const yo = y(b[1]), yc = y(b[4]), top = Math.min(yo, yc), hgt = Math.max(1, Math.abs(yc - yo));
-      return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(b[2]).toFixed(1)}" y2="${y(b[3]).toFixed(1)}" stroke="${c}" stroke-opacity=".55" vector-effect="non-scaling-stroke"/>`
-        + `<rect x="${(x - cw * 0.36).toFixed(1)}" y="${top.toFixed(1)}" width="${(cw * 0.72).toFixed(1)}" height="${Math.max(2, hgt).toFixed(1)}" rx="1.5" fill="${c}" fill-opacity="${up ? '.9' : '.85'}"/>`;
+      const yo = y(b[1]), ycl = y(b[4]), top = Math.min(yo, ycl), hgt = Math.max(2, Math.abs(ycl - yo));
+      return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(b[2]).toFixed(1)}" y2="${y(b[3]).toFixed(1)}" stroke="${c}" stroke-opacity=".6" stroke-width="1.4" vector-effect="non-scaling-stroke"/>`
+        + `<rect x="${(x - cw * 0.34).toFixed(1)}" y="${top.toFixed(1)}" width="${(cw * 0.68).toFixed(1)}" height="${hgt.toFixed(1)}" rx="2" fill="${c}" fill-opacity="${up ? '.92' : '.88'}"/>`;
     }).join('');
-    const zone = (a, b, col) => `<rect x="${xs.toFixed(1)}" y="${Math.min(y(a), y(b)).toFixed(1)}" width="${(xe - xs).toFixed(1)}" height="${Math.abs(y(a) - y(b)).toFixed(1)}" fill="${col}"/>`;
-    const lvl = (v, cls, txt) => `<span class="br-mini__lvl ${cls}" style="top:${(y(v) / H * 100).toFixed(2)}%">${txt} ${nf(v, 2)}</span>`;
+    const zone = (a, b2, col) => `<rect x="${xs.toFixed(1)}" y="${Math.min(yc(a), yc(b2)).toFixed(1)}" width="${(xe - xs).toFixed(1)}" height="${Math.abs(yc(a) - yc(b2)).toFixed(1)}" fill="${col}"/>`;
+    const lvl = (v, cls, txt) => {
+      const off = y(v) < 0 ? 'is-up' : y(v) > H ? 'is-down' : '';
+      const top = Math.max(5, Math.min(95, yc(v) / H * 100));
+      return `<span class="br-mini__lvl ${cls} ${off}" style="top:${top.toFixed(2)}%">${off === 'is-up' ? '↑ ' : off === 'is-down' ? '↓ ' : ''}${txt} ${nf(v, 2)}</span>`;
+    };
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-        ${zone(p.entry, p.sl, 'rgba(255, 77, 94,.16)')}${zone(p.entry, p.tp, 'rgba(51, 230, 166,.12)')}
+        ${zone(p.entry, p.sl, 'rgba(255, 77, 94,.14)')}${zone(p.entry, p.tp, 'rgba(51, 230, 166,.10)')}
         <line x1="${xs.toFixed(1)}" x2="${W}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,.55)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
         ${candles}
         ${price != null ? `<line x1="0" x2="${W}" y1="${y(price).toFixed(1)}" y2="${y(price).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>` : ''}
       </svg>
       <div class="br-mini__lvls" aria-label="Niveaux de la position">${lvl(p.sl, 'is-sl', 'SL')}${lvl(p.entry, 'is-pe', 'PE')}${lvl(p.tp, 'is-tp', 'TP')}${price != null ? lvl(price, 'is-px', 'Prix') : ''}</div>
-      <span class="br-mini__tf">XAU/USD · M5 · 3 dernières heures</span>`;
+      <span class="br-mini__tf">XAU/USD · M15 · 8 dernières heures</span>`;
   }
   setInterval(() => { if (activePosition()) loadMini(); }, 60000);
   let riskChoiceIdx = null;
