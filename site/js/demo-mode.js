@@ -27,7 +27,7 @@
   if (!D.fx) {
     try {
       const x = new XMLHttpRequest();
-      x.open('GET', '/demo/fixtures.json?v=1', false);
+      x.open('GET', '/demo/fixtures.json?v=2', false);
       x.send();
       let txt = x.responseText;
       const rec = Date.parse((JSON.parse(txt)._recordedAt) || new Date().toISOString());
@@ -147,10 +147,18 @@
       await new Promise((res) => setTimeout(res, 60 + Math.random() * 120));
       return new Response(r.body, { status: r.status, headers: { 'Content-Type': 'application/json' } });
     }
+    // services extérieurs (calendrier, force des devises, crypto) : copies figées, aucun appel réel
+    const ext = /calendar-bridge/.test(u.host) ? (/calendar\.json/.test(u.pathname) ? D.fx['EXT calendar'] : '{}')
+      : /fxbluelabs/.test(u.host) ? D.fx['EXT strength']
+      : /coingecko/.test(u.host) ? (/\/markets$/.test(u.pathname) ? D.fx['EXT coingecko'] : '{"prices":[]}') : null;
+    if (ext != null) {
+      await new Promise((res) => setTimeout(res, 80));
+      return new Response(ext || '{}', { status: 200, headers: { 'Content-Type': /fxbluelabs/.test(u.host) ? 'text/plain' : 'application/json' } });
+    }
     if (isSignals(u)) {
-      // BERICH : les vrais signaux clôturés + un achat de l'or en cours (BERICH II)
+      // BERICH : les signaux clôturés (copie) + un achat de l'or en cours (BERICH II)
       let data = { signals: [] };
-      try { data = await (await realFetch(input, init)).json(); } catch (e) { /* hors ligne */ }
+      try { data = JSON.parse(D.fx['EXT signals'] || '{"signals":[]}'); } catch (e) { /* tant pis */ }
       const open = { id: 'demo-open', algo: 'berich2', scanner: 'BERICH II', symbol: 'XAUUSD', side: 'buy', entry: ENTRY, sl: SL, tp: TP, time: new Date(NOW - 95 * 60000).toISOString(), status: 'open' };
       data.signals = [open].concat((data.signals || []).filter((s) => s.status === 'closed'));
       return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -199,13 +207,25 @@
     try { (window.CHESTScanners ? CHESTScanners.list() : []).forEach((sc) => { if (sc.candles && /rgba\(0, ?0, ?0, ?0\)/.test(JSON.stringify(sc.candles))) sc.candles = null; }); } catch (e) { /* tant pis */ }
   });
 
-  // pas de sortie de la démo : connexion, déconnexion, offres, liens externes au site
-  document.addEventListener('click', (e) => {
-    const a = e.target.closest('a[href], [data-logout], #c2Logout, .chest-logout');
-    if (!a) return;
-    const href = a.getAttribute('href') || '';
-    if (a.matches('[data-logout], #c2Logout, .chest-logout') || a.target === '_top' || /^\/?(offres|connexion|inscription|login|signup|landing)/.test(href) || /^https?:/.test(href) && !href.startsWith(location.origin)) {
-      e.preventDefault(); e.stopPropagation();
-    }
+  // Démo « à regarder » (2026-11-09, demande patron) : rien n'est cliquable, sauf ce qui explique une page —
+  // cocher une mission (School), ouvrir un rapport (Backtesting), ouvrir un livre (Calendrier).
+  const PAGE = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+  const ALLOW = { school: '[data-task]', backtesting: 'a[href*="backtest-view"]', calendar: '.book[data-open]', 'backtest-view': 'a.chest-back' }[PAGE] || null;
+  const allowed = (t) => !!(ALLOW && t && t.closest && t.closest(ALLOW));
+  ['click', 'dblclick', 'auxclick', 'contextmenu', 'mousedown', 'submit'].forEach((type) => document.addEventListener(type, (e) => {
+    if (allowed(e.target)) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+  }, true));
+  document.addEventListener('keydown', (e) => {
+    if (/^(Arrow|Page|Home|End)/.test(e.key) || (e.key === ' ' && !allowed(e.target))) return;
+    if (allowed(e.target)) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
   }, true);
+  const css = document.createElement('style');
+  css.textContent = `html *, html *::before, html *::after{ cursor:default !important; }
+    ${ALLOW ? `${ALLOW}, ${ALLOW} *{ cursor:pointer !important; }` : ''}
+    .chesttour-btn, .lotcalc-fab, .lotcalc-overlay{ display:none !important; }
+    #scHome > section.chest-section, #scHome > .sc-hero, #sh2Search{ display:none !important; }`;
+  (document.head || document.documentElement).appendChild(css);
+  document.documentElement.classList.add('chest-demo');
 })();
