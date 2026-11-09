@@ -753,7 +753,7 @@ a{ color:var(--ink, #f6f6f7); } a:hover{ color:#ffffff; }
 .trust--pills li.pill::before{ display:none; }
 .trust--pills li.pill b{ font-size:9.5px; }
 
-/* 02 — La solution : la fenêtre montre les vraies pages CHEST 2.0 (landing-app/*.html), mises à l'échelle en JS */
+/* 02 — La solution : la fenêtre montre les vraies pages CHEST 2.0 (/<page> en mode démo, js/demo-mode.js), mises à l'échelle en JS */
 .win--live{ overflow:hidden; }
 .app-live{ position:relative; aspect-ratio:1440 / 900; overflow:hidden; background:var(--bg-0, #050505); }
 .app-live iframe{ position:absolute; left:0; top:0; width:1440px; height:900px; border:0; transform-origin:0 0; background:var(--bg-0, #050505); }

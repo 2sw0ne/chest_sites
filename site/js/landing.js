@@ -21,7 +21,7 @@
     fitDemo();
   }
 
-  // ---------- fenêtre de démonstration : la vraie page CHEST 2.0 (landing-app/*.html) mise à l'échelle ----------
+  // ---------- fenêtre de démonstration : la vraie page CHEST 2.0 (/<page> en mode démo, js/demo-mode.js) mise à l'échelle ----------
   function fitDemo() {
     document.querySelectorAll('.app-live').forEach((el) => {
       const f = el.querySelector('iframe');
