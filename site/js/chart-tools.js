@@ -31,7 +31,7 @@
     const el = bar.querySelector('[data-ct-count]');
     el.hidden = !n; el.textContent = n;
   }
-  const hook = setInterval(() => { if (SC() && SC().indicators) { SC().indicators.onChange(() => { refreshCount(); if (!modal.hidden) paintModal(); }); refreshCount(); clearInterval(hook); } }, 300);
+  const hook = setInterval(() => { if (SC() && SC().indicators) { SC().indicators.onChange((ev) => { refreshCount(); if (ev && ev.settings) { openModal(); return; } if (!modal.hidden) paintModal(); }); refreshCount(); clearInterval(hook); } }, 300);
 
   // ---------------- Capture ----------------
   // Capture de Vela (tout le graphique : bougies, indicateurs, dessins, légendes) + un bandeau
@@ -141,11 +141,12 @@
     let html = '';
     if (on.length && !q) {
       html += `<div class="ct-sec">Sur le graphique</div>` + on.map((u) => `<div class="ct-on"><span class="ct-on__t">${esc(u.title)}${u.visible ? '' : ' <i>masqué</i>'}</span>
-        ${u.own || u.type === 'pivotrsi' ? '' : `<button type="button" class="ct-mini" data-ct-cfg="${esc(u.id)}">Réglages</button>`}
+        ${u.own || u.type === 'ichimoku' ? '' : u.type === 'chestrsi' ? `<label class="ct-mini ct-chk"><input type="checkbox" data-ct-div="${esc(u.id)}" ${u.opts && u.opts.divergence ? 'checked' : ''}>Calculer les divergences</label>` : `<button type="button" class="ct-mini" data-ct-cfg="${esc(u.id)}">Réglages</button>`}
         ${u.own ? '' : `<button type="button" class="ct-mini" data-ct-eye="${esc(u.id)}">${u.visible ? 'Masquer' : 'Afficher'}</button>`}
         <button type="button" class="ct-mini is-del" data-ct-del="${esc(u.id)}">Retirer</button></div>`).join('');
     }
-    if (match('RSI Pivot', 'CHEST')) html += `<div class="ct-sec">CHEST</div>` + row('pivotrsi', 'RSI Pivot', 'Le RSI du scanner Pivot, sur n’importe quel scanner', 'CHEST');
+    const chest = [['chestrsi', 'RSI', 'Panneau du bas · divergences au choix (Réglages)'], ['ichimoku', 'Nuage Ichimoku', 'Leading Span A / B et le nuage']].filter(([, t, h]) => match(t, h + ' CHEST'));
+    if (chest.length) html += `<div class="ct-sec">CHEST</div>` + chest.map(([k, t, h]) => row(k, t, h, 'CHEST')).join('');
     const known = new Set([].concat(...Object.values(CAT)));
     const byType = new Map((catalog || []).filter((c) => c.supported !== false).map((c) => [c.type, c]));
     const groups = Object.entries(CAT).map(([k, types]) => [k, types.filter((t) => byType.has(t))]);
@@ -166,12 +167,13 @@
       add.disabled = true; add.classList.add('is-busy');
       const h = await I.add(add.dataset.ctAdd);
       add.disabled = false; add.classList.remove('is-busy');
-      if (add.dataset.ctAdd === 'pivotrsi' && !h && (SC().current() || {}).scannerId !== 'pivot') toast('RSI Pivot indisponible pour le moment.');
+      if (!h) toast('Indicateur indisponible pour le moment.');
       else toast(`${add.querySelector('.ct-row__t').firstChild.textContent} ajouté`);
       paintModal(); return;
     }
     const cfg = e.target.closest('[data-ct-cfg]'); if (cfg && I) { closeModal(); I.settings(cfg.dataset.ctCfg); return; }
     const eye = e.target.closest('[data-ct-eye]'); if (eye && I) { I.toggle(eye.dataset.ctEye); paintModal(); return; }
+    const dv = e.target.closest('[data-ct-div]'); if (dv && I) { I.setRsi(dv.dataset.ctDiv, { divergence: dv.checked }); toast(dv.checked ? 'Divergences affichées' : 'Divergences masquées'); return; }
     const del = e.target.closest('[data-ct-del]'); if (del && I) { I.remove(del.dataset.ctDel); paintModal(); }
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
@@ -182,6 +184,142 @@
     else if (b.dataset.ct === 'shot') shot();
     else if (b.dataset.ct === 'full') toggleFull();
   });
+
+  // ---------------- Clic droit sur le graphique (2026-11-09, « comme TradingView ») ----------------
+  // Réinitialiser l'affichage, copier le prix, alerte sur un prix ou sur une ligne horizontale tracée,
+  // masquer / supprimer les dessins et les indicateurs ajoutés, mes alertes de prix, capture, plein écran.
+  // Le prix proposé = clôture de la bougie sous la souris (modifiable avant de créer l'alerte).
+  const A = window.CHESTAccounts;
+  const apiCall = async (path, opts) => {
+    const res = await fetch(A.apiBase() + path, Object.assign({}, opts, { headers: Object.assign({ Authorization: 'Bearer ' + A.getToken(), 'Content-Type': 'application/json' }, (opts && opts.headers) || {}) }));
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error || 'Le serveur ne répond pas pour le moment.');
+    return d;
+  };
+  const nfp = (v) => (v == null || isNaN(v) ? '—' : Number(v).toLocaleString('fr-FR', { maximumFractionDigits: Math.abs(v) >= 100 ? 2 : 5 }));
+  const curSym = () => { const c = SC() && SC().current(); return c ? String(c.symbol || 'XAUUSD').replace(/[^A-Z0-9]/gi, '').toUpperCase() : 'XAUUSD'; };
+  const drw = () => { const c = SC() && SC().current(); return c && (c.chart.drawings || c.chart.drawingsControl); };
+  const allDrawings = () => { try { const d = drw(); const a = d ? d.all() : []; return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+  const lineOf = (x) => { const pts = x && (x.points || x.anchors) || []; const pr = pts[0] && (pts[0].price != null ? pts[0].price : pts[0].value); return /horizontal/i.test(String(x && (x.type || x.tool || ''))) && pr != null ? Number(pr) : null; };
+  let drawingsHidden = false, indHidden = false, ctxPrice = null, myAlerts = [];
+  function priceUnderCursor() {
+    try { const r = SC().current().chart.renderer.dataWindowReadout(); return r && r.ohlc ? parseFloat(r.ohlc.c) : null; } catch (e) { return null; }
+  }
+  async function loadAlerts() { try { myAlerts = (await apiCall('/alerts/prices')).alerts || []; } catch (e) { /* hors ligne */ } }
+  loadAlerts();
+
+  const ctx = document.createElement('div');
+  ctx.className = 'ct-ctx'; ctx.hidden = true; ctx.setAttribute('role', 'menu');
+  document.body.appendChild(ctx);
+  const item = (act, label, key, extra) => `<button type="button" role="menuitem" data-cx="${act}"${extra || ''}><span>${label}</span>${key ? `<kbd>${key}</kbd>` : ''}</button>`;
+  function openCtx(x, y) {
+    const I = SC().indicators, ind = I ? I.list().filter((u) => !u.own) : [];
+    const dr = allDrawings(), lines = dr.map(lineOf).filter((v) => v != null).slice(0, 4);
+    const sym = curSym(), mine = myAlerts.filter((a) => a.symbol === sym);
+    ctx.innerHTML = item('reset', 'Réinitialiser l’affichage du graphique', 'Alt + R')
+      + '<hr>' + item('copy', `Copier le prix ${nfp(ctxPrice)}`)
+      + '<hr>' + item('alert', `Ajouter une alerte sur ${esc(sym)} à ${nfp(ctxPrice)}…`, 'Alt + A')
+      + lines.map((v) => item('alert', `Ajouter une alerte sur la ligne à ${nfp(v)}…`, '', ` data-price="${v}"`)).join('')
+      + (mine.length ? item('alerts', `Mes alertes sur ${esc(sym)} (${mine.length})`) : '')
+      + '<hr>' + item('hidedraw', drawingsHidden ? 'Afficher les dessins' : 'Masquer les dessins', '', dr.length ? '' : ' disabled')
+      + item('deldraw', `Supprimer ${dr.length} dessin${dr.length > 1 ? 's' : ''}`, '', dr.length ? '' : ' disabled')
+      + item('hideind', indHidden ? 'Afficher les indicateurs' : 'Masquer les indicateurs', '', ind.length ? '' : ' disabled')
+      + item('delind', `Supprimer ${ind.length} indicateur${ind.length > 1 ? 's' : ''}`, '', ind.length ? '' : ' disabled')
+      + '<hr>' + item('ind', 'Indicateurs…') + item('shot', 'Capture du graphique') + item('full', 'Plein écran');
+    ctx.hidden = false;
+    const r = ctx.getBoundingClientRect();
+    ctx.style.left = Math.min(x, innerWidth - r.width - 8) + 'px';
+    ctx.style.top = Math.min(y, innerHeight - r.height - 8) + 'px';
+  }
+  const closeCtx = () => { ctx.hidden = true; };
+  chartBox.addEventListener('contextmenu', (e) => {
+    if (!SC() || !SC().current()) return;
+    e.preventDefault();
+    ctxPrice = priceUnderCursor();
+    openCtx(e.clientX, e.clientY);
+  });
+  document.addEventListener('mousedown', (e) => { if (!ctx.hidden && !ctx.contains(e.target)) closeCtx(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeCtx();
+    if (!e.altKey || !SC() || !SC().current() || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) return;
+    if (e.code === 'KeyR') { e.preventDefault(); SC().resetView(); }
+    if (e.code === 'KeyA') { e.preventDefault(); alertDialog(priceUnderCursor()); }
+  });
+  ctx.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-cx]'); if (!b || b.disabled) return;
+    closeCtx();
+    const I = SC().indicators, d = drw();
+    switch (b.dataset.cx) {
+      case 'reset': SC().resetView(); break;
+      case 'copy': try { await navigator.clipboard.writeText(String(ctxPrice)); toast('Prix copié'); } catch (err) { toast(String(ctxPrice)); } break;
+      case 'alert': alertDialog(b.dataset.price != null ? Number(b.dataset.price) : ctxPrice); break;
+      case 'alerts': alertsDialog(); break;
+      case 'hidedraw': {
+        drawingsHidden = !drawingsHidden;
+        const ids = allDrawings().map((x) => x.id).filter(Boolean);
+        try { d.show(ids, !drawingsHidden); } catch (err) { try { ids.forEach((id) => d.show(id, !drawingsHidden)); } catch (e2) { /* tant pis */ } }
+        toast(drawingsHidden ? 'Dessins masqués' : 'Dessins affichés'); break;
+      }
+      case 'deldraw': {
+        const ids = allDrawings().map((x) => x.id).filter(Boolean);
+        const ok = window.CHESTConfirm ? await window.CHESTConfirm(`Supprimer les ${ids.length} dessins du graphique ?`, { confirmLabel: 'Supprimer' }) : true;
+        if (!ok) break;
+        try { d.removeMany(ids); } catch (err) { ids.forEach((id) => { try { d.remove(id); } catch (e2) { /* tant pis */ } }); }
+        toast('Dessins supprimés'); break;
+      }
+      case 'hideind': {
+        indHidden = !indHidden;
+        I.list().filter((u) => !u.own && u.visible === indHidden).forEach((u) => I.toggle(u.id));
+        toast(indHidden ? 'Indicateurs masqués' : 'Indicateurs affichés'); break;
+      }
+      case 'delind': {
+        const ind = I.list().filter((u) => !u.own);
+        const ok = window.CHESTConfirm ? await window.CHESTConfirm(`Retirer les ${ind.length} indicateurs ajoutés ?`, { confirmLabel: 'Retirer' }) : true;
+        if (!ok) break;
+        ind.forEach((u) => I.remove(u.id)); toast('Indicateurs retirés'); break;
+      }
+      case 'ind': openModal(); break;
+      case 'shot': shot(); break;
+      case 'full': toggleFull(); break;
+      default: break;
+    }
+  });
+
+  // Fenêtres « Ajouter une alerte » et « Mes alertes »
+  const dlg = document.createElement('div');
+  dlg.className = 'ct-modal ct-adlg'; dlg.hidden = true;
+  document.body.appendChild(dlg);
+  const closeDlg = () => { dlg.hidden = true; };
+  dlg.addEventListener('click', (e) => { if (e.target === dlg || e.target.closest('[data-ad-close]')) closeDlg(); });
+  function alertDialog(price) {
+    const sym = curSym();
+    dlg.innerHTML = `<div class="ct-modal__veil" data-ad-close></div><div class="ct-modal__win ct-adlg__win" role="dialog" aria-modal="true" aria-labelledby="ctAdT">
+      <div class="ct-modal__head"><b id="ctAdT">Alerte sur ${esc(sym)}</b><button type="button" class="ct-x" data-ad-close aria-label="Fermer">×</button></div>
+      <label class="ct-adlg__f"><span>Prévenir quand le prix touche</span><input type="text" inputmode="decimal" id="ctAdPrice" value="${price != null && !isNaN(price) ? String(price) : ''}" autocomplete="off"></label>
+      <p class="ct-adlg__h">Une notification sur tes appareils, une seule fois, dès qu’une bougie touche ce prix.</p>
+      <p class="ct-adlg__err" id="ctAdErr" role="alert"></p>
+      <div class="ct-adlg__a"><button type="button" class="ct-mini" data-ad-close>Annuler</button><button type="button" class="ct-mini is-go" id="ctAdGo">Créer l’alerte</button></div></div>`;
+    dlg.hidden = false;
+    const input = document.getElementById('ctAdPrice'); input.focus(); input.select();
+    const go = async () => {
+      const v = parseFloat(String(input.value).replace(',', '.').replace(/\s/g, ''));
+      if (!(v > 0)) { document.getElementById('ctAdErr').textContent = 'Indique un prix.'; return; }
+      try { myAlerts = (await apiCall('/alerts/prices', { method: 'POST', body: JSON.stringify({ symbol: sym, price: v, current: priceUnderCursor() }) })).alerts || []; closeDlg(); toast(`Alerte posée à ${nfp(v)}`); }
+      catch (err) { document.getElementById('ctAdErr').textContent = err.message; }
+    };
+    document.getElementById('ctAdGo').addEventListener('click', go);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+  }
+  function alertsDialog() {
+    const sym = curSym(), mine = myAlerts.filter((a) => a.symbol === sym);
+    dlg.innerHTML = `<div class="ct-modal__veil" data-ad-close></div><div class="ct-modal__win ct-adlg__win" role="dialog" aria-modal="true" aria-labelledby="ctAlT">
+      <div class="ct-modal__head"><b id="ctAlT">Mes alertes sur ${esc(sym)}</b><button type="button" class="ct-x" data-ad-close aria-label="Fermer">×</button></div>
+      <ul class="ct-adlg__list">${mine.map((a) => `<li><span>${a.dir === 'up' ? 'Au-dessus de' : 'En dessous de'} <b>${nfp(a.price)}</b></span><button type="button" class="ct-mini is-del" data-ad-del="${a.id}">Retirer</button></li>`).join('') || '<li>Aucune alerte active.</li>'}</ul></div>`;
+    dlg.hidden = false;
+    dlg.querySelectorAll('[data-ad-del]').forEach((bt) => bt.addEventListener('click', async () => {
+      try { myAlerts = (await apiCall('/alerts/prices/' + bt.dataset.adDel, { method: 'DELETE' })).alerts || []; alertsDialog(); toast('Alerte retirée'); } catch (err) { toast(err.message); }
+    }));
+  }
 
   // ---------------- Outils de dessin en français (libellés de Vela) ----------------
   const T = {

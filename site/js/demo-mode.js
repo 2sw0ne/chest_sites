@@ -210,22 +210,26 @@
   // Démo « à regarder » (2026-11-09, demande patron) : rien n'est cliquable, sauf ce qui explique une page —
   // cocher une mission (School), ouvrir un rapport (Backtesting), ouvrir un livre (Calendrier).
   const PAGE = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+  const inLanding = (() => { try { return top !== window && /^\/(landing(\.html)?)?$/.test(top.location.pathname); } catch (e) { return false; } })();
   const ALLOW = { school: '[data-task]', backtesting: 'a[href*="backtest-view"]', calendar: '.book[data-open]', 'backtest-view': 'a.chest-back' }[PAGE] || null;
   const allowed = (t) => !!(ALLOW && t && t.closest && t.closest(ALLOW));
   ['click', 'dblclick', 'auxclick', 'contextmenu', 'mousedown', 'submit'].forEach((type) => document.addEventListener(type, (e) => {
-    if (allowed(e.target)) return;
+    if (!inLanding || allowed(e.target)) return;
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
   }, true));
   document.addEventListener('keydown', (e) => {
+    if (!inLanding) return;
     if (/^(Arrow|Page|Home|End)/.test(e.key) || (e.key === ' ' && !allowed(e.target))) return;
     if (allowed(e.target)) return;
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
   }, true);
   const css = document.createElement('style');
+  if (inLanding) {
   css.textContent = `html *, html *::before, html *::after{ cursor:default !important; }
     ${ALLOW ? `${ALLOW}, ${ALLOW} *{ cursor:pointer !important; }` : ''}
     .chesttour-btn, .lotcalc-fab, .lotcalc-overlay{ display:none !important; }
     #scHome > section.chest-section, #scHome > .sc-hero, #sh2Search{ display:none !important; }`;
   (document.head || document.documentElement).appendChild(css);
   document.documentElement.classList.add('chest-demo');
+  }
 })();

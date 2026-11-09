@@ -511,6 +511,13 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        # Alertes sur un prix (2026-11-09) : posées depuis le clic droit du graphique des scanners ; prévenues une fois.
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS price_alerts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT NOT NULL, price REAL NOT NULL,
+                dir TEXT NOT NULL, created_at TEXT NOT NULL, fired_at TEXT
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS alert_rules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1813,6 +1820,7 @@ def _purge_user(db, member_id):
     db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
     db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
     db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM price_alerts WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
     db.execute("DELETE FROM user_activity WHERE user_id = ?", (member_id,))
@@ -5345,6 +5353,99 @@ def _rule_out(row):
     }
 
 
+def _last_price(symbol):
+    """Dernière bougie M5 connue du scanner-server pour ce symbole : (clôture, [(temps ms, haut, bas)])."""
+    d = _scanner_call("/bars?" + urllib.parse.urlencode({"symbol": symbol, "tf": "5", "n": 24})) or {}
+    bars = d.get("bars") or []
+    return (bars[-1][4] if bars else None), [(b[0], b[2], b[3]) for b in bars]
+
+
+def _price_alert_out(r):
+    return {"id": r["id"], "symbol": r["symbol"], "price": r["price"], "dir": r["dir"], "createdAt": r["created_at"], "firedAt": r["fired_at"]}
+
+
+@app.route("/alerts/prices", methods=["GET", "POST"])
+def price_alerts():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    if request.method == "POST":
+        b = request.get_json(silent=True) or {}
+        sym = re.sub(r"[^A-Z0-9]", "", str(b.get("symbol") or "").upper())[:12]
+        try:
+            price = float(str(b.get("price")).replace(",", ".").replace(" ", ""))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Prix invalide."}), 400
+        if not sym or not (price > 0):
+            return jsonify({"error": "Symbole ou prix invalide."}), 400
+        if db.execute("SELECT COUNT(*) FROM price_alerts WHERE user_id = ? AND fired_at IS NULL", (user["id"],)).fetchone()[0] >= 30:
+            return jsonify({"error": "30 alertes actives au maximum."}), 400
+        try:
+            last, _ = _last_price(sym)
+        except Exception:
+            last = None
+        cur = b.get("current")
+        try:
+            cur = float(cur) if cur is not None else last
+        except (TypeError, ValueError):
+            cur = last
+        direction = "up" if cur is None or price >= cur else "down"
+        with db_lock:
+            db.execute("INSERT INTO price_alerts (user_id, symbol, price, dir, created_at) VALUES (?, ?, ?, ?, ?)",
+                       (user["id"], sym, price, direction, datetime.now(timezone.utc).isoformat()))
+            db.commit()
+    rows = db.execute("SELECT * FROM price_alerts WHERE user_id = ? AND fired_at IS NULL ORDER BY symbol, price", (user["id"],)).fetchall()
+    return jsonify({"alerts": [_price_alert_out(r) for r in rows]})
+
+
+@app.route("/alerts/prices/<int:aid>", methods=["DELETE", "POST"])
+def price_alert_delete(aid):
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    with db_lock:
+        db.execute("DELETE FROM price_alerts WHERE id = ? AND user_id = ?", (aid, user["id"]))
+        db.commit()
+    rows = db.execute("SELECT * FROM price_alerts WHERE user_id = ? AND fired_at IS NULL ORDER BY symbol, price", (user["id"],)).fetchall()
+    return jsonify({"alerts": [_price_alert_out(r) for r in rows]})
+
+
+def price_alert_loop():
+    """Toutes les minutes : une seule lecture de bougies par symbole surveillé (cache du scanner-server),
+    une alerte part quand une bougie posée après sa création touche son prix."""
+    while True:
+        try:
+            with app.app_context():
+                if get_ops().get("mode") != "off":
+                    db = get_db()
+                    rows = db.execute("SELECT * FROM price_alerts WHERE fired_at IS NULL").fetchall()
+                    for sym in sorted({r["symbol"] for r in rows}):
+                        try:
+                            _, bars = _last_price(sym)
+                        except Exception:
+                            continue
+                        for r in [x for x in rows if x["symbol"] == sym]:
+                            since = _when(r["created_at"]).timestamp() * 1000 - 300000
+                            hit = any(t >= since and ((r["dir"] == "up" and hi >= r["price"]) or (r["dir"] == "down" and lo <= r["price"])) for t, hi, lo in bars)
+                            if not hit:
+                                continue
+                            now = datetime.now(timezone.utc).isoformat()
+                            with db_lock:
+                                db.execute("UPDATE price_alerts SET fired_at = ? WHERE id = ?", (now, r["id"]))
+                                db.commit()
+                            txt = f"{sym} a touché {r['price']:g}"
+                            try:
+                                send_push_to_user(r["user_id"], f"Alerte {sym}", txt, f"/strategies?symbol={sym}")
+                            except Exception as e:
+                                print(f"[alertes prix] push impossible : {e}", flush=True)
+        except Exception:
+            import traceback
+            traceback.print_exc()
+        time.sleep(60)
+
+
 @app.route("/alerts/rules", methods=["GET"])
 def alerts_rules_list():
     user = approved_user()
@@ -6532,6 +6633,7 @@ if __name__ == "__main__":
     init_db()
     threading.Thread(target=digest_loop, daemon=True).start()
     threading.Thread(target=school_reminder_loop, daemon=True).start()
+    threading.Thread(target=price_alert_loop, daemon=True).start()
     threading.Thread(target=bucket_migrate, daemon=True).start()
     threading.Thread(target=ud_migrate, daemon=True).start()
     # threaded=True : threaded=False bloquait TOUTES les requetes suivantes

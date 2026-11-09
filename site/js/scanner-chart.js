@@ -288,7 +288,7 @@
       { key: 'lines', label: 'Lignes des niveaux', hint: 'Pivots, extensions, S0 / R8', def: true, lines: everything },
       { key: 'tags', label: 'Étiquettes des niveaux', def: true, labels: textIs(/^(R|S|P|\+|-)\S*( \(Weekly\))?$/) },
       { key: 'zones', label: 'Zones R8 / S0', def: true, boxes: everything },
-      { key: 'rsi', label: 'RSI Pivot', hint: 'Panneau du bas', def: true, pane: true },
+      { key: 'rsi', label: 'RSI', hint: 'Panneau du bas', def: true, pane: true },
     ],
     harmonics: [
       { key: 'pattern', label: 'Figure X A B C D', def: true, polylines: everything, lines: (el) => !flat(el), labels: textIs(/^[XABCD]$/) },
@@ -339,9 +339,8 @@
   const velaTheme = () => 'dark';
   const MODEL_KINDS = ['series', 'fills', 'labels', 'lines', 'boxes', 'polylines', 'backgrounds', 'tables'];
   // Indicateurs ajoutables : proposés seulement s'ils ne font pas déjà partie du script du scanner.
-  const ADDONS = [
-    { key: 'ichimoku', label: 'Nuage Ichimoku', hint: 'Leading Span A / B', def: false },
-  ];
+  // Ichimoku déplacé dans la fenêtre Indicateurs (2026-11-09) : plus d'indicateur ajoutable dans « Affichage ».
+  const ADDONS = [];
   // Déjà présents dans le script : RSI (Pulse, Pivot), MACD (panneau « MACD BLOOD », Wolf Attack de Wolfx).
   const NATIVE_ADDONS = { pulse: ['rsi'], pivot: ['rsi'], blood: ['macd'], wolfx: ['macd'] };
 
@@ -399,6 +398,61 @@
       ],
       fills: [{ id: id + ':fill:cloud#0', paneId: 'unrouted', fromSeriesId: id + ':line:span-a#0', toSeriesId: id + ':line:span-b#0', colors }],
       backgrounds: [], priceLines: [], lines: [], boxes: [], labels: [], polylines: [], linefills: [], tables: [],
+      inputs: [], inputValues: {}, props: [], propValues: {}, anchorTime: bars[0] ? bars[0].time : 0,
+    };
+  }
+
+  // RSI CHEST (2026-11-09, remplace « RSI Pivot ») : RSI de Wilder calculé ici sur les bougies du graphique, donc sur
+  // n'importe quel scanner, avec les divergences régulières du script RSI de Pivot (pivots 5 / 5, écart 5 à 60
+  // bougies) quand « Calculer les divergences » est coché : ligne verte (haussière) ou rouge (baissière) entre deux
+  // creux / sommets du RSI, au moment du pivot.
+  function rsiModel(bars, opts) {
+    const len = (opts && opts.length) || 14, div = !!(opts && opts.divergence), n = bars.length;
+    const rsi = new Array(n).fill(null);
+    let ag = 0, al = 0;
+    for (let i = 1; i < n; i++) {
+      const ch = bars[i].close - bars[i - 1].close, g = Math.max(ch, 0), l = Math.max(-ch, 0);
+      if (i <= len) { ag += g / len; al += l / len; if (i === len) rsi[i] = al === 0 ? 100 : 100 - 100 / (1 + ag / al); continue; }
+      ag = (ag * (len - 1) + g) / len; al = (al * (len - 1) + l) / len;
+      rsi[i] = al === 0 ? 100 : 100 - 100 / (1 + ag / al);
+    }
+    const id = 'chest-rsi';
+    const pts = (fn) => bars.map((b, i) => ({ time: b.time, value: fn(i), color: '#7E57C2' }));
+    const series = [
+      { id: id + ':line:rsi#0', title: 'RSI', paneId: 'unrouted', kind: 'line', points: pts((i) => rsi[i]), style: { color: '#7E57C2', width: 2, lineStyle: 'solid' }, visible: true },
+      { id: id + ':line:70#0', title: '70', paneId: 'unrouted', kind: 'line', points: bars.map((b) => ({ time: b.time, value: 70, color: '#787B86' })), style: { color: '#787B86', width: 1, lineStyle: 'dashed' }, visible: true },
+      { id: id + ':line:30#0', title: '30', paneId: 'unrouted', kind: 'line', points: bars.map((b) => ({ time: b.time, value: 30, color: '#787B86' })), style: { color: '#787B86', width: 1, lineStyle: 'dashed' }, visible: true },
+    ];
+    if (div) {
+      const L = 5, R = 5, lo = 5, hi = 60, NONE = 'rgba(0,0,0,0)';
+      const bull = [], bear = [];
+      let lastPl = null, lastPh = null; // { idx (bougie du pivot), rsi, price }
+      for (let i = L + R; i < n; i++) {
+        const c = i - R;
+        if (rsi[c] == null) continue;
+        let isLow = true, isHigh = true;
+        for (let k = c - L; k <= c + R; k++) {
+          if (k === c || rsi[k] == null) continue;
+          if (rsi[k] <= rsi[c]) isLow = false;
+          if (rsi[k] >= rsi[c]) isHigh = false;
+        }
+        if (isLow) {
+          const ok = lastPl && c - lastPl.idx >= lo && c - lastPl.idx <= hi && rsi[c] > lastPl.rsi && bars[c].low < lastPl.price;
+          bull.push({ time: bars[c].time, value: rsi[c], color: ok ? '#26A69A' : NONE });
+          lastPl = { idx: c, rsi: rsi[c], price: bars[c].low };
+        }
+        if (isHigh) {
+          const ok = lastPh && c - lastPh.idx >= lo && c - lastPh.idx <= hi && rsi[c] < lastPh.rsi && bars[c].high > lastPh.price;
+          bear.push({ time: bars[c].time, value: rsi[c], color: ok ? '#EF5350' : NONE });
+          lastPh = { idx: c, rsi: rsi[c], price: bars[c].high };
+        }
+      }
+      series.push({ id: id + ':line:bull#0', title: 'Divergence haussière', paneId: 'unrouted', kind: 'line', points: bull, style: { color: '#26A69A', width: 2, lineStyle: 'solid' }, visible: true });
+      series.push({ id: id + ':line:bear#0', title: 'Divergence baissière', paneId: 'unrouted', kind: 'line', points: bear, style: { color: '#EF5350', width: 2, lineStyle: 'solid' }, visible: true });
+    }
+    return {
+      id, title: 'RSI', overlay: false,
+      series, fills: [], backgrounds: [], priceLines: [], lines: [], boxes: [], labels: [], polylines: [], linefills: [], tables: [],
       inputs: [], inputValues: {}, props: [], propValues: {}, anchorTime: bars[0] ? bars[0].time : 0,
     };
   }
@@ -478,7 +532,7 @@
       capabilities = { streaming: false, visibleRange: false, inputs: false, props: false };
       async prepare(source, instanceId) {
         const ext = (source.match(/\/\/extra:(\w+)/) || [])[1];
-        if (ext && extra[ext]) return { language: 'pine', inputs: [], props: undefined, meta: { title: extra[ext].title || 'RSI Pivot', overlay: false }, reactsToViewport: false, token: { instanceId, ext } };
+        if (ext && extra[ext]) return { language: 'pine', inputs: [], props: undefined, meta: { title: extra[ext].title || 'RSI', overlay: false }, reactsToViewport: false, token: { instanceId, ext } };
         const addon = (source.match(/\/\/addon:(\w+)/) || [])[1];
         if (addon) return { language: 'pine', inputs: [], props: undefined, meta: { title: 'Ichimoku', overlay: true }, reactsToViewport: false, token: { instanceId, addon } };
         const idx = Number((source.match(/\/\/idx:(\d+)/) || [])[1] || 0);
@@ -660,7 +714,7 @@
     function snapshot() {
       if (!live || !live.userReady) return; // jamais pendant la restauration (sinon une liste partielle écrasait la vraie)
       const v = live.user.map((u) => {
-        let inputs = null; try { inputs = u.h && u.h.inputValues ? u.h.inputValues() : null; } catch (e) { inputs = null; }
+        let inputs = null; try { inputs = u.opts ? Object.assign({}, u.opts) : u.h && u.h.inputValues ? u.h.inputValues() : null; } catch (e) { inputs = null; }
         return { type: u.type, inputs, hidden: !!(u.h && u.h.visible === false) };
       });
       const j = JSON.stringify(v);
@@ -668,32 +722,24 @@
     }
     setInterval(snapshot, 3000);
     window.addEventListener('pagehide', snapshot);
-    async function pivotPanes() {
-      if (!live) return [];
-      const base = (window.CHEST_CONFIG && window.CHEST_CONFIG.accountsApiUrl) || 'http://localhost:8080';
-      const token = window.CHESTAccounts && CHESTAccounts.getToken && CHESTAccounts.getToken();
-      const qs = new URLSearchParams({ script: 'pivot', symbol: live.symbol, tf: live.tf });
-      const res = await fetch(`${base}/scanners/model?${qs}`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
-      const body = await res.json();
-      return (body.models || []).filter((m) => m && !m.overlay);
-    }
     async function addOne(type, inputs, hidden) {
       const cur = live;
       if (!cur) return null;
-      let h = null;
-      if (type === 'pivotrsi') {
-        if (cur.scannerId === 'pivot') { visuals.set('pivot', 'rsi', true); return null; } // déjà dans le script
-        const panes = await pivotPanes();
-        if (!panes.length || cur !== live) return null;
-        const k = 'p' + Object.keys(cur.extra).length;
-        cur.extra[k] = Object.assign({}, panes[0], { title: 'RSI Pivot' });
-        h = await cur.chart.addIndicator('//@version=5\n//extra:' + k + '\nindicator("RSI Pivot")');
+      let h = null, opts = null, ext = null;
+      if (type === 'pivotrsi') type = 'chestrsi'; // ancien « RSI Pivot » enregistré
+      if (type === 'chestrsi') {
+        opts = { length: 14, divergence: !!(inputs && inputs.divergence) };
+        ext = 'r' + Object.keys(cur.extra).length + '_' + Date.now().toString(36);
+        cur.extra[ext] = rsiModel(cur.bars, opts);
+        h = await cur.chart.addIndicator('//@version=5\n//extra:' + ext + '\nindicator("RSI")');
+      } else if (type === 'ichimoku') {
+        h = await cur.chart.addIndicator('//@version=5\n//addon:ichimoku\nindicator("Ichimoku", overlay=true)');
       } else {
         h = cur.chart.addNativeIndicator(type, inputs && Object.keys(inputs).length ? { inputs } : undefined);
       }
       if (!h || cur !== live) return null;
       if (hidden) { try { h.setVisible(false); } catch (e) { /* tant pis */ } }
-      cur.user.push({ type, h });
+      cur.user.push({ type, h, opts, ext });
       legend();
       return h;
     }
@@ -706,7 +752,7 @@
           const u = cur.user.find((x) => x.h && x.h.id === id);
           if (!u) return [];
           const out = [];
-          if (u.type !== 'pivotrsi') out.push({ id: 'cfg', icon: 'pen', tooltip: 'Réglages', run: () => api.settings(id) });
+          if (u.type !== 'ichimoku') out.push({ id: 'cfg', icon: 'pen', tooltip: 'Réglages', run: () => api.settings(id) });
           out.push({ id: 'eye', icon: u.h.visible === false ? 'eye-off' : 'eye', tooltip: u.h.visible === false ? 'Afficher' : 'Masquer', run: () => api.toggle(id) });
           out.push({ id: 'del', icon: 'trash', tooltip: 'Retirer', run: () => api.remove(id) });
           return out;
@@ -718,8 +764,8 @@
       async catalog() { return live ? live.chart.availableNativeIndicators() : []; },
       list() {
         if (!live) return [];
-        const out = live.user.map((u) => ({ id: u.h.id, type: u.type, title: u.type === 'pivotrsi' ? 'RSI Pivot' : u.h.title, visible: u.h.visible !== false }));
-        if (live.scannerId === 'pivot' && visualOn('pivot', VISUAL_RULES.pivot.find((r) => r.pane))) out.unshift({ id: 'pivot-own-rsi', type: 'pivotrsi', title: 'RSI Pivot (dans le scanner)', visible: true, own: true });
+        const out = live.user.map((u) => ({ id: u.h.id, type: u.type, title: u.type === 'chestrsi' ? 'RSI' : u.type === 'ichimoku' ? 'Nuage Ichimoku' : u.h.title, visible: u.h.visible !== false, opts: u.opts }));
+        if (live.scannerId === 'pivot' && visualOn('pivot', VISUAL_RULES.pivot.find((r) => r.pane))) out.unshift({ id: 'pivot-own-rsi', type: 'chestrsi', title: 'RSI (dans le scanner Pivot)', visible: true, own: true });
         return out;
       },
       async add(type) { const h = await addOne(type); if (live) live.userReady = true; snapshot(); emit(); return h; },
@@ -738,7 +784,19 @@
         try { u.h.setVisible(u.h.visible === false); } catch (e) { /* tant pis */ }
         snapshot(); legend();
       },
-      settings(id) { try { live.chart.renderer.openIndicatorSettings(id); } catch (e) { console.warn('Scanner: réglages indisponibles', e); } },
+      settings(id) {
+        const u = live && live.user.find((x) => x.h && x.h.id === id);
+        if (u && u.type === 'chestrsi') { listeners.forEach((fn) => { try { fn({ settings: id }); } catch (e) { /* tant pis */ } }); return; }
+        try { live.chart.renderer.openIndicatorSettings(id); } catch (e) { console.warn('Scanner: réglages indisponibles', e); }
+      },
+      // RSI CHEST : « Calculer les divergences » (redessiné sur place)
+      setRsi(id, opts) {
+        const u = live && live.user.find((x) => x.h && x.h.id === id);
+        if (!u || u.type !== 'chestrsi') return;
+        u.opts = Object.assign({}, u.opts, opts);
+        live.extra[u.ext] = rsiModel(live.bars, u.opts);
+        rerun(u.h); snapshot(); emit();
+      },
       async restore() {
         const cur = live, saved = read();
         if (!cur) return;
@@ -756,5 +814,6 @@
     return api;
   })();
 
-  window.CHESTScannerChart = { render, visuals, indicators: userInd, current: () => live };
+  window.CHESTScannerChart = { render, visuals, indicators: userInd, current: () => live,
+    resetView: () => { if (live) { showLastBars(live.chart, live.bars, 150); try { live.chart.renderer.renderer.resetPriceScale && live.chart.renderer.renderer.resetPriceScale(); } catch (e) { /* tant pis */ } } } };
 })();

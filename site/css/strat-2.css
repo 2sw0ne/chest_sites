@@ -174,3 +174,24 @@ html.ct-lock, html.ct-lock body{ overflow:hidden; }
 .ct-mini:hover{ color:var(--ink, #f6f6f7); border-color:rgba(var(--fg-rgb, 255, 255, 255),.22); }
 .ct-mini.is-del:hover{ color:var(--red-hi, #ff94a0); border-color:rgba(var(--red-rgb, 255, 77, 94),.45); }
 .ct-empty{ padding:30px 10px; text-align:center; font-size:13px; color:var(--ink-3, #7a7a82); }
+
+/* ---------- Clic droit du graphique et alertes de prix (2026-11-09) ---------- */
+.ct-ctx{ position:fixed; z-index:200; min-width:300px; max-width:380px; padding:6px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(20,20,24,.96); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow:0 24px 60px rgba(0,0,0,.5); color:#f6f6f7; font-size:13px; }
+.ct-ctx[hidden]{ display:none; }
+.ct-ctx button{ display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; padding:8px 12px; border:0; border-radius:9px; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.ct-ctx button:hover:not(:disabled){ background:rgba(255,255,255,.07); }
+.ct-ctx button:disabled{ opacity:.38; cursor:default; }
+.ct-ctx kbd{ font-family:inherit; font-size:11.5px; color:#7a7a82; }
+.ct-ctx hr{ margin:5px 6px; border:0; border-top:1px solid rgba(255,255,255,.08); }
+.ct-chk{ display:inline-flex; align-items:center; gap:6px; }
+.ct-chk input{ accent-color:#fc1283; }
+.ct-adlg__win{ width:min(400px, 100%); padding:18px 18px 16px; gap:12px; }
+.ct-adlg__f{ display:flex; flex-direction:column; gap:6px; font-size:12px; color:#9b9ba1; }
+.ct-adlg__f input{ height:42px; padding:0 12px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:#f6f6f7; font:inherit; font-size:15px; font-variant-numeric:tabular-nums; }
+.ct-adlg__f input:focus{ outline:none; border-color:rgba(252,18,131,.6); box-shadow:0 0 0 3px rgba(252,18,131,.15); }
+.ct-adlg__h{ margin:0; font-size:12px; color:#7a7a82; }
+.ct-adlg__err{ margin:0; min-height:1em; font-size:12px; color:#ff94a0; }
+.ct-adlg__a{ display:flex; justify-content:flex-end; gap:8px; }
+.ct-mini.is-go{ color:#fff; border-color:transparent; background:linear-gradient(135deg, #fc1283, #f9a45e); }
+.ct-adlg__list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; font-size:13px; color:#c9c9ce; }
+.ct-adlg__list li{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:10px; background:rgba(255,255,255,.03); }
