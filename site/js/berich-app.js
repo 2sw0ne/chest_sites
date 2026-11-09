@@ -254,8 +254,12 @@
   function saveInvalidated() { try { localStorage.setItem(INVALIDATED_KEY, JSON.stringify([...invalidated])); } catch (e) { /* tant pis */ } }
   // Position en cours (2026-11-09) : BERICH ne prend ses positions que depuis un VPS ; la carte reste affichée tant que
   // la position n'est pas clôturée, qu'un compte soit relié ou non.
+  // Positions ouvertes (2026-11-09) : toutes dessinées sur le graphique ; la carte détaille celle choisie (la plus récente par défaut).
+  let selPos = null;
+  const openPositions = () => myLive().filter((p) => !p.closed && p.entry != null).sort((a, b) => a.time - b.time);
   function activePosition() {
-    return myLive().find((p) => !p.closed && p.entry != null) || null;
+    const ps = openPositions();
+    return ps.find((p) => p.id === selPos) || ps[ps.length - 1] || null;
   }
   function railHtml(p, markerValue) {
     const span = p.tp - p.sl;
@@ -272,19 +276,18 @@
         <span class="br-rail__lbl is-last">OBJECTIF<b>${nf(p.tp, 2)}</b></span>
       </div>`;
   }
-  // Mini-graphique de la position (2026-11-05) : les dernières bougies M5 de l'or, redessinées à chaque nouvelle
-  // bougie (5 min), la zone rouge entrée → stop et verte entrée → objectif depuis l'ouverture, et les niveaux à droite.
+  // Graphique des positions (2026-11-09, « comme un vrai graphique ») : jusqu'à 3 jours de M15, échelle de prix,
+  // heures et jours, toutes les positions ouvertes (zones entrée → SL / TP, celle choisie en plein, les autres en
+  // retrait), molette = zoom, glisser = remonter dans le passé, double-clic = revenir au présent.
   let miniBars = null, miniAt = 0;
+  const MV = { n: 160, off: 0 }; // bougies visibles, décalage depuis la dernière
   async function loadMini(force) {
     if (document.hidden || (!force && Date.now() - miniAt < 4.5 * 60000)) return;
     miniAt = Date.now();
     try { const d = await api('/berich/candles'); if (Array.isArray(d.bars) && d.bars.length) miniBars = d.bars; } catch (e) { /* on garde les dernières */ }
-    const el = $('brMini'); const p = activePosition();
-    if (el && p) el.innerHTML = miniHtml(p, S.price);
+    paintMini();
   }
-  // Bougies M15 (2026-11-09, retour patron : en M5 tout était aplati) : les M5 du serveur regroupées par 15 min, les
-  // 32 dernières (8 h). L'échelle suit les bougies, l'entrée, le prix et le stop ; un objectif (ou un stop) trop loin ne
-  // l'écrase plus : sa zone part jusqu'au bord et son étiquette reste épinglée en haut (ou en bas) avec une flèche.
+  function paintMini() { const el = $('brMini'); if (el && activePosition()) el.innerHTML = miniHtml(S.price); }
   function toM15(bars) {
     const out = [];
     bars.forEach((b) => {
@@ -294,45 +297,123 @@
     });
     return out;
   }
-  function miniHtml(p, price) {
+  function niceStep(span, n) { const raw = span / n, k = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / k; return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * k; }
+  const algoShort = (k) => nameOf(k).replace(/^BERICH\s+/i, '');
+  function miniHtml(price) {
     if (!miniBars) return '<div class="br-mini__wait">Chargement du graphique…</div>';
-    // vue façon TradingView (2026-11-09) : ~2 jours de M15 (bougies fines), la position et sa zone qui dépasse à droite
-    // dans un espace vide, l'échelle contient toujours SL et TP
-    const TF = 900000, bars = toM15(miniBars).slice(-192);
-    const t0 = bars[0][0], tEnd = bars[bars.length - 1][0] + TF;
-    const W = 1000, H = 300, padR = 0.24, cw = (W * (1 - padR)) / bars.length;
-    const xOf = (t) => (Math.max(t0, Math.min(tEnd, t)) - t0) / TF * cw;
-    const core = [p.entry].concat(price != null ? [price] : []);
+    const ps = openPositions(), sel = activePosition();
+    const TF = 900000, all = toM15(miniBars), L = all.length;
+    MV.n = Math.max(Math.min(30, L), Math.min(L, MV.n)); MV.off = Math.max(0, Math.min(L - MV.n, MV.off));
+    const bars = all.slice(L - MV.off - MV.n, L - MV.off), live = MV.off === 0;
+    const W = 1000, H = 300, padR = live ? 0.2 : 0.02, cw = (W * (1 - padR)) / bars.length, t0 = bars[0][0];
+    const xOf = (t) => (t - t0) / TF * cw;
+    const core = [];
     bars.forEach((b) => { core.push(b[2], b[3]); });
+    if (price != null && live) core.push(price);
+    ps.forEach((p) => [p.entry, p.sl, p.tp].forEach((v) => { if (v != null && isFinite(v)) core.push(v); }));
     let lo = Math.min(...core), hi = Math.max(...core);
-    [p.sl, p.tp].forEach((v) => { if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
-    const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+    const pad = Math.max(hi - lo, 1) * 0.06; lo -= pad; hi += pad;
     const y = (v) => (hi - v) / (hi - lo) * H;
     const yc = (v) => Math.max(0, Math.min(H, y(v)));
-    const xs = p.time < t0 ? 0 : xOf(Math.floor(p.time / TF) * TF), xe = W * 0.94;
+    const pct = (v) => (v / H * 100).toFixed(2);
+    // grille : prix
+    const step = niceStep(hi - lo, 5);
+    let grid = '', ticks = '';
+    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+      grid += `<line x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="rgba(255,255,255,.045)" vector-effect="non-scaling-stroke"/>`;
+      if (y(v) > 34 && y(v) < H - 24) ticks += `<span class="br-mini__tick" style="top:${pct(y(v))}%">${nf(v, step < 1 ? 1 : 0)}</span>`;
+    }
+    // grille : heures et jours
+    const every = bars.length > 220 ? 12 : bars.length > 90 ? 6 : 3;
+    let times = '';
+    bars.forEach((b, i) => {
+      const d = new Date(b[0]), h = d.getHours(), m = d.getMinutes();
+      if (m || h % every) return;
+      const x = i * cw + cw / 2, day = h === 0;
+      grid += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="0" y2="${H}" stroke="rgba(255,255,255,${day ? '.07' : '.035'})" vector-effect="non-scaling-stroke"/>`;
+      if (x > 24 && x < W - 24) times += `<span class="br-mini__time${day ? ' is-day' : ''}" style="left:${(x / W * 100).toFixed(2)}%">${day ? d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) : String(h).padStart(2, '0') + ':00'}</span>`;
+    });
+    const xe = live ? W * 0.97 : W;
+    let zones = '';
+    ps.forEach((p) => {
+      const on = p.id === sel.id, xs = Math.max(0, xOf(Math.floor(p.time / TF) * TF));
+      if (xs >= xe) return;
+      const box = (a, b2, col, op) => `<rect x="${xs.toFixed(1)}" y="${Math.min(yc(a), yc(b2)).toFixed(1)}" width="${(xe - xs).toFixed(1)}" height="${Math.abs(yc(a) - yc(b2)).toFixed(1)}" fill="${col}" fill-opacity="${op}"${on ? '' : ` stroke="${col}" stroke-opacity=".35" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"`}/>`;
+      zones += box(p.entry, p.sl, '#ff4d5e', on ? '.15' : '.05') + box(p.entry, p.tp, '#33e6a6', on ? '.11' : '.04')
+        + `<line x1="${xs.toFixed(1)}" x2="${xe.toFixed(1)}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,${on ? '.6' : '.3'})" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`;
+    });
     const candles = bars.map((b, i) => {
       const x = i * cw + cw / 2, up = b[4] >= b[1], c = up ? '#33e6a6' : '#ff4d5e';
-      const yo = y(b[1]), ycl = y(b[4]), top = Math.min(yo, ycl), hgt = Math.max(2, Math.abs(ycl - yo));
-      return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(b[2]).toFixed(1)}" y2="${y(b[3]).toFixed(1)}" stroke="${c}" stroke-opacity=".6" stroke-width="1.4" vector-effect="non-scaling-stroke"/>`
+      const yo = y(b[1]), ycl = y(b[4]), top = Math.min(yo, ycl), hgt = Math.max(1.5, Math.abs(ycl - yo));
+      return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(b[2]).toFixed(1)}" y2="${y(b[3]).toFixed(1)}" stroke="${c}" stroke-opacity=".7" stroke-width="1.2" vector-effect="non-scaling-stroke"/>`
         + `<rect x="${(x - cw * 0.34).toFixed(1)}" y="${top.toFixed(1)}" width="${(cw * 0.68).toFixed(1)}" height="${hgt.toFixed(1)}" rx="${Math.min(2, cw * 0.15).toFixed(1)}" fill="${c}" fill-opacity="${up ? '.92' : '.88'}"/>`;
     }).join('');
-    const zone = (a, b2, col) => `<rect x="${xs.toFixed(1)}" y="${Math.min(yc(a), yc(b2)).toFixed(1)}" width="${(xe - xs).toFixed(1)}" height="${Math.abs(yc(a) - yc(b2)).toFixed(1)}" fill="${col}"/>`;
-    const lvl = (v, cls, txt) => {
-      const off = y(v) < 0 ? 'is-up' : y(v) > H ? 'is-down' : '';
-      const top = Math.max(5, Math.min(95, yc(v) / H * 100));
-      return `<span class="br-mini__lvl ${cls} ${off}" style="top:${top.toFixed(2)}%">${off === 'is-up' ? '↑ ' : off === 'is-down' ? '↓ ' : ''}${txt} ${nf(v, 2)}</span>`;
-    };
+    // étiquettes des niveaux, écartées pour ne jamais se chevaucher
+    const many = ps.length > 1, lv = [];
+    const dupAlgo = new Set(ps.map((p) => p.algo)).size < ps.length;
+    ps.forEach((p, k) => {
+      const on = p.id === sel.id, pre = many ? (dupAlgo ? (k + 1) : algoShort(p.algo)) + ' · ' : '';
+      lv.push({ v: p.tp, cls: 'is-tp', txt: pre + 'TP', on }, { v: p.entry, cls: 'is-pe', txt: pre + 'PE', on }, { v: p.sl, cls: 'is-sl', txt: pre + 'SL', on });
+    });
+    lv.forEach((l) => { l.top = Math.max(4, Math.min(96, yc(l.v) / H * 100)); });
+    lv.sort((a, b) => a.top - b.top);
+    for (let i = 1; i < lv.length; i++) lv[i].top = Math.max(lv[i].top, lv[i - 1].top + 9);
+    const over = lv.length ? lv[lv.length - 1].top - 96 : 0;
+    if (over > 0) for (let i = lv.length - 1; i >= 0; i--) { lv[i].top -= over; if (i && lv[i - 1].top > lv[i].top - 9) lv[i - 1].top = lv[i].top - 9; }
+    const labels = lv.map((l) => `<span class="br-mini__lvl ${l.cls}${l.on ? '' : ' is-dim'}" style="top:${l.top.toFixed(2)}%">${esc(l.txt)} ${nf(l.v, 2)}</span>`).join('')
+      + (price != null && live ? `<span class="br-mini__lvl is-px" style="top:${Math.max(4, Math.min(96, yc(price) / H * 100)).toFixed(2)}%">Prix ${nf(price, 2)}</span>` : '');
+    const span = bars.length / 4;
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-        ${zone(p.entry, p.sl, 'rgba(255, 77, 94,.14)')}${zone(p.entry, p.tp, 'rgba(51, 230, 166,.10)')}
-        <line x1="${xs.toFixed(1)}" x2="${xe.toFixed(1)}" y1="${y(p.entry).toFixed(1)}" y2="${y(p.entry).toFixed(1)}" stroke="rgba(246,246,247,.55)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
-        ${candles}
-        ${price != null ? `<line x1="0" x2="${W}" y1="${y(price).toFixed(1)}" y2="${y(price).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>` : ''}
+        ${grid}${zones}${candles}
+        ${price != null && live ? `<line x1="0" x2="${W}" y1="${y(price).toFixed(1)}" y2="${y(price).toFixed(1)}" stroke="rgba(246,246,247,.35)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>` : ''}
       </svg>
-      <div class="br-mini__lvls" aria-label="Niveaux de la position">${lvl(p.sl, 'is-sl', 'SL')}${lvl(p.entry, 'is-pe', 'PE')}${lvl(p.tp, 'is-tp', 'TP')}${price != null ? lvl(price, 'is-px', 'Prix') : ''}</div>
-      <span class="br-mini__tf">XAU/USD · M15 · ${bars.length > 100 ? Math.round(bars.length / 96) + ' derniers jours' : Math.round(bars.length / 4) + ' dernières heures'}</span>`;
+      <div class="br-mini__ticks" aria-hidden="true">${ticks}</div>
+      <div class="br-mini__times" aria-hidden="true">${times}</div>
+      <div class="br-mini__lvls" aria-label="Niveaux des positions">${labels}</div>
+      <span class="br-mini__tf">XAU/USD · M15 · ${span >= 30 ? nf(span / 24, 1) + ' j' : Math.round(span) + ' h'}${live ? '' : ' · <button type="button" class="br-mini__now" data-br-now>Revenir au présent</button>'}</span>`;
   }
+  // molette = zoom, glisser = passé, double-clic = présent ; onglets des positions
+  (function bindMini() {
+    const host = $('brSignal');
+    if (!host) return;
+    let drag = null;
+    host.addEventListener('wheel', (e) => {
+      if (!e.target.closest('#brMini') || !miniBars) return;
+      e.preventDefault();
+      MV.n = Math.round(MV.n * (e.deltaY > 0 ? 1.15 : 1 / 1.15)); paintMini();
+    }, { passive: false });
+    host.addEventListener('pointerdown', (e) => {
+      const m = e.target.closest('#brMini');
+      if (!m || e.button || e.target.closest('button')) return;
+      drag = { x: e.clientX, off: MV.off, w: m.getBoundingClientRect().width };
+      try { m.setPointerCapture(e.pointerId); } catch (err) { /* tant pis */ }
+      m.classList.add('is-drag');
+    });
+    host.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const off = Math.round(drag.off + (e.clientX - drag.x) / (drag.w * 0.85 / MV.n));
+      if (off !== MV.off) { MV.off = off; paintMini(); }
+    });
+    const end = () => { if (!drag) return; drag = null; const m = $('brMini'); if (m) m.classList.remove('is-drag'); };
+    host.addEventListener('pointerup', end); host.addEventListener('pointercancel', end);
+    host.addEventListener('dblclick', (e) => { if (e.target.closest('#brMini')) { MV.n = 160; MV.off = 0; paintMini(); } });
+    host.addEventListener('click', (e) => {
+      if (e.target.closest('[data-br-now]')) { MV.off = 0; paintMini(); return; }
+      const b = e.target.closest('[data-br-pos]');
+      if (b) { selPos = b.dataset.brPos; renderSignal(); }
+    });
+  })();
   setInterval(() => { if (activePosition()) loadMini(); }, 60000);
   let riskChoiceIdx = null;
+  function posTabs() {
+    const ps = openPositions(), sel = activePosition();
+    if (ps.length < 2) return '';
+    const dupAlgo = new Set(ps.map((p) => p.algo)).size < ps.length;
+    return `<div class="br-postabs" role="tablist" aria-label="Positions en cours">${ps.map((p, k) => {
+      const fr = S.price != null && (p.entry - p.sl) ? (S.price - p.entry) / (p.entry - p.sl) : null;
+      return `<button type="button" role="tab" data-br-pos="${esc(p.id)}" aria-selected="${p.id === sel.id}"><span class="br-dot is-live"></span>${dupAlgo ? (k + 1) + ' · ' : ''}${esc(nameOf(p.algo))} · ${p.side === 'sell' ? 'Vente' : 'Achat'} <b class="${tone(fr)}">${fr == null ? '—' : signedR(fr)}</b></button>`;
+    }).join('')}</div>`;
+  }
   function renderSignal() {
     const el = $('brSignal');
     const p = activePosition();
@@ -352,13 +433,14 @@
     el.innerHTML = `
       <div class="br-signal__row">
         <div>
-          <span class="br-signal__kicker"><span class="br-dot is-live"></span>${c.ok ? 'Position prise par ton VPS' : 'Position en cours'} · ${esc(nameOf(p.algo))}</span>
+          <span class="br-signal__kicker"><span class="br-dot is-live"></span>${openPositions().length > 1 ? openPositions().length + ' positions en cours' : c.ok ? 'Position prise par ton VPS' : 'Position en cours'} · ${esc(nameOf(p.algo))}</span>
           <h2>${isSell ? 'Vente' : 'Achat'} XAU/USD</h2>
           <div class="br-signal__meta">Ouverte il y a ${ago(Date.now() - p.time)} · session ${sessionOf(p.time)} · objectif ${rrTarget != null ? '+' + nf(rrTarget, rrTarget % 1 ? 1 : 0) + ' R' : '—'}</div>
         </div>
         <div class="br-signal__r"><b class="${tone(floatR)}">${floatR == null ? '—' : signedR(floatR)}</b><small>${floatMoney != null ? signedMoney(floatMoney) + ' latent' : 'résultat latent'}</small></div>
       </div>
-      <div class="br-mini" id="brMini">${miniHtml(p, S.price)}</div>
+      ${posTabs()}
+      <div class="br-mini" id="brMini">${miniHtml(S.price)}</div>
       ${railHtml(p, S.price)}
       <div class="br-signal__foot">
         ${c.ok ? `<span class="br-done">${CHECK}Exécutée par ton VPS</span>

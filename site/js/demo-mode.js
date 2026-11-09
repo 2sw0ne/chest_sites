@@ -163,7 +163,8 @@
       let data = { signals: [] };
       try { data = JSON.parse(D.fx['EXT signals'] || '{"signals":[]}'); } catch (e) { /* tant pis */ }
       const open = { id: 'demo-open', algo: 'berich2', scanner: 'BERICH II', symbol: 'XAUUSD', side: 'buy', entry: ENTRY, sl: SL, tp: TP, time: new Date(NOW - 95 * 60000).toISOString(), status: 'open' };
-      data.signals = [open].concat((data.signals || []).filter((s) => s.status === 'closed'));
+      const open2 = { id: 'demo-open-2', algo: 'berich2', scanner: 'BERICH II', symbol: 'XAUUSD', side: 'buy', entry: 4098.4, sl: 4084.6, tp: 4167.4, time: new Date(NOW - 9.5 * 3600000).toISOString(), status: 'open' };
+      data.signals = [open, open2].concat((data.signals || []).filter((s) => s.status === 'closed'));
       return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
     return realFetch(input, init);

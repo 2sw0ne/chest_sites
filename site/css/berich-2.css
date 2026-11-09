@@ -88,8 +88,20 @@ body[data-page="berich"] .br-depth{ opacity:.55; }
 .chest-root .br-mini__lvl.is-tp{ color:var(--green-hi, #7ff3ca); box-shadow:inset 0 0 0 1px rgba(var(--green-rgb, 51, 230, 166),.45); }
 .chest-root .br-mini__lvl.is-pe{ color:var(--ink, #f6f6f7); }
 .chest-root .br-mini__lvl.is-px{ color:var(--ink-2, #9b9ba1); font-weight:600; right:auto; left:-4px; transform:translate(-100%, -50%); }
+.chest-root .br-mini{ touch-action:pan-y; cursor:grab; user-select:none; }
+.chest-root .br-mini.is-drag{ cursor:grabbing; }
+.chest-root .br-mini__ticks, .chest-root .br-mini__times{ position:absolute; inset:0 112px 0 0; pointer-events:none; }
+.chest-root .br-mini__tick{ position:absolute; left:10px; transform:translateY(-50%); font-size:10px; color:var(--ink-4, #5c5c63); font-variant-numeric:tabular-nums; }
+.chest-root .br-mini__time{ position:absolute; bottom:8px; transform:translateX(-50%); font-size:10px; color:var(--ink-4, #5c5c63); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.chest-root .br-mini__time.is-day{ color:var(--ink-2, #9b9ba1); font-weight:600; }
+.chest-root .br-mini__lvl.is-dim{ opacity:.55; }
+.chest-root .br-mini__now{ margin-left:6px; padding:2px 8px; border:0; border-radius:6px; font:inherit; font-weight:600; color:var(--ink, #f6f6f7); background:rgba(var(--fg-rgb, 255, 255, 255),.08); cursor:pointer; pointer-events:auto; }
+.chest-root .br-postabs{ display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 -8px; }
+.chest-root .br-postabs button{ display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 12px; border:0; border-radius:10px; font:inherit; font-size:12.5px; color:var(--ink-2, #9b9ba1); background:rgba(var(--fg-rgb, 255, 255, 255),.04); box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.08); cursor:pointer; transition:color .2s cubic-bezier(.16,1,.3,1), background-color .2s cubic-bezier(.16,1,.3,1); }
+.chest-root .br-postabs button[aria-selected="true"]{ color:var(--ink, #f6f6f7); background:rgba(var(--fg-rgb, 255, 255, 255),.09); box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.18); }
+.chest-root .br-postabs button:focus-visible{ outline:2px solid var(--a1, #fc1283); outline-offset:2px; }
 .chest-root .br-mini__tf{ position:absolute; left:14px; top:10px; font-size:11px; color:var(--ink-4, #5c5c63); }
-@media (max-width:700px){ .chest-root .br-mini{ height:230px; padding-right:84px; } .chest-root .br-mini__lvl.is-px{ display:none; } }
+@media (max-width:700px){ .chest-root .br-mini{ height:230px; padding-right:84px; } .chest-root .br-mini__ticks, .chest-root .br-mini__times{ right:84px; } .chest-root .br-mini__lvl.is-px{ display:none; } }
 /* Téléphone : l'entrée près du stop ou de l'objectif passe sous la ligne pour ne pas chevaucher son voisin (2026-11-09) */
 @media (max-width:700px){
   .chest-root .br-rail.has-low{ height:96px; }
