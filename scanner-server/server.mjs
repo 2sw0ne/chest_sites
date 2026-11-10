@@ -197,10 +197,14 @@ function loadManifest() {
 // Calcul d'un scanner pour une paire et une unité de temps (sans cache : la mémoire compte)
 // source : 'view' (consultation à la demande, /data+/signals) ou 'alarm' (boucle de fond) - decide
 // quelle clé/quel budget Twelve Data est débité si une vraie requête est nécessaire.
-async function runScanner(name, code, tf, wantModels, source, wantBar) {
+// Alarmes (coût Railway, 2026-11-10) : 3 000 dernières bougies au lieu de ~5 000 (Wolfx a besoin de 1 500 pour sa
+// moyenne longue) ; même coupe pour tous les calculs d'opportunités, pour que l'identité du trade reste stable.
+const ALARM_BARS = 3000;
+async function runScanner(name, code, tf, wantModels, source, wantBar, cap) {
   const files = loadManifest()[name];
   if (!Array.isArray(files) || !files.length) throw new Error("scanner inconnu");
-  const { all, bars } = await getCandles(code, tf, source, wantBar);
+  const got = await getCandles(code, tf, source, wantBar);
+  const all = got.all, bars = cap && got.bars.length > cap ? got.bars.slice(-cap) : got.bars;
   const r = await runInChild(files.map(safePath), all, bars, wantModels, code, tf, name);
   return { bars, models: r.models || [], alerts: r.alerts || [], levels: r.levels || null };
 }
@@ -297,7 +301,7 @@ async function scanCombo(code, tf, source, wantBar, only) {
   const now = Date.now();
   for (const name of names) {
     let res;
-    try { res = await runScanner(name, code, tf, false, source, wantBar); } catch (e) { continue; }
+    try { res = await runScanner(name, code, tf, false, source, wantBar, ALARM_BARS); } catch (e) { continue; }
     const key = `${name}|${code}|${tf}`;
     const known = WATERMARK.has(key); // déjà vu au moins une fois : jamais de notification au tout premier calcul
     const lv = res.levels;
