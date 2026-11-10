@@ -188,8 +188,8 @@
     const stub = doc.createElement('script');
     const rec = JSON.stringify(record).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
     stub.textContent = `window.__CHEST_EXPORT__=true;window.CHEST_CONFIG={};var __REC__=${rec};
-window.CHESTAccounts={guard:function(){},isLoggedIn:function(){return true;},getToken:function(){return null;}};
-window.CHESTBacktests={get:function(){return __REC__;},list:function(){return [__REC__];},update:function(){},add:function(){},remove:function(){}};
+window.CHESTAccounts={guard:function(){},isLoggedIn:function(){return true;},isAdmin:function(){return false;},getToken:function(){return null;},getUser:function(){return null;},apiBase:function(){return "";}};
+window.CHESTBacktests={get:function(){return __REC__;},list:function(){return [__REC__];},ensure:function(){return Promise.resolve(__REC__);},ready:function(){return Promise.resolve();},flush:function(){return Promise.resolve();},onChange:function(){return function(){};},update:function(){},add:function(){},remove:function(){}};
 window.CHESTConfirm=function(){return Promise.resolve(false);};
 window.CHESTTour={init:function(){}};`;
     doc.head.appendChild(stub);

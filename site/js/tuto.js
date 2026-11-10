@@ -4,7 +4,7 @@
      comptes) : impossible à passer, sans croix.
    - Le logo du Welcome la relance pour tout le monde ; une croix en haut à droite permet de l'arrêter dès
      qu'on l'a déjà vue une fois en entier.
-   - Vidéo MP4 (assets/tuto/chest-tuto.mp4, fournie par l'utilisateur, ré-encodée pour le web) : sans contrôles,
+   - Vidéo MP4 (assets/tuto/chest-intro.mp4 depuis le 2026-11-10, fournie par l'utilisateur, ré-encodée pour le web) : sans contrôles,
      impossible à avancer ; la couche s'efface pendant les 3 dernières secondes et laisse apparaître la page (le
      Welcome), puis le serveur retient qu'elle a été vue.
    - Son : lancée avec le son ; si le navigateur refuse (lecture sans clic, ex. rechargement de page), elle
@@ -16,7 +16,7 @@
   'use strict';
   const FADE_MS = 3000;
   const html = document.documentElement;
-  const SRC = 'assets/tuto/chest-tuto.mp4?v=1';
+  const SRC = 'assets/tuto/chest-intro.mp4?v=1';
   let el = null, video = null, closeBtn = null, soundBtn = null, state = null, raf = 0;
 
   function build() {
@@ -29,7 +29,7 @@
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-label', 'Présentation de CHEST');
     el.innerHTML = `
-      <video class="tuto__video" playsinline preload="none" poster="assets/tuto/chest-tuto-poster.jpg" disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback"></video>
+      <video class="tuto__video" playsinline preload="none" poster="assets/tuto/chest-intro-poster.jpg" disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback"></video>
       <div class="tuto__veil" aria-hidden="true"></div>
       <button type="button" class="tuto__sound" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>

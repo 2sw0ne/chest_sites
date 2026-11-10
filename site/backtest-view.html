@@ -388,7 +388,8 @@
 <script src="js/lot-calculator.js?v=11"></script>
 <script src="js/liquid-glass.js?v=3"></script>
 <script src="js/backtest-store.js?v=3"></script>
-<script src="js/backtest-share.js?v=8"></script>
+<script src="js/backtest-share.js?v=9"></script>
+<script src="js/chest-runner.js?v=1"></script>
 <script src="js/backtest-engine.js?v=21"></script>
 <script src="js/propfirm-rules.js?v=6"></script>
 <script src="js/propfirm-fit.js?v=10"></script>
@@ -408,13 +409,81 @@ CHESTTour.init([
   'use strict';
 
   const params = new URLSearchParams(window.location.search);
-  const id = params.get('id');
-  const record = id ? await window.CHESTBacktests.ensure(id) : null;
+  // Rapport exporté en fichier HTML : pas d'adresse ?id=, l'enregistrement est dans __REC__
+  const id = params.get('id') || (window.__CHEST_EXPORT__ && window.__REC__ ? window.__REC__.id : null);
+  // Gros backtest (2026-11-10) : si le chargement dure, le mini-jeu CHEST (js/chest-runner.js) fait patienter.
+  let bootRunner = null;
+  const bootHost = document.createElement('div');
+  bootHost.style.cssText = 'max-width:760px;margin:72px auto 24px;padding:0 16px';
+  const bootTimer = setTimeout(() => {
+    if (!window.CHESTRunner) return;
+    document.getElementById('emptyNote').before(bootHost);
+    bootRunner = window.CHESTRunner.mount(bootHost, { label: 'Chargement du backtest… le coffre t’attend.' });
+  }, 600);
+  const stored = id ? await window.CHESTBacktests.ensure(id) : null;
+  clearTimeout(bootTimer);
+  if (bootRunner) bootRunner.ready('Backtest chargé.', () => bootHost.remove());
+  const record = stored ? Object.assign({}, stored) : null; // copie : les dates réparées ci-dessous ne sont jamais réenregistrées
 
   if (!record) {
     document.getElementById('emptyNote').style.display = '';
     return;
   }
+  // Dates illisibles (2026-11-10, rapport FREECS resté vide : une seule date invalide faisait planter toute la
+  // page sur toISOString) : on relit les formats « jj/mm/aaaa hh:mm » et les numéros de série Excel, et on met de
+  // côté les positions sans aucune date valable plutôt que de tout bloquer.
+  {
+    const fixDate = (v) => {
+      if (v == null || v === '') return null;
+      if (typeof v === 'number') return isFinite(v) && v > 20000 && v < 80000 ? new Date(Date.UTC(1899, 11, 30) + Math.round(v * 86400) * 1000).toISOString() : null;
+      const s = String(v).trim();
+      const m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})(?:[ T]+(\d{1,2})[:h](\d{2})(?::(\d{2}))?)?$/);
+      if (m) {
+        const y = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+        const d = new Date(Date.UTC(y, Number(m[2]) - 1, Number(m[1]), Number(m[4] || 0), Number(m[5] || 0), Number(m[6] || 0)));
+        return isNaN(d.getTime()) ? null : d.toISOString();
+      }
+      if (/^\d+(\.\d+)?$/.test(s)) return fixDate(Number(s));
+      const d = new Date(s.replace(/^(\d{4}-\d{2}-\d{2}) (\d)/, '$1T$2'));
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    };
+    const all = Array.isArray(record.trades) ? record.trades : [];
+    const kept = [];
+    all.forEach((t) => {
+      if (!t) return;
+      const c = Object.assign({}, t, { date: fixDate(t.date), open: fixDate(t.open), close: fixDate(t.close) });
+      if (!c.date) c.date = c.close || c.open;
+      if (c.date) kept.push(c);
+    });
+    record.trades = kept;
+    window.__btSkipped = all.length - kept.length;
+  }
+  // Empreinte du contenu : la simulation propfirm déjà faite pour ce contenu est relue au lieu d'être refaite.
+  const btSig = (() => {
+    let h = 2166136261;
+    const add = (str) => { for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } };
+    add(String(record.capital) + '|' + String(record.pfCapital) + '|' + JSON.stringify(record.cp || null) + '|' + JSON.stringify(record.pf || null));
+    record.trades.forEach((t) => add(`${t.date}|${t.open}|${t.close}|${t.result}|${t.rr};`));
+    return record.id + ':' + record.trades.length + ':' + (h >>> 0).toString(36);
+  })();
+  const FitStore = (() => {
+    let dbp = null;
+    const open = () => dbp || (dbp = new Promise((res, rej) => {
+      const r = indexedDB.open('chest_fit_cache', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('fit');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    }));
+    return {
+      async get(k) {
+        if (window.__CHEST_EXPORT__) return null;
+        try { const db = await open(); return await new Promise((res) => { const q = db.transaction('fit').objectStore('fit').get(k); q.onsuccess = () => res(q.result ? q.result.v : null); q.onerror = () => res(null); }); } catch (e) { return null; }
+      },
+      async set(k, v) {
+        if (window.__CHEST_EXPORT__) return;
+        try { const db = await open(); db.transaction('fit', 'readwrite').objectStore('fit').put({ v, at: Date.now() }, k); } catch (e) { /* stockage plein ou bloqué */ }
+      },
+    };
+  })();
   document.getElementById('reportZone').style.display = '';
 
   const hasPf = !!record.pf;
@@ -607,7 +676,7 @@ CHESTTour.init([
   const periodText = `${periodPoint(firstDate)} → ${isRecent ? "Aujourd'hui" : periodPoint(lastDate)}`;
   const monthCount = new Set(record.trades.map((t) => tradeDate(t).toISOString().slice(0, 7))).size;
   document.getElementById('heroPeriod').textContent = monthCount;
-  document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}`;
+  document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}${window.__btSkipped ? ` · ${window.__btSkipped} sans date lisible, mise${window.__btSkipped > 1 ? 's' : ''} de côté` : ''}`;
 
   const heroReport = hasPf
     ? window.CHESTBacktestEngine.computeReport(record.trades, pfCapital, riskCfg(record.pf))
@@ -1444,10 +1513,25 @@ CHESTTour.init([
     if (fitCache.has(key)) { paintFit(fitCache.get(key), key); return; }
     document.getElementById('fitBody').innerHTML = '<div class="cal-state">Simulation de la vie des comptes…</div>';
     clearTimeout(fitTimer);
-    fitTimer = setTimeout(() => {
-      fitAsync(trades, mmDetailAccount === 'pf' ? pfCapital : record.capital, { userConfig: fitUserCfgFor(mmDetailAccount), accountKind: mmDetailAccount, rawMM })
-        .then((res) => { fitCache.set(key, res); paintFit(res, key); })
-        .catch(() => { document.getElementById('fitBody').innerHTML = '<div class="cal-state">Calcul impossible — réessaie.</div>'; });
+    const userConfig = fitUserCfgFor(mmDetailAccount);
+    const storeKey = btSig + '|' + key + '|' + JSON.stringify(userConfig || null) + '|' + (window.CHESTPropRules && window.CHESTPropRules.verifiedOn);
+    fitTimer = setTimeout(async () => {
+      // Déjà simulé pour ce contenu (même sur une visite précédente) : relu tout de suite, rien n'est recalculé.
+      const saved = await FitStore.get(storeKey);
+      if (saved) { fitCache.set(key, saved); paintFit(saved, key); return; }
+      let runner = null;
+      const slow = setTimeout(() => {
+        if (!window.CHESTRunner || fitPaintedKey === key) return;
+        const body = document.getElementById('fitBody'); body.innerHTML = '';
+        runner = window.CHESTRunner.mount(body, { label: 'Simulation de la vie des comptes… une seule fois, ensuite c’est gardé.' });
+      }, 700);
+      fitAsync(trades, mmDetailAccount === 'pf' ? pfCapital : record.capital, { userConfig, accountKind: mmDetailAccount, rawMM })
+        .then((res) => {
+          clearTimeout(slow);
+          fitCache.set(key, res); FitStore.set(storeKey, res);
+          if (runner) runner.ready('Simulation terminée.', () => paintFit(res, key)); else paintFit(res, key);
+        })
+        .catch(() => { clearTimeout(slow); if (runner) runner.destroy(); document.getElementById('fitBody').innerHTML = '<div class="cal-state">Calcul impossible — réessaie.</div>'; });
     }, 30);
   }
 

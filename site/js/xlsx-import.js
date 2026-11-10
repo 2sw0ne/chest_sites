@@ -48,8 +48,18 @@
 
   function toIsoDate(v) {
     if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toISOString();
-    if (typeof v === 'number') return excelSerialToDate(v).toISOString();
-    const d = new Date(v);
+    if (typeof v === 'number') return isFinite(v) && v > 0 ? excelSerialToDate(v).toISOString() : null;
+    const s = String(v == null ? '' : v).trim();
+    if (!s) return null;
+    // jour/mois/année (format français d'Excel), heure facultative — avant new Date() qui lirait mois/jour
+    const m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})(?:[ T]+(\d{1,2})[:h](\d{2})(?::(\d{2}))?)?$/);
+    if (m) {
+      const y = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+      const d = new Date(Date.UTC(y, Number(m[2]) - 1, Number(m[1]), Number(m[4] || 0), Number(m[5] || 0), Number(m[6] || 0)));
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    }
+    if (/^\d+(\.\d+)?$/.test(s)) return excelSerialToDate(Number(s)).toISOString();
+    const d = new Date(s.replace(/^(\d{4}-\d{2}-\d{2}) (\d)/, '$1T$2'));
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
 
