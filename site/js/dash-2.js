@@ -54,6 +54,10 @@
               <span style="font-size: 11.5px; color: var(--ink-3, rgb(122, 122, 130));">${note}</span>
             </div>`;
   }
+  function floatingOf(a) {
+    const b = Number(a && a.balance), e = Number(a && a.equity);
+    return isFinite(b) && isFinite(e) && Math.abs(e - b) >= 0.5 ? e - b : 0;
+  }
   function paintBand(a, d, P, period, objectives) {
     const bal = Number(a.balance) || 0;
     $('d2BalLabel').textContent = `Solde · ${a.name || 'Compte'}`;
@@ -65,7 +69,10 @@
     chip.style.color = diff < 0 ? 'var(--red-hi, rgb(255, 148, 160))' : 'var(--green-hi, rgb(127, 243, 202))';
     chip.style.background = diff < 0 ? 'rgba(var(--red-rgb, 255, 77, 94), 0.12)' : 'rgba(var(--green-rgb, 51, 230, 166), 0.12)';
     chip.style.textShadow = diff < 0 ? 'none' : 'rgba(var(--green-rgb, 51, 230, 166), 0.45) 0px 0px 14px';
-    $('d2ChipSub').textContent = PERIOD_SUB[period] || '';
+    // Position ouverte (2026-11-10, « pourquoi 94 191 $ ici et 95 836 $ sur la courbe ? ») : le solde ne compte que
+    // les trades clôturés, la courbe et le P&L suivent l'équité (solde + résultat latent) ; on le dit.
+    const fl = floatingOf(a);
+    $('d2ChipSub').textContent = (PERIOD_SUB[period] || '') + (fl ? ` · dont ${usd(fl)} en cours (équité ${nfr(Math.round(bal + fl))} $)` : '');
 
     const n = d.nTrades || 0, w = d.nWins || 0;
     const goal = objective(objectives, 'Profit Target');
@@ -103,7 +110,7 @@
     return d;
   }
   const kfmt = (v) => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1).replace('.', ',') + 'k' : nfr(v));
-  function paintChart(d, period) {
+  function paintChart(d, period, a) {
     const eq = (d.equity || []).filter((v) => isFinite(v));
     const diff = d.diff != null ? d.diff : num(d.profitDollar) || 0;
     $('d2ChartTitle').textContent = `${usd(diff)} ${PERIOD_SUB[period] || ''}`;
@@ -136,7 +143,8 @@
     $('d2Dot').style.boxShadow = up ? 'rgba(var(--green-rgb, 51, 230, 166), 0.9) 0px 0px 14px' : 'rgba(var(--red-rgb, 255, 77, 94), 0.9) 0px 0px 14px';
     const last = pts[pts.length - 1];
     [$('d2Dot'), $('d2DotLbl')].forEach((el) => { el.hidden = false; el.style.left = (last[0] / W * 100) + '%'; el.style.top = last[1] + 'px'; });
-    $('d2DotLbl').textContent = `${nfr(Math.round(eq[eq.length - 1]))} $`;
+    $('d2DotLbl').textContent = `${nfr(Math.round(eq[eq.length - 1]))} $${floatingOf(a) ? ' · équité' : ''}`;
+    $('d2DotLbl').title = floatingOf(a) ? 'Équité = solde + résultat des positions encore ouvertes' : '';
     $('d2Y').innerHTML = [0, 1, 2, 3, 4].map((k) => `<span>${kfmt(hi - (hi - lo) * k / 4)}</span>`).join('');
     const labels = d.labels || [];
     const idx = [0, 1, 2, 3, 4, 5].map((k) => Math.round(k * (labels.length - 1) / 5));
@@ -345,7 +353,7 @@
     if (!account || !data) return;
     $('d2AccLabel').textContent = `${account.name || 'Compte'} · ${account.isPropfirm ? 'Propfirm' : 'Compte propre'}`;
     paintBand(account, data, periods || {}, period, objectives);
-    paintChart(data, period);
+    paintChart(data, period, account);
     paintTrades(account, trades);
     // positions ouvertes : le bloc n'apparaît que s'il y a vraiment une position (comme la maquette, qui n'en montre pas sinon)
     const pos = $('openPosSection');
