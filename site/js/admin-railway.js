@@ -31,12 +31,12 @@
     const total = D.elapsedH + D.leftH, pct = total ? Math.min(100, D.elapsedH / total * 100) : 0;
     const hard = D.limit && D.limit.hard, soft = D.limit && D.limit.soft;
     const cards = MODES.map(([k, l]) => {
-      const m = D.modes[k], cur = D.mode === k, over = hard && m.usageEnd >= hard;
+      const m = D.modes[k], cur = D.mode === k, over = hard && m.usageEnd != null && m.usageEnd >= hard;
       return `<div class="am-rail__mode${cur ? ' is-cur' : ''}${over ? ' is-over' : ''}">
         <span class="am-rail__mk"><i class="am-sys__dot am-sys__dot--${k}" aria-hidden="true"></i>${l}${cur ? '<em>mode actuel</em>' : ''}</span>
         <b>${usd(m.invoice)}</b>
         <small>facture estimée le ${day(D.end)}</small>
-        <span class="am-rail__src">${m.measured ? `≈ ${usd(m.rate * 24)} / jour · mesuré sur ${Math.round(m.hours)} h` : 'pas encore mesuré : moyenne de la période (avant optimisations, sans doute trop haut)'}</span>
+        <span class="am-rail__src">${m.measured ? `≈ ${usd(m.rate * 24)} / jour · mesuré sur ${Math.round(m.hours)} h` : m.invoice == null ? `mesure en cours : il faut 3 h dans ce mode (${Math.round(m.hours * 10) / 10} h pour l’instant)` : 'pas encore mesuré : moyenne de la période (avant optimisations, sans doute trop haut)'}</span>
         ${over ? '<span class="am-rail__warn">dépasserait ta limite stricte : les services s’arrêteraient</span>' : ''}
       </div>`;
     }).join('');

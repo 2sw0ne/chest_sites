@@ -1569,6 +1569,11 @@ def admin_railway():
     for k in OPS_MODES:
         cost, hours = acc.get(k, [0.0, 0.0])
         measured = hours >= 3
+        # Début de période (< 24 h) sans mesure du mode : la moyenne de quelques heures (redémarrages, premiers
+        # calculs) n'est pas représentative → pas d'estimation plutôt qu'un chiffre faux.
+        if not measured and elapsed_h < 24:
+            modes[k] = {"rate": None, "hours": round(hours, 1), "measured": False, "usageEnd": None, "invoice": None}
+            continue
         rate = cost / hours if measured else avg
         usage_end = used + rate * left_h
         modes[k] = {"rate": round(rate, 5), "hours": round(hours, 1), "measured": measured,
