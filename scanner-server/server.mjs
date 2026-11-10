@@ -290,9 +290,10 @@ function tradeStatus(side, levels, bars, fromTime) {
 }
 // Renvoie false (rien calculé) si la bougie attendue `wantBar` n'est pas encore lisible : l'alarme réessaie au
 // tour suivant au lieu de calculer 11 scanners sur des bougies d'avant la clôture.
-async function scanCombo(code, tf, source, wantBar) {
+async function scanCombo(code, tf, source, wantBar, only) {
   if (wantBar != null && !hasBar(await getCandles(code, tf, source, wantBar), wantBar)) return false;
-  const names = Object.keys(loadManifest());
+  // only : scanners des règles de notification pour cette combinaison (sinon tous, ancien comportement)
+  const names = Object.keys(loadManifest()).filter((n) => !only || !only.length || only.includes(n));
   const now = Date.now();
   for (const name of names) {
     let res;
@@ -396,7 +397,7 @@ setInterval(async () => {
     if (!isTradableBar({ time: closedStart, open: 0, high: 1, low: 0, close: 1 })) { w.lastBar = closedStart; continue; }
     const wantBar = tf === "1" ? undefined : closedStart;
     let done = false;
-    try { done = await scanCombo(code, tf, "alarm", wantBar); } catch (e) { /* bougies indisponibles */ }
+    try { done = await scanCombo(code, tf, "alarm", wantBar, w.scanners); } catch (e) { /* bougies indisponibles */ }
     // Abandon de cette bougie si elle reste introuvable (budget épuisé, marché fermé, retard de la source)
     if (done || creditsRemaining("alarm") <= 0 || sinceClose > Math.max(3 * 60 * 1000, TF_MS[tf] / 3)) w.lastBar = closedStart;
   }
@@ -468,7 +469,7 @@ createServer(async (req, res) => {
       const key = `${code}|${tf}`;
       const isNew = !WATCH.has(key);
       const curBar = Math.floor(Date.now() / TF_MS[tf]) * TF_MS[tf] - TF_MS[tf];
-      WATCH.set(key, { touched: Date.now(), lastBar: isNew ? curBar : WATCH.get(key).lastBar, keep: WATCH.get(key)?.keep || false });
+      WATCH.set(key, { ...(WATCH.get(key) || {}), touched: Date.now(), lastBar: isNew ? curBar : WATCH.get(key).lastBar, keep: WATCH.get(key)?.keep || false });
       if (isNew) scanCombo(code, tf, "view").catch(() => {});
       const latest = new Map();
       for (const s of SIGNALS) {
@@ -495,11 +496,16 @@ createServer(async (req, res) => {
     if (url.pathname === "/watch" && req.method === "POST") {
       if (!isInternal(req)) return send(401, { error: "non autorisé" });
       const body = JSON.parse(await readBody(req, MAX_BODY));
+      // replace : la liste envoyée remplace l'ancienne (les combinaisons absentes ne sont plus surveillées)
+      const sent = new Set();
       for (const c of body.combos || []) {
         if (!validCode(c.symbol) || !TF_INTERVAL[c.tf]) continue;
         const k = `${c.symbol}|${c.tf}`;
-        WATCH.set(k, { touched: Date.now(), lastBar: WATCH.get(k)?.lastBar, keep: true });
+        sent.add(k);
+        const scanners = Array.isArray(c.scanners) ? c.scanners.filter((s) => typeof s === "string").slice(0, 20) : null;
+        WATCH.set(k, { touched: Date.now(), lastBar: WATCH.get(k)?.lastBar, keep: true, scanners });
       }
+      if (body.replace) for (const [k, w] of WATCH) if (w.keep && !sent.has(k)) WATCH.set(k, { ...w, keep: false, touched: Date.now() });
       saveWatch();
       return send(200, { ok: true, watching: WATCH.size });
     }

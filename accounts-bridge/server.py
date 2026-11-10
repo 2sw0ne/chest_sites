@@ -5300,6 +5300,36 @@ ALERT_TF_LABEL = {"1": "M1", "5": "M5", "15": "M15", "30": "M30", "60": "H1", "2
 SITE_URL = os.environ.get("SITE_URL", "https://your-chest.vercel.app").rstrip("/")
 
 
+def _watch_sync():
+    """Coût Railway (2026-11-10) : le scanner-server ne recalcule, à chaque clôture de bougie, que les combinaisons
+    paire / unité de temps des règles existantes, et pour chacune seulement les scanners choisis dans ces règles
+    (+ le scanner de référence de School, pour « Derniers trades »). Liste remplacée en entier : une règle supprimée
+    n'est plus surveillée. Avant : les 11 scanners sur chaque combinaison, et les combinaisons jamais retirées."""
+    want = {}
+    for r in get_db().execute("SELECT pairs, timeframes, scanners FROM alert_rules").fetchall():
+        try:
+            pairs, tfs = json.loads(r["pairs"] or "[]"), json.loads(r["timeframes"] or "[]")
+            scs = {s for s in json.loads(r["scanners"] or "[]") if s in ALERT_SCANNERS}
+        except (TypeError, ValueError):
+            continue
+        for p in pairs:
+            for t in tfs:
+                if scs:
+                    want.setdefault((p, t), set()).update(scs)
+    school = get_setting("school_scanner", "pulse")
+    combos = [{"symbol": p, "tf": t, "scanners": sorted(s | ({school} if school in ALERT_SCANNERS else set()))} for (p, t), s in sorted(want.items())]
+    _scanner_call("/watch", "POST", {"replace": True, "combos": combos})
+
+
+def _watch_sync_later():
+    time.sleep(20)
+    try:
+        with app.app_context():
+            _watch_sync()
+    except Exception as e:
+        print(f"[watch] synchronisation impossible : {e}", flush=True)
+
+
 def _scanner_call(path, method="GET", body=None):
     if not SCANNER_SERVER_URL:
         return None
@@ -5486,8 +5516,7 @@ def alerts_rules_save():
             rid = cur.lastrowid
         db.commit()
     try:
-        if pairs and tfs:
-            _scanner_call("/watch", "POST", {"combos": [{"symbol": p, "tf": t} for p in pairs for t in tfs]})
+        _watch_sync()
     except Exception:
         pass  # le suivi se remettra en place au prochain enregistrement
     row = db.execute("SELECT * FROM alert_rules WHERE id = ?", (rid,)).fetchone()
@@ -5502,6 +5531,10 @@ def alerts_rules_delete(rid):
     with db_lock:
         cur = get_db().execute("DELETE FROM alert_rules WHERE id = ? AND user_id = ?", (rid, user["id"]))
         get_db().commit()
+    try:
+        _watch_sync()
+    except Exception:
+        pass
     return jsonify({"ok": cur.rowcount > 0})
 
 
@@ -6634,6 +6667,7 @@ if __name__ == "__main__":
     threading.Thread(target=digest_loop, daemon=True).start()
     threading.Thread(target=school_reminder_loop, daemon=True).start()
     threading.Thread(target=price_alert_loop, daemon=True).start()
+    threading.Thread(target=_watch_sync_later, daemon=True).start()
     threading.Thread(target=bucket_migrate, daemon=True).start()
     threading.Thread(target=ud_migrate, daemon=True).start()
     # threaded=True : threaded=False bloquait TOUTES les requetes suivantes
