@@ -676,3 +676,27 @@
   .am-sale__num::before{ color:var(--chest-ink-3); font-size:11.5px; } .am-sale__num:nth-of-type(5)::before{ content:"Sa part "; } .am-sale__num:nth-of-type(6)::before{ content:"CHEST "; }
 }
 @media (max-width:560px){ .am-sales-kpis{ grid-template-columns:minmax(0,1fr); } .am-sales-edu{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+/* Facture Railway (2026-11-10, js/admin-railway.js) */
+.am-rail{ margin-bottom:16px; }
+.am-rail__re{ border:0; padding:0; font:inherit; color:var(--chest-ink, #f6f6f7); background:none; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.am-rail__now{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:end; margin-bottom:18px; }
+.am-rail__now b{ display:block; margin:6px 0 4px; font-size:34px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:var(--chest-ink, #f6f6f7); }
+.am-rail__now small{ font-size:12px; color:var(--ink-3, #5c5c63); line-height:1.5; }
+.am-rail__bar{ position:relative; height:8px; border-radius:99px; background:rgba(var(--fg-rgb, 255, 255, 255),.07); margin-bottom:22px; }
+.am-rail__bar i{ position:absolute; inset:0; border-radius:inherit; transform-origin:left; background:linear-gradient(90deg, var(--a1, #fc1283), var(--a2, #f9a45e)); }
+.am-rail__bar span{ position:absolute; top:14px; right:0; font-size:11.5px; color:var(--ink-2, #9b9ba1); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.am-rail__modes{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
+.am-rail__mode{ display:flex; flex-direction:column; gap:4px; padding:16px; border-radius:14px; background:rgba(var(--fg-rgb, 255, 255, 255),.03); box-shadow:inset 0 0 0 1px var(--am-line, rgba(255,255,255,.08)); }
+.am-rail__mode.is-cur{ background:rgba(var(--a1-rgb, 252, 18, 131),.07); box-shadow:inset 0 0 0 1px rgba(var(--a1-rgb, 252, 18, 131),.4); }
+.am-rail__mk{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--chest-ink, #f6f6f7); }
+.am-rail__mk em{ margin-left:auto; font-style:normal; font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:99px; color:var(--a1, #fc1283); background:rgba(var(--a1-rgb, 252, 18, 131),.12); }
+.am-rail__mode b{ margin-top:6px; font-size:26px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:var(--chest-ink, #f6f6f7); }
+.am-rail__mode small{ font-size:11.5px; color:var(--ink-3, #5c5c63); }
+.am-rail__src{ margin-top:6px; font-size:11.5px; line-height:1.45; color:var(--ink-2, #9b9ba1); }
+.am-rail__warn{ margin-top:4px; font-size:11.5px; color:var(--red-hi, #ff94a0); }
+.am-rail__mode.is-over b{ color:var(--red-hi, #ff94a0); }
+.am-rail__steps{ margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px; font-size:13.5px; line-height:1.55; color:var(--ink-2, #9b9ba1); }
+.am-rail__steps b{ color:var(--chest-ink, #f6f6f7); font-weight:600; }
+.am-rail__steps code{ font-family:'Fragment Mono', monospace; font-size:12px; padding:1px 6px; border-radius:6px; background:rgba(var(--fg-rgb, 255, 255, 255),.07); color:var(--chest-ink, #f6f6f7); }
+@media (max-width:760px){ .am-rail__now, .am-rail__modes{ grid-template-columns:1fr; } }

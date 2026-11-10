@@ -511,6 +511,13 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        # Facture Railway (2026-11-10) : relevé de la consommation du mois toutes les 30 min, avec le mode en cours,
+        # pour mesurer ce que coûte chaque mode (Admin → Système).
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS railway_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, mode TEXT NOT NULL, usage REAL NOT NULL, period_start TEXT
+            )
+        """)
         # Alertes sur un prix (2026-11-09) : posées depuis le clic droit du graphique des scanners ; prévenues une fois.
         db.execute("""
             CREATE TABLE IF NOT EXISTS price_alerts (
@@ -1480,6 +1487,100 @@ def member_storage(member_id):
         db.commit()
     row = db.execute("SELECT * FROM users WHERE id = ?", (member_id,)).fetchone()
     return jsonify({"storage": storage_info(db, row)})
+
+
+# ---------------- Facture Railway (2026-11-10) ----------------
+# Jeton : variable RAILWAY_API_TOKEN (jeton de compte ou d'espace de travail, railway.com/account/tokens), jamais dans le code.
+# Hobby = 5 $ par mois dont 5 $ de consommation incluse → facture = max(5, consommation).
+RAILWAY_WORKSPACE_ID = os.environ.get("RAILWAY_WORKSPACE_ID", "ddd921b7-7b88-40f3-a20a-3ba8c0b4ad03")
+RAILWAY_PLAN_PRICE = float(os.environ.get("RAILWAY_PLAN_PRICE", "5"))
+RAILWAY_PLAN_INCLUDED = float(os.environ.get("RAILWAY_PLAN_INCLUDED", "5"))
+
+
+def _railway_customer():
+    token = os.environ.get("RAILWAY_API_TOKEN", "").strip()
+    if not token:
+        return None
+    q = """query($w: String!) { workspace(workspaceId: $w) { customer { currentUsage billingPeriod { start end }
+        usageLimit { hardLimit softLimit isOverLimit } } } }"""
+    req = urllib.request.Request("https://backboard.railway.com/graphql/v2",
+                                 data=json.dumps({"query": q, "variables": {"w": RAILWAY_WORKSPACE_ID}}).encode("utf-8"),
+                                 headers={"Content-Type": "application/json", "Authorization": "Bearer " + token, "User-Agent": "chest-accounts"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        d = json.loads(r.read().decode("utf-8"))
+    if d.get("errors"):
+        raise RuntimeError(d["errors"][0].get("message") or "erreur Railway")
+    return ((d.get("data") or {}).get("workspace") or {}).get("customer")
+
+
+def railway_usage_loop():
+    while True:
+        try:
+            with app.app_context():
+                c = _railway_customer()
+                if c and c.get("currentUsage") is not None:
+                    db = get_db()
+                    with db_lock:
+                        db.execute("INSERT INTO railway_usage (at, mode, usage, period_start) VALUES (?, ?, ?, ?)",
+                                   (datetime.now(timezone.utc).isoformat(), get_ops()["mode"], float(c["currentUsage"]),
+                                    (c.get("billingPeriod") or {}).get("start")))
+                        db.execute("DELETE FROM railway_usage WHERE at < ?", ((datetime.now(timezone.utc) - timedelta(days=60)).isoformat(),))
+                        db.commit()
+        except Exception as e:
+            print(f"[railway] relevé impossible : {e}", flush=True)
+        time.sleep(1800)
+
+
+@app.route("/admin/railway")
+def admin_railway():
+    """Admin → Système : consommé depuis le début de la période + facture estimée en fin de période si on reste dans
+    chaque mode. Coût horaire d'un mode = mesuré sur les relevés pris dans ce mode (30 derniers jours) ; à défaut,
+    moyenne de la période en cours."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    if not os.environ.get("RAILWAY_API_TOKEN", "").strip():
+        return jsonify({"configured": False})
+    try:
+        c = _railway_customer() or {}
+    except Exception as e:
+        return jsonify({"configured": True, "error": f"Railway ne répond pas : {e}"}), 502
+    used = float(c.get("currentUsage") or 0)
+    bp = c.get("billingPeriod") or {}
+    now = datetime.now(timezone.utc)
+    try:
+        start, end = _when(bp["start"]), _when(bp["end"])
+    except Exception:
+        return jsonify({"configured": True, "error": "Période de facturation illisible."}), 502
+    elapsed_h = max((now - start).total_seconds() / 3600, 1)
+    left_h = max((end - now).total_seconds() / 3600, 0)
+    rows = get_db().execute("SELECT at, mode, usage, period_start FROM railway_usage WHERE at >= ? ORDER BY at",
+                            ((now - timedelta(days=30)).isoformat(),)).fetchall()
+    acc = {}
+    for a, b in zip(rows, rows[1:]):
+        dt = (_when(b["at"]) - _when(a["at"])).total_seconds() / 3600
+        if a["period_start"] != b["period_start"] or dt <= 0 or dt > 2 or b["usage"] < a["usage"]:
+            continue
+        m = acc.setdefault(a["mode"], [0.0, 0.0])
+        m[0] += b["usage"] - a["usage"]
+        m[1] += dt
+    avg = used / elapsed_h
+    modes = {}
+    for k in OPS_MODES:
+        cost, hours = acc.get(k, [0.0, 0.0])
+        measured = hours >= 3
+        rate = cost / hours if measured else avg
+        usage_end = used + rate * left_h
+        modes[k] = {"rate": round(rate, 5), "hours": round(hours, 1), "measured": measured,
+                    "usageEnd": round(usage_end, 2),
+                    "invoice": round(RAILWAY_PLAN_PRICE + max(0.0, usage_end - RAILWAY_PLAN_INCLUDED), 2)}
+    lim = c.get("usageLimit") or {}
+    return jsonify({"configured": True, "used": round(used, 2), "start": bp.get("start"), "end": bp.get("end"),
+                    "elapsedH": round(elapsed_h, 1), "leftH": round(left_h, 1), "avgRate": round(avg, 5),
+                    "invoiceNow": round(RAILWAY_PLAN_PRICE + max(0.0, used - RAILWAY_PLAN_INCLUDED), 2),
+                    "plan": {"price": RAILWAY_PLAN_PRICE, "included": RAILWAY_PLAN_INCLUDED},
+                    "limit": {"hard": lim.get("hardLimit"), "soft": lim.get("softLimit"), "over": bool(lim.get("isOverLimit"))},
+                    "mode": get_ops()["mode"], "modes": modes, "samples": len(rows)})
 
 
 @app.route("/admin/storage")
@@ -6668,6 +6769,7 @@ if __name__ == "__main__":
     threading.Thread(target=school_reminder_loop, daemon=True).start()
     threading.Thread(target=price_alert_loop, daemon=True).start()
     threading.Thread(target=_watch_sync_later, daemon=True).start()
+    threading.Thread(target=railway_usage_loop, daemon=True).start()
     threading.Thread(target=bucket_migrate, daemon=True).start()
     threading.Thread(target=ud_migrate, daemon=True).start()
     # threaded=True : threaded=False bloquait TOUTES les requetes suivantes
