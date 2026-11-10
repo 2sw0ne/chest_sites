@@ -5658,6 +5658,36 @@ def alerts_signals():
         return jsonify({"opportunities": []})
 
 
+@app.route("/alerts/latest")
+def alerts_latest():
+    """Dashboard (2026-11-10) : le dernier signal de CHAQUE scanner activé dans les règles du membre (toutes ses
+    paires / unités de temps), plutôt que les 4 derniers signaux de 4 combinaisons seulement."""
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    rows = get_db().execute("SELECT pairs, timeframes, scanners FROM alert_rules WHERE user_id = ?", (user["id"],)).fetchall()
+    want = {}  # scanner -> set((paire, ut)) ; vide = toutes
+    for r in rows:
+        try:
+            pairs, tfs = json.loads(r["pairs"] or "[]"), json.loads(r["timeframes"] or "[]")
+            scs = [s for s in json.loads(r["scanners"] or "[]") if s in ALERT_SCANNERS]
+        except (TypeError, ValueError):
+            continue
+        for sc in scs:
+            want.setdefault(sc, set()).update((p, t) for p in pairs for t in tfs)
+    out = []
+    for sc, combos in want.items():
+        try:
+            trades = (_scanner_call("/recent?" + urllib.parse.urlencode({"scanner": sc, "limit": 30})) or {}).get("trades", [])
+        except Exception:
+            trades = []
+        mine = [t for t in trades if not combos or (t.get("symbol"), str(t.get("tf"))) in combos]
+        if mine:
+            out.append(max(mine, key=lambda t: t.get("time") or 0))
+    out.sort(key=lambda t: t.get("time") or 0, reverse=True)
+    return jsonify({"signals": out, "scanners": sorted(want)})
+
+
 @app.route("/alerts/dispatch", methods=["POST"])
 def alerts_dispatch():
     # Appelé par scanner-server (secret interne) à chaque nouvelle opportunité détectée.

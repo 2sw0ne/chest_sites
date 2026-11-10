@@ -224,9 +224,15 @@
     const h0 = 0, h1 = 24;
     const hours = Array.from({ length: h1 - h0 }, (_, i) => h0 + i);
     const now = new Date();
-    const head = days.map((d) => `<div class="sh-cal__dh${sameDay(d, now) ? ' is-today' : ''}"><span>${fr(d, { weekday: 'short' }).replace('.', '')}</span><b>${d.getDate()}</b></div>`).join('');
-    const allDay = days.map((d) => `<div class="sh-cal__ad">${groupTasks(D.tasks.filter((t) => t.dueAt && sameDay(t.dueAt, d) && (ROLE !== 'educator' || !S.person || S.person === 'm' + t.memberId))).map(taskChip).join('')}</div>`).join('');
-    const cols = days.map((d) => {
+    // Téléphone (2026-11-10) : un jour à la fois, choisi dans la rangée des 7 jours (aujourd'hui par défaut)
+    const phone = window.matchMedia('(max-width: 640px)').matches;
+    if (S.calDay == null || S.calDay < 0 || S.calDay > 6) { const ti = days.findIndex((d) => sameDay(d, now)); S.calDay = ti >= 0 ? ti : 0; }
+    const shown = phone ? [days[S.calDay]] : days;
+    const head = phone
+      ? `<div class="sh-cal__days">${days.map((d, i) => `<button type="button" class="sh-cal__dh${sameDay(d, now) ? ' is-today' : ''}${i === S.calDay ? ' is-on' : ''}" data-calday="${i}" aria-pressed="${i === S.calDay}"><span>${fr(d, { weekday: 'short' }).replace('.', '')}</span><b>${d.getDate()}</b>${inWeek.some((e) => sameDay(e.startsAt, d)) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</div>`
+      : days.map((d) => `<div class="sh-cal__dh${sameDay(d, now) ? ' is-today' : ''}"><span>${fr(d, { weekday: 'short' }).replace('.', '')}</span><b>${d.getDate()}</b></div>`).join('');
+    const allDay = shown.map((d) => `<div class="sh-cal__ad">${groupTasks(D.tasks.filter((t) => t.dueAt && sameDay(t.dueAt, d) && (ROLE !== 'educator' || !S.person || S.person === 'm' + t.memberId))).map(taskChip).join('')}</div>`).join('');
+    const cols = shown.map((d) => {
       const evs = layoutDay(inWeek.filter((e) => sameDay(e.startsAt, d))).map(({ e, col, n }) => {
         const st = new Date(e.startsAt), top = ((st.getHours() - h0) * 60 + st.getMinutes()) / 60 * HH, hgt = Math.max(22, e.minutes / 60 * HH - 2);
         const k = kindOf(e), p = personOf(e), past = Date.parse(e.startsAt) + e.minutes * 60000 < Date.now();
@@ -237,8 +243,8 @@
       const nowLine = sameDay(d, now) && now.getHours() >= h0 && now.getHours() < h1 ? `<i class="sh-cal__now" style="top:${((now.getHours() - h0) * 60 + now.getMinutes()) / 60 * HH}px"></i>` : '';
       return `<div class="sh-cal__col${sameDay(d, now) ? ' is-today' : ''}${d < new Date(new Date().setHours(0, 0, 0, 0)) ? ' is-past' : ''}" data-slot="${ymd(d)}" data-h0="${h0}" style="height:${hours.length * HH}px">${evs}${nowLine}</div>`;
     }).join('');
-    return `<div class="sh-cal" style="--hh:${HH}px">
-      <div class="sh-cal__head"><span></span>${head}</div>
+    return `<div class="sh-cal${phone ? ' is-phone' : ''}" style="--hh:${HH}px">
+      <div class="sh-cal__head">${phone ? head : `<span></span>${head}`}</div>
       <div class="sh-cal__adrow"><span class="sh-cal__adk">Missions</span>${allDay}</div>
       <div class="sh-cal__scroll" id="shCalScroll" style="height:${13 * HH + 12}px"><div class="sh-cal__body"><div class="sh-cal__hours">${hours.map((h) => `<span style="height:${HH}px">${h ? `${pad(h)}:00` : ''}</span>`).join('')}</div>${cols}</div></div>
     </div>`;
@@ -1173,6 +1179,8 @@
       if (box) { box.innerHTML = weekHtml(); scrollCal(); }
       return;
     }
+    const cd = t.closest('[data-calday]');
+    if (cd) { S.calDay = Number(cd.dataset.calday); const box = document.getElementById('shPanel'); if (box) { const sc = document.getElementById('shCalScroll'), top = sc ? sc.scrollTop : null; box.innerHTML = weekHtml(); const sc2 = document.getElementById('shCalScroll'); if (sc2 && top != null) sc2.scrollTop = top; } return; }
     const slot = t.closest('.sh-cal__col');
     if (slot && !t.closest('.sh-gev') && S.tapCreate) {
       S.tapCreate = false;
@@ -1220,33 +1228,40 @@
     const dm = t.closest('[data-del-mission]');
     if (dm) { if (!(await ask('Retirer cette mission chez tous les membres qui l’ont ?', 'Retirer'))) return; return act(() => postJson(`/mentor/common/${dm.dataset.delMission}/delete`, {}), 'Mission retirée.'); }
   });
-  // Appuyer-glisser sur la grille (façon Calendrier d'Apple) : une bulle naît sous la souris, s'étire jusqu'au relâchement,
-  // puis « Nouveau rendez-vous » s'ouvre avec ce jour, cette heure et cette durée. Au doigt : un simple appui (1 h).
+  // Appuyer-glisser sur la grille (2026-11-10, retour patron) : une bulle d'une heure naît sous la souris et la SUIT
+  // (heure et jour, au quart d'heure) sans changer de durée ; au relâchement, « Nouveau rendez-vous » s'ouvre à cet
+  // endroit, durée 1 h par défaut, modifiable ensuite dans la fenêtre. Au doigt : un simple appui (1 h).
   root.addEventListener('pointerdown', (e) => {
-    const col = e.target.closest('.sh-cal__col');
+    let col = e.target.closest('.sh-cal__col');
     if (!col || e.target.closest('.sh-gev') || e.button !== 0) return;
     if (e.pointerType === 'touch') { S.tapCreate = true; return; }
     e.preventDefault();
-    const top = col.getBoundingClientRect().top;
-    const q = (y, up) => Math.max(0, Math.min(24 * 60, (up ? Math.ceil : Math.floor)(((y - top) / HH * 60) / 15) * 15));
-    const start = Math.min(q(e.clientY), 24 * 60 - 15);
-    let end = start + 60;
+    const DUR = 60;
+    const q = (c, y) => { const top = c.getBoundingClientRect().top; return Math.max(0, Math.min(24 * 60 - DUR, Math.floor(((y - top) / HH * 60 - 15) / 15) * 15)); };
+    let start = q(col, e.clientY);
     const ghost = document.createElement('div');
     ghost.className = 'sh-ghost';
     col.appendChild(ghost);
     const tm = (m) => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
-    const paint = () => { ghost.style.top = `${start / 60 * HH}px`; ghost.style.height = `${(end - start) / 60 * HH - 2}px`; ghost.innerHTML = `<b>Nouveau rendez-vous</b><span>${tm(start)} – ${tm(end)}</span>`; };
+    const paint = () => { ghost.style.top = `${start / 60 * HH}px`; ghost.style.height = `${DUR / 60 * HH - 2}px`; ghost.innerHTML = `<b>Nouveau rendez-vous</b><span>${tm(start)} – ${tm(start + DUR)}</span>`; };
     paint();
-    let moved = false;
-    const move = (ev) => { const m = q(ev.clientY, true); if (Math.abs(ev.clientY - e.clientY) > 4) moved = true; if (moved) { end = Math.max(start + 15, Math.min(24 * 60, m)); paint(); } };
+    const move = (ev) => {
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      const c = under && under.closest && under.closest('.sh-cal__col');
+      if (c && c !== col && root.contains(c)) { col = c; col.appendChild(ghost); }
+      const m = q(col, ev.clientY);
+      if (m !== start) { start = m; paint(); }
+    };
     const up = () => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
       ghost.classList.add('is-set');
       const at = new Date(`${col.dataset.slot}T00:00`); at.setMinutes(start);
-      openComposer('event', null, null, at, end - start).finally(() => setTimeout(() => ghost.remove(), 150));
+      openComposer('event', null, null, at, DUR).finally(() => setTimeout(() => ghost.remove(), 150));
     };
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
   });
+  // passage ordinateur ↔ téléphone (rotation, fenêtre réduite) : la grille se redessine dans le bon format
+  window.matchMedia('(max-width: 640px)').addEventListener('change', () => { const box = document.getElementById('shPanel'); if (box && box.querySelector('.sh-cal')) { box.innerHTML = weekHtml(); scrollCal(); } });
   root.addEventListener('change', (e) => {
     if (e.target.id === 'shWho') { S.member = e.target.value || null; reloadWeek(); }
     if (e.target.dataset.staffPick) setColor(Number(e.target.dataset.staffPick), e.target.value);

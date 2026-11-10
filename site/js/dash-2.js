@@ -324,12 +324,12 @@
     const H = { Authorization: 'Bearer ' + token };
     try {
       const rules = ((await fetch(`${base}/alerts/rules`, { headers: H }).then((r) => (r.ok ? r.json() : { rules: [] }))).rules) || [];
-      const combos = [...new Set(rules.flatMap((r) => (r.pairs || []).flatMap((p) => (r.timeframes || []).map((tf) => `${p}|${tf}`))))].slice(0, 4);
+      const combos = rules.flatMap((r) => (r.pairs || []).flatMap((p) => (r.timeframes || []).map((tf) => `${p}|${tf}`)));
       if (!combos.length) { box.innerHTML = EMPTY('Aucune alerte réglée. <a href="strategies.html" style="color: var(--ink-2, rgb(155, 155, 161));">Choisis tes paires dans Stratégies →</a>'); return; }
-      const wanted = new Set(rules.flatMap((r) => r.scanners || []));
-      const lists = await Promise.all(combos.map((c) => { const [sy, tf] = c.split('|'); return fetch(`${base}/alerts/signals?symbol=${encodeURIComponent(sy)}&tf=${encodeURIComponent(tf)}`, { headers: H }).then((r) => (r.ok ? r.json() : { opportunities: [] })).catch(() => ({ opportunities: [] })); }));
-      const sig = lists.flatMap((l) => l.opportunities || []).filter((o) => !wanted.size || wanted.has(o.scanner)).sort((x, y) => toMs(y.time) - toMs(x.time)).slice(0, 4);
-      if (!sig.length) { box.innerHTML = EMPTY('Pas encore de signal sur tes paires suivies.'); return; }
+      // Le dernier signal de chaque scanner activé dans tes règles (2026-11-10), toutes paires et unités confondues
+      const d = await fetch(`${base}/alerts/latest`, { headers: H }).then((r) => (r.ok ? r.json() : { signals: [] })).catch(() => ({ signals: [] }));
+      const sig = (d.signals || []).sort((x, y) => toMs(y.time) - toMs(x.time));
+      if (!sig.length) { box.innerHTML = EMPTY('Pas encore de signal sur tes scanners suivis.'); return; }
       const S = window.CHESTScanners;
       box.innerHTML = sig.map((o) => {
         const sc = (S && S.get && S.get(o.scanner)) || {};

@@ -80,7 +80,7 @@ async function runOne(engine, path, isMain, all, bars, code, tf) {
 // Une étiquette donne son prix de deux façons : écrit dans son texte ("PE (4130.17)", "Exit 1: 4156.16",
 // "Target Zone 1\n4111.30"), ou porté par son ancre quand le texte n'est qu'un nom ("BUY", "-3", "S0").
 // Les plus récentes l'emportent. Renvoie { pe, sl, tps, tp } ou null si aucun trade n'est affiché.
-const labelsOf = (models) => models.flatMap((m) => (m.labels || []).map((l) => ({ text: String(l.text || "").trim(), y: Number(l.y), style: l.style })));
+const labelsOf = (models) => models.flatMap((m) => (m.labels || []).map((l) => ({ text: String(l.text || "").trim(), y: Number(l.y), style: l.style, x: Number(l.x) })));
 // Dernière étiquette dont le texte vérifie re : { m (correspondance), y (ancre), style }
 function lastMatch(L, re) {
   for (let i = L.length - 1; i >= 0; i--) {
@@ -109,6 +109,21 @@ function seriesOf(L, patron) {
 // Étiquettes "NOM (prix)" : SWYPER, Wave, Stars, Pulse
 const paren = (L, name) => textPrice(L, new RegExp(`^${name} \\((-?[0-9.]+)\\)$`));
 const parenTps = (L) => seriesOf(L, (n) => new RegExp(`^TP${n} \\((-?[0-9.]+)\\)$`));
+// Étiquettes "NOM (prix)" d'UNE même position (2026-11-10, Swyper : « le signal en cours identifie les mauvaises
+// positions ») : chaque champ lu séparément prenait la dernière étiquette de son nom, donc pouvait mélanger le PE
+// d'une position avec le SL / les TP d'une plus ancienne (une position avec seulement TP1 gardait TP2/TP3 d'une
+// précédente ; une position effacée laissait ses voisines se mélanger). Swyper pose PE, SL et TP sur la même bougie :
+// on prend le PE le plus récent (x le plus grand) et uniquement les SL / TP posés sur cette bougie.
+function parenGroup(L) {
+  const reP = /^PE \((-?[0-9.]+)\)$/;
+  let pe = null;
+  for (const l of L) { const m = l.text.match(reP); if (m && Number.isFinite(l.x) && (!pe || l.x >= pe.x)) pe = { v: Number(m[1]), x: l.x }; }
+  if (!pe) return { pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) };
+  const at = (re) => { let v = null; for (const l of L) { if (l.x !== pe.x) continue; const m = l.text.match(re); if (m) v = Number(m[1]); } return v; };
+  const tps = [];
+  for (let n = 1; n <= 9; n++) { const v = at(new RegExp(`^TP${n} \\((-?[0-9.]+)\\)$`)); if (v == null) break; tps.push(v); }
+  return { pe: pe.v, sl: at(/^SL \((-?[0-9.]+)\)$/), tps };
+}
 // Pivots : PE = étiquette BUY/SELL, posée à l'entrée. SL = 2e zone sous l'entrée (BUY) ou au-dessus (SELL).
 // TP = S0 pour un BUY, R8 pour un SELL (version hebdomadaire en repli).
 function pivotLevels(L) {
@@ -129,7 +144,7 @@ const RULES = {
     const r = lastMatch(L, /^(BUY|SELL)\+?$/);
     return { pe: r?.y ?? null, side: r ? (r.m[1] === "BUY" ? "buy" : "sell") : null };
   },
-  "swyper-v6": (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
+  "swyper-v6": parenGroup,
   wave: (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
   stars: (L) => ({ pe: paren(L, "PE"), sl: paren(L, "SL"), tps: parenTps(L) }),
   // Pulse n'affiche que le macro : entrée et sens (flèche haut/bas), pas de SL ni de TP

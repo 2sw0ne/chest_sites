@@ -449,14 +449,35 @@ CHESTTour.init([
     };
     const all = Array.isArray(record.trades) ? record.trades : [];
     const kept = [];
+    let noDate = 0, noRr = 0;
     all.forEach((t) => {
       if (!t) return;
       const c = Object.assign({}, t, { date: fixDate(t.date), open: fixDate(t.open), close: fixDate(t.close) });
       if (!c.date) c.date = c.close || c.open;
-      if (c.date) kept.push(c);
+      if (!c.date) { noDate++; return; }
+      if (!Number.isFinite(Number(c.rr)) && String(c.result).toUpperCase() !== 'BE') noRr++; // gardée, comptée 0 R
+      kept.push(c);
     });
     record.trades = kept;
     window.__btSkipped = all.length - kept.length;
+    // CHEST prévient (2026-11-10) : un bandeau dit ce qui a été écarté et pourquoi, les calculs (rapport, recherche
+    // automatique du % de risque, propfirms) portent sur les positions restantes.
+    if (noDate || noRr) {
+      const w = document.createElement('div');
+      w.className = 'bt-warn';
+      w.setAttribute('role', 'status');
+      const parts = [];
+      if (noDate) parts.push(`<b>${noDate}</b> position${noDate > 1 ? 's' : ''} sans date lisible`);
+      w.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <div><strong>CHEST a trouvé des lignes illisibles dans ton fichier</strong><span>${noDate ? `${parts[0]} : mise${noDate > 1 ? 's' : ''} de côté pour ne pas fausser le rapport. ` : ''}${noRr ? `<b>${noRr}</b> position${noRr > 1 ? 's' : ''} sans résultat en R lisible : comptée${noRr > 1 ? 's' : ''} à 0 R. ` : ''}Tous les calculs, dont la recherche automatique du % de risque et les propfirms, portent sur ces ${kept.length} positions. Corrige ces lignes dans ton Excel puis réimporte-le (Modifier ce backtest).</span></div>`;
+      const zone = document.getElementById('reportZone');
+      zone.insertBefore(w, zone.firstChild);
+      if (!document.getElementById('btWarnCss')) {
+        const st = document.createElement('style'); st.id = 'btWarnCss';
+        st.textContent = '.bt-warn{display:flex;gap:14px;align-items:flex-start;max-width:1100px;margin:16px auto 0;padding:14px 18px;border-radius:16px;background:rgba(232,179,57,.08);box-shadow:inset 0 0 0 1px rgba(232,179,57,.35);color:#f6f6f7;font-size:13.5px;line-height:1.55}.bt-warn svg{flex:none;width:20px;height:20px;margin-top:1px;color:#e8b339}.bt-warn strong{display:block;margin-bottom:2px;font-weight:700}.bt-warn span{color:#9b9ba1}.bt-warn b{color:#f6f6f7}';
+        document.head.appendChild(st);
+      }
+    }
   }
   // Empreinte du contenu : la simulation propfirm déjà faite pour ce contenu est relue au lieu d'être refaite.
   const btSig = (() => {
@@ -676,7 +697,7 @@ CHESTTour.init([
   const periodText = `${periodPoint(firstDate)} → ${isRecent ? "Aujourd'hui" : periodPoint(lastDate)}`;
   const monthCount = new Set(record.trades.map((t) => tradeDate(t).toISOString().slice(0, 7))).size;
   document.getElementById('heroPeriod').textContent = monthCount;
-  document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}${window.__btSkipped ? ` · ${window.__btSkipped} sans date lisible, mise${window.__btSkipped > 1 ? 's' : ''} de côté` : ''}`;
+  document.getElementById('heroBadge').innerHTML = `<span class="dot"></span>${record.trades.length} position${record.trades.length > 1 ? 's' : ''} · ${periodText}${window.__btSkipped ? ` · ${window.__btSkipped} écartée${window.__btSkipped > 1 ? 's' : ''}` : ''}`;
 
   const heroReport = hasPf
     ? window.CHESTBacktestEngine.computeReport(record.trades, pfCapital, riskCfg(record.pf))
