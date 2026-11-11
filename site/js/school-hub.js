@@ -323,27 +323,37 @@
     return `<article class="sh-fc sh-fc--${p.image ? fmtOf(p) : p.idea ? 'pos' : 'text'}${isNew(p) ? ' is-new' : ''} is-${st[1]}">
       <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir l’Idea « ${esc(p.title)} »"></button>
       <header class="sh-fc__h"><span class="sh-fc__av${p.authorAvatar || p.chest ? ' has-photo' : ''}${p.chest ? ' is-chest' : ''}"${p.chest ? ` style="background-image:url('assets/logo-chest.png')"` : p.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: p.authorAvatar }))}')"` : ''}>${p.authorAvatar || p.chest ? '' : esc(initials(who))}</span>
-        <span class="sh-fc__who"><b>${esc(who)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
+        <span class="sh-fc__who"><b>${esc(who)}${tagHtml(p.authorTag)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
         ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : ''}</header>
       ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : p.idea ? '' : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
       <div class="sh-fc__b"><span class="sh-st sh-st--${st[1]}">${st[0]}</span>${p.image || p.idea ? `<h3>${esc(p.title)}</h3>` : ''}${posHtml(p.idea, true)}${body ? `<p>${esc(body.slice(0, 180))}${body.length > 180 ? '…' : ''}</p>` : ''}<span class="sh-fc__more">Voir l’Idea${ic('go')}</span></div>
       ${threadHtml(p, true)}
     </article>`;
   }
-  // Fil d'une Idea (2026-11-11) : les mises à jour de la position, comme une conversation sous l'Idea
+  // Étiquette à côté du prénom (2026-11-11) : CEO, Manageur, Éducateur (donnée par le serveur, authorTag)
+  const TAGCLS = { CEO: 'ceo', Manageur: 'mgr', 'Éducateur': 'edu' };
+  const tagHtml = (t) => (t ? `<span class="sh-tag sh-tag--${TAGCLS[t] || 'edu'}">${esc(t)}</span>` : '');
+  const avHtml = (x, cls) => `<span class="${cls}${x.authorAvatar || x.chest ? ' has-photo' : ''}"${x.chest ? ` style="background-image:url('assets/logo-chest.png')"` : x.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: x.authorAvatar }))}')"` : ''}>${x.authorAvatar || x.chest ? '' : esc(initials(x.author))}</span>`;
+  const shortWhen = (iso) => { const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000)); return m < 1 ? 'à l’instant' : m < 60 ? `${m} min` : m < 1440 ? `${Math.round(m / 60)} h` : fr(iso, { day: 'numeric', month: 'short' }); };
+  // Fil d'une Idea (2026-11-11) : les mises à jour de la position, comme une conversation sous l'Idea.
+  // Carte : la dernière mise à jour en une ligne. Fenêtre : le fil complet (fil vertical, la plus récente en avant)
+  // et, pour l'auteur ou un admin, une barre d'envoi collée en bas de l'écran.
   function threadHtml(p, short) {
     const ups = p.updates || [];
-    if (!ups.length && short) return '';
-    const shown = short ? ups.slice(-2) : ups;
-    const can = !short && (ROLE === 'admin' || (ROLE === 'educator' && p.authorId === U.id));
-    const row = (u) => `<li class="sh-th__m"><span class="sh-th__av${u.authorAvatar || u.chest ? ' has-photo' : ''}"${u.chest ? ` style="background-image:url('assets/logo-chest.png')"` : u.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: u.authorAvatar }))}')"` : ''}>${u.authorAvatar || u.chest ? '' : esc(initials(u.author))}</span>
-        <div class="sh-th__b"><span class="sh-th__h"><b>${esc(u.author)}</b><small>${esc(ideaWhen(u.createdAt))}</small>${can && (ROLE === 'admin' || u.authorId === U.id) ? `<button type="button" class="sh-th__del" data-del-update="${u.id}" data-post-id="${p.id}" aria-label="Retirer ce message"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}</span><p>${textToHtml(u.body)}</p></div></li>`;
-    return `<div class="sh-th${short ? ' is-short' : ''}">
-      ${short && ups.length > 2 ? `<span class="sh-th__more">${ups.length - 2} mise${ups.length - 2 > 1 ? 's' : ''} à jour plus ancienne${ups.length - 2 > 1 ? 's' : ''}</span>` : ''}
-      ${!short ? `<span class="chest-step sh-th__k">Suivi de la position${ups.length ? ` · ${ups.length}` : ''}</span>` : ''}
-      ${shown.length ? `<ol class="sh-th__l">${shown.map(row).join('')}</ol>` : (!short ? '<p class="sh-th__none">Aucune mise à jour pour l’instant.</p>' : '')}
-      ${can ? `<div class="sh-th__f"><textarea id="shUpd" rows="1" maxlength="2000" placeholder="Mise à jour : SL au BE, TP1 touché, sortie…" aria-label="Nouvelle mise à jour" data-upd-for="${p.id}"></textarea><button type="button" class="chest-btn" data-update-send="${p.id}" aria-label="Publier la mise à jour">${ic('go')}</button></div>` : ''}
-    </div>`;
+    if (short) {
+      if (!ups.length) return '';
+      const u = ups[ups.length - 1];
+      return `<div class="sh-th is-short"><span class="sh-th__live"><i aria-hidden="true"></i>${ups.length > 1 ? `${ups.length} mises à jour` : 'Mise à jour'}</span>
+        <div class="sh-th__last">${avHtml(u, 'sh-th__av')}<p><b>${esc(u.author)}</b> ${esc(String(u.body).replace(/\s+/g, ' ').slice(0, 120))}</p><small>${esc(shortWhen(u.createdAt))}</small></div></div>`;
+    }
+    const can = ROLE === 'admin' || (ROLE === 'educator' && p.authorId === U.id);
+    const row = (u, i) => `<li class="sh-th__m${i === ups.length - 1 ? ' is-last' : ''}">${avHtml(u, 'sh-th__av')}
+        <div class="sh-th__b"><div class="sh-th__h"><b>${esc(u.author)}</b>${tagHtml(u.authorTag)}<small>${esc(shortWhen(u.createdAt))}</small>${can && (ROLE === 'admin' || u.authorId === U.id) ? `<button type="button" class="sh-th__del" data-del-update="${u.id}" data-post-id="${p.id}" aria-label="Retirer ce message"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}</div><div class="sh-th__txt">${textToHtml(u.body)}</div></div></li>`;
+    return `<section class="sh-th" aria-label="Suivi de la position">
+      <div class="sh-th__top"><span class="chest-step sh-th__k">Suivi de la position</span>${ups.length ? `<span class="sh-th__n">${ups.length}</span>` : ''}</div>
+      ${ups.length ? `<ol class="sh-th__l">${ups.map(row).join('')}</ol>` : `<p class="sh-th__none">${can ? 'Publie ici chaque étape : entrée déclenchée, TP1 touché, SL au BE… Ceux qui voient l’Idea sont prévenus.' : 'Les mises à jour de la position arriveront ici, avec une notification.'}</p>`}
+      ${can ? `<div class="sh-th__f"><textarea id="shUpd" rows="1" maxlength="2000" placeholder="TP1 touché, SL au BE…" aria-label="Nouvelle mise à jour" data-upd-for="${p.id}" enterkeyhint="send"></textarea><button type="button" class="sh-th__send" data-update-send="${p.id}" aria-label="Publier la mise à jour"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>` : ''}
+    </section>`;
   }
   const ideaTabs = (list) => {
     const on = list.filter((p) => stOf(p) !== 'inactive').length, off = list.length - on;
@@ -821,7 +831,7 @@
       <div class="sh-detail__main">
         <div class="sh-detail__k"><span class="sh-st sh-st--${STATUS[stOf(p)][1]}">${STATUS[stOf(p)][0]}</span>${p.pinned ? `<span class="sh-badge">${ic('pin')}Épinglé</span>` : ''}${ROLE !== 'member' ? `<span class="sh-badge sh-badge--group">${esc(p.audienceLabel)}</span>` : ''}</div>
         <h2>${esc(p.title)}</h2>
-        <p class="sh-detail__by">Par ${esc(p.author)} · ${esc(ideaWhen(p.createdAt))}</p>
+        <p class="sh-detail__by">Par ${esc(p.author)}${tagHtml(p.authorTag)} · ${esc(ideaWhen(p.createdAt))}</p>
         ${posHtml(p.idea, false)}
         ${p.body ? `<div class="sh-read">${textToHtml(p.body)}</div>` : ''}
         ${threadHtml(p, false)}

@@ -3144,6 +3144,25 @@ def _when(v):
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
 
 
+def _role_tag_of(r):
+    """Étiquette affichée à côté du prénom dans School (2026-11-11) : CEO (admin principal), Manageur, Éducateur."""
+    if not r:
+        return None
+    role = r["role"] if "role" in r.keys() else None
+    if r["is_admin"]:
+        return "Manageur" if role == "manager" else "CEO"
+    return "Éducateur" if role == "educator" else None
+
+
+def _tags(db):
+    cache = {}
+    def tag(uid):
+        if uid not in cache:
+            cache[uid] = _role_tag_of(db.execute("SELECT is_admin, role FROM users WHERE id = ?", (uid,)).fetchone())
+        return cache[uid]
+    return tag
+
+
 def _avatars(db):
     cache = {}
     def pic(uid):
@@ -3448,6 +3467,7 @@ def _post_public(db, r, who, pic=None):
             "status": (r["status"] if "status" in r.keys() and r["status"] in IDEA_STATUS else "zone"),
             "author": "CHEST" if _col(r, "signed") == "chest" else who(r["author_id"]), "authorId": r["author_id"], "chest": _col(r, "signed") == "chest",
             "authorAvatar": None if _col(r, "signed") == "chest" else (pic(r["author_id"]) if pic else None), "signed": _col(r, "signed") or "me",
+            "authorTag": None if _col(r, "signed") == "chest" else _role_tag_of(db.execute("SELECT is_admin, role FROM users WHERE id = ?", (r["author_id"],)).fetchone()),
             "createdAt": r["created_at"], "updatedAt": r["updated_at"]}
 
 
@@ -3529,13 +3549,15 @@ def school_posts():
     # fil de chaque IDEA (mises à jour, de la plus ancienne à la plus récente)
     ids = [p["id"] for p in posts]
     ups = {}
+    tag = _tags(db)
     if ids:
         q = "SELECT * FROM school_post_updates WHERE post_id IN (%s) ORDER BY created_at" % ",".join("?" * len(ids))
         for u in db.execute(q, ids).fetchall():
             chest = u["signed"] == "chest"
             ups.setdefault(u["post_id"], []).append({"id": u["id"], "body": u["body"], "createdAt": u["created_at"], "authorId": u["author_id"],
                                                      "author": "CHEST" if chest else who(u["author_id"]), "chest": chest,
-                                                     "authorAvatar": None if chest else (pic(u["author_id"]) if pic else None)})
+                                                     "authorAvatar": None if chest else (pic(u["author_id"]) if pic else None),
+                                                     "authorTag": None if chest else tag(u["author_id"])})
     for p in posts:
         p["updates"] = ups.get(p["id"], [])
     return jsonify({"posts": posts})
@@ -3562,7 +3584,9 @@ def school_post_update_add(pid):
         db.execute("UPDATE school_posts SET updated_at = ? WHERE id = ?", (datetime.now(timezone.utc).isoformat(), pid))
         db.commit()
     try:
-        _school_notify(db, _audience_users(db, r["audience"], _scope_of(r)), "idea", f"Mise à jour · {r['title']}", body[:140], f"/school?post={pid}", user["id"])
+        who = "CHEST" if signed == "chest" else _sig(db, user, signed)
+        tg = None if signed == "chest" else _role_tag_of(user)
+        _school_notify(db, _audience_users(db, r["audience"], _scope_of(r)), "idea_update", f"{who}{' · ' + tg if tg else ''} — {r['title']}", body[:180], f"/school?post={pid}", user["id"])
     except Exception as e:
         print(f"[idea] notification impossible : {e}", flush=True)
     return school_posts()
@@ -3758,7 +3782,8 @@ def _push_school(items):
             db = get_db()
             for uid, kind, title, body, url in items:
                 try:
-                    if _user_prefs(db, uid).get("school_remind" if kind == "remind" else "school_new", True):
+                    pref = "school_remind" if kind == "remind" else "school_updates" if kind == "idea_update" else "school_new"
+                    if _user_prefs(db, uid).get(pref, True):
                         send_push_to_user(uid, title, body, url)
                 except Exception as e:
                     print(f"[school] push impossible pour {uid} : {e}", flush=True)
@@ -6451,7 +6476,7 @@ def send_push_to_admins(title, body_text, url=None):
 # Un reglage absent = tout coche (comportement d'avant : tout le monde recevait tout).
 NOTIF_TYPES = (
     "calendar_pre", "calendar_result", "position_open", "position_close",
-    "report_weekly", "report_monthly", "new_member", "school_new", "school_remind",
+    "report_weekly", "report_monthly", "new_member", "school_new", "school_remind", "school_updates",
 )
 NOTIF_PREFS_KEY = "chest_notif_prefs"
 BERICH_SIGNALS_URL = os.environ.get("BERICH_SIGNALS_URL", "https://berich-bridge-production.up.railway.app/signals")

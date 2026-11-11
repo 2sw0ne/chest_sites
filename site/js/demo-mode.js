@@ -27,7 +27,7 @@
   if (!D.fx) {
     try {
       const x = new XMLHttpRequest();
-      x.open('GET', '/demo/fixtures.json?v=2', false);
+      x.open('GET', '/demo/fixtures.json?v=3', false);
       x.send();
       let txt = x.responseText;
       const rec = Date.parse((JSON.parse(txt)._recordedAt) || new Date().toISOString());
