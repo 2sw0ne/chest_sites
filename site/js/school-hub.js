@@ -752,7 +752,7 @@
     document.body.appendChild(dlg);
     dlg.addEventListener('click', (e) => { if (e.target === dlg || e.target.closest('[data-close]')) dlg.close(); });
     // l'évènement close arrive après coup : ne rien vider si une nouvelle fenêtre s'est déjà ouverte entre-temps
-    dlg.addEventListener('close', () => { if (dlg.open) return; document.getElementById('shDlgIn').innerHTML = ''; S.submit = null; });
+    dlg.addEventListener('close', () => { immersive(false); if (dlg.open) return; document.getElementById('shDlgIn').innerHTML = ''; S.submit = null; });
     dlg.querySelector('form').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!S.submit) return;
@@ -830,7 +830,10 @@
           ${can ? `<button type="button" class="chest-btn-2" data-edit-post="${p.id}">Modifier</button><button type="button" class="sh-link sh-link--red" data-del-post="${p.id}">Supprimer</button>` : ''}</div>
       </div></div>`, false);
     dlg.classList.add('is-post');
+    immersive(window.matchMedia('(max-width: 640px)').matches);
   }
+  // Idea ouverte au téléphone : la coque masque ses barres (même mécanisme que le graphique agrandi)
+  function immersive(on) { try { if (window.parent !== window) window.parent.document.documentElement.classList.toggle('is-immersive', on); } catch (e) { /* autre origine */ } }
 
   // Image d'une info en plein écran (au-dessus de la fenêtre : top layer d'un second <dialog>)
   function lightbox(src) {
