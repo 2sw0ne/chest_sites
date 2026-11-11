@@ -233,3 +233,9 @@ html.plan-no-berich .nav-i[data-page="berich"]::after{
 .sbT:checked ~ .sb .nav-i .idea-badge{ position:absolute; top:3px; right:6px; margin:0; min-width:18px; height:15px; padding:0 4px; font-size:9px; }
 @media (max-width:900px){ #chestShell.c2-shell .sb-nav .nav-i .idea-badge{ position:absolute; top:3px; right:6px; margin:0; min-width:18px; height:15px; padding:0 4px; font-size:9px; } }
 .sb-acc__av.has-photo{ background-size:cover !important; background-position:center !important; color:transparent !important; font-size:0; }
+
+/* Graphique agrandi dans une page (2026-11-10, js/chart-tools.js) : la coque laisse tout l'écran au cadre */
+html.is-immersive, html.is-immersive body{ overflow:hidden !important; }
+html.is-immersive #chestShell > .sb, html.is-immersive #chestShell .c2-topbar, html.is-immersive #chestShell .chest-topbar{ display:none !important; }
+html.is-immersive #chestShell .chest-view{ position:fixed !important; inset:0 !important; z-index:2147483000; height:auto !important; }
+html.is-immersive #chestShell .chest-view iframe{ position:absolute; inset:0; width:100% !important; height:100% !important; transform:none !important; }

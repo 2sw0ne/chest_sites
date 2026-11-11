@@ -511,6 +511,13 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        # Fil d'une IDEA (2026-11-11) : mises à jour de la position publiées sous l'IDEA, comme une conversation
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS school_post_updates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL, author_id INTEGER NOT NULL,
+                body TEXT NOT NULL, signed TEXT, created_at TEXT NOT NULL
+            )
+        """)
         # Facture Railway (2026-11-10) : relevé de la consommation du mois toutes les 30 min, avec le mode en cours,
         # pour mesurer ce que coûte chaque mode (Admin → Système).
         db.execute("""
@@ -1927,6 +1934,7 @@ def _purge_user(db, member_id):
     db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
     db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM price_alerts WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM school_post_updates WHERE author_id = ?", (member_id,))
     db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
     db.execute("DELETE FROM user_activity WHERE user_id = ?", (member_id,))
@@ -3517,7 +3525,62 @@ def school_posts():
     who = _names(db)
     rows = db.execute("SELECT * FROM school_posts ORDER BY created_at DESC").fetchall()
     pic = _avatars(db)
-    return jsonify({"posts": [_post_public(db, r, who, pic) for r in rows if _school_visible(r, user)][:60]})
+    posts = [_post_public(db, r, who, pic) for r in rows if _school_visible(r, user)][:60]
+    # fil de chaque IDEA (mises à jour, de la plus ancienne à la plus récente)
+    ids = [p["id"] for p in posts]
+    ups = {}
+    if ids:
+        q = "SELECT * FROM school_post_updates WHERE post_id IN (%s) ORDER BY created_at" % ",".join("?" * len(ids))
+        for u in db.execute(q, ids).fetchall():
+            chest = u["signed"] == "chest"
+            ups.setdefault(u["post_id"], []).append({"id": u["id"], "body": u["body"], "createdAt": u["created_at"], "authorId": u["author_id"],
+                                                     "author": "CHEST" if chest else who(u["author_id"]), "chest": chest,
+                                                     "authorAvatar": None if chest else (pic(u["author_id"]) if pic else None)})
+    for p in posts:
+        p["updates"] = ups.get(p["id"], [])
+    return jsonify({"posts": posts})
+
+
+@app.route("/school/posts/<int:pid>/updates", methods=["POST"])
+def school_post_update_add(pid):
+    """Mise à jour d'une IDEA (SL au BE, TP1 touché, sortie…) : l'auteur de l'IDEA ou un admin ; prévient son public."""
+    user, err = _school_writer()
+    if err:
+        return err
+    b = request.get_json(silent=True) or {}
+    body = str(b.get("body") or "").strip()[:2000]
+    if not body:
+        return jsonify({"error": "Écris la mise à jour."}), 400
+    db = get_db()
+    r = db.execute("SELECT * FROM school_posts WHERE id = ?", (pid,)).fetchone()
+    if not r or not (user["is_admin"] or r["author_id"] == user["id"]):
+        return jsonify({"error": "IDEA introuvable."}), 404
+    signed = _signed(user, b)
+    with db_lock:
+        db.execute("INSERT INTO school_post_updates (post_id, author_id, body, signed, created_at) VALUES (?, ?, ?, ?, ?)",
+                   (pid, user["id"], body, signed, datetime.now(timezone.utc).isoformat()))
+        db.execute("UPDATE school_posts SET updated_at = ? WHERE id = ?", (datetime.now(timezone.utc).isoformat(), pid))
+        db.commit()
+    try:
+        _school_notify(db, _audience_users(db, r["audience"], _scope_of(r)), "idea", f"Mise à jour · {r['title']}", body[:140], f"/school?post={pid}", user["id"])
+    except Exception as e:
+        print(f"[idea] notification impossible : {e}", flush=True)
+    return school_posts()
+
+
+@app.route("/school/posts/<int:pid>/updates/<int:uid>", methods=["DELETE", "POST"])
+def school_post_update_del(pid, uid):
+    user, err = _school_writer()
+    if err:
+        return err
+    db = get_db()
+    u = db.execute("SELECT * FROM school_post_updates WHERE id = ? AND post_id = ?", (uid, pid)).fetchone()
+    if not u or not (user["is_admin"] or u["author_id"] == user["id"]):
+        return jsonify({"error": "Message introuvable."}), 404
+    with db_lock:
+        db.execute("DELETE FROM school_post_updates WHERE id = ?", (uid,))
+        db.commit()
+    return school_posts()
 
 
 @app.route("/school/posts", methods=["POST"])
@@ -3582,6 +3645,7 @@ def school_post_delete(pid):
     with db_lock:
         delete_file(json.loads(r["image"]) if r["image"] else None)
         db.execute("DELETE FROM school_posts WHERE id = ?", (pid,))
+        db.execute("DELETE FROM school_post_updates WHERE post_id = ?", (pid,))
         db.commit()
     return school_posts()
 

@@ -90,19 +90,39 @@
     b.innerHTML = isFull() ? `${ICON.exit}<span>Quitter</span>` : `${ICON.full}<span>Plein écran</span>`;
     setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
   }
+  // Agrandi sans l'API plein écran (iPhone, 2026-11-10 : le bas du site passait par-dessus et le doigt faisait défiler
+  // la page au lieu du graphique) : la carte est sortie de la page (posée sur <body>, hors de tout parent transformé),
+  // la page est bloquée, et la coque (app.html) masque ses barres et donne tout l'écran au cadre (html.is-immersive).
+  let mark = null;
+  function setMax(on) {
+    if (on === card.classList.contains('is-max')) return;
+    if (on) {
+      mark = document.createComment('graphique'); card.parentNode.insertBefore(mark, card);
+      document.body.appendChild(card);
+      card.classList.add('is-max');
+    } else {
+      card.classList.remove('is-max');
+      if (mark && mark.parentNode) { mark.parentNode.insertBefore(card, mark); mark.remove(); }
+      mark = null;
+    }
+    document.documentElement.classList.toggle('ct-max-lock', on);
+    try { if (window.parent !== window) window.parent.document.documentElement.classList.toggle('is-immersive', on); } catch (e) { /* autre origine */ }
+    window.dispatchEvent(new Event('resize'));
+  }
   async function toggleFull() {
     if (isFull()) {
       if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (e) { /* tant pis */ } }
-      card.classList.remove('is-max');
+      setMax(false);
     } else {
       let ok = false;
       if (card.requestFullscreen && document.fullscreenEnabled) { try { await card.requestFullscreen(); ok = true; } catch (e) { ok = false; } }
-      if (!ok) card.classList.add('is-max'); // iframe sans autorisation : agrandi dans le volet
+      if (!ok) setMax(true); // iframe sans autorisation ou iPhone : agrandi dans tout l'écran
     }
     paintFull();
   }
   document.addEventListener('fullscreenchange', paintFull);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && card.classList.contains('is-max')) { card.classList.remove('is-max'); paintFull(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && card.classList.contains('is-max')) { setMax(false); paintFull(); } });
+  window.addEventListener('pagehide', () => { try { window.parent.document.documentElement.classList.remove('is-immersive'); } catch (e) { /* tant pis */ } });
 
   // ---------------- Fenêtre Indicateurs ----------------
   const CAT = {

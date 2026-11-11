@@ -309,7 +309,7 @@
 <script src="js/backtest-store.js?v=3"></script>
 <script src="js/backtest-share.js?v=9"></script>
 <script src="js/backtest-engine.js?v=21"></script>
-<script src="js/backtest-compare.js?v=5"></script>
+<script src="js/backtest-compare.js?v=6"></script>
 <script src="js/berich-brokers.js"></script>
 <script src="js/propfirm-rules.js?v=6"></script>
 <script src="js/journal-store.js?v=14"></script>
@@ -363,10 +363,12 @@
     const x = (i) => (n > 1 ? (i / (n - 1)) * w : 0);
     const y = (v) => h - ((v - min) / range) * h;
     const line = smoothD(thin(values.map((v, i) => [x(i), y(v)]), 60));
-    const area = `${line} L${w},${h} L0,${h} Z`;
     let zeroT = Math.max(0.04, Math.min(0.96, y(start) / h));
+    // zone fermée sur le capital de départ (et non le bas du cadre) : plus de bande rouge sous une courbe gagnante
+    const area = `${line} L${w},${(zeroT * h).toFixed(1)} L0,${(zeroT * h).toFixed(1)} Z`;
     return { line, area, zeroT, allAbove: min >= start, allBelow: max <= start };
   }
+  let sparkSeq = 0;
   function sparkStops(spark) {
     if (spark.allAbove) return {
       lineStops: '<stop offset="0" stop-color="#6ef2c9"/><stop offset="1" stop-color="#33e6a6"/>',
@@ -543,7 +545,7 @@
       const report = reportFor(b);
       const spark = buildSpark(report.curve.map((p) => p.capital));
       const stops = sparkStops(spark);
-      const uid = String(b.id).replace(/[^a-zA-Z0-9]/g, '');
+      const uid = String(b.id).replace(/[^a-zA-Z0-9]/g, '') + '_' + (++sparkSeq);
       const pct = report.stats.performancePct;
       return `
       <div class="bt-card bt-card--custom chest-glass--mini${b.sharedBy ? ' bt-card--shared' : ''}${spotId === b.id ? ' is-spot' : ''}">
@@ -572,7 +574,10 @@
             </defs>
             <line x1="0" x2="300" y1="${(spark.zeroT * 96).toFixed(1)}" y2="${(spark.zeroT * 96).toFixed(1)}" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line>
             <path d="${spark.area}" fill="url(#area-${uid})"></path>
-            <path d="${spark.line}" fill="none" stroke="url(#line-${uid})" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+            <clipPath id="up-${uid}"><rect x="-10" y="-10" width="320" height="${(spark.zeroT * 96 + 10).toFixed(1)}"/></clipPath>
+            <clipPath id="dn-${uid}"><rect x="-10" y="${(spark.zeroT * 96).toFixed(1)}" width="320" height="120"/></clipPath>
+            ${spark.allBelow ? '' : `<path d="${spark.line}" fill="none" stroke="#33e6a6" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke" clip-path="url(#up-${uid})"></path>`}
+            ${spark.allAbove ? '' : `<path d="${spark.line}" fill="none" stroke="#ff4d5e" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke" clip-path="url(#dn-${uid})"></path>`}
           </svg>
         </div>
         <div class="bt-card__meta">

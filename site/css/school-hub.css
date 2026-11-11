@@ -699,3 +699,41 @@
 .sh-cal__days .sh-cal__dh i{ position:absolute; bottom:4px; left:50%; width:4px; height:4px; margin-left:-2px; border-radius:50%; background:var(--chest-ink-3); }
 .sh-cal__days .sh-cal__dh:focus-visible{ outline:2px solid var(--a1, #fc1283); outline-offset:1px; }
 @media (max-width:640px){ .sh-week__bar{ flex-wrap:wrap; gap:10px; } .sh-week__tools{ width:100%; flex-wrap:wrap; } .sh-week__tools > *{ flex:1 1 auto; } }
+
+/* Fil d'une Idea (2026-11-11) : mises à jour de la position, comme une conversation */
+.sh-th{ display:flex; flex-direction:column; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid rgba(var(--fg-rgb, 255, 255, 255),.07); }
+.sh-th.is-short{ position:relative; z-index:2; margin:0 16px 16px; padding-top:12px; pointer-events:none; }
+.sh-th__k{ margin:0; }
+.sh-th__more{ font-size:11.5px; color:var(--chest-ink-3); }
+.sh-th__none{ margin:0; font-size:13px; color:var(--chest-ink-3); }
+.sh-th__l{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; max-height:46vh; overflow:auto; overscroll-behavior:contain; }
+.sh-th.is-short .sh-th__l{ max-height:none; overflow:visible; }
+.sh-th__m{ display:flex; gap:10px; align-items:flex-start; }
+.sh-th__av{ flex:none; width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-size:10.5px; font-weight:700; color:#fff; background:linear-gradient(135deg, var(--a1, #fc1283), var(--a2, #f9a45e)) center/cover; }
+.sh-th__av.has-photo{ background-size:cover; background-position:center; }
+.sh-th__b{ flex:1; min-width:0; padding:9px 12px; border-radius:4px 14px 14px 14px; background:rgba(var(--fg-rgb, 255, 255, 255),.045); box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb, 255, 255, 255),.06); }
+.sh-th__h{ display:flex; align-items:baseline; gap:8px; font-size:12px; }
+.sh-th__h b{ color:var(--chest-ink); font-weight:650; }
+.sh-th__h small{ color:var(--chest-ink-3); font-size:11px; }
+.sh-th__b p{ margin:3px 0 0; font-size:13.5px; line-height:1.5; color:var(--chest-ink-2); overflow-wrap:anywhere; }
+.sh-th.is-short .sh-th__b p{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.sh-th__del{ margin-left:auto; width:24px; height:24px; padding:4px; border:0; border-radius:8px; background:transparent; color:var(--chest-ink-3); cursor:pointer; }
+.sh-th__del:hover{ color:var(--red-hi, #ff94a0); background:rgba(var(--red-rgb, 255, 77, 94),.1); }
+.sh-th__del .sh-ic{ width:14px; height:14px; }
+.sh-th__f{ display:flex; gap:8px; align-items:flex-end; }
+.sh-th__f textarea{ flex:1; min-height:42px; max-height:140px; padding:11px 14px; border-radius:12px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); background:rgba(var(--fg-rgb, 255, 255, 255),.03); color:var(--chest-ink); font:inherit; font-size:16px; line-height:1.3; resize:none; outline:none; }
+.sh-th__f textarea:focus{ border-color:rgba(var(--a1-rgb, 252, 18, 131),.6); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.18); }
+.sh-th__f .chest-btn{ flex:none; width:42px; height:42px; padding:0; justify-content:center; }
+@media (min-width:641px){ .sh-th__f textarea{ font-size:14px; } }
+/* Idea au téléphone : fil d'une colonne, fenêtre plein écran lisible */
+@media (max-width:640px){
+  .sh-feed{ grid-template-columns:1fr !important; gap:14px; }
+  .sh-fc--landscape{ grid-column:auto !important; }
+  .sh-feedsec__h{ flex-wrap:wrap; gap:10px; }
+  .sh-feedsec__h .sh-itabs{ width:100%; }
+  .sh-dlg.is-post .sh-dlg__win{ width:100vw; max-width:100vw; max-height:100dvh; height:100dvh; border-radius:0; }
+  .sh-pd .sh-detail__main{ padding:20px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .sh-pd__media{ max-height:42dvh; }
+  .sh-acts{ flex-wrap:wrap; }
+  .sh-stset{ flex-wrap:wrap; }
+}

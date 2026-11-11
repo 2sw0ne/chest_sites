@@ -327,7 +327,23 @@
         ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : ''}</header>
       ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : p.idea ? '' : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
       <div class="sh-fc__b"><span class="sh-st sh-st--${st[1]}">${st[0]}</span>${p.image || p.idea ? `<h3>${esc(p.title)}</h3>` : ''}${posHtml(p.idea, true)}${body ? `<p>${esc(body.slice(0, 180))}${body.length > 180 ? '…' : ''}</p>` : ''}<span class="sh-fc__more">Voir l’Idea${ic('go')}</span></div>
+      ${threadHtml(p, true)}
     </article>`;
+  }
+  // Fil d'une Idea (2026-11-11) : les mises à jour de la position, comme une conversation sous l'Idea
+  function threadHtml(p, short) {
+    const ups = p.updates || [];
+    if (!ups.length && short) return '';
+    const shown = short ? ups.slice(-2) : ups;
+    const can = !short && (ROLE === 'admin' || (ROLE === 'educator' && p.authorId === U.id));
+    const row = (u) => `<li class="sh-th__m"><span class="sh-th__av${u.authorAvatar || u.chest ? ' has-photo' : ''}"${u.chest ? ` style="background-image:url('assets/logo-chest.png')"` : u.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: u.authorAvatar }))}')"` : ''}>${u.authorAvatar || u.chest ? '' : esc(initials(u.author))}</span>
+        <div class="sh-th__b"><span class="sh-th__h"><b>${esc(u.author)}</b><small>${esc(ideaWhen(u.createdAt))}</small>${can && (ROLE === 'admin' || u.authorId === U.id) ? `<button type="button" class="sh-th__del" data-del-update="${u.id}" data-post-id="${p.id}" aria-label="Retirer ce message"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}</span><p>${textToHtml(u.body)}</p></div></li>`;
+    return `<div class="sh-th${short ? ' is-short' : ''}">
+      ${short && ups.length > 2 ? `<span class="sh-th__more">${ups.length - 2} mise${ups.length - 2 > 1 ? 's' : ''} à jour plus ancienne${ups.length - 2 > 1 ? 's' : ''}</span>` : ''}
+      ${!short ? `<span class="chest-step sh-th__k">Suivi de la position${ups.length ? ` · ${ups.length}` : ''}</span>` : ''}
+      ${shown.length ? `<ol class="sh-th__l">${shown.map(row).join('')}</ol>` : (!short ? '<p class="sh-th__none">Aucune mise à jour pour l’instant.</p>' : '')}
+      ${can ? `<div class="sh-th__f"><textarea id="shUpd" rows="1" maxlength="2000" placeholder="Mise à jour : SL au BE, TP1 touché, sortie…" aria-label="Nouvelle mise à jour" data-upd-for="${p.id}"></textarea><button type="button" class="chest-btn" data-update-send="${p.id}" aria-label="Publier la mise à jour">${ic('go')}</button></div>` : ''}
+    </div>`;
   }
   const ideaTabs = (list) => {
     const on = list.filter((p) => stOf(p) !== 'inactive').length, off = list.length - on;
@@ -746,6 +762,10 @@
       try { await S.submit(); dlg.close(); } catch (err) { if (msg) msg.textContent = err.message; } finally { if (btn) btn.disabled = false; }
     });
     dlg.addEventListener('click', onDlgClick);
+    dlg.addEventListener('keydown', (e) => {
+      if (e.target.id === 'shUpd' && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUpdate(Number(e.target.dataset.updFor)); }
+    });
+    dlg.addEventListener('input', (e) => { if (e.target.id === 'shUpd') { e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; } });
     dlg.addEventListener('change', onDlgChange);
     // recherche dans la liste des personnes : seule la liste est redessinée (le champ garde le focus)
     dlg.addEventListener('input', (e) => {
@@ -804,6 +824,7 @@
         <p class="sh-detail__by">Par ${esc(p.author)} · ${esc(ideaWhen(p.createdAt))}</p>
         ${posHtml(p.idea, false)}
         ${p.body ? `<div class="sh-read">${textToHtml(p.body)}</div>` : ''}
+        ${threadHtml(p, false)}
         ${can ? `<div class="sh-stset"><span>Statut</span>${seg('ideaStatus', Object.entries(STATUS).map(([k, x]) => [k, x[0]]), stOf(p)).replace(/data-v="(\w+)"/g, `data-idea-status="$1" data-idea-id="${p.id}" data-v="$1"`)}</div>` : ''}
         <div class="sh-acts"><button type="button" class="chest-btn-2" data-share-post="${p.id}">${ic('share')}Partager</button>${src ? `<a class="chest-btn-2" href="${esc(src)}" target="_blank" rel="noopener" download>${ic('image')}Image</a>` : ''}
           ${can ? `<button type="button" class="chest-btn-2" data-edit-post="${p.id}">Modifier</button><button type="button" class="sh-link sh-link--red" data-del-post="${p.id}">Supprimer</button>` : ''}</div>
@@ -831,6 +852,22 @@
     } catch (e) { if (e && e.name !== 'AbortError') toast(url); }
   }
 
+  // Fil d'une Idea : publier une mise à jour (Entrée = envoyer, Maj+Entrée = retour à la ligne)
+  function afterThread(d, id) {
+    S.posts = d.posts;
+    if (ROLE === 'member') renderMember(); else renderTab();
+    const x = S.posts.find((p) => p.id === id);
+    if (x) { postDetail(x); const l = dlg && dlg.querySelector('.sh-th__l'); if (l) l.scrollTop = l.scrollHeight; const f = document.getElementById('shUpd'); if (f) f.focus(); }
+  }
+  async function sendUpdate(id) {
+    const f = document.getElementById('shUpd');
+    const body = f ? f.value.trim() : '';
+    if (!body) { if (f) f.focus(); return; }
+    let as = 'me'; try { as = localStorage.getItem('chest_school_sign') || 'me'; } catch (e) { /* tant pis */ }
+    f.disabled = true;
+    try { afterThread(await postJson(`/school/posts/${id}/updates`, { body, as }), id); toast('Mise à jour publiée.'); }
+    catch (err) { toast(err.message); f.disabled = false; }
+  }
   async function setIdeaStatus(id, st) {
     try {
       const d = await postJson(`/school/posts/${id}/status`, { status: st });
@@ -1049,6 +1086,12 @@
     const sh = t.closest('[data-share-post]'); if (sh) return sharePost(S.posts.find((p) => p.id === Number(sh.dataset.sharePost)));
     if (t.closest('[data-add-tp]')) { C.tps = Math.min(8, C.tps + 1); return refreshComposer(); }
     if (t.closest('[data-del-tp]')) { C.tps = Math.max(1, C.tps - 1); return refreshComposer(); }
+    const us = t.closest('[data-update-send]'); if (us) return sendUpdate(Number(us.dataset.updateSend));
+    const du = t.closest('[data-del-update]');
+    if (du) {
+      try { const d = await postJson(`/school/posts/${du.dataset.postId}/updates/${du.dataset.delUpdate}`, {}); afterThread(d, Number(du.dataset.postId)); toast('Message retiré.'); } catch (err) { toast(err.message); }
+      return;
+    }
     const ist = t.closest('[data-idea-status]');
     if (ist) return setIdeaStatus(Number(ist.dataset.ideaId), ist.dataset.ideaStatus);
     const pk = t.closest('[data-pick]');

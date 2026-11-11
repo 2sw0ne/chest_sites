@@ -195,3 +195,8 @@ html.ct-lock, html.ct-lock body{ overflow:hidden; }
 .ct-mini.is-go{ color:#fff; border-color:transparent; background:linear-gradient(135deg, #fc1283, #f9a45e); }
 .ct-adlg__list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; font-size:13px; color:#c9c9ce; }
 .ct-adlg__list li{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:10px; background:rgba(255,255,255,.03); }
+
+/* Agrandi au téléphone (2026-11-10) : la page dessous ne bouge plus, le doigt ne déplace que le graphique */
+html.ct-max-lock, html.ct-max-lock body{ overflow:hidden !important; height:100%; overscroll-behavior:none; }
+#scnrMediaCard.is-max{ position:fixed !important; inset:0 !important; z-index:2147483000 !important; margin:0 !important; border-radius:0 !important; padding:max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)) !important; background:#050505 !important; display:flex !important; flex-direction:column; overscroll-behavior:contain; }
+#scnrMediaCard.is-max #scnrChart{ flex:1 1 auto; height:auto !important; min-height:0 !important; touch-action:none; }

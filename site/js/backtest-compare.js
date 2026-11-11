@@ -14,12 +14,22 @@
   const isSL = (t) => String(t && t.result).toUpperCase() === 'SL';
 
   // ---------- calculs ----------
-  function analyse(b, mode) {
+  // Comparaison à armes égales (2026-11-10) : même période (celle que les deux backtests couvrent ensemble, donc
+  // limitée par le plus court) et même capital de départ, au choix ; le % est recalculé sur ces bases.
+  const tDate = (t) => { const d = new Date(t.close || t.open || t.date); return isNaN(d) ? null : d.getTime(); };
+  function spanOf(b) {
+    let lo = Infinity, hi = -Infinity;
+    (b.trades || []).forEach((t) => { const x = tDate(t); if (x != null) { lo = Math.min(lo, x); hi = Math.max(hi, x); } });
+    return lo <= hi ? [lo, hi] : null;
+  }
+  function analyse(b, mode, opt) {
     const E = window.CHESTBacktestEngine;
     const pf = mode === 'pf' && hasPf(b);
-    const capital = pf ? (b.pfCapital || b.capital) : b.capital;
-    const r = pf ? E.computeReport(b.trades || [], capital, b.pf)
-      : E.computeReport(b.trades || [], b.capital, (b.cp && b.cp.mode) ? b.cp : { risk: 1, tiers: [] });
+    const own = pf ? (b.pfCapital || b.capital) : b.capital;
+    const capital = opt && opt.capital > 0 ? opt.capital : own;
+    const trades = opt && opt.from != null ? (b.trades || []).filter((t) => { const x = tDate(t); return x != null && x >= opt.from && x <= opt.to; }) : (b.trades || []);
+    const r = pf ? E.computeReport(trades, capital, b.pf)
+      : E.computeReport(trades, capital, (b.cp && b.cp.mode) ? b.cp : { risk: 1, tiers: [] });
     const curve = r.curve, s = r.stats, mo = r.monthly || [];
     const c0 = curve[0].capital || 1;
     const perf = curve.map((p) => (p.capital / c0 - 1) * 100);
@@ -158,6 +168,15 @@
   .btc__x{ width:36px; height:36px; flex-shrink:0; display:grid; place-items:center; border-radius:11px; cursor:pointer; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); background:rgba(var(--fg-rgb, 255, 255, 255),.04); color:var(--chest-ink-2,#9b9ba1); transition:color .15s, border-color .15s; }
   .btc__x:hover{ color:#fff; border-color:rgba(var(--fg-rgb, 255, 255, 255),.26); }
   .btc__body{ padding:0 26px 26px; display:flex; flex-direction:column; gap:22px; }
+  .btc-base{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; padding:12px 16px; border-radius:14px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.08); background:rgba(var(--fg-rgb, 255, 255, 255),.02); }
+  .btc-base__opt{ display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:13px; color:var(--chest-ink,#f6f6f7); }
+  .btc-base__opt input{ margin-top:3px; accent-color:var(--a1, #fc1283); width:15px; height:15px; }
+  .btc-base__opt span{ display:flex; flex-direction:column; gap:1px; }
+  .btc-base__opt small{ font-size:11.5px; color:var(--chest-ink-3,#5c5c63); }
+  .btc-base__cap{ display:flex; align-items:center; gap:6px; height:38px; padding:0 12px; border-radius:12px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.12); background:rgba(var(--fg-rgb, 255, 255, 255),.03); color:var(--chest-ink-2,#9b9ba1); margin-left:auto; }
+  .btc-base__cap input{ width:110px; border:0; background:transparent; font:inherit; font-variant-numeric:tabular-nums; color:var(--chest-ink,#f6f6f7); outline:none; }
+  .btc-base__cap:focus-within{ border-color:rgba(var(--a1-rgb, 252, 18, 131),.6); box-shadow:0 0 0 3px rgba(var(--a1-rgb, 252, 18, 131),.18); }
+  .btc-base__cap:has(input:disabled){ opacity:.45; }
   .btc-slots{ display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:stretch; }
   .btc-vs{ align-self:center; font-size:11px; font-weight:700; letter-spacing:.14em; color:var(--chest-ink-3,#5c5c63); width:38px; height:38px; display:grid; place-items:center; border-radius:50%; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.02); }
   .btc-slot{ position:relative; padding:16px 16px 14px 20px; border-radius:16px; border:1px solid rgba(var(--fg-rgb, 255, 255, 255),.1); background:rgba(var(--fg-rgb, 255, 255, 255),.025); overflow:hidden; display:flex; flex-direction:column; gap:10px; min-width:0; }
@@ -252,6 +271,7 @@
     const a0 = store.get(idA) || all[0];
     const b0 = all.find((b) => b.id !== a0.id) || a0;
     const pick = [{ id: a0.id, mode: hasPf(a0) ? 'pf' : 'cp' }, { id: b0.id, mode: hasPf(b0) ? 'pf' : 'cp' }];
+    const cfg = { samePeriod: true, sameCap: true, capital: null };
     root = document.createElement('div');
     root.className = 'btc';
     root.addEventListener('click', (e) => { if (e.target === root) close(); });
@@ -275,7 +295,13 @@
 
     function render() {
       const B = pick.map((p) => store.get(p.id));
-      const X = pick.map((p, i) => analyse(B[i], p.mode));
+      const own = B.map((b, i) => (pick[i].mode === 'pf' && hasPf(b) ? (b.pfCapital || b.capital) : b.capital));
+      const sp = B.map(spanOf);
+      const ov = sp[0] && sp[1] ? [Math.max(sp[0][0], sp[1][0]), Math.min(sp[0][1], sp[1][1])] : null;
+      const hasOv = ov && ov[0] <= ov[1];
+      if (cfg.capital == null) cfg.capital = Math.round(own[0] || 10000);
+      const opt = { capital: cfg.sameCap ? cfg.capital : 0, from: cfg.samePeriod && hasOv ? ov[0] : null, to: hasOv ? ov[1] : null };
+      const X = pick.map((p, i) => analyse(B[i], p.mode, opt));
       const names = B.map((b) => b.title);
       let score = [0, 0];
       const rows = GROUPS.map(([g, list]) => `<div class="btc-row btc-row--g"><span>${g}</span><span></span><span></span><span></span></div>` + list.map(([label, get, txt, dir, help]) => {
@@ -299,6 +325,11 @@
           <button type="button" class="btc__x" data-btc-close aria-label="Fermer le comparatif"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button></div>
         <div class="btc__body">
           <div class="btc-slots">${slot(0)}<span class="btc-vs">VS</span>${slot(1)}</div>
+          <div class="btc-base">
+            <label class="btc-base__opt"><input type="checkbox" data-btc-period ${cfg.samePeriod ? 'checked' : ''} ${hasOv ? '' : 'disabled'}><span><b>Même période</b><small>${hasOv ? `${day(ov[0])} → ${day(ov[1])} · celle que les deux couvrent` : 'les deux backtests ne se chevauchent pas : chacun garde la sienne'}</small></span></label>
+            <label class="btc-base__opt"><input type="checkbox" data-btc-samecap ${cfg.sameCap ? 'checked' : ''}><span><b>Même capital</b><small>appliqué aux deux côtés</small></span></label>
+            <label class="btc-base__cap"><span>$</span><input type="number" min="100" step="100" inputmode="numeric" value="${cfg.capital}" data-btc-cap aria-label="Capital commun" ${cfg.sameCap ? '' : 'disabled'}></label>
+          </div>
           <div class="btc-verdict"><p>${verdict}</p>${same ? '' : `<div class="btc-score"><span style="color:${COL[0]}">${score[0]}</span><span class="btc-score__bar"><i style="width:${total ? score[0] / total * 100 : 50}%;background:${COL[0]}"></i><i style="width:${total ? score[1] / total * 100 : 50}%;background:${COL[1]}"></i></span><span style="color:${COL[1]}">${score[1]}</span></div>`}</div>
           <div class="btc-kpis">
             ${kpi('Performance', (x) => x.perfPct, (x) => pct(x.perfPct), 'high')}
@@ -323,6 +354,10 @@
 
     function bind(X, names) {
       root.querySelector('[data-btc-close]').addEventListener('click', close);
+      const pc = root.querySelector('[data-btc-period]'); if (pc) pc.addEventListener('change', () => { cfg.samePeriod = pc.checked; render(); });
+      const sc = root.querySelector('[data-btc-samecap]'); if (sc) sc.addEventListener('change', () => { cfg.sameCap = sc.checked; render(); });
+      const ci = root.querySelector('[data-btc-cap]');
+      if (ci) ci.addEventListener('change', () => { const v = Math.round(Number(ci.value)); if (v >= 100) { cfg.capital = v; render(); const n = root.querySelector('[data-btc-cap]'); if (n) n.focus(); } });
       root.querySelectorAll('[data-slot]').forEach((sel) => sel.addEventListener('change', () => {
         const i = +sel.dataset.slot; pick[i].id = sel.value;
         if (pick[i].mode === 'pf' && !hasPf(store.get(sel.value))) pick[i].mode = 'cp';
