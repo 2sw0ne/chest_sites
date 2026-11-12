@@ -486,6 +486,18 @@ def init_db():
             )
         """)
         db.execute("""
+            CREATE TABLE IF NOT EXISTS edu_fees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                educator_id INTEGER NOT NULL,
+                month TEXT NOT NULL,
+                amount INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'declared',
+                created_at TEXT NOT NULL,
+                processed_at TEXT,
+                admin_note TEXT
+            )
+        """)
+        db.execute("""
             CREATE TABLE IF NOT EXISTS edu_payouts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 educator_id INTEGER NOT NULL,
@@ -2113,6 +2125,7 @@ def _purge_user(db, member_id):
     db.execute("UPDATE berich_requests SET educator_id = NULL WHERE educator_id = ?", (member_id,))
     db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
     db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
+    db.execute("DELETE FROM edu_fees WHERE educator_id = ?", (member_id,))
     db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
     db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM price_alerts WHERE user_id = ?", (member_id,))
@@ -4592,6 +4605,131 @@ def admin_payout_update(pid):
                    (status, datetime.now(timezone.utc).isoformat(), str(b.get("note") or "")[:240], pid))
         db.commit()
     return jsonify({"ok": True})
+
+
+# ---------------- Cotisation éducateur (2026-11-12) ----------------
+# 50 €/mois, couverte par les ventes du mois de ses membres : chaque 6 € vendus couvrent 1 € (300 € vendus = tout,
+# un pack à 150 € = la moitié). Le reste se règle par virement (RIB ci-dessous) avant la fin du mois ; l'éducateur
+# déclare « c'est fait », l'admin valide ou refuse (Admin → Système).
+EDU_FEE = 5000
+EDU_FEE_RATIO = 6
+EDU_FEE_START = os.environ.get("EDU_FEE_START", "2026-11")
+EDU_FEE_BANK = {"holder": os.environ.get("EDU_FEE_HOLDER", ""), "iban": "FR76 2823 3000 0161 0406 4729 923",
+                "bic": "REVOFRP2", "revolut": "@swann21"}
+
+
+def _month_key(dt):
+    return f"{dt.year:04d}-{dt.month:02d}"
+
+
+def _month_end(month):
+    y, m = int(month[:4]), int(month[5:7])
+    y2, m2 = (y + 1, 1) if m == 12 else (y, m + 1)
+    return (datetime(y2, m2, 1, tzinfo=timezone.utc) - timedelta(seconds=1)).isoformat()
+
+
+def edu_fee_report(db, educator):
+    now = datetime.now(timezone.utc)
+    cur = _month_key(now)
+    first = max(EDU_FEE_START, (educator["created_at"] or cur)[:7])
+    by_month = {}
+    for m in db.execute("SELECT id FROM users WHERE referred_by = ?", (educator["id"],)).fetchall():
+        sales, _r, net = _net_sales(db, m["id"])
+        for sale in sales:
+            k = (sale["created_at"] or "")[:7]
+            by_month[k] = by_month.get(k, 0) + max(0, net.get(sale["id"], 0))
+    rows = db.execute("SELECT * FROM edu_fees WHERE educator_id = ? ORDER BY id DESC", (educator["id"],)).fetchall()
+    months, k = [], first
+    while k <= cur and len(months) < 36:
+        sold = by_month.get(k, 0)
+        covered = min(EDU_FEE, sold // EDU_FEE_RATIO)
+        due = EDU_FEE - covered
+        decl = next((r for r in rows if r["month"] == k and r["status"] in ("declared", "paid")), None)
+        refused = next((r for r in rows if r["month"] == k and r["status"] == "refused"), None)
+        if due <= 0:
+            status = "covered"
+        elif decl:
+            status = "paid" if decl["status"] == "paid" else "declared"
+        else:
+            status = "due" if k == cur else "late"
+        months.append({"month": k, "sales": sold, "covered": covered, "due": max(0, due), "status": status,
+                       "deadline": _month_end(k), "declaredAt": decl["created_at"] if decl else None,
+                       "refused": bool(refused and not decl), "note": (refused["admin_note"] or "") if refused and not decl else ""})
+        y, mo = int(k[:4]), int(k[5:7])
+        k = f"{y + (mo == 12):04d}-{1 if mo == 12 else mo + 1:02d}"
+    months.reverse()
+    return {"fee": EDU_FEE, "ratio": EDU_FEE_RATIO, "bank": EDU_FEE_BANK, "current": cur, "months": months,
+            "ref": f"CHEST {educator['first_name']} {(educator['last_name'] or '')[:1]}".strip()}
+
+
+@app.route("/edu/fee")
+def edu_fee():
+    who, err = _edu_subject()
+    if err:
+        return err
+    return jsonify(edu_fee_report(get_db(), who))
+
+
+@app.route("/edu/fee/declare", methods=["POST"])
+def edu_fee_declare():
+    user = current_user()
+    if not user or not is_educator(user):
+        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    month = str((request.get_json(silent=True) or {}).get("month") or "")
+    db = get_db()
+    with db_lock:
+        rep_ = edu_fee_report(db, user)
+        m = next((x for x in rep_["months"] if x["month"] == month), None)
+        if not m:
+            return jsonify({"error": "Mois inconnu."}), 400
+        if m["status"] not in ("due", "late"):
+            return jsonify({"error": "Rien à régler pour ce mois."}), 400
+        db.execute("INSERT INTO edu_fees (educator_id, month, amount, status, created_at) VALUES (?, ?, ?, 'declared', ?)",
+                   (user["id"], month, m["due"], datetime.now(timezone.utc).isoformat()))
+        db.commit()
+    return jsonify(edu_fee_report(db, user))
+
+
+@app.route("/admin/edu-fees")
+def admin_edu_fees():
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    db = get_db()
+    rows = db.execute("SELECT f.*, u.first_name, u.last_name FROM edu_fees f JOIN users u ON u.id = f.educator_id "
+                      "ORDER BY (f.status = 'declared') DESC, f.id DESC LIMIT 200").fetchall()
+    cur = _month_key(datetime.now(timezone.utc))
+    educators = []
+    for e in db.execute("SELECT * FROM users WHERE role = 'educator' ORDER BY first_name").fetchall():
+        m = next((x for x in edu_fee_report(db, e)["months"] if x["month"] == cur), None)
+        if m:
+            educators.append({"id": e["id"], "name": f"{e['first_name']} {(e['last_name'] or '')[:1]}.".strip(), **m})
+    return jsonify({"fees": [{"id": r["id"], "educator": f"{r['first_name']} {r['last_name'] or ''}".strip(), "month": r["month"],
+                              "amount": r["amount"], "status": r["status"], "createdAt": r["created_at"],
+                              "processedAt": r["processed_at"], "note": r["admin_note"] or ""} for r in rows],
+                    "educators": educators, "current": cur})
+
+
+@app.route("/admin/edu-fees/<int:fid>", methods=["POST"])
+def admin_edu_fee_update(fid):
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    b = request.get_json(silent=True) or {}
+    status = b.get("status")
+    if status not in ("paid", "refused"):
+        return jsonify({"error": "Statut inconnu."}), 400
+    db = get_db()
+    with db_lock:
+        r = db.execute("SELECT status FROM edu_fees WHERE id = ?", (fid,)).fetchone()
+        if not r:
+            return jsonify({"error": "Déclaration introuvable."}), 404
+        if r["status"] != "declared":
+            return jsonify({"error": "Déjà traitée."}), 400
+        db.execute("UPDATE edu_fees SET status = ?, processed_at = ?, admin_note = ? WHERE id = ?",
+                   (status, datetime.now(timezone.utc).isoformat(), str(b.get("note") or "")[:240], fid))
+        db.commit()
+    return admin_edu_fees()
 
 
 # Réduction affichée sur la landing et les offres (2026-11-04) : activée par l'admin (Admin → Système),
