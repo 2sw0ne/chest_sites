@@ -33,10 +33,12 @@
     { key: 'premium3', name: 'Premium III', roman: 'III', group: 'access', rights: '1 an de CHEST complet : School, BERICH, connexion BERICH clé en main, suivi.', c1: '#ffb36b', c2: '#ff3d1f', g: 'M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10' },
     { key: 'premium2', name: 'Premium II', roman: 'II', group: 'access', rights: '6 mois de CHEST complet : School, BERICH et suivi.', c1: '#e9a57d', c2: '#cc5a41', g: 'M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10' },
     { key: 'premium1', name: 'Premium I', roman: 'I', group: 'access', rights: '3 mois de CHEST complet : School, BERICH et suivi.', c1: '#c3a594', c2: '#8f5f50', g: 'M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10' },
+    { key: 'premium4', name: 'Premium IV', roman: 'IV', group: 'access', rights: '1 mois de CHEST complet, renouvelé chaque mois.', c1: '#a8968c', c2: '#6e5348', g: 'M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10' },
     { key: 'premium', name: 'Premium', legacy: true, group: 'access', rights: 'Ancien abonnement Premium (mensuel ou annuel).', c1: '#ffab6b', c2: '#ff4f3a', g: 'M8.6 7.5h6.8l2.6 3.4-6 6.6-6-6.6zM6 10.9h12M10.3 7.5 12 17.5l1.7-10' },
     { key: 'essentiel3', name: 'Essentiel III', roman: 'III', group: 'access', rights: '1 an sur toute la plateforme, sauf School et BERICH.', c1: '#5cffc4', c2: '#00b377', g: 'M7.8 12.4l2.8 2.8 5.6-6' },
     { key: 'essentiel2', name: 'Essentiel II', roman: 'II', group: 'access', rights: '6 mois sur toute la plateforme, sauf School et BERICH.', c1: '#80d7b7', c2: '#2b9372', g: 'M7.8 12.4l2.8 2.8 5.6-6' },
     { key: 'essentiel1', name: 'Essentiel I', roman: 'I', group: 'access', rights: '3 mois sur toute la plateforme, sauf School et BERICH.', c1: '#a3c4b8', c2: '#557f70', g: 'M7.8 12.4l2.8 2.8 5.6-6' },
+    { key: 'essentiel4', name: 'Essentiel IV', roman: 'IV', group: 'access', rights: '1 mois sur toute la plateforme, sauf School et BERICH, renouvelé chaque mois.', c1: '#97aaa3', c2: '#4c645b', g: 'M7.8 12.4l2.8 2.8 5.6-6' },
     { key: 'essentiel', name: 'Essentiel', legacy: true, group: 'access', rights: 'Ancien abonnement Essentiel (mensuel ou annuel).', c1: '#5ff0bd', c2: '#13a274', g: 'M7.8 12.4l2.8 2.8 5.6-6' },
     { key: 'trial', name: 'Essai', group: 'access', rights: '7 jours d’Essentiel, données gardées sur l’appareil.', c1: '#7ce3f5', c2: '#0f93ad', g: 'M8.6 6.5h6.8M8.6 17.5h6.8M9.3 6.5c0 3.4 5.4 3.6 5.4 5.5s-5.4 2.1-5.4 5.5M14.7 6.5c0 3.4-5.4 3.6-5.4 5.5s5.4 2.1 5.4 5.5' },
     { key: 'expired', name: 'Ancien', group: 'out', rights: 'Abonnement, Privilège ou essai terminé.', c1: '#ff8f9a', c2: '#a8253a', g: 'M12 7.4a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2zM12 9.6V12l1.7 1.2' },
@@ -114,7 +116,7 @@
   // Premium / Essentiel avec niveau → rang « premium3 », « essentiel1 »… (base(c) redonne la famille).
   function cat(m) {
     const a = m.access || {};
-    const withLevel = (c) => (['premium', 'essentiel'].includes(c) && [1, 2, 3].includes(a.level) ? c + a.level : c);
+    const withLevel = (c) => (['premium', 'essentiel'].includes(c) && [1, 2, 3, 4].includes(a.level) ? c + a.level : c);
     if (m.category) return withLevel(m.category);
     if (m.isAdmin) return m.role === 'manager' ? 'manager' : 'admin';
     if (m.role === 'educator') return 'educator';
@@ -627,8 +629,8 @@
     const INACTIVE = { key: 'inactive', name: 'Inactif', rights: 'Accès terminé (abonnement, Privilège ou essai) ou inscrit sans offre.', of: ['expired', 'none'], look: 'expired' };
     const ROWS = [
       ['Équipe', 'Ceux qui font CHEST.', ['admin', 'manager', 'educator']],
-      ['Premium', 'CHEST complet : School, BERICH, scanners. De la plus longue durée à la plus courte.', ['premium3', 'premium2', 'premium1']],
-      ['Essentiel', 'Toute la plateforme, hors School et BERICH.', ['essentiel3', 'essentiel2', 'essentiel1']],
+      ['Premium', 'CHEST complet : School, BERICH, scanners. De la plus longue durée à la plus courte.', ['premium3', 'premium2', 'premium1', 'premium4']],
+      ['Essentiel', 'Toute la plateforme, hors School et BERICH.', ['essentiel3', 'essentiel2', 'essentiel1', 'essentiel4']],
       ['Autres', 'Accès terminés, offerts ou à l’essai.', ['inactive', 'privilege', 'trial']],
     ];
     const legacy = ['allstar', 'premium', 'essentiel'].filter((k) => c[k]);
@@ -976,7 +978,7 @@
       </dl>` : '<p class="am-muted">Pas encore répondu.</p>'}</div>
       <div class="am-block"><h3 class="am-sub">Abonnement</h3><dl class="am-dl">
         <dt>Offre</dt><dd>${esc(a.label || 'Aucune')}</dd>
-        <dt>Période</dt><dd>${a.period === 'year' ? 'Annuelle' : a.period === 'month' ? 'Mensuelle' : /^\d+m$/.test(a.period || '') ? `${parseInt(a.period, 10)} mois${a.level ? ` · rang ${['', 'I', 'II', 'III'][a.level]}` : ''}` : '—'}</dd>
+        <dt>Période</dt><dd>${a.period === 'year' ? 'Annuelle' : a.period === 'month' ? 'Mensuelle' : /^\d+m$/.test(a.period || '') ? `${parseInt(a.period, 10)} mois${a.level ? ` · rang ${['', 'I', 'II', 'III', 'IV'][a.level]}` : ''}` : '—'}</dd>
         <dt>Début</dt><dd>${esc(dt(a.startedAt))}</dd>
         <dt>Dernier montant</dt><dd>${eurCents(m.amount)}</dd>
       </dl></div>
@@ -989,7 +991,7 @@
       <form class="am-block" data-access-form><h3 class="am-sub">Accès</h3>
         <div class="am-opt am-opt--4">${[['offert', 'Privilège', 'Tout, offert'], ['premium', 'Premium', 'Tout CHEST'], ['essentiel', 'Essentiel', 'Sans School ni BERICH'], ['none', 'Aucun', 'Couper l’accès']].map(([k, l, s]) => `<button type="button" data-plan="${k}" aria-pressed="${planNow === k}"><b>${l}</b><small>${s}</small></button>`).join('')}</div>
         <div data-level-row ${['premium', 'essentiel'].includes(planNow) ? '' : 'hidden'} style="margin-top:14px">
-          <div class="am-dur">${[[1, 'Rang I · 3 mois'], [2, 'Rang II · 6 mois'], [3, 'Rang III · 1 an']].map(([k, l]) => `<button type="button" data-level="${k}" class="${(m.access || {}).level === k ? 'is-active' : ''}">${l}</button>`).join('')}</div>
+          <div class="am-dur">${[[1, 'Rang I · 3 mois'], [2, 'Rang II · 6 mois'], [3, 'Rang III · 1 an'], [4, 'Rang IV · 1 mois']].map(([k, l]) => `<button type="button" data-level="${k}" class="${(m.access || {}).level === k ? 'is-active' : ''}">${l}</button>`).join('')}</div>
         </div>
         <div data-dur-row ${planNow === 'none' ? 'hidden' : ''} style="margin-top:14px">
           <div class="am-dur">${[['7', '7 jours'], ['30', '30 jours'], ['90', '3 mois'], ['180', '6 mois'], ['365', '1 an'], ['date', 'Jusqu’au…'], ['', 'Sans limite']].map(([k, l]) => `<button type="button" data-dur="${k}" class="${(planNow === 'offert' ? k === '' : k === '30') ? 'is-active' : ''}" ${k === '' && planNow !== 'offert' ? 'hidden' : ''}>${l}</button>`).join('')}</div>

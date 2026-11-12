@@ -277,6 +277,7 @@
       await CHESTAccounts.signup({ firstName, lastName, email, password, ref: document.getElementById('refCode').value, acceptTerms: true });
       // Compte créé : connexion directe, puis le questionnaire et les offres (/offres).
       await CHESTAccounts.login({ email, password, remember: true });
+      try { const w = new URLSearchParams(location.search).get('offre'); if (w && /^(essentiel|premium)[1-4]$/.test(w)) localStorage.setItem('chest_wanted_offer', w); } catch (err) { /* tant pis */ }
       try { sessionStorage.setItem('chest_welcome', '1'); } catch (err) { /* tant pis */ }
       form.hidden = true;
       statusEl.textContent = 'Compte créé. Encore 5 questions pour te conseiller la bonne offre.';

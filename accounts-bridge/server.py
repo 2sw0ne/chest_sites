@@ -511,6 +511,14 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        # Paiement en crypto (2026-11-12) : USDC sur Solana (Solana Pay), détecté sur la blockchain, validé par l'admin
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS crypto_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, offer TEXT NOT NULL, eur REAL NOT NULL,
+                usdc REAL NOT NULL, reference TEXT NOT NULL UNIQUE, wallet TEXT NOT NULL, status TEXT NOT NULL,
+                signature TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+            )
+        """)
         # Fil d'une IDEA (2026-11-11) : mises à jour de la position publiées sous l'IDEA, comme une conversation
         db.execute("""
             CREATE TABLE IF NOT EXISTS school_post_updates (
@@ -1595,6 +1603,180 @@ def admin_railway():
                     "mode": get_ops()["mode"], "modes": modes, "samples": len(rows)})
 
 
+# ---------------- Paiement en crypto (2026-11-12) ----------------
+# Solana Pay en USDC : le membre scanne un QR avec Phantom (ou tout wallet Solana), l'argent arrive directement sur
+# le wallet de CHEST (aucun intermédiaire, frais < 0,01 $). Chaque paiement porte une « référence » unique : le serveur
+# retrouve la transaction sur la blockchain (RPC publique), vérifie le montant et le destinataire, puis l'admin valide
+# (supervision humaine) et l'accès s'ouvre. Le wallet de réception se règle dans Admin → Système (site_settings.crypto).
+USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+SOLANA_RPC = os.environ.get("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+_B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+_fx_cache = {"at": 0, "rate": None}
+
+
+def _b58(b):
+    n = int.from_bytes(b, "big")
+    out = ""
+    while n:
+        n, r = divmod(n, 58)
+        out = _B58[r] + out
+    return "1" * (len(b) - len(b.lstrip(b"\0"))) + out
+
+
+def get_crypto_settings():
+    try:
+        d = json.loads(get_setting("crypto") or "null") or {}
+    except ValueError:
+        d = {}
+    w = str(d.get("wallet") or "").strip()
+    return {"on": bool(d.get("on")) and bool(w), "wallet": w}
+
+
+def _eur_usd():
+    """Taux EUR → USD (BCE via frankfurter.app), gardé 1 h ; repli 1,08."""
+    if _fx_cache["rate"] and time.time() - _fx_cache["at"] < 3600:
+        return _fx_cache["rate"]
+    try:
+        with urllib.request.urlopen("https://api.frankfurter.app/latest?from=EUR&to=USD", timeout=8) as r:
+            rate = float(json.loads(r.read().decode())["rates"]["USD"])
+        _fx_cache.update(at=time.time(), rate=rate)
+        return rate
+    except Exception:
+        return _fx_cache["rate"] or 1.08
+
+
+def _sol_rpc(method, params):
+    req = urllib.request.Request(SOLANA_RPC, data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode(),
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        d = json.loads(r.read().decode())
+    if d.get("error"):
+        raise RuntimeError(d["error"].get("message") or "RPC")
+    return d.get("result")
+
+
+def _crypto_check(row):
+    """Cherche sur la blockchain la transaction qui porte la référence du paiement : (signature, montant reçu) ou None."""
+    sigs = _sol_rpc("getSignaturesForAddress", [row["reference"], {"limit": 10}]) or []
+    for sg in sigs:
+        if sg.get("err"):
+            continue
+        tx = _sol_rpc("getTransaction", [sg["signature"], {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0, "commitment": "confirmed"}])
+        meta = (tx or {}).get("meta") or {}
+        if meta.get("err"):
+            continue
+        def bal(lst):
+            return {b.get("accountIndex"): float((b.get("uiTokenAmount") or {}).get("uiAmountString") or 0)
+                    for b in (lst or []) if b.get("mint") == USDC_MINT and b.get("owner") == row["wallet"]}
+        pre, post = bal(meta.get("preTokenBalances")), bal(meta.get("postTokenBalances"))
+        got = sum(post.get(i, 0) - pre.get(i, 0) for i in post)
+        if got >= row["usdc"] * 0.999:
+            return sg["signature"], got
+    return None
+
+
+def _crypto_out(r, who=None):
+    return {"id": r["id"], "offer": r["offer"], "eur": r["eur"], "usdc": r["usdc"], "reference": r["reference"], "wallet": r["wallet"],
+            "status": r["status"], "signature": r["signature"], "createdAt": r["created_at"], "updatedAt": r["updated_at"],
+            **({"member": who} if who else {})}
+
+
+@app.route("/billing/crypto/start", methods=["POST"])
+def crypto_start():
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Connecte-toi pour choisir une offre."}), 401
+    cs = get_crypto_settings()
+    if not cs["on"]:
+        return jsonify({"error": "Le paiement en crypto n'est pas encore ouvert."}), 400
+    key = str((request.get_json(silent=True) or {}).get("offer") or "")
+    o = next((x for x in get_pricing()["offers"] if x.get("key") == key and x.get("enabled")), None)
+    if not o or not o.get("price"):
+        return jsonify({"error": "Offre inconnue."}), 400
+    eur = float(o["price"])
+    usdc = round(eur * _eur_usd() + 0.004, 2)
+    ref = _b58(secrets.token_bytes(32))
+    now = datetime.now(timezone.utc).isoformat()
+    db = get_db()
+    with db_lock:
+        db.execute("UPDATE crypto_payments SET status = 'expired', updated_at = ? WHERE user_id = ? AND status = 'pending'", (now, user["id"]))
+        cur = db.execute("INSERT INTO crypto_payments (user_id, offer, eur, usdc, reference, wallet, status, created_at, updated_at) "
+                         "VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)", (user["id"], key, eur, usdc, ref, cs["wallet"], now, now))
+        db.commit()
+        pid = cur.lastrowid
+    label = urllib.parse.quote("CHEST")
+    msg = urllib.parse.quote(f"{o.get('name') or key} · CHEST")
+    url = f"solana:{cs['wallet']}?amount={usdc:.2f}&spl-token={USDC_MINT}&reference={ref}&label={label}&message={msg}"
+    log_event(db, "paiement.crypto", user["id"], f"{key} · {usdc:.2f} USDC demandé", "info", locked=True, with_request=False)
+    return jsonify({"id": pid, "url": url, "usdc": usdc, "eur": eur, "wallet": cs["wallet"], "reference": ref, "status": "pending"})
+
+
+@app.route("/billing/crypto/<int:pid>")
+def crypto_status(pid):
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    db = get_db()
+    r = db.execute("SELECT * FROM crypto_payments WHERE id = ? AND user_id = ?", (pid, user["id"])).fetchone()
+    if not r:
+        return jsonify({"error": "Paiement introuvable."}), 404
+    if r["status"] == "pending":
+        try:
+            hit_ = _crypto_check(r)
+        except Exception as e:
+            print(f"[crypto] lecture blockchain impossible : {e}", flush=True)
+            hit_ = None
+        if hit_:
+            now = datetime.now(timezone.utc).isoformat()
+            with db_lock:
+                db.execute("UPDATE crypto_payments SET status = 'detected', signature = ?, updated_at = ? WHERE id = ?", (hit_[0], now, pid))
+                db.commit()
+            log_event(db, "paiement.crypto", user["id"], f"{r['offer']} · {hit_[1]:.2f} USDC reçus — à valider", "alerte", locked=True, with_request=False)
+            r = db.execute("SELECT * FROM crypto_payments WHERE id = ?", (pid,)).fetchone()
+    return jsonify(_crypto_out(r))
+
+
+@app.route("/admin/crypto", methods=["GET", "PUT"])
+def admin_crypto():
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    db = get_db()
+    if request.method == "PUT":
+        b = request.get_json(silent=True) or {}
+        w = re.sub(r"[^1-9A-HJ-NP-Za-km-z]", "", str(b.get("wallet") or ""))[:44]
+        if w and not 32 <= len(w) <= 44:
+            return jsonify({"error": "Adresse de wallet Solana invalide."}), 400
+        set_setting("crypto", json.dumps({"on": bool(b.get("on")) and bool(w), "wallet": w}))
+    who = _names(db)
+    rows = db.execute("SELECT * FROM crypto_payments WHERE status != 'expired' ORDER BY id DESC LIMIT 60").fetchall()
+    return jsonify({"settings": get_crypto_settings(), "payments": [_crypto_out(r, who(r["user_id"])) for r in rows]})
+
+
+@app.route("/admin/crypto/<int:pid>", methods=["POST"])
+def admin_crypto_decide(pid):
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    action = str((request.get_json(silent=True) or {}).get("action") or "")
+    db = get_db()
+    r = db.execute("SELECT * FROM crypto_payments WHERE id = ?", (pid,)).fetchone()
+    if not r or action not in ("validate", "reject"):
+        return jsonify({"error": "Paiement introuvable."}), 404
+    now = datetime.now(timezone.utc)
+    with db_lock:
+        if action == "validate":
+            lvl = int(r["offer"][-1])
+            months = LEVEL_MONTHS[lvl]
+            _set_plan(db, r["user_id"], r["offer"][:-1], f"{months}m", "active", now, _add_months(now, months), plan_level=lvl)
+            _log_billing(db, f"crypto_{pid}", r["user_id"], "checkout.session.completed", int(round(r["eur"] * 100)),
+                         f"Paiement {PLANS[r['offer'][:-1]]['label']} {lvl} ({months} mois) · crypto")
+        db.execute("UPDATE crypto_payments SET status = ?, updated_at = ? WHERE id = ?", ("validated" if action == "validate" else "rejected", now.isoformat(), pid))
+        db.commit()
+    log_event(db, "paiement.crypto", r["user_id"], f"{r['offer']} · {'validé' if action == 'validate' else 'refusé'} par l'admin", "info", locked=True, with_request=False)
+    return admin_crypto()
+
+
 @app.route("/admin/storage")
 def admin_storage():
     """Vue Stockage de l'admin : total réellement stocké (bucket + disque), part sans auteur connu, prix au Go."""
@@ -1935,6 +2117,7 @@ def _purge_user(db, member_id):
     db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM price_alerts WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM school_post_updates WHERE author_id = ?", (member_id,))
+    db.execute("DELETE FROM crypto_payments WHERE user_id = ? AND status != 'validated'", (member_id,))
     db.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM shared_backtests WHERE from_user = ? OR to_user = ?", (member_id, member_id))
     db.execute("DELETE FROM user_activity WHERE user_id = ?", (member_id,))
@@ -2048,8 +2231,14 @@ TRIAL_DAYS = 7
 # anciens montants (PLAN_AMOUNTS) pour les abonnements pris avant un changement de prix.
 # v2 (2026-10-28, demande utilisateur) : 3 rangs par offre. Niveau 1 = 3 mois, 2 = 6 mois, 3 = 1 an, payés
 # en une fois. Six emplacements fixes (essentiel1…premium3) : la clé donne les droits et la durée.
-LEVEL_MONTHS = {1: 3, 2: 6, 3: 12}
-PRICING_KEYS = ("essentiel1", "essentiel2", "essentiel3", "premium1", "premium2", "premium3")
+# v3 (2026-11-12) : 4 rangs par offre, abonnements qui se renouvellent seuls (liens Stripe récurrents) :
+# I = 3 mois, II = 6 mois, III = 1 an, IV = 1 mois. Premium III : 3 000 € la 1re année puis 1 000 € par an.
+LEVEL_MONTHS = {1: 3, 2: 6, 3: 12, 4: 1}
+PRICING_KEYS = ("essentiel1", "essentiel2", "essentiel3", "essentiel4", "premium1", "premium2", "premium3", "premium4")
+OFFER_PRICES = {"essentiel": {1: 450, 2: 800, 3: 1500, 4: 150}, "premium": {1: 900, 2: 1700, 3: 3000, 4: 300}}
+OFFER_RENEW = {"premium3": 1000}  # prix au renouvellement quand il diffère du 1er paiement
+OFFER_PERKS = {"premium3": ["Mentorat et accompagnement à vie", "VPS offert"], "premium2": ["VPS offert"],
+               "essentiel3": ["1 appel de mentorat par semaine, à débloquer quand tu veux"]}
 _ESS_FEATS = [[1, "Tous les scanners et leurs alertes"], [1, "Backtesting et rapports complets"], [1, "Journal de trading"],
               [1, "Dashboard et comptes reliés"], [1, "Calendrier économique"],
               [0, "School complet et cours vidéo"], [0, "BERICH et suivi des positions"], [0, "Accompagnement personnalisé"]]
@@ -2057,7 +2246,7 @@ _PRE_FEATS = [[1, "Tout CHEST Essentiel"], [1, "School complet : cours écrits e
               [1, "Accompagnement personnalisé par ton éducateur"]]
 
 
-ROMAN = {1: "I", 2: "II", 3: "III"}
+ROMAN = {1: "I", 2: "II", 3: "III", 4: "IV"}
 
 
 def rank_price(plan, level):
@@ -2073,12 +2262,15 @@ def rank_price(plan, level):
 def _default_offer(key):
     group, level = key[:-1], int(key[-1])
     ess = group == "essentiel"
-    price = {"essentiel": {1: 250, 2: 500, 3: 1000}, "premium": {1: 1000, 2: 1500, 3: 3000}}[group][level]
-    return {"key": key, "group": group, "level": level, "months": LEVEL_MONTHS[level], "enabled": True, "soon": False,
-            "featured": key == "premium3", "name": f"{'Essentiel' if ess else 'Premium'} {level}", "price": price, "link": "",
+    price = OFFER_PRICES[group][level]
+    m = LEVEL_MONTHS[level]
+    span = "1 an" if m == 12 else f"{m} mois"
+    return {"key": key, "group": group, "level": level, "months": m, "enabled": True, "soon": False,
+            "featured": key == "premium3", "name": f"{'Essentiel' if ess else 'Premium'} {ROMAN[level]}", "price": price, "link": "",
+            "renew": OFFER_RENEW.get(key, price),
             "who": ("Pour trader en autonomie avec tous les outils" if ess else "Pour progresser vite, accompagné"),
-            "desc": (f"{LEVEL_MONTHS[level]} mois sur toute la plateforme." if ess else f"{LEVEL_MONTHS[level]} mois de CHEST complet, formation et suivi."),
-            "feats": [list(f) for f in (_ESS_FEATS if ess else _PRE_FEATS)]}
+            "desc": (f"{span} sur toute la plateforme, renouvelé automatiquement." if ess else f"{span} de CHEST complet, formation et suivi, renouvelé automatiquement."),
+            "feats": [list(f) for f in (_ESS_FEATS if ess else _PRE_FEATS)] + [[1, t] for t in OFFER_PERKS.get(key, [])]}
 
 
 PRICING_DEFAULT = {"offers": [_default_offer(k) for k in PRICING_KEYS]}
@@ -2100,21 +2292,27 @@ def get_pricing():
         dl = STRIPE_DEFAULT_LINKS.get(o.get("key"))
         if dl and not str(o.get("link") or "").strip() and o.get("price") == dl[0]:
             o["link"] = dl[1]
+        o.setdefault("renew", OFFER_RENEW.get(o.get("key"), o.get("price")))
         out.append(o)
     return {**data, "offers": out}
 
 
 # Le webhook reconnaît l'offre au lien utilisé (payment_link) : Essentiel 3 et Premium 1 ont le même prix.
-STRIPE_LINK_IDS = {"plink_1UY5H0AN6r524EGXbWu4sSOT": "essentiel1", "plink_1UY5IIAN6r524EGX0k4uMR5R": "essentiel2",
-                   "plink_1UY5JdAN6r524EGXjhKQqPtm": "essentiel3", "plink_1UY5KdAN6r524EGXB57rK2OX": "premium1",
-                   "plink_1UY5LUAN6r524EGX4QzeF4F7": "premium2", "plink_1UY5MMAN6r524EGXhMQJyfIN": "premium3"}
-STRIPE_DEFAULT_LINKS = {  # offre -> (prix TTC, lien de paiement Stripe)
-    "essentiel1": (250, "https://buy.stripe.com/9B6dR8erN34307idDt2B204"),
-    "essentiel2": (500, "https://buy.stripe.com/bJebJ0abx0VVdY8dDt2B205"),
-    "essentiel3": (1000, "https://buy.stripe.com/3cI28qabxdIH5rCgPF2B206"),
-    "premium1": (1000, "https://buy.stripe.com/aFa3cu5Vh0VVdY89nd2B207"),
-    "premium2": (1500, "https://buy.stripe.com/aFa14mcjFcED2fqeHx2B208"),
-    "premium3": (3000, "https://buy.stripe.com/7sY7sKfvR9srcU4dDt2B209"),
+# Abonnements Stripe (2026-11-12, liens récurrents : chaque offre se renouvelle à sa durée ; Premium III = 1 000 €/an
+# + 2 000 € de 1re année). Les anciens liens (paiement unique, 2026-11-04) restent reconnus pour l'historique.
+STRIPE_LINK_IDS = {"plink_1UaxobAN6r524EGXZ2iEj9Xb": "essentiel2", "plink_1Uaxo7AN6r524EGXNQgaNfzB": "essentiel1",
+                   "plink_1Uaxp4AN6r524EGXAfNtqn4k": "essentiel3", "plink_1UaxndAN6r524EGXmsgYnGPQ": "essentiel4",
+                   "plink_1UaxlVAN6r524EGXesyXvP7q": "premium1", "plink_1Uaxm4AN6r524EGXfhp28H6L": "premium2",
+                   "plink_1Uaxn6AN6r524EGXlW8nscky": "premium3", "plink_1UaxkTAN6r524EGXMJ0C4f8f": "premium4"}
+STRIPE_DEFAULT_LINKS = {  # offre -> (prix TTC du 1er paiement, lien de paiement Stripe)
+    "essentiel1": (450, "https://buy.stripe.com/cNi6oG2J54878DO42T2B20f"),
+    "essentiel2": (800, "https://buy.stripe.com/00w3cu1F16gf5rC1UL2B20g"),
+    "essentiel3": (1500, "https://buy.stripe.com/9B68wO3N91ZZg6geHx2B20h"),
+    "essentiel4": (150, "https://buy.stripe.com/3cI5kCfvR3437zK7f52B20e"),
+    "premium1": (900, "https://buy.stripe.com/bJebJ0gzV3433ju9nd2B20b"),
+    "premium2": (1700, "https://buy.stripe.com/6oUeVcdnJawv1bmczp2B20c"),
+    "premium3": (3000, "https://buy.stripe.com/8x2aEWgzV1ZZ3juczp2B20d"),
+    "premium4": (300, "https://buy.stripe.com/bJe28q4RdcED7zK2YP2B20a"),
 }
 
 
@@ -2150,7 +2348,7 @@ def validate_pricing(body):
     for key in PRICING_KEYS:
         o = by_key.get(key)
         if o is None:
-            raise ValueError("Les six emplacements d'offre sont attendus.")
+            raise ValueError("Les huit emplacements d'offre sont attendus.")
         feats = []
         for f in (o.get("feats") or [])[:16]:
             if isinstance(f, (list, tuple)) and len(f) == 2:
@@ -2162,7 +2360,8 @@ def validate_pricing(body):
                 "enabled": bool(o.get("enabled")), "soon": bool(o.get("soon")), "featured": bool(o.get("featured")),
                 "name": _clean_text(o.get("name"), 40), "who": _clean_text(o.get("who"), 90),
                 "desc": _clean_text(o.get("desc"), 220), "price": _clean_price(o.get("price")),
-                "link": _clean_link(o.get("link")), "feats": feats}
+                "link": _clean_link(o.get("link")), "feats": feats,
+                "renew": _clean_price(o.get("renew")) or OFFER_RENEW.get(key) or _clean_price(o.get("price"))}
         if item["enabled"]:
             if not item["name"]:
                 raise ValueError("Chaque offre affichée doit avoir un nom.")
@@ -4436,7 +4635,8 @@ def pricing():
     if request.method == "GET":
         data = get_pricing()
         return jsonify({"offers": data["offers"], "updatedAt": get_setting("pricing_updated_at"),
-                        "checkout": "auto" if STRIPE_SECRET_KEY else "liens", "promo": get_promo()})
+                        "checkout": "auto" if STRIPE_SECRET_KEY else "liens", "promo": get_promo(),
+                        "crypto": get_crypto_settings()["on"]})
     admin = current_user()
     if not admin or not admin["is_admin"]:
         return jsonify({"error": "Réservé aux administrateurs."}), 403
@@ -4692,7 +4892,7 @@ def member_access(member_id):
             _set_plan(db, member_id, "none", None, "manual", None, None, plan_level=None)
         else:
             lvl = (request.get_json(silent=True) or {}).get("level")
-            lvl = int(lvl) if str(lvl) in ("1", "2", "3") and plan in ("essentiel", "premium") else None
+            lvl = int(lvl) if str(lvl) in ("1", "2", "3", "4") and plan in ("essentiel", "premium") else None
             _set_plan(db, member_id, plan, f"{LEVEL_MONTHS[lvl]}m" if lvl else None, "manual", now, ends, plan_level=lvl)
         _log_billing(db, f"manual-{member_id}-{int(time.time())}", member_id, "manual", 0,
                      f"Accès modifié par l'admin : {PLANS.get(plan, {}).get('label', 'aucun accès')}" + (f" jusqu'au {ends.strftime('%d/%m/%Y')}" if ends else (" sans limite" if plan == "offert" else "")))

@@ -20,7 +20,7 @@
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
 <script src="js/accounts-auth.js?v=12"></script>
-<script src="js/rank-badge.js?v=4"></script>
+<script src="js/rank-badge.js?v=5"></script>
 <script>if (!CHESTAccounts.isLoggedIn()) window.location.replace('/connexion');</script>
 </head>
 <!--
@@ -137,17 +137,17 @@
   // v2 (2026-10-28) : deux offres, Essentiel et Premium, chacune en 3 rangs payés en une fois :
   // rang 1 = 3 mois, rang 2 = 6 mois, rang 3 = 1 an. Les offres viennent du serveur (GET /pricing, modifiables
   // par l'admin en mode édition) ; OFFERS ci-dessous ne sert que de secours hors ligne (= PRICING_DEFAULT).
-  const MONTHS = { 1: 3, 2: 6, 3: 12 };
+  const MONTHS = { 1: 3, 2: 6, 3: 12, 4: 1 }; // v3 (2026-11-12) : IV = 1 mois, abonnements renouvelés
   const ESS_FEATS = [[1, 'Tous les scanners et leurs alertes'], [1, 'Backtesting et rapports complets'], [1, 'Journal de trading'], [1, 'Dashboard et comptes reliés'], [1, 'Calendrier économique'], [0, 'School : cours, vidéos et appels'], [0, 'BERICH et suivi des positions'], [0, 'Accompagnement personnalisé']];
   const PRE_FEATS = [[1, 'Tout CHEST Essentiel'], [1, 'School complet : cours écrits et vidéo'], [1, 'BERICH et suivi des positions'], [1, 'Accompagnement personnalisé par ton éducateur']];
   const mk = (group, level, price) => ({
     key: group + level, group, level, months: MONTHS[level], enabled: true, soon: false, featured: group === 'premium' && level === 3,
-    name: (group === 'premium' ? 'Premium ' : 'Essentiel ') + level, price, link: '',
+    name: (group === 'premium' ? 'Premium ' : 'Essentiel ') + ['', 'I', 'II', 'III', 'IV'][level], price, link: '', renew: group === 'premium' && level === 3 ? 1000 : price,
     who: group === 'premium' ? 'Pour progresser vite, accompagné' : 'Pour trader en autonomie avec tous les outils',
     desc: group === 'premium' ? `${MONTHS[level]} mois de CHEST complet, formation et suivi.` : `${MONTHS[level]} mois sur toute la plateforme.`,
     feats: (group === 'premium' ? PRE_FEATS : ESS_FEATS).map((f) => f.slice()),
   });
-  let OFFERS = [mk('essentiel', 1, 250), mk('essentiel', 2, 500), mk('essentiel', 3, 1000), mk('premium', 1, 1000), mk('premium', 2, 1500), mk('premium', 3, 3000)];
+  let OFFERS = [mk('essentiel', 1, 450), mk('essentiel', 2, 800), mk('essentiel', 3, 1500), mk('essentiel', 4, 150), mk('premium', 1, 900), mk('premium', 2, 1700), mk('premium', 3, 3000), mk('premium', 4, 300)];
   const GROUP_NAME = { essentiel: 'Essentiel', premium: 'Premium' };
   async function loadPricing() {
     try {
@@ -156,13 +156,13 @@
       const res = await fetch(A.apiBase() + '/pricing', { signal: ctrl.signal });
       clearTimeout(t);
       const data = await res.json();
-      if (res.ok && Array.isArray(data.offers) && data.offers.length === 6) OFFERS = data.offers; // School entier réservé à Premium depuis le 2026-11-03 : l'ancienne ligne « 2 cours School offerts » disparaît
+      if (res.ok && Array.isArray(data.offers) && data.offers.length === 8) OFFERS = data.offers; // School entier réservé à Premium depuis le 2026-11-03 : l'ancienne ligne « 2 cours School offerts » disparaît
       OFFERS.forEach((o) => { if (Array.isArray(o.feats)) o.feats = o.feats.filter((f) => !/cours School offerts/i.test(f[1] || '')); });
-      if (res.ok) CHECKOUT = data.checkout || 'liens';
+      if (res.ok) { CHECKOUT = data.checkout || 'liens'; CRYPTO = !!data.crypto; }
     } catch (e) { /* hors ligne : offres de secours ci-dessus */ }
   }
   // 'auto' : le serveur ouvre le paiement Stripe au prix affiché (clé Stripe sur Railway) ; 'liens' : liens de l'éditeur
-  let CHECKOUT = 'liens';
+  let CHECKOUT = 'liens', CRYPTO = false;
   // Réduction (2026-11-04) : aucun champ ici, le membre tape le code de son référent sur la page Stripe.
   function priceBlock(o) { return `<div class="cx-plan__price"><b>${eur0(o.price)}</b><span>€</span></div>`; }
   let billing = 'premium'; // onglet affiché : 'premium' | 'essentiel'
@@ -202,10 +202,16 @@
         <span class="cx-plan__badge">${reco ? 'Conseillée pour toi' : 'La plus recommandée'}</span>${tag}
         <div class="of-card__head"><span class="of-card__rank">${rankBadge(o, 40)}</span><div><div class="cx-plan__name">${esc(rankName(o))}</div><span class="of-card__dur">${durTxt(o.months)} d’accès</span></div></div>
         <div class="of-card__price">${priceBlock(o)}<span class="of-card__pm">soit ${eur0(Math.round(o.price / o.months))} € / mois</span></div>
-        <p class="of-card__once">Payé une fois · aucun renouvellement automatique</p>
+        <p class="of-card__once">${renewTxt(o)}</p>
         <ul class="cx-feats">${o.feats.map(([on, t]) => `<li class="${on ? '' : 'is-off'}"><span class="cx-check" aria-hidden="true">${on ? CHECK : DASH}</span><span><span class="cx-sr">${on ? 'Inclus : ' : 'Non inclus : '}</span>${esc(t)}</span></li>`).join('')}</ul>
         <div class="cx-plan__cta"><button type="button" class="cx-pill" data-plan="${o.key}" ${c.off ? 'disabled aria-disabled="true"' : ''}>${esc(c.t)}</button></div>
       </article>`;
+  }
+  // Abonnement (2026-11-12) : renouvelé automatiquement à sa durée, résiliable à tout moment
+  function renewTxt(o) {
+    const every = o.months === 12 ? 'chaque année' : o.months === 1 ? 'chaque mois' : `tous les ${o.months} mois`;
+    const r = Number(o.renew || o.price);
+    return r && r !== Number(o.price) ? `Puis ${eur0(r)} € ${every} · résiliable à tout moment` : `Renouvelé ${every} · résiliable à tout moment`;
   }
   function moreRow(o, cur) {
     const c = ctaOf(o, cur);
@@ -224,7 +230,7 @@
     const top = reco || 'premium';
     // 2026-11-08 : la moins chère à gauche, Premium à droite et plus grande
     $('#ofPlans').innerHTML = ['essentiel', 'premium'].map((g) => {
-      const list = OFFERS.filter((o) => o.enabled && o.group === g).sort((a, b) => b.level - a.level);
+      const list = OFFERS.filter((o) => o.enabled && o.group === g).sort((a, b) => b.months - a.months);
       if (!list.length) return '';
       const main = list[0], rest = list.slice(1);
       if (rest.some((o) => o.key === cur)) moreOpen[g] = true;
@@ -293,8 +299,10 @@
         window.location.href = data.url;
       } catch (err) { notice(err.message); b.disabled = false; }
     };
-    if (!window.CHESTConsent) { go(); return; }
-    CHESTConsent.purchase(o).then((ok) => { if (ok) go(); });
+    // 2026-11-12 : après l'accord, le membre choisit carte (Stripe) ou crypto (USDC sur Solana, js/pay-choice.js)
+    const pick = () => (window.CHESTPay ? CHESTPay.choose(o, { crypto: CRYPTO, onCard: go }) : go());
+    if (!window.CHESTConsent) { pick(); return; }
+    CHESTConsent.purchase(o).then((ok) => { if (ok) pick(); });
   });
   $('#ofPlans').addEventListener('click', (e) => {
     const m = e.target.closest('[data-more]');
@@ -380,7 +388,7 @@
       </div>
     </article>`;
     $('#ofPlans').innerHTML = ['essentiel', 'premium'].map((g) => {
-      const list = edDraft.map((o, i) => [o, i]).filter(([o]) => o.group === g).sort((a, b) => b[0].level - a[0].level);
+      const list = edDraft.map((o, i) => [o, i]).filter(([o]) => o.group === g).sort((a, b) => b[0].months - a[0].months);
       if (!list.length) return '';
       const [main, ...rest] = list;
       return `<div class="of-col of-col--${g}">${card(main[0], main[1], false)}${rest.length ? `<p class="of-ed__more">Autres durées · ${rest.map(([o]) => durTxt(o.months)).reverse().join(' et ')}</p>${rest.slice().reverse().map(([o, i]) => card(o, i, true)).join('')}` : ''}</div>`;
@@ -610,6 +618,14 @@
     if (query.get('paiement') === 'ok') { startWait(); return; }
     if (query.get('paiement') === 'annule') notice('Paiement annulé : rien n’a été débité. Tu peux choisir une autre offre ou réessayer.');
     else if (query.get('raison') === 'fin' && !a.active && (a.trialUsed || (a.plan && a.plan !== 'none'))) notice(a.trial || a.trialUsed ? 'Ton essai gratuit est terminé. Choisis une offre pour continuer, tes données sont conservées.' : 'Ton accès a pris fin. Choisis une offre pour retrouver CHEST.');
+    // Pack choisi sur la landing (audit du 2026-11-12) : pas de second questionnaire, on ouvre directement le paiement
+    let wanted = null; try { wanted = localStorage.getItem('chest_wanted_offer'); localStorage.removeItem('chest_wanted_offer'); } catch (e) { /* tant pis */ }
+    if (wanted && OFFERS.some((o) => o.key === wanted && o.enabled) && !currentKey()) {
+      show('offers');
+      const g = wanted.replace(/\d$/, ''); moreOpen[g] = true; renderPlans();
+      const b = document.querySelector(`#ofPlans [data-plan="${wanted}"]`); if (b) { b.scrollIntoView({ block: 'center' }); b.click(); }
+      return;
+    }
     if (!answers && !currentKey() && !user().isAdmin) showQuiz(0); else show('offers');
   }
   start();
@@ -619,6 +635,7 @@
 <script src="js/hero-bg.js"></script>
 <script>try { CHESTHeroBg.init(document.getElementById('ofLight'), document.getElementById('ofStars'), {}); } catch (e) { /* fond simple */ }</script>
 <script src="js/consent.js?v=7"></script>
+<script src="js/pay-choice.js?v=1"></script>
 <script src="js/legal-links.js?v=2"></script>
 </body>
 </html>
