@@ -142,7 +142,7 @@
   const PRE_FEATS = [[1, 'Tout CHEST Essentiel'], [1, 'School complet : cours écrits et vidéo'], [1, 'BERICH et suivi des positions'], [1, 'Accompagnement personnalisé par ton éducateur']];
   const mk = (group, level, price) => ({
     key: group + level, group, level, months: MONTHS[level], enabled: true, soon: false, featured: group === 'premium' && level === 3,
-    name: (group === 'premium' ? 'Premium ' : 'Essentiel ') + ['', 'I', 'II', 'III', 'IV'][level], price, link: '', renew: group === 'premium' && level === 3 ? 1000 : price,
+    name: (group === 'premium' ? 'Premium ' : 'Essentiel ') + ['', 'I', 'II', 'III', 'IV'][level], price, link: '', renew: price,
     who: group === 'premium' ? 'Pour progresser vite, accompagné' : 'Pour trader en autonomie avec tous les outils',
     desc: group === 'premium' ? `${MONTHS[level]} mois de CHEST complet, formation et suivi.` : `${MONTHS[level]} mois sur toute la plateforme.`,
     feats: (group === 'premium' ? PRE_FEATS : ESS_FEATS).map((f) => f.slice()),

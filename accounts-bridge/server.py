@@ -2232,11 +2232,11 @@ TRIAL_DAYS = 7
 # v2 (2026-10-28, demande utilisateur) : 3 rangs par offre. Niveau 1 = 3 mois, 2 = 6 mois, 3 = 1 an, payés
 # en une fois. Six emplacements fixes (essentiel1…premium3) : la clé donne les droits et la durée.
 # v3 (2026-11-12) : 4 rangs par offre, abonnements qui se renouvellent seuls (liens Stripe récurrents) :
-# I = 3 mois, II = 6 mois, III = 1 an, IV = 1 mois. Premium III : 3 000 € la 1re année puis 1 000 € par an.
+# I = 3 mois, II = 6 mois, III = 1 an, IV = 1 mois, chaque offre renouvelée au même prix.
 LEVEL_MONTHS = {1: 3, 2: 6, 3: 12, 4: 1}
 PRICING_KEYS = ("essentiel1", "essentiel2", "essentiel3", "essentiel4", "premium1", "premium2", "premium3", "premium4")
 OFFER_PRICES = {"essentiel": {1: 450, 2: 800, 3: 1500, 4: 150}, "premium": {1: 900, 2: 1700, 3: 3000, 4: 300}}
-OFFER_RENEW = {"premium3": 1000}  # prix au renouvellement quand il diffère du 1er paiement
+OFFER_RENEW = {}  # 2026-11-12 : plus de tarif réduit au renouvellement (Premium III = 3 000 € chaque année)
 OFFER_PERKS = {"premium3": ["Mentorat et accompagnement à vie", "VPS offert"], "premium2": ["VPS offert"],
                "essentiel3": ["1 appel de mentorat par semaine, à débloquer quand tu veux"]}
 _ESS_FEATS = [[1, "Tous les scanners et leurs alertes"], [1, "Backtesting et rapports complets"], [1, "Journal de trading"],
@@ -2298,12 +2298,12 @@ def get_pricing():
 
 
 # Le webhook reconnaît l'offre au lien utilisé (payment_link) : Essentiel 3 et Premium 1 ont le même prix.
-# Abonnements Stripe (2026-11-12, liens récurrents : chaque offre se renouvelle à sa durée ; Premium III = 1 000 €/an
-# + 2 000 € de 1re année). Les anciens liens (paiement unique, 2026-11-04) restent reconnus pour l'historique.
+# Abonnements Stripe (2026-11-12, liens récurrents : chaque offre se renouvelle à sa durée, au même prix).
+# Anciens liens désactivés dans Stripe le 2026-11-12.
 STRIPE_LINK_IDS = {"plink_1UaxobAN6r524EGXZ2iEj9Xb": "essentiel2", "plink_1Uaxo7AN6r524EGXNQgaNfzB": "essentiel1",
                    "plink_1Uaxp4AN6r524EGXAfNtqn4k": "essentiel3", "plink_1UaxndAN6r524EGXmsgYnGPQ": "essentiel4",
                    "plink_1UaxlVAN6r524EGXesyXvP7q": "premium1", "plink_1Uaxm4AN6r524EGXfhp28H6L": "premium2",
-                   "plink_1Uaxn6AN6r524EGXlW8nscky": "premium3", "plink_1UaxkTAN6r524EGXMJ0C4f8f": "premium4"}
+                   "plink_1UaySyAN6r524EGXRqAe0MwQ": "premium3", "plink_1UaxkTAN6r524EGXMJ0C4f8f": "premium4"}
 STRIPE_DEFAULT_LINKS = {  # offre -> (prix TTC du 1er paiement, lien de paiement Stripe)
     "essentiel1": (450, "https://buy.stripe.com/cNi6oG2J54878DO42T2B20f"),
     "essentiel2": (800, "https://buy.stripe.com/00w3cu1F16gf5rC1UL2B20g"),
@@ -2311,7 +2311,7 @@ STRIPE_DEFAULT_LINKS = {  # offre -> (prix TTC du 1er paiement, lien de paiement
     "essentiel4": (150, "https://buy.stripe.com/3cI5kCfvR3437zK7f52B20e"),
     "premium1": (900, "https://buy.stripe.com/bJebJ0gzV3433ju9nd2B20b"),
     "premium2": (1700, "https://buy.stripe.com/6oUeVcdnJawv1bmczp2B20c"),
-    "premium3": (3000, "https://buy.stripe.com/8x2aEWgzV1ZZ3juczp2B20d"),
+    "premium3": (3000, "https://buy.stripe.com/7sY3cu97t3438DO9nd2B20i"),
     "premium4": (300, "https://buy.stripe.com/bJe28q4RdcED7zK2YP2B20a"),
 }
 
