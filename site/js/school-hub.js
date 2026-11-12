@@ -280,12 +280,13 @@
     </div>`;
   }
   // ---------------------------------------------------------------- infos
-  // Idea (2026-11-08) : les idées de trade de l'équipe, en fil façon Instagram. Chaque Idea garde son format d'image
-  // (vertical 4:5, horizontal 16:9 sur deux colonnes), peut porter une position (paire, sens, PE, SL, TP 1…n) et un
-  // statut : zone d'action / en cours (onglet Actives) ou inactive (onglet Inactives). Seule l'équipe publie.
+  // IDEA v2 (2026-11-12, retour patron : « une carte bordée de la couleur de l'opportunité, la photo de celui qui la
+  // partage, date et heure, le sens, la paire, PE, SL et TOUS les TP ; l'image seulement en cliquant »). Tableau :
+  // recherche par éducateur, Actives / Toutes / Inactives, bilan du mois (TP / SL / BE partagés). Une Idea active passe
+  // inactive avec son résultat (TP n touché, SL, BE, clôturée) ; les mises à jour sont de simples lignes sur la carte.
   const fmtOf = (p) => (p.format === 'portrait' ? 'portrait' : 'landscape');
-  const STATUS = { zone: ['Zone d’action', 'zone'], encours: ['En cours', 'run'], inactive: ['Inactive', 'off'] };
-  const stOf = (p) => (STATUS[p.status] ? p.status : 'zone');
+  const STATUS = { encours: ['Active', 'run'], inactive: ['Inactive', 'off'] };
+  const stOf = (p) => (p.status === 'inactive' ? 'inactive' : 'encours');
   const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   function ideaWhen(d) {
     const t = new Date(d);
@@ -293,83 +294,92 @@
     const hm = t.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     if (days <= 0) return `Aujourd’hui · ${hm}`;
     if (days === 1) return `Hier · ${hm}`;
-    if (days < 7) return cap1(fr(d, { weekday: 'long', day: 'numeric', month: 'short' }));
-    return fr(d, t.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+    if (days < 7) return `${cap1(fr(d, { weekday: 'long', day: 'numeric', month: 'short' }))} · ${hm}`;
+    return `${fr(d, t.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' })} · ${hm}`;
   }
   // prix au format des plateformes (point décimal), même nombre de décimales pour tous les niveaux d'une Idea
   const decOf = (I) => Math.min(5, Math.max(0, ...[I.pe, I.sl, ...I.tps].map((v) => (String(v).split('.')[1] || '').length)));
   const fmtN = (x, d) => Number(x).toFixed(d);
   const rrOf = (I, tp) => { const risk = Math.abs(I.pe - I.sl); return risk ? Math.abs(tp - I.pe) / risk : 0; };
-  // Position d'une Idea, sur le modèle de la carte « Signal en cours » : sens en grand (néon vert / rouge), paire,
-  // puis Entrée (gris) · Stop (rouge) · TP (vert) avec leur R:R. Version compacte dans le fil : TP 1 seulement.
-  function posHtml(I, compact) {
-    if (!I) return '';
-    const buy = I.side !== 'sell', d = decOf(I);
-    const tps = compact ? I.tps.slice(0, 1) : I.tps;
-    const pair = /^[A-Z]{6}$/.test(I.pair) ? `${I.pair.slice(0, 3)}/${I.pair.slice(3)}` : I.pair;
-    const rr = (t) => rrOf(I, t).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
-    const cell = (k, v, cls, sub) => `<div class="sh-pos__c ${cls}"><span>${k}</span><b>${fmtN(v, d)}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
-    return `<div class="sh-pos sh-pos--${buy ? 'buy' : 'sell'}${compact ? ' is-compact' : ''}">
-      <div class="sh-pos__h"><b class="sh-pos__side">${buy ? 'Achat' : 'Vente'}</b><span class="sh-pos__pair">${esc(pair)}</span>${compact && I.tps.length > 1 ? `<span class="sh-pos__more">+${I.tps.length - 1} TP</span>` : ''}</div>
-      <div class="sh-pos__g">${cell('Entrée', I.pe, 'is-pe')}${cell('Stop', I.sl, 'is-sl')}${tps.map((t, k) => cell(I.tps.length > 1 ? `Objectif ${k + 1}` : 'Objectif', t, 'is-tp', `R:R ${rr(t)}`)).join('')}</div>
-    </div>`;
-  }
+  const pairTxt = (p) => (/^[A-Z]{6}$/.test(p) ? `${p.slice(0, 3)}/${p.slice(3)}` : p);
   const isNew = (p) => S.newIds && S.newIds.has(p.id);
-  function postCard(p) {
-    const staff = ROLE !== 'member';
-    const who = String(p.author || 'Équipe');
-    const body = String(p.body || '');
-    const st = STATUS[stOf(p)];
-    return `<article class="sh-fc sh-fc--${p.image ? fmtOf(p) : p.idea ? 'pos' : 'text'}${isNew(p) ? ' is-new' : ''} is-${st[1]}">
-      <button type="button" class="sh-fc__open" data-post="${p.id}" aria-label="Ouvrir l’Idea « ${esc(p.title)} »"></button>
-      <header class="sh-fc__h"><span class="sh-fc__av${p.authorAvatar || p.chest ? ' has-photo' : ''}${p.chest ? ' is-chest' : ''}"${p.chest ? ` style="background-image:url('assets/logo-chest.png')"` : p.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: p.authorAvatar }))}')"` : ''}>${p.authorAvatar || p.chest ? '' : esc(initials(who))}</span>
-        <span class="sh-fc__who"><b>${esc(who)}${tagHtml(p.authorTag)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
-        ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : ''}</header>
-      ${p.image ? `<div class="sh-fc__media"><img src="${esc(fileUrl(p.image))}" alt="" loading="lazy" decoding="async"></div>` : p.idea ? '' : `<div class="sh-fc__quote"><span>${esc(p.title)}</span></div>`}
-      <div class="sh-fc__b"><span class="sh-st sh-st--${st[1]}">${st[0]}</span>${p.image || p.idea ? `<h3>${esc(p.title)}</h3>` : ''}${posHtml(p.idea, true)}${body ? `<p>${esc(body.slice(0, 180))}${body.length > 180 ? '…' : ''}</p>` : ''}<span class="sh-fc__more">Voir l’Idea${ic('go')}</span></div>
-      ${threadHtml(p, true)}
-    </article>`;
-  }
-  // Étiquette à côté du prénom (2026-11-11) : CEO, Manageur, Éducateur (donnée par le serveur, authorTag)
   const TAGCLS = { CEO: 'ceo', Manageur: 'mgr', 'Éducateur': 'edu' };
   const tagHtml = (t) => (t ? `<span class="sh-tag sh-tag--${TAGCLS[t] || 'edu'}">${esc(t)}</span>` : '');
   const avHtml = (x, cls) => `<span class="${cls}${x.authorAvatar || x.chest ? ' has-photo' : ''}"${x.chest ? ` style="background-image:url('assets/logo-chest.png')"` : x.authorAvatar ? ` style="background-image:url('${esc(fileUrl({ key: x.authorAvatar }))}')"` : ''}>${x.authorAvatar || x.chest ? '' : esc(initials(x.author))}</span>`;
   const shortWhen = (iso) => { const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000)); return m < 1 ? 'à l’instant' : m < 60 ? `${m} min` : m < 1440 ? `${Math.round(m / 60)} h` : fr(iso, { day: 'numeric', month: 'short' }); };
-  // Fil d'une Idea (2026-11-11) : les mises à jour de la position, comme une conversation sous l'Idea.
-  // Carte : la dernière mise à jour en une ligne. Fenêtre : le fil complet (fil vertical, la plus récente en avant)
-  // et, pour l'auteur ou un admin, une barre d'envoi collée en bas de l'écran.
-  function threadHtml(p, short) {
-    const ups = p.updates || [];
-    if (short) {
-      if (!ups.length) return '';
-      const u = ups[ups.length - 1];
-      return `<div class="sh-th is-short"><span class="sh-th__live"><i aria-hidden="true"></i>${ups.length > 1 ? `${ups.length} mises à jour` : 'Mise à jour'}</span>
-        <div class="sh-th__last">${avHtml(u, 'sh-th__av')}<p><b>${esc(u.author)}</b> ${esc(String(u.body).replace(/\s+/g, ' ').slice(0, 120))}</p><small>${esc(shortWhen(u.createdAt))}</small></div></div>`;
-    }
-    const can = ROLE === 'admin' || (ROLE === 'educator' && p.authorId === U.id);
-    const row = (u, i) => `<li class="sh-th__m${i === ups.length - 1 ? ' is-last' : ''}">${avHtml(u, 'sh-th__av')}
-        <div class="sh-th__b"><div class="sh-th__h"><b>${esc(u.author)}</b>${tagHtml(u.authorTag)}<small>${esc(shortWhen(u.createdAt))}</small>${can && (ROLE === 'admin' || u.authorId === U.id) ? `<button type="button" class="sh-th__del" data-del-update="${u.id}" data-post-id="${p.id}" aria-label="Retirer ce message"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}</div><div class="sh-th__txt">${textToHtml(u.body)}</div></div></li>`;
-    return `<section class="sh-th" aria-label="Suivi de la position">
-      <div class="sh-th__top"><span class="chest-step sh-th__k">Suivi de la position</span>${ups.length ? `<span class="sh-th__n">${ups.length}</span>` : ''}</div>
-      ${ups.length ? `<ol class="sh-th__l">${ups.map(row).join('')}</ol>` : `<p class="sh-th__none">${can ? 'Publie ici chaque étape : entrée déclenchée, TP1 touché, SL au BE… Ceux qui voient l’Idea sont prévenus.' : 'Les mises à jour de la position arriveront ici, avec une notification.'}</p>`}
-      ${can ? `<div class="sh-th__f"><textarea id="shUpd" rows="1" maxlength="2000" placeholder="TP1 touché, SL au BE…" aria-label="Nouvelle mise à jour" data-upd-for="${p.id}" enterkeyhint="send"></textarea><button type="button" class="sh-th__send" data-update-send="${p.id}" aria-label="Publier la mise à jour"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>` : ''}
+  const resTxt = (R) => !R ? '' : R.kind === 'tp' ? `TP ${R.tp} touché` : R.kind === 'sl' ? 'SL touché' : R.kind === 'be' ? 'Sortie au BE' : 'Clôturée';
+  const resCls = (R) => (!R ? '' : R.kind === 'tp' ? 'win' : R.kind === 'sl' ? 'loss' : 'flat');
+  const pipsTxt = (R) => (R && R.pips != null ? ` · ${R.pips > 0 ? '+' : ''}${String(R.pips).replace('.', ',')} pips` : '');
+  const ICX = {
+    copy: '<svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></svg>',
+    chart: '<svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 15l4-5 3 3 5-7"/></svg>',
+  };
+
+  // Niveaux d'une Idea : Entrée, SL, puis chaque TP (R:R) ; copy = un bouton de copie par ligne (fiche)
+  function levelsHtml(I, copy) {
+    const d = decOf(I);
+    const R = I.result || null;
+    const row = (k, v, cls, sub, hit) => `<div class="ix-lv__r ${cls}${hit ? ' is-hit' : ''}"><dt>${k}</dt><dd><b>${fmtN(v, d)}</b>${sub ? `<small>${sub}</small>` : ''}${copy ? `<button type="button" class="ix-copy" data-copy-lv="${fmtN(v, d)}" aria-label="Copier ${k}">${ICX.copy}</button>` : ''}</dd></div>`;
+    return `<dl class="ix-lv">${row('Entrée', I.pe, 'is-pe')}${row('SL', I.sl, 'is-sl', '', R && R.kind === 'sl')}${I.tps.map((t, k) => row(I.tps.length > 1 ? `TP ${k + 1}` : 'TP', t, 'is-tp', `R:R ${rrOf(I, t).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}`, R && R.kind === 'tp' && k < R.tp)).join('')}</dl>`;
+  }
+  function ideaCard(p) {
+    const I = p.idea, st = stOf(p), R = I && I.result;
+    const side = I ? (I.side === 'sell' ? 'sell' : 'buy') : 'none';
+    const ups = p.updates || [], u = ups[ups.length - 1];
+    const staff = ROLE !== 'member';
+    return `<article class="ix-card is-${side}${st === 'inactive' ? ' is-off' : ''}${isNew(p) ? ' is-new' : ''}">
+      <button type="button" class="ix-card__open" data-post="${p.id}" aria-label="Voir l’Idea ${esc(p.title)}"></button>
+      <header class="ix-card__h">${avHtml(p, 'ix-av')}<span class="ix-who"><b>${esc(p.author || 'Équipe')}${tagHtml(p.authorTag)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
+        ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : `<span class="ix-st ix-st--${STATUS[st][1]}">${STATUS[st][0]}</span>`}</header>
+      ${I ? `<div class="ix-card__dir"><span class="ix-side">${side === 'sell' ? 'Vente' : 'Achat'}</span><b class="ix-pair">${esc(pairTxt(I.pair))}</b>${p.image ? `<span class="ix-hasimg" title="Graphique dans la fiche">${ICX.chart}</span>` : ''}</div>${levelsHtml(I, false)}`
+        : `<div class="ix-card__text"><b>${esc(p.title)}</b>${p.body ? `<p>${esc(String(p.body).slice(0, 160))}${String(p.body).length > 160 ? '…' : ''}</p>` : ''}</div>`}
+      ${R ? `<div class="ix-res ix-res--${resCls(R)}">${esc(resTxt(R) + pipsTxt(R))}</div>` : ''}
+      ${u ? `<div class="ix-up1"><span>${esc(String(u.body).replace(/\s+/g, ' ').slice(0, 110))}</span><small>${esc(shortWhen(u.createdAt))}${ups.length > 1 ? ` · ${ups.length} mises à jour` : ''}</small></div>` : ''}
+      <span class="ix-more">Voir plus <svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </article>`;
+  }
+  // Tableau : filtre éducateur, onglets, bilan du mois
+  function ideaAuthors(list) {
+    const m = new Map();
+    list.forEach((p) => { const k = p.chest ? 'chest' : String(p.authorId); if (!m.has(k)) m.set(k, p.chest ? 'CHEST' : p.author || 'Équipe'); });
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'fr'));
+  }
+  const byAuthor = (list) => (S.ideaAuthor ? list.filter((p) => (p.chest ? 'chest' : String(p.authorId)) === S.ideaAuthor) : list);
+  function recapHtml(list) {
+    const now = new Date(), mk = now.toISOString().slice(0, 7);
+    const month = list.filter((p) => (p.createdAt || '').slice(0, 7) === mk);
+    const closed = list.filter((p) => p.idea && p.idea.result && (p.idea.result.at || '').slice(0, 7) === mk);
+    const n = (k) => closed.filter((p) => p.idea.result.kind === k).length;
+    const tp = n('tp'), sl = n('sl'), be = n('be');
+    const pips = closed.reduce((s, p) => s + (Number(p.idea.result.pips) || 0), 0);
+    const rate = tp + sl ? Math.round(tp / (tp + sl) * 100) : null;
+    const cell = (v, l, cls) => `<div class="ix-recap__c ${cls || ''}"><b>${v}</b><span>${l}</span></div>`;
+    return `<div class="ix-recap" aria-label="Bilan du mois"><span class="ix-recap__k">${cap1(now.toLocaleDateString('fr-FR', { month: 'long' }))}</span>
+      ${cell(month.length, 'Idea partagées')}${cell(tp, 'TP', 'is-win')}${cell(sl, 'SL', 'is-loss')}${cell(be, 'BE')}${rate != null ? cell(rate + ' %', 'réussite', 'is-win') : ''}${pips ? cell(`${pips > 0 ? '+' : ''}${Math.round(pips).toLocaleString('fr-FR')}`, 'pips', pips > 0 ? 'is-win' : 'is-loss') : ''}</div>`;
+  }
+  function ideaBoard(title, add) {
+    const all = S.posts || [];
+    const authors = ideaAuthors(all);
+    if (S.ideaAuthor && !authors.some(([k]) => k === S.ideaAuthor)) S.ideaAuthor = '';
+    const mine = byAuthor(all);
+    const on = mine.filter((p) => stOf(p) !== 'inactive');
+    const tab = ['on', 'all', 'off'].includes(S.ideaTab) ? S.ideaTab : 'on';
+    const shown = tab === 'on' ? on : tab === 'off' ? mine.filter((p) => stOf(p) === 'inactive') : mine;
+    const tabs = [['on', 'Actives', on.length], ['all', 'Toutes', mine.length], ['off', 'Inactives', mine.length - on.length]];
+    return `<section class="ix" id="shIdeas" aria-labelledby="shFeedT">
+      <div class="ix__h"><span class="chest-step">Idea</span><h2 id="shFeedT">${title}</h2>${newBadge()}${add ? '<button type="button" class="chest-btn ix__add" data-compose="post">+ Nouvelle Idea</button>' : ''}</div>
+      <div class="ix__bar">
+        <label class="ix-find"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+          <select id="ixAuthor" aria-label="Éducateur"><option value="">Tous les éducateurs</option>${authors.map(([k, n]) => `<option value="${esc(k)}"${S.ideaAuthor === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+        <div class="ix-tabs" role="tablist" aria-label="Idea">${tabs.map(([k, l, n]) => `<button type="button" role="tab" data-idea-tab="${k}" aria-selected="${tab === k}" class="${tab === k ? 'is-on' : ''}"><i></i>${l} <small>${n}</small></button>`).join('')}</div>
+      </div>
+      ${recapHtml(mine)}
+      ${shown.length ? `<div class="ix-grid">${shown.map(ideaCard).join('')}</div>` : `<p class="sh-empty">${tab === 'off' ? 'Aucune Idea inactive.' : 'Pas d’Idea active pour l’instant. Les opportunités de l’équipe arrivent ici.'}</p>`}
     </section>`;
   }
-  const ideaTabs = (list) => {
-    const on = list.filter((p) => stOf(p) !== 'inactive').length, off = list.length - on;
-    return `<div class="chest-seg sh-seg sh-itabs" role="tablist" aria-label="Idea actives ou inactives">${[['on', 'Actives', on], ['off', 'Inactives', off]].map(([k, l, n]) => `<button type="button" role="tab" data-idea-tab="${k}" aria-selected="${S.ideaTab === k}" class="${S.ideaTab === k ? 'is-active' : ''}">${l} <small>${n}</small></button>`).join('')}</div>`;
-  };
-  function postsHtml(list, empty) {
-    const shown = list.filter((p) => (S.ideaTab === 'off') === (stOf(p) === 'inactive'));
-    return shown.length ? `<div class="sh-feed">${shown.map((p) => postCard(p)).join('')}</div>`
-      : `<p class="sh-empty">${S.ideaTab === 'off' ? 'Aucune Idea inactive pour l’instant.' : empty}</p>`;
-  }
   const newBadge = () => (S.newIds && S.newIds.size ? `<span class="sh-plus" aria-label="${S.newIds.size} nouvelle${S.newIds.size > 1 ? 's' : ''}">+${S.newIds.size}</span>` : '');
-  function feed2() {
-    const list = S.posts || [];
-    return `<section class="sh-feedsec" id="shIdeas" aria-labelledby="shFeedT"><div class="sh-feedsec__h"><span class="chest-step">Idea</span><h2 id="shFeedT">Les idées de l’équipe</h2>${newBadge()}${ideaTabs(list)}</div>
-      ${postsHtml(list, 'Pas d’Idea active pour l’instant. Les idées de trade de l’équipe arrivent ici.')}</section>`;
-  }
+  function feed2() { return ideaBoard('Les opportunités de l’équipe', false); }
+  function rerenderIdeas() { const sec = document.getElementById('shIdeas'); if (sec) sec.outerHTML = ROLE === 'member' ? feed2() : ideasHtml(); }
 
 
   // ---------------------------------------------------------------- suivi du membre (missions + notes)
@@ -737,10 +747,7 @@
       <span class="sh-go">Ses élèves ${ic('go')}</span></button>`).join('')}</div>`;
   }
 
-  function ideasHtml() {
-    return `<div class="sh-feedsec"><div class="sh-feedsec__h"><span class="chest-step">Idea publiées</span><h2>Les idées de l’équipe</h2>${newBadge()}${ideaTabs(S.posts || [])}<button type="button" class="chest-btn sh-feedsec__add" data-compose="post">+ Nouvelle Idea</button></div>
-      ${postsHtml(S.posts || [], 'Aucune Idea active. Une Idea apparaît dans School chez tous ceux que tu vises.')}</div>`;
-  }
+  function ideasHtml() { return ideaBoard('Les opportunités publiées', true); }
   // Missions : le suivi personnalisé (copiées chez chaque membre visé), à ne pas confondre avec les Idea
   function missionsHtml() {
     const M = S.missions;
@@ -823,22 +830,38 @@
       </div></div>`, true);
   }
 
+  // Fiche d'une Idea (« Voir plus ») : tout ce qui se copie, le graphique s'il y en a un, les mises à jour, et pour
+  // l'auteur : modèles de mise à jour en un clic, passage en inactive avec le résultat.
   function postDetail(p) {
     const can = ROLE === 'admin' || (ROLE === 'educator' && p.authorId === U.id);
     const src = p.image ? fileUrl(p.image) : '';
-    openDlg(`<div class="sh-detail sh-detail--post sh-pd sh-pd--${fmtOf(p)}">
-      ${src ? `<button type="button" class="sh-pd__media" data-post-zoom="${esc(src)}" aria-label="Voir l’image en grand"><img src="${esc(src)}" alt="${esc(p.title)}"><span class="sh-pd__zoom">${ic('expand')}Plein écran</span></button>` : ''}
-      <div class="sh-detail__main">
-        <div class="sh-detail__k"><span class="sh-st sh-st--${STATUS[stOf(p)][1]}">${STATUS[stOf(p)][0]}</span>${p.pinned ? `<span class="sh-badge">${ic('pin')}Épinglé</span>` : ''}${ROLE !== 'member' ? `<span class="sh-badge sh-badge--group">${esc(p.audienceLabel)}</span>` : ''}</div>
-        <h2>${esc(p.title)}</h2>
-        <p class="sh-detail__by">Par ${esc(p.author)}${tagHtml(p.authorTag)} · ${esc(ideaWhen(p.createdAt))}</p>
-        ${posHtml(p.idea, false)}
-        ${p.body ? `<div class="sh-read">${textToHtml(p.body)}</div>` : ''}
-        ${threadHtml(p, false)}
-        ${can ? `<div class="sh-stset"><span>Statut</span>${seg('ideaStatus', Object.entries(STATUS).map(([k, x]) => [k, x[0]]), stOf(p)).replace(/data-v="(\w+)"/g, `data-idea-status="$1" data-idea-id="${p.id}" data-v="$1"`)}</div>` : ''}
-        <div class="sh-acts"><button type="button" class="chest-btn-2" data-share-post="${p.id}">${ic('share')}Partager</button>${src ? `<a class="chest-btn-2" href="${esc(src)}" target="_blank" rel="noopener" download>${ic('image')}Image</a>` : ''}
-          ${can ? `<button type="button" class="chest-btn-2" data-edit-post="${p.id}">Modifier</button><button type="button" class="sh-link sh-link--red" data-del-post="${p.id}">Supprimer</button>` : ''}</div>
-      </div></div>`, false);
+    const I = p.idea, st = stOf(p), R = I && I.result, ups = (p.updates || []).slice().reverse();
+    const side = I ? (I.side === 'sell' ? 'sell' : 'buy') : 'none';
+    const d = I ? decOf(I) : 0;
+    const all = I ? [`${I.pair} · ${side === 'sell' ? 'VENTE' : 'ACHAT'}`, `PE ${fmtN(I.pe, d)}`, `SL ${fmtN(I.sl, d)}`, ...I.tps.map((t, k) => `TP${I.tps.length > 1 ? k + 1 : ''} ${fmtN(t, d)}`)].join('\n') : '';
+    const autoTitle = I && p.title === `${I.pair} · ${side === 'sell' ? 'Vente' : 'Achat'}`;
+    const fills = I ? ['🔒 Clôturez vos trades', ...I.tps.map((_, k) => `🎯 TP${I.tps.length > 1 ? k + 1 : ''} hit +__ pips`), '✅ SL au prix d’entrée (BE)'] : [];
+    const closer = I ? `<div class="ix-close" id="ixClose" hidden><span class="chest-step">Résultat de l’Idea</span>
+        <div class="ix-close__k">${I.tps.map((_, k) => `<button type="button" data-close-kind="tp:${k + 1}" class="${k === I.tps.length - 1 ? 'is-on' : ''}">TP ${k + 1}</button>`).join('')}<button type="button" data-close-kind="sl">SL</button><button type="button" data-close-kind="be">BE</button><button type="button" data-close-kind="close">Clôturée</button></div>
+        <label class="ix-close__p"><span>Pips <i>(facultatif)</i></span><input type="text" inputmode="decimal" id="ixPips" placeholder="+120"></label>
+        <button type="button" class="chest-btn" data-idea-close="${p.id}">Ranger dans les inactives</button></div>` : '';
+    openDlg(`<div class="ix-d is-${side}">
+      <header class="ix-card__h">${avHtml(p, 'ix-av')}<span class="ix-who"><b>${esc(p.author || 'Équipe')}${tagHtml(p.authorTag)}</b><small>${esc(ideaWhen(p.createdAt))}${ROLE !== 'member' ? ` · ${esc(p.audienceLabel)}` : ''}</small></span><span class="ix-st ix-st--${STATUS[st][1]}">${STATUS[st][0]}</span></header>
+      ${I ? `<div class="ix-card__dir ix-d__dir"><span class="ix-side">${side === 'sell' ? 'Vente' : 'Achat'}</span><b class="ix-pair">${esc(pairTxt(I.pair))}</b></div>${autoTitle ? '' : `<p class="ix-d__t">${esc(p.title)}</p>`}`
+        : `<h2 class="ix-d__h2">${esc(p.title)}</h2>`}
+      ${R ? `<div class="ix-res ix-res--${resCls(R)}">${esc(resTxt(R) + pipsTxt(R))}</div>` : ''}
+      ${I ? `${levelsHtml(I, true)}<button type="button" class="ix-copyall" data-copy-all="${esc(all)}">${ICX.copy}Copier toute la position</button>` : ''}
+      ${src ? `<button type="button" class="ix-d__chart" data-post-zoom="${esc(src)}" aria-label="Voir le graphique en grand"><img src="${esc(src)}" alt="Graphique de l’Idea" loading="lazy"><span>${ic('expand')}Agrandir</span></button>` : ''}
+      ${p.body ? `<div class="sh-read ix-d__body">${textToHtml(p.body)}</div>` : ''}
+      <section class="ix-ups" aria-label="Mises à jour"><div class="ix-ups__h"><span class="chest-step">Mises à jour</span>${ups.length ? `<small>${ups.length}</small>` : ''}</div>
+        ${ups.length ? `<ol>${ups.map((u) => `<li><p>${textToHtml(u.body)}</p><small>${esc(u.author)} · ${esc(shortWhen(u.createdAt))}${can && (ROLE === 'admin' || u.authorId === U.id) ? ` · <button type="button" class="ix-del" data-del-update="${u.id}" data-post-id="${p.id}">Retirer</button>` : ''}</small></li>`).join('')}</ol>`
+          : `<p class="ix-ups__none">${can ? 'Écris une mise à jour : elle s’affiche sur la carte et prévient ceux qui suivent l’Idea.' : 'Les mises à jour de l’éducateur s’afficheront ici.'}</p>`}
+        ${can && st !== 'inactive' ? `<div class="ix-fills">${fills.map((f) => `<button type="button" data-upd-fill="${esc(f)}">${esc(f.replace(' +__ pips', ''))}</button>`).join('')}</div>
+          <div class="sh-th__f ix-send"><textarea id="shUpd" rows="1" maxlength="2000" placeholder="🎯 TP1 hit +120 pips" aria-label="Nouvelle mise à jour" data-upd-for="${p.id}" enterkeyhint="send"></textarea><button type="button" class="sh-th__send" data-update-send="${p.id}" aria-label="Publier la mise à jour"><svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>` : ''}
+      </section>
+      ${can ? `<div class="ix-own">${st === 'inactive' ? `<button type="button" class="chest-btn-2" data-idea-status="encours" data-idea-id="${p.id}">Réactiver</button>` : I ? '<button type="button" class="chest-btn-2" data-open-close>Passer inactive…</button>' : `<button type="button" class="chest-btn-2" data-idea-status="inactive" data-idea-id="${p.id}">Passer inactive</button>`}
+        <button type="button" class="chest-btn-2" data-edit-post="${p.id}">Modifier</button><button type="button" class="sh-link sh-link--red" data-del-post="${p.id}">Supprimer</button></div>${st !== 'inactive' ? closer : ''}` : ''}
+    </div>`, false);
     dlg.classList.add('is-post');
     immersive(window.matchMedia('(max-width: 640px)').matches);
   }
@@ -881,11 +904,11 @@
     try { afterThread(await postJson(`/school/posts/${id}/updates`, { body, as }), id); toast('Mise à jour publiée.'); }
     catch (err) { toast(err.message); f.disabled = false; }
   }
-  async function setIdeaStatus(id, st) {
+  async function setIdeaStatus(id, st, result) {
     try {
-      const d = await postJson(`/school/posts/${id}/status`, { status: st });
+      const d = await postJson(`/school/posts/${id}/status`, { status: st, result: result || null });
       S.posts = d.posts;
-      toast(st === 'inactive' ? 'Idea rangée dans les Inactives.' : st === 'encours' ? 'Idea passée en cours.' : 'Idea en zone d’action.');
+      toast(st === 'inactive' ? 'Idea rangée dans les inactives, avec son résultat.' : 'Idea de nouveau active.');
       if (ROLE === 'member') renderMember(); else renderTab();
       const x = S.posts.find((p) => p.id === id); if (x) postDetail(x);
     } catch (e) { toast(e.message); }
@@ -905,7 +928,7 @@
   // « Tout le monde » (ou « Tous mes élèves ») vise le groupe entier ; « Membres », « Éducateurs », « Élèves » ouvrent la
   // liste pour cocher les personnes une à une (2026-11-08).
   function targetsFor(kind) {
-    if (ROLE === 'educator') return [['students', 'Tous mes élèves'], ['pickm', 'Élèves']];
+    if (ROLE === 'educator') return kind === 'post' ? [['all', 'Tout le monde'], ['students', 'Ma communauté'], ['pickm', 'Élèves']] : [['students', 'Tous mes élèves'], ['pickm', 'Élèves']];
     if (kind === 'task') return [['members', 'Tous les membres'], ['pickm', 'Membres']];
     return [['all', 'Tout le monde'], ['pickm', 'Membres'], ['picke', 'Éducateurs']];
   }
@@ -1022,7 +1045,7 @@
     const n = C.picked.length;
     const hint = n ? (k === 'post' ? `L’Idea apparaît dans School chez ${plural(n, 'personne', 'personnes')}.` : k === 'task' ? `Ajoutée aux missions de ${plural(n, 'membre', 'membres')} : chacun coche la sienne.` : `Posé dans le planning de ${plural(n, 'personne', 'personnes')}, déjà confirmé. Chacun est prévenu.`)
       : k === 'task' ? 'Copiée chez chaque membre visé ; chacun coche la sienne, tu vois l’avancement dans Missions.'
-      : k === 'event' ? 'Un seul rendez-vous, visible dans le planning de tous ceux que tu vises. Chacun est prévenu, puis rappelé 15 min avant.' : 'L’Idea apparaît dans School chez tous ceux que tu vises. Tu la passes en cours ou inactive depuis sa fiche.';
+      : k === 'event' ? 'Un seul rendez-vous, visible dans le planning de tous ceux que tu vises. Chacun est prévenu, puis rappelé 15 min avant.' : 'L’Idea apparaît dans School chez tous ceux que tu vises. Tu publies ses mises à jour et la passes inactive (avec son résultat) depuis sa fiche.';
     return `<div class="sh-comp">
       <header class="sh-comp__h"><span class="chest-step">${ROLE === 'admin' ? 'Admin' : 'Éducateur'}</span><h2>${title}</h2></header>
       ${ed ? '' : `<div class="sh-f sh-f--wide"><span>Quoi</span>${seg('kind', [['event', 'Appel'], ['task', 'Mission'], ['post', 'Idea']], k)}</div>`}
@@ -1104,6 +1127,19 @@
     if (du) {
       try { const d = await postJson(`/school/posts/${du.dataset.postId}/updates/${du.dataset.delUpdate}`, {}); afterThread(d, Number(du.dataset.postId)); toast('Message retiré.'); } catch (err) { toast(err.message); }
       return;
+    }
+    const cl = t.closest('[data-copy-lv],[data-copy-all]');
+    if (cl) { try { await navigator.clipboard.writeText(cl.dataset.copyLv || cl.dataset.copyAll); toast(cl.dataset.copyAll ? 'Position copiée.' : `${cl.dataset.copyLv} copié.`); } catch (err) { toast('Copie impossible sur cet appareil.'); } return; }
+    const uf = t.closest('[data-upd-fill]');
+    if (uf) { const f = document.getElementById('shUpd'); if (f) { f.value = uf.dataset.updFill; f.focus(); const k = f.value.indexOf('__'); if (k >= 0) f.setSelectionRange(k, k + 2); } return; }
+    if (t.closest('[data-open-close]')) { const c = document.getElementById('ixClose'); if (c) { c.hidden = false; c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return; }
+    const ck = t.closest('[data-close-kind]');
+    if (ck) { ck.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('is-on', b === ck)); return; }
+    const ic2 = t.closest('[data-idea-close]');
+    if (ic2) {
+      const on = document.querySelector('#ixClose [data-close-kind].is-on');
+      const [kind, tp] = (on ? on.dataset.closeKind : 'close').split(':');
+      return setIdeaStatus(Number(ic2.dataset.ideaClose), 'inactive', { kind, tp: Number(tp) || null, pips: (document.getElementById('ixPips') || {}).value || null });
     }
     const ist = t.closest('[data-idea-status]');
     if (ist) return setIdeaStatus(Number(ist.dataset.ideaId), ist.dataset.ideaStatus);
@@ -1248,7 +1284,7 @@
     const wk = t.closest('[data-week]');
     if (wk) { const d = Number(wk.dataset.week); S.wk2 = false; S.week = d === 0 ? mondayOf(new Date()) : new Date(S.week.getTime() + d * 7 * DAY); return reloadWeek(); }
     const ev = t.closest('[data-ev]'); if (ev) { const x = findEvent(ev.dataset.ev); if (x) eventDetail(x); return; }
-    const it = t.closest('[data-idea-tab]'); if (it) { S.ideaTab = it.dataset.ideaTab; if (ROLE === 'member') { const sec = document.getElementById('shIdeas'); if (sec) sec.outerHTML = feed2(); } else renderTab(); return; }
+    const it = t.closest('[data-idea-tab]'); if (it) { S.ideaTab = it.dataset.ideaTab; rerenderIdeas(); return; }
     const po = t.closest('[data-post]'); if (po) { const x = S.posts.find((p) => p.id === Number(po.dataset.post)); if (x) postDetail(x); return; }
     const nr = t.closest('[data-note-read]'); if (nr) { const x = S.mentor && S.mentor.notes.find((n) => n.id === Number(nr.dataset.noteRead)); if (x) noteDetail(x); return; }
     const cp = t.closest('[data-compose]'); if (cp) return openComposer(cp.dataset.compose);
@@ -1320,6 +1356,7 @@
   window.matchMedia('(max-width: 640px)').addEventListener('change', () => { const box = document.getElementById('shPanel'); if (box && box.querySelector('.sh-cal')) { box.innerHTML = weekHtml(); scrollCal(); } });
   root.addEventListener('change', (e) => {
     if (e.target.id === 'shWho') { S.member = e.target.value || null; reloadWeek(); }
+    if (e.target.id === 'ixAuthor') { S.ideaAuthor = e.target.value; rerenderIdeas(); }
     if (e.target.dataset.staffPick) setColor(Number(e.target.dataset.staffPick), e.target.value);
   });
   async function setColor(id, color) {

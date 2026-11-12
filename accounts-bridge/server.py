@@ -3318,10 +3318,13 @@ def _school_visible(row, user):
     return aud in ("all", "members") or (aud == "students" and _col(user, "referred_by") in scope)
 
 
-def _school_target(user, b):
-    """(audience, scope) demandés, ramenés à ce que l'auteur a le droit de viser."""
+def _school_target(user, b, allow_all=False):
+    """(audience, scope) demandés, ramenés à ce que l'auteur a le droit de viser. allow_all : un éducateur peut viser
+    tout le monde (IDEA partagées à toute la communauté CHEST, 2026-11-12)."""
     picked = sorted({int(x) for x in (b.get("scope") or []) if str(x).isdigit()})
     if not user["is_admin"]:
+        if allow_all and b.get("audience") == "all":
+            return "all", []
         if b.get("audience") == "people":
             mine = sorted(set(picked) & _students_of(user["id"]))
             return ("people", mine) if mine else (None, None)
@@ -3735,15 +3738,33 @@ def school_post_status(pid):
     user, err = _school_writer()
     if err:
         return err
-    st = str((request.get_json(silent=True) or {}).get("status") or "")
+    b = request.get_json(silent=True) or {}
+    st = str(b.get("status") or "")
     if st not in IDEA_STATUS:
         return jsonify({"error": "Statut inconnu."}), 400
     db = get_db()
     r = db.execute("SELECT * FROM school_posts WHERE id = ?", (pid,)).fetchone()
     if not r or not (user["is_admin"] or r["author_id"] == user["id"]):
         return jsonify({"error": "IDEA introuvable."}), 404
+    now = datetime.now(timezone.utc).isoformat()
+    idea = json.loads(r["idea"]) if r["idea"] else None
+    if idea is not None:
+        res = b.get("result") if isinstance(b.get("result"), dict) else None
+        if st == "inactive" and res:
+            kind = res.get("kind") if res.get("kind") in ("tp", "sl", "be", "close") else "close"
+            out = {"kind": kind, "at": now}
+            if kind == "tp":
+                out["tp"] = max(1, min(len(idea.get("tps") or [1]), int(res.get("tp") or 1)))
+            try:
+                if res.get("pips") not in (None, ""):
+                    out["pips"] = round(float(str(res["pips"]).replace(",", ".")), 1)
+            except ValueError:
+                pass
+            idea["result"] = out
+        elif st != "inactive":
+            idea.pop("result", None)
     with db_lock:
-        db.execute("UPDATE school_posts SET status = ?, updated_at = ? WHERE id = ?", (st, datetime.now(timezone.utc).isoformat(), pid))
+        db.execute("UPDATE school_posts SET status = ?, idea = ?, updated_at = ? WHERE id = ?", (st, json.dumps(idea) if idea is not None else r["idea"], now, pid))
         db.commit()
     return school_posts()
 
@@ -3837,7 +3858,7 @@ def school_post_save():
         title = f"{idea['pair']} · {'Vente' if idea['side'] == 'sell' else 'Achat'}"
     if not title:
         return jsonify({"error": "Donne un titre à l'IDEA."}), 400
-    aud, scope = _school_target(user, b)
+    aud, scope = _school_target(user, b, allow_all=True)
     if not aud:
         return jsonify({"error": "Choisis au moins une personne."}), 400
     up = save_upload("image", "post")
@@ -3855,6 +3876,9 @@ def school_post_save():
             if not r or not (user["is_admin"] or r["author_id"] == user["id"]):
                 return jsonify({"error": "Info introuvable."}), 404
             image = r["image"]
+            old = json.loads(r["idea"]) if r["idea"] else None
+            if idea and old and old.get("result"):
+                idea_js = json.dumps(dict(idea, result=old["result"]))
             if up or b.get("removeImage"):
                 delete_file(json.loads(image) if image else None)
                 image = json.dumps(up) if up else None
