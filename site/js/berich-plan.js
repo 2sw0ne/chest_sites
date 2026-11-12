@@ -19,6 +19,16 @@
     return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   }
   const round = (v, d) => Math.round(v * 10 ** d) / 10 ** d;
+  // Lot minimum (2026-11-12, retour patron : « avec un compte de 1 000 il ne doit pas me proposer ça, les SL font
+  // au moins 2 000 ticks ») : sur l'or, 0,01 lot = 1 $ par dollar de mouvement. Risquer x % d'un capital C avec un SL
+  // de d $ = floor(C·x/100 ÷ d) pas de 0,01 lot, au moins un : le risque réel ne descend jamais sous d / C.
+  // sl = distance du SL de la position en $ (estimée sur l'historique M15, voir /market/sl-estimate), sinon la médiane.
+  function effRisk(risk, capAbs, sl) {
+    if (!sl || !(capAbs > 0) || !(risk > 0)) return risk;
+    const steps = Math.max(1, Math.floor(capAbs * risk / 100 / sl));
+    return steps * sl / capAbs * 100;
+  }
+  const minRiskOf = (capital, slMed) => (slMed && capital > 0 ? slMed / capital * 100 : 0);
   const pct = (arr, q) => { const a = Float64Array.from(arr).sort(); return a[Math.min(a.length - 1, Math.max(0, Math.round(q * (a.length - 1))))]; };
 
   // trades : [{ t: ouverture ms, c: clôture ms, side, r }] → statistiques d'un algorithme.
@@ -28,7 +38,9 @@
     const span = n > 1 ? Math.max(1, (list[n - 1].c - list[0].t) / MONTH) : 1;
     let wins = 0, losses = 0, sumW = 0, worst = 0, run = 0, total = 0, gl = 0;
     list.forEach((x) => { total += x.r; if (x.r > 0) { wins++; sumW += x.r; } if (x.r < 0) { losses++; gl -= x.r; run++; worst = Math.max(worst, run); } else run = 0; });
-    return { key, name, list, n, months: span, perMonth: n / span, wins, losses, winrate: wins + losses ? wins / (wins + losses) : 0,
+    const sls = list.map((x) => x.sl).filter((v) => v > 0).sort((a, b) => a - b);
+    const slMed = sls.length ? sls[Math.floor(sls.length / 2)] : null;
+    return { key, name, list, n, months: span, perMonth: n / span, wins, losses, winrate: wins + losses ? wins / (wins + losses) : 0, slMed,
       avgWin: wins ? sumW / wins : 0, total, expectancy: n ? total / n : 0, pf: gl ? sumW / gl : null, worstStreak: worst,
       from: n ? list[0].t : null, to: n ? list[n - 1].c : null };
   }
@@ -41,10 +53,10 @@
   // où tous ont un historique, découpée en semaines.
   const feedCache = new Map();
   function feed(preps) {
-    const key = preps.map((p) => p.key + ':' + p.n).join('|');
+    const key = preps.map((p) => p.key + ':' + p.n + ':' + (p.slMed || 0)).join('|');
     if (feedCache.has(key)) return feedCache.get(key);
     const all = [];
-    preps.forEach((p, k) => p.list.forEach((x) => all.push({ k, r: x.r, c: x.c })));
+    preps.forEach((p, k) => p.list.forEach((x) => all.push({ k, r: x.r, c: x.c, sl: x.sl > 0 ? x.sl : p.slMed || 0 })));
     all.sort((a, b) => a.c - b.c);
     const lo = Math.max(...preps.map((p) => p.from)), hi = Math.min(...preps.map((p) => p.to));
     const win = all.filter((e) => e.c >= lo && e.c <= hi);
@@ -53,7 +65,7 @@
     let j = 0;
     for (let w = 0; w < W; w++) { starts[w] = j; while (j < win.length && win[j].c < lo + (w + 1) * WEEK) j++; }
     starts[W] = win.length;
-    const f = { all, R: Float64Array.from(win.map((e) => e.r)), K: Int8Array.from(win.map((e) => e.k)), starts, W, legs: preps.length };
+    const f = { all, R: Float64Array.from(win.map((e) => e.r)), K: Int8Array.from(win.map((e) => e.k)), S: Float64Array.from(win.map((e) => e.sl)), starts, W, legs: preps.length };
     feedCache.set(key, f);
     return f;
   }
@@ -79,7 +91,7 @@
     f.all.forEach((e) => {
       const d = new Date(e.c).toISOString().slice(0, 10);
       if (d !== day) { day = d; dayStart = cap; }
-      cap *= 1 + riskAt(cfgs[e.k], streak[e.k]) / 100 * e.r;
+      cap *= 1 + effRisk(riskAt(cfgs[e.k], streak[e.k]), cap, e.sl) / 100 * e.r;
       streak[e.k] = e.r < 0 ? streak[e.k] + 1 : 0;
       peak = Math.max(peak, cap); dd = Math.max(dd, (peak - cap) / peak);
       worstDay = Math.max(worstDay, (dayStart - cap) / dayStart);
@@ -96,7 +108,7 @@
     const grid = withFan ? marks.map(() => new Float64Array(SIMS)) : null;
     const finals = new Float64Array(SIMS), dds = new Float64Array(SIMS);
     const base = cfgs.map((c) => c.risk), after = cfgs.map((c) => c.afterSl), low = cfgs.map((c) => c.newRisk);
-    const streak = new Int32Array(L);
+    const streak = new Int32Array(L), c0 = goal.capital;
     let reach = 0, breach = 0, hitWeeks = 0;
     for (let s = 0; s < SIMS; s++) {
       let cap = 1, peak = 1, state = 0, dd = 0, mk = 0;
@@ -105,7 +117,8 @@
         const w = idx[s * H + h];
         for (let j = f.starts[w], e = f.starts[w + 1]; j < e; j++) {
           const k = f.K[j], r = f.R[j];
-          cap *= 1 + (after[k] && streak[k] >= after[k] ? low[k] : base[k]) / 100 * r;
+          const rk = after[k] && streak[k] >= after[k] ? low[k] : base[k];
+          cap *= 1 + (f.S[j] ? effRisk(rk, cap * c0, f.S[j]) : rk) / 100 * r;
           streak[k] = r < 0 ? streak[k] + 1 : 0;
           if (cap > peak) peak = cap;
           const d = (peak - cap) / peak;
@@ -127,7 +140,7 @@
   // Contraintes dures : compte perso → recul historique ≤ tolérance (+10 %) ; propfirm → recul historique ≤ 80 % de la
   // perte max et pire journée ≤ 4 % (règle des 5 % avec marge).
   function allowed(preps, cfgs, goal) {
-    const h = replay(preps, cfgs, 1000);
+    const h = replay(preps, cfgs, goal.capital);
     if (goal.account === 'propfirm') return h.maxDd <= goal.tolerance * 0.8 && h.worstDay <= 0.04 ? h : null;
     return h.maxDd <= goal.tolerance * 1.1 ? h : null;
   }
@@ -142,8 +155,11 @@
   }
   function singles(p, goal) {
     const out = [];
-    RISKS.forEach((risk) => TIERS.forEach((tier) => {
+    const min = minRiskOf(goal.capital, p.slMed);
+    const risks = min ? [round(min, 2)].concat(RISKS.filter((r) => r > min * 1.05)) : RISKS;
+    risks.forEach((risk) => TIERS.forEach((tier) => {
       if (goal.account === 'propfirm' && risk > 3) return;
+      if (tier && min && risk * tier[1] < min) return; // palier réduit impossible sous le lot minimum
       const c = candidate([p], [cfgOf(risk, tier)], goal);
       if (c) out.push(c);
     }));
@@ -181,13 +197,24 @@
     }
     const pool = goal.algo && goal.algo !== 'auto' ? per.get(goal.algo) || [] : [].concat(...per.values(), mix);
     let best = pickBest(pool);
-    if (!best) return { best: null, goal };
+    if (!best) {
+      // Rien ne tient le recul accepté (souvent : capital trop petit pour le SL, le lot minimum impose un gros risque).
+      // On montre quand même le réglage le moins risqué possible, signalé « forcé », plutôt que rien.
+      const p = goal.algo && goal.algo !== 'auto' ? preps.find((x) => x.key === goal.algo) || preps[0] : preps[0];
+      const risk = round(Math.max(RISKS[0], minRiskOf(goal.capital, p.slMed)), 2), cfg = cfgOf(risk, null);
+      best = Object.assign(evaluate([p], [cfg], goal), { hist: replay([p], [cfg], goal.capital), legs: [{ algo: p.key, cfg }], total: risk, forced: true });
+      const minRisk = minRiskOf(goal.capital, p.slMed);
+      const hints = [{ label: `avec plus de capital (au moins ${fmt(minRisk)} par position à ${goal.capital.toLocaleString('fr-FR')} € avec ce SL)`, goal: Object.assign({}, goal, { capital: Math.round(goal.capital * 2) }) }];
+      return { best, prudent: null, bold: null, others: [], hints, solo: null, goal, minRisk, forced: true, allNegative: best.p50 < goal.capital };
+    }
     // Diversifier est la demande par défaut : à 2 points près, le mélange passe devant un algorithme seul.
     const bestMix = pickBest(mix);
     if (bestMix && best.legs.length === 1 && bestMix.pReach >= best.pReach - 0.02) best = bestMix;
     const sameShape = pool.filter((x) => x.legs.length === best.legs.length && x.legs.every((l, i) => l.algo === best.legs[i].algo));
-    const prudent = pickBest(sameShape.filter((x) => x.total <= best.total / 2 + 1e-9));
-    const bold = sameShape.filter((x) => x.total > best.total && x.pReach >= best.pReach - 0.12).sort((a, b) => b.p50 - a.p50)[0] || null;
+    // Trois propositions vraiment différentes (2026-11-12) : prudente ≤ 60 % du risque conseillé, ambitieuse ≥ 140 %
+    // (jamais trois fois la même chose ; si tout est négatif, on les montre quand même, c'est dit dans la page).
+    const prudent = pickBest(sameShape.filter((x) => x.total <= best.total * 0.6 + 1e-9)) || null;
+    const bold = sameShape.filter((x) => x.total >= best.total * 1.4 - 1e-9).sort((a, b) => b.p50 - a.p50 || a.pBreach - b.pBreach)[0] || null;
     const others = [];
     if (best.legs.length > 1) preps.forEach((p) => { const s = bestSingle.get(p.key); if (s) others.push(Object.assign(s, { tag: 'only' })); });
     else {
@@ -211,7 +238,9 @@
       const t = [0.15, 0.25, 0.35, 0.5].find((x) => x > goal.tolerance + 1e-9);
       if (goal.account !== 'propfirm' && t) hints.push({ label: 'en acceptant des creux plus marqués', goal: Object.assign({}, goal, { tolerance: t }) });
     }
-    return { best, prudent, bold, others, hints, solo, goal };
+    const minRisk = Math.max(0, ...preps.map((p) => minRiskOf(goal.capital, p.slMed)));
+    if (minRisk > 1.5) hints.push({ label: `avec plus de capital (le SL moyen impose au moins ${fmt(minRisk)} par position à ${goal.capital.toLocaleString('fr-FR')} €)`, goal: Object.assign({}, goal, { capital: Math.round(goal.capital * 2) }) });
+    return { best, prudent, bold, others, hints, solo, goal, minRisk, allNegative: best.p50 < goal.capital };
   }
 
   const fmt = (v) => String(round(v, 2)).replace('.', ',') + ' %';
@@ -223,5 +252,5 @@
     return legs.map((l) => `${names ? names(l.algo) : l.algo} ${fmt(l.cfg.risk)}`).join(' + ') + (legs.some((l) => l.cfg.afterSl) ? ', réduit après une série de stops' : '');
   }
 
-  window.CHESTBerichPlan = { prep, replay, evaluate, recommend, describe, describeCfg, cfgOf, riskAt, RISKS };
+  window.CHESTBerichPlan = { prep, replay, evaluate, recommend, describe, describeCfg, cfgOf, riskAt, RISKS, effRisk, minRiskOf };
 })();

@@ -5735,6 +5735,76 @@ def _scanner_call(path, method="GET", body=None):
         return json.loads(resp.read().decode("utf-8"))
 
 
+# ---------------- Taille des SL d'un historique de positions (2026-11-12) ----------------
+# Pour qu'aucun plan ne propose un risque impossible (lot minimum 0,01 = 1 $ par dollar de mouvement de l'or, donc
+# 0,01 $ par tick de 0,01) : on retrouve le prix à l'ouverture et à la clôture de chaque position dans l'historique M15
+# (scanner-server /history, gardé sur disque), puis distance du SL = |clôture − ouverture| pour un SL, ÷ R pour un TP.
+# shift = heures à ajouter aux horaires (BERICH : +6 h). Résultat : médiane, quartiles et la distance de chaque position.
+_SL_CACHE = {}
+
+
+def _sl_estimate(symbol, trades, shift_h):
+    key = hashlib.sha256(json.dumps([symbol, shift_h, trades], sort_keys=True).encode()).hexdigest()
+    if key in _SL_CACHE:
+        return _SL_CACHE[key]
+    sh = int(shift_h * 3600000)
+    times = [t["t"] + sh for t in trades] + [t["c"] + sh for t in trades]
+    d = _scanner_call("/history?" + urllib.parse.urlencode({"symbol": symbol, "tf": "15", "from": min(times) - 900000, "to": max(times) + 900000})) or {}
+    bars = d.get("bars") or []
+    if not bars:
+        raise RuntimeError("historique indisponible")
+    starts = [b[0] for b in bars]
+    import bisect
+
+    def bar_at(ms):
+        i = bisect.bisect_right(starts, ms) - 1
+        return bars[i] if 0 <= i < len(bars) and ms - bars[i][0] < 3 * 3600000 else None
+
+    per = []
+    for t in trades:
+        bo, bc = bar_at(t["t"] + sh), bar_at(t["c"] + sh)
+        res, r = str(t.get("result") or "").upper(), t.get("r")
+        dist = None
+        if bo and bc:
+            move = abs(bc[4] - bo[1])
+            if res == "SL" or (r is not None and r <= -0.5):
+                dist = move / max(1.0, abs(r or 1))
+            elif r is not None and r >= 0.5:
+                dist = move / r
+        per.append(round(dist, 2) if dist and dist > 0 else None)
+    vals = sorted(v for v in per if v)
+    if not vals:
+        raise RuntimeError("aucune position exploitable")
+    q = lambda f: vals[min(len(vals) - 1, int(f * (len(vals) - 1) + 0.5))]
+    out = {"symbol": symbol, "n": len(vals), "median": q(0.5), "p25": q(0.25), "p75": q(0.75), "min": vals[0], "per": per}
+    _SL_CACHE[key] = out
+    return out
+
+
+@app.route("/market/sl-estimate", methods=["POST"])
+def market_sl_estimate():
+    """{symbol, shift, trades:[{t, c, result, r}]} → taille des SL estimée (en $ de mouvement, et en ticks de 0,01)."""
+    if not approved_user():
+        return jsonify({"error": "Non connecté."}), 401
+    b = request.get_json(silent=True) or {}
+    symbol = re.sub(r"[^A-Z]", "", str(b.get("symbol") or "XAUUSD").upper())[:6] or "XAUUSD"
+    try:
+        shift = max(-24.0, min(24.0, float(b.get("shift") or 0)))
+        trades = [{"t": int(x["t"]), "c": int(x.get("c") or x["t"]), "result": str(x.get("result") or "")[:4],
+                   "r": (float(x["r"]) if x.get("r") not in (None, "") else None)} for x in (b.get("trades") or [])[:3000]]
+    except (TypeError, ValueError, KeyError):
+        return jsonify({"error": "Positions invalides."}), 400
+    trades = [t for t in trades if t["t"] > 1262304000000]
+    if len(trades) < 5:
+        return jsonify({"error": "Pas assez de positions datées pour estimer les SL."}), 400
+    try:
+        out = _sl_estimate(symbol, trades, shift)
+    except Exception as e:
+        return jsonify({"error": f"Estimation impossible : {e}"}), 503
+    tick = 0.01 if symbol.startswith("XAU") else (0.001 if symbol.endswith("JPY") else 0.00001)
+    return jsonify({**out, "tick": tick, "medianTicks": round(out["median"] / tick)})
+
+
 _BERICH_BARS = {"at": 0, "body": None}
 
 

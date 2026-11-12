@@ -157,6 +157,7 @@
   .pd-mm .mm--split{ flex-direction:row; flex-wrap:wrap; gap:14px 30px; }
   .auto-min{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:0 0 10px; font-size:12.5px; color:var(--muted); }
   .auto-min .field{ width:84px; height:34px; }
+  .auto-sl-hint{ flex-basis:100%; font-size:11.5px; color:var(--muted); opacity:.85; }
   .auto-min__pct{ color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
   .auto-split{ margin:0 0 10px; }
   .auto-split__row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -357,7 +358,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
         </div>
         <div class="mm-auto" data-account="cp" style="display:none">
           <p class="hint" style="margin:0 0 10px">Trois réglages aux objectifs différents (croissance, meilleur ratio, prudent), calculés tout seuls sur ton historique. Ils tiennent compte des bonus de ton fichier, des sessions, des jours et des heures, mais seulement quand l'effet est net et se répète — jamais sur un petit échantillon.</p>
-          <div class="auto-min" data-account="cp"><span>Plus petit risque réalisable</span><input type="number" class="field auto-min-usd" min="0.5" step="0.5" value="5" aria-label="Plus petit risque réalisable en dollars"><span>$ par trade</span><b class="auto-min__pct"></b></div>
+          <div class="auto-min" data-account="cp"><span>SL moyen de tes positions</span><input type="number" class="field auto-min-usd" min="50" step="50" value="2000" aria-label="Distance moyenne de tes SL, en ticks"><span>ticks</span><b class="auto-min__pct"></b><small class="auto-sl-hint"></small></div>
           <div class="auto-split" data-account="cp"><div class="auto-split__row"><span class="auto-split__chip"></span><span class="si-wrap"><button type="button" class="btn btn-ghost si-btn auto-si">+ Si</button></span></div><div class="auto-split__hint"></div></div>
           <div class="auto-result" data-account="cp" style="display:none"></div>
         </div>
@@ -384,7 +385,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
           </div>
           <div class="mm-auto" data-account="pf" style="display:none">
             <p class="hint" style="margin:0 0 10px">Trois réglages aux objectifs différents (régularité, performance pure, sécurité), toujours dans les limites propfirm : jamais plus de 5% de drawdown journalier ni 10% de drawdown max. Nécessite les heures de clôture pour un résultat fiable.</p>
-            <div class="auto-min" data-account="pf"><span>Plus petit risque réalisable</span><input type="number" class="field auto-min-usd" min="0.5" step="0.5" value="5" aria-label="Plus petit risque réalisable en dollars"><span>$ par trade</span><b class="auto-min__pct"></b></div>
+            <div class="auto-min" data-account="pf"><span>SL moyen de tes positions</span><input type="number" class="field auto-min-usd" min="50" step="50" value="2000" aria-label="Distance moyenne de tes SL, en ticks"><span>ticks</span><b class="auto-min__pct"></b><small class="auto-sl-hint"></small></div>
           <div class="auto-split" data-account="pf"><div class="auto-split__row"><span class="auto-split__chip"></span><span class="si-wrap"><button type="button" class="btn btn-ghost si-btn auto-si">+ Si</button></span></div><div class="auto-split__hint"></div></div>
           <div class="auto-result" data-account="pf" style="display:none"></div>
           </div>
@@ -417,7 +418,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/lot-calculator.js?v=11"></script>
 <script src="js/liquid-glass.js?v=3"></script>
 <script src="js/backtest-store.js?v=3"></script>
-<script src="js/backtest-engine.js?v=21"></script>
+<script src="js/backtest-engine.js?v=22"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js?v=3"></script>
 <script src="js/page-tour.js?v=3"></script>
@@ -473,6 +474,7 @@ CHESTTour.init([
     try {
       const { trades, errors, hasHeader, optionalColumnsFound, extraLabels } = await window.CHESTXlsxImport.parseXlsxFile(file);
       parsedTrades = trades;
+      estimateSl(trades);
       if (!trades.length) {
         importResult.textContent = "Aucune ligne exploitable trouvée dans ce fichier.";
         importResult.className = 'import-result err';
@@ -667,7 +669,11 @@ CHESTTour.init([
   const autoToken = { cp: 0, pf: 0 };
   // Plus petit risque réalisable : un lot de 0,01 ne descend pas sous un certain montant (ex. 0,012 % de 10 000 $ = 1,2 $
   // est irréalisable). Aucun risque, palier ou règle n'ira en dessous ; la pause (0 %) reste possible.
-  const minUsd = () => Math.max(0.5, Number(document.querySelector('.auto-min-usd').value) || 5);
+  // 2026-11-12 : le plus petit risque réalisable vient de la taille des SL (lot minimum 0,01 = 0,01 $ par tick de 0,01
+  // sur l'or et les grandes paires) : SL moyen en ticks × 0,01 $. Estimé tout seul à l'import quand les positions ont
+  // leurs horaires (prix de l'or retrouvé à l'ouverture et à la clôture), sinon à remplir par le membre.
+  const TICK_USD = 0.01;
+  const minUsd = () => Math.max(0.5, (Number(document.querySelector('.auto-min-usd').value) || 2000) * TICK_USD);
   const capitalNow = () => Number(document.getElementById('btCapital').value) || 10000;
   // Capital propre à la propfirm (2026-10-02) : seulement si la flèche du champ capital l'a ouvert.
   const pfCapitalOpen = () => document.getElementById('btCapitalToggle').getAttribute('aria-expanded') === 'true';
@@ -679,10 +685,29 @@ CHESTTour.init([
     document.querySelectorAll('.auto-min').forEach((box) => {
       const acc = box.dataset.account || 'cp';
       const el = box.querySelector('.auto-min__pct');
-      if (el) el.textContent = `= ${fr(minRiskPct(acc), 3).replace(/,?0+$/, '')} % de ${Math.round(capitalFor(acc)).toLocaleString('fr-FR')} $`;
+      if (el) el.textContent = `= ${fr(minUsd(), 2).replace(/,?0+$/, '')} $ au lot minimum, soit au moins ${fr(minRiskPct(acc), 3).replace(/,?0+$/, '')} % de ${Math.round(capitalFor(acc)).toLocaleString('fr-FR')} $`;
     });
   }
-  function setMinUsd(v) { document.querySelectorAll('.auto-min-usd').forEach((el) => { el.value = v; }); paintMin(); }
+  function setMinUsd(v) { setSlTicks(Math.round(v / TICK_USD)); }
+  function setSlTicks(t, hint) {
+    document.querySelectorAll('.auto-min-usd').forEach((el) => { el.value = t; });
+    if (hint != null) document.querySelectorAll('.auto-sl-hint').forEach((el) => { el.textContent = hint; });
+    paintMin();
+  }
+  // Estimation à l'import : POST /market/sl-estimate (horaires d'ouverture / clôture + résultat + R de chaque position)
+  async function estimateSl(trades) {
+    const list = (trades || []).map((t) => ({ t: Date.parse(t.open || t.date), c: Date.parse(t.close || t.open || t.date), result: String(t.result || ''), r: Number(t.rr) }))
+      .filter((x) => x.t > 0 && x.c > x.t && Number.isFinite(x.r)).slice(-600);
+    if (list.length < 5 || !window.CHESTAccounts) { setSlTicks(document.querySelector('.auto-min-usd').value, 'Indique la distance moyenne de tes SL (en ticks : 2 000 ticks = 20 $ sur l’or).'); return; }
+    setSlTicks(document.querySelector('.auto-min-usd').value, 'Estimation de tes SL sur l’historique de l’or…');
+    try {
+      const res = await fetch(CHESTAccounts.apiBase() + '/market/sl-estimate', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + CHESTAccounts.getToken() }, body: JSON.stringify({ symbol: 'XAUUSD', shift: 0, trades: list }) });
+      const d = await res.json();
+      if (!res.ok || !d.medianTicks) throw new Error(d.error || '');
+      setSlTicks(d.medianTicks, `Estimé sur ${d.n} positions (prix de l’or à l’ouverture et à la clôture). Corrige-le si besoin.`);
+      clearTimeout(capTimer); capTimer = setTimeout(runAutoAll, 300);
+    } catch (e) { setSlTicks(document.querySelector('.auto-min-usd').value, 'Estimation impossible : indique la distance moyenne de tes SL (en ticks).'); }
+  }
   // « + Si » du mode Automatique : bonus imposé, chaque valeur reçoit son propre money management.
   const autoSplit = { cp: null, pf: null };
   function paintSplit(account) {

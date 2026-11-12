@@ -175,6 +175,38 @@ async function getCandles(code, tf, source, wantBar) {
   return out;
 }
 
+// ---------------- Historique long (2026-11-12) : estimer la taille des SL des positions passées ----------------
+// Bougies M15 d'une période passée, lues une fois chez Twelve Data par tranches de 45 jours puis gardées sur le disque
+// (le passé ne change pas). Sert à retrouver le prix de l'or à l'ouverture et à la clôture de chaque position.
+const HIST_DIR = join(dirname(SIGNALS_FILE), "hist");
+const CHUNK_DAYS = 45, DAY_MS = 86400000;
+async function histChunk(code, tf, startMs) {
+  const file = join(HIST_DIR, `${code}_${tf}_${startMs}.json`);
+  const endMs = startMs + CHUNK_DAYS * DAY_MS;
+  if (existsSync(file)) {
+    try { const d = JSON.parse(readFileSync(file, "utf8")); if (d.complete || Date.now() - d.at < 6 * 3600000) return d.bars; } catch (e) { /* relu */ }
+  }
+  if (!TD_KEY) throw new Error("clé de bougies non configurée");
+  if (creditsRemaining("view") <= 0) throw new Error("budget Twelve Data du jour atteint");
+  spendCredit("view");
+  const day = (ms) => new Date(ms).toISOString().slice(0, 19).replace("T", " ");
+  const qs = new URLSearchParams({ symbol: toTdSymbol(code), interval: TF_INTERVAL[tf], start_date: day(startMs), end_date: day(Math.min(endMs, Date.now())), outputsize: "5000", timezone: "UTC", apikey: TD_KEY });
+  const res = await fetch(`https://api.twelvedata.com/time_series?${qs}`);
+  const json = await res.json();
+  const bars = Array.isArray(json.values)
+    ? json.values.map((v) => [Date.parse(v.datetime.replace(" ", "T") + "Z"), +v.open, +v.high, +v.low, +v.close]).sort((a, b) => a[0] - b[0])
+    : [];
+  if (!res.ok || (json.status === "error" && !/No data/i.test(json.message || ""))) throw new Error("historique indisponible");
+  try { mkdirSync(HIST_DIR, { recursive: true }); writeFileSync(file, JSON.stringify({ at: Date.now(), complete: endMs < Date.now() - DAY_MS, bars })); } catch (e) { /* volume absent en local */ }
+  return bars;
+}
+async function history(code, tf, from, to) {
+  const first = Math.floor(from / (CHUNK_DAYS * DAY_MS)) * CHUNK_DAYS * DAY_MS;
+  const out = [];
+  for (let s = first; s <= to; s += CHUNK_DAYS * DAY_MS) out.push(...await histChunk(code, tf, s));
+  return out.filter((b) => b[0] >= from - TF_MS[tf] && b[0] <= to);
+}
+
 // ---------------- Volet « Force du marché » de Pulse (board.mjs) : 3e compte Twelve Data, budget à part ----------------
 const BOARD = createBoard({
   file: join(dirname(SIGNALS_FILE), "board.json"),
@@ -494,6 +526,16 @@ createServer(async (req, res) => {
       const trades = SIGNALS.filter((s) => s.scanner === name && s.levels).sort((a, b) => b.time - a.time).slice(0, limit)
         .map(({ id, seenAt, ...rest }) => rest);
       return send(200, { trades });
+    }
+
+    // Historique long d'une paire (interne) : estimation de la taille des SL
+    if (url.pathname === "/history" && req.method === "GET") {
+      if (!isInternal(req)) return send(401, { error: "non autorisé" });
+      const code = (url.searchParams.get("symbol") || "XAUUSD").toUpperCase();
+      const tf = url.searchParams.get("tf") || "15";
+      const from = Number(url.searchParams.get("from")), to = Number(url.searchParams.get("to"));
+      if (!validCode(code) || !TF_INTERVAL[tf] || !(from > 0) || !(to > from) || to - from > 3 * 366 * DAY_MS) return send(400, { error: "paramètres invalides" });
+      try { return send(200, { bars: await history(code, tf, from, to) }); } catch (e) { return send(503, { error: e.message }); }
     }
 
     // Combos à suivre en permanence (paires et unités de temps des règles de notification)

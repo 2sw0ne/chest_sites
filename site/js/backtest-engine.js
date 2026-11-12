@@ -613,6 +613,13 @@
         score: (m) => m.avgM * m.posM },
     ],
   };
+  // Réglage applicable (2026-11-12, retour patron) : un money management qui met en pause plus de la moitié des trades
+  // (ex. « arrêt après 1 SL » : 3 trades pris au lieu de 30) change complètement l'algorithme, même rentable sur le
+  // papier. Les réglages automatiques ne le retiennent jamais ; un réglage manuel de ce type est signalé dans la page.
+  Object.values(PROFILES).forEach((list) => list.forEach((prof) => {
+    const f = prof.score;
+    prof.score = (m) => (m && m.total > 0 && m.taken / m.total < 0.5 ? -1e15 : f(m));
+  }));
 
   function feasible(m, L) {
     return (L.maxDd == null || m.maxDd <= L.maxDd + 1e-9)
@@ -667,7 +674,7 @@
     const gstk = cfg.gcfg ? new Int32Array(cfg.gcfg.length) : null; // séries propres à chaque valeur (mode « séparé »)
     const asg = pre.asg;
     let lastD = null, prevEnd = 1, dayEnd = 1, maxDaily = 0, bestDay = 0, sumPos = 0;
-    let lastM = null, mStart = 1;
+    let lastM = null, mStart = 1, taken = 0, total = 0;
     const months = [];
     const closeDay = () => {
       const ret = prevEnd > 0 ? dayEnd / prevEnd - 1 : 0;
@@ -693,7 +700,9 @@
       const mk = pre.mk[i];
       if (mk !== lastM) { if (lastM !== null) months.push(cap / mStart - 1); mStart = cap; lastM = mk; }
       const r = asg[i];
+      total++;
       if (r > 0) {
+        taken++;
         cap *= 1 + (r / 100) * pre.rr[i];
         if (cap > peak) peak = cap;
         const dd = (peak - cap) / peak; if (dd > maxDd) maxDd = dd;
@@ -711,7 +720,7 @@
     return {
       perf: (cap - 1) * 100, cap, maxDd: maxDd * 100, maxDaily: maxDaily * 100,
       avgM: avg * 100, stdM: std * 100, posM: nM ? months.filter((v) => v > 0).length / nM : 0,
-      worstM: nM ? Math.min(...months) * 100 : 0, nM, bestShare: sumPos > 0 ? bestDay / sumPos : 0,
+      worstM: nM ? Math.min(...months) * 100 : 0, nM, bestShare: sumPos > 0 ? bestDay / sumPos : 0, taken, total,
     };
   }
 

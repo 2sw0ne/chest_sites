@@ -110,14 +110,31 @@
     return out.map((a) => Object.assign(a, { name: nameOf(a.key) }));
   }
   const prepCache = new Map();
+  // Taille des SL (2026-11-12) : estimée une fois par algorithme sur l'historique M15 de l'or (horaires + 6 h), gardée
+  // sur l'appareil ; le moteur s'en sert pour ne jamais proposer un risque sous le lot minimum (berich-plan.js).
+  const SLS = {}, slBusy = {};
+  function slFor(key, list) {
+    const id = 'chest_berich_sl_' + key + '_' + list.length;
+    if (SLS[id]) return SLS[id];
+    try { const c = JSON.parse(localStorage.getItem(id) || 'null'); if (c && Array.isArray(c.per)) return (SLS[id] = c); } catch (e) { /* tant pis */ }
+    if (!slBusy[id] && list.length >= 5) {
+      slBusy[id] = true;
+      api('/market/sl-estimate', { method: 'POST', body: { symbol: 'XAUUSD', shift: 6, trades: list.map((p) => ({ t: p.time, c: p.closeTime || p.time, result: p.result || '', r: p.rr })) } })
+        .then((d) => { if (d && Array.isArray(d.per)) { SLS[id] = { per: d.per, median: d.median, ticks: d.medianTicks }; try { localStorage.setItem(id, JSON.stringify(SLS[id])); } catch (e) { /* plein */ } prepCache.clear(); try { renderAll(); } catch (e) { /* plus tard */ } } })
+        .catch(() => { /* sans estimation : risque libre comme avant */ });
+    }
+    return null;
+  }
   function preps() {
     return algos().map((a) => {
       const list = a.positions().filter((p) => p.closed && p.rr != null);
-      const k = a.key + ':' + list.length;
-      if (!prepCache.has(k)) prepCache.set(k, P.prep(a.key, a.name, list.map((p) => ({ t: p.time, c: p.closeTime || p.time, side: p.side, r: p.rr }))));
+      const sl = slFor(a.key, list);
+      const k = a.key + ':' + list.length + ':' + (sl ? 1 : 0);
+      if (!prepCache.has(k)) prepCache.set(k, P.prep(a.key, a.name, list.map((p, i) => ({ t: p.time, c: p.closeTime || p.time, side: p.side, r: p.rr, sl: sl ? sl.per[i] || sl.median : null }))));
       return prepCache.get(k);
     });
   }
+  window.CHESTBerichSl = () => Object.values(SLS);
   const prepOf = (k) => preps().find((p) => p.key === k) || null;
   const positions = () => { const a = algos().find((x) => x.key === S.algo) || algos()[0]; return a ? a.positions() : []; };
 
