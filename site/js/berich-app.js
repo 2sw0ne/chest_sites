@@ -112,7 +112,7 @@
   const prepCache = new Map();
   // Taille des SL (2026-11-12) : estimée une fois par algorithme sur l'historique M15 de l'or (horaires + 6 h), gardée
   // sur l'appareil ; le moteur s'en sert pour ne jamais proposer un risque sous le lot minimum (berich-plan.js).
-  const SLS = {}, slBusy = {};
+  const SLS = {}, slBusy = {}, MIN_SL_USD = 20;
   function slFor(key, list) {
     const id = 'chest_berich_sl_' + key + '_' + list.length;
     if (SLS[id]) return SLS[id];
@@ -130,7 +130,10 @@
       const list = a.positions().filter((p) => p.closed && p.rr != null);
       const sl = slFor(a.key, list);
       const k = a.key + ':' + list.length + ':' + (sl ? 1 : 0);
-      if (!prepCache.has(k)) prepCache.set(k, P.prep(a.key, a.name, list.map((p, i) => ({ t: p.time, c: p.closeTime || p.time, side: p.side, r: p.rr, sl: sl ? sl.per[i] || sl.median : null }))));
+      // Plancher (2026-11-12, retour patron : « à 500 € il me propose 0,3 %, impossible ») : les SL de BERICH font au moins
+      // 2 000 ticks = 20 $ au lot minimum ; sans estimation (en cours, ou serveur indisponible) on prend ce plancher.
+      const slAt = (i) => Math.max(MIN_SL_USD, (sl && (sl.per[i] || sl.median)) || 0);
+      if (!prepCache.has(k)) prepCache.set(k, P.prep(a.key, a.name, list.map((p, i) => ({ t: p.time, c: p.closeTime || p.time, side: p.side, r: p.rr, sl: slAt(i) }))));
       return prepCache.get(k);
     });
   }
