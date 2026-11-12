@@ -45,6 +45,14 @@
       "destination": "/legal.html?doc=:doc"
     },
     {
+      "source": "/audit",
+      "destination": "/audit.html"
+    },
+    {
+      "source": "/audit/:code",
+      "destination": "/audit.html?code=:code"
+    },
+    {
       "source": "/rejoindre/:code",
       "destination": "/join.html?code=:code"
     },

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050505">
+<title>Ton audit — CHEST</title>
+<meta name="description" content="7 questions pour trouver le pack CHEST qui te correspond.">
+<link rel="icon" type="image/png" href="/assets/logo-chest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Fragment+Mono&display=swap">
+<!-- Audit CHEST (2026-11-12) : ouvert depuis le QR code de la landing (/audit/<CODE>), pensé d'abord pour le téléphone.
+     Code du référent → 7 questions → calcul → carte du pack conseillé (js/pack-card.js) → /inscription?ref=&offre=. -->
+<style>
+:root{ color-scheme:dark; }
+*{ box-sizing:border-box; }
+html, body{ margin:0; min-height:100%; background:#050505; color:#f6f6f7; font-family:'Instrument Sans', system-ui, sans-serif; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
+body{ min-height:100dvh; overflow-x:hidden; }
+button{ -webkit-tap-highlight-color:transparent; }
+.au-sky{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.au-sky i{ position:absolute; display:block; border-radius:50%; filter:blur(70px); mix-blend-mode:screen; will-change:transform; opacity:.75; }
+.au-sky i:nth-child(1){ width:120vw; height:46vh; left:-30vw; top:-12vh; background:radial-gradient(closest-side, rgba(252,18,131,.5), transparent); animation:auS1 16s ease-in-out infinite alternate; }
+.au-sky i:nth-child(2){ width:100vw; height:40vh; right:-40vw; top:20vh; background:radial-gradient(closest-side, rgba(249,164,94,.38), transparent); animation:auS2 20s ease-in-out infinite alternate; }
+.au-sky i:nth-child(3){ width:90vw; height:30vh; left:-10vw; bottom:-6vh; background:radial-gradient(closest-side, rgba(51,230,166,.22), transparent); animation:auS1 24s ease-in-out infinite alternate-reverse; }
+.au-sky i:nth-child(4){ width:70vw; height:30vh; right:-10vw; bottom:16vh; background:radial-gradient(closest-side, rgba(140,80,255,.22), transparent); animation:auS2 28s ease-in-out infinite alternate-reverse; }
+.au-sky::after{ content:''; position:absolute; inset:0; background:radial-gradient(120% 80% at 50% 120%, rgba(5,5,5,.9), transparent 60%); }
+@keyframes auS1{ to{ transform:translate3d(18vw, 6vh, 0) rotate(10deg) scale(1.15); } }
+@keyframes auS2{ to{ transform:translate3d(-20vw, -8vh, 0) rotate(-12deg) scale(1.1); } }
+.au{ position:relative; z-index:1; display:flex; flex-direction:column; min-height:100dvh; width:min(560px, 100%); margin:0 auto; padding:max(18px, env(safe-area-inset-top)) 20px max(22px, env(safe-area-inset-bottom)); }
+.au.is-wide{ width:min(1240px, 100%); }
+.au__top{ display:flex; align-items:center; gap:12px; height:44px; }
+.au__brand{ display:flex; align-items:center; gap:9px; font-weight:700; letter-spacing:-.02em; color:#f6f6f7; text-decoration:none; }
+.au__brand img{ width:28px; height:28px; }
+.au__step{ margin-left:auto; font-family:'Fragment Mono', ui-monospace, monospace; font-size:11px; letter-spacing:.2em; color:#9b9ba1; font-variant-numeric:tabular-nums; }
+.au__bar{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:5px; margin:10px 0 0; }
+.au__bar i{ height:4px; border-radius:4px; background:rgba(255,255,255,.1); overflow:hidden; position:relative; }
+.au__bar i::after{ content:''; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(90deg,#fc1283,#f9a45e); transform:scaleX(0); transform-origin:left; transition:transform .5s cubic-bezier(.16,1,.3,1); }
+.au__bar i.is-done::after{ transform:scaleX(1); }
+.au__stage{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:26px 0 10px; }
+.au__scr{ animation:auIn .5s cubic-bezier(.16,1,.3,1) both; }
+.au__scr.is-back{ animation-name:auBack; }
+@keyframes auIn{ from{ opacity:0; transform:translateX(28px); filter:blur(4px); } }
+@keyframes auBack{ from{ opacity:0; transform:translateX(-28px); filter:blur(4px); } }
+.au__k{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:#f9a45e; }
+.au h1{ margin:12px 0 0; font-size:clamp(30px, 8vw, 42px); font-weight:700; letter-spacing:-.045em; line-height:1.04; text-wrap:balance; }
+.au__lead{ margin:12px 0 0; font-size:15px; line-height:1.55; color:#9b9ba1; }
+.au__lead b{ color:#f6f6f7; }
+.au__opts{ display:grid; gap:10px; margin-top:26px; }
+.au__opt{ position:relative; display:flex; align-items:center; gap:14px; min-height:66px; padding:12px 16px 12px 12px; border:0; border-radius:20px; text-align:left; font:inherit; color:#f6f6f7; cursor:pointer;
+  background:linear-gradient(110deg, rgba(24,22,30,.78), rgba(14,13,18,.72)); box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  transition:transform .16s ease-out, box-shadow .25s, background-color .25s; animation:auOpt .5s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i) * 45ms + 80ms); }
+@keyframes auOpt{ from{ opacity:0; transform:translateY(10px); } }
+.au__opt:active{ transform:scale(.98); }
+@media (hover:hover){ .au__opt:hover{ box-shadow:inset 0 0 0 1px rgba(252,18,131,.5), 0 10px 30px rgba(0,0,0,.3); } }
+.au__opt:focus-visible{ outline:none; box-shadow:inset 0 0 0 2px rgba(252,18,131,.8); }
+.au__l{ flex:none; width:38px; height:38px; border-radius:12px; display:grid; place-items:center; font-family:'Fragment Mono', ui-monospace, monospace; font-size:13px; color:#9b9ba1; background:rgba(255,255,255,.06); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); transition:background .25s, color .25s; }
+.au__opt span{ display:grid; gap:3px; font-size:16px; font-weight:600; letter-spacing:-.01em; line-height:1.3; }
+.au__opt small{ font-size:12.5px; font-weight:500; color:#9b9ba1; }
+.au__opt.is-on{ background:linear-gradient(110deg, rgba(252,18,131,.2), rgba(249,164,94,.1)); box-shadow:inset 0 0 0 1.5px rgba(252,18,131,.85), 0 12px 34px rgba(252,18,131,.22); }
+.au__opt.is-on .au__l{ color:#fff; background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:none; }
+.au__back{ align-self:flex-start; margin-top:18px; padding:8px 0; border:0; background:none; font:inherit; font-size:13.5px; color:#9b9ba1; cursor:pointer; }
+.au__code{ display:grid; gap:10px; margin-top:26px; }
+.au__code input{ height:64px; padding:0 18px; border-radius:20px; border:0; font:inherit; font-size:24px; font-weight:700; letter-spacing:.24em; text-align:center; text-transform:uppercase; color:#f6f6f7; background:rgba(20,18,26,.8); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); outline:none; backdrop-filter:blur(14px); }
+.au__code input:focus{ box-shadow:inset 0 0 0 1.5px rgba(252,18,131,.8), 0 0 0 4px rgba(252,18,131,.16); }
+.au__go{ height:58px; border:0; border-radius:18px; font:inherit; font-size:16px; font-weight:700; color:#fff; background:linear-gradient(90deg,#fc1283,#f9a45e); box-shadow:0 14px 36px rgba(252,18,131,.35); cursor:pointer; transition:transform .16s ease-out; }
+.au__go:active{ transform:scale(.98); }
+.au__go:disabled{ opacity:.55; }
+.au__err{ min-height:20px; margin:4px 0 0; font-size:13.5px; color:#ff94a0; text-align:center; }
+.au__calc{ display:grid; justify-items:center; gap:22px; text-align:center; }
+.au__ring{ width:92px; height:92px; border-radius:50%; background:conic-gradient(from 0deg, #fc1283, #f9a45e, #33e6a6, #fc1283); -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 5px), #000 0); mask:radial-gradient(farthest-side, transparent calc(100% - 5px), #000 0); animation:auSpin 1s linear infinite; }
+@keyframes auSpin{ to{ transform:rotate(1turn); } }
+.au__why{ max-width:760px; margin:6px auto 4px; padding:16px 18px; border-radius:20px; font-size:14.5px; line-height:1.6; color:#c9c9cf; text-align:center; background:rgba(16,15,20,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+.au__why b{ color:#fff; }
+.au__res h1{ text-align:center; }
+.au__res > .au__k{ display:block; text-align:center; }
+.au__fine{ margin:26px auto 0; max-width:640px; text-align:center; font-size:11.5px; line-height:1.5; color:#5c5c63; }
+@media (prefers-reduced-motion: reduce){ .au-sky i, .au__scr, .au__opt, .au__ring{ animation:none !important; } }
+</style>
+</head>
+<body>
+<div class="au-sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<main class="au" id="au">
+  <header class="au__top"><a class="au__brand" href="/"><img src="/assets/logo-chest.png" alt="">CHEST</a><span class="au__step" id="auStep"></span></header>
+  <div class="au__bar" id="auBar" aria-hidden="true"></div>
+  <section class="au__stage" id="auStage" aria-live="polite"></section>
+</main>
+<script src="/js/config.js?v=5"></script>
+<script src="/js/pack-card.js?v=1"></script>
+<script src="/js/audit.js?v=1"></script>
+</body>
+</html>
