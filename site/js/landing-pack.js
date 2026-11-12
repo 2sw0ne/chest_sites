@@ -78,15 +78,13 @@
   function show(html) { box.innerHTML = `<div class="lp__win"><button type="button" class="lp__x" data-lp-x aria-label="Fermer">×</button>${html}</div>`; box.hidden = false; document.documentElement.style.overflow = 'hidden'; }
   const loadQr = () => window.qrcode ? Promise.resolve() : new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-  // Parcours sur la landing (2026-11-12) : 01 code du référent → 02 création du compte (comme /inscription : prénom, nom,
-  // e-mail, mot de passe, code verrouillé, consentement) → 03 QR code vers l'audit (/audit/<CODE>) ou « continuer ici ».
-  // Déjà connecté : le code suffit, on passe au QR code.
-  const A = () => window.CHESTAccounts;
+  // Parcours (2026-11-12, v2) : landing = 01 code du référent → 02 QR code vers /audit/<CODE> (ou « continuer ici »,
+  // ou direct au téléphone). Sur le téléphone : création du compte → audit → prix → paiement (js/audit.js).
   let EDU = '';
   function open() {
-    if (CODE) return A() && A().isLoggedIn() ? qr() : signup();
+    if (CODE) return qr();
     show(`<span class="lp__k">01 — Accès invité</span><h3>Le code de ton référent</h3>
-      <p>CHEST est réservé aux personnes invitées. Entre le code que t’a donné ton référent : tu crées ton compte, puis ton audit te montre le pack qui te correspond et son prix.</p>
+      <p>CHEST est réservé aux personnes invitées. Entre le code que t’a donné ton référent : tu crées ton compte sur ton téléphone, puis ton audit te montre le pack qui te correspond et son prix.</p>
       <form class="lp__code" id="lpCode"><input type="text" name="c" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Code du référent" placeholder="CODE"><button class="lp__go" type="submit">Continuer</button></form>
       <p class="lp__err" id="lpErr" role="alert"></p>`);
     const f = document.getElementById('lpCode');
@@ -101,58 +99,18 @@
         const d = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(r.status === 429 ? 'Trop d’essais, réessaie dans quelques minutes.' : 'Ce code ne correspond à aucun référent.');
         CODE = c; EDU = d.educator || '';
-        if (A() && A().isLoggedIn()) qr(); else signup();
+        qr();
       } catch (err) { document.getElementById('lpErr').textContent = err.message; btn.disabled = false; }
     });
   }
-  const EYE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-  function signup() {
-    show(`<span class="lp__k">02 — Ton compte</span><h3>Crée ton compte</h3>
-      <p>Ensuite, 6 questions pour trouver le pack qui te correspond.</p>
-      <form class="lp__su" id="lpSu" novalidate>
-        <div class="lp__row"><label><span>Prénom</span><input name="fn" autocomplete="given-name" maxlength="60" required></label><label><span>Nom</span><input name="ln" autocomplete="family-name" maxlength="60" required></label></div>
-        <small class="lp__hint">Ton prénom s’affichera sur ta page d’accueil.</small>
-        <label><span>E-mail</span><input name="em" type="email" autocomplete="email" maxlength="160" required></label>
-        <label><span>Mot de passe</span><span class="lp__pw"><input name="pw" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="lp__eye" data-eye aria-label="Afficher le mot de passe">${EYE}</button></span></label>
-        <small class="lp__hint">8 caractères minimum.</small>
-        <label><span>Code de référent</span><span class="lp__lock"><b>${esc(CODE)}</b><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span></label>
-        ${EDU ? `<small class="lp__hint">Ton éducateur : ${esc(EDU)}. Ton compte sera relié à son espace.</small>` : ''}
-        <label class="lp__ok"><input type="checkbox" name="ok"><span>J’ai 18 ans ou plus et j’accepte les <a href="/legal/cgu" target="_blank" rel="noopener">conditions d’utilisation</a>, la <a href="/legal/confidentialite" target="_blank" rel="noopener">politique de confidentialité</a> et l’<a href="/legal/risques" target="_blank" rel="noopener">avertissement sur les risques</a> du trading.</span></label>
-        <button class="lp__go" type="submit">Créer mon compte</button>
-      </form>
-      <p class="lp__err" id="lpErr" role="alert"></p>
-      <button type="button" class="lp__here lp__link" data-relog>Déjà un compte ? Se connecter</button>`);
-    const f = document.getElementById('lpSu');
-    f.fn.focus();
-    box.querySelector('[data-eye]').addEventListener('click', () => { f.pw.type = f.pw.type === 'password' ? 'text' : 'password'; });
-    box.querySelector('[data-relog]').addEventListener('click', () => { location.href = '/connexion'; });
-    f.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const err = document.getElementById('lpErr'), btn = f.querySelector('.lp__go');
-      const v = { firstName: f.fn.value.trim(), lastName: f.ln.value.trim(), email: f.em.value.trim(), password: f.pw.value };
-      err.textContent = '';
-      if (!v.firstName || !v.lastName) { err.textContent = 'Indique ton prénom et ton nom.'; return; }
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) { err.textContent = 'Adresse e-mail invalide.'; return; }
-      if (v.password.length < 8) { err.textContent = 'Le mot de passe doit faire au moins 8 caractères.'; return; }
-      if (!f.ok.checked) { err.textContent = 'Coche la case pour accepter les conditions.'; return; }
-      if (!A()) { err.textContent = 'Inscription indisponible, réessaie dans un instant.'; return; }
-      btn.disabled = true; btn.textContent = 'Création…';
-      try {
-        await A().signup(Object.assign({ ref: CODE, acceptTerms: true }, v));
-        await A().login({ email: v.email, password: v.password, remember: true });
-        try { sessionStorage.setItem('chest_welcome', '1'); } catch (x) { /* tant pis */ }
-        qr(true);
-      } catch (x) { err.textContent = x.message; btn.disabled = false; btn.textContent = 'Créer mon compte'; }
-    });
-  }
-  async function qr(fresh) {
+  async function qr() {
     const url = `${location.origin}/audit/${encodeURIComponent(CODE)}`;
     if (matchMedia('(hover: none)').matches) { location.href = url; return; } // déjà sur le téléphone : l'audit tout de suite
-    show(`<span class="lp__k">03 — Ton audit</span><h3>${fresh ? 'Compte créé. ' : ''}Scanne avec ton téléphone</h3>
-      <p>L’audit s’ouvre directement sur ton téléphone : 6 questions, 2 minutes, puis ton pack et son prix.</p>
+    show(`<span class="lp__k">02 — Sur ton téléphone</span><h3>Scanne avec ton téléphone</h3>
+      <p>Tu crées ton compte directement sur ton téléphone, puis 6 questions, 2 minutes : ton pack et son prix.</p>
       <div class="lp__qr"><div id="lpQr"></div></div>
       <span class="lp__url">${esc(url.replace(/^https?:\/\//, ''))}</span>
-      <div class="lp__wait"><i></i>${fresh ? 'Ton compte est prêt' : `Code ${esc(CODE)} validé`}</div>
+      <div class="lp__wait"><i></i>Code ${esc(CODE)} validé</div>
       <a class="lp__here" href="${esc(url)}">Continuer sur cet appareil</a>`);
     try { await loadQr(); const q = window.qrcode(0, 'M'); q.addData(url); q.make(); document.getElementById('lpQr').innerHTML = q.createImgTag(6, 0); }
     catch (e) { document.getElementById('lpQr').innerHTML = '<small style="color:#5c5c63;padding:20px">QR indisponible : continue sur cet appareil.</small>'; }

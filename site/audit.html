@@ -80,6 +80,26 @@ button{ -webkit-tap-highlight-color:transparent; }
 .au__qr img{ display:block; width:132px; height:132px; image-rendering:pixelated; }
 .au__qr span{ display:grid; gap:4px; font-size:14px; }
 .au__qr small{ font-size:13px; line-height:1.45; color:#9b9ba1; }
+.au__form{ display:grid; gap:12px; margin-top:22px; }
+.au__row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.au__f{ display:grid; gap:6px; min-width:0; }
+.au__f > span:first-child{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:#9b9ba1; }
+.au__f > span:first-child i{ font-style:normal; letter-spacing:.06em; text-transform:none; color:#5c5c63; }
+.au__f input{ width:100%; height:54px; padding:0 16px; border:0; border-radius:16px; font:inherit; font-size:16px; color:#f6f6f7; background:rgba(20,18,26,.8); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); outline:none; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+.au__f input:focus{ box-shadow:inset 0 0 0 1.5px rgba(252,18,131,.8), 0 0 0 4px rgba(252,18,131,.16); }
+.au__pw{ position:relative; display:block; }
+.au__pw input{ padding-right:50px; }
+.au__eye{ position:absolute; right:8px; top:50%; transform:translateY(-50%); width:38px; height:38px; display:grid; place-items:center; border:0; border-radius:12px; color:#9b9ba1; background:none; cursor:pointer; }
+.au__eye svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; }
+.au__lock{ display:flex; align-items:center; justify-content:space-between; height:54px; padding:0 16px; border-radius:16px; color:#f9a45e; background:rgba(249,164,94,.08); box-shadow:inset 0 0 0 1px rgba(249,164,94,.45); }
+.au__lock b{ font-size:16px; letter-spacing:.18em; }
+.au__lock svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
+.au__ok{ display:flex; align-items:flex-start; gap:12px; padding:14px; border-radius:16px; font-size:13px; line-height:1.5; color:#c9c9cf; background:rgba(16,15,20,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.09); cursor:pointer; }
+.au__ok input{ flex:none; width:20px; height:20px; margin-top:1px; accent-color:#fc1283; }
+.au__ok a{ color:#f9a45e; }
+.au__form .au__go{ margin-top:4px; }
+.au__swap{ align-self:center; }
+@media (max-width:380px){ .au__row{ grid-template-columns:1fr; } }
 .au__opt.is-rec{ box-shadow:inset 0 0 0 1px rgba(249,164,94,.45), 0 10px 30px rgba(252,18,131,.12); }
 .au__rec{ margin-left:auto; flex:none; padding:4px 9px; border-radius:999px; font-style:normal; font-size:10.5px; font-weight:700; letter-spacing:.04em; color:#fff; background:linear-gradient(90deg,#fc1283,#f9a45e); }
 @media (max-width:1099px), (hover:none){
@@ -104,6 +124,6 @@ button{ -webkit-tap-highlight-color:transparent; }
 <script src="/js/config.js?v=5"></script>
 <script src="/js/accounts-auth.js?v=12"></script>
 <script src="/js/pack-card.js?v=4"></script>
-<script src="/js/audit.js?v=5"></script>
+<script src="/js/audit.js?v=6"></script>
 </body>
 </html>

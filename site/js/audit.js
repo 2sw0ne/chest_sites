@@ -54,20 +54,74 @@
       if (!r.ok) throw new Error(r.status === 429 ? 'Trop d’essais, réessaie dans quelques minutes.' : 'Ce code ne correspond à aucun référent.');
       CODE = c; EDU = d.educator || '';
       try { history.replaceState(null, '', '/audit/' + encodeURIComponent(c)); } catch (e) { /* aperçu local */ }
-      intro();
+      if (logged()) intro(); else account();
     } catch (err) { codeStep(err.message); }
   }
   const desk = () => matchMedia('(hover: hover) and (min-width: 900px)').matches;
-  const loadQr = () => window.qrcode ? Promise.resolve() : new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
-  async function qrInto(el, url) { try { await loadQr(); const q = window.qrcode(0, 'M'); q.addData(url); q.make(); el.innerHTML = q.createImgTag(4, 0); } catch (e) { el.closest('.au__qr').remove(); } }
-  function intro() {
+  // Création du compte (2026-11-12) : comme /inscription (prénom, nom, e-mail, mot de passe, code verrouillé,
+  // consentement), puis connexion sur cet appareil → le paiement s'ouvrira directement à la fin. Compte existant : connexion.
+  const EYE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const field = (n, label, attrs, extra) => `<label class="au__f"><span>${label}</span>${extra ? `<span class="au__pw"><input name="${n}" ${attrs}>${extra}</span>` : `<input name="${n}" ${attrs}>`}</label>`;
+  function account(err) {
     head(-1);
-    screen(`<span class="au__k">Ton audit · 2 minutes</span><h1>${EDU ? `${esc(EDU.split(' ')[0])} t’invite sur CHEST.` : 'Bienvenue sur CHEST.'}</h1>
+    screen(`<span class="au__k">Étape 1 · Ton compte</span><h1>Crée ton compte</h1>
+      <p class="au__lead">${EDU ? `Code de <b>${esc(EDU)}</b> validé. ` : ''}Ensuite, 6 questions pour trouver le pack qui te correspond.</p>
+      <form class="au__form" id="auSu" novalidate>
+        <div class="au__row">${field('fn', 'Prénom', 'autocomplete="given-name" maxlength="60"')}${field('ln', 'Nom', 'autocomplete="family-name" maxlength="60"')}</div>
+        ${field('em', 'E-mail', 'type="email" autocomplete="email" inputmode="email" maxlength="160"')}
+        ${field('pw', 'Mot de passe <i>· 8 caractères minimum</i>', 'type="password" autocomplete="new-password" minlength="8"', `<button type="button" class="au__eye" data-eye aria-label="Afficher le mot de passe">${EYE}</button>`)}
+        <label class="au__f"><span>Code de référent</span><span class="au__lock"><b>${esc(CODE)}</b><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span></label>
+        <label class="au__ok"><input type="checkbox" name="ok"><span>J’ai 18 ans ou plus et j’accepte les <a href="/legal/cgu" target="_blank" rel="noopener">conditions d’utilisation</a>, la <a href="/legal/confidentialite" target="_blank" rel="noopener">politique de confidentialité</a> et l’<a href="/legal/risques" target="_blank" rel="noopener">avertissement sur les risques</a> du trading.</span></label>
+        <button class="au__go" type="submit">Créer mon compte</button>
+      </form>
+      <p class="au__err" role="alert">${esc(err || '')}</p>
+      <button type="button" class="au__back au__swap" id="auLogin">Déjà un compte ? Se connecter</button>`);
+    const f = $('auSu');
+    stage.querySelector('[data-eye]').addEventListener('click', () => { f.pw.type = f.pw.type === 'password' ? 'text' : 'password'; });
+    $('auLogin').addEventListener('click', () => signin());
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const out = stage.querySelector('.au__err'), btn = f.querySelector('.au__go');
+      const v = { firstName: f.fn.value.trim(), lastName: f.ln.value.trim(), email: f.em.value.trim(), password: f.pw.value };
+      out.textContent = '';
+      if (!v.firstName || !v.lastName) { out.textContent = 'Indique ton prénom et ton nom.'; return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) { out.textContent = 'Adresse e-mail invalide.'; return; }
+      if (v.password.length < 8) { out.textContent = 'Le mot de passe doit faire au moins 8 caractères.'; return; }
+      if (!f.ok.checked) { out.textContent = 'Coche la case pour accepter les conditions.'; return; }
+      btn.disabled = true; btn.textContent = 'Création…';
+      try {
+        await CHESTAccounts.signup(Object.assign({ ref: CODE, acceptTerms: true }, v));
+        await CHESTAccounts.login({ email: v.email, password: v.password, remember: true });
+        try { sessionStorage.setItem('chest_welcome', '1'); } catch (x) { /* tant pis */ }
+        intro(true);
+      } catch (x) { out.textContent = x.message; btn.disabled = false; btn.textContent = 'Créer mon compte'; }
+    });
+  }
+  function signin() {
+    head(-1);
+    screen(`<span class="au__k">Étape 1 · Ton compte</span><h1>Connexion</h1><p class="au__lead">Connecte-toi pour faire ton audit et retrouver ton pack.</p>
+      <form class="au__form" id="auLi" novalidate>${field('em', 'E-mail', 'type="email" autocomplete="email" inputmode="email"')}
+        ${field('pw', 'Mot de passe', 'type="password" autocomplete="current-password"', `<button type="button" class="au__eye" data-eye aria-label="Afficher le mot de passe">${EYE}</button>`)}
+        <button class="au__go" type="submit">Se connecter</button></form>
+      <p class="au__err" role="alert"></p>
+      <button type="button" class="au__back au__swap" id="auNew">Pas encore de compte ? Le créer</button>`, true);
+    const f = $('auLi');
+    stage.querySelector('[data-eye]').addEventListener('click', () => { f.pw.type = f.pw.type === 'password' ? 'text' : 'password'; });
+    $('auNew').addEventListener('click', () => account());
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = f.querySelector('.au__go');
+      btn.disabled = true;
+      try { await CHESTAccounts.login({ email: f.em.value.trim(), password: f.pw.value, remember: true }); intro(); }
+      catch (x) { stage.querySelector('.au__err').textContent = x.message; btn.disabled = false; }
+    });
+  }
+  function intro(fresh) {
+    head(-1);
+    screen(`<span class="au__k">Étape 2 · Ton audit · 2 minutes</span><h1>${fresh ? 'Ton compte est prêt.' : EDU ? `${esc(EDU.split(' ')[0])} t’invite sur CHEST.` : 'Bienvenue sur CHEST.'}</h1>
       <p class="au__lead">6 questions sur où tu en es et ce que tu peux mettre en place. On te montre ensuite le pack qui te correspond, avec son prix et tout ce qu’il débloque.</p>
-      ${desk() ? `<div class="au__qr"><div id="auQr"></div><span><b>Fais-le sur ton téléphone</b><small>Scanne ce code : l’audit s’ouvre directement dessus.</small></span></div>` : ''}
-      <div class="au__code"><button type="button" class="au__go" id="auStart">${desk() ? 'Continuer sur cet ordinateur' : 'C’est parti'}</button></div>`);
+      <div class="au__code"><button type="button" class="au__go" id="auStart">C’est parti</button></div>`);
     $('auStart').addEventListener('click', () => ask(0));
-    if (desk()) qrInto($('auQr'), `${location.origin}/audit/${encodeURIComponent(CODE)}`);
   }
   function ask(i, back) {
     at = i;
