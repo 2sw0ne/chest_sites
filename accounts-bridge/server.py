@@ -4614,7 +4614,7 @@ def admin_payout_update(pid):
 EDU_FEE = 5000
 EDU_FEE_RATIO = 6
 EDU_FEE_START = os.environ.get("EDU_FEE_START", "2026-11")
-EDU_FEE_BANK = {"holder": os.environ.get("EDU_FEE_HOLDER", ""), "iban": "FR76 2823 3000 0161 0406 4729 923",
+EDU_FEE_BANK = {"holder": os.environ.get("EDU_FEE_HOLDER", "SWANN LAFON"), "iban": "FR76 2823 3000 0161 0406 4729 923",
                 "bic": "REVOFRP2", "revolut": "@swann21"}
 
 
