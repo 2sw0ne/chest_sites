@@ -15,7 +15,7 @@
     const P = d && d.promo;
     if (!P || !P.on || !P.pct) return;
     const offers = d.offers || [];
-    const year = (g) => offers.find((o) => o.group === g && o.level === 3 && o.enabled);
+    const year = (g) => offers.find((o) => o.group === g && o.level === 4 && o.enabled);
     const cards = [['essentiel', duo.querySelector('.o-ess')], ['premium', duo.querySelector('.o-prem')]];
     const anims = [];
     cards.forEach(([g, card]) => {

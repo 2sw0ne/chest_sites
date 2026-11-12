@@ -316,13 +316,15 @@
   };
 
   // Niveaux d'une Idea : Entrée, SL, puis chaque TP (R:R) ; copy = un bouton de copie par ligne (fiche)
-  function levelsHtml(I, copy) {
+  function levelsHtml(I, copy, rows) {
     const d = decOf(I);
     const R = I.result || null;
     const row = (k, v, cls, sub, hit) => `<div class="ix-lv__r ${cls}${hit ? ' is-hit' : ''}"><dt>${k}</dt><dd><b>${fmtN(v, d)}</b>${sub ? `<small>${sub}</small>` : ''}${copy ? `<button type="button" class="ix-copy" data-copy-lv="${fmtN(v, d)}" aria-label="Copier ${k}">${ICX.copy}</button>` : ''}</dd></div>`;
-    return `<dl class="ix-lv">${row('Entrée', I.pe, 'is-pe')}${row('SL', I.sl, 'is-sl', '', R && R.kind === 'sl')}${I.tps.map((t, k) => row(I.tps.length > 1 ? `TP ${k + 1}` : 'TP', t, 'is-tp', `R:R ${rrOf(I, t).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}`, R && R.kind === 'tp' && k < R.tp)).join('')}</dl>`;
+    // rows : nombre de TP de la carte la plus fournie → lignes vides pour que toutes les cartes aient la même hauteur
+    const pad = Math.max(0, (rows || 0) - I.tps.length);
+    return `<dl class="ix-lv">${row('Entrée', I.pe, 'is-pe')}${row('SL', I.sl, 'is-sl', '', R && R.kind === 'sl')}${I.tps.map((t, k) => row(I.tps.length > 1 ? `TP ${k + 1}` : 'TP', t, 'is-tp', `R:R ${rrOf(I, t).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}`, R && R.kind === 'tp' && k < R.tp)).join('')}${'<div class="ix-lv__r is-pad" aria-hidden="true"></div>'.repeat(pad)}</dl>`;
   }
-  function ideaCard(p) {
+  function ideaCard(p, rows) {
     const I = p.idea, st = stOf(p), R = I && I.result;
     const side = I ? (I.side === 'sell' ? 'sell' : 'buy') : 'none';
     const ups = p.updates || [], u = ups[ups.length - 1];
@@ -330,11 +332,12 @@
     return `<article class="ix-card is-${side}${st === 'inactive' ? ' is-off' : ''}${isNew(p) ? ' is-new' : ''}">
       <button type="button" class="ix-card__open" data-post="${p.id}" aria-label="Voir l’Idea ${esc(p.title)}"></button>
       <header class="ix-card__h">${avHtml(p, 'ix-av')}<span class="ix-who"><b>${esc(p.author || 'Équipe')}${tagHtml(p.authorTag)}</b><small>${esc(ideaWhen(p.createdAt))}${staff ? ` · ${esc(p.audienceLabel)}` : ''}</small></span>
-        ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : `<span class="ix-st ix-st--${STATUS[st][1]}">${STATUS[st][0]}</span>`}</header>
-      ${I ? `<div class="ix-card__dir"><span class="ix-side">${side === 'sell' ? 'Vente' : 'Achat'}</span><b class="ix-pair">${esc(pairTxt(I.pair))}</b>${p.image ? `<span class="ix-hasimg" title="Graphique dans la fiche">${ICX.chart}</span>` : ''}</div>${levelsHtml(I, false)}`
+        ${isNew(p) ? '<span class="sh-new">Nouveau</span>' : R ? `<span class="ix-st ix-st--${resCls(R)}">${esc(resTxt(R))}</span>` : `<span class="ix-st ix-st--${STATUS[st][1]}">${STATUS[st][0]}</span>`}</header>
+      ${I ? `<div class="ix-card__dir"><span class="ix-side">${side === 'sell' ? 'Vente' : 'Achat'}</span><b class="ix-pair">${esc(pairTxt(I.pair))}</b>${p.image ? `<span class="ix-hasimg" title="Graphique dans la fiche">${ICX.chart}</span>` : ''}</div>${levelsHtml(I, false, rows)}`
         : `<div class="ix-card__text"><b>${esc(p.title)}</b>${p.body ? `<p>${esc(String(p.body).slice(0, 160))}${String(p.body).length > 160 ? '…' : ''}</p>` : ''}</div>`}
-      ${R ? `<div class="ix-res ix-res--${resCls(R)}">${esc(resTxt(R) + pipsTxt(R))}</div>` : ''}
-      ${u ? `<div class="ix-up1"><span>${esc(String(u.body).replace(/\s+/g, ' ').slice(0, 110))}</span><small>${esc(shortWhen(u.createdAt))}${ups.length > 1 ? ` · ${ups.length} mises à jour` : ''}</small></div>` : ''}
+      ${R ? `<div class="ix-up1 ix-up1--res ix-res--${resCls(R)}"><span>${esc(resTxt(R) + pipsTxt(R))}</span><small>${u ? esc(String(u.body).replace(/\s+/g, ' ').slice(0, 60)) : 'Idea clôturée'}</small></div>`
+        : u ? `<div class="ix-up1"><span>${esc(String(u.body).replace(/\s+/g, ' ').slice(0, 110))}</span><small>${esc(shortWhen(u.createdAt))}${ups.length > 1 ? ` · ${ups.length} mises à jour` : ''}</small></div>`
+        : '<div class="ix-up1 is-empty"><span>Pas encore de mise à jour</span><small>L’éducateur la publie ici</small></div>'}
       <span class="ix-more">Voir plus <svg class="sh-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
     </article>`;
   }
@@ -374,7 +377,7 @@
         <div class="ix-tabs" role="tablist" aria-label="Idea">${tabs.map(([k, l, n]) => `<button type="button" role="tab" data-idea-tab="${k}" aria-selected="${tab === k}" class="${tab === k ? 'is-on' : ''}"><i></i>${l} <small>${n}</small></button>`).join('')}</div>
       </div>
       ${recapHtml(mine)}
-      ${shown.length ? `<div class="ix-grid">${shown.map(ideaCard).join('')}</div>` : `<p class="sh-empty">${tab === 'off' ? 'Aucune Idea inactive.' : 'Pas d’Idea active pour l’instant. Les opportunités de l’équipe arrivent ici.'}</p>`}
+      ${shown.length ? `<div class="ix-grid">${(() => { const rows = Math.max(1, ...shown.map((p) => (p.idea ? p.idea.tps.length : 0))); return shown.map((p) => ideaCard(p, rows)).join(''); })()}</div>` : `<p class="sh-empty">${tab === 'off' ? 'Aucune Idea inactive.' : 'Pas d’Idea active pour l’instant. Les opportunités de l’équipe arrivent ici.'}</p>`}
     </section>`;
   }
   const newBadge = () => (S.newIds && S.newIds.size ? `<span class="sh-plus" aria-label="${S.newIds.size} nouvelle${S.newIds.size > 1 ? 's' : ''}">+${S.newIds.size}</span>` : '');

@@ -198,7 +198,7 @@
     reco: { essentiel: 'Essentiel', premium: 'Premium', allstar: 'Allstar' },
   };
   const PAGE_LBL = { dashboard: 'Dashboard', backtesting: 'Backtesting', journal: 'Journal', strategies: 'Stratégies', calendar: 'Calendrier', berich: 'BERICH', school: 'School', suivi: 'Suivi', account: 'Compte' };
-  const MONTHS = { 1: '3 mois', 2: '6 mois', 3: '1 an' };
+  const MONTHS = { 1: '1 mois', 2: '3 mois', 3: '6 mois', 4: '1 an' };
   const sheet = $('edSheet');
   let M = null;
   const tick = (on, label, note) => `<li class="${on ? 'is-on' : ''}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${on ? 'M5 12.5l4.2 4.2L19 7' : 'M7 7l10 10M17 7L7 17'}"/></svg><span>${label}${note ? `<small>${note}</small>` : ''}</span></li>`;
@@ -236,7 +236,7 @@
             ${tick(a.active, 'Dashboard, journal, backtests, stratégies, calendrier')}
             ${tick(a.school, 'School', a.school ? '' : 'inclus dans Premium')}
             ${tick(a.berich, 'BERICH', a.berich ? '' : 'inclus dans Premium')}
-            ${tick(isPremium && lvl === 3, 'Connexion BERICH clé en main', isPremium && lvl === 3 ? 'c’est toi qui installes son VPS' : 'Premium 3 uniquement')}
+            ${tick(isPremium && lvl === 4, 'Connexion BERICH clé en main', isPremium && lvl === 4 ? 'c’est toi qui installes son VPS' : 'Premium IV uniquement')}
             ${tick(!!M.email, 'Suivi avec toi : rendez-vous, notes, bibliothèque')}
           </ul>
         </div>

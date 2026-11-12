@@ -12,16 +12,19 @@
   let EDU = '', OFFERS = null, ANS = {}, SEL = null, GROUP = null, WHY = '', pack = null, at = -1;
   const offersP = fetch(API + '/pricing').then((r) => r.json()).then((d) => { OFFERS = (d.offers || []).filter((o) => o.enabled); }).catch(() => { OFFERS = []; });
 
+  // Audit v3 (2026-11-12, retour patron : « je ne veux pas savoir ce qu'il veut mais ce qu'il peut ») : on mesure ses
+  // capacités (temps, cadre accepté, capital, investissement sur soi), réponse favorable en premier, et la question
+  // de l'investissement explique pourquoi s'engager sur la durée. [clé, question, options [valeur, texte, détail, conseillé], intro]
   const Q = [
-    ['stage', 'Où en es-tu aujourd’hui en trading ?', [['new', 'Je n’ai jamais vraiment tradé', 'Je pars de zéro'], ['lose', 'J’ai essayé, je perds plus que je gagne'], ['irreg', 'Je trade, mais sans régularité'], ['pro', 'Je suis rentable, je veux passer à l’échelle']]],
-    ['block', 'Qu’est-ce qui te bloque le plus ?', [['start', 'Je ne sais pas par où commencer'], ['method', 'Je n’ai pas de méthode fiable'], ['mind', 'La discipline, la peur, l’impulsivité'], ['time', 'Je n’ai pas le temps de suivre les marchés']]],
-    ['goal', 'Ton objectif dans 12 mois ?', [['extra', 'Un complément de revenu régulier'], ['funded', 'Réussir une propfirm et être financé'], ['live', 'Vivre du trading'], ['auto', 'Faire travailler mon capital en automatique', 'Avec BERICH, depuis un VPS']]],
-    ['time', 'Combien de temps peux-tu y consacrer chaque semaine ?', [['s', 'Moins de 3 h'], ['m', '3 à 7 h'], ['l', '7 à 15 h'], ['xl', 'Plus de 15 h']]],
-    ['frame', 'Es-tu prêt à suivre un cadre ?', [['guided', 'Oui, j’ai besoin d’être guidé', 'Appels, missions, règles de risque'], ['semi', 'Oui, mais je garde mon autonomie'], ['solo', 'Je préfère les outils, sans suivi']]],
-    ['capital', 'Ton capital de trading aujourd’hui ?', [['s', 'Moins de 1 000 €'], ['m', '1 000 à 5 000 €'], ['l', '5 000 à 20 000 €'], ['xl', 'Plus de 20 000 €'], ['pf', 'Je passe par des propfirms']]],
-    ['budget', 'Pour te former et t’équiper, quel effort est confortable ?', [['m150', 'Jusqu’à 150 € par mois'], ['m300', 'Jusqu’à 300 € par mois'], ['900', 'Un paiement de 450 à 900 €'], ['1700', 'Jusqu’à 1 700 € en une fois'], ['3000', '3 000 € pour une année complète']]],
+    ['stage', 'Où en es-tu aujourd’hui en trading ?', [['new', 'Je débute', 'Je pars de zéro'], ['lose', 'J’ai essayé, je perds plus que je gagne'], ['irreg', 'Je gagne parfois, sans régularité'], ['pro', 'Je suis rentable, je veux passer à l’échelle']]],
+    ['goal', 'Où veux-tu être dans 12 mois ?', [['live', 'Vivre du trading'], ['funded', 'Être financé par une propfirm'], ['auto', 'Faire travailler mon capital en automatique', 'Avec BERICH, sur un VPS'], ['extra', 'Un complément de revenu régulier']]],
+    ['time', 'Combien de temps peux-tu consacrer à ta progression chaque semaine ?', [['xl', 'Plus de 10 h', 'Je m’y mets à fond', 1], ['l', '5 à 10 h'], ['m', '2 à 5 h'], ['s', 'Moins de 2 h']], 'Les membres qui progressent le plus vite sont ceux qui bloquent du temps chaque semaine.'],
+    ['frame', 'Es-tu prêt à être accompagné et à suivre un cadre ?', [['guided', 'Oui, je veux être guidé jusqu’au résultat', 'Appels, missions, plan de risque', 1], ['semi', 'Oui, en gardant de l’autonomie'], ['solo', 'Non, seulement les outils']], 'Un cadre et quelqu’un qui te suit, c’est ce qui fait la différence entre essayer et réussir.'],
+    ['capital', 'Quel capital peux-tu mettre en jeu sur les marchés ?', [['xl', 'Plus de 20 000 €'], ['l', '5 000 à 20 000 €'], ['m', '1 000 à 5 000 €'], ['s', 'Moins de 1 000 €'], ['pf', 'Je passe par des propfirms', 'Le capital est fourni par la propfirm']]],
+    ['budget', 'Quelle est ta capacité d’investissement sur toi ?', [['y', '3 000 €', 'Je m’engage sur une année complète', 1], ['h', '1 700 €', 'Six mois pour poser des bases solides'], ['q', '900 €', 'Trois mois pour démarrer'], ['m300', '300 € par mois'], ['m150', '150 € par mois', 'C’est vraiment mon maximum aujourd’hui']],
+      'Plus tu investis dans ta formation, plus tes chances d’aller au bout sont grandes : ceux qui réussissent sont ceux qui s’engagent sur la durée.'],
   ];
-  const budgetOf = () => ({ m150: [0, 150], m300: [0, 300], 900: [900, 0], 1700: [1700, 0], 3000: [Infinity, 0] }[ANS.budget] || [0, 0]);
+  const budgetOf = () => ({ y: [Infinity, 0], h: [1700, 0], q: [900, 0], m300: [0, 300], m150: [0, 150] }[ANS.budget] || [0, 0]);
   const fits = (o) => { const [once, month] = budgetOf(); return o.price <= once || (o.months === 1 && o.price <= month); };
   const ofGroup = (g) => OFFERS.filter((o) => o.group === g).sort((a, b) => b.months - a.months);
 
@@ -57,16 +60,16 @@
   function intro() {
     head(-1);
     screen(`<span class="au__k">Ton audit · 2 minutes</span><h1>${EDU ? `${esc(EDU.split(' ')[0])} t’invite sur CHEST.` : 'Bienvenue sur CHEST.'}</h1>
-      <p class="au__lead">7 questions simples sur où tu en es et ce que tu vises. On te montre ensuite le pack qui te correspond, avec son prix et tout ce qu’il débloque.</p>
+      <p class="au__lead">6 questions sur où tu en es et ce que tu peux mettre en place. On te montre ensuite le pack qui te correspond, avec son prix et tout ce qu’il débloque.</p>
       <div class="au__code"><button type="button" class="au__go" id="auStart">C’est parti</button></div>`);
     $('auStart').addEventListener('click', () => ask(0));
   }
   function ask(i, back) {
     at = i;
-    const [key, title, opts] = Q[i];
+    const [key, title, opts, intro] = Q[i];
     head(i);
-    screen(`<span class="au__k">Question ${i + 1}</span><h1>${esc(title)}</h1>
-      <div class="au__opts" role="radiogroup" aria-label="${esc(title)}">${opts.map(([v, l, s], k) => `<button type="button" role="radio" aria-checked="${ANS[key] === v}" class="au__opt${ANS[key] === v ? ' is-on' : ''}" data-v="${v}" style="--i:${k}"><i class="au__l">${'ABCDE'[k]}</i><span>${esc(l)}${s ? `<small>${esc(s)}</small>` : ''}</span></button>`).join('')}</div>
+    screen(`<span class="au__k">Question ${i + 1}</span><h1>${esc(title)}</h1>${intro ? `<p class="au__lead">${esc(intro)}</p>` : ''}
+      <div class="au__opts" role="radiogroup" aria-label="${esc(title)}">${opts.map(([v, l, s, rec], k) => `<button type="button" role="radio" aria-checked="${ANS[key] === v}" class="au__opt${ANS[key] === v ? ' is-on' : ''}${rec ? ' is-rec' : ''}" data-v="${v}" style="--i:${k}"><i class="au__l">${'ABCDE'[k]}</i><span>${esc(l)}${s ? `<small>${esc(s)}</small>` : ''}</span>${rec ? '<em class="au__rec">Conseillé</em>' : ''}</button>`).join('')}</div>
       ${i ? '<button type="button" class="au__back" id="auBack">← Question précédente</button>' : ''}`, back);
     stage.querySelectorAll('[data-v]').forEach((b) => b.addEventListener('click', () => {
       if (stage.dataset.busy) return;
@@ -83,18 +86,18 @@
     screen('<div class="au__calc"><div class="au__ring" aria-hidden="true"></div><span class="au__k">Analyse de tes réponses</span><h1 style="font-size:26px">On prépare ton pack…</h1></div>');
     await Promise.all([offersP, new Promise((r) => setTimeout(r, 1100))]);
     if (!OFFERS.length) { screen('<h1>Les offres ne sont pas disponibles</h1><p class="au__lead">Réessaie dans un instant.</p>'); return; }
-    const needGuide = ANS.frame === 'guided' || ['new', 'lose'].includes(ANS.stage) || ['funded', 'live', 'auto'].includes(ANS.goal) || ANS.block === 'mind';
+    const needGuide = ANS.frame !== 'solo' || ['new', 'lose', 'irreg'].includes(ANS.stage) || ['funded', 'live', 'auto'].includes(ANS.goal);
     const canPrem = ofGroup('premium').some(fits);
-    GROUP = (needGuide || ANS.frame !== 'solo') && canPrem ? 'premium' : 'essentiel';
-    const list = ofGroup(GROUP);
-    SEL = (list.find(fits) || list[list.length - 1]).key;
-    const GOAL = { extra: 'un complément de revenu régulier', funded: 'réussir une propfirm', live: 'vivre du trading', auto: 'faire travailler ton capital en automatique' };
-    const BLOCK = { start: 'savoir par où commencer', method: 'une méthode fiable', mind: 'la discipline et la gestion des émotions', time: 'du temps pour suivre les marchés' };
+    GROUP = needGuide && canPrem ? 'premium' : 'essentiel';
+    SEL = recoOf(GROUP);
+    const GOAL = { extra: 'un complément de revenu régulier', funded: 'être financé par une propfirm', live: 'vivre du trading', auto: 'faire travailler ton capital en automatique' };
+    const sel = OFFERS.find((o) => o.key === SEL);
     WHY = GROUP === 'premium'
-      ? `Tu vises <b>${GOAL[ANS.goal] || 'la régularité'}</b> et ce qui te manque, c’est <b>${BLOCK[ANS.block] || 'un cadre'}</b>. Premium t’apporte un éducateur, une méthode, School et BERICH, en plus de toute la plateforme.`
-      : `${needGuide ? 'Premium dépasse l’effort que tu juges confortable pour l’instant. ' : ''}Tu veux avancer en autonomie : <b>Essentiel</b> te donne toute la plateforme et ses outils.`;
+      ? `Tu vises <b>${GOAL[ANS.goal] || 'la régularité'}</b>. Premium t’apporte un éducateur, une méthode, School et BERICH${sel && sel.months === 12 ? ', sur une année complète pour aller au bout' : ''}.`
+      : `${needGuide ? 'Premium dépasse ton budget pour l’instant. ' : ''}<b>Essentiel</b> te donne toute la plateforme et ses outils, en autonomie.`;
     result();
   }
+  // la durée la plus longue que le budget permet (sinon la plus courte)
   function recoOf(g) { const l = ofGroup(g); return (l.find(fits) || l[l.length - 1]).key; }
   function cta() {
     const sel = OFFERS.find((o) => o.key === SEL);
@@ -103,13 +106,14 @@
   }
   function result() {
     head(-1);
+    $('auStep').textContent = 'TON PACK';
     $('au').classList.add('is-wide');
-    screen(`<div class="au__res"><span class="au__k">Ton pack</span><h1>Voilà ce qui te correspond.</h1><p class="au__why">${WHY}</p><div id="auPack"></div>
+    screen(`<div class="au__res"><span class="au__k au__k--res">Ton pack · conseillé pour toi</span><h1>Voilà ce qui te correspond.</h1><p class="au__why">${WHY}</p><div id="auPack"></div>
       <p class="au__fine">Paiement sécurisé après l’inscription. Abonnement renouvelé automatiquement, résiliable à tout moment. Le trading comporte un risque de perte en capital ; CHEST ne garantit aucun gain.</p></div>`);
     pack = CHESTPack.mount($('auPack'), {
       mode: 'result', offers: OFFERS, sel: SEL, reco: recoOf(GROUP), fits, cta: cta(),
       onPick: (k) => { SEL = k; pack.update({ sel: SEL, cta: cta() }); },
-      onSwitch: (g) => { GROUP = g; SEL = recoOf(g); pack.update({ sel: SEL, reco: SEL, cta: cta() }); },
+      onSwitch: (g) => { GROUP = g; SEL = recoOf(g); if (!OFFERS.find((o) => o.key === SEL && fits(o))) SEL = ofGroup(g)[0].key; pack.update({ sel: SEL, reco: SEL, cta: cta() }); },
     });
   }
 

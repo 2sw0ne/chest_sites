@@ -81,7 +81,7 @@
   async function qr() {
     const url = `${location.origin}/audit/${encodeURIComponent(CODE)}`;
     show(`<span class="lp__k">02 — Ton audit</span><h3>Scanne avec ton téléphone</h3>
-      <p>L’audit s’ouvre directement sur ton téléphone : 7 questions, 2 minutes, puis ton pack et son prix.</p>
+      <p>L’audit s’ouvre directement sur ton téléphone : 6 questions, 2 minutes, puis ton pack et son prix.</p>
       <div class="lp__qr"><div id="lpQr"></div></div>
       <span class="lp__url">${esc(url.replace(/^https?:\/\//, ''))}</span>
       <div class="lp__wait"><i></i>Code ${esc(CODE)} validé</div>

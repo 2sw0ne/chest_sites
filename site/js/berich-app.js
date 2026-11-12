@@ -949,7 +949,7 @@
   // ================= Connexion clé en main (Premium 3) =================
   // Premium 1 et 2 : « Connecter » ouvre le parcours VPS (connect.html?plan=pro). Premium 3 : un volet sur la page ; le
   // membre donne son broker, ses accès MT5 et ses règles, son éducateur installe le VPS sous 24 à 48 h.
-  const isP3 = () => { const u = meUser(), a = u.access || {}; return !u.isAdmin && u.role !== 'educator' && a.plan === 'premium' && a.level === 3; };
+  const isP3 = () => { const u = meUser(), a = u.access || {}; return !u.isAdmin && u.role !== 'educator' && a.plan === 'premium' && a.level === 4; };
   async function loadP3() {
     if (!isP3()) return;
     try { const d = await api('/berich/requests'); p3Req = d.request; renderAll(); } catch (e) { /* hors ligne */ }
@@ -965,7 +965,7 @@
     root.hidden = false;
     root.innerHTML = `<div class="br-p3__box" role="dialog" aria-modal="true" aria-labelledby="brP3T">
       <button type="button" class="br-p3__x" data-p3-close aria-label="Fermer"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
-      <span class="br-label">Premium III · connexion clé en main</span>
+      <span class="br-label">Premium IV · connexion clé en main</span>
       <h3 id="brP3T">Ton broker et tes règles</h3>
       <p class="br-p3__lead">Ton éducateur installe ton VPS lui-même${S.plan ? `, avec ton plan (${esc(planLabel())})` : ''}. Donne-lui ton compte : la connexion sera faite sous <b>24 à 48 h</b>.</p>
       <div class="br-p3__grid">${firms.map((f) => `<button type="button" class="br-p3__firm ${sel && sel.id === f.id ? 'is-on' : ''}" data-p3-firm="${esc(f.id)}"><img src="${esc(CHESTJournal.propfirmLogo(f.domain))}" alt="" loading="lazy"><span><b>${esc(f.name)}</b><small>${f.kind === 'propfirm' ? 'Propfirm' : 'Broker'}</small></span></button>`).join('')}</div>
@@ -1038,7 +1038,7 @@
       try {
         const d = await api('/berich/requests', { method: 'POST', body: { broker: P3.firm.name, brokerId: P3.firm.id, kind: P3.firm.kind, server: v('server'), login: v('login'), password: v('password'), phase: P3.firm.kind === 'propfirm' ? P3.phase : '', rules } });
         p3Req = d.request;
-        root.querySelector('.br-p3__box').innerHTML = `<span class="br-label">Premium III · connexion clé en main</span>
+        root.querySelector('.br-p3__box').innerHTML = `<span class="br-label">Premium IV · connexion clé en main</span>
           <h3>C’est envoyé à ton éducateur</h3>
           <p class="br-p3__lead">Ta connexion <b>${esc(p3Req.broker)} · ${esc(p3Req.login)}</b> sera faite sous <b>24 à 48 h</b>. Tu n’as rien d’autre à faire : BERICH suivra ce compte dès que ton VPS sera prêt.</p>
           <div class="br-p3__foot"><button type="button" class="br-btn" data-p3-close>Compris</button></div>`;

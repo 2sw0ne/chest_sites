@@ -23,7 +23,7 @@
           <label class="am-promo__f"><span class="am-sub">Code donné par les référents</span><input class="am-promo__code" type="text" maxlength="16" value="${esc(P.code)}" data-pr="code" spellcheck="false" autocomplete="off"></label>
         </div>
         <div class="am-promo__prev${P.on ? '' : ' is-off'}" aria-label="Aperçu sur une carte">
-          <span class="am-promo__pk">Aperçu · Premium III</span>
+          <span class="am-promo__pk">Aperçu · Premium IV</span>
           <span class="am-promo__chip">−${P.pct} %</span>
           <s>${fmt(ref)} €</s><b>${fmt(now)} €</b>
           <small>avec le code <em>${esc(P.code)}</em> donné par ton référent</small>
@@ -63,7 +63,7 @@
 
   fetch(A.apiBase() + '/pricing').then((r) => r.json()).then((d) => {
     if (d.promo) P = { on: !!d.promo.on, pct: d.promo.pct, code: d.promo.code };
-    const p3 = (d.offers || []).find((o) => o.key === 'premium3');
+    const p3 = (d.offers || []).find((o) => o.key === 'premium4');
     if (p3 && p3.price) ref = p3.price;
     saved = { ...P }; paint();
   }).catch(() => { saved = { ...P }; paint(); });

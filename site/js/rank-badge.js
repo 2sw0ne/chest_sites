@@ -15,8 +15,8 @@
   };
   // Même teinte par famille ; plus le rang est haut, plus elle est saturée et lumineuse.
   const COLORS = {
-    premium3: ['#ffb36b', '#ff3d1f'], premium2: ['#e9a57d', '#cc5a41'], premium1: ['#c3a594', '#8f5f50'], premium4: ['#a8968c', '#6e5348'], premium: ['#ffab6b', '#ff4f3a'],
-    essentiel3: ['#5cffc4', '#00b377'], essentiel2: ['#80d7b7', '#2b9372'], essentiel1: ['#a3c4b8', '#557f70'], essentiel4: ['#97aaa3', '#4c645b'], essentiel: ['#5ff0bd', '#13a274'],
+    premium4: ['#ffb36b', '#ff3d1f'], premium3: ['#e9a57d', '#cc5a41'], premium2: ['#c3a594', '#8f5f50'], premium1: ['#a8968c', '#6e5348'], premium: ['#ffab6b', '#ff4f3a'],
+    essentiel4: ['#5cffc4', '#00b377'], essentiel3: ['#80d7b7', '#2b9372'], essentiel2: ['#a3c4b8', '#557f70'], essentiel1: ['#97aaa3', '#4c645b'], essentiel: ['#5ff0bd', '#13a274'],
     trial: ['#7ce3f5', '#0f93ad'], offert: ['#9dbcff', '#3f7bff'], allstar: ['#ffe39a', '#d99a1e'], none: ['#a0a0a8', '#4a4a52'],
   };
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

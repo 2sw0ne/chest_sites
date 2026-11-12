@@ -2246,12 +2246,15 @@ TRIAL_DAYS = 7
 # en une fois. Six emplacements fixes (essentiel1…premium3) : la clé donne les droits et la durée.
 # v3 (2026-11-12) : 4 rangs par offre, abonnements qui se renouvellent seuls (liens Stripe récurrents) :
 # I = 3 mois, II = 6 mois, III = 1 an, IV = 1 mois, chaque offre renouvelée au même prix.
-LEVEL_MONTHS = {1: 3, 2: 6, 3: 12, 4: 1}
+# v4 (2026-11-12, demande patron : « I = moins cher, IV = plus cher ») : I = 1 mois, II = 3 mois, III = 6 mois, IV = 1 an.
+# Les offres enregistrées et les rangs des membres sont renumérotés une fois au démarrage (rank_v4_migrate).
+LEVEL_MONTHS = {1: 1, 2: 3, 3: 6, 4: 12}
+RANK_V4 = {1: 2, 2: 3, 3: 4, 4: 1}  # ancien numéro de rang (v3) → nouveau
 PRICING_KEYS = ("essentiel1", "essentiel2", "essentiel3", "essentiel4", "premium1", "premium2", "premium3", "premium4")
-OFFER_PRICES = {"essentiel": {1: 450, 2: 800, 3: 1500, 4: 150}, "premium": {1: 900, 2: 1700, 3: 3000, 4: 300}}
+OFFER_PRICES = {"essentiel": {1: 150, 2: 450, 3: 800, 4: 1500}, "premium": {1: 300, 2: 900, 3: 1700, 4: 3000}}
 OFFER_RENEW = {}  # 2026-11-12 : plus de tarif réduit au renouvellement (Premium III = 3 000 € chaque année)
-OFFER_PERKS = {"premium3": ["Mentorat et accompagnement à vie", "VPS offert"], "premium2": ["VPS offert"],
-               "essentiel3": ["1 appel de mentorat par semaine, à débloquer quand tu veux"]}
+OFFER_PERKS = {"premium4": ["Mentorat et accompagnement à vie", "VPS offert"], "premium3": ["VPS offert"],
+               "essentiel4": ["1 appel de mentorat par semaine, à débloquer quand tu veux"]}
 _ESS_FEATS = [[1, "Tous les scanners et leurs alertes"], [1, "Backtesting et rapports complets"], [1, "Journal de trading"],
               [1, "Dashboard et comptes reliés"], [1, "Calendrier économique"],
               [0, "School complet et cours vidéo"], [0, "BERICH et suivi des positions"], [0, "Accompagnement personnalisé"]]
@@ -2279,7 +2282,7 @@ def _default_offer(key):
     m = LEVEL_MONTHS[level]
     span = "1 an" if m == 12 else f"{m} mois"
     return {"key": key, "group": group, "level": level, "months": m, "enabled": True, "soon": False,
-            "featured": key == "premium3", "name": f"{'Essentiel' if ess else 'Premium'} {ROMAN[level]}", "price": price, "link": "",
+            "featured": key == "premium4", "name": f"{'Essentiel' if ess else 'Premium'} {ROMAN[level]}", "price": price, "link": "",
             "renew": OFFER_RENEW.get(key, price),
             "who": ("Pour trader en autonomie avec tous les outils" if ess else "Pour progresser vite, accompagné"),
             "desc": (f"{span} sur toute la plateforme, renouvelé automatiquement." if ess else f"{span} de CHEST complet, formation et suivi, renouvelé automatiquement."),
@@ -2313,19 +2316,19 @@ def get_pricing():
 # Le webhook reconnaît l'offre au lien utilisé (payment_link) : Essentiel 3 et Premium 1 ont le même prix.
 # Abonnements Stripe (2026-11-12, liens récurrents : chaque offre se renouvelle à sa durée, au même prix).
 # Anciens liens désactivés dans Stripe le 2026-11-12.
-STRIPE_LINK_IDS = {"plink_1UaxobAN6r524EGXZ2iEj9Xb": "essentiel2", "plink_1Uaxo7AN6r524EGXNQgaNfzB": "essentiel1",
-                   "plink_1Uaxp4AN6r524EGXAfNtqn4k": "essentiel3", "plink_1UaxndAN6r524EGXmsgYnGPQ": "essentiel4",
-                   "plink_1UaxlVAN6r524EGXesyXvP7q": "premium1", "plink_1Uaxm4AN6r524EGXfhp28H6L": "premium2",
-                   "plink_1UaySyAN6r524EGXRqAe0MwQ": "premium3", "plink_1UaxkTAN6r524EGXMJ0C4f8f": "premium4"}
+STRIPE_LINK_IDS = {"plink_1UaxobAN6r524EGXZ2iEj9Xb": "essentiel3", "plink_1Uaxo7AN6r524EGXNQgaNfzB": "essentiel2",
+                   "plink_1Uaxp4AN6r524EGXAfNtqn4k": "essentiel4", "plink_1UaxndAN6r524EGXmsgYnGPQ": "essentiel1",
+                   "plink_1UaxlVAN6r524EGXesyXvP7q": "premium2", "plink_1Uaxm4AN6r524EGXfhp28H6L": "premium3",
+                   "plink_1UaySyAN6r524EGXRqAe0MwQ": "premium4", "plink_1UaxkTAN6r524EGXMJ0C4f8f": "premium1"}
 STRIPE_DEFAULT_LINKS = {  # offre -> (prix TTC du 1er paiement, lien de paiement Stripe)
-    "essentiel1": (450, "https://buy.stripe.com/cNi6oG2J54878DO42T2B20f"),
-    "essentiel2": (800, "https://buy.stripe.com/00w3cu1F16gf5rC1UL2B20g"),
-    "essentiel3": (1500, "https://buy.stripe.com/9B68wO3N91ZZg6geHx2B20h"),
-    "essentiel4": (150, "https://buy.stripe.com/3cI5kCfvR3437zK7f52B20e"),
-    "premium1": (900, "https://buy.stripe.com/bJebJ0gzV3433ju9nd2B20b"),
-    "premium2": (1700, "https://buy.stripe.com/6oUeVcdnJawv1bmczp2B20c"),
-    "premium3": (3000, "https://buy.stripe.com/7sY3cu97t3438DO9nd2B20i"),
-    "premium4": (300, "https://buy.stripe.com/bJe28q4RdcED7zK2YP2B20a"),
+    "essentiel1": (150, "https://buy.stripe.com/3cI5kCfvR3437zK7f52B20e"),
+    "essentiel2": (450, "https://buy.stripe.com/cNi6oG2J54878DO42T2B20f"),
+    "essentiel3": (800, "https://buy.stripe.com/00w3cu1F16gf5rC1UL2B20g"),
+    "essentiel4": (1500, "https://buy.stripe.com/9B68wO3N91ZZg6geHx2B20h"),
+    "premium1": (300, "https://buy.stripe.com/bJe28q4RdcED7zK2YP2B20a"),
+    "premium2": (900, "https://buy.stripe.com/bJebJ0gzV3433ju9nd2B20b"),
+    "premium3": (1700, "https://buy.stripe.com/6oUeVcdnJawv1bmczp2B20c"),
+    "premium4": (3000, "https://buy.stripe.com/7sY3cu97t3438DO9nd2B20i"),
 }
 
 
@@ -2859,7 +2862,7 @@ def berich_requests():
         r = db.execute("SELECT * FROM berich_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user["id"],)).fetchone()
         return jsonify({"request": _req_public(r) if r else None})
     a = access_of(user)
-    if not (a["berich"] and (a.get("level") == 3 or user["is_admin"] or _col(user, "role") == "educator")):
+    if not (a["berich"] and (a.get("level") == 4 or user["is_admin"] or _col(user, "role") == "educator")):
         return jsonify({"error": "La connexion clé en main est incluse dans Premium 3."}), 403
     b = request.get_json(silent=True) or {}
     clean = lambda v, n: re.sub(r"\s+", " ", str(v or "")).strip()[:n]
@@ -7319,8 +7322,51 @@ class NoKeepAliveHandler(WSGIRequestHandler):
     protocol_version = "HTTP/1.0"
 
 
+def rank_v4_migrate():
+    """Une seule fois : rangs v3 (I = 3 mois, II = 6, III = 1 an, IV = 1 mois) → v4 (I = 1 mois … IV = 1 an).
+    Renumérote les offres de l'éditeur Prix (clé, niveau, durée, nom), les rangs des membres et les paiements
+    crypto en attente."""
+    with sqlite3.connect(DB_PATH) as db:
+        db.row_factory = sqlite3.Row
+        done = db.execute("SELECT value FROM site_settings WHERE key = 'rank_order'").fetchone()
+        if done and done["value"] == "v4":
+            return
+        row = db.execute("SELECT value FROM site_settings WHERE key = 'pricing'").fetchone()
+        try:
+            data = json.loads(row["value"]) if row and row["value"] else None
+        except ValueError:
+            data = None
+        if isinstance(data, dict) and isinstance(data.get("offers"), list):
+            by = {}
+            for o in data["offers"]:
+                if not isinstance(o, dict) or not re.fullmatch(r"(essentiel|premium)[1-4]", str(o.get("key") or "")):
+                    continue
+                g, old = o["key"][:-1], int(o["key"][-1])
+                new = RANK_V4[old]
+                o = dict(o, key=f"{g}{new}", level=new, months=LEVEL_MONTHS[new], featured=(g == "premium" and new == 4))
+                o["name"] = re.sub(r"\b(IV|III|II|I)\b\s*$", ROMAN[new], str(o.get("name") or "")) or f"{g.capitalize()} {ROMAN[new]}"
+                by[o["key"]] = o
+            if all(k in by for k in PRICING_KEYS):
+                db.execute("UPDATE site_settings SET value = ? WHERE key = 'pricing'",
+                           (json.dumps({**data, "offers": [by[k] for k in PRICING_KEYS]}, ensure_ascii=False),))
+        cols = [r[1] for r in db.execute("PRAGMA table_info(users)").fetchall()]
+        if "plan_level" in cols:
+            db.execute("UPDATE users SET plan_level = CASE plan_level WHEN 1 THEN 2 WHEN 2 THEN 3 WHEN 3 THEN 4 WHEN 4 THEN 1 END "
+                       "WHERE plan IN ('essentiel', 'premium') AND plan_level IN (1, 2, 3, 4)")
+        try:
+            for r in db.execute("SELECT id, offer FROM crypto_payments WHERE status IN ('pending', 'detected')").fetchall():
+                m = re.fullmatch(r"(essentiel|premium)([1-4])", r["offer"] or "")
+                if m:
+                    db.execute("UPDATE crypto_payments SET offer = ? WHERE id = ?", (f"{m.group(1)}{RANK_V4[int(m.group(2))]}", r["id"]))
+        except sqlite3.Error:
+            pass
+        db.execute("INSERT INTO site_settings (key, value) VALUES ('rank_order', 'v4') ON CONFLICT(key) DO UPDATE SET value = 'v4'")
+        db.commit()
+
+
 if __name__ == "__main__":
     init_db()
+    rank_v4_migrate()
     threading.Thread(target=digest_loop, daemon=True).start()
     threading.Thread(target=school_reminder_loop, daemon=True).start()
     threading.Thread(target=price_alert_loop, daemon=True).start()

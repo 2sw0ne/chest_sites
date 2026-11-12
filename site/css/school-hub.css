@@ -887,3 +887,19 @@
 @media (max-width:640px){ .ix-grid{ grid-template-columns:1fr; } .ix-find{ max-width:none; flex-basis:100%; } .ix-tabs{ width:100%; } .ix-tabs button{ flex:1; justify-content:center; padding:0 8px; } .ix-d{ padding:18px 14px calc(18px + env(safe-area-inset-bottom)); } }
 @media (prefers-reduced-motion: reduce){ .ix-st--run::before{ animation:none; } .ix-card{ transition:none; } }
 .ix-d > .ix-card__h{ padding-right:46px; }
+/* IDEA : toutes les cartes à la même hauteur, éléments alignés (2026-11-12) */
+.ix-grid{ align-items:stretch; }
+.ix-card .ix-lv{ flex:none; }
+.ix-lv__r.is-pad{ visibility:hidden; }
+.ix-up1{ min-height:58px; align-content:center; }
+.ix-up1 span{ -webkit-line-clamp:1; }
+.ix-up1.is-empty{ border-left-color:rgba(var(--fg-rgb,255,255,255),.12); }
+.ix-up1.is-empty span{ color:var(--ink-3, #7a7a82); font-size:13px; }
+.ix-up1--res{ border-left-color:currentColor; }
+.ix-up1--res span{ font-weight:700; }
+.ix-up1--res small{ color:var(--ink-3, #7a7a82); }
+.ix-st--win{ color:var(--green, #33e6a6); background:rgba(var(--green-rgb,51,230,166),.12); }
+.ix-st--loss{ color:var(--red, #ff4d5e); background:rgba(var(--red-rgb,255,77,94),.12); }
+.ix-st--flat{ color:var(--ink-2, #9b9ba1); background:rgba(var(--fg-rgb,255,255,255),.06); }
+.ix-card__dir{ min-height:32px; }
+.ix-more{ margin-top:auto; }
