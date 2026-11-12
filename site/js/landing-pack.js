@@ -58,10 +58,10 @@
   const loadQr = () => window.qrcode ? Promise.resolve() : new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
   function open() {
-    if (CODE) return qr();
+    if (CODE) { location.href = '/inscription?ref=' + encodeURIComponent(CODE); return; }
     show(`<span class="lp__k">01 — Accès invité</span><h3>Le code de ton référent</h3>
-      <p>CHEST est réservé aux personnes invitées. Entre le code que t’a donné ton référent pour débloquer ton audit et les prix.</p>
-      <form class="lp__code" id="lpCode"><input type="text" name="c" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Code du référent" placeholder="CODE"><button class="lp__go" type="submit">Débloquer mon audit</button></form>
+      <p>CHEST est réservé aux personnes invitées. Entre le code que t’a donné ton référent : tu crées ton compte, puis ton audit te montre le pack qui te correspond et son prix.</p>
+      <form class="lp__code" id="lpCode"><input type="text" name="c" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Code du référent" placeholder="CODE"><button class="lp__go" type="submit">Continuer</button></form>
       <p class="lp__err" id="lpErr" role="alert"></p>`);
     const f = document.getElementById('lpCode');
     f.c.focus();
@@ -74,7 +74,8 @@
         const r = await fetch(API + '/ref/' + encodeURIComponent(c));
         if (!r.ok) throw new Error(r.status === 429 ? 'Trop d’essais, réessaie dans quelques minutes.' : 'Ce code ne correspond à aucun référent.');
         CODE = c;
-        qr();
+        // 2026-11-12 : code → inscription (code rempli et verrouillé) → audit → prix → paiement
+        location.href = '/inscription?ref=' + encodeURIComponent(c);
       } catch (err) { document.getElementById('lpErr').textContent = err.message; btn.disabled = false; }
     });
   }

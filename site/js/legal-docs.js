@@ -87,7 +87,7 @@
       <p>${WHO()}, ${C('form')}, ${C('rcs')}, ${C('address')}. Contact : ${MAIL()}.</p>
       <h2>2. Offres</h2>
       <ul>
-        <li><b>Essai</b> : 7 jours gratuits, sans moyen de paiement, avec les fonctions d'Essentiel ; tes données restent sur ton appareil.</li>
+        <li><b>Essai</b> : 3 jours gratuits, sans moyen de paiement, avec les fonctions d'Essentiel ; tes données restent sur ton appareil.</li>
         <li><b>Essentiel I, II, III</b> : toute la plateforme sauf School et BERICH, pendant 3, 6 ou 12 mois.</li>
         <li><b>Premium I, II, III</b> : toute la plateforme, School, BERICH et le suivi par un éducateur, pendant 3, 6 ou 12 mois ; Premium III comprend en plus la connexion BERICH « clé en main » installée par ton éducateur.</li>
       </ul>

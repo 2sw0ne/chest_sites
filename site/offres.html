@@ -26,7 +26,7 @@
 <!--
   Offres (2026-10-18) : après l'inscription (ou quand l'accès est terminé), on arrive ici.
   01 questionnaire de 5 questions → 02 offre conseillée + toutes les offres (mensuel / annuel, prix
-  annuel affiché par mois avec le prix mensuel barré) + essai gratuit de 7 jours → paiement par lien
+  annuel affiché par mois avec le prix mensuel barré) + essai gratuit de 3 jours → paiement par lien
   Stripe → 03 attente de la validation (le serveur est prévenu par Stripe) → Welcome.
 -->
 <body class="chest-root of-body">
@@ -97,7 +97,7 @@
 
     <div class="of-trial" id="ofTrial">
       <span class="of-trial__ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>
-      <div class="of-trial__txt"><b id="ofTrialTitle">Essai gratuit · 7 jours</b><span id="ofTrialText">Tout CHEST Essentiel, sans carte bancaire. Pendant l'essai, tes données restent sur ton appareil (dans ton navigateur), elles ne passent pas par nos serveurs.</span></div>
+      <div class="of-trial__txt"><b id="ofTrialTitle">Essai gratuit · 3 jours</b><span id="ofTrialText">Tout CHEST Essentiel, sans carte bancaire. Pendant l'essai, tes données restent sur ton appareil (dans ton navigateur), elles ne passent pas par nos serveurs.</span></div>
       <button type="button" class="cx-btn-2 of-trial__btn" id="ofTrialBtn">Commencer l'essai</button>
     </div>
     <p class="of-fine" id="ofFine">Prix TTC, payé une fois : pas d’abonnement, rien ne se renouvelle tout seul. Paiement sécurisé par Stripe : carte, Apple Pay, Google Pay. Accès immédiat, remboursement possible sous 7 jours.</p>
@@ -252,7 +252,7 @@
       btn.textContent = 'Continuer l’essai'; btn.disabled = false; btn.dataset.mode = 'go';
     } else if (a.trialUsed) {
       $('#ofTrialTitle').textContent = 'Essai gratuit déjà utilisé';
-      $('#ofTrialText').textContent = 'Ton essai de 7 jours est terminé. Choisis une offre pour continuer : tes données restées sur cet appareil seront conservées.';
+      $('#ofTrialText').textContent = 'Ton essai de 3 jours est terminé. Choisis une offre pour continuer : tes données restées sur cet appareil seront conservées.';
       btn.textContent = 'Essai terminé'; btn.disabled = true; btn.dataset.mode = '';
     } else {
       btn.textContent = 'Commencer l’essai'; btn.disabled = false; btn.dataset.mode = 'start';

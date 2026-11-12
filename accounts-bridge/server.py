@@ -2234,7 +2234,7 @@ PLAN_AMOUNTS = {  # centimes TTC avant remise -> (offre, période)
     29998: ("premium", "month"), 300000: ("premium", "year"),
     999998: ("allstar", "year"),
 }
-TRIAL_DAYS = 7
+TRIAL_DAYS = 3
 
 # ---------------------------------------------------------------- Prix modifiables (2026-10-21)
 # L'admin modifie les offres depuis /offres (mode édition) : nom, textes, éléments, prix, liens de paiement

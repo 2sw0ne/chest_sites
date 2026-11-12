@@ -75,6 +75,11 @@ button{ -webkit-tap-highlight-color:transparent; }
 .au__res h1{ text-align:center; }
 .au__res > .au__k{ display:block; text-align:center; }
 .au__fine{ margin:26px auto 0; max-width:640px; text-align:center; font-size:11.5px; line-height:1.5; color:#5c5c63; }
+.au__qr{ display:flex; align-items:center; gap:16px; margin-top:24px; padding:14px; border-radius:20px; background:rgba(16,15,20,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); }
+.au__qr > div{ flex:none; padding:8px; border-radius:14px; background:#fff; box-shadow:0 0 0 3px rgba(252,18,131,.5); }
+.au__qr img{ display:block; width:132px; height:132px; image-rendering:pixelated; }
+.au__qr span{ display:grid; gap:4px; font-size:14px; }
+.au__qr small{ font-size:13px; line-height:1.45; color:#9b9ba1; }
 .au__opt.is-rec{ box-shadow:inset 0 0 0 1px rgba(249,164,94,.45), 0 10px 30px rgba(252,18,131,.12); }
 .au__rec{ margin-left:auto; flex:none; padding:4px 9px; border-radius:999px; font-style:normal; font-size:10.5px; font-weight:700; letter-spacing:.04em; color:#fff; background:linear-gradient(90deg,#fc1283,#f9a45e); }
 @media (max-width:1099px), (hover:none){
@@ -97,7 +102,8 @@ button{ -webkit-tap-highlight-color:transparent; }
   <section class="au__stage" id="auStage" aria-live="polite"></section>
 </main>
 <script src="/js/config.js?v=5"></script>
-<script src="/js/pack-card.js?v=3"></script>
-<script src="/js/audit.js?v=3"></script>
+<script src="/js/accounts-auth.js?v=12"></script>
+<script src="/js/pack-card.js?v=4"></script>
+<script src="/js/audit.js?v=5"></script>
 </body>
 </html>

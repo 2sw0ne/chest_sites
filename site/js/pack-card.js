@@ -19,13 +19,15 @@
     ['berich', 'BERICH, trading algorithmique', 'BERICH algo', 'L’or tradé pour toi, 24 h / 24', PREM, '#f9a45e'],
     ['vps', 'VPS offert', 'VPS offert', 'BERICH tourne sans ton ordinateur', (o) => PREM(o) && o.months >= 6, '#33e6a6'],
   ];
+  // [titre, titre court, description, inclus ?, couleur] — académies (référence OMNI, Franchise → Cryptomonnaie)
   const RIGHT = [
-    ['Ton éducateur dédié', 'Éducateur dédié', 'Il te suit, te corrige, te fait avancer', PREM, '#f9a45e'],
-    ['Appels de suivi et missions', 'Suivi + missions', 'Un cap clair entre chaque appel', PREM, '#4d8dff'],
-    ['IDEA, les opportunités de l’équipe', 'IDEA en direct', 'Entrée, SL et TP partagés en direct', PREM, '#33e6a6'],
-    ['Mentorat chaque semaine', 'Mentorat hebdo', 'Un appel de mentorat par semaine', (o) => PREM(o) || (o && o.months === 12), '#a855f7'],
-    ['BERICH installé clé en main', 'Clé en main', 'Ton éducateur branche tout pour toi', (o) => PREM(o) && o.months === 12, '#fc1283'],
-    ['Mentorat à vie', 'Mentorat à vie', 'Ton accompagnement ne s’arrête pas', (o) => PREM(o) && o.months === 12, '#f5c451'],
+    ['Trading', 'Trading', 'Maîtrise les marchés financiers.', PREM, '#4f7dff'],
+    ['Invest', 'Invest', 'Apprends à investir intelligemment.', PREM, '#8b5cf6'],
+    ['Social Media', 'Social Media', 'Développe et monétise ta présence.', PREM, '#f2456b'],
+    ['IA', 'IA', 'Exploite la puissance de l’intelligence artificielle.', PREM, '#31c6f0'],
+    ['Mindset', 'Mindset', 'Renforce ton mental et ta discipline.', PREM, '#9a8cae'],
+    ['Stratégie', 'Stratégie', 'Pense comme un entrepreneur.', PREM, '#2fd67f'],
+    ['Cryptomonnaie', 'Crypto', 'Comprends et investis dans les cryptomonnaies.', PREM, '#e8b24c'],
   ];
   const IC = {
     dash: '<path d="M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z"/>',
@@ -62,14 +64,18 @@
 @keyframes pkA3{ to{ transform:translate3d(10%, 14%, 0) scaleX(1.3); } }
 .pk__deck{ position:relative; height:calc(var(--ch) + 130px); perspective:1200px; outline:0; }
 .pk__side{ display:contents; }
-.pk__sat{ position:absolute; top:50%; left:50%; z-index:2; display:flex; align-items:center; gap:12px; width:var(--sw); min-height:60px; padding:10px 14px 10px 10px; border-radius:16px; background:linear-gradient(110deg, rgba(22,20,28,.92), rgba(14,13,18,.9)); box-shadow:inset 3px 0 0 var(--h), inset 0 0 0 1px rgba(255,255,255,.1), 0 10px 30px rgba(0,0,0,.35); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+.pk__sat{ position:absolute; top:50%; left:50%; z-index:2; display:flex; align-items:center; gap:12px; width:var(--sw); min-height:60px; padding:10px 14px 10px 10px; border-radius:16px; background:linear-gradient(110deg, rgba(22,20,28,.92), rgba(14,13,18,.9)); box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 10px 30px rgba(0,0,0,.35); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
   opacity:0; transform:translate(-50%, -50%) scale(.72); transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .3s ease-out, box-shadow .3s; pointer-events:none; }
 .pk.is-open .pk__sat{ opacity:1; pointer-events:auto; transform:translate(-50%, -50%) translate(var(--x), var(--y)) rotate(var(--r)); transition-delay:calc(var(--o) * 32ms); }
 .pk__sat--h{ min-height:0; padding:0 4px; background:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:#9b9ba1; }
-.pk__sat:not(.pk__sat--h):hover{ z-index:12; box-shadow:inset 3px 0 0 var(--h), inset 0 0 0 1px color-mix(in srgb, var(--h) 55%, transparent), 0 14px 34px rgba(0,0,0,.45); }
-.pk__ic, .pk__n{ flex:none; width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:color-mix(in srgb, var(--h) 20%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--h) 50%, transparent); transition:background .45s, box-shadow .45s, color .45s; }
-.pk__ic svg{ width:19px; height:19px; fill:none; stroke:var(--h); stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; transition:stroke .45s; }
-.pk__n{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:13px; font-weight:600; color:var(--h); }
+.pk__sat:not(.pk__sat--h):hover{ z-index:12; box-shadow:inset 0 0 0 1px rgba(252,18,131,.45), 0 14px 34px rgba(0,0,0,.45); }
+.pk__ic, .pk__n{ flex:none; width:40px; height:40px; border-radius:12px; display:grid; place-items:center; transition:background .45s, box-shadow .45s, color .45s; }
+.pk__ic{ background:linear-gradient(135deg,#fc1283,#f9a45e); box-shadow:0 6px 18px rgba(252,18,131,.3); }
+.pk__ic svg{ width:19px; height:19px; fill:none; stroke:#fff; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; transition:stroke .45s; }
+.pk__n{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:13px; font-weight:600; color:var(--h); background:color-mix(in srgb, var(--h) 18%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--h) 55%, transparent); }
+.pk__sat--ac{ background:linear-gradient(110deg, #11142d, color-mix(in srgb, var(--h) 28%, #131329)); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--h) 45%, transparent), 0 10px 30px rgba(0,0,0,.35); }
+.pk__sat--ac:not(.pk__sat--h):hover{ box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--h) 80%, transparent), 0 14px 34px rgba(0,0,0,.45); }
+.pk__sat--ac em.pk__chev{ font-style:normal; font-size:20px; color:color-mix(in srgb, var(--h) 70%, #fff); }
 .pk__sat span{ min-width:0; display:grid; gap:2px; }
 .pk__sat b{ position:relative; justify-self:start; font-size:13.5px; font-weight:650; letter-spacing:-.005em; transition:color .45s; }
 .pk__sat b::after, .pk__bi b::after{ content:''; position:absolute; left:-2px; right:-2px; top:54%; height:1.5px; border-radius:2px; background:#ff4d5e; transform:scaleX(0); transform-origin:left; transition:transform .5s cubic-bezier(.16,1,.3,1); }
@@ -78,7 +84,7 @@
 .pk__sat em svg, .pk__bi em svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; display:block; }
 .is-off .pk__ic, .is-off .pk__n{ background:rgba(255,255,255,.05); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); color:#5c5c63; }
 .is-off .pk__ic svg{ stroke:#5c5c63; }
-.pk__sat.is-off{ box-shadow:inset 3px 0 0 rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.35); }
+.pk__sat.is-off{ background:linear-gradient(110deg, rgba(22,20,28,.92), rgba(14,13,18,.9)); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.35); }
 .is-off > span > b, .pk__bi.is-off b{ color:#7a7a82; }
 .is-off > span > b::after, .pk__bi.is-off b::after{ transform:scaleX(1); }
 .pk__sat.is-off small{ color:#5c5c63; }
@@ -122,6 +128,23 @@
 .pk__up span{ display:grid; gap:1px; font-size:12.5px; line-height:1.35; }
 .pk__up span b{ font-size:13px; }
 .pk__up span small{ color:#c9c9cf; }
+.pk__more{ width:min(380px, 100%); }
+.pk__more summary{ display:flex; align-items:center; justify-content:center; gap:6px; padding:6px; list-style:none; font-size:12.5px; color:#7a7a82; cursor:pointer; }
+.pk__more summary::-webkit-details-marker{ display:none; }
+.pk__more summary svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; transition:transform .25s; }
+.pk__more[open] summary svg{ transform:rotate(180deg); }
+.pk__more[open] summary{ color:#9b9ba1; }
+.pk__mlist{ display:grid; gap:6px; margin-top:6px; padding:8px; border-radius:16px; background:rgba(255,255,255,.03); box-shadow:inset 0 0 0 1px rgba(255,255,255,.07); animation:pkOpen .3s cubic-bezier(.16,1,.3,1); }
+@keyframes pkOpen{ from{ opacity:0; transform:translateY(-4px); } }
+.pk__mrow{ display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border:0; border-radius:12px; text-align:left; font:inherit; color:#9b9ba1; background:rgba(255,255,255,.03); cursor:pointer; transition:background-color .2s, color .2s; }
+.pk__mrow:hover{ color:#f6f6f7; background:rgba(255,255,255,.06); }
+.pk__mrow.is-on{ color:#f6f6f7; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18); }
+.pk__mrow b{ font-size:13px; font-weight:600; }
+.pk__mrow small{ display:block; font-size:11px; color:#7a7a82; }
+.pk__mrow span:last-child{ margin-left:auto; font-size:13.5px; font-weight:650; font-variant-numeric:tabular-nums; }
+.pk__mrow i{ font-style:normal; font-size:10px; color:#33e6a6; margin-left:6px; }
+.pk__trial{ justify-self:center; margin-top:2px; padding:6px; border:0; background:none; font:inherit; font-size:11.5px; color:#5c5c63; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.pk__trial:hover{ color:#9b9ba1; }
 .pk__others{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px; }
 .pk__others > span{ width:100%; text-align:center; font-size:10.5px; color:#5c5c63; font-family:'Fragment Mono', ui-monospace, monospace; letter-spacing:.18em; text-transform:uppercase; }
 .pk__others button{ position:relative; padding:7px 12px; border:0; border-radius:999px; font:inherit; font-size:12px; color:#9b9ba1; background:rgba(255,255,255,.05); box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); cursor:pointer; transition:color .2s, box-shadow .2s, transform .16s ease-out; font-variant-numeric:tabular-nums; }
@@ -143,13 +166,14 @@
 .pk__cols{ display:grid; grid-template-columns:1fr 1fr; gap:12px; min-height:0; }
 .pk__col{ display:grid; align-content:start; gap:4px; min-width:0; }
 .pk__col > span{ margin-bottom:2px; font-family:'Fragment Mono', ui-monospace, monospace; font-size:8.5px; letter-spacing:.18em; text-transform:uppercase; color:#9b9ba1; }
-.pk__bi{ display:flex; align-items:center; gap:7px; min-width:0; min-height:25px; padding:4px 6px 4px 4px; border-radius:9px; background:rgba(255,255,255,.04); box-shadow:inset 2px 0 0 var(--h); }
+.pk__bi{ display:flex; align-items:center; gap:7px; min-width:0; min-height:25px; padding:4px 6px 4px 4px; border-radius:9px; background:rgba(255,255,255,.04); }
+.pk__bi.is-ac{ background:linear-gradient(110deg, #11142d, color-mix(in srgb, var(--h) 26%, #131329)); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--h) 40%, transparent); }
 .pk__bi .pk__ic, .pk__bi .pk__n{ width:22px; height:22px; border-radius:7px; font-size:10px; }
 .pk__bi .pk__ic svg{ width:13px; height:13px; }
 .pk__bi b{ position:relative; flex:0 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:11.5px; font-weight:650; line-height:1.2; }
 .pk__bi em{ flex:none; margin-left:auto; color:#5c5c63; }
 .pk__bi em svg{ width:11px; height:11px; }
-.pk__bi.is-off{ box-shadow:inset 2px 0 0 rgba(255,255,255,.1); }
+.pk__bi.is-off{ background:rgba(255,255,255,.04); box-shadow:none; }
 .pk__bk .pk__flip{ display:flex; }
 @media (max-width:1099px), (hover:none){
   .pk{ --cw:min(340px, 88vw); --ch:clamp(350px, calc(100dvh - 330px), 500px); }
@@ -204,7 +228,7 @@
       <div class="pk__deck" tabindex="0" aria-expanded="false">
         <div class="pk__side pk__side--l">${head('Ce que tu débloques', -1)}${LEFT.map(([ic, t, , d, , h], i) => `<article class="pk__sat" data-l="${i}" style="${pos(i, -1, h)}"><i class="pk__ic"><svg viewBox="0 0 24 24">${IC[ic]}</svg></i><span><b>${esc(t)}</b><small>${esc(d)}</small></span><em></em></article>`).join('')}</div>
         <article class="pk__main" aria-live="polite"></article>
-        <div class="pk__side pk__side--r">${head('Ton accompagnement', 1)}${RIGHT.map(([t, , d, , h], i) => `<article class="pk__sat" data-r="${i}" style="${pos(i, 1, h)}"><i class="pk__n">${String(i + 1).padStart(2, '0')}</i><span><b>${esc(t)}</b><small>${esc(d)}</small></span><em></em></article>`).join('')}</div>
+        <div class="pk__side pk__side--r">${head('Tes académies', 1)}${RIGHT.map(([t, , d, , h], i) => `<article class="pk__sat pk__sat--ac" data-r="${i}" style="${pos(i, 1, h)}"><i class="pk__n">${String(i + 1).padStart(2, '0')}</i><span><b>${esc(t)}</b><small>${esc(d)}</small></span><em></em></article>`).join('')}</div>
         <p class="pk__hint">Passe ta souris sur la carte</p>
       </div>
       <div class="pk__below"></div>`;
@@ -228,7 +252,7 @@
       // éléments : inclus / barrés ; ceux qui viennent d'être débloqués s'allument une fois
       const on = new Set();
       root.querySelectorAll('[data-l]').forEach((el) => { const i = +el.dataset.l; el.classList.toggle('is-off', !inL[i]); el.querySelector('em').innerHTML = inL[i] ? '' : LOCK; if (inL[i]) on.add('l' + i); });
-      root.querySelectorAll('[data-r]').forEach((el) => { const i = +el.dataset.r; el.classList.toggle('is-off', !inR[i]); el.querySelector('em').innerHTML = inR[i] ? '' : LOCK; if (inR[i]) on.add('r' + i); });
+      root.querySelectorAll('[data-r]').forEach((el) => { const i = +el.dataset.r; el.classList.toggle('is-off', !inR[i]); const em = el.querySelector('em'); em.className = inR[i] ? 'pk__chev' : ''; em.innerHTML = inR[i] ? '›' : LOCK; if (inR[i]) on.add('r' + i); });
       if (prevOn) root.querySelectorAll('[data-l],[data-r]').forEach((el) => { const k = el.dataset.l != null ? 'l' + el.dataset.l : 'r' + el.dataset.r; if (on.has(k) && !prevOn.has(k)) { el.classList.remove('is-new'); void el.offsetWidth; el.classList.add('is-new'); } });
       main.classList.toggle('is-ess', !prem);
       const flip = (t) => `<span class="pk__flip">${FLIP}${t}</span>`;
@@ -246,12 +270,12 @@
           <h3 class="pk__name">CHEST <strong>${prem ? 'Premium' : 'Essentiel'}</strong></h3><p class="pk__sub">${prem ? 'Toute la plateforme, la formation et l’accompagnement.' : 'Toute la plateforme, en autonomie.'}</p>
           <div class="pk__price">${eur(sel.price)}</div><p class="pk__pm">${sel.months > 1 ? `soit ${eur(sel.price / sel.months)} par mois` : 'par mois, sans engagement'}</p>
           ${O.reco === sel.key ? '<span class="pk__bonus">Conseillé pour toi</span>' : perk ? `<span class="pk__bonus">${esc(perk)}</span>` : ''}</div>
-          <div class="pk__foot"><span><b>${sel.months}</b><small>mois d’accès</small></span><span><b>↻</b><small>renouvelé ${every}</small></span><span><b>✕</b><small>résiliable à tout moment</small></span></div>`;
+          <div class="pk__foot"><span><b>${sel.months}</b><small>mois d’accès</small></span>${prem && sel.months === 12 ? '<span><b>∞</b><small>pour toujours</small></span>' : `<span><b>↻</b><small>renouvelé ${every}</small></span>`}<span><b>✕</b><small>résiliable à tout moment</small></span></div>`;
       }
-      const bi = (h, ico, t, ok) => `<div class="pk__bi${ok ? '' : ' is-off'}" style="--h:${h}">${ico}<b>${esc(t)}</b><em>${ok ? '' : LOCK}</em></div>`;
+      const bi = (h, ico, t, ok, ac) => `<div class="pk__bi${ok ? '' : ' is-off'}${ac && ok ? ' is-ac' : ''}" style="--h:${h}">${ico}<b>${esc(t)}</b><em>${ok ? '' : LOCK}</em></div>`;
       const back = `<div class="pk__bk"><h4>${teaser ? 'Ton pack CHEST' : `CHEST ${prem ? 'Premium' : 'Essentiel'} ${ROM[sel.level] || ''}`}</h4>
         <div class="pk__cols"><div class="pk__col"><span>Tu débloques</span>${LEFT.map(([ic, , s, , , h], i) => bi(h, `<i class="pk__ic"><svg viewBox="0 0 24 24">${IC[ic]}</svg></i>`, s, inL[i])).join('')}</div>
-          <div class="pk__col"><span>Accompagnement</span>${RIGHT.map(([, s, , , h], i) => bi(h, `<i class="pk__n">${String(i + 1).padStart(2, '0')}</i>`, s, inR[i])).join('')}</div></div>
+          <div class="pk__col"><span>Académies</span>${RIGHT.map(([, s, , , h], i) => bi(h, `<i class="pk__n">${String(i + 1).padStart(2, '0')}</i>`, s, inR[i], true)).join('')}</div></div>
         ${flip('Retourner la carte')}</div>`;
       main.innerHTML = `<div class="pk__face pk__front">${front}${flip('Touche pour voir ce qui est inclus')}</div><div class="pk__face pk__back">${back}</div>`;
       prevOn = on;
@@ -263,10 +287,14 @@
         const plus = LEFT.filter((x) => x[4](top) && !x[4](sel)).map((x) => x[2]).concat(RIGHT.filter((x) => x[3](top) && !x[3](sel)).map((x) => x[1]));
         up = `<button type="button" class="pk__up" data-pick="${top.key}"><i>${ROM[top.level]}</i><span><b>Avec ${prem ? 'Premium' : 'Essentiel'} ${ROM[top.level]} · ${dur(top.months)}</b><small>${plus.length ? 'En plus : ' + esc(plus.join(', ')) : 'Le parcours le plus long, pour aller au bout'}</small></span></button>`;
       }
+      const others = list.filter((o) => o.key !== (sel && sel.key));
       below.innerHTML = `${O.cta ? (O.cta.href ? `<a class="pk__cta" href="${esc(O.cta.href)}" data-pk-cta>${esc(O.cta.label)}<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>` : `<button type="button" class="pk__cta" data-pk-cta>${esc(O.cta.label)}<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`) : ''}
         ${up}
-        ${list.length > 1 ? `<div class="pk__others"><span>Autres durées</span>${list.map((o) => `<button type="button" data-pick="${o.key}" class="${o.key === sel.key ? 'is-on' : ''}${o.key === top.key ? ' is-top' : ''}">${ROM[o.level]} · ${dur(o.months)} · ${eur(o.price)}${O.fits && O.fits(o) ? '<i>●</i>' : ''}</button>`).join('')}</div>` : ''}
-        ${!teaser && !prem && O.onSwitch ? '<button type="button" class="pk__switch" data-pk-switch>Voir CHEST Premium, avec l’accompagnement →</button>' : ''}`;
+        ${!teaser && (others.length || O.onTrial || (!prem && O.onSwitch)) ? `<details class="pk__more"><summary>Voir d’autres formules<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></summary><div class="pk__mlist">
+          ${others.map((o) => `<button type="button" class="pk__mrow" data-pick="${o.key}"><span><b>${prem ? 'Premium' : 'Essentiel'} ${ROM[o.level]} · ${dur(o.months)}</b><small>${o.months === 1 ? 'Sans engagement' : `soit ${eur(o.price / o.months)} par mois`}${O.fits && O.fits(o) ? '<i>● dans ton budget</i>' : ''}</small></span><span>${eur(o.price)}</span></button>`).join('')}
+          ${!prem && O.onSwitch ? '<button type="button" class="pk__mrow" data-pk-switch><span><b>CHEST Premium</b><small>Avec l’éducateur, School, BERICH et les académies</small></span><span>→</span></button>' : ''}
+          ${O.onTrial ? '<button type="button" class="pk__trial" data-pk-trial>Essai gratuit de 3 jours</button>' : ''}</div></details>` : ''}`;
+      const tr = below.querySelector('[data-pk-trial]'); if (tr) tr.addEventListener('click', () => O.onTrial(tr));
       below.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => { if (O.onPick) O.onPick(b.dataset.pick); }));
       const sw = below.querySelector('[data-pk-switch]'); if (sw) sw.addEventListener('click', () => O.onSwitch('premium'));
       const ct = below.querySelector('[data-pk-cta]'); if (ct && O.cta.onClick) ct.addEventListener('click', (e) => O.cta.onClick(e));

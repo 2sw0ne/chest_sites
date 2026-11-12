@@ -57,12 +57,17 @@
       intro();
     } catch (err) { codeStep(err.message); }
   }
+  const desk = () => matchMedia('(hover: hover) and (min-width: 900px)').matches;
+  const loadQr = () => window.qrcode ? Promise.resolve() : new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+  async function qrInto(el, url) { try { await loadQr(); const q = window.qrcode(0, 'M'); q.addData(url); q.make(); el.innerHTML = q.createImgTag(4, 0); } catch (e) { el.closest('.au__qr').remove(); } }
   function intro() {
     head(-1);
     screen(`<span class="au__k">Ton audit · 2 minutes</span><h1>${EDU ? `${esc(EDU.split(' ')[0])} t’invite sur CHEST.` : 'Bienvenue sur CHEST.'}</h1>
       <p class="au__lead">6 questions sur où tu en es et ce que tu peux mettre en place. On te montre ensuite le pack qui te correspond, avec son prix et tout ce qu’il débloque.</p>
-      <div class="au__code"><button type="button" class="au__go" id="auStart">C’est parti</button></div>`);
+      ${desk() ? `<div class="au__qr"><div id="auQr"></div><span><b>Fais-le sur ton téléphone</b><small>Scanne ce code : l’audit s’ouvre directement dessus.</small></span></div>` : ''}
+      <div class="au__code"><button type="button" class="au__go" id="auStart">${desk() ? 'Continuer sur cet ordinateur' : 'C’est parti'}</button></div>`);
     $('auStart').addEventListener('click', () => ask(0));
+    if (desk()) qrInto($('auQr'), `${location.origin}/audit/${encodeURIComponent(CODE)}`);
   }
   function ask(i, back) {
     at = i;
@@ -99,19 +104,30 @@
   }
   // la durée la plus longue que le budget permet (sinon la plus courte)
   function recoOf(g) { const l = ofGroup(g); return (l.find(fits) || l[l.length - 1]).key; }
+  // Fin (2026-11-12) : le compte est créé avant l'audit. Connecté sur cet appareil → /offres ouvre directement le
+  // paiement de l'offre choisie (chest_wanted_offer) ; sinon (audit fait au téléphone par le QR code) → connexion, puis
+  // la coque renvoie sur /offres (pas encore d'accès) et le paiement s'ouvre.
+  const logged = () => !!(window.CHESTAccounts && CHESTAccounts.isLoggedIn && CHESTAccounts.isLoggedIn());
   function cta() {
     const sel = OFFERS.find((o) => o.key === SEL);
-    return { href: `/inscription?ref=${encodeURIComponent(CODE)}&offre=${encodeURIComponent(SEL)}`, label: `Rejoindre CHEST ${sel && sel.group === 'premium' ? 'Premium' : 'Essentiel'}`,
+    return { href: logged() ? '/offres' : '/connexion', label: `Rejoindre CHEST ${sel && sel.group === 'premium' ? 'Premium' : 'Essentiel'}`,
       onClick: () => { try { localStorage.setItem('chest_wanted_offer', SEL); } catch (e) { /* tant pis */ } } };
+  }
+  async function trial(btn) {
+    if (!logged()) { location.href = '/connexion'; return; }
+    btn.disabled = true; btn.textContent = 'Ouverture…';
+    try { await CHESTAccounts.startTrial(); try { sessionStorage.setItem('chest_welcome', '1'); } catch (e) { /* tant pis */ } location.href = '/welcome'; }
+    catch (err) { btn.disabled = false; btn.textContent = err.message; }
   }
   function result() {
     head(-1);
-    $('auStep').textContent = 'TON PACK';
+    $('auStep').textContent = desk() ? '' : 'TON PACK';
     $('au').classList.add('is-wide');
     screen(`<div class="au__res"><span class="au__k au__k--res">Ton pack · conseillé pour toi</span><h1>Voilà ce qui te correspond.</h1><p class="au__why">${WHY}</p><div id="auPack"></div>
       <p class="au__fine">Paiement sécurisé après l’inscription. Abonnement renouvelé automatiquement, résiliable à tout moment. Le trading comporte un risque de perte en capital ; CHEST ne garantit aucun gain.</p></div>`);
     pack = CHESTPack.mount($('auPack'), {
       mode: 'result', offers: OFFERS, sel: SEL, reco: recoOf(GROUP), fits, cta: cta(),
+      onTrial: logged() ? trial : null,
       onPick: (k) => { SEL = k; pack.update({ sel: SEL, cta: cta() }); },
       onSwitch: (g) => { GROUP = g; SEL = recoOf(g); if (!OFFERS.find((o) => o.key === SEL && fits(o))) SEL = ofGroup(g)[0].key; pack.update({ sel: SEL, reco: SEL, cta: cta() }); },
     });

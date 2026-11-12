@@ -280,11 +280,13 @@
       try { const w = new URLSearchParams(location.search).get('offre'); if (w && /^(essentiel|premium)[1-4]$/.test(w)) localStorage.setItem('chest_wanted_offer', w); } catch (err) { /* tant pis */ }
       try { sessionStorage.setItem('chest_welcome', '1'); } catch (err) { /* tant pis */ }
       form.hidden = true;
-      statusEl.textContent = 'Compte créé. Encore 5 questions pour te conseiller la bonne offre.';
+      statusEl.textContent = 'Compte créé. Place à ton audit : 6 questions pour trouver ton pack.';
       statusEl.classList.add('is-visible', 'is-approved');
       setTimeout(() => {
         stage.classList.add('is-leaving');
-        setTimeout(() => { window.location.href = '/offres'; }, 900);
+        // 2026-11-12 : inscription → audit (/audit/<code>, QR code pour le faire au téléphone) → prix conseillé → paiement
+        const rc = (document.getElementById('refCode').value || '').trim().toUpperCase();
+        setTimeout(() => { window.location.href = rc ? '/audit/' + encodeURIComponent(rc) : '/offres'; }, 900);
       }, 900);
     } catch (err) {
       errEl.textContent = err.message;
