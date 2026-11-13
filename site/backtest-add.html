@@ -64,6 +64,22 @@
   .tier-row{ display:flex; align-items:center; gap:8px; font-size:13px; }
   .tier-row input{ width:70px; }
   .tier-row .tier-remove{ margin-left:auto; }
+  /* Risque par spécificité (2026-11-13) : BUY → 0,2 %, SELL → 0,5 %, puis ses propres paliers */
+  .spec-list{ display:grid; gap:10px; margin:12px 0 8px; }
+  .spec-list:empty{ display:none; }
+  .spec{ display:grid; gap:8px; padding:12px; border-radius:14px; background:rgba(var(--fg-rgb,255,255,255),.03); box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb,255,255,255),.08); }
+  .spec.is-off > :not(.spec__head), .spec.is-off .spec__head > :not(.tier-on):not(.tier-remove){ opacity:.4; }
+  .spec__head, .spec-sub{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; }
+  .spec__head .tier-remove, .spec-sub .tier-remove{ margin-left:auto; }
+  .spec-sel{ width:auto !important; min-width:190px; height:40px !important; padding:0 34px 0 12px !important; line-height:normal; }
+  .spec .tier-remove{ width:34px; height:34px; padding:0; border-radius:10px; flex:none; }
+  .spec input[type="number"]{ width:70px; }
+  .spec__subs{ display:grid; gap:8px; padding-left:42px; }
+  .spec__subs:empty{ display:none; }
+  .spec-sub b{ color:var(--a2, #f9a45e); }
+  .spec-add-sub{ justify-self:start; margin-left:42px; height:30px; padding:0 12px; font-size:12.5px; border-radius:999px; }
+  .add-spec-btn{ margin-bottom:6px; }
+  .tiers-k{ margin-top:14px; font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-3, #7a7a82); }
   .tier-row.is-off > :not(.tier-on){ opacity:.4; }
   .tier-row.is-off .tier-remove{ opacity:1; }
   .tier-on{ position:relative; flex:none; width:34px; height:20px; cursor:pointer; }
@@ -367,7 +383,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
         <div class="mm-manual" data-account="cp">
           <label>Risque par position (%)</label>
           <input class="field risk-input" type="number" min="0.1" max="20" step="0.1" value="1">
-          <div class="tiers-list" data-tiers="cp"></div>
+          <div class="spec-list" data-spec="cp"></div><button type="button" class="btn btn-ghost add-spec-btn" data-account="cp">+ Risque par spécificité</button><div class="tiers-k">Paliers pour tous les trades</div><div class="tiers-list" data-tiers="cp"></div>
           <button type="button" class="btn btn-ghost add-tier-btn" data-account="cp">+ Ajouter un palier</button>
             <p class="rules-hint" data-rules-hint="cp"></p>
         </div>
@@ -394,7 +410,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
           <div class="mm-manual" data-account="pf">
             <label>Risque par position (%)</label>
             <input class="field risk-input" type="number" min="0.1" max="20" step="0.1" value="0.5">
-            <div class="tiers-list" data-tiers="pf"></div>
+            <div class="spec-list" data-spec="pf"></div><button type="button" class="btn btn-ghost add-spec-btn" data-account="pf">+ Risque par spécificité</button><div class="tiers-k">Paliers pour tous les trades</div><div class="tiers-list" data-tiers="pf"></div>
             <button type="button" class="btn btn-ghost add-tier-btn" data-account="pf">+ Ajouter un palier</button>
             <p class="rules-hint" data-rules-hint="pf"></p>
           </div>
@@ -554,6 +570,7 @@ CHESTTour.init([
 
   function refreshBonus() {
     bonusFields = parsedTrades && parsedTrades.length ? ENG.detectBonusFields(parsedTrades) : [];
+    try { refreshSpecSelects(); } catch (e) { /* écran pas encore prêt */ }
     // Colonnes qui recopient le résultat ou le RR : écartées (elles ne sont connues qu'après le trade).
     const leaks = parsedTrades && parsedTrades.length ? ENG.detectLeakFields(parsedTrades) : [];
     const warn = document.getElementById('importWarn');
@@ -577,6 +594,52 @@ CHESTTour.init([
   function closePops() { document.querySelectorAll('.si-pop').forEach((p) => p.remove()); }
   document.addEventListener('click', (e) => { if (!e.target.closest('.si-wrap')) closePops(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePops(); });
+
+  // Risque par spécificité (2026-11-13, demande patron : « choisir une spécificité, lui associer un risque fixe, et si je
+  // veux ajouter après 5 SL un autre risque ») : un bloc = une valeur de bonus (BUY, GBPJPY, Lundi…) → risque fixe, puis
+  // ses paliers « Après N SL consécutifs de cette spécificité → risque ». Traduit en règles du moteur : {conds:[c],
+  // afterSl:null, risk} et {conds:[c], afterSl:N, risk}. Les SL comptés sont ceux de la spécificité seule.
+  function specOptions(sel) {
+    const opts = bonusFields.map((f) => `<optgroup label="${esc(f.label)}">${f.values.map((v) => `<option value="${esc(f.key + '|' + v.value)}"${sel === f.key + '|' + v.value ? ' selected' : ''}>${esc(v.value)} (${v.count})</option>`).join('')}</optgroup>`).join('');
+    const known = bonusFields.some((f) => f.values.some((v) => sel === f.key + '|' + v.value));
+    const keep = sel && !known ? `<option value="${esc(sel)}" selected>${esc(fieldLabel(sel.split('|')[0]) + ' = ' + sel.split('|').slice(1).join('|'))}</option>` : '';
+    return `<option value="">${bonusFields.length ? 'Choisis une spécificité…' : 'Importe ton fichier d’abord'}</option>${keep}${opts}`;
+  }
+  function refreshSpecSelects() { document.querySelectorAll('.spec-sel').forEach((el) => { const v = el.value; el.innerHTML = specOptions(v); el.value = v; }); }
+  function specName(block) { const v = block.querySelector('.spec-sel').value; return v ? v.split('|').slice(1).join('|') : 'cette spécificité'; }
+  function addSpecSub(block, init) {
+    const row = document.createElement('div');
+    row.className = 'spec-sub';
+    row.innerHTML = `<label class="tier-on" title="Activer ou désactiver ce palier"><input type="checkbox" class="tier-on__in" checked><i></i></label>Après <input type="number" min="1" step="1" class="field spec-after"> SL consécutifs de <b class="spec-name"></b> → risque <input type="number" min="0" step="0.05" class="field spec-sub-risk"> % <button type="button" class="btn btn-ghost tier-remove" aria-label="Retirer">✕</button>`;
+    row.querySelector('.spec-after').value = init ? init.afterSl : 5;
+    row.querySelector('.spec-sub-risk').value = init ? init.risk : 0.2;
+    const on = row.querySelector('.tier-on__in');
+    on.checked = !(init && init.off);
+    const paintOn = () => row.classList.toggle('is-off', !on.checked);
+    on.addEventListener('change', paintOn); paintOn();
+    row.querySelector('.spec-name').textContent = specName(block);
+    row.querySelector('.tier-remove').addEventListener('click', () => row.remove());
+    block.querySelector('.spec__subs').appendChild(row);
+  }
+  function addSpecBlock(account, init) {
+    const list = document.querySelector(`.spec-list[data-spec="${account}"]`);
+    const block = document.createElement('div');
+    block.className = 'spec';
+    const sel = init ? init.field + '|' + init.value : '';
+    block.innerHTML = `<div class="spec__head"><label class="tier-on" title="Activer ou désactiver cette spécificité"><input type="checkbox" class="tier-on__in" checked><i></i></label><select class="field spec-sel" aria-label="Spécificité">${specOptions(sel)}</select>→ risque fixe <input type="number" min="0" step="0.05" class="field spec-risk"> % <button type="button" class="btn btn-ghost tier-remove" aria-label="Retirer">✕</button></div>
+      <div class="spec__subs"></div><button type="button" class="btn btn-ghost spec-add-sub">+ Après N SL de cette spécificité</button>`;
+    block.querySelector('.spec-risk').value = init ? init.risk : 0.5;
+    const on = block.querySelector('.tier-on__in');
+    on.checked = !(init && init.off);
+    const paintOn = () => block.classList.toggle('is-off', !on.checked);
+    on.addEventListener('change', paintOn); paintOn();
+    block.querySelector('.spec-sel').addEventListener('change', () => block.querySelectorAll('.spec-name').forEach((b) => { b.textContent = specName(block); }));
+    block.querySelector('.spec-add-sub').addEventListener('click', () => addSpecSub(block));
+    block.querySelector('.spec__head .tier-remove').addEventListener('click', () => block.remove());
+    list.appendChild(block);
+    (init && init.subs || []).forEach((x) => addSpecSub(block, x));
+    return block;
+  }
 
   // Une ligne = [Si bonus…] Après N SL consécutifs → risque X %. Sans « Si » c'est un
   // palier classique ; avec « Si » c'est une règle propre au bonus (Après devient facultatif).
@@ -692,6 +755,7 @@ CHESTTour.init([
     });
 
     document.querySelector(`.add-tier-btn[data-account="${account}"]`).addEventListener('click', () => addTierRow(account));
+    document.querySelector(`.add-spec-btn[data-account="${account}"]`).addEventListener('click', () => { const b = addSpecBlock(account); b.querySelector('.spec-sel').focus(); });
   }
 
   // Le mode Automatique calcule tout seul les trois réglages (à l'activation, à l'import, au changement de capital).
@@ -997,7 +1061,21 @@ CHESTTour.init([
     } else {
       manualEl.querySelector('.risk-input').value = cfg.risk;
       (cfg.tiers || []).forEach((t) => addTierRow(account, { afterSl: t.afterSl, newRisk: t.newRisk, off: t.off, top: t.top }));
-      (cfg.rules || []).forEach((r) => addTierRow(account, r));
+      const rest = [], blocks = new Map();
+      (cfg.rules || []).forEach((r) => {
+        const one = (r.conds || []).length === 1 && !r.top;
+        const k = one ? r.conds[0].field + '|' + r.conds[0].value : '';
+        if (one && r.afterSl == null) blocks.set(k, { field: r.conds[0].field, value: r.conds[0].value, risk: r.risk, off: r.off, subs: [] });
+      });
+      (cfg.rules || []).forEach((r) => {
+        const one = (r.conds || []).length === 1 && !r.top;
+        const k = one ? r.conds[0].field + '|' + r.conds[0].value : '';
+        if (one && r.afterSl == null) return;
+        if (one && r.afterSl > 0 && blocks.has(k) && r.spec) { blocks.get(k).subs.push({ afterSl: r.afterSl, risk: r.risk, off: r.off }); return; }
+        rest.push(r);
+      });
+      blocks.forEach((b) => addSpecBlock(account, b));
+      rest.forEach((r) => addTierRow(account, r));
     }
   }
 
@@ -1048,6 +1126,20 @@ CHESTTour.init([
     const manualEl = document.querySelector(`.mm-manual[data-account="${account}"]`);
     const risk = Number(manualEl.querySelector('.risk-input').value) || 1;
     const tiers = [], rules = [];
+    manualEl.querySelectorAll('.spec').forEach((block) => {
+      const v = block.querySelector('.spec-sel').value;
+      if (!v) return;
+      const i = v.indexOf('|');
+      const cond = () => [{ field: v.slice(0, i), value: v.slice(i + 1) }];
+      const off = !block.querySelector('.spec__head .tier-on__in').checked;
+      const r0 = block.querySelector('.spec-risk').value;
+      rules.push(Object.assign({ conds: cond(), afterSl: null, risk: r0 === '' || isNaN(Number(r0)) ? risk : Number(r0) }, off ? { off: true } : {}));
+      block.querySelectorAll('.spec-sub').forEach((row) => {
+        const n = Number(row.querySelector('.spec-after').value) || 0, r = row.querySelector('.spec-sub-risk').value;
+        if (n < 1 || r === '' || isNaN(Number(r))) return;
+        rules.push(Object.assign({ conds: cond(), afterSl: n, risk: Number(r), spec: true }, off || !row.querySelector('.tier-on__in').checked ? { off: true } : {}));
+      });
+    });
     manualEl.querySelectorAll('.tier-row').forEach((row) => {
       const riskRaw = row.querySelector('.tier-risk').value;
       const rowRisk = riskRaw === '' || isNaN(Number(riskRaw)) ? risk : Number(riskRaw); // 0 = trade ignoré
