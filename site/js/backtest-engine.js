@@ -235,7 +235,7 @@
   function collectScopes(cfg) {
     const m = new Map();
     (cfg.tiers || []).forEach((x) => { if (x.afterSl > 0) m.set('', []); });
-    (cfg.rules || []).forEach((x) => { if (x.afterSl > 0) { const k = scopeKey(x.conds); if (!m.has(k)) m.set(k, x.conds || []); } });
+    (cfg.rules || []).forEach((x) => { if (x.afterSl > 0 && !x.off) { const k = scopeKey(x.conds); if (!m.has(k)) m.set(k, x.conds || []); } });
     return [...m.entries()].map(([key, conds]) => ({ key, conds }));
   }
 
@@ -244,15 +244,17 @@
   function resolveRisk(t, cfg, streakOf) {
     const so = typeof streakOf === 'function' ? streakOf : () => streakOf || 0;
     let best = null, bestScore = -1;
-    const test = (conds, afterSl, risk, order) => {
+    // top (2026-11-12) : ligne « prioritaire », elle passe avant les règles plus précises (ex. après 5 SL → 0,2 % pour
+    // toutes les paires, même celles qui ont leur propre risque) ; off : ligne désactivée, ignorée.
+    const test = (conds, afterSl, risk, order, top) => {
       if (afterSl != null && afterSl > 0 && so(scopeKey(conds)) < afterSl) return;
       if (!condsMatch(conds, t)) return;
-      const score = (conds ? conds.length : 0) * 1000000 + (afterSl || 0) * 1000 + order;
+      const score = (top ? 1e12 : 0) + (conds ? conds.length : 0) * 1000000 + (afterSl || 0) * 1000 + order;
       if (score >= bestScore) { best = risk; bestScore = score; }
     };
     let order = 0;
-    (cfg.tiers || []).forEach((x) => test([], x.afterSl, x.newRisk, order++));
-    (cfg.rules || []).forEach((x) => test(x.conds, x.afterSl, x.risk, order++));
+    (cfg.tiers || []).forEach((x) => { if (!x.off) test([], x.afterSl, x.newRisk, order, x.top); order++; });
+    (cfg.rules || []).forEach((x) => { if (!x.off) test(x.conds, x.afterSl, x.risk, order, x.top); order++; });
     return best == null ? cfg.risk : best;
   }
 
@@ -297,6 +299,7 @@
   // Money management lisible : une ligne par logique (valeur de bonus) avec son risque et son palier, ou une ligne
   // globale. `scale` multiplie tous les risques (la simulation propfirm recale le risque par firme).
   function describeConfig(cfg, scale) {
+    if (cfg) cfg = Object.assign({}, cfg, { tiers: (cfg.tiers || []).filter((x) => !x.off), rules: (cfg.rules || []).filter((x) => !x.off) }); // lignes désactivées : pas affichées
     const s = scale == null ? 1 : scale;
     // BUG REEL (2026-10-12) : multiplier un risque deja propre par `scale` (le rescale propfirm,
     // best.risk / chosen.c.ref - voir propfirm-fit.js) redonnait des decimales non pratiques
