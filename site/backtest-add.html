@@ -449,7 +449,7 @@ Ne mets rien d'autre que ces colonnes. Voici mon fichier original :
 <script src="js/lot-calculator.js?v=11"></script>
 <script src="js/liquid-glass.js?v=3"></script>
 <script src="js/backtest-store.js?v=3"></script>
-<script src="js/backtest-engine.js?v=23"></script>
+<script src="js/backtest-engine.js?v=24"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/xlsx-import.js?v=3"></script>
 <script src="js/page-tour.js?v=3"></script>
@@ -543,7 +543,7 @@ CHESTTour.init([
   const optPending = new Map();
   let optReqId = 0;
   try {
-    optWorker = new Worker('js/backtest-fit-worker.js?v=1');
+    optWorker = new Worker('js/backtest-fit-worker.js?v=2');
     optWorker.onmessage = (e) => {
       const { id, result, error } = e.data;
       const p = optPending.get(id);

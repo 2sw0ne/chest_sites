@@ -390,7 +390,7 @@
 <script src="js/backtest-store.js?v=3"></script>
 <script src="js/backtest-share.js?v=9"></script>
 <script src="js/chest-runner.js?v=1"></script>
-<script src="js/backtest-engine.js?v=23"></script>
+<script src="js/backtest-engine.js?v=24"></script>
 <script src="js/propfirm-rules.js?v=6"></script>
 <script src="js/propfirm-fit.js?v=10"></script>
 <script src="js/page-tour.js?v=3"></script>
@@ -1166,7 +1166,7 @@ CHESTTour.init([
   let fitReqId = 0;
   if (!window.__CHEST_EXPORT__) {
     try {
-      fitWorker = new Worker('js/backtest-fit-worker.js?v=1');
+      fitWorker = new Worker('js/backtest-fit-worker.js?v=2');
       fitWorker.onmessage = (e) => {
         const { id, result, error } = e.data;
         const p = fitPending.get(id);

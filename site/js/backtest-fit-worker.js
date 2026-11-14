@@ -11,7 +11,7 @@
 // `window.X = ...`) - aucune réécriture n'était nécessaire, `self.window = self` suffit à les
 // charger tels quels ici (aucun des deux ne touche au DOM, à localStorage ou au réseau).
 self.window = self;
-importScripts('backtest-engine.js', 'propfirm-rules.js', 'propfirm-fit.js');
+importScripts('backtest-engine.js?v=24', 'propfirm-rules.js', 'propfirm-fit.js');
 
 // backtest-view.html (vie complète du compte) envoie { kind:'fit', trades, capital, opts } ;
 // backtest-add.html (réglage premium à l'import/réglage) envoie { kind:'optimize', trades, capital, account, opts }.

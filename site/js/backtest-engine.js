@@ -553,12 +553,14 @@
   const Z_SCAN = 2.3;    // idem pour une plage d'heures, choisie parmi beaucoup de candidates
   const MAX_RULES = 6;   // au-delà, le réglage n'est plus applicable ni fiable : on élague
   const MC_RUNS = 300;
-  const MULTS = [0, 0.5, 0.75, 1, 1.25, 1.5, 2]; // multiplicateur du risque de base par groupe (1 = pas de règle)
+  // 2026-11-14 : jusqu'à ×4 (retour patron : USDJPY à 0,65 % pour 0,25 % de base, soit ×2,6, n'était pas atteignable)
+  const MULTS = [0, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4]; // multiplicateur du risque de base par groupe (1 = pas de règle)
   const M_ONE = 3;
   const TIERS = [null];
   [1, 2, 3, 4, 5].forEach((a) => [0, 0.1, 0.25, 1 / 3, 0.5, 0.75].forEach((f) => TIERS.push({ a, f })));
   const GRID_CP_BOLD = [1, 2, 3, 4, 5, 6, 8, 10, 12];
-  const GRID_CP = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5];
+  // 2026-11-14 : grille plus fine sous 1 % (0,3 / 0,4 / 0,6 / 0,65…) : les bons réglages tombent souvent entre deux crans
+  const GRID_CP = [0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.65, 0.75, 0.85, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5];
   const GRID_PF = [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
   const mean = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
   const round2 = (x) => Math.round(x * 100) / 100;
@@ -599,7 +601,8 @@
       { id: 'safe', name: 'Prudent', short: 'Raisonnable, sans grosses secousses',
         goal: 'Le rendement le plus régulier avec un drawdown contenu et aucun mois catastrophique.',
         grid: GRID_CP, steps: [{ maxDd: 15, worstM: -8 }, { maxDd: 20, worstM: -12 }, { maxDd: 30 }, { maxDd: null }],
-        score: (m) => m.avgM * m.posM },
+        // 2026-11-14 : le plus de gain total dans les limites (DD, pire mois), au lieu de moyenne × mois positifs
+        score: (m) => m.perf },
     ],
     pf: [
       { id: 'regular', name: 'Régularité', short: 'Rendement mensuel le plus stable',
@@ -837,12 +840,23 @@
   function ascent(pre, lo, hi, gs, prof, stepIdx, start) {
     const L = prof.steps[stepIdx];
     const dirs = groupDirs(pre, lo, hi, gs);
-    const st = { bi: start.state.bi, ti: start.state.ti, mi: gs.groups.map(() => M_ONE) };
+    const st = { bi: start.state.bi, ti: start.state.ti, mi: start.state.mi && start.state.mi.length === gs.groups.length ? start.state.mi.slice() : gs.groups.map(() => M_ONE) };
     let cur = evalRange(pre, lo, hi, gs.gid, stateCfg(prof, st, gs));
     let curScore = prof.score(cur);
     const range = (n) => Array.from({ length: n }, (_, i) => i);
     const coords = [{ k: 'bi', vals: range(prof.grid.length) }, { k: 'ti', vals: range(TIERS.length) }];
-    for (let g = 1; g < gs.groups.length; g++) if (dirs[g] !== 0) coords.push({ k: 'g', g, vals: dirs[g] < 0 ? [0, 1, 2, M_ONE] : [M_ONE, 4, 5, 6] });
+    // 2026-11-14 : un groupe assez fourni sans sens net dans les deux moitiés est aussi exploré (dans les deux sens) ;
+    // c'est la validation sur les anciens ET les récents trades qui décide ensuite de le garder.
+    const cnt = new Array(gs.groups.length).fill(0);
+    for (let i = lo; i < hi; i++) cnt[gs.gid[i]]++;
+    const minG = minGroupOf(hi - lo);
+    for (let g = 1; g < gs.groups.length; g++) {
+      // tous les sens pour un groupe assez fourni (le sens « statistique » trompait : USDJPY classé « à réduire »
+      // alors que ×2,6 avec une base plus basse fait +424 % au même DD) ; sinon le sens net seulement
+      if (cnt[g] >= minG) coords.push({ k: 'g', g, vals: [0, 1, 2, M_ONE, 4, 5, 6, 7, 8, 9] });
+      else if (dirs[g] !== 0) coords.push({ k: 'g', g, vals: dirs[g] < 0 ? [0, 1, 2, M_ONE] : [M_ONE, 4, 5, 6, 7, 8, 9] });
+    }
+    coords.push(coords.shift(), coords.shift()); // groupes d'abord, puis base et palier (sinon on revient tout de suite au réglage simple)
     for (let pass = 0; pass < 6; pass++) {
       let improved = false;
       coords.forEach((c) => {
@@ -1115,10 +1129,44 @@
       // Logiques candidates : chaque bonus seul (étiquettes, session, jour), une à deux plages d'heures,
       // puis les deux meilleures étiquettes croisées. Jamais session × jour (échantillons trop petits).
       const logics = [];
+      // Points de départ (2026-11-14) : le meilleur réglage simple, et des risques de base plus bas : monter le risque
+      // d'un groupe oblige souvent à baisser la base en même temps (sinon le DD dépasse), ce qu'une montée un paramètre
+      // à la fois ne fait jamais depuis le réglage simple (cas réel : base 0,25 % + USDJPY 0,65 % au lieu de 0,4 % partout).
+      const starts = [flat].concat([1, 2, 3, 4].map((d) => flat.state.bi - d).filter((bi) => bi >= 0)
+        .map((bi) => ({ state: { bi, ti: flat.state.ti, mi: [M_ONE] }, stepIdx: flat.stepIdx })));
+      // Balayage croisé base × risque d'UN groupe (palier du réglage simple) : donne à la montée les points de départ
+      // qu'elle ne trouverait pas seule (baisser la base ET monter un groupe en même temps).
+      const crossSeeds = (lo, hi, gs) => {
+        const cnt = new Array(gs.groups.length).fill(0);
+        for (let i = lo; i < hi; i++) cnt[gs.gid[i]]++;
+        const minG = minGroupOf(hi - lo), L = prof.steps[flat.stepIdx], seeds = [];
+        for (let bi = 0; bi <= flat.state.bi; bi++) {
+          for (let g = 1; g < gs.groups.length; g++) {
+            if (cnt[g] < minG) continue;
+            for (let v = 0; v < MULTS.length; v++) {
+              if (v === M_ONE) continue;
+              const mi = gs.groups.map(() => M_ONE); mi[g] = v;
+              const st = { bi, ti: flat.state.ti, mi };
+              const m = evalRange(pre, lo, hi, gs.gid, stateCfg(prof, st, gs));
+              if (!feasible(m, L)) continue;
+              seeds.push({ st, sc: prof.score(m) });
+            }
+          }
+        }
+        return seeds.sort((x, y) => y.sc - x.sc).slice(0, 3).map((x) => ({ state: x.st, stepIdx: flat.stepIdx }));
+      };
+      const bestAscent = (lo, hi, gs, base) => {
+        let best = null;
+        for (const st0 of (base ? [base] : starts.concat(crossSeeds(lo, hi, gs)))) {
+          const r = ascent(pre, lo, hi, gs, prof, flat.stepIdx, st0);
+          if (!best || r.score > best.score + 1e-9) best = r;
+        }
+        return best;
+      };
       const addLogic = (mkGs, fs) => {
         const gs = mkGs(0, n);
         if (!gs) return null;
-        const l = Object.assign(ascent(pre, 0, n, gs, prof, flat.stepIdx, flat), { gs, mkGs, fields: fs });
+        const l = Object.assign(bestAscent(0, n, gs), { gs, mkGs, fields: fs });
         logics.push(l);
         return l;
       };
@@ -1138,6 +1186,7 @@
         logics.push(Object.assign(ascentSplit(pre, 0, n, gsS, prof, flat.stepIdx, flat), { gs: gsS, isSplit: true, field: f.key, nRules: 1, fields: [f] }));
       });
 
+      if (opts && opts.debug) (debug[prof.id] = debug[prof.id] || []).push({ flat: flat.score, logics: logics.map((l) => [(l.isSplit ? 'split ' : '') + l.fields.map((f) => f.key).join('+'), Math.round(l.score), l.nRules, l.state && l.state.mi ? l.state.mi.join(',') + ' bi' + l.state.bi : '']) });
       // Vérification sur les trades récents, jamais vus par le réglage.
       const lim = prof.steps[0];
       const okTest = (m) => m.perf > 0 && (lim.maxDd == null || m.maxDd <= lim.maxDd * 1.25 + 1e-9);
@@ -1167,12 +1216,30 @@
           }
           const ok = okTest(lt) && prof.score(lt) > prof.score(flatTest) && lt.avgM >= flatTest.avgM * 0.75;
           if (opts && opts.debug) (debug[prof.id] = debug[prof.id] || []).push({ logic: c.isSplit ? 'split ' + c.field : c.fields.map((f) => f.key).join('+'), inScore: c.score, testPerf: lt.perf, testDd: lt.maxDd, testScore: prof.score(lt), flatTestScore: prof.score(flatTest), flatTestPerf: flatTest.perf, ok });
-          if (ok) passed.push({ c, lt, sc: prof.score(lt) });
+          if (ok) passed.push({ c, lt, sc: c.score });
+        }
+        // 2e voie (2026-11-14) : réapprendre sur les seuls premiers 60 % rate une règle dont l'effet n'est net qu'avec
+        // tout l'historique (cas réel : USDJPY ×2,6, +424 % contre +214 % au même DD). On accepte aussi une règle qui,
+        // réglée sur tout l'historique, fait mieux que le réglage simple sur CHAQUE période séparément (anciens et
+        // récents trades), avec un DD récent dans les limites : stable dans le temps, pas un coup de chance.
+        {
+          const flatCfg = stateCfg(prof, flat.state, null);
+          const fOld = evalRange(pre, 0, cut, pre.zeros, flatCfg), fNew = evalRange(pre, cut, n, pre.zeros, flatCfg);
+          for (const c of cands.filter((x) => !passed.some((p) => p.c === x))) {
+            const cfgC = c.isSplit ? splitCfg(prof, c.state) : stateCfg(prof, c.state, c.gs);
+            const mOld = evalRange(pre, 0, cut, c.gs.gid, cfgC), mNew = evalRange(pre, cut, n, c.gs.gid, cfgC);
+            // au moins aussi bon (à 3 % près) sur une période, nettement meilleur sur l'autre, jamais pire sur les deux
+            const so = prof.score(mOld), fo = prof.score(fOld), sn = prof.score(mNew), fn = prof.score(fNew);
+            const near = (a, b) => a >= b - Math.abs(b) * 0.03 - 1e-9;
+            const ok = okTest(mNew) && near(so, fo) && near(sn, fn) && (so > fo + 1e-9 || sn > fn + 1e-9) && (so + sn > fo + fn + 1e-9) && mNew.avgM >= fNew.avgM * 0.97;
+            if (opts && opts.debug) (debug[prof.id] = debug[prof.id] || []).push({ logic: 'stable ' + (c.isSplit ? 'split ' + c.field : c.fields.map((f) => f.key).join('+')), oldScore: prof.score(mOld), flatOld: prof.score(fOld), newScore: prof.score(mNew), flatNew: prof.score(fNew), ok });
+            if (ok) passed.push({ c, lt: mNew, sc: c.score, stable: true });
+          }
         }
         if (passed.length) {
           passed.sort((x, y) => y.sc - x.sc);
           const w = passed[0];
-          pick = { c: w.c, oos: { trainN: cut, testN: n - cut, perf: w.lt.perf, maxDd: w.lt.maxDd, flatPerf: flatTest.perf, holds: true, beatsFlat: true } };
+          pick = { c: w.c, oos: { trainN: cut, testN: n - cut, perf: w.lt.perf, maxDd: w.lt.maxDd, flatPerf: flatTest.perf, holds: true, beatsFlat: true, stable: !!w.stable } };
         }
       }
 
