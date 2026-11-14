@@ -560,7 +560,7 @@
         $('#ofLive').querySelector('.cx-live__orb i').innerHTML = CHECK;
         $('#ofWaitTitle').textContent = 'Paiement validé';
         const viaCrypto = query.get('via') === 'crypto';
-        const receipt = viaCrypto ? 'Ta transaction est visible sur la blockchain Solana.' : 'Ta facture Stripe arrive par e-mail.';
+        const receipt = viaCrypto ? 'Ta transaction est visible sur la blockchain Solana.' : query.get('via') === 'virement' ? 'Ton virement a bien été reçu.' : 'Ta facture Stripe arrive par e-mail.';
         $('#ofWaitText').textContent = `Bienvenue dans ${a.label}. On t’ouvre CHEST… ${receipt}`;
         // CHEST 2.0 (maquette T-Validation.html) : ce que l'offre ouvre, en trois cartes
         const prem = a.plan === 'premium' || a.plan === 'allstar';
@@ -639,7 +639,7 @@
 <script src="js/hero-bg.js"></script>
 <script>try { CHESTHeroBg.init(document.getElementById('ofLight'), document.getElementById('ofStars'), {}); } catch (e) { /* fond simple */ }</script>
 <script src="js/consent.js?v=7"></script>
-<script src="js/pay-choice.js?v=2"></script>
+<script src="js/pay-choice.js?v=3"></script>
 <script src="js/legal-links.js?v=2"></script>
 </body>
 </html>

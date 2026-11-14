@@ -485,6 +485,20 @@ def init_db():
                 updated_at TEXT NOT NULL
             )
         """)
+        # Paiement par virement (2026-11-14) : réglage du parrain (éducateur ou admin) + virements déclarés par ses membres
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS transfer_settings (
+                user_id INTEGER PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 0,
+                holder TEXT, iban TEXT, bic TEXT, revolut TEXT, updated_at TEXT NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS transfer_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, referrer_id INTEGER, offer TEXT NOT NULL,
+                eur REAL NOT NULL, reference TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'declared',
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL, note TEXT
+            )
+        """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS edu_fees (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1806,6 +1820,151 @@ def _crypto_grant(db, r, now, pid):
                  f"Paiement {PLANS[r['offer'][:-1]]['label']} {ROMAN.get(lvl, lvl)} ({months} mois) · crypto")
 
 
+# ---------------- Paiement par virement (2026-11-14) ----------------
+# 3e moyen de paiement, proposé seulement aux membres dont le parrain (éducateur ou admin) l'a activé dans son espace
+# (désactivé par défaut) avec ses coordonnées. Le membre voit le QR Revolut + le RIB, vire, clique « C'est fait » ;
+# l'admin valide (accès ouvert, vente comptée) ou refuse. Activé une fois pour les admins principaux avec le RIB CHEST.
+def _transfer_seed():
+    if get_setting("transfer_seed") == "1":
+        return
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        for r in db.execute("SELECT id, role FROM users WHERE is_admin = 1").fetchall():
+            if r["role"] == "manager":
+                continue
+            db.execute("INSERT OR IGNORE INTO transfer_settings (user_id, enabled, holder, iban, bic, revolut, updated_at) VALUES (?, 1, ?, ?, ?, ?, ?)",
+                       (r["id"], EDU_FEE_BANK["holder"], EDU_FEE_BANK["iban"], EDU_FEE_BANK["bic"], EDU_FEE_BANK["revolut"], now))
+        db.commit()
+    set_setting("transfer_seed", "1")
+
+
+def _transfer_of(db, uid):
+    r = db.execute("SELECT * FROM transfer_settings WHERE user_id = ?", (uid,)).fetchone() if uid else None
+    return {"enabled": bool(r and r["enabled"]), "holder": (r["holder"] if r else "") or "", "iban": (r["iban"] if r else "") or "",
+            "bic": (r["bic"] if r else "") or "", "revolut": (r["revolut"] if r else "") or ""}
+
+
+@app.route("/me/transfer", methods=["GET", "PUT"])
+def me_transfer():
+    """Réglage du parrain : accepter les virements de ses membres, et ses coordonnées."""
+    user = current_user()
+    if not user or not (is_educator(user) or user["is_admin"]):
+        return jsonify({"error": "Réservé aux éducateurs et aux admins."}), 403
+    _transfer_seed()
+    db = get_db()
+    if request.method == "PUT":
+        b = request.get_json(silent=True) or {}
+        on = bool(b.get("enabled"))
+        holder = re.sub(r"\s+", " ", str(b.get("holder") or "")).strip()[:80]
+        iban_raw = str(b.get("iban") or "").strip()
+        iban = iban_ok(iban_raw) if iban_raw else None
+        if iban_raw and not iban:
+            return jsonify({"error": "IBAN invalide."}), 400
+        bic = re.sub(r"[^A-Z0-9]", "", str(b.get("bic") or "").upper())[:11]
+        rev = re.sub(r"[^A-Za-z0-9_.-]", "", str(b.get("revolut") or "").lstrip("@"))[:40]
+        if on and not (holder and (iban or rev)):
+            return jsonify({"error": "Pour activer le virement : le titulaire et un IBAN (ou un identifiant Revolut)."}), 400
+        pretty = " ".join(iban[i:i + 4] for i in range(0, len(iban), 4)) if iban else ""
+        with db_lock:
+            db.execute("INSERT INTO transfer_settings (user_id, enabled, holder, iban, bic, revolut, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) "
+                       "ON CONFLICT(user_id) DO UPDATE SET enabled = excluded.enabled, holder = excluded.holder, iban = excluded.iban, "
+                       "bic = excluded.bic, revolut = excluded.revolut, updated_at = excluded.updated_at",
+                       (user["id"], 1 if on else 0, holder, pretty, bic, ("@" + rev) if rev else "", datetime.now(timezone.utc).isoformat()))
+            db.commit()
+    return jsonify({**_transfer_of(db, user["id"]), "code": _col(user, "edu_code") or None,
+                    "members": db.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user["id"],)).fetchone()[0]})
+
+
+@app.route("/billing/transfer/info")
+def transfer_info():
+    """Le virement est-il proposé à ce membre ? (selon le réglage de son parrain)"""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    _transfer_seed()
+    db = get_db()
+    t = _transfer_of(db, _col(user, "referred_by"))
+    if not t["enabled"]:
+        return jsonify({"enabled": False})
+    return jsonify({**t, "reference": f"CHEST {user['first_name']} {(user['last_name'] or '')[:1]}".strip()})
+
+
+@app.route("/billing/transfer", methods=["POST"])
+def transfer_declare():
+    """Le membre déclare avoir fait le virement d'une offre (« C'est fait ») : à valider par l'admin."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Connecte-toi pour choisir une offre."}), 401
+    db = get_db()
+    ref_id = _col(user, "referred_by")
+    if not _transfer_of(db, ref_id)["enabled"]:
+        return jsonify({"error": "Le virement n'est pas proposé pour ton compte."}), 400
+    key = str((request.get_json(silent=True) or {}).get("offer") or "")
+    o = next((x for x in get_pricing()["offers"] if x.get("key") == key and x.get("enabled")), None)
+    if not o or not o.get("price"):
+        return jsonify({"error": "Offre inconnue."}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        db.execute("UPDATE transfer_payments SET status = 'cancelled', updated_at = ? WHERE user_id = ? AND status = 'declared'", (now, user["id"]))
+        cur = db.execute("INSERT INTO transfer_payments (user_id, referrer_id, offer, eur, reference, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'declared', ?, ?)",
+                         (user["id"], ref_id, key, float(o["price"]), f"CHEST {user['first_name']} {(user['last_name'] or '')[:1]} {key}".strip(), now, now))
+        db.commit()
+    log_event(db, "paiement.virement", user["id"], f"{key} · {o['price']} € déclaré par virement — à valider", "alerte", locked=True, with_request=False)
+    return jsonify({"id": cur.lastrowid, "status": "declared"})
+
+
+@app.route("/billing/transfer/<int:pid>")
+def transfer_status(pid):
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    r = get_db().execute("SELECT id, offer, eur, status, note FROM transfer_payments WHERE id = ? AND user_id = ?", (pid, user["id"])).fetchone()
+    if not r:
+        return jsonify({"error": "Virement introuvable."}), 404
+    return jsonify(dict(r))
+
+
+@app.route("/admin/transfers")
+def admin_transfers():
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    db = get_db()
+    who = _names(db)
+    rows = db.execute("SELECT * FROM transfer_payments WHERE status != 'cancelled' ORDER BY (status = 'declared') DESC, id DESC LIMIT 80").fetchall()
+    return jsonify({"transfers": [{"id": r["id"], "member": who(r["user_id"]), "referrer": who(r["referrer_id"]) if r["referrer_id"] else None, "offer": r["offer"],
+                                   "eur": r["eur"], "reference": r["reference"], "status": r["status"], "createdAt": r["created_at"], "note": r["note"] or ""} for r in rows]})
+
+
+@app.route("/admin/transfers/<int:pid>", methods=["POST"])
+def admin_transfer_decide(pid):
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    b = request.get_json(silent=True) or {}
+    action = str(b.get("action") or "")
+    db = get_db()
+    r = db.execute("SELECT * FROM transfer_payments WHERE id = ?", (pid,)).fetchone()
+    if not r or action not in ("validate", "refuse"):
+        return jsonify({"error": "Virement introuvable."}), 404
+    if r["status"] != "declared":
+        return jsonify({"error": "Déjà traité."}), 400
+    now = datetime.now(timezone.utc)
+    with db_lock:
+        if action == "validate":
+            lvl = int(r["offer"][-1])
+            months = LEVEL_MONTHS[lvl]
+            _set_plan(db, r["user_id"], r["offer"][:-1], f"{months}m", "active", now, _add_months(now, months), plan_level=lvl)
+            _log_billing(db, f"virement_{pid}", r["user_id"], "checkout.session.completed", int(round(r["eur"] * 100)),
+                         f"Paiement {PLANS[r['offer'][:-1]]['label']} {ROMAN.get(lvl, lvl)} ({months} mois) · virement")
+        db.execute("UPDATE transfer_payments SET status = ?, note = ?, updated_at = ? WHERE id = ?",
+                   ("validated" if action == "validate" else "refused", str(b.get("note") or "")[:200], now.isoformat(), pid))
+        db.commit()
+    log_event(db, "paiement.virement", r["user_id"], f"{r['offer']} · virement {'validé' if action == 'validate' else 'refusé'} par l'admin", "info", locked=True, with_request=False)
+    return admin_transfers()
+
+
 @app.route("/admin/crypto/test", methods=["POST"])
 def admin_crypto_test():
     """Demande de paiement de 1 USDC vers le wallet configuré, pour vérifier Solana Pay de bout en bout (aucun accès ouvert)."""
@@ -2184,6 +2343,8 @@ def _purge_user(db, member_id):
     db.execute("DELETE FROM edu_payout_info WHERE educator_id = ?", (member_id,))
     db.execute("DELETE FROM edu_payouts WHERE educator_id = ?", (member_id,))
     db.execute("DELETE FROM edu_fees WHERE educator_id = ?", (member_id,))
+    db.execute("DELETE FROM transfer_settings WHERE user_id = ?", (member_id,))
+    db.execute("DELETE FROM transfer_payments WHERE user_id = ?", (member_id,))
     db.execute("UPDATE users SET referred_by = NULL WHERE referred_by = ?", (member_id,))
     db.execute("DELETE FROM alert_rules WHERE user_id = ?", (member_id,))
     db.execute("DELETE FROM price_alerts WHERE user_id = ?", (member_id,))
@@ -4477,10 +4638,11 @@ def edu_member(mid):
 
 @app.route("/edu/code", methods=["POST"])
 def edu_choose_code():
-    """L'éducateur choisit SON code de référent, une seule fois (3 à 8 lettres ou chiffres), définitif."""
+    """L'éducateur (ou un admin, 2026-11-14) choisit SON code de référent, une seule fois (3 à 8 lettres ou chiffres),
+    définitif. Un membre inscrit avec ce code est rattaché à lui (users.referred_by)."""
     user = current_user()
-    if not user or not is_educator(user):
-        return jsonify({"error": "Réservé aux éducateurs."}), 403
+    if not user or not (is_educator(user) or user["is_admin"]):
+        return jsonify({"error": "Réservé aux éducateurs et aux admins."}), 403
     if _col(user, "edu_code"):
         return jsonify({"error": "Ton code est déjà choisi : il ne peut plus changer."}), 400
     code = str((request.get_json(silent=True) or {}).get("code") or "").strip().upper()
@@ -4494,6 +4656,8 @@ def edu_choose_code():
                    (code, user["id"], datetime.now(timezone.utc).isoformat()))
         db.execute("UPDATE users SET edu_code = ? WHERE id = ?", (code, user["id"]))
         db.commit()
+    if not is_educator(user):
+        return jsonify({"code": code})
     return jsonify(edu_report(db, db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()))
 
 

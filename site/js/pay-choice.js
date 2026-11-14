@@ -49,6 +49,17 @@
 .pc__steps b{ color:#f6f6f7; }
 .pc__n{ flex:none; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:700; color:#fff; background:linear-gradient(135deg,#9945ff,#14f195); }
 .pc__addr{ margin-top:10px; font-family:'Fragment Mono', ui-monospace, monospace; font-size:11px; color:#9b9ba1; word-break:break-all; }
+.pc__ic.is-bank{ background:linear-gradient(135deg,#33e6a6,#2dd4bf); }
+.pc__tq{ display:grid; place-items:center; width:212px; height:212px; margin:16px auto 0; padding:3px; border-radius:24px; background:linear-gradient(135deg,#fc1283,#f9a45e); }
+.pc__tq > div{ width:100%; height:100%; display:grid; place-items:center; border-radius:21px; background:#fff; }
+.pc__tq img{ width:178px; height:178px; image-rendering:pixelated; }
+.pc__tag{ display:flex; justify-content:center; gap:10px; align-items:center; margin-top:12px; font-size:14px; font-weight:600; }
+.pc__tag a{ color:#f6f6f7; text-decoration:none; } .pc__tag span{ padding:4px 10px; border-radius:999px; font-size:12px; color:#fff; background:linear-gradient(90deg,#fc1283,#f9a45e); }
+.pc__rows{ display:grid; gap:2px; margin-top:16px; padding:4px; border-radius:16px; background:rgba(255,255,255,.035); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
+.pc__rw{ display:flex; align-items:center; gap:10px; padding:9px 8px 9px 12px; border-radius:12px; }
+.pc__rw div{ flex:1; min-width:0; } .pc__rw span{ display:block; font-family:'Fragment Mono', ui-monospace, monospace; font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:#5c5c63; }
+.pc__rw b{ display:block; margin-top:2px; font-size:15px; font-variant-numeric:tabular-nums; word-break:break-word; }
+.pc__rw button{ flex:none; height:32px; padding:0 10px; border:0; border-radius:9px; font:inherit; font-size:12px; color:#f6f6f7; background:rgba(255,255,255,.07); cursor:pointer; }
 @media (prefers-reduced-motion: reduce){ .pc__win, .pc__st i{ animation:none; } }`;
   let box = null, poll = 0;
   function ensure() {
@@ -76,6 +87,7 @@
         <button type="button" class="pc__opt" data-pc="card"><span class="pc__ic">${ICARD}</span><span><b>Carte bancaire, Apple Pay, Google Pay</b><small>Paiement sécurisé par Stripe. Abonnement renouvelé automatiquement, résiliable à tout moment.</small></span></button>
         <button type="button" class="pc__opt" data-pc="crypto" ${opt && opt.crypto ? '' : 'disabled'}><span class="pc__ic is-sol">${ISOL}</span><span><b>Crypto · USDC sur Solana</b><small>${opt && opt.crypto ? 'De ton wallet au nôtre, sans intermédiaire, frais &lt; 0,01 $. Validé par l’équipe, pas de renouvellement automatique.' : 'Bientôt disponible.'}</small></span></button>
       </div>
+      <div id="pcBank"></div>
       <p class="pc__fine">En payant, tu acceptes les conditions de vente déjà validées à l’étape précédente. Le trading comporte un risque de perte en capital ; CHEST ne garantit aucun gain.</p>
     </div>`;
     b.hidden = false;
@@ -83,6 +95,50 @@
     b.querySelector('[data-pc="card"]').onclick = () => { close(); if (opt && opt.onCard) opt.onCard(); };
     const cr = b.querySelector('[data-pc="crypto"]');
     if (cr) cr.onclick = () => crypto(o);
+    // 3e option (2026-11-14) : virement, seulement si le parrain du membre l'a activé dans son espace
+    fetch(A.apiBase() + '/billing/transfer/info', { headers: { Authorization: 'Bearer ' + A.getToken() } }).then((x) => x.json()).then((t) => {
+      const slot = b.querySelector('#pcBank');
+      if (!t || !t.enabled || !slot) return;
+      slot.innerHTML = `<button type="button" class="pc__opt" data-pc="bank" style="margin-top:10px"><span class="pc__ic is-bank">${IBANK}</span><span><b>Virement bancaire</b><small>Vers ${esc(t.holder)}, puis tu cliques « C’est fait » : l’équipe valide à réception et ton accès s’ouvre. Pas de renouvellement automatique.</small></span></button>`;
+      slot.querySelector('[data-pc="bank"]').onclick = () => bank(o, t);
+    }).catch(() => {});
+  }
+  const IBANK = '<svg viewBox="0 0 24 24"><path d="M3 9.5 12 4l9 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>';
+  async function bank(o, t) {
+    const win = box.querySelector('.pc__win');
+    const tag = String(t.revolut || '').replace(/^@/, '');
+    const link = tag ? `https://revolut.me/${encodeURIComponent(tag)}` : '';
+    const ref = `${t.reference} ${o.key}`;
+    const row = (l, v, copy) => v ? `<div class="pc__rw"><div><span>${l}</span><b>${esc(v)}</b></div><button type="button" data-cp="${esc(copy == null ? v : copy)}">Copier</button></div>` : '';
+    win.innerHTML = `<button type="button" class="pc__x" data-pc-x aria-label="Fermer">×</button>
+      <span class="pc__k">Virement · ${esc(o.name)}</span><div class="pc__amt" style="margin-top:10px">${eur(o.price)}<small>à envoyer en une fois</small></div>
+      ${link ? `<div class="pc__tq"><div id="pcTq"></div></div><div class="pc__tag"><a href="${link}" target="_blank" rel="noopener">revolut.me/${esc(tag)}</a><span>@${esc(tag)}</span></div>` : ''}
+      <div class="pc__rows">${row('Titulaire', t.holder)}${row('IBAN', t.iban, String(t.iban || '').replace(/\s/g, ''))}${row('BIC', t.bic)}${row('Montant', eur(o.price), String(o.price))}${row('Référence', ref)}</div>
+      <div class="pc__row"><button type="button" class="pc__btn" data-done>C’est fait, j’ai envoyé le virement</button></div>
+      <p class="pc__fine">Indique bien la référence : elle permet de retrouver ton virement. Ton accès s’ouvre dès que l’équipe l’a reçu.</p>`;
+    win.addEventListener('click', async (e) => { const c = e.target.closest('[data-cp]'); if (c) { try { await navigator.clipboard.writeText(c.dataset.cp); c.textContent = 'Copié'; } catch (x) { /* tant pis */ } } });
+    if (link) { try { await loadQr(); const q = window.qrcode(0, 'M'); q.addData(link); q.make(); document.getElementById('pcTq').innerHTML = q.createImgTag(5, 0); } catch (x) { /* lien seul */ } }
+    win.querySelector('[data-done]').onclick = async (e) => {
+      e.target.disabled = true;
+      try {
+        const r = await fetch(A.apiBase() + '/billing/transfer', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ offer: o.key }) });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Déclaration impossible.');
+        win.innerHTML = `<button type="button" class="pc__x" data-pc-x aria-label="Fermer">×</button><span class="pc__k">Virement déclaré</span><h2>Merci, c’est noté</h2>
+          <p class="pc__fine" style="font-size:13.5px;color:#9b9ba1">L’équipe vérifie la réception de ton virement de <b style="color:#f6f6f7">${eur(o.price)}</b>. Ton accès s’ouvre dès la validation : tu peux laisser cette page ouverte, elle se met à jour toute seule.</p>
+          <div class="pc__st" id="pcSt"><i></i><span>En attente de validation…</span></div>`;
+        clearInterval(poll);
+        poll = setInterval(async () => {
+          if (box.hidden) { clearInterval(poll); return; }
+          try {
+            const s = await fetch(A.apiBase() + '/billing/transfer/' + d.id, { headers: { Authorization: 'Bearer ' + A.getToken() } }).then((x) => x.json());
+            const st = document.getElementById('pcSt');
+            if (s.status === 'validated') { clearInterval(poll); st.classList.add('is-ok'); st.querySelector('span').textContent = 'Virement validé : on t’ouvre CHEST…'; setTimeout(() => { location.href = '/offres?paiement=ok&via=virement'; }, 1400); }
+            if (s.status === 'refused') { clearInterval(poll); st.querySelector('span').textContent = 'Virement refusé' + (s.note ? ' : ' + s.note : '') + '. Écris à ton référent.'; }
+          } catch (x) { /* on réessaie */ }
+        }, 8000);
+      } catch (err) { e.target.disabled = false; e.target.textContent = err.message; }
+    };
   }
 
   async function loadQr() {
