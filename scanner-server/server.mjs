@@ -180,9 +180,14 @@ async function getCandles(code, tf, source, wantBar) {
 // (le passé ne change pas). Sert à retrouver le prix de l'or à l'ouverture et à la clôture de chaque position.
 const HIST_DIR = join(dirname(SIGNALS_FILE), "hist");
 const CHUNK_DAYS = 45, DAY_MS = 86400000;
+// REPLAY (2026-11-14) : une tranche = un seul appel Twelve Data (5 000 bougies max) → sa durée dépend de l'unité de
+// temps (M1 3 j, M5 16 j, M15 45 j comme avant, H1 180 j…). Gardée sur le disque pour toujours (le passé ne change
+// pas) et partagée par tous les membres : chaque tranche ne coûte qu'un crédit, une seule fois.
+const CHUNK_BY_TF = { "1": 3, "5": 16, "15": 45, "30": 90, "60": 180, "240": 720, "D": 3600 };
+const chunkDays = (tf) => CHUNK_BY_TF[tf] || CHUNK_DAYS;
 async function histChunk(code, tf, startMs) {
   const file = join(HIST_DIR, `${code}_${tf}_${startMs}.json`);
-  const endMs = startMs + CHUNK_DAYS * DAY_MS;
+  const endMs = startMs + chunkDays(tf) * DAY_MS;
   if (existsSync(file)) {
     try { const d = JSON.parse(readFileSync(file, "utf8")); if (d.complete || Date.now() - d.at < 6 * 3600000) return d.bars; } catch (e) { /* relu */ }
   }
@@ -201,9 +206,10 @@ async function histChunk(code, tf, startMs) {
   return bars;
 }
 async function history(code, tf, from, to) {
-  const first = Math.floor(from / (CHUNK_DAYS * DAY_MS)) * CHUNK_DAYS * DAY_MS;
+  const span = chunkDays(tf) * DAY_MS;
+  const first = Math.floor(from / span) * span;
   const out = [];
-  for (let s = first; s <= to; s += CHUNK_DAYS * DAY_MS) out.push(...await histChunk(code, tf, s));
+  for (let s = first; s <= to; s += span) out.push(...await histChunk(code, tf, s));
   return out.filter((b) => b[0] >= from - TF_MS[tf] && b[0] <= to);
 }
 

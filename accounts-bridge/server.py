@@ -6004,6 +6004,38 @@ def _sl_estimate(symbol, trades, shift_h):
     return out
 
 
+# ---------------- REPLAY (2026-11-14) ----------------
+# Bougies passées d'une paire pour le replay : relues dans l'historique gardé sur le disque du scanner-server (une
+# tranche n'est payée qu'une fois, au premier qui la demande, puis servie gratuitement à tout le monde). Une requête =
+# une fenêtre bornée (≤ 6 000 bougies) : le navigateur charge la suite au fur et à mesure que le replay avance.
+REPLAY_TF_MS = {"1": 60000, "5": 300000, "15": 900000, "30": 1800000, "60": 3600000, "240": 14400000, "D": 86400000}
+
+
+@app.route("/replay/bars")
+def replay_bars():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    acc = access_of(user)
+    if not (user["is_admin"] or is_educator(user) or (acc.get("active") and acc.get("plan") in ("premium", "allstar", "offert"))):
+        return jsonify({"error": "Le replay est réservé à CHEST Premium."}), 403
+    symbol = re.sub(r"[^A-Z0-9]", "", str(request.args.get("symbol") or "").upper())[:12]
+    tf = str(request.args.get("tf") or "15")
+    try:
+        frm, to = int(request.args.get("from")), int(request.args.get("to"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Période invalide."}), 400
+    if not symbol or tf not in REPLAY_TF_MS or not (0 < frm < to) or (to - frm) / REPLAY_TF_MS[tf] > 6000:
+        return jsonify({"error": "Paramètres invalides."}), 400
+    try:
+        d = _scanner_call("/history?" + urllib.parse.urlencode({"symbol": symbol, "tf": tf, "from": frm, "to": min(to, int(time.time() * 1000))}))
+    except Exception:
+        d = None
+    if not isinstance(d, dict) or "bars" not in d:
+        return jsonify({"error": "Historique indisponible pour l'instant (budget de données du jour atteint ou paire inconnue)."}), 503
+    return jsonify({"symbol": symbol, "tf": tf, "bars": d["bars"]})
+
+
 @app.route("/market/sl-estimate", methods=["POST"])
 def market_sl_estimate():
     """{symbol, shift, trades:[{t, c, result, r}]} → taille des SL estimée (en $ de mouvement, et en ticks de 0,01)."""

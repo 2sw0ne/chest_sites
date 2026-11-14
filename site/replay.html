@@ -17,6 +17,7 @@
 <script src="js/accounts-auth.js?v=12"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/chest-2-site.css?v=18">
+<link rel="stylesheet" href="css/replay.css?v=1">
 <!-- REPLAY (2026-11-14) : rejouer le marché bougie par bougie et prendre de faux trades (esprit du module Backtest
      de FocusPips, version CHEST avec les scanners). Phase 1 = l'analyse : les membres et les éducateurs voient
      « En construction », l'admin voit l'étude complète (référence, ce que CHEST fera de plus, données, étapes). -->
@@ -56,6 +57,9 @@
 </head>
 <body data-page="replay" class="chest-root">
 <main class="rp" id="rp"></main>
+<script src="js/scanner-store.js?v=29"></script>
+<script src="js/backtest-store.js?v=3"></script>
+<script src="js/replay.js?v=1"></script>
 <script>
 (function () {
   const A = window.CHESTAccounts;
@@ -69,7 +73,7 @@
       <span class="rp__pill"><i></i>En construction</span></div></section>`;
     return;
   }
-  root.innerHTML = `
+  const study = `
     <span class="rp__k">Admin · Phase 1 — l’étude</span><h1><span>REPLAY</span></h1>
     <p class="rp__lead">Ce que les membres et les éducateurs voient pour l’instant : un écran « En construction ». Toi seul vois cette étude. Elle sert de base pour valider la théorie avant de construire.</p>
     <div class="rp__grid">
@@ -120,6 +124,17 @@
           <li>Réservé à Premium, ou ouvert à Essentiel ?</li>
         </ul></article>
     </div>`;
+  // Admin (2026-11-14, phase 2) : le replay en service + l'étude ; les membres voient « En construction ».
+  root.classList.add('is-app');
+  root.innerHTML = `<span class="rp__k">Admin · réservé à CHEST Premium à l’ouverture</span><h1 style="font-size:clamp(32px,4vw,48px)"><span>REPLAY</span></h1>
+    <div class="rp-tabs" role="tablist"><button type="button" data-rp-tab="app" class="is-on">Replay</button><button type="button" data-rp-tab="study">Étude</button></div>
+    <div id="rpApp"></div><div id="rpStudy" hidden style="max-width:1120px">${study}</div>`;
+  root.querySelectorAll('[data-rp-tab]').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('[data-rp-tab]').forEach((x) => x.classList.toggle('is-on', x === b));
+    document.getElementById('rpApp').hidden = b.dataset.rpTab !== 'app';
+    document.getElementById('rpStudy').hidden = b.dataset.rpTab !== 'study';
+  }));
+  window.CHESTReplay.mount(document.getElementById('rpApp'));
 })();
 </script>
 </body>
