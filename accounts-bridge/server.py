@@ -1635,7 +1635,16 @@ def _b58(b):
     return "1" * (len(b) - len(b.lstrip(b"\0"))) + out
 
 
+# Adresse de réception Solana (Phantom du patron, 2026-11-14) : posée une fois au démarrage (crypto_init), l'admin
+# peut ensuite la changer ou couper la crypto depuis Admin → Système. Les USDC arrivent sur le compte de jetons
+# associé à cette adresse (créé par le premier dépôt d'USDC).
+CRYPTO_WALLET_DEFAULT = "9PQ8WgqGCj8Q4mTXcaRSh1CftAzc4h4FnSZwXQcWgnfw"
+
+
 def get_crypto_settings():
+    if get_setting("crypto_init") != "1":
+        set_setting("crypto", json.dumps({"on": True, "wallet": CRYPTO_WALLET_DEFAULT}))
+        set_setting("crypto_init", "1")
     try:
         d = json.loads(get_setting("crypto") or "null") or {}
     except ValueError:
@@ -1667,13 +1676,30 @@ def _sol_rpc(method, params):
     return d.get("result")
 
 
+_TX_VERSION = {"max": 1}
+
+
+def _sol_tx(sig):
+    """getTransaction en lisant toutes les versions de transaction (2026-11-14 : le réseau émet des transactions v1 ;
+    demander « 0 » échouait et le paiement restait en attente). Si une version plus récente apparaît, on s'y adapte."""
+    for _ in range(3):
+        try:
+            return _sol_rpc("getTransaction", [sig, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": _TX_VERSION["max"], "commitment": "confirmed"}])
+        except RuntimeError as e:
+            m = re.search(r'"maxSupportedTransactionVersion": (\d+)', str(e))
+            if not m or int(m.group(1)) <= _TX_VERSION["max"]:
+                raise
+            _TX_VERSION["max"] = int(m.group(1))
+    return None
+
+
 def _crypto_check(row):
     """Cherche sur la blockchain la transaction qui porte la référence du paiement : (signature, montant reçu) ou None."""
     sigs = _sol_rpc("getSignaturesForAddress", [row["reference"], {"limit": 10}]) or []
     for sg in sigs:
         if sg.get("err"):
             continue
-        tx = _sol_rpc("getTransaction", [sg["signature"], {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0, "commitment": "confirmed"}])
+        tx = _sol_tx(sg["signature"])
         meta = (tx or {}).get("meta") or {}
         if meta.get("err"):
             continue
@@ -1765,6 +1791,27 @@ def admin_crypto():
     return jsonify({"settings": get_crypto_settings(), "payments": [_crypto_out(r, who(r["user_id"])) for r in rows]})
 
 
+@app.route("/admin/crypto/test", methods=["POST"])
+def admin_crypto_test():
+    """Demande de paiement de 1 USDC vers le wallet configuré, pour vérifier Solana Pay de bout en bout (aucun accès ouvert)."""
+    admin = current_user()
+    if not admin or not admin["is_admin"]:
+        return jsonify({"error": "Réservé aux administrateurs."}), 403
+    cs = get_crypto_settings()
+    if not cs["wallet"]:
+        return jsonify({"error": "Aucun wallet configuré."}), 400
+    ref = _b58(secrets.token_bytes(32))
+    now = datetime.now(timezone.utc).isoformat()
+    db = get_db()
+    with db_lock:
+        cur = db.execute("INSERT INTO crypto_payments (user_id, offer, eur, usdc, reference, wallet, status, created_at, updated_at) "
+                         "VALUES (?, 'test', ?, 1.0, ?, ?, 'pending', ?, ?)", (admin["id"], round(1 / _eur_usd(), 2), ref, cs["wallet"], now, now))
+        db.commit()
+        pid = cur.lastrowid
+    url = f"solana:{cs['wallet']}?amount=1.00&spl-token={USDC_MINT}&reference={ref}&label=CHEST&message=" + urllib.parse.quote("Test CHEST")
+    return jsonify({"id": pid, "url": url, "usdc": 1.0, "wallet": cs["wallet"], "reference": ref, "status": "pending"})
+
+
 @app.route("/admin/crypto/<int:pid>", methods=["POST"])
 def admin_crypto_decide(pid):
     admin = current_user()
@@ -1777,7 +1824,7 @@ def admin_crypto_decide(pid):
         return jsonify({"error": "Paiement introuvable."}), 404
     now = datetime.now(timezone.utc)
     with db_lock:
-        if action == "validate":
+        if action == "validate" and r["offer"] != "test":
             lvl = int(r["offer"][-1])
             months = LEVEL_MONTHS[lvl]
             _set_plan(db, r["user_id"], r["offer"][:-1], f"{months}m", "active", now, _add_months(now, months), plan_level=lvl)

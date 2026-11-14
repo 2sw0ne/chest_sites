@@ -31,12 +31,40 @@
         <input type="text" id="crWallet" value="${esc(s.wallet || '')}" placeholder="Adresse de ton wallet Solana (Phantom…)" spellcheck="false" autocomplete="off" style="flex:1 1 320px;height:42px;padding:0 14px;border-radius:12px;border:1px solid rgba(var(--fg-rgb,255,255,255),.14);background:rgba(var(--fg-rgb,255,255,255),.03);color:var(--chest-ink);font:inherit;font-family:'Fragment Mono',monospace;font-size:12.5px">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="crOn" ${s.on ? 'checked' : ''}> Proposé aux membres</label>
         <button type="button" class="chest-btn" id="crSave">Enregistrer</button>
+        <button type="button" class="chest-btn-2" id="crTest">Tester avec 1 USDC</button>
       </div>
+      <div id="crTestBox"></div>
       <p class="am-note" style="margin-top:10px">${esc(msg || 'L’argent arrive directement sur ce wallet. Chaque paiement est retrouvé sur la blockchain (montant + destinataire), puis tu le valides ici : l’accès s’ouvre pour la durée de l’offre, sans renouvellement automatique.')}</p>
       <ul style="list-style:none;margin:8px 0 0;padding:0">${rows || '<li class="am-empty" style="padding:10px 0">Aucun paiement en crypto pour l’instant.</li>'}</ul>`;
   }
   async function load() { try { D = await api('GET', '/admin/crypto'); paint(); } catch (e) { box.innerHTML = `<p class="am-empty">${esc(e.message)}</p>`; } }
+  // Paiement test (2026-11-14) : 1 USDC vers le wallet configuré, suivi en direct sur la blockchain (aucun accès ouvert)
+  let testPoll = 0;
+  const loadQr = () => window.qrcode ? Promise.resolve() : new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+  async function runTest() {
+    const tb = document.getElementById('crTestBox');
+    clearInterval(testPoll);
+    try {
+      const d = await api('POST', '/admin/crypto/test');
+      tb.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-top:14px;padding:14px;border-radius:14px;background:rgba(var(--fg-rgb,255,255,255),.03);box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb,255,255,255),.08)">
+        <div id="crQr" style="padding:8px;border-radius:12px;background:#fff"></div>
+        <div style="display:grid;gap:6px;max-width:420px"><b>Scanne avec Phantom (Solana Pay)</b><span class="am-note" style="margin:0">Paie 1 USDC depuis un autre wallet que celui qui reçoit. CHEST cherche la transaction sur la blockchain toutes les 4 secondes.</span>
+          <a href="${esc(d.url)}" class="chest-btn-2" style="justify-self:start;text-decoration:none">Ouvrir dans le wallet</a><b id="crTestSt" style="color:#e8b339">En attente du paiement…</b></div></div>`;
+      try { await loadQr(); const q = window.qrcode(0, 'M'); q.addData(d.url); q.make(); document.getElementById('crQr').innerHTML = q.createImgTag(4, 0); } catch (err) { /* lien seul */ }
+      testPoll = setInterval(async () => {
+        try {
+          const r = await api('GET', '/billing/crypto/' + d.id);
+          if (r.status !== 'pending') {
+            clearInterval(testPoll);
+            const st = document.getElementById('crTestSt');
+            if (st) { st.style.color = '#33e6a6'; st.innerHTML = `Reçu et vérifié sur la blockchain ✓ <a href="https://solscan.io/tx/${esc(r.signature || '')}" target="_blank" rel="noopener" style="color:var(--chest-ink-2)">voir la transaction</a>`; }
+          }
+        } catch (err) { /* on réessaie */ }
+      }, 4000);
+    } catch (err) { tb.innerHTML = `<p class="am-note">${esc(err.message)}</p>`; }
+  }
   box.addEventListener('click', async (e) => {
+    if (e.target.id === 'crTest') { runTest(); return; }
     if (e.target.id === 'crSave') {
       try { D = await api('PUT', '/admin/crypto', { wallet: document.getElementById('crWallet').value.trim(), on: document.getElementById('crOn').checked }); paint('Enregistré.'); } catch (err) { paint(err.message); }
       return;
