@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paiement — CHEST</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="assets/logo-chest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fragment+Mono&display=swap">
+<script src="js/theme.js?v=13"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/config.local.js"></script>
+<script src="js/accounts-auth.js?v=13"></script>
+<script src="js/rank-badge.js?v=6"></script>
+<script>if (!CHESTAccounts.isLoggedIn()) { try { const q = new URLSearchParams(location.search).get('offre'); if (q) localStorage.setItem('chest_wanted_offer', q); } catch (e) { /* tant pis */ } window.location.replace('/connexion'); }</script>
+<!--
+  Paiement (2026-11-14) : page unique pour tout le monde, quel que soit le chemin (landing → audit, ou connexion).
+  Gauche : la carte du pack choisi (se retourne au clic : ce qui est inclus). Droite : carte bancaire (Stripe),
+  crypto (USDC sur Solana), virement (si le référent l'a activé) avec les logos officiels (assets/pay, sources :
+  payment-icons, cryptocurrency-icons, simple-icons). En bas : toutes les offres (8 rangs) ; en choisir une change la
+  carte, « Revenir à mon pack » la remet. Accord CGV / accès immédiat / risques (CHESTConsent.purchase) demandé une
+  fois par offre avant de payer. /offres renvoie ici (sauf l'éditeur admin et l'écran d'attente après paiement).
+-->
+<style>
+:root{ --bg:#050505; --ink:#f6f6f7; --ink-2:#9b9ba1; --ink-3:#5c5c63; --line:rgba(255,255,255,.1); --green:#33e6a6; --red:#ff4d5e; --ease:cubic-bezier(.16,1,.3,1); color-scheme:dark; }
+*{ box-sizing:border-box; }
+html, body{ margin:0; min-height:100%; background:var(--bg); }
+body{ font-family:'Instrument Sans', system-ui, sans-serif; color:var(--ink); -webkit-font-smoothing:antialiased; }
+.py-glow{ position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(60% 50% at 18% 0%, rgba(252,18,131,.16), transparent 70%), radial-gradient(50% 40% at 90% 10%, rgba(249,164,94,.1), transparent 70%); }
+.py{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:18px 24px 64px; }
+.py-top{ display:flex; align-items:center; gap:14px; height:52px; }
+.py-top img{ width:30px; height:30px; }
+.py-top b{ font-size:15px; letter-spacing:.12em; }
+.py-top span{ flex:1; }
+.py-link{ white-space:nowrap; display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 12px; border:0; border-radius:11px; font:inherit; font-size:13px; font-weight:600; color:var(--ink-2); background:rgba(255,255,255,.05); text-decoration:none; cursor:pointer; }
+.py-link:hover{ color:var(--ink); background:rgba(255,255,255,.09); }
+.py-k{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-2); }
+.py-head{ margin:26px 0 30px; }
+.py-head h1{ margin:10px 0 8px; font-size:clamp(36px, 5vw, 60px); font-weight:700; letter-spacing:-.05em; line-height:1; }
+.py-head h1 i{ font-style:normal; background:linear-gradient(90deg, #fc1283, #f9a45e); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.py-head p{ margin:0; max-width:56ch; font-size:15px; line-height:1.6; color:var(--ink-2); }
+.py-steps{ display:flex; flex-wrap:wrap; gap:6px; margin-top:16px; }
+.py-steps span{ display:inline-flex; align-items:center; gap:7px; height:28px; padding:0 11px; border-radius:999px; font-size:12px; color:var(--ink-2); background:rgba(255,255,255,.04); }
+.py-steps span.is-done{ color:var(--green); } .py-steps span.is-now{ color:#fff; background:rgba(252,18,131,.16); box-shadow:inset 0 0 0 1px rgba(252,18,131,.5); }
+.py-grid{ display:grid; grid-template-columns:minmax(0, 440px) minmax(0, 1fr); gap:40px; align-items:start; }
+.py-left{ position:sticky; top:20px; display:grid; gap:14px; justify-items:center; }
+.py-back{ display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 14px; border:0; border-radius:999px; font:inherit; font-size:12.5px; font-weight:600; color:#ffd9c2; background:rgba(249,164,94,.1); box-shadow:inset 0 0 0 1px rgba(249,164,94,.3); cursor:pointer; }
+.py-back[hidden]{ display:none; }
+.py-right{ display:grid; gap:14px; }
+.py-sum{ display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px 20px; border-radius:20px; background:rgba(255,255,255,.035); box-shadow:inset 0 0 0 1px var(--line); }
+.py-sum__l{ display:flex; align-items:center; gap:14px; min-width:0; }
+.py-sum__l svg{ flex:none; }
+.py-sum b{ display:block; font-size:17px; letter-spacing:-.01em; }
+.py-sum small{ display:block; margin-top:2px; font-size:12.5px; color:var(--ink-2); }
+.py-sum__p{ flex:none; text-align:right; font-variant-numeric:tabular-nums; } .py-sum__p b, .py-sum__p small{ white-space:nowrap; }
+.py-sum__p b{ font-size:26px; letter-spacing:-.03em; }
+.py-ms{ display:grid; gap:10px; }
+.py-m{ position:relative; display:grid; grid-template-columns:22px 1fr; gap:14px; align-items:start; width:100%; padding:18px 20px; border:0; border-radius:20px; text-align:left; font:inherit; color:var(--ink); background:rgba(255,255,255,.03); box-shadow:inset 0 0 0 1px var(--line); cursor:pointer; transition:box-shadow .2s var(--ease), background .2s var(--ease); }
+.py-m:hover:not(:disabled){ background:rgba(255,255,255,.05); }
+.py-m.is-on{ background:linear-gradient(180deg, rgba(252,18,131,.08), rgba(249,164,94,.03)); box-shadow:inset 0 0 0 1.5px rgba(252,18,131,.75), 0 20px 40px -24px rgba(252,18,131,.6); }
+.py-m:disabled{ cursor:not-allowed; opacity:.5; }
+.py-m:focus-visible{ outline:2px solid #fc1283; outline-offset:3px; }
+.py-radio{ width:22px; height:22px; margin-top:1px; border-radius:50%; box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3); transition:box-shadow .2s var(--ease); }
+.py-m.is-on .py-radio{ box-shadow:inset 0 0 0 6px #fc1283; }
+.py-m__t{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; }
+.py-m__t b{ font-size:16px; }
+.py-m p{ margin:6px 0 0; font-size:13px; line-height:1.5; color:var(--ink-2); }
+.py-logos{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.py-logo{ display:grid; place-items:center; height:28px; min-width:42px; padding:0 7px; border-radius:6px; background:#fff; }
+.py-logo img{ display:block; height:18px; width:auto; }
+.py-logo.is-card{ padding:0; background:transparent; } .py-logo.is-card img{ height:28px; border-radius:5px; }
+.py-logo.is-dark{ background:#000; box-shadow:inset 0 0 0 1px rgba(255,255,255,.25); }
+.py-logo.is-dark img{ height:28px; margin:0 -4px; }
+.py-logo.is-sol{ background:#000; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18); gap:6px; display:flex; font-size:12px; font-weight:700; color:#fff; }
+.py-logo.is-sol img{ height:16px; }
+.py-logo.is-rev{ background:#191c1f; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18); }
+.py-logo.is-rev img{ height:14px; }
+.py-logo.is-sepa{ background:#10298e; } .py-logo.is-sepa img{ height:26px; margin:0 -2px; }
+.py-tag{ display:inline-block; margin-left:6px; padding:3px 8px; border-radius:999px; font-size:10.5px; font-weight:700; vertical-align:2px; color:var(--green); background:rgba(51,230,166,.1); }
+.py-cta{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:58px; border:0; border-radius:16px; font:inherit; font-size:16.5px; font-weight:700; color:#fff; background:linear-gradient(90deg, #fc1283, #f9a45e); cursor:pointer; box-shadow:0 18px 36px -16px rgba(252,18,131,.8); transition:transform .16s var(--ease), filter .16s; }
+.py-cta:hover{ filter:brightness(1.06); } .py-cta:active{ transform:scale(.98); } .py-cta:disabled{ opacity:.6; cursor:wait; }
+.py-cta svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.py-msg{ min-height:18px; margin:0; font-size:13px; text-align:center; color:#ffb3bd; }
+.py-trust{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px 18px; margin:0; font-size:12px; color:var(--ink-3); }
+.py-trust span{ display:inline-flex; align-items:center; gap:6px; }
+.py-trust svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.py-fine{ margin:0; font-size:11.5px; line-height:1.55; text-align:center; color:var(--ink-3); }
+.py-all{ margin-top:48px; border-radius:22px; background:rgba(255,255,255,.025); box-shadow:inset 0 0 0 1px var(--line); }
+.py-all summary{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:20px 22px; list-style:none; cursor:pointer; }
+.py-all summary::-webkit-details-marker{ display:none; }
+.py-all summary b{ font-size:16px; } .py-all summary small{ display:block; margin-top:2px; font-size:12.5px; color:var(--ink-2); font-weight:400; }
+.py-all summary svg{ width:20px; height:20px; flex:none; fill:none; stroke:var(--ink-2); stroke-width:2; stroke-linecap:round; transition:transform .25s var(--ease); }
+.py-all[open] summary svg{ transform:rotate(180deg); }
+.py-fam{ padding:0 22px 22px; }
+.py-fam + .py-fam{ padding-top:4px; }
+.py-fam h3{ margin:0 0 10px; font-size:13px; font-weight:600; color:var(--ink-2); }
+.py-ranks{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+.py-rk{ display:grid; justify-items:center; gap:8px; padding:18px 10px 16px; border:0; border-radius:18px; font:inherit; color:var(--ink); background:rgba(255,255,255,.03); box-shadow:inset 0 0 0 1px var(--line); cursor:pointer; transition:transform .2s var(--ease), box-shadow .2s var(--ease); }
+.py-rk:hover{ transform:translateY(-2px); box-shadow:inset 0 0 0 1px rgba(255,255,255,.22); }
+.py-rk.is-on{ box-shadow:inset 0 0 0 1.5px rgba(252,18,131,.75); background:rgba(252,18,131,.06); }
+.py-rk b{ font-size:14px; } .py-rk small{ font-size:12px; color:var(--ink-2); }
+.py-rk em{ font-style:normal; font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; }
+.py-rk i{ min-height:14px; font-style:normal; font-size:10.5px; font-weight:700; color:#ffd9c2; }
+.py-load{ padding:80px 0; text-align:center; color:var(--ink-2); }
+@media (max-width:900px){
+  .py{ padding:12px 16px 48px; }
+  .py-grid{ grid-template-columns:1fr; gap:24px; }
+  .py-left{ position:static; }
+  .py-head{ margin:14px 0 20px; }
+  .py-ranks{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .py-sum__p b{ font-size:22px; }
+}
+@media (prefers-reduced-motion: reduce){ .py-m, .py-radio, .py-cta, .py-rk, .py-all summary svg{ transition:none; } }
+</style>
+</head>
+<body>
+<div class="py-glow" aria-hidden="true"></div>
+<main class="py" id="py">
+  <header class="py-top"><img src="assets/logo-chest.png" alt=""><b>CHEST</b><span></span>
+    <a class="py-link" id="pyBackAudit" href="/audit">‹ Refaire l’audit</a>
+    <button type="button" class="py-link" id="pyOut">Déconnexion</button></header>
+  <div class="py-load" id="pyLoad">Chargement de ton pack…</div>
+</main>
+<script>
+(function () {
+  const A = window.CHESTAccounts, R = window.CHESTRank;
+  const $ = (s) => document.querySelector(s);
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const eur = (n) => Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+  const ROM = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV' };
+  const dur = (m) => (m === 12 ? '1 an' : m + ' mois');
+  const every = (m) => (m === 12 ? 'chaque année' : m === 1 ? 'chaque mois' : `tous les ${m} mois`);
+  const q = new URLSearchParams(location.search);
+  let OFFERS = [], CRYPTO = false, BANK = null, SEL = null, FIRST = null, METHOD = 'card', pack = null;
+  const famName = (o) => (o.group === 'premium' ? 'Premium' : 'Essentiel');
+  const offer = (k) => OFFERS.find((o) => o.key === k);
+
+  $('#pyOut').addEventListener('click', () => { A.logout(); location.href = '/connexion'; });
+
+  async function load() {
+    const [pr, bank] = await Promise.all([
+      fetch(A.apiBase() + '/pricing').then((r) => r.json()).catch(() => ({})),
+      fetch(A.apiBase() + '/billing/transfer/info', { headers: { Authorization: 'Bearer ' + A.getToken() } }).then((r) => r.json()).catch(() => null),
+      A.refreshMe ? A.refreshMe().catch(() => null) : null,
+    ]);
+    OFFERS = (pr.offers || []).filter((o) => o.enabled && o.price).map((o) => Object.assign({}, o, { group: o.group || o.key.replace(/\d$/, ''), level: o.level || Number(o.key.slice(-1)) }));
+    CRYPTO = !!pr.crypto; BANK = bank && bank.enabled ? bank : null;
+    let wanted = q.get('offre');
+    try { wanted = wanted || localStorage.getItem('chest_wanted_offer'); localStorage.removeItem('chest_wanted_offer'); } catch (e) { /* tant pis */ }
+    if (!offer(wanted)) wanted = (OFFERS.find((o) => o.featured) || offer('premium4') || OFFERS[0] || {}).key;
+    SEL = FIRST = wanted;
+  }
+
+  function logos(kind) {
+    if (kind === 'card') return '<span class="py-logo is-card"><img src="assets/pay/visa.svg" alt="Visa"></span><span class="py-logo is-card"><img src="assets/pay/mastercard.svg" alt="Mastercard"></span><span class="py-logo is-card"><img src="assets/pay/amex.svg" alt="American Express"></span><span class="py-logo is-dark"><img src="assets/pay/si-applepay.svg" alt="Apple Pay"></span><span class="py-logo is-dark"><img src="assets/pay/si-googlepay.svg" alt="Google Pay"></span>';
+    if (kind === 'crypto') return '<span class="py-logo is-sol"><img src="assets/pay/usdc.svg" alt="">USDC</span><span class="py-logo is-sol"><img src="assets/pay/sol.svg" alt="">Solana</span>';
+    return '<span class="py-logo is-sepa"><img src="assets/pay/si-sepa.svg" alt="SEPA"></span>' + (BANK && BANK.revolut ? '<span class="py-logo is-rev"><img src="assets/pay/si-revolut.svg" alt="Revolut"></span>' : '');
+  }
+
+  function render() {
+    const o = offer(SEL);
+    const main = $('#py');
+    if (!o) { $('#pyLoad').textContent = 'Les offres ne sont pas disponibles pour l’instant. Réessaie dans un instant.'; return; }
+    const prem = o.group === 'premium';
+    const renew = prem && o.months === 12 ? 'Accès à vie après ce paiement' : `Renouvelé ${every(o.months)} par carte · résiliable à tout moment`;
+    const methods = [
+      ['card', 'Carte bancaire', 'Paiement sécurisé par Stripe. ' + (prem && o.months === 12 ? 'Payé une fois.' : `Renouvelé ${every(o.months)}, résiliable à tout moment.`), true, '<span class="py-tag">Accès immédiat</span>'],
+      ['crypto', 'Crypto', CRYPTO ? 'USDC sur le réseau Solana, de ton wallet au nôtre. Frais inférieurs à 0,01 $. Accès ouvert dès que la transaction est confirmée.' : 'Bientôt disponible.', CRYPTO, ''],
+      ['bank', 'Virement bancaire', BANK ? `Vers ${esc(BANK.holder)}. Tu envoies le virement, tu cliques « C’est fait » : ton accès s’ouvre dès que l’équipe l’a reçu.` : 'Non proposé par ton référent.', !!BANK, ''],
+    ];
+    if (!methods.find((m) => m[0] === METHOD)[3]) METHOD = 'card';
+    const fam = (g) => OFFERS.filter((x) => x.group === g).sort((a, b) => a.level - b.level);
+    main.innerHTML = main.firstElementChild.outerHTML + `
+      <section class="py-head"><span class="py-k">Dernière étape · paiement</span><h1>Finalise ton accès<i>.</i></h1>
+        <p>Vérifie ton pack, choisis ton moyen de paiement. Tu peux encore changer d’offre en bas de la page.</p>
+        <div class="py-steps"><span class="is-done">✓ Compte</span><span class="is-done">✓ Audit</span><span class="is-done">✓ Pack</span><span class="is-now">Paiement</span></div></section>
+      <div class="py-grid">
+        <div class="py-left"><div id="pyPack" style="width:100%"></div><button type="button" class="py-back" id="pyFirst" ${SEL === FIRST ? 'hidden' : ''}>‹ Revenir à mon pack conseillé</button></div>
+        <div class="py-right">
+          <div class="py-sum"><div class="py-sum__l">${R ? R.badge(o.group, o.level, 46) : ''}<div><b>CHEST ${famName(o)} ${ROM[o.level]}</b><small>${dur(o.months)} d’accès · ${esc(renew)}</small></div></div>
+            <div class="py-sum__p"><b>${eur(o.price)}</b><small>${o.months > 1 ? 'soit ' + eur(o.price / o.months) + ' / mois' : 'sans engagement'}</small></div></div>
+          <span class="py-k" style="margin-top:6px">Moyen de paiement</span>
+          <div class="py-ms" role="radiogroup" aria-label="Moyen de paiement">${methods.map(([k, t, d, ok, tag]) => `<button type="button" class="py-m${METHOD === k ? ' is-on' : ''}" role="radio" aria-checked="${METHOD === k}" data-m="${k}" ${ok ? '' : 'disabled'}><span class="py-radio"></span><span><span class="py-m__t"><b>${t}${tag}</b><span class="py-logos">${logos(k)}</span></span><p>${d}</p></span></button>`).join('')}</div>
+          <button type="button" class="py-cta" id="pyPay">${METHOD === 'card' ? 'Payer ' + eur(o.price) + ' par carte' : METHOD === 'crypto' ? 'Payer ' + eur(o.price) + ' en USDC' : 'Voir les coordonnées du virement'}<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <p class="py-msg" id="pyMsg" role="alert"></p>
+          <p class="py-trust"><span><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Paiement chiffré</span><span><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg>CHEST ne voit jamais ta carte</span><span><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></svg>Remboursable sous 7 jours</span></p>
+          <p class="py-fine">En payant, tu acceptes les conditions de vente validées juste avant. Le trading comporte un risque de perte en capital ; CHEST ne garantit aucun gain.</p>
+        </div>
+      </div>
+      <details class="py-all" id="pyAll"><summary><span><b>Toutes les offres</b><small>Essentiel et Premium, de 1 mois à 1 an. Clique sur un rang pour voir sa carte.</small></span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></summary>
+        ${['premium', 'essentiel'].map((g) => `<div class="py-fam"><h3>CHEST ${g === 'premium' ? 'Premium · l’accompagnement complet' : 'Essentiel · la plateforme en autonomie'}</h3><div class="py-ranks">${fam(g).map((x) => `<button type="button" class="py-rk${x.key === SEL ? ' is-on' : ''}" data-k="${x.key}">${R ? R.badge(x.group, x.level, 52) : ''}<b>${famName(x)} ${ROM[x.level]}</b><small>${dur(x.months)}</small><em>${eur(x.price)}</em><i>${x.key === FIRST ? 'Ton pack conseillé' : ''}</i></button>`).join('')}</div></div>`).join('')}
+      </details>`;
+    $('#pyOut').addEventListener('click', () => { A.logout(); location.href = '/connexion'; });
+    if (window.CHESTPack) pack = CHESTPack.mount($('#pyPack'), { mode: 'result', compact: true, offers: OFFERS, sel: SEL, reco: FIRST });
+    main.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => { METHOD = b.dataset.m; render(); }));
+    main.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => { SEL = b.dataset.k; render(); $('#pyAll').open = true; window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }));
+    const back = $('#pyFirst'); if (back) back.addEventListener('click', () => { SEL = FIRST; render(); });
+    $('#pyPay').addEventListener('click', pay);
+  }
+
+  // Accord avant paiement (CGV, accès immédiat + renonciation, risques), une fois par offre et par visite
+  const agreed = new Set();
+  async function consent(o) {
+    if (agreed.has(o.key) || !window.CHESTConsent) return true;
+    const ok = await CHESTConsent.purchase(o);
+    if (ok) agreed.add(o.key);
+    return ok;
+  }
+  async function pay() {
+    const o = offer(SEL), btn = $('#pyPay'), msg = $('#pyMsg');
+    msg.textContent = '';
+    if (!(await consent(o))) return;
+    if (METHOD === 'crypto') return CHESTPay.crypto(o);
+    if (METHOD === 'bank') return CHESTPay.bank(o, BANK);
+    btn.disabled = true; btn.firstChild.textContent = 'Ouverture du paiement sécurisé…';
+    try {
+      const res = await fetch(A.apiBase() + '/billing/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + A.getToken() }, body: JSON.stringify({ offer: o.key }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.url) throw new Error(d.error || 'Le paiement n’a pas pu s’ouvrir. Réessaie dans un instant.');
+      location.href = d.url;
+    } catch (e) { msg.textContent = e.message; render(); $('#pyMsg').textContent = e.message; }
+  }
+
+  load().then(async () => {
+    render();
+    if (q.get('annule')) $('#pyMsg').textContent = 'Paiement annulé : rien n’a été débité. Tu peux réessayer ou choisir un autre moyen.';
+    else if (q.get('raison') === 'fin') $('#pyMsg').textContent = 'Ton accès a pris fin. Choisis ton offre pour retrouver CHEST, tes données sont conservées.';
+    // arrivée depuis l'audit : l'accord est demandé tout de suite, la page de paiement s'affiche derrière
+    const o = offer(SEL); if (o && q.get('offre')) consent(o);
+  });
+})();
+</script>
+<script src="js/pack-card.js?v=5"></script>
+<script src="js/consent.js?v=7"></script>
+<script src="js/pay-choice.js?v=4"></script>
+</body>
+</html>

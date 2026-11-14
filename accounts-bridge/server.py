@@ -6200,6 +6200,27 @@ def replay_bars():
     return jsonify({"symbol": symbol, "tf": tf, "bars": d["bars"]})
 
 
+@app.route("/replay/scan")
+def replay_scan():
+    """Scanner du replay : calculé sur les bougies passées jusqu'au curseur seulement (Premium, éducateur, admin)."""
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    acc = access_of(user)
+    if not (user["is_admin"] or is_educator(user) or (acc.get("active") and acc.get("plan") in ("premium", "allstar", "offert"))):
+        return jsonify({"error": "Le replay est réservé à CHEST Premium."}), 403
+    q = {k: str(request.args.get(k) or "") for k in ("script", "symbol", "tf", "to", "n")}
+    if not re.fullmatch(r"[a-z0-9_-]{1,32}", q["script"]) or q["tf"] not in REPLAY_TF_MS or not q["to"].isdigit():
+        return jsonify({"error": "Paramètres invalides."}), 400
+    try:
+        d = _scanner_call("/replay-scan?" + urllib.parse.urlencode({k: v for k, v in q.items() if v}))
+    except Exception:
+        d = None
+    if not isinstance(d, dict) or "models" not in d:
+        return jsonify({"error": "Scanner indisponible pour l'instant."}), 503
+    return jsonify(d)
+
+
 @app.route("/market/sl-estimate", methods=["POST"])
 def market_sl_estimate():
     """{symbol, shift, trades:[{t, c, result, r}]} → taille des SL estimée (en $ de mouvement, et en ticks de 0,01)."""

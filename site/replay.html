@@ -11,13 +11,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fragment+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=4">
 <link rel="stylesheet" href="css/chest-da.css?v=22">
-<script src="js/theme.js?v=12"></script>
+<script src="js/theme.js?v=13"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=12"></script>
+<script src="js/accounts-auth.js?v=13"></script>
 <script>CHESTAccounts.guard();</script>
 <link rel="stylesheet" href="css/chest-2-site.css?v=18">
-<link rel="stylesheet" href="css/replay.css?v=1">
+<link rel="stylesheet" href="css/replay.css?v=2">
 <!-- REPLAY (2026-11-14) : rejouer le marché bougie par bougie et prendre de faux trades (esprit du module Backtest
      de FocusPips, version CHEST avec les scanners). Phase 1 = l'analyse : les membres et les éducateurs voient
      « En construction », l'admin voit l'étude complète (référence, ce que CHEST fera de plus, données, étapes). -->
@@ -59,7 +59,7 @@
 <main class="rp" id="rp"></main>
 <script src="js/scanner-store.js?v=29"></script>
 <script src="js/backtest-store.js?v=3"></script>
-<script src="js/replay.js?v=1"></script>
+<script src="js/replay.js?v=2"></script>
 <script>
 (function () {
   const A = window.CHESTAccounts;
@@ -126,8 +126,7 @@
     </div>`;
   // Admin (2026-11-14, phase 2) : le replay en service + l'étude ; les membres voient « En construction ».
   root.classList.add('is-app');
-  root.innerHTML = `<span class="rp__k">Admin · réservé à CHEST Premium à l’ouverture</span><h1 style="font-size:clamp(32px,4vw,48px)"><span>REPLAY</span></h1>
-    <div class="rp-tabs" role="tablist"><button type="button" data-rp-tab="app" class="is-on">Replay</button><button type="button" data-rp-tab="study">Étude</button></div>
+  root.innerHTML = `<div class="rp-tabs" role="tablist"><button type="button" data-rp-tab="app" class="is-on">Replay</button><button type="button" data-rp-tab="study">Étude</button></div>
     <div id="rpApp"></div><div id="rpStudy" hidden style="max-width:1120px">${study}</div>`;
   root.querySelectorAll('[data-rp-tab]').forEach((b) => b.addEventListener('click', () => {
     root.querySelectorAll('[data-rp-tab]').forEach((x) => x.classList.toggle('is-on', x === b));

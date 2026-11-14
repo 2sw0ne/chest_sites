@@ -73,6 +73,10 @@
       "destination": "/offres.html"
     },
     {
+      "source": "/paiement",
+      "destination": "/paiement.html"
+    },
+    {
       "source": "/:page(dashboard|backtesting|journal|strategies|calendar|berich|replay|school|account|admin-members|educator|suivi|backtest-add|backtest-view|strategy-example|vps-guide|connect)",
       "destination": "/app.html"
     }

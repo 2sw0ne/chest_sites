@@ -16,10 +16,10 @@
 <link rel="stylesheet" href="css/connect-da.css?v=6">
 <link rel="stylesheet" href="css/offres-da.css?v=7">
 <link rel="stylesheet" href="css/offres-2.css?v=11">
-<script src="js/theme.js?v=12"></script>
+<script src="js/theme.js?v=13"></script>
 <script src="js/config.js?v=5"></script>
 <script src="js/config.local.js"></script>
-<script src="js/accounts-auth.js?v=12"></script>
+<script src="js/accounts-auth.js?v=13"></script>
 <script src="js/rank-badge.js?v=6"></script>
 <script>if (!CHESTAccounts.isLoggedIn()) window.location.replace('/connexion');</script>
 </head>
@@ -620,6 +620,17 @@
     $('#ofWho').textContent = user().firstName || user().email || '—';
     const a = acc();
     if (query.get('paiement') === 'ok') { startWait(); return; }
+    // 2026-11-14 : un seul parcours pour tout le monde → la page de paiement /paiement (carte du pack + carte / crypto /
+    // virement + toutes les offres). /offres ne garde que l'écran d'attente après paiement et l'éditeur admin.
+    {
+      let w = null; try { w = localStorage.getItem('chest_wanted_offer'); } catch (e) { /* tant pis */ }
+      const p = new URLSearchParams();
+      if (w) p.set('offre', w);
+      if (query.get('paiement') === 'annule') p.set('annule', '1');
+      if (query.get('raison')) p.set('raison', query.get('raison'));
+      window.location.replace('/paiement' + (p.toString() ? '?' + p : ''));
+      return;
+    }
     if (query.get('paiement') === 'annule') notice('Paiement annulé : rien n’a été débité. Tu peux choisir une autre offre ou réessayer.');
     else if (query.get('raison') === 'fin' && !a.active && (a.trialUsed || (a.plan && a.plan !== 'none'))) notice(a.trial || a.trialUsed ? 'Ton essai gratuit est terminé. Choisis une offre pour continuer, tes données sont conservées.' : 'Ton accès a pris fin. Choisis une offre pour retrouver CHEST.');
     // Pack choisi sur la landing (audit du 2026-11-12) : pas de second questionnaire, on ouvre directement le paiement
@@ -639,7 +650,7 @@
 <script src="js/hero-bg.js"></script>
 <script>try { CHESTHeroBg.init(document.getElementById('ofLight'), document.getElementById('ofStars'), {}); } catch (e) { /* fond simple */ }</script>
 <script src="js/consent.js?v=7"></script>
-<script src="js/pay-choice.js?v=3"></script>
+<script src="js/pay-choice.js?v=4"></script>
 <script src="js/legal-links.js?v=2"></script>
 </body>
 </html>

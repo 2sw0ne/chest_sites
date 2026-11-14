@@ -164,7 +164,7 @@
   const logged = () => !!(window.CHESTAccounts && CHESTAccounts.isLoggedIn && CHESTAccounts.isLoggedIn());
   function cta() {
     const sel = OFFERS.find((o) => o.key === SEL);
-    return { href: logged() ? '/offres' : '/connexion', label: `Rejoindre CHEST ${sel && sel.group === 'premium' ? 'Premium' : 'Essentiel'}`,
+    return { href: logged() ? '/paiement?offre=' + encodeURIComponent(SEL) : '/connexion', label: `Rejoindre CHEST ${sel && sel.group === 'premium' ? 'Premium' : 'Essentiel'}`,
       onClick: () => { try { localStorage.setItem('chest_wanted_offer', SEL); } catch (e) { /* tant pis */ } } };
   }
   async function trial(btn) {

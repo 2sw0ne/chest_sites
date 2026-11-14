@@ -211,6 +211,16 @@
   .pk__others button{ flex:none; }
   .pk[data-mode="teaser"] .pk__main{ animation:none; }
 }
+.pk.is-compact{ --cw:min(360px, 88vw); --ch:520px; }
+.pk.is-compact .pk__aurora, .pk.is-compact .pk__side, .pk.is-compact .pk__hint, .pk.is-compact .pk__below{ display:none; }
+.pk.is-compact .pk__deck{ height:auto; display:grid; justify-items:center; perspective:1400px; }
+.pk.is-compact .pk__main{ position:relative; top:auto; left:auto; transform:none; }
+.pk.is-compact.is-open .pk__main{ transform:rotateY(180deg); }
+.pk.is-compact .pk__back{ display:block; }
+.pk.is-compact .pk__flip{ position:absolute; left:0; right:0; bottom:12px; z-index:4; display:flex; align-items:center; justify-content:center; gap:6px; font-size:11.5px; font-weight:600; color:#ffd9c2; }
+.pk.is-compact .pk__flip svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.pk.is-compact .pk__bk .pk__flip{ position:static; }
+.pk.is-compact .pk__front .pk__foot{ bottom:44px; }
 @media (prefers-reduced-motion: reduce){ .pk__aurora i, .pk[data-mode="teaser"] .pk__main, .pk__flip svg{ animation:none; } .pk__sat, .pk__main{ transition-duration:.01s; } }`;
   let styled = false;
   function style() { if (styled) return; styled = true; const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s); }
@@ -234,7 +244,8 @@
       <div class="pk__below"></div>`;
     host.appendChild(root);
     const deck = root.querySelector('.pk__deck'), main = root.querySelector('.pk__main'), below = root.querySelector('.pk__below');
-    const hover = matchMedia('(hover: hover) and (min-width: 1100px)');
+    const hover = O.compact ? { matches: false } : matchMedia('(hover: hover) and (min-width: 1100px)');
+    if (O.compact) root.classList.add('is-compact');
     let closeT = 0;
     const setOpen = (v) => { root.classList.toggle('is-open', v); deck.setAttribute('aria-expanded', String(v)); };
     root.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && hover.matches) { clearTimeout(closeT); setOpen(true); } });

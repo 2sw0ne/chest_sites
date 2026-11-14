@@ -190,5 +190,7 @@
       } catch (e) { /* on réessaie */ }
     }, 6000);
   }
-  window.CHESTPay = { choose, close };
+  // Page /paiement (2026-11-14) : ouvre directement la fenêtre crypto ou virement, sans l'étape « Comment veux-tu payer ? »
+  const direct = (fn) => (o, t) => { const b = ensure(); b.innerHTML = '<div class="pc__win"></div>'; b.hidden = false; fn(o, t); };
+  window.CHESTPay = { choose, close, crypto: direct(crypto), bank: direct(bank) };
 })();

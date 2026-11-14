@@ -259,7 +259,7 @@ window.CHESTAccounts = (() => {
     try { top = window.top; } catch (e) { /* tant pis */ }
     let path = '';
     try { path = top.location.pathname; } catch (e) { return; }
-    if (/^\/(offres|inscription|connexion)?$/.test(path) || /(offres|signup|login|index)\.html$/.test(path)) return;
+    if (/^\/(offres|paiement|inscription|connexion)?$/.test(path) || /^\/audit/.test(path) || /(offres|paiement|audit|signup|login|index)\.html$/.test(path)) return;
     if (isLoggedIn() && !hasAccess()) top.location.href = '/offres?raison=fin';
   }
   async function verifySessionAlive() {

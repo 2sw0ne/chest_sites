@@ -534,6 +534,26 @@ createServer(async (req, res) => {
       return send(200, { trades });
     }
 
+    // REPLAY (2026-11-14) : un scanner calculé sur l'historique jusqu'à `to` seulement (jamais de bougie future),
+    // sur les n dernières bougies ; même calcul que /data, mais sur le passé gardé sur disque.
+    if (url.pathname === "/replay-scan" && req.method === "GET") {
+      if (!isInternal(req)) return send(401, { error: "non autorisé" });
+      const name = url.searchParams.get("script") || "";
+      const code = (url.searchParams.get("symbol") || "XAUUSD").toUpperCase();
+      const tf = url.searchParams.get("tf") || "15";
+      const to = Number(url.searchParams.get("to"));
+      const n = Math.max(200, Math.min(2000, Number(url.searchParams.get("n")) || 1200));
+      const files = loadManifest()[name];
+      if (!validCode(code) || !TF_INTERVAL[tf] || !(to > 0) || !Array.isArray(files) || !files.length) return send(400, { error: "paramètres invalides" });
+      try {
+        const raw = await history(code, tf, to - n * TF_MS[tf] * 1.7, to);
+        const all = raw.filter((b) => b[0] + TF_MS[tf] <= to).slice(-n).map((b) => ({ time: b[0], open: b[1], high: b[2], low: b[3], close: b[4], volume: 0 }));
+        const bars = all.filter(isTradableBar);
+        const r = await runInChild(files.map(safePath), all, bars, true, code, tf, name);
+        return send(200, { bars: bars.map((c) => [c.time, c.open, c.high, c.low, c.close]), models: r.models || [] });
+      } catch (e) { return send(503, { error: e.message }); }
+    }
+
     // Historique long d'une paire (interne) : estimation de la taille des SL
     if (url.pathname === "/history" && req.method === "GET") {
       if (!isInternal(req)) return send(401, { error: "non autorisé" });
