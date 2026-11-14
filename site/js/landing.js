@@ -5,7 +5,7 @@
 // - relief de la carte Premium, horloge du téléphone, fond pixelisé de la fin
 (function () {
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const SCREENS = { Dashboard: 'dashboard', Backtesting: 'backtesting', Journal: 'journal', 'Stratégies': 'strategies', Calendrier: 'calendar', BERICH: 'berich', School: 'school' };
+  const SCREENS = { Dashboard: 'dashboard', Backtesting: 'backtesting', Journal: 'journal', 'Stratégies': 'strategies', Calendrier: 'calendar', BERICH: 'berich', Replay: 'replay', School: 'school' };
   const SCREEN_IDS = Object.values(SCREENS);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 

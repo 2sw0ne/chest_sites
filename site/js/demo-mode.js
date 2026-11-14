@@ -229,7 +229,7 @@
   // cocher une mission (School), ouvrir un rapport (Backtesting), ouvrir un livre (Calendrier).
   const PAGE = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
   const inLanding = (() => { try { return top !== window && /^\/(landing(\.html)?)?$/.test(top.location.pathname); } catch (e) { return false; } })();
-  const ALLOW = { school: '[data-task]', backtesting: 'a[href*="backtest-view"]', calendar: '.book[data-open]', 'backtest-view': 'a.chest-back' }[PAGE] || null;
+  const ALLOW = { school: '[data-task]', backtesting: 'a[href*="backtest-view"]', calendar: '.book[data-open]', 'backtest-view': 'a.chest-back', replay: '[data-open], [data-hero], [data-act="home"]' }[PAGE] || null;
   const allowed = (t) => !!(ALLOW && t && t.closest && t.closest(ALLOW));
   ['click', 'dblclick', 'auxclick', 'contextmenu', 'mousedown', 'submit'].forEach((type) => document.addEventListener(type, (e) => {
     if (!inLanding || allowed(e.target)) return;
