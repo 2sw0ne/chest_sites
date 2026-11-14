@@ -1876,6 +1876,18 @@ def me_transfer():
                     "members": db.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user["id"],)).fetchone()[0]})
 
 
+def _transfer_for(db, user):
+    """Coordonnées du virement proposées à ce membre : celles de son parrain s'il l'a activé, sinon celles de CHEST
+    (admin principal qui l'a activé). Avant le 2026-11-14 : parrain seulement → un membre sans parrain, ou dont
+    l'éducateur ne l'avait pas activé, ne voyait jamais le virement."""
+    t = _transfer_of(db, _col(user, "referred_by"))
+    if t["enabled"]:
+        return t
+    r = db.execute("SELECT s.user_id FROM transfer_settings s JOIN users u ON u.id = s.user_id "
+                   "WHERE s.enabled = 1 AND u.is_admin = 1 AND COALESCE(u.role, '') != 'manager' ORDER BY s.user_id LIMIT 1").fetchone()
+    return _transfer_of(db, r[0]) if r else t
+
+
 @app.route("/billing/transfer/info")
 def transfer_info():
     """Le virement est-il proposé à ce membre ? (selon le réglage de son parrain)"""
@@ -1884,7 +1896,7 @@ def transfer_info():
         return jsonify({"error": "Non connecté."}), 401
     _transfer_seed()
     db = get_db()
-    t = _transfer_of(db, _col(user, "referred_by"))
+    t = _transfer_for(db, user)
     if not t["enabled"]:
         return jsonify({"enabled": False})
     return jsonify({**t, "reference": f"CHEST {user['first_name']} {(user['last_name'] or '')[:1]}".strip()})
@@ -1898,7 +1910,8 @@ def transfer_declare():
         return jsonify({"error": "Connecte-toi pour choisir une offre."}), 401
     db = get_db()
     ref_id = _col(user, "referred_by")
-    if not _transfer_of(db, ref_id)["enabled"]:
+    _transfer_seed()
+    if not _transfer_for(db, user)["enabled"]:
         return jsonify({"error": "Le virement n'est pas proposé pour ton compte."}), 400
     key = str((request.get_json(silent=True) or {}).get("offer") or "")
     o = next((x for x in get_pricing()["offers"] if x.get("key") == key and x.get("enabled")), None)

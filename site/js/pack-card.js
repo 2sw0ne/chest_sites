@@ -220,7 +220,9 @@
 .pk.is-compact .pk__flip{ position:absolute; left:0; right:0; bottom:12px; z-index:4; display:flex; align-items:center; justify-content:center; gap:6px; font-size:11.5px; font-weight:600; color:#ffd9c2; }
 .pk.is-compact .pk__flip svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .pk.is-compact .pk__bk .pk__flip{ position:static; }
-.pk.is-compact .pk__front .pk__foot{ bottom:44px; }
+.pk.is-compact .pk__front{ display:flex; flex-direction:column; }
+.pk.is-compact .pk__front .pk__in{ flex:1; height:auto; min-height:0; justify-content:center; padding:18px 20px 10px; }
+.pk.is-compact .pk__front .pk__foot{ position:relative; left:auto; right:auto; bottom:auto; margin:0 14px 46px; }
 @media (prefers-reduced-motion: reduce){ .pk__aurora i, .pk[data-mode="teaser"] .pk__main, .pk__flip svg{ animation:none; } .pk__sat, .pk__main{ transition-duration:.01s; } }`;
   let styled = false;
   function style() { if (styled) return; styled = true; const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s); }

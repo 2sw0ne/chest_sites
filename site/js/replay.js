@@ -156,6 +156,15 @@
     return out;
   }
   const toVela = (b) => ({ time: b[0], open: b[1], high: b[2], low: b[3], close: b[4], volume: 0 });
+  // Marché fermé retiré comme sur le graphique Stratégies (même règle que isTradableBar du scanner-server) :
+  // bougies plates, samedi, dimanche avant 22 h UTC, vendredi après 22 h, coupure de 21 h.
+  function tradable(b) {
+    if (b[1] === b[2] && b[2] === b[3] && b[3] === b[4]) return false;
+    const d = new Date(b[0]), day = d.getUTCDay(), h = d.getUTCHours();
+    if (day === 6 || (day === 0 && h < 22) || (day === 5 && h >= 22) || h === 21) return false;
+    return true;
+  }
+  const chartBars = (bars) => bars.filter(tradable).map(toVela);
 
   // ================================================================ session
   let S = null, chart = null, core = null, store = null, viewTf = null, timer = null, speed = 5, scanBusy = false, scanHandles = [], scanAt = 0, lastScan = null;
@@ -229,10 +238,14 @@
     el.innerHTML = '';
     if (!bars.length) { el.innerHTML = '<div class="rpt-load">Pas de bougies sur cette période (marché fermé ou paire inconnue).</div>'; return; }
     const { Vela } = await import('https://esm.sh/@luxalgo/vela@0.6.21');
-    chart = new Vela(el, { symbol: S.symbol, timeframe: VELA_TF[viewTf], data: bars.map(toVela), theme: 'dark', drawings: true, volume: false });
+    const data = chartBars(bars);
+    chart = new Vela(el, { symbol: S.symbol, timeframe: VELA_TF[viewTf], data, theme: 'dark', drawings: true, volume: false });
     core = chart.renderer && chart.renderer.renderer;
     window.__rpChart = chart;
+    try { chart.renderer.applyConfig({ candles: { upColor: '#089981', downColor: '#f23645', wickUpColor: '#089981', wickDownColor: '#f23645' }, timeScale: { timezone: 'Europe/Paris' } }); } catch (e) { /* couleurs par défaut */ }
     try { await chart.ready(); } catch (e) { /* prêt */ }
+    // vue de départ : les ~150 dernières bougies (les 500 restent accessibles en reculant)
+    try { if (core && core.setVisibleRange && data.length) core.setVisibleRange({ from: data[Math.max(0, data.length - 150)].time, to: data[data.length - 1].time + TF[viewTf][0] * 25 }); } catch (e) { /* vue par défaut */ }
     try { chart.on('drawing:edited', (p) => onDrawingEdited(p && p.id)); } catch (e) { /* événement indisponible */ }
     for (const t of S.indicators) { try { await chart.addNativeIndicator(t); } catch (e) { /* indicateur absent */ } }
     scanHandles = [];
@@ -245,15 +258,18 @@
     const ms = baseMs(), s = store.get(S.tf);
     if (S.cursor >= S.end) { stop(); toast('Fin de la période.'); return false; }
     if (s.to - S.cursor < 600 * ms && s.to < S.end) store.ensure(S.tf, s.to, Math.min(S.end, s.to + 4000 * ms)).catch(() => {});
-    const next = s.bars.find((x) => x[0] + ms > S.cursor);
+    // le week-end et les coupures sont sautés d'un coup (aucune bougie à jouer)
+    let i = s.bars.findIndex((x) => x[0] + ms > S.cursor);
+    while (i >= 0 && i < s.bars.length && !tradable(s.bars[i])) i++;
+    const next = i >= 0 ? s.bars[i] : undefined;
     if (!next) { if (s.busy) { await s.busy; return step(); } S.cursor = S.end; stop(); return false; }
     S.cursor = next[0] + ms;
     fill(next);
-    if (core) {
+    if (core && tradable(next)) {
       try {
         if (viewTf === S.tf) core.updateBar(toVela(next));
-        else if (TF_ORDER.indexOf(viewTf) > TF_ORDER.indexOf(S.tf)) { const open = bucketOf(S.cursor - 1, viewTf); const p = aggregate(revealedBase().filter((x) => x[0] >= open), viewTf); if (p.length) core.updateBar(toVela(p[p.length - 1])); }
-        else { const vb = await barsFor(viewTf); core.setBars(vb.map(toVela), { preserveView: true }); }
+        else if (TF_ORDER.indexOf(viewTf) > TF_ORDER.indexOf(S.tf)) { const open = bucketOf(S.cursor - 1, viewTf); const p = aggregate(revealedBase().filter((x) => x[0] >= open && tradable(x)), viewTf); if (p.length) core.updateBar(toVela(p[p.length - 1])); }
+        else { const vb = await barsFor(viewTf); core.setBars(chartBars(vb), { preserveView: true }); }
       } catch (e) { /* tant pis */ }
     }
     paint();
