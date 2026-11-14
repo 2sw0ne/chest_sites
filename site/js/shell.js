@@ -18,6 +18,7 @@
     'strategies':       { cat: 'Scanners',  label: 'Stratégies' },
     'calendar':         { cat: 'Marché',    label: 'Calendrier économique' },
     'berich':           { cat: 'Exécution', label: 'BERICH' },
+    'replay':           { cat: 'Entraînement', label: 'Replay' },
     'school':           { cat: 'Formation', label: 'School' },
     'account':          { cat: 'Réglages',  label: 'Compte' },
     'admin-members':    { cat: 'Admin',     label: 'Gestion des membres' },

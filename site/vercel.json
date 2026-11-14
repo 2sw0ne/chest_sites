@@ -73,7 +73,7 @@
       "destination": "/offres.html"
     },
     {
-      "source": "/:page(dashboard|backtesting|journal|strategies|calendar|berich|school|account|admin-members|educator|suivi|backtest-add|backtest-view|strategy-example|vps-guide|connect)",
+      "source": "/:page(dashboard|backtesting|journal|strategies|calendar|berich|replay|school|account|admin-members|educator|suivi|backtest-add|backtest-view|strategy-example|vps-guide|connect)",
       "destination": "/app.html"
     }
   ],

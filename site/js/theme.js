@@ -8,7 +8,7 @@
   // seul le contenu change. Ce fichier est chargé en tout premier dans le
   // <head> de chaque page, donc c'est ici que la page sait où elle est.
   const file = (location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '');
-  const APP_PAGES = ['dashboard', 'backtesting', 'journal', 'strategies', 'calendar', 'berich', 'school', 'account',
+  const APP_PAGES = ['dashboard', 'backtesting', 'journal', 'strategies', 'calendar', 'berich', 'replay', 'school', 'account',
     'admin-members', 'educator', 'suivi', 'backtest-add', 'backtest-view', 'strategy-example', 'vps-guide', 'connect'];
   const AUTH_PAGES = ['login', 'signup', 'index', 'offres'];
   let framed = false;

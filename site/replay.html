@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<script src="js/demo-mode.js?v=7"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Replay — CHEST</title>
+<link rel="icon" type="image/png" href="assets/logo-chest.png">
+<style>html,body{background:var(--bg-0, #050505)}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fragment+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css?v=4">
+<link rel="stylesheet" href="css/chest-da.css?v=22">
+<script src="js/theme.js?v=12"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/config.local.js"></script>
+<script src="js/accounts-auth.js?v=12"></script>
+<script>CHESTAccounts.guard();</script>
+<link rel="stylesheet" href="css/chest-2-site.css?v=18">
+<!-- REPLAY (2026-11-14) : rejouer le marché bougie par bougie et prendre de faux trades (esprit du module Backtest
+     de FocusPips, version CHEST avec les scanners). Phase 1 = l'analyse : les membres et les éducateurs voient
+     « En construction », l'admin voit l'étude complète (référence, ce que CHEST fera de plus, données, étapes). -->
+<style>
+.rp{ max-width:1120px; margin:0 auto; padding:28px 24px 64px; color:var(--ink, #f6f6f7); font-family:'Instrument Sans', system-ui, sans-serif; }
+.rp__k{ font-family:'Fragment Mono', ui-monospace, monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-3, #7a7a82); }
+.rp h1{ margin:8px 0 6px; font-size:clamp(40px, 6vw, 72px); font-weight:700; letter-spacing:-.05em; line-height:1; }
+.rp h1 span{ background:linear-gradient(90deg, var(--a1, #fc1283), var(--a2, #f9a45e)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.rp__lead{ max-width:62ch; margin:0; font-size:15px; line-height:1.6; color:var(--ink-2, #9b9ba1); }
+.rp__wip{ display:grid; place-items:center; min-height:calc(100dvh - 140px); text-align:center; }
+.rp__wip .rp__lead{ margin:0 auto; }
+.rp__pill{ display:inline-flex; align-items:center; gap:8px; margin-top:22px; padding:8px 14px; border-radius:999px; font-size:12.5px; font-weight:600; color:var(--a2, #f9a45e); background:rgba(var(--a2-rgb, 249,164,94),.1); box-shadow:inset 0 0 0 1px rgba(var(--a2-rgb, 249,164,94),.35); }
+.rp__pill i{ width:7px; height:7px; border-radius:50%; background:currentColor; animation:rpPulse 1.8s ease-out infinite; }
+@keyframes rpPulse{ 0%{ box-shadow:0 0 0 0 rgba(249,164,94,.6); } 100%{ box-shadow:0 0 0 9px rgba(249,164,94,0); } }
+.rp__bars{ display:flex; justify-content:center; gap:5px; align-items:flex-end; height:70px; margin:0 auto 22px; }
+.rp__bars b{ width:9px; border-radius:2px; background:var(--green, #33e6a6); opacity:.85; animation:rpBar 2.4s ease-in-out infinite; animation-delay:calc(var(--i) * .12s); }
+.rp__bars b:nth-child(3n){ background:var(--red, #ff4d5e); }
+@keyframes rpBar{ 0%, 100%{ transform:scaleY(.35); } 50%{ transform:scaleY(1); } }
+.rp__bars b{ transform-origin:bottom; }
+.rp__grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; margin-top:22px; }
+.rp__card{ padding:20px; border-radius:18px; background:rgba(var(--fg-rgb,255,255,255),.03); box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb,255,255,255),.08); }
+.rp__card.is-wide{ grid-column:1 / -1; }
+.rp__card h2{ margin:6px 0 10px; font-size:19px; letter-spacing:-.02em; }
+.rp__card p, .rp__card li{ font-size:13.5px; line-height:1.6; color:var(--ink-2, #9b9ba1); }
+.rp__card b{ color:var(--ink, #f6f6f7); font-weight:600; }
+.rp__card ul{ margin:0; padding-left:18px; display:grid; gap:4px; }
+.rp__steps{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.rp__steps li{ display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:start; padding:12px 14px; border-radius:14px; background:rgba(var(--fg-rgb,255,255,255),.03); }
+.rp__steps li > span{ display:grid; place-items:center; width:30px; height:30px; border-radius:9px; font-family:'Fragment Mono', monospace; font-size:12px; color:#fff; background:linear-gradient(135deg, var(--a1, #fc1283), var(--a2, #f9a45e)); }
+.rp__tag{ display:inline-block; margin-left:6px; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:700; vertical-align:2px; }
+.rp__tag.is-ok{ color:var(--green, #33e6a6); background:rgba(var(--green-rgb,51,230,166),.12); }
+.rp__tag.is-warn{ color:var(--amber, #e8b339); background:rgba(232,179,57,.12); }
+.rp__q li{ color:var(--ink, #f6f6f7); }
+@media (max-width:760px){ .rp{ padding:20px 16px 48px; } .rp__grid{ grid-template-columns:1fr; } }
+@media (prefers-reduced-motion: reduce){ .rp__bars b, .rp__pill i{ animation:none; } }
+</style>
+</head>
+<body data-page="replay" class="chest-root">
+<main class="rp" id="rp"></main>
+<script>
+(function () {
+  const A = window.CHESTAccounts;
+  const admin = !!(A && A.isAdmin && A.isAdmin());
+  const root = document.getElementById('rp');
+  const bars = Array.from({ length: 14 }, (_, i) => `<b style="--i:${i};height:${30 + ((i * 37) % 60)}%"></b>`).join('');
+  if (!admin) {
+    root.innerHTML = `<section class="rp__wip"><div><div class="rp__bars" aria-hidden="true">${bars}</div>
+      <span class="rp__k">Bientôt dans CHEST</span><h1><span>REPLAY</span></h1>
+      <p class="rp__lead">Rejoue le marché bougie par bougie, prends tes trades comme en direct, et vois tout de suite ce que ta méthode vaut vraiment. Avec les signaux de ton scanner.</p>
+      <span class="rp__pill"><i></i>En construction</span></div></section>`;
+    return;
+  }
+  root.innerHTML = `
+    <span class="rp__k">Admin · Phase 1 — l’étude</span><h1><span>REPLAY</span></h1>
+    <p class="rp__lead">Ce que les membres et les éducateurs voient pour l’instant : un écran « En construction ». Toi seul vois cette étude. Elle sert de base pour valider la théorie avant de construire.</p>
+    <div class="rp__grid">
+      <article class="rp__card is-wide"><span class="rp__k">01 — La référence (FocusPips, testé le 14/11/2026)</span><h2>Ce que fait leur module</h2>
+        <ul>
+          <li><b>Création d’une session</b> : nom, 1 ou 2 paires, période (dates, raccourcis 1 à 5 ans, « au hasard »), solde de départ (5k à 100k). Données de 2021 à aujourd’hui.</li>
+          <li><b>Graphique</b> (TradingView) : unités de temps 1m → 1D changeables en plein replay, indicateurs, outils de dessin (lignes, Fibonacci, rectangles, positions long/short, texte, aimant, verrou), capture d’écran, « Go To » une date.</li>
+          <li><b>Lecteur</b> en bas : retour au début, bougie précédente, lecture / pause, bougie suivante, pas de lecture (1D…), vitesse (1x…).</li>
+          <li><b>Ordre</b> : achat / vente, au marché ou limite, risque en % / $ / lots (raccourcis 0,25 à 3 %), lots calculés, TP et SL en pips, prix ou $, R:R ; les niveaux se tirent sur le graphique.</li>
+          <li><b>Suivi</b> : solde et % en haut, P&amp;L flottant sur la ligne de la position, clôture automatique au TP / SL.</li>
+          <li><b>Journal</b> de la session (cartes, tableau, calendrier) et <b>statistiques</b> : solde, win rate, profit factor, R moyen, courbe d’équité, drawdown max, limites de perte jour / semaine / mois façon propfirm, calendrier mensuel, tags, checklist, espérance, payoff, MAE, durée en position, jour et heure d’entrée, série de pertes. Export CSV, analyse IA.</li>
+        </ul></article>
+      <article class="rp__card"><span class="rp__k">02 — Ce que CHEST fera de plus</span><h2>Notre avantage</h2>
+        <ul>
+          <li><b>Le scanner dans le replay</b> : ses signaux apparaissent bougie après bougie (PE, SL, TP), on décide de les prendre ou non. On mesure la discipline : signaux pris, ratés, modifiés.</li>
+          <li><b>Le money management CHEST</b> : risque par spécificité, paliers après N SL, pause, comme dans Backtesting.</li>
+          <li><b>Vers le Backtesting</b> : une session finie devient un backtest CHEST (rapport, propfirms compatibles, comparatif).</li>
+          <li><b>School</b> : l’éducateur donne une session à rejouer en mission et voit le résultat de l’élève.</li>
+          <li><b>Le calendrier</b> : les annonces passées s’affichent au bon moment dans le replay.</li>
+        </ul></article>
+      <article class="rp__card"><span class="rp__k">03 — Les données</span><h2>D’où viennent les bougies</h2>
+        <ul>
+          <li><b>Aujourd’hui</b> : le scanner-server lit Twelve Data (5 000 bougies par appel) et garde déjà un historique M15 sur disque (tranches de 45 jours). <span class="rp__tag is-ok">déjà en place</span></li>
+          <li><b>Replay en M1 / M5</b> : un an de M1 ≈ 370 000 bougies par paire → téléchargé une fois, rangé dans le bucket, puis servi en morceaux au navigateur. <span class="rp__tag is-warn">crédits Twelve Data à prévoir</span></li>
+          <li><b>Les unités de temps supérieures</b> (M15, H1, H4, D1) se recalculent à partir de la plus fine : une seule source, pas de décalage.</li>
+          <li><b>Le replay tourne dans le navigateur</b> : aucune charge sur Railway pendant la lecture.</li>
+        </ul></article>
+      <article class="rp__card"><span class="rp__k">04 — Technique</span><h2>Comment on le construit</h2>
+        <ul>
+          <li><b>Graphique</b> : Vela (déjà utilisé pour les scanners) ; la bougie en cours se construit tick par tick à partir de l’unité de temps plus fine.</li>
+          <li><b>Moteur d’ordres</b> : marché / limite / stop, TP / SL, BE, clôture partielle ; quand SL et TP sont touchés dans la même bougie, on regarde l’unité plus fine pour savoir lequel est arrivé en premier (sinon : prudence, SL d’abord).</li>
+          <li><b>Scanners</b> : on les fait tourner sur l’historique avant la session (comme les alarmes) et on dévoile chaque signal seulement quand sa bougie se ferme : jamais de triche avec le futur.</li>
+          <li><b>Sauvegarde</b> : sessions et trades rangés comme les backtests (un par un, IndexedDB + serveur).</li>
+        </ul></article>
+      <article class="rp__card"><span class="rp__k">05 — Les étapes</span><h2>Ordre de construction</h2>
+        <ol class="rp__steps">
+          <li><span>1</span><div><b>Théorie validée</b> (cette page) : ce qu’on garde, ce qu’on ajoute.</div></li>
+          <li><span>2</span><div><b>Lecteur + graphique</b> : une paire, M15 → D1, lecture / pause / pas / vitesse, Go To.</div></li>
+          <li><span>3</span><div><b>Ordres et suivi</b> : achat / vente, risque %, TP / SL tirables, P&amp;L, journal de session.</div></li>
+          <li><span>4</span><div><b>Statistiques</b> et passage vers Backtesting.</div></li>
+          <li><span>5</span><div><b>Scanner dans le replay</b>, puis M1 / M5, puis School (missions de replay).</div></li>
+        </ol></article>
+      <article class="rp__card is-wide"><span class="rp__k">06 — À trancher avec toi</span><h2>Questions avant de construire</h2>
+        <ul class="rp__q">
+          <li>Quelles paires au départ : l’or seul, ou l’or + les paires des scanners ?</li>
+          <li>Quelle unité de temps la plus fine : M15 (disponible tout de suite), ou M5 / M1 (plus de données à acheter) ?</li>
+          <li>Les sessions comptent-elles dans le Journal du membre, ou restent-elles séparées comme un entraînement ?</li>
+          <li>Réservé à Premium, ou ouvert à Essentiel ?</li>
+        </ul></article>
+    </div>`;
+})();
+</script>
+</body>
+</html>
