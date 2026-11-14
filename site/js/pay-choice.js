@@ -127,7 +127,9 @@
         if (r.status === 'detected' || r.status === 'validated') {
           clearInterval(poll);
           st.classList.add('is-ok');
-          st.querySelector('span').textContent = r.status === 'validated' ? 'Paiement validé : ton accès est ouvert.' : 'Paiement reçu sur la blockchain. L’équipe le valide sous 24 h et ton accès s’ouvre aussitôt.';
+          st.querySelector('span').textContent = r.status === 'validated' ? 'Paiement confirmé sur la blockchain. On t’ouvre CHEST…' : 'Paiement reçu sur la blockchain. L’équipe le valide et ton accès s’ouvre aussitôt.';
+          // 2026-11-14 : même suite qu'un paiement par carte : écran du rang (« Bienvenue dans Premium IV »), puis Welcome
+          if (r.status === 'validated') setTimeout(() => { location.href = '/offres?paiement=ok&via=crypto'; }, 1400);
         }
       } catch (e) { /* on réessaie */ }
     }, 6000);

@@ -275,9 +275,11 @@
     el.hidden = false;
   }
 
+  // Après le paiement (2026-11-14) : écran du rang → Welcome → CHEST ; sans session sur cet appareil → connexion
+  // (après la connexion, le Welcome s'ouvre puisque chest_welcome reste posé).
   function goToApp() {
     try { sessionStorage.setItem('chest_welcome', '1'); } catch (e) { /* tant pis */ }
-    window.location.href = '/welcome';
+    window.location.href = A.isLoggedIn() ? '/welcome' : '/connexion';
   }
 
   $('#ofPlans').addEventListener('click', (e) => {
@@ -557,7 +559,9 @@
         $('#ofLive').classList.add('is-ok');
         $('#ofLive').querySelector('.cx-live__orb i').innerHTML = CHECK;
         $('#ofWaitTitle').textContent = 'Paiement validé';
-        $('#ofWaitText').textContent = `Bienvenue dans ${a.label}. On t’ouvre CHEST… Ta facture Stripe arrive par e-mail.`;
+        const viaCrypto = query.get('via') === 'crypto';
+        const receipt = viaCrypto ? 'Ta transaction est visible sur la blockchain Solana.' : 'Ta facture Stripe arrive par e-mail.';
+        $('#ofWaitText').textContent = `Bienvenue dans ${a.label}. On t’ouvre CHEST… ${receipt}`;
         // CHEST 2.0 (maquette T-Validation.html) : ce que l'offre ouvre, en trois cartes
         const prem = a.plan === 'premium' || a.plan === 'allstar';
         const cards = prem
@@ -571,7 +575,7 @@
         if (!ok) { ok = document.createElement('div'); ok.id = 'ofOk'; ok.className = 'of-ok'; $('#ofLive').before(ok); }
         ok.innerHTML = `<div class="of-ok__ring">${badge}</div><span class="of-ok__pill">${CHECK}Paiement validé</span>
           <h1>Bienvenue dans <em>${esc(rank)}</em>.</h1>
-          <p>On t’ouvre CHEST…${a.endsAt ? ` Ton accès court jusqu’au <b>${esc(fmtDate(a.endsAt))}</b>.` : ''} Ta facture Stripe arrive par e-mail.</p>
+          <p>On t’ouvre CHEST…${a.endsAt ? ` Ton accès court jusqu’au <b>${esc(fmtDate(a.endsAt))}</b>.` : ''} ${receipt}</p>
           <div class="of-ok__bar" aria-hidden="true"><i></i></div>`;
         $('#ofLive').hidden = true;
         const ICO = ['<path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM21 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8"/>', '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3"/>', '<path d="M12 3l2.4 5.6L20 9.3l-4.3 3.9 1.3 5.8L12 16l-5 3 1.3-5.8L4 9.3l5.6-.7z"/>'];
@@ -635,7 +639,7 @@
 <script src="js/hero-bg.js"></script>
 <script>try { CHESTHeroBg.init(document.getElementById('ofLight'), document.getElementById('ofStars'), {}); } catch (e) { /* fond simple */ }</script>
 <script src="js/consent.js?v=7"></script>
-<script src="js/pay-choice.js?v=1"></script>
+<script src="js/pay-choice.js?v=2"></script>
 <script src="js/legal-links.js?v=2"></script>
 </body>
 </html>

@@ -1765,11 +1765,17 @@ def crypto_status(pid):
             print(f"[crypto] lecture blockchain impossible : {e}", flush=True)
             hit_ = None
         if hit_:
-            now = datetime.now(timezone.utc).isoformat()
+            # 2026-11-14 : la blockchain a confirmé le montant et le destinataire → l'accès s'ouvre aussitôt (plus
+            # d'attente de l'équipe) ; l'admin garde « Refuser » dans Admin → Système en cas de souci. Paiement test : rien.
+            now_dt = datetime.now(timezone.utc)
+            now = now_dt.isoformat()
             with db_lock:
-                db.execute("UPDATE crypto_payments SET status = 'detected', signature = ?, updated_at = ? WHERE id = ?", (hit_[0], now, pid))
+                db.execute("UPDATE crypto_payments SET status = ?, signature = ?, updated_at = ? WHERE id = ?",
+                           ("validated" if r["offer"] != "test" else "detected", hit_[0], now, pid))
+                if r["offer"] != "test":
+                    _crypto_grant(db, r, now_dt, pid)
                 db.commit()
-            log_event(db, "paiement.crypto", user["id"], f"{r['offer']} · {hit_[1]:.2f} USDC reçus — à valider", "alerte", locked=True, with_request=False)
+            log_event(db, "paiement.crypto", user["id"], f"{r['offer']} · {hit_[1]:.2f} USDC reçus — accès ouvert", "info", locked=True, with_request=False)
             r = db.execute("SELECT * FROM crypto_payments WHERE id = ?", (pid,)).fetchone()
     return jsonify(_crypto_out(r))
 
@@ -1789,6 +1795,15 @@ def admin_crypto():
     who = _names(db)
     rows = db.execute("SELECT * FROM crypto_payments WHERE status != 'expired' ORDER BY id DESC LIMIT 60").fetchall()
     return jsonify({"settings": get_crypto_settings(), "payments": [_crypto_out(r, who(r["user_id"])) for r in rows]})
+
+
+def _crypto_grant(db, r, now, pid):
+    """Ouvre l'accès payé en crypto (durée du rang, sans renouvellement) et l'inscrit comme vente (commission de l'éducateur)."""
+    lvl = int(r["offer"][-1])
+    months = LEVEL_MONTHS[lvl]
+    _set_plan(db, r["user_id"], r["offer"][:-1], f"{months}m", "active", now, _add_months(now, months), plan_level=lvl)
+    _log_billing(db, f"crypto_{pid}", r["user_id"], "checkout.session.completed", int(round(r["eur"] * 100)),
+                 f"Paiement {PLANS[r['offer'][:-1]]['label']} {ROMAN.get(lvl, lvl)} ({months} mois) · crypto")
 
 
 @app.route("/admin/crypto/test", methods=["POST"])
@@ -1824,12 +1839,8 @@ def admin_crypto_decide(pid):
         return jsonify({"error": "Paiement introuvable."}), 404
     now = datetime.now(timezone.utc)
     with db_lock:
-        if action == "validate" and r["offer"] != "test":
-            lvl = int(r["offer"][-1])
-            months = LEVEL_MONTHS[lvl]
-            _set_plan(db, r["user_id"], r["offer"][:-1], f"{months}m", "active", now, _add_months(now, months), plan_level=lvl)
-            _log_billing(db, f"crypto_{pid}", r["user_id"], "checkout.session.completed", int(round(r["eur"] * 100)),
-                         f"Paiement {PLANS[r['offer'][:-1]]['label']} {lvl} ({months} mois) · crypto")
+        if action == "validate" and r["offer"] != "test" and r["status"] != "validated":
+            _crypto_grant(db, r, now, pid)
         db.execute("UPDATE crypto_payments SET status = ?, updated_at = ? WHERE id = ?", ("validated" if action == "validate" else "rejected", now.isoformat(), pid))
         db.commit()
     log_event(db, "paiement.crypto", r["user_id"], f"{r['offer']} · {'validé' if action == 'validate' else 'refusé'} par l'admin", "info", locked=True, with_request=False)
