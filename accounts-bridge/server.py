@@ -6188,14 +6188,45 @@ def _sl_estimate(symbol, trades, shift_h):
 REPLAY_TF_MS = {"1": 60000, "5": 300000, "15": 900000, "30": 1800000, "60": 3600000, "240": 14400000, "D": 86400000}
 
 
+def _replay_unlimited(user):
+    acc = access_of(user)
+    return bool(user["is_admin"] or is_educator(user) or (acc.get("active") and acc.get("plan") in ("premium", "allstar", "offert")))
+
+
+def _replay_gate(user):
+    """Premium / éducateur / admin : sans limite. Essentiel et essai (2026-11-14) : UNE session de replay offerte,
+    fixée à la première demande (site_settings replay_free_<id> = id de la session) ; une autre session → 403."""
+    if _replay_unlimited(user):
+        return None
+    if not access_of(user).get("active"):
+        return jsonify({"error": "Le replay demande un accès CHEST actif."}), 403
+    sid = re.sub(r"[^a-z0-9_]", "", str(request.args.get("session") or "").lower())[:40]
+    key = f"replay_free_{user['id']}"
+    used = get_setting(key)
+    if not used and sid:
+        set_setting(key, sid)
+        return None
+    if sid and used == sid:
+        return None
+    return jsonify({"error": "Ton replay d'essai est déjà utilisé. Passe à CHEST Premium pour rejouer sans limite.", "code": "replay_free_used"}), 403
+
+
+@app.route("/replay/me")
+def replay_me():
+    user = approved_user()
+    if not user:
+        return jsonify({"error": "Non connecté."}), 401
+    return jsonify({"unlimited": _replay_unlimited(user), "freeSession": get_setting(f"replay_free_{user['id']}") or None})
+
+
 @app.route("/replay/bars")
 def replay_bars():
     user = approved_user()
     if not user:
         return jsonify({"error": "Non connecté."}), 401
-    acc = access_of(user)
-    if not (user["is_admin"] or is_educator(user) or (acc.get("active") and acc.get("plan") in ("premium", "allstar", "offert"))):
-        return jsonify({"error": "Le replay est réservé à CHEST Premium."}), 403
+    gate = _replay_gate(user)
+    if gate:
+        return gate
     symbol = re.sub(r"[^A-Z0-9]", "", str(request.args.get("symbol") or "").upper())[:12]
     tf = str(request.args.get("tf") or "15")
     try:
@@ -6219,9 +6250,9 @@ def replay_scan():
     user = approved_user()
     if not user:
         return jsonify({"error": "Non connecté."}), 401
-    acc = access_of(user)
-    if not (user["is_admin"] or is_educator(user) or (acc.get("active") and acc.get("plan") in ("premium", "allstar", "offert"))):
-        return jsonify({"error": "Le replay est réservé à CHEST Premium."}), 403
+    gate = _replay_gate(user)
+    if gate:
+        return gate
     q = {k: str(request.args.get(k) or "") for k in ("script", "symbol", "tf", "to", "n")}
     if not re.fullmatch(r"[a-z0-9_-]{1,32}", q["script"]) or q["tf"] not in REPLAY_TF_MS or not q["to"].isdigit():
         return jsonify({"error": "Paramètres invalides."}), 400

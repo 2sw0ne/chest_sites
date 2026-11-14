@@ -48,56 +48,98 @@
 
   // ================================================================ accueil (sessions)
   let root;
-  function sessionStats(s) {
-    const t = s.trades || [], w = t.filter((x) => x.rr > 0.05).length, l = t.filter((x) => x.rr < -0.05).length;
-    const curve = [s.capital]; let b = s.capital; t.forEach((x) => { b += x.pnl; curve.push(b); });
-    return { n: t.length, wr: w + l ? w / (w + l) : 0, pct: (s.balance - s.capital) / s.capital * 100, curve };
+  // Accueil v3 (2026-11-14) : esprit Backtesting 2.0 — mot fantôme, héros centré sur une session (onglets), grand
+  // résultat, bandeau de chiffres, courbe pleine largeur ; 02 nouvelle session (barre de réglages façon Stratégies),
+  // 03 la bibliothèque en chiffres, 04 les sessions en cartes avec leur courbe.
+  let heroId = null, ME = { unlimited: true, freeSession: null };
+  function area(curve, w, h, start) {
+    if (curve.length < 2) return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="M0 ${h * 0.6}H${w}" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/></svg>`;
+    const min = Math.min(start, ...curve), max = Math.max(start, ...curve), k = max > min ? (h - 12) / (max - min) : 0;
+    const y = (v) => (h - 6 - (v - min) * k).toFixed(1), x = (i) => (i / (curve.length - 1) * w).toFixed(1);
+    const up = curve[curve.length - 1] >= start, c = up ? '51,230,166' : '255,77,94', id = 'g' + Math.random().toString(36).slice(2, 8);
+    const line = curve.map((v, i) => `${i ? 'L' : 'M'}${x(i)} ${y(v)}`).join('');
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(${c},.32)"/><stop offset="1" stop-color="rgba(${c},0)"/></linearGradient></defs>
+      <path d="M0 ${y(start)}H${w}" stroke="rgba(255,255,255,.16)" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"/>
+      <path d="${line}L${w} ${h}L0 ${h}Z" fill="url(#${id})"/><path d="${line}" fill="none" stroke="rgb(${c})" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
   }
-  function spark(curve, w = 260, h = 54) {
-    if (curve.length < 2) return `<svg class="rpx-sp" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="M0 ${h / 2}h${w}" stroke="rgba(255,255,255,.12)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/></svg>`;
-    const min = Math.min(...curve), max = Math.max(...curve);
-    const pts = curve.map((v, i) => `${(i / (curve.length - 1) * w).toFixed(1)},${(h - 4 - (max > min ? (v - min) / (max - min) : 0.5) * (h - 8)).toFixed(1)}`).join(' ');
-    const up = curve[curve.length - 1] >= curve[0];
-    return `<svg class="rpx-sp" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${up ? '#33e6a6' : '#ff4d5e'}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+  function fullStats(s) {
+    const t = s.trades || [], wins = t.filter((x) => x.rr > 0.05), losses = t.filter((x) => x.rr < -0.05);
+    const gw = wins.reduce((a, x) => a + x.pnl, 0), gl = -losses.reduce((a, x) => a + x.pnl, 0);
+    let b = s.capital, peak = b, dd = 0; const curve = [b];
+    t.forEach((x) => { b += x.pnl; peak = Math.max(peak, b); dd = Math.max(dd, (peak - b) / peak); curve.push(b); });
+    return { n: t.length, wr: wins.length + losses.length ? wins.length / (wins.length + losses.length) : 0, pf: gl ? gw / gl : null, dd, pct: (s.balance - s.capital) / s.capital * 100, curve };
   }
+  const pctTxt = (p) => (p >= 0 ? '+' : '−') + fr(Math.abs(p), Math.abs(p) >= 100 ? 0 : 1) + ' %';
+  const mon = (ms) => new Date(ms).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+  const ago = (ms) => { const d = Math.floor((Date.now() - ms) / 864e5); return d <= 0 ? 'Aujourd’hui' : d === 1 ? 'Hier' : `Il y a ${d} j`; };
   function home() {
     const scanners = (window.CHESTScanners ? CHESTScanners.list() : []).map((s) => [s.id, s.name]);
-    const sessions = loadAll();
-    const all = sessions.map((s) => Object.assign({ st: sessionStats(s) }, s));
-    const best = all.filter((s) => s.st.n >= 3).sort((a, b) => b.st.pct - a.st.pct).slice(0, 3);
+    const all = loadAll().map((s) => Object.assign({ st: fullStats(s) }, s));
+    const ranked = all.filter((s) => s.st.n).sort((a, b) => b.st.pct - a.st.pct);
+    const best = ranked[0] || null;
+    if (!all.find((s) => s.id === heroId)) heroId = (best || all[0] || {}).id || null;
+    const H = all.find((s) => s.id === heroId) || null;
+    const name = (s) => esc(s.name || s.symbol + ' ' + TF[s.tf][1]);
     const trades = all.reduce((n, s) => n + s.st.n, 0);
+    const last = all.slice().sort((a, b) => (b.updated || b.created || 0) - (a.updated || a.created || 0))[0];
+    const freeUsed = !ME.unlimited && !!ME.freeSession;
     const today = Date.now();
-    const seg = (name, opts, on) => `<div class="rpx-seg" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${String(v) === String(on) ? 'is-on' : ''}">${l}</button>`).join('')}</div>`;
-    const label = (s) => esc(s.name || s.symbol + ' ' + TF[s.tf][1]);
+    const seg = (n, opts, on) => `<div class="rpx-seg" data-seg="${n}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${String(v) === String(on) ? 'is-on' : ''}">${l}</button>`).join('')}</div>`;
+    const heroHtml = H ? `
+        <div class="rpx-tabs" role="tablist">${all.slice(0, 6).map((s) => `<button type="button" role="tab" data-hero="${esc(s.id)}" class="${s.id === H.id ? 'is-on' : ''}">${name(s)}</button>`).join('')}</div>
+        <h1>${name(H)}${best && H.id === best.id && H.st.n ? '<span class="rpx-badge">Meilleure session</span>' : ''}</h1>
+        <p class="rpx-sub">${esc(H.symbol)} · ${TF[H.tf][1]} · rejouée jusqu’au ${when(H.cursor)}${H.scanner ? ' · avec scanner' : ''}</p>
+        <div class="rpx-big ${H.st.pct >= 0 ? 'is-up' : 'is-down'}">${H.st.n ? pctTxt(H.st.pct) : '0 trade'}</div>
+        <p class="rpx-meta">de <b>${money(H.capital)}</b> à <b>${money(H.balance)}</b> · ${mon(H.start)} → ${mon(H.end)}</p>
+        <div class="rpx-strip"><div><span>Profit factor</span><b class="is-up">${H.st.pf == null ? '—' : fr(H.st.pf, 2)}</b></div><div><span>Taux de réussite</span><b>${H.st.n ? fr(H.st.wr * 100, 0) + ' %' : '—'}</b></div><div><span>Drawdown max</span><b class="is-down">${H.st.n ? '−' + fr(H.st.dd * 100, 1) + ' %' : '—'}</b></div><div><span>Trades</span><b>${H.st.n}</b></div></div>
+        <div class="rpx-acts"><button type="button" class="rpx-cta" data-open="${esc(H.id)}">Reprendre la session</button><button type="button" class="rpx-ghostbtn" data-go-new>+ Nouvelle session</button></div>`
+      : `<h1>REPLAY</h1><p class="rpx-sub">Rejoue n’importe quelle paire, sur n’importe quelle période, bougie par bougie.</p>
+        <div class="rpx-big is-brand">Rejoue le passé.</div>
+        <p class="rpx-meta">Prends tes trades comme en direct, avec ton scanner si tu veux, puis envoie la session dans Backtesting.</p>
+        <div class="rpx-acts"><button type="button" class="rpx-cta" data-go-new>Lancer ma première session</button></div>`;
     root.innerHTML = `<div class="rpx">
-      <header class="rpx-hero"><span class="rp__k">Entraînement · réservé à CHEST Premium</span><h1>Replay<i>.</i></h1>
-        <p>Rejoue n’importe quelle paire, sur n’importe quelle période, bougie par bougie. Prends tes trades comme en direct, avec ton scanner si tu veux, puis envoie la session dans Backtesting.</p>
-        <div class="rpx-kpis"><div><b>${sessions.length}</b><span>session${sessions.length > 1 ? 's' : ''}</span></div><div><b>${trades}</b><span>trades rejoués</span></div><div><b class="${best[0] ? (best[0].st.pct >= 0 ? 'is-up' : 'is-down') : ''}">${best[0] ? (best[0].st.pct >= 0 ? '+' : '') + fr(best[0].st.pct, 1) + ' %' : '—'}</b><span>meilleure session</span></div></div></header>
-      <form class="rpx-new" id="rpaForm" novalidate>
-        <div class="rpx-new__h"><span class="rp__k">Nouvelle session</span><input name="name" maxlength="60" placeholder="Nom de la session (facultatif)" aria-label="Nom de la session"></div>
-        <div class="rpx-grid">
-          <section class="rpx-pan"><span class="rpx-n">01 — Marché</span>
-            <label class="rpx-f"><span>Paire</span><input name="symbol" list="rpaPairs" value="XAUUSD" maxlength="12" autocapitalize="characters"><datalist id="rpaPairs">${PAIRS.map((p) => `<option value="${p}">`).join('')}</datalist></label>
-            <div class="rpx-f"><span>Unité de temps de base (le pas du replay)</span>${seg('tf', ['1', '5', '15', '30', '60', '240'].map((k) => [k, TF[k][1]]), '15')}</div></section>
-          <section class="rpx-pan"><span class="rpx-n">02 — Période</span>
-            <div class="rpx-two"><label class="rpx-f"><span>Début</span><input name="start" type="date" value="${ymd(today - 180 * 864e5)}" max="${ymd(today - 864e5)}"></label><label class="rpx-f"><span>Fin</span><input name="end" type="date" value="${ymd(today - 864e5)}" max="${ymd(today)}"></label></div>
-            <div class="rpx-chips">${[[30, '1 mois'], [90, '3 mois'], [180, '6 mois'], [365, '1 an'], [0, 'Au hasard']].map(([d, l]) => `<button type="button" data-span="${d}">${l}</button>`).join('')}</div></section>
-          <section class="rpx-pan"><span class="rpx-n">03 — Compte</span>
-            <div class="rpx-f"><span>Capital de départ</span>${seg('cap', [5000, 10000, 25000, 50000, 100000].map((v) => [v, v / 1000 + 'k $']), 10000)}</div>
-            <div class="rpx-f"><span>Risque par défaut</span>${seg('risk', [0.25, 0.5, 1, 2, 3].map((v) => [v, String(v).replace('.', ',') + ' %']), 1)}</div></section>
-          <section class="rpx-pan"><span class="rpx-n">04 — Scanner (facultatif)</span>
-            <label class="rpx-f"><span>Ses signaux s’affichent au fil du replay, sans jamais dévoiler la suite</span><select name="scanner"><option value="">Aucun : je trade à l’œil</option>${scanners.map(([id, n]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('')}</select></label></section>
-        </div>
-        <div class="rpx-new__f"><p class="rpx-err" id="rpaErr" role="alert"></p><button class="rpx-go" type="submit">Lancer le replay ${IC.go}</button></div>
-      </form>
-      ${best.length ? `<section class="rpx-best"><span class="rp__k">Meilleurs résultats</span><div class="rpx-best__l">${best.map((s, i) => `<button type="button" class="rpx-bc" data-open="${esc(s.id)}"><i>${i + 1}</i><span><b>${label(s)}</b><small>${esc(s.symbol)} · ${TF[s.tf][1]} · ${s.st.n} trades · ${fr(s.st.wr * 100, 0)} % gagnants</small></span><em class="${s.st.pct >= 0 ? 'is-up' : 'is-down'}">${s.st.pct >= 0 ? '+' : ''}${fr(s.st.pct, 1)} %</em></button>`).join('')}</div></section>` : ''}
-      <section class="rpx-list"><span class="rp__k">Tes sessions</span>
-        ${all.length ? `<div class="rpx-cards">${all.map((s) => `<article class="rpx-card"><button type="button" class="rpx-card__hit" data-open="${esc(s.id)}" aria-label="Reprendre ${label(s)}"></button>
-          <header><b>${label(s)}</b><button type="button" class="rpx-del" data-del="${esc(s.id)}" aria-label="Supprimer">×</button></header>
-          <small>${esc(s.symbol)} · ${TF[s.tf][1]} · ${ymd(s.start)} → ${ymd(s.end)}</small>${spark(s.st.curve)}
-          <footer><span class="${s.st.pct >= 0 ? 'is-up' : 'is-down'}">${s.st.pct >= 0 ? '+' : ''}${fr(s.st.pct, 1)} %</span><span>${s.st.n} trades</span><span>${fr(s.st.wr * 100, 0)} % gagnants</span></footer></article>`).join('')}</div>` : '<p class="rpx-empty">Aucune session pour l’instant : lance ta première juste au-dessus.</p>'}</section>
+      <div class="rpx-light" aria-hidden="true"></div><div class="rpx-word" aria-hidden="true">Replay</div>
+      <header class="rpx-hero">${!ME.unlimited ? `<span class="rpx-free">${freeUsed ? 'Ton replay d’essai est utilisé' : '1 replay d’essai offert avec ton accès'}</span>` : ''}${heroHtml}</header>
+      <div class="rpx-curve">${H ? area(H.st.curve, 1200, 230, H.capital) : area([], 1200, 230, 0)}<span>${H && H.st.n ? 'Solde trade après trade · capital de départ en pointillés' : 'Ta courbe s’affichera ici dès ton premier trade'}</span></div>
+
+      <section class="rpx-sec" id="rpaNew"><div class="rpx-h"><span class="rpx-k">02 — Nouvelle session</span><span class="rpx-note">Les bougies arrivent une à une : la suite reste cachée.</span></div>
+        ${freeUsed && !ME.unlimited ? `<div class="rpx-up"><div><b>Ton replay d’essai est utilisé.</b><span>Avec CHEST Premium, rejoue autant de sessions que tu veux, sur toutes les paires, avec les scanners.</span></div><a class="rpx-cta" href="/paiement?offre=premium4" target="_top">Passer à Premium</a></div>` : `
+        <form class="rpx-form" id="rpaForm" novalidate>
+          <label class="rpx-g rpx-g--name"><span>Nom</span><input name="name" maxlength="60" placeholder="Ma session (facultatif)"></label>
+          <label class="rpx-g"><span>Paire</span><input name="symbol" list="rpaPairs" value="XAUUSD" maxlength="12" autocapitalize="characters"><datalist id="rpaPairs">${PAIRS.map((p) => `<option value="${p}">`).join('')}</datalist></label>
+          <div class="rpx-g"><span>Unité de temps du replay</span>${seg('tf', ['1', '5', '15', '30', '60', '240'].map((k) => [k, TF[k][1]]), '15')}</div>
+          <div class="rpx-g rpx-g--period"><span>Période</span><div class="rpx-dates"><input name="start" type="date" value="${ymd(today - 180 * 864e5)}" max="${ymd(today - 864e5)}" aria-label="Début"><i>→</i><input name="end" type="date" value="${ymd(today - 864e5)}" max="${ymd(today)}" aria-label="Fin"></div>
+            <div class="rpx-chips">${[[30, '1 mois'], [90, '3 mois'], [180, '6 mois'], [365, '1 an'], [0, 'Au hasard']].map(([d, l]) => `<button type="button" data-span="${d}">${l}</button>`).join('')}</div></div>
+          <div class="rpx-g"><span>Capital de départ</span>${seg('cap', [5000, 10000, 25000, 50000, 100000].map((v) => [v, v / 1000 + 'k']), 10000)}</div>
+          <div class="rpx-g"><span>Risque par défaut</span>${seg('risk', [0.25, 0.5, 1, 2].map((v) => [v, String(v).replace('.', ',') + '%']), 1)}</div>
+          <label class="rpx-g"><span>Scanner · facultatif</span><select name="scanner"><option value="">Aucun, je trade à l’œil</option>${scanners.map(([id, n]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('')}</select></label>
+          <div class="rpx-g rpx-g--go"><p class="rpx-err" id="rpaErr" role="alert"></p><button class="rpx-cta" type="submit">Lancer le replay</button></div>
+        </form>`}
+      </section>
+
+      <section class="rpx-sec"><div class="rpx-h"><span class="rpx-k">03 — Tes replays en chiffres</span><span class="rpx-note">Toutes sessions confondues.</span></div>
+        <div class="rpx-band"><div><span>Sessions</span><b>${all.length}</b><small>${ME.unlimited ? 'sans limite' : freeUsed ? 'essai utilisé' : '1 offerte'}</small></div>
+          <div><span>Trades rejoués</span><b>${trades}</b><small>tous replays</small></div>
+          <div><span>Meilleur résultat</span><b class="${best && best.st.pct >= 0 ? 'is-up' : best ? 'is-down' : ''}">${best ? pctTxt(best.st.pct) : '—'}</b><small>${best ? name(best) : 'aucun trade'}</small></div>
+          <div><span>Dernière session</span><b>${last ? ago(last.updated || last.created) : '—'}</b><small>${last ? name(last) : 'aucune'}</small></div></div>
+      </section>
+
+      <section class="rpx-sec"><div class="rpx-h"><span class="rpx-k">04 — Sessions</span><span class="rpx-note">Triées par résultat</span></div>
+        <div class="rpx-cards">${all.slice().sort((a, b) => b.st.pct - a.st.pct).map((s) => `<article class="rpx-card${best && s.id === best.id ? ' is-best' : ''}">
+            <button type="button" class="rpx-card__hit" data-open="${esc(s.id)}" aria-label="Reprendre ${name(s)}"></button>
+            <header><div><b>${name(s)}${best && s.id === best.id ? ' <i>★</i>' : ''}</b><small>${esc(s.symbol)} · ${TF[s.tf][1]}</small></div><button type="button" class="rpx-del" data-del="${esc(s.id)}" aria-label="Supprimer la session">×</button></header>
+            <div class="rpx-card__p ${s.st.pct >= 0 ? 'is-up' : 'is-down'}">${s.st.n ? pctTxt(s.st.pct) : '0 trade'}<small>${mon(s.start)} → ${mon(s.end)}</small></div>
+            <div class="rpx-card__c">${area(s.st.curve, 300, 80, s.capital)}</div>
+            <footer><span><b>${s.st.n}</b> trades</span><span><b>${fr(s.st.wr * 100, 0)} %</b> réussite</span><span class="is-down"><b>${s.st.n ? '−' + fr(s.st.dd * 100, 1) + ' %' : '—'}</b> DD max</span></footer></article>`).join('')}
+          <button type="button" class="rpx-add" data-go-new><i>+</i><b>Nouvelle session</b><span>Une paire, une période, et c’est parti.</span></button></div>
+      </section>
     </div>`;
+    root.querySelectorAll('[data-hero]').forEach((b) => b.addEventListener('click', () => { heroId = b.dataset.hero; home(); }));
+    root.querySelectorAll('[data-go-new]').forEach((b) => b.addEventListener('click', () => { const n = $('#rpaNew'); if (n) n.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); const i = root.querySelector('#rpaForm input[name="name"]'); if (i) setTimeout(() => i.focus({ preventScroll: true }), 400); }));
+    root.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { const s = loadAll().find((x) => x.id === b.dataset.open); if (s) play(s); }));
+    root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); if (!confirm('Supprimer cette session ?')) return; saveAll(loadAll().filter((x) => x.id !== b.dataset.del)); home(); }));
     const f = $('#rpaForm');
+    if (!f) return;
     root.querySelectorAll('[data-seg]').forEach((g) => g.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; g.querySelectorAll('button').forEach((x) => x.classList.toggle('is-on', x === b)); }));
     root.querySelectorAll('[data-span]').forEach((b) => b.addEventListener('click', () => {
       let d = Number(b.dataset.span), end = Date.now() - 864e5;
@@ -115,8 +157,6 @@
       Object.assign(s, { balance: s.capital, cursor: s.start, trades: [], orders: [], indicators: [], created: Date.now() });
       play(s);
     });
-    root.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { const s = loadAll().find((x) => x.id === b.dataset.open); if (s) play(s); }));
-    root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); if (!confirm('Supprimer cette session ?')) return; saveAll(loadAll().filter((x) => x.id !== b.dataset.del)); home(); }));
   }
 
   // ================================================================ données
@@ -133,7 +173,7 @@
       s.busy = (async () => {
         for (const [a, b] of parts) {
           if (a >= s.from && b <= s.to) continue;
-          const d = await api(`/replay/bars?symbol=${encodeURIComponent(symbol)}&tf=${tf}&from=${Math.round(a)}&to=${Math.round(b)}`);
+          const d = await api(`/replay/bars?symbol=${encodeURIComponent(symbol)}&tf=${tf}&from=${Math.round(a)}&to=${Math.round(b)}&session=${encodeURIComponent(S ? S.id : '')}`);
           const seen = new Set(s.bars.map((x) => x[0]));
           d.bars.forEach((x) => { if (!seen.has(x[0])) s.bars.push(x); });
           s.bars.sort((x, y) => x[0] - y[0]);
@@ -170,8 +210,8 @@
   let S = null, chart = null, core = null, store = null, viewTf = null, timer = null, speed = 5, scanBusy = false, scanHandles = [], scanAt = 0, lastScan = null;
   let draft = null, adv = false, panel = null;
   const baseMs = () => TF[S.tf][0];
-  const revealedBase = () => store.get(S.tf).bars.filter((x) => x[0] + baseMs() <= S.cursor);
-  const lastBase = () => { const b = store.get(S.tf).bars; let i = b.length - 1; while (i >= 0 && b[i][0] + baseMs() > S.cursor) i--; return b[i] || null; };
+  const revealedBase = () => store.get(S.tf).bars.filter((x) => x[0] + baseMs() <= S.cursor && tradable(x));
+  const lastBase = () => { const b = store.get(S.tf).bars; let i = b.length - 1; while (i >= 0 && (b[i][0] + baseMs() > S.cursor || !tradable(b[i]))) i--; return b[i] || null; };
   const price = () => { const b = lastBase(); return b ? b[4] : null; };
   // Bougies affichées (~500) à l'unité de temps vue, jamais au-delà du curseur.
   async function barsFor(tf) {
@@ -190,33 +230,40 @@
     S = session; S.orders = S.orders || []; S.trades = S.trades || []; S.indicators = S.indicators || [];
     viewTf = S.tf; store = makeStore(S.symbol); scanHandles = []; draft = null; lastScan = null; scanAt = 0; panel = null;
     root.innerHTML = `<div class="rpt">
-      <header class="rpt-top">
-        <button type="button" class="rpt-ib" data-act="home" aria-label="Retour aux sessions">‹</button>
-        <b class="rpt-sym">${esc(S.symbol)}</b>
-        <div class="rpt-tfs" role="group" aria-label="Unité de temps">${TF_ORDER.map((k) => `<button type="button" data-tf="${k}" class="${k === viewTf ? 'is-on' : ''}">${TF[k][1]}</button>`).join('')}</div>
-        <button type="button" class="rpt-tb" data-act="ind">${IC.ind}<span>Indicateurs</span></button>
-        <label class="rpt-tb rpt-goto" title="Avancer jusqu’à une date">${IC.go}<input type="date" id="rpaGo" aria-label="Avancer jusqu’à une date"></label>
-        <span class="rpt-when" id="rpaWhen"></span>
+      <div class="rpx-light is-trade" aria-hidden="true"></div>
+      <header class="rpt-hero">
+        <button type="button" class="rpt-back" data-act="home">‹ Sessions</button>
+        <span class="rpx-k">Replay · ${esc(S.symbol)} · ${TF[S.tf][1]}</span>
+        <h1>${esc(S.name || S.symbol)}</h1>
+        <div class="rpt-kpis"><div><span>Solde</span><b id="rpaBal"></b></div><div><span>Résultat</span><b id="rpaPnl"></b></div><div><span>Trades</span><b id="rpaN">0</b></div><div><span>Bougie</span><b id="rpaWhen" class="is-mono"></b></div></div>
+      </header>
+      <div class="rpt-bar">
+        <div class="rpt-grp"><span>Paire</span><b class="rpt-sym">${esc(S.symbol)}</b></div>
+        <div class="rpt-grp"><span>Unité de temps</span><div class="rpt-tfs" role="group" aria-label="Unité de temps">${TF_ORDER.map((k) => `<button type="button" data-tf="${k}" class="${k === viewTf ? 'is-on' : ''}">${TF[k][1]}</button>`).join('')}</div></div>
+        <div class="rpt-grp"><span>Outils</span><div class="rpt-tools"><button type="button" class="rpt-tb" data-act="ind">${IC.ind}<em>Indicateurs</em></button><label class="rpt-tb rpt-goto" title="Avancer jusqu’à une date">${IC.go}<input type="date" id="rpaGo" aria-label="Avancer jusqu’à une date"></label></div></div>
         <span class="rpt-sp"></span>
-        <span class="rpt-bal"><b id="rpaBal"></b><i id="rpaPnl"></i></span>
-        <div class="rpt-trade" role="group" aria-label="Passer un ordre">
+        <div class="rpt-grp"><span>Ordre</span><div class="rpt-trade" role="group" aria-label="Passer un ordre">
           <button type="button" class="rpt-sell" data-trade="sell"><small>Vendre</small><b id="rpaBid">—</b></button>
           <button type="button" class="rpt-adv" data-act="adv" aria-label="Réglages avancés de l’ordre" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-          <button type="button" class="rpt-buy" data-trade="buy"><small>Acheter</small><b id="rpaAsk">—</b></button>
+          <button type="button" class="rpt-buy" data-trade="buy"><small>Acheter</small><b id="rpaAsk">—</b></button></div></div>
+      </div>
+      <div class="rpt-win">
+        <div class="rpt-body">
+          <div class="rpt-chart"><div id="rpaChart" class="rpt-canvas"><div class="rpt-load">Chargement des bougies…</div></div>
+            <div class="rpt-player" role="group" aria-label="Lecture">
+              <button type="button" data-act="play" id="rpaPlay" aria-label="Lecture / pause">▶</button>
+              <button type="button" data-act="step" aria-label="Bougie suivante">⏭</button>
+              <span>${TF[S.tf][1]}</span>
+              <select id="rpaSpeed" aria-label="Vitesse">${[1, 2, 5, 10, 25, 50].map((v) => `<option value="${v}"${v === speed ? ' selected' : ''}>${v}x</option>`).join('')}</select>
+            </div>
+            <div class="rpt-indpop" id="rpaInd" hidden></div></div>
+          <aside class="rpt-panel" id="rpaPanel" hidden></aside>
+          <nav class="rpt-rail" aria-label="Volets">${[['order', 'Ordre'], ['pos', 'Positions'], ['journal', 'Journal'], ['stats', 'Statistiques'], ['scan', 'Scanner']].map(([k, l]) => `<button type="button" data-panel="${k}" title="${l}" aria-label="${l}">${IC[k]}</button>`).join('')}</nav>
         </div>
-        <button type="button" class="rpt-tb" data-act="export">Vers Backtesting</button>
-      </header>
-      <div class="rpt-body">
-        <div class="rpt-chart"><div id="rpaChart" class="rpt-canvas"><div class="rpt-load">Chargement des bougies…</div></div>
-          <div class="rpt-player" role="group" aria-label="Lecture">
-            <button type="button" data-act="play" id="rpaPlay" aria-label="Lecture / pause">▶</button>
-            <button type="button" data-act="step" aria-label="Bougie suivante">⏭</button>
-            <span>${TF[S.tf][1]}</span>
-            <select id="rpaSpeed" aria-label="Vitesse">${[1, 2, 5, 10, 25, 50].map((v) => `<option value="${v}"${v === speed ? ' selected' : ''}>${v}x</option>`).join('')}</select>
-          </div>
-          <div class="rpt-indpop" id="rpaInd" hidden></div></div>
-        <aside class="rpt-panel" id="rpaPanel" hidden></aside>
-        <nav class="rpt-rail" aria-label="Volets">${[['order', 'Ordre'], ['pos', 'Positions'], ['journal', 'Journal'], ['stats', 'Statistiques'], ['scan', 'Scanner']].map(([k, l]) => `<button type="button" data-panel="${k}" title="${l}" aria-label="${l}">${IC[k]}</button>`).join('')}</nav>
+      </div>
+      <div class="rpt-cards">
+        <section class="rpt-card" id="rpaCur"></section>
+        <section class="rpt-card"><div class="rpt-card__h"><span class="rpx-k">Derniers trades</span><button type="button" class="rpt-link" data-act="export">Envoyer vers Backtesting ›</button></div><div id="rpaLast"></div></section>
       </div></div>`;
     bind();
     try {
@@ -245,7 +292,7 @@
     try { chart.renderer.applyConfig({ candles: { upColor: '#089981', downColor: '#f23645', wickUpColor: '#089981', wickDownColor: '#f23645' }, timeScale: { timezone: 'Europe/Paris' } }); } catch (e) { /* couleurs par défaut */ }
     try { await chart.ready(); } catch (e) { /* prêt */ }
     // vue de départ : les ~150 dernières bougies (les 500 restent accessibles en reculant)
-    try { if (core && core.setVisibleRange && data.length) core.setVisibleRange({ from: data[Math.max(0, data.length - 150)].time, to: data[data.length - 1].time + TF[viewTf][0] * 25 }); } catch (e) { /* vue par défaut */ }
+    try { if (core && core.setVisibleRange && data.length) core.setVisibleRange({ from: data[Math.max(0, data.length - 150)].time, to: data[data.length - 1].time + TF[viewTf][0] * 45 }); } catch (e) { /* vue par défaut */ }
     try { chart.on('drawing:edited', (p) => onDrawingEdited(p && p.id)); } catch (e) { /* événement indisponible */ }
     for (const t of S.indicators) { try { await chart.addNativeIndicator(t); } catch (e) { /* indicateur absent */ } }
     scanHandles = [];
@@ -317,7 +364,7 @@
     drawDraft();
     openPanel('order', true);
   }
-  const posAnchors = (o) => { const t0 = o.openAt || S.cursor; const t1 = Math.max(t0, S.cursor) + TF[viewTf][0] * 30; return [{ time: t0, price: o.entry }, { time: t1, price: o.sl }, { time: t1, price: o.tp != null ? o.tp : o.entry + (o.entry - o.sl) * 2 }]; };
+  const posAnchors = (o) => { const lb = lastBase(); const t0 = o.openAt || (lb ? lb[0] : S.cursor); const t1 = Math.max(t0, S.cursor) + TF[viewTf][0] * 20; return [{ time: t0, price: o.entry }, { time: t1, price: o.sl }, { time: t1, price: o.tp != null ? o.tp : o.entry + (o.entry - o.sl) * 2 }]; };
   function addPosDrawing(o) {
     if (!chart || !chart.drawings) return null;
     try {
@@ -421,12 +468,14 @@
     set('rpaWhen', when(S.cursor)); set('rpaBal', money(S.balance + floating));
     if (p) { set('rpaAsk', p.toFixed(d)); set('rpaBid', p.toFixed(d)); }
     const pn = $('#rpaPnl'); if (pn) { const pct = (S.balance + floating - S.capital) / S.capital * 100; pn.textContent = `${pct >= 0 ? '+' : ''}${fr(pct, 2)} %`; pn.className = pct >= 0 ? 'is-up' : 'is-down'; }
+    set('rpaN', String(S.trades.length));
+    paintCards(p, d);
     const P = $('#rpaPanel'); if (!P || !panel) return;
     if (panel === 'order') return paintOrder();
     if (panel === 'pos') P.innerHTML = `<div class="rpt-ph"><span class="rp__k">Positions</span><h3>${S.orders.length} en cours</h3></div>` + (S.orders.length ? S.orders.map((o) => `<div class="rpt-pos is-${o.side}"><div class="rpt-pos__t"><b>${o.side === 'buy' ? 'Achat' : 'Vente'} ${fr(o.lots, 2)} lot</b>${o.status === 'pending' ? '<em>en attente</em>' : p ? `<span class="${pnlOf(o, p) >= 0 ? 'is-up' : 'is-down'}">${money(pnlOf(o, p))}</span>` : ''}</div><small>Entrée ${o.entry.toFixed(d)} · SL ${o.sl.toFixed(d)}${o.tp != null ? ' · TP ' + o.tp.toFixed(d) : ''} · ${fr(o.risk, 2)} %</small>
         <div class="rpt-pos__a">${o.status === 'open' ? `<button type="button" data-be="${o.id}">SL à l’entrée</button>` : ''}<button type="button" data-close="${o.id}">${o.status === 'pending' ? 'Annuler' : 'Clôturer'}</button></div></div>`).join('') : '<p class="rpt-empty">Aucune position. Clique sur Acheter ou Vendre.</p>');
     if (panel === 'journal') P.innerHTML = `<div class="rpt-ph"><span class="rp__k">Journal</span><h3>${S.trades.length} trade${S.trades.length > 1 ? 's' : ''}</h3></div>` + (S.trades.length ? `<ul class="rpt-jr">${S.trades.slice().reverse().map((t) => `<li class="is-${t.rr > 0.05 ? 'win' : t.rr < -0.05 ? 'loss' : 'flat'}"><div><b>${t.side === 'buy' ? 'Achat' : 'Vente'} · ${t.result}</b><span>${t.rr > 0 ? '+' : ''}${fr(t.rr, 2)} R · ${money(t.pnl)}</span></div><small>${when(t.open)} → ${when(t.close)}</small></li>`).join('')}</ul>` : '<p class="rpt-empty">Les trades clôturés arrivent ici.</p>');
-    if (panel === 'stats') { const x = stats(); P.innerHTML = `<div class="rpt-ph"><span class="rp__k">Statistiques</span><h3 class="${S.balance >= S.capital ? 'is-up' : 'is-down'}">${S.balance >= S.capital ? '+' : ''}${money(S.balance - S.capital)}</h3></div><div class="rpt-st">${[['Trades', x.n], ['Gagnants', fr(x.wr * 100, 1) + ' %'], ['Profit factor', x.pf == null ? '—' : fr(x.pf, 2)], ['Total', (x.R >= 0 ? '+' : '') + fr(x.R, 2) + ' R'], ['R moyen', (x.avgR >= 0 ? '+' : '') + fr(x.avgR, 2)], ['DD max', fr(x.dd * 100, 1) + ' %'], ['Pertes d’affilée', x.worst], ['Solde', money(S.balance)]].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>${spark(x.curve, 300, 80)}`; }
+    if (panel === 'stats') { const x = stats(); P.innerHTML = `<div class="rpt-ph"><span class="rp__k">Statistiques</span><h3 class="${S.balance >= S.capital ? 'is-up' : 'is-down'}">${S.balance >= S.capital ? '+' : ''}${money(S.balance - S.capital)}</h3></div><div class="rpt-st">${[['Trades', x.n], ['Gagnants', fr(x.wr * 100, 1) + ' %'], ['Profit factor', x.pf == null ? '—' : fr(x.pf, 2)], ['Total', (x.R >= 0 ? '+' : '') + fr(x.R, 2) + ' R'], ['R moyen', (x.avgR >= 0 ? '+' : '') + fr(x.avgR, 2)], ['DD max', fr(x.dd * 100, 1) + ' %'], ['Pertes d’affilée', x.worst], ['Solde', money(S.balance)]].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div><div class="rpt-curve">${area(x.curve, 300, 80, S.capital)}</div>`; }
     if (panel === 'scan') {
       const list = window.CHESTScanners ? CHESTScanners.list() : [];
       P.innerHTML = `<div class="rpt-ph"><span class="rp__k">Scanner</span><h3>${S.scanner ? esc((list.find((s) => s.id === S.scanner) || {}).name || S.scanner) : 'Aucun'}</h3></div>
@@ -435,6 +484,24 @@
       <p class="rpt-empty">${scanBusy ? 'Calcul en cours…' : scanAt ? 'À jour au ' + when(scanAt) : ''}</p>
       ${S.scanner ? '<button type="button" class="rpt-place is-ghost" data-act="scan">Mettre à jour maintenant</button>' : ''}`;
     }
+  }
+
+  // Bas de page (esprit Stratégies) : la position en cours et les derniers trades
+  function paintCards(p, d) {
+    const cur = $('#rpaCur'), lastEl = $('#rpaLast');
+    if (!cur || !lastEl) return;
+    const o = S.orders.find((x) => x.status === 'open') || S.orders[0];
+    if (!o) { cur.className = 'rpt-card'; cur.innerHTML = `<div class="rpt-card__h"><span class="rpx-k">Position en cours</span></div><p class="rpt-none">Aucune position. Clique sur <b class="is-up">Acheter</b> ou <b class="is-down">Vendre</b> en haut : la position se pose sur le graphique, tire ses poignées pour placer le SL et le TP.</p>`; }
+    else {
+      const live = o.status === 'open' && p ? pnlOf(o, p) : null, rr = o.status === 'open' && p ? rrOf(o, p) : null;
+      cur.className = 'rpt-card is-' + o.side;
+      cur.innerHTML = `<div class="rpt-card__h"><span class="rpx-k">Position en cours${S.orders.length > 1 ? ` · ${S.orders.length}` : ''}</span><span class="rpt-dot">${o.status === 'open' ? 'ouverte' : 'en attente'}</span></div>
+        <div class="rpt-cur"><b class="${o.side === 'buy' ? 'is-up' : 'is-down'}">${o.side === 'buy' ? 'Achat' : 'Vente'}</b><span>${esc(S.symbol)} · ${fr(o.lots, 2)} lot</span>${rr != null ? `<em class="${rr >= 0 ? 'is-up' : 'is-down'}">${rr >= 0 ? '+' : ''}${fr(rr, 1)} R</em>` : ''}</div>
+        <div class="rpt-lvls"><div><span>Entrée</span><b>${o.entry.toFixed(d)}</b></div><div><span>Stop</span><b class="is-down">${o.sl.toFixed(d)}</b></div><div><span>Objectif</span><b class="is-up">${o.tp != null ? o.tp.toFixed(d) : '—'}</b></div><div><span>En cours</span><b class="${live == null ? '' : live >= 0 ? 'is-up' : 'is-down'}">${live == null ? '—' : money(live)}</b></div></div>
+        <div class="rpt-cur__a">${o.status === 'open' ? `<button type="button" data-be="${o.id}">SL à l’entrée</button>` : ''}<button type="button" data-close="${o.id}">${o.status === 'pending' ? 'Annuler' : 'Clôturer'}</button></div>`;
+    }
+    const t = S.trades.slice(-6).reverse();
+    lastEl.innerHTML = t.length ? `<ul class="rpt-last">${t.map((x) => `<li><span class="is-mono">${new Date(x.close).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}</span><i class="${x.side === 'buy' ? 'is-buy' : 'is-sell'}">${x.side === 'buy' ? 'Achat' : 'Vente'}</i><span>${x.result === 'TP' ? 'Objectif touché' : x.result === 'SL' ? 'Stop' : 'Sortie à 0'}</span><b class="${x.rr > 0.05 ? 'is-up' : x.rr < -0.05 ? 'is-down' : ''}">${x.rr > 0 ? '+' : ''}${fr(x.rr, 1)} R</b></li>`).join('')}</ul>` : '<p class="rpt-none">Tes trades clôturés arrivent ici.</p>';
   }
 
   // ---------------------------------------------------------------- indicateurs et scanner
@@ -455,7 +522,7 @@
     if (!S || !S.scanner || scanBusy || !chart) return;
     scanBusy = true; paint();
     try {
-      const d = await api(`/replay/scan?script=${encodeURIComponent(S.scanner)}&symbol=${encodeURIComponent(S.symbol)}&tf=${viewTf}&to=${Math.round(S.cursor)}&n=1200`);
+      const d = await api(`/replay/scan?script=${encodeURIComponent(S.scanner)}&symbol=${encodeURIComponent(S.symbol)}&tf=${viewTf}&to=${Math.round(S.cursor)}&n=1200&session=${encodeURIComponent(S.id)}`);
       lastScan = d; scanAt = S.cursor;
       await mountScan(d);
     } catch (e) { toast(e.message); }
@@ -489,7 +556,7 @@
   }
 
   // ---------------------------------------------------------------- divers
-  function save() { if (!S) return; const l = loadAll().filter((x) => x.id !== S.id); l.unshift(JSON.parse(JSON.stringify(S, (k, v) => (k === 'dw' ? undefined : v)))); saveAll(l); }
+  function save() { if (!S) return; S.updated = Date.now(); const l = loadAll().filter((x) => x.id !== S.id); l.unshift(JSON.parse(JSON.stringify(S, (k, v) => (k === 'dw' ? undefined : v)))); saveAll(l); }
   function toast(t) { const el = document.createElement('div'); el.className = 'rpt-toast'; el.setAttribute('role', 'status'); el.textContent = t; document.body.appendChild(el); setTimeout(() => el.remove(), 2600); }
   async function exportBt() {
     if (!S.trades.length) return toast('Aucun trade clôturé à envoyer.');
@@ -564,5 +631,5 @@
     });
   }
 
-  window.CHESTReplay = { mount(el) { root = el; home(); } };
+  window.CHESTReplay = { async mount(el) { root = el; try { ME = await api('/replay/me'); } catch (e) { /* hors ligne : sans limite côté écran, le serveur tranche */ } home(); } };
 })();
