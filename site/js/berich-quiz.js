@@ -237,7 +237,9 @@
   function whyLines(c, goal) {
     const l = c.legs[0], p = prepOf(l.algo), out = [];
     out.push(`${esc(p.name)} a déjà enchaîné <b>${p.worstStreak} stops</b> : avec ce réglage, cette série coûterait <b>−${nf(streakCost(p, l.cfg) * 100, 1)} %</b>, puis il repart.`);
-    if (l.cfg.afterSl) out.push(`Après ${l.cfg.afterSl} stops d’affilée, le risque passe à ${rk(l.cfg.newRisk)} % et revient à ${rk(l.cfg.risk)} % au premier gain : les creux se creusent moins vite.`);
+    if (l.cfg.afterSl) out.push(l.cfg.newRisk > 0
+      ? `Après ${l.cfg.afterSl} stops d’affilée, le risque passe à ${rk(l.cfg.newRisk)} % et revient à ${rk(l.cfg.risk)} % au premier gain : les creux se creusent moins vite.`
+      : `Après ${l.cfg.afterSl} stops d’affilée, BERICH fait une pause (il ne prend plus les signaux) et reprend à ${rk(l.cfg.risk)} % dès le premier gain : les séries de pertes s’arrêtent net.`);
     out.push(`Rejoué sur son historique, ${eur(goal.capital)} seraient devenus <b>${eur(goal.capital * c.hist.mult)}</b>, avec un recul maximum de <b>−${nf(c.hist.maxDd * 100, 1)} %</b>.`);
     if (goal.account === 'propfirm') out.push(`Pire journée passée : −${nf(c.hist.worstDay * 100, 1)} %, sous la limite de perte du jour.`);
     return out;
@@ -263,7 +265,7 @@
     view.html = frame(`<div class="bq-res">
       <span class="br-label">Les possibilités de ${esc(p.name)}</span>
       <h2 id="bqH">${esc(p.name)}, ${rk(l.cfg.risk)} % par position.</h2>
-      <p class="bq-lead">${l.cfg.afterSl ? `${rk(l.cfg.newRisk)} % après ${l.cfg.afterSl} stops d’affilée, retour à ${rk(l.cfg.risk)} % au premier gain. ` : ''}${verdict}</p>
+      <p class="bq-lead">${l.cfg.afterSl ? (l.cfg.newRisk > 0 ? `${rk(l.cfg.newRisk)} % après ${l.cfg.afterSl} stops d’affilée, retour à ${rk(l.cfg.risk)} % au premier gain. ` : `Pause après ${l.cfg.afterSl} stops d’affilée, reprise à ${rk(l.cfg.risk)} % au premier gain. `) : ''}${verdict}</p>
       <div class="bq-res__top">
         <div class="bq-res__ring">${ring(c.pReach, 'de réussite')}<p>des futurs simulés touchent <b>${eur(goal.target)}</b> en ${dur(goal.months)}, ${feelOf(goal)}${c.monthsToGoal ? `.<br><span>En ${nf(c.monthsToGoal, 1)} mois en moyenne quand ils y arrivent.</span>` : '.'}</p></div>
         <dl class="bq-res__facts">

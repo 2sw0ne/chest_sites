@@ -656,7 +656,7 @@
       $('brKpis').innerHTML = kpi('Performance', signedPct(perf), `${eur(cap)} → ${eur(r.final)}`, tone(perf))
         + kpi('Recul max', r.maxDd ? '−' + pctTxt(r.maxDd, 1) : '0 %', 'depuis un plus haut', r.maxDd ? 'is-neg-txt' : '')
         + kpi('Pire série', r.worst ? `${r.worst} stops` : '—', L.length > 1 ? 'd’un algorithme' : 'd’affilée')
-        + kpi('Risque', rk(planTotal()) + ' %', L.length > 1 ? L.map((l) => `${nameOf(l.algo)} ${rk(l.cfg.risk)} %`).join(' · ') : L[0] && L[0].cfg.afterSl ? `${rk(L[0].cfg.newRisk)} % après ${L[0].cfg.afterSl} stops` : 'par position')
+        + kpi('Risque', rk(planTotal()) + ' %', L.length > 1 ? L.map((l) => `${nameOf(l.algo)} ${rk(l.cfg.risk)} %`).join(' · ') : L[0] && L[0].cfg.afterSl ? (L[0].cfg.newRisk > 0 ? `${rk(L[0].cfg.newRisk)} % après ${L[0].cfg.afterSl} stops` : `pause après ${L[0].cfg.afterSl} stops`) : 'par position')
         + kpi('Positions', String(sc.n), 'rejouées');
     } else {
       const st = stats(sc.list, sc.val);

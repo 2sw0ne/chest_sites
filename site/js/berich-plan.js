@@ -9,9 +9,11 @@
 (() => {
   'use strict';
   const MONTH = 30.44 * 86400000, WEEK = 7 * 86400000;
-  const RISKS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+  // 2026-11-14 (leçons de l'optimiseur du backtesting) : grille plus fine sous 1 %, et des paliers « pause » (0 = on ne
+  // prend plus les signaux de cet algorithme après N stops d'affilée, jusqu'au premier gain).
+  const RISKS = [0.25, 0.3, 0.4, 0.5, 0.6, 0.75, 0.85, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
   const MIX_RISKS = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5];
-  const TIERS = [null, [2, 0.5], [3, 0.5], [4, 0.5], [5, 0.5], [3, 0.25]];
+  const TIERS = [null, [2, 0.5], [3, 0.5], [4, 0.5], [5, 0.5], [3, 0.25], [2, 0], [3, 0], [4, 0]];
   const SIMS = 700, BLOCK_WEEKS = 2;
 
   function rng(seed) {
@@ -159,7 +161,7 @@
     const risks = min ? [round(min, 2)].concat(RISKS.filter((r) => r > min * 1.05)) : RISKS;
     risks.forEach((risk) => TIERS.forEach((tier) => {
       if (goal.account === 'propfirm' && risk > 3) return;
-      if (tier && min && risk * tier[1] < min) return; // palier réduit impossible sous le lot minimum
+      if (tier && tier[1] > 0 && min && risk * tier[1] < min) return; // palier réduit impossible sous le lot minimum (la pause, elle, l'est toujours)
       const c = candidate([p], [cfgOf(risk, tier)], goal);
       if (c) out.push(c);
     }));
@@ -244,7 +246,7 @@
   }
 
   const fmt = (v) => String(round(v, 2)).replace('.', ',') + ' %';
-  function describeCfg(cfg) { return cfg.afterSl ? `${fmt(cfg.risk)} par position, ${fmt(cfg.newRisk)} après ${cfg.afterSl} stops d’affilée` : `${fmt(cfg.risk)} par position`; }
+  function describeCfg(cfg) { return cfg.afterSl ? (cfg.newRisk > 0 ? `${fmt(cfg.risk)} par position, ${fmt(cfg.newRisk)} après ${cfg.afterSl} stops d’affilée` : `${fmt(cfg.risk)} par position, pause après ${cfg.afterSl} stops d’affilée (reprise au premier gain)`) : `${fmt(cfg.risk)} par position`; }
   // legs : [{ algo, cfg }], names : clé → nom.
   function describe(legs, names) {
     if (!Array.isArray(legs)) return describeCfg(legs);

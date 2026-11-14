@@ -6469,7 +6469,8 @@ def _berich_orders(db, user_id):
             if str(x.get("time") or "") < since:
                 continue
             if x.get("status") != "closed":
-                out.append(("OPEN", x, algo, risk))
+                if risk > 0:  # risque 0 = pause après N stops (2026-11-14) : le robot ne prend pas le signal
+                    out.append(("OPEN", x, algo, risk))
             elif x.get("result") == "BE":
                 out.append(("CLOSE", x, algo, risk))
     return plan, out
